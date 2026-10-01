@@ -11,6 +11,9 @@
 
 #include "VeyraGameplayAbility.generated.h"
 
+class UVeyraAbilityLoadoutComponent;
+struct FVeyraOverrideSpec;
+
 class UAbilitySystemComponent;
 struct FVeyraCastTuning;
 
@@ -68,6 +71,12 @@ public:
 	UVeyraGameplayAbility();
 
 	/**
+	 * Caster's Level in Progression, which Level-scaled amounts read (ADR-015 §3); 1 for a unit without
+	 * one. Effect preparation reads it too, for Level-scaled statuses.
+	 */
+	static int32 GetCasterLevel(const UAbilitySystemComponent& Caster);
+
+	/**
 	 * Why Caster may not cast this archetype, as content Ability, at Target now; None if it may. The
 	 * one validator: VeyraAbilities::TryCast asks it before activating.
 	 */
@@ -92,6 +101,22 @@ protected:
 	 */
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const;
 
+	/**
+	 * Opens FollowUp in Slot if Target dies, its kill credited to Caster, within WithinSeconds (ADR-030 §7):
+	 * a recast that a takedown earns.
+	 */
+	static void OpenOnFall(UWorld& World, UVeyraAbilityLoadoutComponent& Loadout, UAbilitySystemComponent& Caster, const AActor& Target,
+		EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, double WithinSeconds);
+
+	/** Whether Ability moves its caster, as a dash, leap or attach does: a Root refuses it (ADR-026 §3). */
+	virtual bool MovesCaster(const FVeyraContentId& Ability) const { return false; }
+
+	/**
+	 * Whether Ability may be cast during one of its caster's own dashes, taking over from it (ADR-031 §7).
+	 * Any other ability that moves its caster is refused until the dash ends.
+	 */
+	virtual bool TakesOverDash(const FVeyraContentId& Ability) const { return false; }
+
 	/** Whether casting Ability again now would end its lasting effect early instead (ADR-008 §9). */
 	virtual bool EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 
@@ -111,7 +136,7 @@ protected:
 	 * Server: Caster's cast of Ability committed. It is announced; a used-once override of it ends, and
 	 * its recast window, if it has one, opens in its slot (ADR-018 §1, §3).
 	 */
-	void NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+	void NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, AActor* Target = nullptr) const;
 
 	/** Delivers one tick of a channel; Tick counts from 1. */
 	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick);
@@ -131,11 +156,14 @@ protected:
 	 */
 	void EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 
+	/**
+	 * What Ability costs Caster at Rank now (Combat Bible §27; ADR-033 §3): its cost by rank, plus its share
+	 * of the caster's current resource, times the share its cost reductions leave.
+	 */
+	double CostFor(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const;
+
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
-
-	/** Caster's Level in Progression, which Level-scaled amounts read (ADR-015 §3); 1 for a unit without one. */
-	static int32 GetCasterLevel(const UAbilitySystemComponent& Caster);
 
 	/** The content this spec runs, from the combatant's loadout. */
 	FVeyraContentId GetContentId(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;

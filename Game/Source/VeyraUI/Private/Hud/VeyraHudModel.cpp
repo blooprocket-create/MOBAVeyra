@@ -2,6 +2,9 @@
 
 #include "Hud/VeyraHudModel.h"
 
+#include "Entities/VeyraPlacedMarker.h"
+#include "GameFramework/PlayerState.h"
+
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
@@ -42,9 +45,19 @@ namespace
 	}
 }
 
-TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
+const AActor& VeyraHud::PresentedUnitOf(const AActor& Unit, EVeyraTeam Viewer)
 {
-	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(&Unit);
+	const APlayerState* Owner = Marker ? Marker->GetPresentedAs() : nullptr;
+	// Only its owner's enemies are deceived; its owner's side sees its owner's illusion (ADR-030 §5).
+	const bool bDeceives = Owner && Viewer != EVeyraTeam::None && Viewer != Marker->GetVeyraTeam();
+	return bDeceives ? static_cast<const AActor&>(*Owner) : Unit;
+}
+
+TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit, EVeyraTeam Viewer)
+{
+	const AActor& Shown = PresentedUnitOf(Unit, Viewer);
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Shown);
 	if (!AbilitySystem || !AbilitySystem->HasAttributeSetForAttribute(UVeyraVitalsSet::GetHealthAttribute()))
 	{
 		return {};
@@ -56,8 +69,11 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 	{
 		Vitals.Resource = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
 		Vitals.MaxResource = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute());
+		const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(AbilitySystem->GetOwner());
+		const FVeyraVanguardDefinition* Definition = Participant ? UVeyraVanguardsTuningSubsystem::FindVanguard(Participant->GetVanguardId()) : nullptr;
+		Vitals.Family = Definition ? Definition->Resource : EVeyraResourceFamily::Mana;
 	}
-	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(Unit))
+	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(Shown))
 	{
 		for (const FVeyraShieldEntry& Shield : Absorption->GetLedger().Shields)
 		{
@@ -67,13 +83,20 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 	return Vitals;
 }
 
-TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNow)
+TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNow, EVeyraTeam Viewer)
 {
 	TArray<FVeyraHudStatus> Statuses;
-	if (const UVeyraStatusComponent* Ledger = FindBesideHudAbilitySystem<UVeyraStatusComponent>(Unit))
+	// A decoy shows its owner's statuses to its owner's enemies, but never the stealth its owner hides in.
+	const AActor& Shown = PresentedUnitOf(Unit, Viewer);
+	const bool bDecoy = &Shown != &Unit;
+	if (const UVeyraStatusComponent* Ledger = FindBesideHudAbilitySystem<UVeyraStatusComponent>(Shown))
 	{
 		for (const FVeyraStatusEntry& Entry : Ledger->GetLedger().Entries)
 		{
+			if (bDecoy && (Entry.Kind == EVeyraStatusKind::Invisible || Entry.Kind == EVeyraStatusKind::Camouflage))
+			{
+				continue;
+			}
 			Statuses.Add(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow), Entry.Stacks });
 		}
 	}
@@ -125,7 +148,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	Player.Vanguard = Participant.GetVanguardId();
 	if (const APawn* Vanguard = Participant.GetPawn())
 	{
-		Player.Vitals = VitalsOf(*Vanguard).Get(FVeyraHudVitals());
+		Player.Vitals = VitalsOf(*Vanguard, VeyraTeams::TeamOf(&Participant)).Get(FVeyraHudVitals());
 	}
 
 	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();
@@ -168,7 +191,8 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	{
 		FVeyraHudSlot& Shown = Player.Slots.AddDefaulted_GetRef();
 		Shown.Slot = Slot;
-		Shown.MaxRank = VeyraProgression::MaxRank(Slot, Tuning);
+		// The unit's own rank shape, once it has one (ADR-031 §2).
+		Shown.MaxRank = Progression && Progression->IsInitialized() ? Progression->GetMaxRank(Slot) : VeyraProgression::MaxRank(Slot, Tuning);
 		if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr)
 		{
 			Shown.Ability = Entry->Ability;

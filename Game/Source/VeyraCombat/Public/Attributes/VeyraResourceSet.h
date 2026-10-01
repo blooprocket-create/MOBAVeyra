@@ -9,8 +9,9 @@
 
 /**
  * The resource abilities spend (Combat Bible §27). Which resource family a Vanguard uses (the
- * standard resource, Mana; Focus; Charge; or none) is data, not a class per Vanguard (ADR-006 §4);
- * M3 backs the standard family only. A resource-less Vanguard has a Max Resource of 0.
+ * standard resource, Mana; Focus; Charge; or none) is data, not a class per Vanguard (ADR-006 §4). A
+ * resource-less Vanguard has a Max Resource of 0. A kept resource, as Charge, starts empty and nothing
+ * but effects fills it (ADR-033 §1).
  *
  * Resource is a pool like Health: only this set writes it, and spending arrives through the
  * ResourceSpend meta attribute, which VeyraCombat::SpendResource fills.
@@ -25,6 +26,10 @@ public:
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraResourceSet, MaxResource)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraResourceSet, ResourceSpend)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraResourceSet, ResourceRegen)
+
+	/** Server: whether the unit keeps its resource rather than having it refilled (ADR-033 §1). */
+	bool IsKept() const { return bKept; }
+	void SetKept(bool bInKept) { bKept = bInKept; }
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
@@ -62,4 +67,7 @@ private:
 	 */
 	UPROPERTY(ReplicatedUsing = OnRep_ResourceRegen)
 	FGameplayAttributeData ResourceRegen;
+
+private:
+	bool bKept = false;
 };

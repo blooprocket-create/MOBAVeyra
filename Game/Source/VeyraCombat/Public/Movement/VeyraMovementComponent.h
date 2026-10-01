@@ -12,6 +12,7 @@
 
 class UAbilitySystemComponent;
 class UVeyraStatusComponent;
+enum class EVeyraOwnMove : uint8;
 
 /** The custom movement modes of a combatant's body (MOVE_Custom's sub-mode). */
 UENUM()
@@ -47,11 +48,28 @@ public:
 	virtual float GetMaxSpeed() const override;
 
 	/**
+	 * Server: the share of its speed the unit keeps while its basic attack winds up, as a mobile
+	 * attacker does (ADR-027 §1); unset while it winds up standing, or does not attack.
+	 */
+	void SetWindupSpeedShare(TOptional<double> Share) { WindupSpeedShare = Share; }
+
+	/**
 	 * Server only: displaces the unit Distance units along Direction at Speed. The caller has applied
 	 * Displacement Resistance. A newer displacement replaces what is left of an older one, and
 	 * interrupts a dash (Combat Bible §9). Returns false if refused.
 	 */
 	bool StartDisplacement(const FVector& Direction, double Distance, double Speed);
+
+	/**
+	 * Server only: as StartDisplacement, and one that collides stops there and gives the unit
+	 * CollisionStatuses from Source (ADR-028 §3): terrain or the end of walkable ground shortens its
+	 * path, or its body meets another living Vanguard or a structure on the way. The source's own body
+	 * and units it already touches do not stop it.
+	 */
+	bool StartDisplacement(const FVector& Direction, double Distance, double Speed, UAbilitySystemComponent& Source, TArray<FVeyraStatusSpec> CollisionStatuses);
+
+	/** Server only: moves a forced move on by DeltaTime; its physics calls it each step, and tests may. */
+	void AdvanceForcedMove(float DeltaTime);
 
 	/** Server only: starts a dash. Refused, returning false, while the unit's movement is locked. */
 	bool StartDash(const FVeyraDash& Dash);
@@ -116,10 +134,17 @@ public:
 	 * the end then moves to the nearest walkable point within the tuned extent. With none that close,
 	 * it ends where it starts.
 	 */
-	FVector ResolveForcedMoveEnd(const FVector& Direction, double Distance) const;
+	FVector ResolveForcedMoveEnd(const FVector& Direction, double Distance, bool* bOutStopped = nullptr) const;
 
 	bool IsDisplaced() const;
 	bool IsDashing() const;
+
+	/**
+	 * Server: moves the body at once to the nearest walkable point at Destination, facing Facing unless it
+	 * is zero (Combat Bible §9; ADR-030 §4). A dash under way ends, and so does the body's move. False,
+	 * and no move, while displaced, fleeing or held on, or where no walkable point is near.
+	 */
+	bool Blink(const FVector& Destination, const FVector& Facing);
 
 	/** Where the displacement or dash under way ends. */
 	TOptional<FVector> GetForcedMoveDestination() const;
@@ -162,9 +187,15 @@ private:
 		FVector Destination = FVector::ZeroVector;
 		double Speed = 0.0;
 		EVeyraDashContact Contact = EVeyraDashContact::None;
+		/** Where a dash began, for the unit's own move as it ends (ADR-032 §1). */
+		FVector Origin = FVector::ZeroVector;
 		/** An attach's host, and when it lets go (world seconds). */
 		TWeakObjectPtr<AActor> Host;
 		double EndsAt = 0.0;
+		/** A displacement that collides: whose, what it gives, and whether terrain shortened its path. */
+		TWeakObjectPtr<UAbilitySystemComponent> CollisionSource;
+		TArray<FVeyraStatusSpec> CollisionStatuses;
+		bool bMeetsTerrain = false;
 	};
 
 	void BeginForcedMove(const FForcedMove& Move);
@@ -175,8 +206,23 @@ private:
 	void EndForcedMove();
 	void EndDash(EVeyraDashEndReason Reason, AActor* Contact);
 
+	/** Announces the unit's own move, from From to where it stands now (ADR-032 §1). */
+	void AnnounceOwnMove(EVeyraOwnMove Move, const FVector& From) const;
+
+	/** Bends a forced move of Distance along Direction through the movement fields of the unit's enemies (ADR-033 §5). */
+	void BendThroughFields(FVector& Direction, double& Distance) const;
+
 	/** The first living enemy unit the body touches moving from From to To, and where it touches. */
 	AActor* FindEnemyContact(const FVector& From, const FVector& To, FVector& OutContactLocation) const;
+
+	/**
+	 * The first living Vanguard or structure, other than the body and Ignored, the body meets moving from
+	 * From to To, and where it meets it; one it already touches is passed through.
+	 */
+	AActor* FindCollision(const FVector& From, const FVector& To, const AActor* Ignored, FVector& OutContactLocation) const;
+
+	/** A colliding displacement ends where it is, and gives its statuses. */
+	void Collide();
 
 	void RefreshMovementLock();
 
@@ -202,6 +248,8 @@ private:
 		double Seconds = 0.0;
 	};
 	TOptional<FRideDecay> RideDecay;
+
+	TOptional<double> WindupSpeedShare;
 
 	/** How far it has moved itself since TakeTravelled last read it. */
 	double Travelled = 0.0;

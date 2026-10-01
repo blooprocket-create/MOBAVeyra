@@ -212,6 +212,60 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Sized) && Capsule->GetCollisionResponseToChannel(ECC_Pawn) == Response));
 		}
 
+		/** Moves any forced move on to its end, in steps, as its physics would. */
+		void Settle() const
+		{
+			// Fixture values: a step, and more steps than any displacement here needs.
+			constexpr float StepSeconds = 0.05f;
+			constexpr int32 MaxSteps = 200;
+			for (int32 Step = 0; Step < MaxSteps && Movement->IsDisplaced(); ++Step)
+			{
+				Movement->AdvanceForcedMove(StepSeconds);
+			}
+		}
+
+		bool Stunned() const
+		{
+			return Unit->GetOwner()->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::Stun);
+		}
+
+		static FVeyraDisplacement Colliding(const FVector& Direction)
+		{
+			FVeyraStatusSpec Stun;
+			Stun.Id = FVeyraContentId::FromText(TEXT("collision_stun")).GetValue();
+			Stun.Kind = EVeyraStatusKind::Stun;
+			Stun.DurationSeconds = 60.0;
+			FVeyraDisplacement Out = KnockbackAlong(Direction);
+			Out.CollisionStatuses = { Stun };
+			return Out;
+		}
+
+		TEST_METHOD(AKnockbackIntoTerrainStunsWithItsCollisionStatuses)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, Colliding(FVector::ForwardVector))));
+			Settle();
+			ASSERT_THAT(IsTrue(!Movement->IsDisplaced() && Stunned(), TEXT("the wall stops it, and it is stunned (ADR-028 §3)")));
+		}
+
+		TEST_METHOD(AKnockbackIntoAVanguardStopsThereAndStuns)
+		{
+			UAbilitySystemComponent& Other = SpawnCombatant(Spawner);
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(Other, ExampleStats())));
+			AVeyraVanguardCharacter& Blocker = Spawner.SpawnActorAt<AVeyraVanguardCharacter>(FVector(-Distance / 2.0, 0.0, Start.Z), FRotator::ZeroRotator);
+			Blocker.SetPlayerState(CastChecked<APlayerState>(Other.GetOwner()));
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, Colliding(FVector::BackwardVector))));
+			Settle();
+			const double Reached = Movement->GetOwner()->GetActorLocation().X;
+			ASSERT_THAT(IsTrue(Reached > -Distance / 2.0 && Stunned(), *FString::Printf(TEXT("it stops at the Vanguard behind it: X %g"), Reached)));
+		}
+
+		TEST_METHOD(AKnockbackOverOpenGroundCollidesWithNothing)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, Colliding(FVector::BackwardVector))));
+			Settle();
+			ASSERT_THAT(IsTrue(FVector::Dist(Movement->GetOwner()->GetActorLocation(), Start - FVector(Distance, 0.0, 0.0)) <= Tolerance && !Stunned()));
+		}
+
 		TEST_METHOD(ANewerDisplacementReplacesTheOlder)
 		{
 			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));
@@ -232,6 +286,39 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(Movement->IsDisplaced()));
 			ASSERT_THAT(IsTrue(DashEnds == TArray<EVeyraDashEndReason>{ EVeyraDashEndReason::Interrupted }));
 			ASSERT_THAT(AreEqual(1, Interruptions));
+		}
+
+		TEST_METHOD(ABlinkCrossesTerrainAtOnceAndEndsADash)
+		{
+			TArray<EVeyraDashEndReason> DashEnds;
+			Movement->OnDashEnded.AddLambda([&DashEnds](const FVeyraDashEnd& End) { DashEnds.Add(End.Reason); });
+			ASSERT_THAT(IsTrue(VeyraCombat::Dash(*Unit, FVeyraDash{ FVector::BackwardVector, Distance, Speed, EVeyraDashContact::None })));
+			// Beyond the wall a dash would stop at (Combat Bible §9).
+			const FVector Beyond(WallFaceX + WallThickness + Distance, 0.0, Start.Z);
+			ASSERT_THAT(IsTrue(VeyraCombat::Blink(*Unit, Beyond, FVector::BackwardVector)));
+			const AActor& Body = *Movement->GetOwner();
+			ASSERT_THAT(IsTrue(FVector::Dist2D(Body.GetActorLocation(), Beyond) <= Tolerance,
+				FString::Printf(TEXT("at once, past the wall: %s"), *Body.GetActorLocation().ToString())));
+			ASSERT_THAT(IsTrue(Body.GetActorForwardVector().Equals(FVector::BackwardVector, KINDA_SMALL_NUMBER), TEXT("facing as asked")));
+			// The blink takes over the dash, which lands nothing (ADR-031 §7).
+			ASSERT_THAT(IsTrue(!Movement->IsDashing() && DashEnds == TArray<EVeyraDashEndReason>{ EVeyraDashEndReason::Replaced }));
+		}
+
+		TEST_METHOD(RootGroundedAndDisplacementRefuseABlink)
+		{
+			const FVector Aside(0.0, Distance, Start.Z);
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Root, EVeyraStatusKind::Grounded })
+			{
+				FVeyraStatusSpec Held;
+				Held.Id = FVeyraContentId::FromText(Kind == EVeyraStatusKind::Root ? TEXT("test_rooted") : TEXT("test_grounded")).GetValue();
+				Held.Kind = Kind;
+				Held.DurationSeconds = 60.0;
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy, *Unit, Held)));
+				ASSERT_THAT(IsFalse(VeyraCombat::Blink(*Unit, Aside), *UEnum::GetValueAsString(Kind)));
+				VeyraCombat::RemoveStatus(*Unit, Held.Id);
+			}
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));
+			ASSERT_THAT(IsFalse(VeyraCombat::Blink(*Unit, Aside), TEXT("nor while displaced")));
 		}
 
 		TEST_METHOD(NoDashWhileDisplacedOrStunned)

@@ -3,6 +3,7 @@
 #include "VeyraCombatVerbs.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attributes/VeyraAttributePolicy.h"
 #include "Attributes/VeyraDefenceSet.h"
@@ -13,14 +14,18 @@
 #include "Effects/VeyraCombatEffects.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 #include "Engine/World.h"
+#include "Entities/VeyraOwnedUnit.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Life/VeyraDeath.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "NavigationSystem.h"
 #include "Records/VeyraCombatRecords.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tags/VeyraHealthTags.h"
 #include "Tags/VeyraStatusTags.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
@@ -223,7 +228,10 @@ bool InitializeStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlo
 		AbilitySystem.SetNumericAttributeBase(Entry.Attribute, static_cast<float>(Entry.Value));
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
-	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	if (!IsResourceKept(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	}
 	return true;
 }
 
@@ -261,7 +269,11 @@ bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock
 	{
 		AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttribute(MaxHealth) - MissingHealth);
 	}
-	AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttribute(MaxResource) - MissingResource);
+	// A kept resource, as Charge, keeps what it holds as its most grows; any other keeps what it lacks (ADR-033 §1).
+	if (!IsResourceKept(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttribute(MaxResource) - MissingResource);
+	}
 	return true;
 }
 
@@ -473,11 +485,77 @@ bool Revive(UAbilitySystemComponent& AbilitySystem)
 		return false;
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
-	if (AbilitySystem.GetSet<UVeyraResourceSet>())
+	if (AbilitySystem.GetSet<UVeyraResourceSet>() && !IsResourceKept(AbilitySystem))
 	{
 		AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
 	}
 	return true;
+}
+
+bool Withdraw(UAbilitySystemComponent& AbilitySystem)
+{
+	if (!VeyraDeath::Withdraw(AbilitySystem))
+	{
+		return false;
+	}
+	// The dead hold no Health, however they died.
+	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), 0.0f);
+	return true;
+}
+
+bool KeepResource(UAbilitySystemComponent& AbilitySystem)
+{
+	for (UAttributeSet* Set : AbilitySystem.GetSpawnedAttributes())
+	{
+		if (UVeyraResourceSet* Resource = Cast<UVeyraResourceSet>(Set))
+		{
+			Resource->SetKept(true);
+			AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), 0.0f);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool IsResourceKept(const UAbilitySystemComponent& AbilitySystem)
+{
+	const UVeyraResourceSet* Resource = AbilitySystem.GetSet<UVeyraResourceSet>();
+	return Resource && Resource->IsKept();
+}
+
+void NoteAttackCommitted(UAbilitySystemComponent& Attacker)
+{
+	const AActor* Owner = Attacker.GetOwner();
+	if (UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
+	{
+		Statuses->NoteAttackCommitted();
+	}
+}
+
+double GetCostShare(const UAbilitySystemComponent& Unit)
+{
+	const AActor* Owner = Unit.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses ? Statuses->GetRetained(EVeyraStatusKind::ResourceCostReduction) : 1.0;
+}
+
+UAbilitySystemComponent* ResponsibleFor(UAbilitySystemComponent* Source)
+{
+	// Owners are followed to the first unit owned by none; one already passed ends a cycle where it began.
+	TArray<const UAbilitySystemComponent*, TInlineAllocator<4>> Passed;
+	UAbilitySystemComponent* Responsible = Source;
+	while (Responsible && !Passed.Contains(Responsible))
+	{
+		Passed.Add(Responsible);
+		const IVeyraOwnedUnit* Owned = Cast<IVeyraOwnedUnit>(Responsible->GetOwner());
+		UAbilitySystemComponent* Owner = Owned ? Owned->GetOwnerAbilities() : nullptr;
+		if (!Owner)
+		{
+			break;
+		}
+		Responsible = Owner;
+	}
+	return Responsible;
 }
 
 FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage)
@@ -569,7 +647,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	// to what a hit dealt (ADR-023 §4).
 	if (Events && VeyraTargeting::AreHostile(Source->GetOwner(), Target.GetOwner()))
 	{
-		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery });
+		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery, ResponsibleFor(Source) });
 		Events->OnDamageDealt.Broadcast(Dealt);
 	}
 	return true;
@@ -676,14 +754,20 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 	const bool bObjective = TargetKind.IsSet() && TargetKind.GetValue() == EVeyraUnitKind::Objective;
 	if ((IsStructureUnit(Target) || bObjective) && VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner))
 	{
-		// A neutral objective ignores them too, as League's objectives ignore crowd control (ADR-014 §4).
+		// A neutral objective ignores them too, as objectives ignore crowd control (ADR-014 §4).
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: enemy statuses do not affect structures (Combat Bible §33) or objectives."),
 			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
-	if (IsWardUnit(Target))
+	if (IsWardUnit(Target) || VeyraUnits::IsMarker(TargetOwner))
 	{
-		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: no status affects a ward (ADR-016 §6)."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: no status affects a ward or a placed marker (ADR-016 §6; ADR-030 §5)."),
+			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		return false;
+	}
+	if (!Status.LandsOn.IsEmpty() && !(TargetKind.IsSet() && Status.LandsOn.Contains(TargetKind.GetValue())))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: it lands only on some kinds of unit (ADR-026 §2)."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
 	// Unstoppable refuses an enemy's crowd control; immunity to displacement refuses a Knockup (§8, §9).
@@ -718,6 +802,13 @@ bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
 	return Statuses && Statuses->Remove(Id);
 }
 
+bool RemoveStatusFrom(UAbilitySystemComponent& Target, const FVeyraContentId& Id, const UAbilitySystemComponent& Source)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->RemoveFrom(Id, Source);
+}
+
 bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source)
 {
 	AActor* TargetOwner = Target.GetOwner();
@@ -742,7 +833,7 @@ bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& S
 	return true;
 }
 
-void EndCamouflage(UAbilitySystemComponent& Unit)
+void EndStealth(UAbilitySystemComponent& Unit)
 {
 	const AActor* Owner = Unit.GetOwner();
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
@@ -750,18 +841,34 @@ void EndCamouflage(UAbilitySystemComponent& Unit)
 	{
 		return;
 	}
-	TArray<FVeyraContentId, TInlineAllocator<2>> Camouflage;
+	TArray<FVeyraContentId, TInlineAllocator<2>> Stealth;
 	for (const FVeyraStatusEntry& Entry : Statuses->GetLedger().Entries)
 	{
-		if (Entry.Kind == EVeyraStatusKind::Camouflage)
+		if (Entry.Kind == EVeyraStatusKind::Camouflage || Entry.Kind == EVeyraStatusKind::Invisible)
 		{
-			Camouflage.AddUnique(Entry.Id);
+			Stealth.AddUnique(Entry.Id);
 		}
 	}
-	for (const FVeyraContentId& Id : Camouflage)
+	for (const FVeyraContentId& Id : Stealth)
 	{
 		RemoveStatus(Unit, Id);
 	}
+}
+
+bool HasStatusFrom(const AActor* Unit, const FVeyraContentId& Id, const UAbilitySystemComponent& Source)
+{
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->HasFrom(Id, Source);
+}
+
+bool HasStatusKindFromSide(const AActor* Unit, EVeyraStatusKind Kind, EVeyraTeam Side)
+{
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->HasFromSide(Kind, Side);
 }
 
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
@@ -848,7 +955,10 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	const double Retained = Target.GetSet<UVeyraDefenceSet>() ? Target.GetNumericAttribute(UVeyraDefenceSet::GetDisplacementRetainedAttribute()) : 1.0;
 	const AActor* Body = Movement->GetOwner();
 	const FVector From = Body ? Body->GetActorLocation() : FVector::ZeroVector;
-	if (!Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed))
+	const bool bStarted = Displacement.CollisionStatuses.IsEmpty()
+		? Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed)
+		: Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed, Source, Displacement.CollisionStatuses);
+	if (!bStarted)
 	{
 		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a displacement of %s by %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
 			*GetNameSafe(Target.GetOwner()), Displacement.Distance, Displacement.Speed);
@@ -880,11 +990,59 @@ bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash)
 	{
 		return false;
 	}
+	// Rooted or grounded, a unit cannot move by its own abilities, nor by a passive's lunge or an ability
+	// cast before the status arrived (ADR-026 §3; ADR-028 §2).
+	if (EnumHasAnyFlags(GetActionBlocks(Unit), EVeyraActionBlocks::Dash))
+	{
+		return false;
+	}
 	const bool bLocked = Movement->IsMovementLocked();
 	const bool bStarted = Movement->StartDash(Dash);
 	UE_CLOG(!bStarted && !bLocked, LogVeyraCombat, Error, TEXT("Refused a dash by %s of %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
 		*GetNameSafe(Unit.GetOwner()), Dash.Distance, Dash.Speed);
 	return bStarted;
+}
+
+bool Blink(UAbilitySystemComponent& Unit, const FVector& Destination, const FVector& Facing)
+{
+	UVeyraMovementComponent* Movement = FindMovement(Unit);
+	// A blink is the unit's own movement: whatever stops a dash stops it too (ADR-028 §2).
+	if (!Movement || IsDeadUnit(Unit) || EnumHasAnyFlags(GetActionBlocks(Unit), EVeyraActionBlocks::Dash))
+	{
+		return false;
+	}
+	return Movement->Blink(Destination, Facing);
+}
+
+bool BlinkBeside(UAbilitySystemComponent& Unit, const AActor& Target, double Distance, FVector& OutLanding, FVector& OutFacing)
+{
+	const AActor* Body = Unit.GetAvatarActor();
+	if (!Body)
+	{
+		return false;
+	}
+	FVector Away = (Body->GetActorLocation() - Target.GetActorLocation()).GetSafeNormal2D();
+	if (Away.IsNearlyZero())
+	{
+		Away = -Target.GetActorForwardVector().GetSafeNormal2D();
+	}
+	const double Gap = Target.GetSimpleCollisionRadius() + Body->GetSimpleCollisionRadius() + Distance;
+	OutLanding = Target.GetActorLocation() + Away * Gap;
+	OutFacing = -Away;
+	return Blink(Unit, OutLanding, OutFacing);
+}
+
+FVector NearestGround(const UWorld& World, const FVector& Point)
+{
+	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(&World);
+	const ANavigationData* NavData = Navigation ? Navigation->GetDefaultNavDataInstance() : nullptr;
+	FNavLocation Walkable;
+	const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
+	if (!NavData || !Navigation->ProjectPointToNavigation(Point, Walkable, FVector(Extent), NavData))
+	{
+		return Point;
+	}
+	return FVector(Walkable.Location.X, Walkable.Location.Y, Point.Z);
 }
 
 void SetCastLocksMovement(UAbilitySystemComponent& Unit, bool bLocks)

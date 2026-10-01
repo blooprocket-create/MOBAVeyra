@@ -227,6 +227,25 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(TActorIterator<AVeyraProjectile>(&Spawner.GetWorld()) ? true : false, TEXT("the shot still leaves")));
 		}
 
+		TEST_METHOD(ARootedOrGroundedCasterCannotRecoil)
+		{
+			// The recoil moves the caster by its own ability, which both refuse (ADR-026 §3; ADR-028 §2).
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(0.0, Range * 2.0, 0.0));
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Root, EVeyraStatusKind::Grounded })
+			{
+				FVeyraStatusSpec Held;
+				Held.Id = ArchetypeTestId(Kind == EVeyraStatusKind::Root ? TEXT("test_rooted") : TEXT("test_grounded"));
+				Held.Kind = Kind;
+				Held.DurationSeconds = Range;
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy.GetAbilitySystemComponent(), *Caster->GetAbilitySystemComponent(), Held)));
+				ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::E, FVector(Range, 0.0, 0.0)) == EVeyraCastRejection::CrowdControlled,
+					*UEnum::GetValueAsString(Kind)));
+				VeyraCombat::RemoveStatus(*Caster->GetAbilitySystemComponent(), Held.Id);
+			}
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::E, FVector(Range, 0.0, 0.0)) == EVeyraCastRejection::None, TEXT("free again")));
+		}
+
 		TEST_METHOD(ValidationKeepsItToOneWithADistanceAndASpeed)
 		{
 			constexpr int32 RankCounts[] = { 5, 3 };

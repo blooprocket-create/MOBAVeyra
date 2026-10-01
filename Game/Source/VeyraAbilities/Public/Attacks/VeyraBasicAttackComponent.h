@@ -62,6 +62,18 @@ public:
 	/** Server: whether an empowerment waits for the next attack. */
 	bool IsEmpowered() const;
 
+	/** Server: for Seconds, each attack offers Impact, as a buff's piercing shots do (ADR-027 §3). */
+	void OfferImpactWhileLasting(FVeyraSecondaryImpact Impact, double Seconds);
+
+	/**
+	 * Server: the share of its speed the attacker keeps through a windup, set by a passive such as
+	 * Never Break Stride (ADR-027 §1); 0, the default, stands still.
+	 */
+	void SetWindupMovement(double Share);
+
+	/** The share in force: the larger of the passive's and its strongest MobileAttack status. */
+	double GetWindupMovementShare() const;
+
 	/** On every machine: the empowerment waiting for the next attack, as presentation shows it. */
 	const FVeyraAttackEmpowermentView& GetEmpowermentView() const { return EmpowermentView; }
 
@@ -83,11 +95,20 @@ public:
 	AActor* GetChainTarget() const { return ChainTarget.Get(); }
 	int32 GetChain() const { return Chain; }
 
-	/** Server: at Commit, before its damage is prepared, so attack modifiers can add to the attack. */
+	/**
+	 * Server: at Commit, before its damage is prepared, so attack modifiers can add to the attack. Never
+	 * for a missed attack (ADR-028 §1): nothing a modifier adds would land, and some act at once.
+	 */
 	TMulticastDelegate<void(FVeyraAttackPlan&)> OnModifyAttack;
 
 	/** Server: On Attack, when an attack commits (Combat Bible §16). */
 	TMulticastDelegate<void(const FVeyraAttackEvent&)> OnAttack;
+
+	/**
+	 * Server: as an attack connects, before its damage and statuses: what the attack consumes from its
+	 * target is still there, even when the attack kills it.
+	 */
+	TMulticastDelegate<void(const FVeyraAttackEvent&)> OnLanding;
 
 	/** Server: On Hit, when an attack connects with its target. */
 	TMulticastDelegate<void(const FVeyraAttackEvent&)> OnHit;
@@ -113,6 +134,12 @@ private:
 		TWeakObjectPtr<AActor> Target;
 		double StartedAt = 0.0;
 		FVeyraAttackTiming Timing;
+
+		/**
+		 * Whether an empowerment waited as it started: its windup and its payload both follow it, so one
+		 * that lapses mid-windup still empowers the attack it quickened (ADR-027 §2).
+		 */
+		bool bEmpowered = false;
 	};
 
 	/** What a committed attack does when it lands, prepared at Commit. */
@@ -130,7 +157,8 @@ private:
 		TArray<FVeyraStatusSpec> ImpactStatuses;
 	};
 
-	FVeyraAttackPlan BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing);
+	/** The attack's plan; a missed one spends its empowerment as any attack does, but no modifier acts on it. */
+	FVeyraAttackPlan BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart, bool bMissed);
 	FLandingAttack Prepare(UAbilitySystemComponent& Attacker, const AActor& Body, const FVeyraAttackPlan& Plan) const;
 	void Land(const FLandingAttack& Landing);
 
@@ -161,6 +189,15 @@ private:
 
 	TOptional<FRunningAttack> Running;
 	double NextAttackAt = 0.0;
+	double BaseWindupShare = 0.0;
+
+	/** Server only: impacts buffs offer, until when. */
+	struct FTimedImpact
+	{
+		FVeyraSecondaryImpact Impact;
+		double Until = 0.0;
+	};
+	TArray<FTimedImpact> TimedImpacts;
 
 	TOptional<FVeyraAttackEmpowerment> Empowerment;
 	double EmpowermentExpiresAt = 0.0;

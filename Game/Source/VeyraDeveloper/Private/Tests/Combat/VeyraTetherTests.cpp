@@ -171,6 +171,19 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(*Target, TEXT("test_tethered"))));
 		}
 
+		TEST_METHOD(AHostileTetherBreaksOnUntargetability)
+		{
+			ASSERT_THAT(IsTrue(Tether(Spec(LongSeconds))));
+			FVeyraStatusSpec Vanish;
+			Vanish.Id = FVeyraContentId::FromText(TEXT("test_untargetable")).GetValue();
+			Vanish.Kind = EVeyraStatusKind::Untargetable;
+			Vanish.DurationSeconds = LongSeconds;
+			UAbilitySystemComponent& Held = *Target->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Held, Held, Vanish)));
+			Wait(CheckSeconds() * 2.0);
+			ASSERT_THAT(IsTrue(Ends.Num() == 1 && Ends[0].Reason == EVeyraTetherEndReason::Untargetable, TEXT("Combat Bible §43")));
+		}
+
 		TEST_METHOD(ItEndsWithItsTimeAndWithADeath)
 		{
 			ASSERT_THAT(IsTrue(Tether(Spec(ShortSeconds))));

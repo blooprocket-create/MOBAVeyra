@@ -32,7 +32,7 @@ namespace VeyraVanguardsTests
 		static TArray<FString> ValidateAgainstCommitted(const FVeyraVanguardsTuning& Tuning)
 		{
 			const FVeyraProgressionTuning& Progression = UVeyraProgressionTuningSubsystem::Get();
-			return VeyraVanguardRules::Validate(Tuning, UVeyraAbilitiesTuningSubsystem::Get(), Progression.BasicAbilityMaxRank, Progression.UltimateMaxRank);
+			return VeyraVanguardRules::Validate(Tuning, UVeyraAbilitiesTuningSubsystem::Get(), Progression);
 		}
 
 		static bool Mentions(const TArray<FString>& Problems, const TCHAR* Pointer)
@@ -50,18 +50,31 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Problems.IsEmpty(), FString::Join(Problems, TEXT(" | "))));
 		}
 
-		TEST_METHOD(TheTenKitsArePlayableAndTheTestVanguardIsNot)
+		TEST_METHOD(TheReleasedKitsArePlayableAndTheTestVanguardIsNot)
 		{
 			// Only Playable Vanguards are released: the backend's catalog lists them, and a Shipping
 			// match server hosts nothing else (ADR-010 §6).
 			for (const TCHAR* Released : { TEXT("cairn"), TEXT("qazharr"), TEXT("oriel"), TEXT("bryn"), TEXT("kade"), TEXT("vera"), TEXT("mimzi"),
-					 TEXT("patch"), TEXT("gorraveth"), TEXT("raska") })
+					 TEXT("patch"), TEXT("gorraveth"), TEXT("raska"), TEXT("moro"), TEXT("korruk"), TEXT("mavra"), TEXT("celandrine"), TEXT("aurelisse"), TEXT("silt"), TEXT("torr"), TEXT("tavi"), TEXT("angeru") })
 			{
 				const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(VanguardTestId(Released));
 				ASSERT_THAT(IsTrue(Definition && Definition->Availability == EVeyraVanguardAvailability::Playable, Released));
 			}
 			const FVeyraVanguardDefinition* TestVanguard = UVeyraVanguardsTuningSubsystem::FindVanguard(VanguardTestId(TEXT("test_vanguard")));
 			ASSERT_THAT(IsTrue(TestVanguard && TestVanguard->Availability == EVeyraVanguardAvailability::Developer));
+		}
+
+		TEST_METHOD(ARankShapeDecidesHowManyRanksEachSlotsAbilitiesNeed)
+		{
+			// Tavi's abilities have five ranks; under a shape that ranks Q, W and E to 6 they no longer fit,
+			// and a shape Progression does not define is named as such (ADR-031 §2).
+			FVeyraVanguardsTuning Shaped = UVeyraVanguardsTuningSubsystem::Get();
+			Shaped.Vanguards.FindChecked(VanguardTestId(TEXT("tavi"))).RankShape = { VanguardTestId(TEXT("dual_stance")) };
+			Shaped.Vanguards.FindChecked(VanguardTestId(TEXT("torr"))).RankShape = { VanguardTestId(TEXT("no_such_shape")) };
+			const TArray<FString> Problems = ValidateAgainstCommitted(Shaped);
+			const FString All = FString::Join(Problems, TEXT(" | "));
+			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/vanguards/tavi/abilities/q/0: in this slot,")), All));
+			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/vanguards/torr/rankShape/0:")), All));
 		}
 
 		TEST_METHOD(ValidationCatchesWhatTheSchemaCannot)

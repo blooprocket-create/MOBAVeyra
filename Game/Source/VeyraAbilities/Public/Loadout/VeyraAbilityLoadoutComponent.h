@@ -58,6 +58,14 @@ struct FVeyraSlotOverride
 	UPROPERTY(NotReplicated)
 	FName Group;
 
+	/**
+	 * The slot's own ability it belongs to, as a follow-up belongs to the ability whose cast opened it:
+	 * while the slot holds another own ability, as in another stance, it waits unseen (ADR-031 §3). None
+	 * for one that holds the slot whatever its own ability, as a variant or a ride's set does.
+	 */
+	UPROPERTY()
+	FVeyraContentId Over;
+
 	/** Server only: whether it casts itself as its time runs out. */
 	UPROPERTY(NotReplicated)
 	bool bCastOnExpiry = false;
@@ -85,6 +93,9 @@ struct FVeyraOverrideSpec
 
 	/** Whether it cools down as its slot's own ability, one cooldown for both; else it keeps its own. */
 	bool bSharesCooldown = false;
+
+	/** The slot's own ability it belongs to, or None for any (FVeyraSlotOverride::Over). */
+	FVeyraContentId Over;
 };
 
 /**
@@ -111,7 +122,20 @@ public:
 	/** Server only: empties Slot, taking back its ability, as when an item with an Active leaves its slot. */
 	void Clear(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot);
 
-	/** What Slot holds now: its override while one lasts, else its own ability. */
+	/**
+	 * Server only: Slot's own ability becomes Ability, the present one stowed with its grant and its
+	 * cooldown (ADR-031 §3). An ability stowed there before comes back as it was; a cast of the stowed one
+	 * still running finishes. Returns false if Slot holds nothing or no archetype defines Ability.
+	 */
+	bool SwapOwn(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability);
+
+	/** Server only: what Slot stowed, if anything (ADR-031 §3). */
+	const FVeyraLoadoutEntry* FindStowed(EVeyraAbilitySlot Slot) const;
+
+	/** Server: visits every ability it holds, its own, its stowed ones and its overrides', once each. */
+	void ForEachAbility(TFunctionRef<void(const FVeyraLoadoutEntry&)> Visit) const;
+
+	/** What Slot holds now: its override while one lasts and belongs to its own ability, else its own ability. */
 	const FVeyraLoadoutEntry* FindSlot(EVeyraAbilitySlot Slot) const;
 
 	/** Slot's own ability, whatever override holds it now. */
@@ -120,7 +144,10 @@ public:
 	/** Slot's override now, if one holds it. */
 	const FVeyraSlotOverride* FindOverride(EVeyraAbilitySlot Slot) const;
 
-	/** Ability's entry, its own or an override's: an override shares its slot's rank (ADR-018 §1). */
+	/**
+	 * Ability's entry, its own, a stowed one's on the server, or an override's: an override and a stowed
+	 * ability share their slot's rank (ADR-018 §1; ADR-031 §3).
+	 */
 	const FVeyraLoadoutEntry* FindAbility(const FVeyraContentId& Ability) const;
 	const FVeyraLoadoutEntry* FindHandle(FGameplayAbilitySpecHandle Handle) const;
 
@@ -139,10 +166,13 @@ public:
 	/** Server: Ability committed; a used-once override of it ends, with its group. */
 	void NoteCommitted(UAbilitySystemComponent& AbilitySystem, const FVeyraContentId& Ability);
 
-	/** Whether Slot holds an override now. */
+	/** Whether Slot shows an override now. */
 	bool IsOverridden(EVeyraAbilitySlot Slot) const;
 
-	/** The ID Ability cools down under: its slot's own ability's for an override that shares it, else its own. */
+	/**
+	 * The ID Ability cools down under: for an override that shares it, the own ability it belongs to, or
+	 * its slot's own ability; else its own.
+	 */
 	FVeyraContentId CooldownIdOf(const FVeyraContentId& Ability) const;
 
 	const TArray<FVeyraSlotOverride>& GetOverrides() const { return Overrides; }
@@ -165,6 +195,9 @@ private:
 	/** Removes the override at Index, its ability leaving once it ends. */
 	void RemoveOverrideAt(UAbilitySystemComponent& AbilitySystem, int32 Index);
 
+	/** Whether Override shows in its slot now: it belongs to any own ability, or to the one there (ADR-031 §3). */
+	bool IsShown(const FVeyraSlotOverride& Override) const;
+
 	UPROPERTY(Replicated)
 	TArray<FVeyraLoadoutEntry> Entries;
 
@@ -173,6 +206,9 @@ private:
 
 	/** Server: overrides that ended while their ability still ran, so its cast can still name it. */
 	TArray<FVeyraLoadoutEntry> Retired;
+
+	/** Server: own abilities a stance put away, each with its grant, to come back to its slot (ADR-031 §3). */
+	TArray<FVeyraLoadoutEntry> Stowed;
 
 	/** Server: each timed override's timer, by slot. */
 	TMap<EVeyraAbilitySlot, FTimerHandle> OverrideTimers;

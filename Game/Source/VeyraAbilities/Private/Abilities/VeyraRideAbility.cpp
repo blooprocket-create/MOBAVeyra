@@ -9,8 +9,10 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
 #include "VeyraAbilitiesVerbs.h"
 #include "VeyraCombatVerbs.h"
@@ -60,10 +62,11 @@ FVeyraChannelPlan UVeyraRideAbility::Deliver(const FVeyraCast& Cast)
 	{
 		return FVeyraChannelPlan();
 	}
-	// A newer ride replaces the older: the older's statuses and mounted actions go first.
-	if (Rider.IsValid())
+	// A newer ride replaces the older, whichever ability began it: the older ends as any ride ends, its crash, its
+	// statuses, its mounted actions and its time with it, so nothing of it outlasts the change.
+	if (VeyraCombat::IsRiding(*Caster))
 	{
-		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Dismounted);
+		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Replaced);
 	}
 	if (!VeyraCombat::StartRide(*Caster, FVeyraRide{ Tuning->SetSpeed, Tuning->TurnRateDegreesPerSecond, Tuning->DecaySeconds }))
 	{
@@ -74,6 +77,18 @@ FVeyraChannelPlan UVeyraRideAbility::Deliver(const FVeyraCast& Cast)
 	RideAbility = Cast.Ability;
 	RideRank = Cast.Rank;
 	RideCastId = Cast.CastId;
+	// After any older ride's end, which crashed with its own.
+	CrashZones = VeyraAreaDelivery::PrepareZones(*Caster, Tuning->CrashZones, Cast.Rank);
+	// What its body does to what it meets, from the rider's rank and power now (ADR-035 §6).
+	if (!Tuning->Contact.IsEmpty())
+	{
+		const FVeyraRideContactTuning& Contact = Tuning->Contact[0];
+		ContactEffects = VeyraEffectDelivery::Prepare(*Caster, Contact.EnemyEffects, Cast.Rank);
+		if (!Contact.AllyEffects.IsEmpty())
+		{
+			ContactHelp = VeyraAreaDelivery::PrepareAllyEffects(*Caster, Contact.AllyEffects[0], Cast.Rank);
+		}
+	}
 	const int32 Level = GetCasterLevel(*Caster);
 	for (const FVeyraContentId& StatusId : Tuning->RiderStatuses)
 	{
@@ -110,7 +125,106 @@ FVeyraChannelPlan UVeyraRideAbility::Deliver(const FVeyraCast& Cast)
 			Ability->Expire();
 		}
 	}), static_cast<float>(Tuning->DurationSeconds), /*bLoop*/ false);
+	// Its contact and its trail look about them as it sets off, then on their pulses (ADR-035 §6).
+	if (!Tuning->Contact.IsEmpty())
+	{
+		World->GetTimerManager().SetTimer(ContactTimer, FTimerDelegate::CreateWeakLambda(Caster, [Self]() {
+			if (UVeyraRideAbility* Ability = Self.Get())
+			{
+				Ability->PulseContact();
+			}
+		}), static_cast<float>(Tuning->Contact[0].PulseSeconds), /*bLoop*/ true);
+		PulseContact();
+	}
+	if (!Tuning->Trail.IsEmpty())
+	{
+		TrailFrom = Body->GetActorLocation();
+		TrailTravelled = Tuning->Trail[0].Spacing;
+		World->GetTimerManager().SetTimer(TrailTimer, FTimerDelegate::CreateWeakLambda(Caster, [Self]() {
+			if (UVeyraRideAbility* Ability = Self.Get())
+			{
+				Ability->PulseTrail();
+			}
+		}), static_cast<float>(Tuning->Trail[0].PulseSeconds), /*bLoop*/ true);
+		PulseTrail();
+	}
 	return FVeyraChannelPlan();
+}
+
+void UVeyraRideAbility::PulseContact()
+{
+	UAbilitySystemComponent* Caster = Rider.Get();
+	const FVeyraRideAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindRide(RideAbility);
+	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	UWorld* World = GetWorld();
+	if (!Caster || !Tuning || Tuning->Contact.IsEmpty() || !Body || !World || !ContactEffects.IsSet())
+	{
+		return;
+	}
+	const FVeyraRideContactTuning& Contact = Tuning->Contact[0];
+	// Struck along the ride's line, so a knock aside pushes off it.
+	const UVeyraMovementComponent* Movement = Watched.Get();
+	FVeyraEffectFrame Frame;
+	Frame.Origin = Body->GetActorLocation();
+	Frame.Direction = Movement ? Movement->GetRideHeading() : Body->GetActorForwardVector().GetSafeNormal2D();
+	FVeyraShape Touch;
+	Touch.Kind = EVeyraShapeKind::Circle;
+	Touch.Radius = Body->GetSimpleCollisionRadius() + Contact.Reach;
+	const FVeyraAbilityHitSource Source{ RideAbility, RideCastId };
+	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Touch, Frame.Origin, Frame.Direction }, [this, Body](const AActor& Unit) {
+		return &Unit != Body && !Met.ContainsByPredicate([&Unit](const TWeakObjectPtr<AActor>& Earlier) { return Earlier.Get() == &Unit; });
+	});
+	for (AActor* Unit : Units)
+	{
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Unit);
+		const bool bStruck = Kind.IsSet() && (Contact.EnemyKinds.IsEmpty() || Contact.EnemyKinds.Contains(Kind.GetValue()))
+			&& Kind.GetValue() != EVeyraUnitKind::Structure && Kind.GetValue() != EVeyraUnitKind::Ward;
+		if (bStruck && VeyraTargeting::CanHitEnemy(Caster->GetOwner(), *Unit) && VeyraTargeting::IsAlive(Unit))
+		{
+			Met.Add(Unit);
+			VeyraEffectDelivery::Apply(*Caster, *Unit, ContactEffects.GetValue(), Frame, Source);
+		}
+		else if (ContactHelp.IsSet() && VeyraAreaDelivery::Reaches(*Caster, *Unit, ContactHelp.GetValue()))
+		{
+			Met.Add(Unit);
+			VeyraAreaDelivery::HelpAlly(*Caster, *Unit, ContactHelp.GetValue());
+		}
+	}
+}
+
+void UVeyraRideAbility::PulseTrail()
+{
+	UAbilitySystemComponent* Caster = Rider.Get();
+	const FVeyraRideAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindRide(RideAbility);
+	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	UWorld* World = GetWorld();
+	if (!Caster || !Tuning || Tuning->Trail.IsEmpty() || !Body || !World)
+	{
+		return;
+	}
+	const FVeyraRideTrailTuning& Trail = Tuning->Trail[0];
+	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Trail.Area);
+	const FVector From = TrailFrom;
+	const FVector Here = Body->GetActorLocation();
+	const double Stride = FVector::Dist2D(Here, From);
+	TrailFrom = Here;
+	if (!Area)
+	{
+		return;
+	}
+	// An area every spacing along the way it went, where that spacing falls, what is left over carried into the
+	// next look: its spacing holds at any speed and pulse.
+	const UVeyraMovementComponent* Movement = Watched.Get();
+	const FVector Heading = Movement ? Movement->GetRideHeading() : Body->GetActorForwardVector().GetSafeNormal2D();
+	double Along = Trail.Spacing - TrailTravelled;
+	TrailTravelled += Stride;
+	for (; TrailTravelled >= Trail.Spacing; TrailTravelled -= Trail.Spacing, Along += Trail.Spacing)
+	{
+		FVeyraEffectFrame Placement;
+		Placement.Origin = Stride > 0.0 ? FMath::Lerp(From, Here, FMath::Clamp(Along / Stride, 0.0, 1.0)) : Here;
+		Placement.Direction = Heading;
+		VeyraAreaDelivery::LayAt(*World, *Caster, Trail.Area, Placement, RideRank, GetCasterLevel(*Caster), RideCastId);
+	}
 }
 
 void UVeyraRideAbility::Expire()
@@ -178,7 +292,10 @@ void UVeyraRideAbility::OnRideEnded(const FVeyraRideEnd& End)
 {
 	UAbilitySystemComponent* Caster = Rider.Get();
 	const FVeyraContentId Ability = RideAbility;
+	const int32 CastId = RideCastId;
 	const FName Group = MountedGroup();
+	const TArray<FVeyraPreparedZone> Crash = MoveTemp(CrashZones);
+	CrashZones.Reset();
 	StopWatching();
 	const FVeyraRideAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindRide(Ability);
 	if (!Caster || !Tuning)
@@ -197,6 +314,23 @@ void UVeyraRideAbility::OnRideEnded(const FVeyraRideEnd& End)
 	if (!Tuning->Vehicle.IsEmpty())
 	{
 		LaunchVehicle(*Caster, Tuning->Vehicle[0], End);
+	}
+	// Its crash erupts where its rider is, as the rider's hit, on every end but death (ADR-035 §3).
+	UWorld* World = GetWorld();
+	if (End.Reason != EVeyraRideEndReason::Died && !Crash.IsEmpty() && World)
+	{
+		// A crash that strikes is an attack, whatever set it off: its rider is seen (Combat Bible §11).
+		const bool bStrikes = Tuning->CrashZones.ContainsByPredicate([](const FVeyraAreaZoneTuning& Zone) {
+			return !Zone.Effects.Damage.IsEmpty() || !Zone.Effects.Statuses.IsEmpty() || !Zone.Effects.Displacement.IsEmpty() || !Zone.Effects.Reactions.IsEmpty();
+		});
+		if (bStrikes)
+		{
+			VeyraCombat::EndStealth(*Caster);
+		}
+		FVeyraEffectFrame Frame;
+		Frame.Origin = End.Location;
+		Frame.Direction = End.Heading;
+		VeyraAreaDelivery::Resolve(*World, *Caster, Frame, Crash, FVeyraAbilityHitSource{ Ability, CastId });
 	}
 	// A recast that separates rider and vehicle is under way; any other end leaves it nothing to do.
 	if (End.Reason != EVeyraRideEndReason::Dismounted)
@@ -247,6 +381,8 @@ void UVeyraRideAbility::StopWatching()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(ExpiryTimer);
+		World->GetTimerManager().ClearTimer(ContactTimer);
+		World->GetTimerManager().ClearTimer(TrailTimer);
 		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 		{
 			Events->OnDeath.Remove(DeathHandle);
@@ -256,4 +392,7 @@ void UVeyraRideAbility::StopWatching()
 	RideEndedHandle.Reset();
 	DeathHandle.Reset();
 	Rider.Reset();
+	ContactEffects.Reset();
+	ContactHelp.Reset();
+	Met.Reset();
 }

@@ -170,17 +170,45 @@ namespace
 			Out.CastTarget.Location = AimAt(View.Self, Target, Slot.Profile, Aim);
 			break;
 		case EVeyraBotTargeting::Self:
+			// An ally-targeted buff names whom it buffs; naming itself buffs itself (ADR-027 §4, §9.6).
+			if (Slot.Profile.AllyReach > 0.0)
+			{
+				Out.CastTarget.Actor = Target.Actor.Get();
+			}
 			break;
 		}
 		return Out;
 	}
 
 	/**
-	 * A jungler's move once no fight, Well or shopping calls it (ADR-014 §7; League's jungler): gank a
+	 * Whom a Defend buff goes to: for one it may cast at an ally, the allied Vanguard in its reach that
+	 * has the least of its Health, when that is less than the bot's own; else the bot itself.
+	 */
+	const FVeyraBotUnit& DefendTarget(const FVeyraBotView& View, const FVeyraBotSlot& Slot)
+	{
+		const FVeyraBotUnit* Guarded = &View.Self;
+		if (Slot.Profile.AllyReach > 0.0)
+		{
+			for (const FVeyraBotUnit& Ally : View.AllyVanguards)
+			{
+				if (EdgeDistance(View.Self, Ally) <= Slot.Profile.AllyReach && Ally.HealthFraction() < Guarded->HealthFraction())
+				{
+					Guarded = &Ally;
+				}
+			}
+		}
+		return *Guarded;
+	}
+
+	TArray<const FVeyraBotSlot*> CastOrder(const FVeyraBotView& View);
+
+	/**
+	 * A jungler's move once no fight, Well or shopping calls it (ADR-014 §7): gank a
 	 * hurt enemy near and clear of an enemy tower; else clear its side's nearest standing camp, keeping
 	 * at the creature it chose; else walk to the camp back soonest and wait there.
 	 */
-	FVeyraBotIntent DecideJungle(const FVeyraBotView& View, const FVeyraBotsTuning& Tuning, FVeyraBotMemory& Memory)
+	FVeyraBotIntent DecideJungle(const FVeyraBotView& View, const FVeyraBotDifficultyTuning& Difficulty, const FVeyraBotsTuning& Tuning,
+		FVeyraBotMemory& Memory, FRandomStream& Random)
 	{
 		const FVeyraBotUnit* Prey = nullptr;
 		for (const FVeyraBotUnit& Enemy : View.GankTargets)
@@ -226,6 +254,27 @@ namespace
 				}
 			}
 			Memory.FarmTarget = Chosen->Actor;
+			// It clears with its basic abilities too, while what it holds after the
+			// cast stays above its resource floor; never with its ultimate, and only with one that may hit wildlife.
+			{
+				const double Distance = EdgeDistance(View.Self, *Chosen);
+				const double Floor = Tuning.Jungle.AbilityResourceFloor * View.MaxResource;
+				for (const FVeyraBotSlot* Slot : CastOrder(View))
+				{
+					const bool bKeepsFloor = View.MaxResource <= 0.0 || View.Resource - Slot->Cost > Floor;
+					if (!Slot->bReady || Slot->Slot == EVeyraAbilitySlot::R || !bKeepsFloor)
+					{
+						continue;
+					}
+					const bool bMayHit = Slot->Profile.TargetKinds.IsEmpty() || Slot->Profile.TargetKinds.Contains(EVeyraUnitKind::Wildlife);
+					const bool bDamages = Slot->Use == EVeyraBotAbilityUse::Damage && bMayHit && Distance <= Slot->Profile.Reach;
+					const bool bEmpowers = Slot->Use == EVeyraBotAbilityUse::Empower && Distance <= View.AttackRange;
+					if ((bDamages || bEmpowers) && Random.FRand() < Difficulty.CastChance)
+					{
+						return CastOf(View, *Slot, *Chosen, Difficulty.Aim, TEXT("clearing its camp: casting"));
+					}
+				}
+			}
 			return AttackOf(*Chosen, TEXT("clearing its camp"));
 		}
 		if (Soonest && FVector::Dist2D(View.Self.Location, Soonest->Center) > Tuning.Positioning.HoldTolerance)
@@ -372,7 +421,12 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 				{
 					// Cast at the threat, to be carried away from it; no attack follows.
 					FVeyraBotIntent Escape = CastOf(View, *Slot, *Threat, EVeyraBotAim::AtTarget, TEXT("escaping"));
-					if (Slot->Profile.Targeting == EVeyraBotTargeting::Point && !Slot->Profile.bAwayFromPoint)
+					if (Slot->Profile.Targeting == EVeyraBotTargeting::Point && Slot->Profile.bAreaAtPoint)
+					{
+						// An area laid at its point covers the bot itself, as a fog to hide in.
+						Escape.CastTarget.Location = View.Self.Location;
+					}
+					else if (Slot->Profile.Targeting == EVeyraBotTargeting::Point && !Slot->Profile.bAwayFromPoint)
 					{
 						// A dash toward its point, as a Blink is: aimed home, away from the threat.
 						const FVector Homeward = (View.Home - View.Self.Location).GetSafeNormal2D();
@@ -384,7 +438,7 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 				if (Slot->Use == EVeyraBotAbilityUse::Defend && Slot->bReady && Slot->Profile.Targeting == EVeyraBotTargeting::Self
 					&& Random.FRand() < Difficulty.CastChance)
 				{
-					// A heal or guard on itself helps it get away, as League's bots Heal as they run.
+					// A heal or guard on itself helps it get away.
 					return CastOf(View, *Slot, View.Self, EVeyraBotAim::AtTarget, TEXT("hurt: defending itself"));
 				}
 			}
@@ -399,7 +453,7 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 	}
 
 	// A creature or Flux Well in reach that a Secure spell would finish: take it before anyone else
-	// can, the largest first, as League's junglers Smite (ADR-015 §8).
+	// can, the largest first (ADR-015 §8).
 	for (const FVeyraBotSlot* Slot : CastOrder(View))
 	{
 		if (Slot->Use != EVeyraBotAbilityUse::Secure || !Slot->bReady)
@@ -428,6 +482,28 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		if (Finish)
 		{
 			return CastOf(View, *Slot, *Finish, EVeyraBotAim::AtTarget, TEXT("securing"));
+		}
+	}
+
+	// An allied Vanguard in reach of a ready ally-targeted guard, below its retreat line with an enemy
+	// Vanguard near it: guard it, shielding the ally being chased (ADR-027 §4).
+	for (const FVeyraBotSlot* Slot : CastOrder(View))
+	{
+		if (Slot->Use != EVeyraBotAbilityUse::Defend || !Slot->bReady || !(Slot->Profile.AllyReach > 0.0))
+		{
+			continue;
+		}
+		for (const FVeyraBotUnit& Ally : View.AllyVanguards)
+		{
+			const FVeyraBotUnit* Chaser = Nearest(Ally, View.EnemyVanguards);
+			if (Ally.HealthFraction() < Difficulty.RetreatHealthFraction && EdgeDistance(View.Self, Ally) <= Slot->Profile.AllyReach
+				&& Chaser && EdgeDistance(Ally, *Chaser) <= Tuning.Senses.SafeRadius && Random.FRand() < Difficulty.CastChance)
+			{
+				// The guard is the ally's; no attack follows it.
+				FVeyraBotIntent Guard = CastOf(View, *Slot, Ally, EVeyraBotAim::AtTarget, TEXT("guarding an ally"));
+				Guard.Target = nullptr;
+				return Guard;
+			}
 		}
 	}
 
@@ -477,7 +553,12 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 			}
 			if (bUseful && Random.FRand() < Difficulty.CastChance)
 			{
-				return CastOf(View, *Slot, *Foe, Difficulty.Aim, TEXT("fighting: casting"));
+				// A guard goes to whoever the fight hurts most on its side, itself or an ally; the foe stays the
+				// attack that follows.
+				const FVeyraBotUnit& Target = Slot->Use == EVeyraBotAbilityUse::Defend ? DefendTarget(View, *Slot) : *Foe;
+				FVeyraBotIntent Cast = CastOf(View, *Slot, Target, Difficulty.Aim, TEXT("fighting: casting"));
+				Cast.Target = Foe->Actor;
+				return Cast;
 			}
 		}
 		return AttackOf(*Foe, TEXT("fighting"));
@@ -494,7 +575,7 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 	}
 
 	// A warding seat wards the fog patches it passes that no ward of its side covers, with a charge
-	// and no enemy Vanguard near, as League's jungler and support ward the bushes (ADR-016 §7).
+	// and no enemy Vanguard near (ADR-016 §7).
 	if (View.bWards && View.WardCharges > 0)
 	{
 		const FVeyraBotUnit* Near = Nearest(View.Self, View.EnemyVanguards);
@@ -512,8 +593,8 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		}
 	}
 
-	// An open Flux Well within its reach and no enemy Vanguard near: take it (ADR-014 §7), as League's
-	// bots take an objective when their lane allows.
+	// An open Flux Well within its reach and no enemy Vanguard near: take it (ADR-014 §7), as its
+	// lane allows.
 	const FVeyraBotUnit* Well = Nearest(View.Self, View.Wells);
 	const double WellReach = View.bJungle ? Tuning.Jungle.WellRange : Tuning.Positioning.WellRange;
 	const FVeyraBotUnit* Threat = Nearest(View.Self, View.EnemyVanguards);
@@ -524,7 +605,7 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 
 	if (View.bJungle)
 	{
-		return DecideJungle(View, Tuning, Memory);
+		return DecideJungle(View, Difficulty, Tuning, Memory, Random);
 	}
 
 	// Last-hit a Fluxborn about to die: within a lead of one basic attack, which covers walking up
@@ -569,7 +650,7 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		return AttackOf(View.EnemyStructure->Unit, TEXT("sieging with its wave"));
 	}
 
-	// Shove the wave, as League's bots do, so lanes push and structures come under siege.
+	// Shove the wave, so lanes push and structures come under siege.
 	if (Weakest && Random.FRand() < Difficulty.PushChance)
 	{
 		Memory.FarmTarget = Weakest->Actor;

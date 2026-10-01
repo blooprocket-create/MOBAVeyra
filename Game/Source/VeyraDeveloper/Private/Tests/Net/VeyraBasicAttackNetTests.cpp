@@ -6,6 +6,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "GameFramework/PlayerState.h"
@@ -150,6 +151,60 @@ namespace VeyraNetTests
 				.UntilServer(TEXT("The server drops the attack order"), [](FState& State) {
 					return ParticipantOf(State, 0)->GetVanguardController()->GetAttackTarget() == nullptr;
 				});
+		}
+
+		TEST_METHOD(AChaseALockStopsGoesOnOnceItEnds)
+		{
+			// Fixture value: a stun shorter than the chase.
+			static constexpr double BriefSeconds = 0.3;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Prepare the duel"), [this](FState& State) { PrepareDuel(State); })
+				.ThenServer(TEXT("Chase, and be stunned on the way"), [this](FState& State) {
+					AVeyraPlayerState* Attacker = ParticipantOf(State, 0);
+					AVeyraVanguardController* Controller = Attacker->GetVanguardController();
+					ASSERT_THAT(IsTrue(Controller->AttackUnit(*ParticipantOf(State, 1)->GetPawn()) == EVeyraOrderRejection::None));
+					ASSERT_THAT(IsTrue(Controller->GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving, TEXT("it chases")));
+					FVeyraStatusSpec Stun;
+					Stun.Id = FVeyraContentId::FromText(TEXT("test_brief_stun")).GetValue();
+					Stun.Kind = EVeyraStatusKind::Stun;
+					Stun.DurationSeconds = BriefSeconds;
+					ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*ParticipantOf(State, 1)->GetAbilitySystemComponent(), *Attacker->GetAbilitySystemComponent(), Stun)));
+					ASSERT_THAT(IsTrue(Controller->GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Idle, TEXT("the stun stops its path")));
+				})
+				.UntilServer(TEXT("Free again, it chases on and hits"), [](FState& State) { return HealthLost(ParticipantOf(State, 1)) > 0.0; });
+		}
+
+		TEST_METHOD(AMoveOrderEndsAWindupUnlessTheAttackerIsMobile)
+		{
+			// Fixture values: the target within reach, a step aside, and a passive's half of the speed.
+			static constexpr double Aside = 100.0;
+			static constexpr double Half = 0.5;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Prepare the duel, within reach"), [this](FState& State) {
+					PrepareDuel(State);
+					const APawn* Body = ParticipantOf(State, 0)->GetPawn();
+					ParticipantOf(State, 1)->GetPawn()->SetActorLocation(Body->GetActorLocation() + FVector(Range, 0.0, 0.0));
+				})
+				.ThenServer(TEXT("Attack, then walk aside"), [this](FState& State) {
+					AVeyraPlayerState* Attacker = ParticipantOf(State, 0);
+					AVeyraVanguardController* Controller = Attacker->GetVanguardController();
+					UVeyraBasicAttackComponent* Attacks = Attacker->FindComponentByClass<UVeyraBasicAttackComponent>();
+					APawn* Target = ParticipantOf(State, 1)->GetPawn();
+					const FVector Step = Attacker->GetPawn()->GetActorLocation() + FVector(0.0, Aside, 0.0);
+					ASSERT_THAT(IsTrue(Controller->AttackUnit(*Target) == EVeyraOrderRejection::None && Attacks->GetState().Phase == EVeyraAttackPhase::Windup));
+					Controller->MoveToDestination(Step);
+					ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::None, TEXT("a standing attacker's windup ends with the move (§48)")));
+					Attacks->SetWindupMovement(Half);
+					ASSERT_THAT(IsTrue(Controller->AttackUnit(*Target) == EVeyraOrderRejection::None && Attacks->GetState().Phase == EVeyraAttackPhase::Windup));
+					Controller->MoveToDestination(Step);
+					ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::Windup, TEXT("a mobile attacker's windup goes on (ADR-027 §1)")));
+					// An attack-move walks on through it too, from a standstill.
+					Controller->StopMovement();
+					Controller->AttackMoveTo(Step + FVector(0.0, Aside, 0.0));
+					ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::Windup
+						&& Controller->GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving, TEXT("an attack-move walks during a mobile windup")));
+				})
+				.UntilServer(TEXT("Its attack lands as it walks"), [](FState& State) { return HealthLost(ParticipantOf(State, 1)) > 0.0; });
 		}
 
 		TEST_METHOD(AttackMoveTakesOnAnEnemyItMeets)

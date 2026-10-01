@@ -30,6 +30,8 @@ enum class EVeyraTargetValidity : uint8
 	NotVisible,
 	/** A ward, for an ability: only basic attacks strike wards (ADR-016 §6). */
 	Ward,
+	/** Not a Vanguard on the caster's side, for an ability that targets allies (ADR-027 §4). */
+	NotAllied,
 };
 
 /** Whether a targeted action may pick a structure (Combat Bible §33). */
@@ -61,9 +63,19 @@ namespace VeyraTargeting
 
 	/**
 	 * Whether Acquirer, a unit or anything with a side, may acquire Target as a target now: whether
-	 * the world's vision lets it see Target (ADR-016 §2). A world without vision allows every target.
+	 * the world's vision lets it see Target (ADR-016 §2), and, for an enemy, whether Target is not
+	 * Untargetable (Combat Bible §10; ADR-030 §2). A world without vision allows every visible target.
 	 */
 	VEYRACOMBAT_API bool CanAcquire(const UObject* Acquirer, const AActor& Target);
+
+	/** Whether Unit holds an Untargetable status now (Combat Bible §10). */
+	VEYRACOMBAT_API bool IsUntargetable(const AActor& Unit);
+
+	/**
+	 * Whether Unit is Source's enemy and Source's new hits may land on it: an Untargetable unit takes no
+	 * skillshot, area, cleave or contact of its enemies' (Combat Bible §10; ADR-030 §2).
+	 */
+	VEYRACOMBAT_API bool CanHitEnemy(const UObject* Source, const AActor& Unit);
 
 	/** Distance between two units' collision edges on the ground plane, never below 0 (Combat Bible §40). */
 	VEYRACOMBAT_API double EdgeToEdgeDistance(const AActor& A, const AActor& B);
@@ -78,4 +90,10 @@ namespace VeyraTargeting
 	 */
 	VEYRACOMBAT_API EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target, double CastRange,
 		EVeyraStructureTargeting Structures = EVeyraStructureTargeting::Refuse);
+
+	/**
+	 * Whether Caster may target Target with a targeted action for allies, at CastRange: a living Vanguard
+	 * on its side other than itself (ADR-027 §4). Allies are always seen, so vision does not enter it.
+	 */
+	VEYRACOMBAT_API EVeyraTargetValidity CheckAllyTarget(const AActor& Caster, const AActor* Target, double CastRange);
 }

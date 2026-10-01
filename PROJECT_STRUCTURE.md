@@ -111,6 +111,71 @@ M5 added ([ADR-008](Docs/ADR/ADR-008-vanguard-definitions-and-ability-compositio
 - basic attacks;
 - the telegraphs presentation draws for a cast.
 
+M20 added ([ADR-026](Docs/ADR/ADR-026-reactive-kit-primitives.md)): reactions, which let an effect depend on the statuses its target holds; lingering areas that hit at their pulses and as they end, and delayed areas that land sooner inside one; and `Statuses/`, whose `UVeyraStackConversionSubsystem` turns a status at its most stacks into the one its tuning names.
+
+M20b added ([ADR-027](Docs/ADR/ADR-027-mobile-attacks-and-ally-casts.md)):
+
+- basic attacks whose windup the attacker walks through, and empowerments that span several attacks;
+- a self-buff's timed attack impact, its ally recipient and the zones that land on that recipient;
+- delayed areas that linger where they land, their lingering area prepared in `VeyraAreaDelivery`;
+- `Delivery/VeyraShieldRewardSubsystem`, which rewards a shield's holder once the shield has absorbed its share.
+
+M22 added ([ADR-028](Docs/ADR/ADR-028-blind-grounding-and-collision.md)): blinded attacks that miss; areas that land on their caster's own lingering area and end it; end payloads that push. Combat's movement gives a displacement's collision statuses when terrain, a Vanguard or a structure stops it.
+
+M24a added ([ADR-030](Docs/ADR/ADR-030-stealth-markers-and-marked-follow-ups.md)), for Tavi:
+- Combat's Invisible and Untargetable statuses: Vision gates an Invisible unit as it gates a ward, and `VeyraTargeting::CanAcquire` and `CanHitEnemy` keep an Untargetable one from enemies' orders, casts, attacks, areas, skillshots and tethers;
+- `VeyraCombat::Blink`, and cooldown refunds (`VeyraCooldowns::Reduce`, `VeyraAbilities::RefundCooldown(s)`);
+- `Entities/AVeyraPlacedMarker` in Combat: ADR-003's placed marker, the first owned entity. It belongs to its owner's side and credits its owner, counts hits as a ward does, ends with a reason on `OnMarkerEnded`, and can present as its owner, which the HUD's bars and the minimap follow;
+- recast windows that open on a held mark or a takedown, casts that take only a marked target, dashes through a target, skillshots that return to their caster, self-buffs that leave a marker, and the ambush archetype (`UVeyraAmbushAbility`);
+- the quarry passive (`UVeyraQuarryPassive`).
+
+M24b added ([ADR-031](Docs/ADR/ADR-031-stances-focus-shadows-and-cross-marks.md)), for Angeru:
+- stances: the loadout stows a slot's own ability, keeping its grant and cooldown, when a stance puts another there (`SwapOwn`), and a follow-up belongs to the own ability whose cast opened it, waiting unseen in another stance; the stance archetype (`UVeyraStanceAbility`) toggles a set;
+- the placement archetype (`UVeyraPlacementAbility`), a marker at a point whose follow-up ends with it; the blink archetype (`UVeyraBlinkAbility`), beside an enemy or to its caster's marker, with a swap; a skillshot its caster's marker throws too, the shots sharing what they strike;
+- dashes that take over a dash under way (`duringDash`), while any other move waits; casts that refuse a target locked out by an earlier one (`targetMustNotHold`); cooldowns a takedown refunds (`takedownRefund`, `UVeyraTakedownRefundSubsystem`), the participants found once by `VeyraKillCredit::TakedownParticipants`;
+- in Combat, `AVeyraPlacedMarker::FindStanding` and `Relocate`, `VeyraCombat::BlinkBeside` and `NearestGround`;
+- the disciplines passive (`UVeyraDisciplinesPassive`).
+
+M25a added ([ADR-032](Docs/ADR/ADR-032-movement-punishment-shield-holds-and-walls.md)), for Varkesh:
+- Combat's `OnUnitMoved`, announced by the movement component as a unit's own dash or blink ends, and the stress temper passive (`UVeyraStressTemperPassive`) that strikes a coated mover where it lands;
+- self-buffs whose shield holds statuses and bursts as it ends (`Delivery/VeyraShieldHoldSubsystem`, watching the shield's effect);
+- walls: runtime terrain is the battleground's (`Terrain/UVeyraTerrainSubsystem` and `AVeyraTerrainWall` in World), reached through Combat's `IVeyraRuntimeTerrain` contract and registry; a wall blocks units, forced moves and line projectiles, cuts the navigation mesh and moves out the units it would trap; a placed marker holds one as its ownership and lifetime link, a skillshot leaves one where its flight ends (`endWall`), and the grey-box draws the terrain as a block;
+- follow-ups that arm after their cast and end with their opening ability's marker, both in `Loadout/VeyraFollowUpSubsystem` (the placement archetype's own watch moved there), and areas at the caster's marker (`CastersMarker`).
+
+M25b added ([ADR-033](Docs/ADR/ADR-033-charge-attack-spent-statuses-movement-fields-and-grids.md)), for Relay:
+- Charge, a kept resource (`VeyraCombat::KeepResource`: it starts empty, and initialization, revival and the fountain leave it be), and the charger passive (`UVeyraChargerPassive`) fed by nearby Fluxborn deaths;
+- casts that cost a share of the current resource and need a least of it, priced by `UVeyraGameplayAbility::CostFor` with the ResourceCostReduction status kind; statuses spent by attacks (`attackCharges`), which the basic attack component reports to Combat;
+- Combat's movement fields (`Movement/UVeyraMovementFieldSubsystem`), which bend enemy dashes and displacements toward their centre, held by lingering areas that name one;
+- auras on allied Fluxborn, the AttackShortensCooldown status kind (`VeyraAbilities::ShortenSoonestCooldown`), and self-buffs that drain their caster's resource and end as it runs out.
+
+M26a added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), ADR-003's combat entity:
+- in Combat, owned units (`Entities/IVeyraOwnedUnit`, which the placed marker implements) and `VeyraCombat::ResponsibleFor`: an owned unit's hostile actions, contributions and kills are its owner's (the death event's `Killer`, with the striking unit as `LethalUnit`, and hostile damage's `Responsible`), while dealt damage keeps the unit that hit, so item effects never fire from it; `VeyraCombat::Withdraw`, a death at nobody's hand with nothing announced; and the MaxHealth status kind;
+- the Companion unit kind, ranked with Fluxborn by Fluxborn, drawn as a unit on the minimap and seen through Vision's `sight.companion`;
+- in Abilities, `Companions/`: `AVeyraCompanion` (a character with its own Health and basic attack, on its owner's side, inheriting only `ownerMagicPowerShare`), its server controller (follow its owner and fight what the owner fought lately, or hold a point and fight what comes near), the pure `VeyraCompanionRules`, and `UVeyraCompanionSubsystem`, which forms a companion beside its owner, banishes it with its owner or when it is killed, reforms it, and keeps it grown to its owner's Level; Abilities.json's `companions` map.
+
+M26b added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), for Marek:
+- the command archetype (`Abilities/UVeyraCommandAbility`: a companion leaps to hold a point, its landing its own hit; a recall follow-up), blinks to the caster's own companion with departure zones for each, reaction bursts, self-buffs' companion statuses, chains and an end with the companion, and casts' `needsCompanion` and `cooldownWhile`;
+- the Accord passive (`UVeyraAccordPassive`), which summons Marek's companion, marks what it bites and strikes an enemy both of them hurt.
+
+M27a added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-companions.md)), for Neris:
+- casts' `cooldownOf`, which holds a cooldown under another ability's ID (read through `UVeyraAbilityLoadoutComponent::CooldownIdOf`), and `refusedWhile`, which refuses a cast as `HeldBack` while its caster holds a status;
+- rides' crash zones, which erupt where the rider is on every end but death, and the dismount archetype (`Abilities/UVeyraDismountAbility`), a mounted action that ends its ride;
+- zones' ally effects: the caster's heal and statuses for the allied Vanguards in a zone, each once (`VeyraAreaDelivery::Resolve`).
+
+M27b added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-companions.md)), for Neris:
+- summoned companions: the command orders Summon and Redirect, `UVeyraCompanionSubsystem::SummonFor` and `Redirect` (a companion for a while, bound to an ally it escorts or an enemy it hunts, gone for good when its time runs out or it is killed), the Escort and Hunt modes, and companions' escort pulse and attack statuses;
+- rides' contact (the rider's body strikes each enemy and helps each ally it meets once a ride) and trail (an area ability laid along its path), with `VeyraAreaDelivery::PrepareAllyEffects`, `Reaches` and `HelpAlly` shared with zones;
+- stances that may hold R, never the slot they sit in;
+- Neris, The Tidebound, and her Waterling: Calm and Storm variants of Breaking Wave, Little Current and Tidebreaker that share cooldowns, and Change the Weather.
+
+M28a added ([ADR-036](Docs/ADR/ADR-036-runtime-dense-fog-sounded-waymarks-and-the-mist-trail.md)), for Sylra:
+- in Combat, the visibility contract's `AddDenseFog` (a circle or a corridor, for a while) and `FogVolumeAt`, and the Sounded status kind, read through `VeyraCombat::HasStatusKindFromSide`;
+- in Vision, Dense Fog that abilities lay: each cast's `Fog/AVeyraDenseFogBank`, replicated to every player and joined to the map's fog into volumes while it lasts, and presence pings for a Sounded enemy in fog to the side that sounded it;
+- in Abilities, areas' `fog` and lingering areas' `shieldTopUp` (a merging shield built on the caster and allies who stay, held back a while after damage), and `VeyraAreaDelivery::LayAt`, which the ride trail and the Mist Trail share;
+- in Vanguards, the Mist Trail passive (`UVeyraMistTrailPassive`).
+
+M28b added Sylra, The Mistwarden: Harbor Bell, Lay the Mist, Waymark, Through the White and Follow the Bell, all data.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
@@ -128,6 +193,8 @@ UI and items request transactions; they do not mutate gold directly.
 **Progression** (XP balances, levels, level-up stat increments and skill points) lives in this module for now as a **separate owner** with its own state, per the Economy & Progression Bible. It shares the module, not code paths: Gold and XP are never mixed in one class.
 
 Progression arrived first, in M5 (ADR-008 §6). It sits in its own Economy layer, above Combat, whose verbs apply level-up growth, and below Abilities, which reads ranks.
+
+M24b added rank shapes ([ADR-031](Docs/ADR/ADR-031-stances-focus-shadows-and-cross-marks.md) §2): `Progression.json` names documented exceptions to the standard ranks, each spending the standard total of skill points, and the progression component holds and replicates its unit's shape, an innate R starting at rank 1.
 
 Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §11):
 
@@ -189,7 +256,7 @@ VeyraFlux arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2
 
 World actors report outcomes to the authoritative owning systems rather than reaching directly into UI or champion code.
 
-VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints and structure placements for the map commandlet and the server alike.
+VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints, structure placements and jungle terrain (ADR-026 §5) for the map commandlet and the server alike.
 
 - `Structures/`: `AVeyraStructure`, a pawn with its own Ability System Component, and the tower attack.
 - `Fluxborn/`: `AVeyraFluxborn` and its server-only `AVeyraFluxbornController`, which follows its lane's waypoints and fights by `VeyraFluxbornRules` (ADR-011 §7).
@@ -238,6 +305,8 @@ Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-a
 
 Since M12 `Statistics/` holds the match's one statistics service ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §3). `UVeyraMatchStatisticsSubsystem` records every participant, bots too, from the events Combat, Economy, World and Vision report, and never computes what they decide. Pure rules (`VeyraStatisticsRules`) hold the crowd-control union and which Gold counts as earned. Each PlayerState's `UVeyraScoreComponent` carries the public part, K/D/A and last hits, to every client.
 
+Since M23 `Chat/` holds in-match Team and All Chat ([ADR-029](Docs/ADR/ADR-029-in-match-chat.md)). `UVeyraChatSubsystem` validates each message on the server (`VeyraChatRules`: cleaning, length, rate, who receives which channel) and hands it to each recipient's controller, keeping mutes and the All Chat preference at delivery. No replicated actor carries chat, so spectators and replays never see it. The player controller holds the client's chat log, its own notices included, capped by `chat.keepMessages`.
+
 It knows nothing about the backend; `VeyraServices` connects the two.
 
 ### VeyraBots
@@ -258,7 +327,9 @@ A kit is data: `Game/Tuning/Vanguards.json` defines each Vanguard, and its abili
 
 ```text
 VeyraVanguards/
-├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach)
+├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach, Wild Dominion,
+│               Never Break Stride, Slipstream, Reclaim, Unreturned), and the kit-statuses passive,
+│               which runs nothing (Embedded, Hazard Exposure)
 ├── Shared/     generic passives any Vanguard's data can use (the hit chain)
 └── Tuning/     the Vanguards.json binding and its rules
 ```
@@ -307,6 +378,8 @@ The grey-box HUD draws through an overlay actor the local player's HUD renders (
 M8 added `Shop/` ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §11): the shop screen, which P opens beside the game, and its model, which prices every item by the inventory rule the server uses. The HUD gained the item bar (keys 1–6) and Recall's channel bar, and the string table gained item names and descriptions.
 
 M12 added `Shell/VeyraMatchReportModel`, a match's saved Scoreboard, team summary and Detailed Statistics (ADR-017 §6). The results screen shows it from the verified result, and so does Match History (`Shell/VeyraMatchHistoryModel`), a shell page that lists the player's completed matches newest first, filtered by Vanguard, mode and outcome, with Load More. It also added `Scoreboard/` ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §4): the in-match scoreboard, open while Tab is held. It has both teams, the viewer's first, and each player's Vanguard, level, K/D/A, creep score and items. Its model reads only what every client receives: each PlayerState's public score, level and inventory.
+
+M23 added `Chat/` ([ADR-029](Docs/ADR/ADR-029-in-match-chat.md) §5): `UVeyraChatComposer`, the line chat is typed into, which the chat key opens through `UVeyraMatchMenuSubsystem` and which keeps typed keys from the game, and `VeyraChatCommands`, which reads `/all`, `/mute` and `/unmute`. The HUD's chat log (`Hud/VeyraChatLogModel`) draws the newest lines above the composer, faded unless it is open, in the player's chat text size and background from the Communication settings.
 
 ### VeyraDeveloper
 

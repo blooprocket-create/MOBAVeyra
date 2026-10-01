@@ -16,6 +16,7 @@
 #include "VeyraCombatLog.h"
 #include "VeyraCombatVerbs.h"
 #include "Targeting/VeyraParticipantData.h"
+#include "Teams/VeyraTeam.h"
 
 namespace
 {
@@ -39,6 +40,8 @@ namespace
 			return UVeyraStatusEffect::DisplacementMultiplierName;
 		case EVeyraStatusKind::HealthRegeneration:
 			return UVeyraStatusEffect::HealthRegenMultiplierName;
+		case EVeyraStatusKind::MaxHealth:
+			return UVeyraStatusEffect::MaxHealthMultiplierName;
 		case EVeyraStatusKind::DamageAmplification:
 		case EVeyraStatusKind::Weaken:
 			return UVeyraStatusEffect::OutgoingDamageMultiplierName;
@@ -66,6 +69,15 @@ namespace
 		case EVeyraStatusKind::DirectionalDamageReduction:
 		case EVeyraStatusKind::AttackDamageAmplification:
 		case EVeyraStatusKind::SpellShield:
+		case EVeyraStatusKind::Root:
+		case EVeyraStatusKind::MobileAttack:
+		case EVeyraStatusKind::Blind:
+		case EVeyraStatusKind::Grounded:
+		case EVeyraStatusKind::Invisible:
+		case EVeyraStatusKind::Untargetable:
+		case EVeyraStatusKind::ResourceCostReduction:
+		case EVeyraStatusKind::AttackShortensCooldown:
+		case EVeyraStatusKind::Sounded:
 			break;
 		}
 		return NAME_None;
@@ -173,9 +185,18 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		Entry->Id = Spec.Id;
 		Entry->Kind = Spec.Kind;
 	}
-	// A new application starts its takedown extensions, and its ticks, afresh (§14: a refresh restarts the duration).
+	// A new application starts its takedown extensions afresh (§14: a refresh restarts the duration). A
+	// damage over time keeps its cadence (ADR-026 §7): its next tick comes when it would have, so one its
+	// source keeps refreshing still ticks.
+	double FirstTickSeconds = Spec.TickSeconds;
 	if (FServerEntry* Earlier = ServerEntries.Find(Entry->Sequence))
 	{
+		const UWorld* World = GetWorld();
+		const float Due = World && Earlier->TicksLeft > 0 ? World->GetTimerManager().GetTimerRemaining(Earlier->TickTimer) : -1.0f;
+		if (Due > 0.0f && Due <= Spec.TickSeconds)
+		{
+			FirstTickSeconds = Due;
+		}
 		StopTicking(*Earlier, /*bDealDueTick*/ false);
 	}
 	FServerEntry& Server = ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source, Spec.TakedownExtensionSeconds, Spec.TakedownExtensionMaxSeconds });
@@ -187,13 +208,16 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		Server.TickDamageType = Spec.DamageType;
 		Server.TickDamage = Spec.Magnitude * Stacks;
 		Server.TickSeconds = Spec.TickSeconds;
-		Server.TicksLeft = VeyraStatuses::TickCount(DurationSeconds, Spec.TickSeconds);
-		StartTicking(Entry->Sequence, Server);
+		// Whole ticks from the first, none past the end.
+		Server.TicksLeft = FirstTickSeconds <= DurationSeconds ? VeyraStatuses::TickCount(DurationSeconds - FirstTickSeconds, Spec.TickSeconds) + 1 : 0;
+		StartTicking(Entry->Sequence, Server, FirstTickSeconds);
 	}
 	Entry->Magnitude = Spec.Magnitude;
 	Entry->Stacks = Stacks;
 	Entry->StartedAt = Now;
 	Entry->EndsAt = EndsAt;
+	// A new application gives its attacks afresh (ADR-033 §4).
+	Entry->AttackCharges = Spec.AttackCharges;
 	// The entry points at its new effect already, so removing the old one leaves the entry in place.
 	if (Replaced.IsValid())
 	{
@@ -217,6 +241,32 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 void UVeyraStatusComponent::NotifyInterrupted()
 {
 	OnInterrupted.Broadcast();
+}
+
+void UVeyraStatusComponent::NoteAttackCommitted()
+{
+	TArray<FVeyraContentId, TInlineAllocator<2>> Spent;
+	bool bChanged = false;
+	for (FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		if (Entry.AttackCharges > 0)
+		{
+			bChanged = true;
+			if (--Entry.AttackCharges == 0)
+			{
+				Spent.AddUnique(Entry.Id);
+			}
+		}
+	}
+	// The last attack it lasted ends it.
+	for (const FVeyraContentId& Id : Spent)
+	{
+		Remove(Id);
+	}
+	if (bChanged && Spent.IsEmpty())
+	{
+		MarkLedgerChanged();
+	}
 }
 
 void UVeyraStatusComponent::ExtendForTakedown()
@@ -245,11 +295,22 @@ void UVeyraStatusComponent::ExtendForTakedown()
 
 bool UVeyraStatusComponent::Remove(const FVeyraContentId& Id)
 {
+	return RemoveWhere(Id, nullptr);
+}
+
+bool UVeyraStatusComponent::RemoveFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source)
+{
+	return RemoveWhere(Id, &Source);
+}
+
+bool UVeyraStatusComponent::RemoveWhere(const FVeyraContentId& Id, const UAbilitySystemComponent* Source)
+{
 	UAbilitySystemComponent* Target = BoundAbilitySystem.Get();
 	TArray<FActiveGameplayEffectHandle, TInlineAllocator<2>> Ended;
 	for (int32 Index = Ledger.Entries.Num() - 1; Index >= 0; --Index)
 	{
-		if (Ledger.Entries[Index].Id == Id)
+		const FServerEntry* Held = ServerEntries.Find(Ledger.Entries[Index].Sequence);
+		if (Ledger.Entries[Index].Id == Id && (!Source || (Held && Held->Source.Get() == Source)))
 		{
 			FServerEntry Server;
 			if (ServerEntries.RemoveAndCopyValue(Ledger.Entries[Index].Sequence, Server))
@@ -316,6 +377,15 @@ bool UVeyraStatusComponent::HasFrom(const FVeyraContentId& Id, const UAbilitySys
 	return Ledger.Entries.ContainsByPredicate([this, &Id, &Source](const FVeyraStatusEntry& Entry) {
 		const FServerEntry* Server = Entry.Id == Id ? ServerEntries.Find(Entry.Sequence) : nullptr;
 		return Server && Server->Source.Get() == &Source;
+	});
+}
+
+bool UVeyraStatusComponent::HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) const
+{
+	return Ledger.Entries.ContainsByPredicate([this, Kind, Side](const FVeyraStatusEntry& Entry) {
+		const FServerEntry* Server = Entry.Kind == Kind ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		const UAbilitySystemComponent* Source = Server ? Server->Source.Get() : nullptr;
+		return Source && VeyraTeams::TeamOf(Source->GetOwner()) == Side;
 	});
 }
 
@@ -413,7 +483,7 @@ void UVeyraStatusComponent::OnEffectRemoved(const FActiveGameplayEffect& Effect)
 	StopTicking(Server, /*bDealDueTick*/ true);
 }
 
-void UVeyraStatusComponent::StartTicking(int32 Sequence, FServerEntry& Server)
+void UVeyraStatusComponent::StartTicking(int32 Sequence, FServerEntry& Server, double FirstTickSeconds)
 {
 	UWorld* World = GetWorld();
 	if (!World || Server.TicksLeft <= 0)
@@ -422,7 +492,7 @@ void UVeyraStatusComponent::StartTicking(int32 Sequence, FServerEntry& Server)
 	}
 	// World time, so a pause holds the ticks as it holds the status's effect (ADR-006 §8).
 	World->GetTimerManager().SetTimer(Server.TickTimer, FTimerDelegate::CreateUObject(this, &UVeyraStatusComponent::DealTick, Sequence),
-		static_cast<float>(Server.TickSeconds), /*bLoop*/ true);
+		static_cast<float>(Server.TickSeconds), /*bLoop*/ true, static_cast<float>(FirstTickSeconds));
 }
 
 void UVeyraStatusComponent::DealTick(int32 Sequence)
@@ -492,7 +562,7 @@ FActiveGameplayEffectHandle UVeyraStatusComponent::ApplyEffect(UAbilitySystemCom
 		for (const FName Name : { UVeyraStatusEffect::MoveSpeedMultiplierName, UVeyraStatusEffect::AttackSpeedMultiplierName,
 				 UVeyraStatusEffect::TenacityMultiplierName, UVeyraStatusEffect::IncomingDamageMultiplierName, UVeyraStatusEffect::DisplacementMultiplierName,
 				 UVeyraStatusEffect::HealthRegenMultiplierName, UVeyraStatusEffect::OutgoingDamageMultiplierName,
-				 UVeyraStatusEffect::MagicResistRetainedMultiplierName })
+				 UVeyraStatusEffect::MagicResistRetainedMultiplierName, UVeyraStatusEffect::MaxHealthMultiplierName })
 		{
 			Spec.Data->SetSetByCallerMagnitude(Name, Unchanged);
 		}

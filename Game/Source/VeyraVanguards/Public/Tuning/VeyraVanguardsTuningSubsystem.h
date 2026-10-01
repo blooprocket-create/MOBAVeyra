@@ -48,6 +48,19 @@ public:
 	static const FVeyraHauntTuning* FindHaunt(const FVeyraContentId& Passive);
 	static const FVeyraCampRewardTuning* FindCampReward(const FVeyraContentId& Passive);
 	static const FVeyraMomentumTuning* FindMomentum(const FVeyraContentId& Passive);
+	static const FVeyraWildDominionTuning* FindWildDominion(const FVeyraContentId& Passive);
+	static const FVeyraKitStatusesTuning* FindKitStatuses(const FVeyraContentId& Passive);
+	static const FVeyraAttackStrideTuning* FindAttackStride(const FVeyraContentId& Passive);
+	static const FVeyraSlipstreamTuning* FindSlipstream(const FVeyraContentId& Passive);
+	static const FVeyraReclaimTuning* FindReclaim(const FVeyraContentId& Passive);
+	static const FVeyraQuarryTuning* FindQuarry(const FVeyraContentId& Passive);
+	static const FVeyraDisciplinesTuning* FindDisciplines(const FVeyraContentId& Passive);
+	static const FVeyraStressTemperTuning* FindStressTemper(const FVeyraContentId& Passive);
+	static const FVeyraChargerTuning* FindCharger(const FVeyraContentId& Passive);
+	static const FVeyraAccordTuning* FindAccord(const FVeyraContentId& Passive);
+
+	static const FVeyraMistTrailTuning* FindMistTrail(const FVeyraContentId& Passive);
+	static const FVeyraUnreturnedTuning* FindUnreturned(const FVeyraContentId& Passive);
 
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */
 	VeyraTuning::FErrors Reload();

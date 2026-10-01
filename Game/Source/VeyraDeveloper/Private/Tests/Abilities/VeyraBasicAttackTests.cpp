@@ -39,6 +39,10 @@ namespace VeyraAbilitiesTests
 		static constexpr double LongSeconds = 60.0;
 		static constexpr double Tolerance = 1e-3;
 		static constexpr double RangeMargin = 10.0;
+		static constexpr int32 TripleAttacks = 3;
+		static constexpr double QuickWindup = 0.5;
+		static constexpr double PierceSeconds = 3.0;
+		static constexpr double BriefSeconds = 0.2;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -77,12 +81,63 @@ namespace VeyraAbilitiesTests
 			Impact.Shape = CircleOf(ImpactRadius);
 			Impact.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { ImpactDamage }, 0.0, 0.0 });
 			Tuning.EmpoweredAttack.Add(ArchetypeTestId(TEXT("test_heavy")), Heavy);
+
+			// Three quicker empowered attacks, as Doubletime's (ADR-027 §2).
+			FVeyraEmpoweredAttackAbilityTuning Triple;
+			Triple.Cast = InstantCast(0.0, LongSeconds, 0.0);
+			Triple.DurationSeconds = LongSeconds;
+			Triple.Attacks = TripleAttacks;
+			Triple.WindupScale = QuickWindup;
+			Triple.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { BonusDamage }, 0.0, 0.0 });
+			Triple.ArmorPenetrationByRank = { 0.0 };
+			Tuning.EmpoweredAttack.Add(ArchetypeTestId(TEXT("test_triple")), Triple);
+
+			// A quick empowerment that lapses soon.
+			FVeyraEmpoweredAttackAbilityTuning Brief = Triple;
+			Brief.DurationSeconds = BriefSeconds;
+			Brief.Attacks = 1;
+			Tuning.EmpoweredAttack.Add(ArchetypeTestId(TEXT("test_brief")), Brief);
+
+			// A buff whose attacks pierce behind their target for a while, as OPEN ROAD!'s (ADR-027 §3).
+			FVeyraSelfBuffAbilityTuning Road;
+			Road.Cast = InstantCast(0.0, LongSeconds, 0.0);
+			FVeyraBuffAttackImpactTuning& Pierce = Road.AttackSecondaryImpact.AddDefaulted_GetRef();
+			Pierce.Seconds = PierceSeconds;
+			Pierce.Impact.Priority = 1;
+			Pierce.Impact.Shape = CircleOf(ImpactRadius);
+			Pierce.Impact.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { ImpactDamage }, 0.0, 0.0 });
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_road")), Road);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
 			Attacker = &World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
 			Attacks = Attacker->GetPlayerState()->FindComponentByClass<UVeyraBasicAttackComponent>();
 			ASSERT_THAT(IsTrue(Attacks && Attacks->SetProfile(Melee())));
+		}
+
+		TEST_METHOD(AMobileAttackerKeepsItsShareOfSpeedThroughItsWindupOnly)
+		{
+			// Fixture values: a passive's half, and a status's whole.
+			constexpr double Half = 0.5;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Range / 2.0, 0.0, 0.0));
+			const UVeyraMovementComponent& Movement = *Attacker->GetVeyraMovement();
+			const double Walking = Movement.GetMaxSpeed();
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Walking, Tolerance), TEXT("a standing attacker is stopped by its orders, not its speed")));
+			Attacks->CancelAttack();
+			Attacks->SetWindupMovement(Half);
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Walking * Half, Tolerance), TEXT("half its speed through the windup (ADR-027 §1)")));
+			Attacks->Commit();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Walking, Tolerance), TEXT("its whole speed after Commit")));
+			FVeyraStatusSpec Road;
+			Road.Id = ArchetypeTestId(TEXT("test_open_road"));
+			Road.Kind = EVeyraStatusKind::MobileAttack;
+			Road.Magnitude = 1.0;
+			Road.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Attacker->GetAbilitySystemComponent(), *Attacker->GetAbilitySystemComponent(), Road)));
+			ASSERT_THAT(IsTrue(Attacks->GetWindupMovementShare() == 1.0, TEXT("the strongest applies")));
 		}
 
 		AFTER_EACH()
@@ -260,6 +315,90 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsFalse(Attacks->GetEmpowermentView().Ability.IsValid(), TEXT("and presentation no longer shows it")));
 		}
 
+		TEST_METHOD(AnEmpowermentWithChargesEmpowersThatManyQuickerAttacks)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_triple")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::Q, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			ASSERT_THAT(AreEqual(TripleAttacks, Attacks->GetEmpowermentView().Attacks, TEXT("presentation sees how many are left")));
+			const double Interval = Attacks->GetTiming().IntervalSeconds;
+			// The empowered attacks, then one plain attack after them.
+			for (int32 Attack = 1; Attack <= TripleAttacks + 1; ++Attack)
+			{
+				Wait(Interval);
+				const double Now = Spawner.GetWorld().GetTimeSeconds();
+				ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+				const double Windup = Attacks->GetState().PhaseEndsAt - Now;
+				const bool bEmpowered = Attack <= TripleAttacks;
+				const double ExpectedWindup = Interval * WindupFraction * (bEmpowered ? QuickWindup : 1.0);
+				ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Windup, ExpectedWindup, Tolerance), FString::Printf(TEXT("attack %d winds up for %g s"), Attack, Windup)));
+				Attacks->Commit();
+				const double ExpectedLost = Attack * BaseDamage() + FMath::Min(Attack, TripleAttacks) * BonusDamage;
+				ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), ExpectedLost, Tolerance), FString::Printf(TEXT("after attack %d, lost %g"), Attack, World.HealthLost(Enemy))));
+				ASSERT_THAT(AreEqual(FMath::Max(TripleAttacks - Attack, 0), Attacks->GetEmpowermentView().Attacks, FString::Printf(TEXT("left after attack %d"), Attack)));
+			}
+			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("the last empowered attack spent it")));
+		}
+
+		TEST_METHOD(AnEmpowermentThatLapsesMidWindupStillEmpowersTheAttackItQuickened)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_brief")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::Q, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+			Wait(BriefSeconds * 2.0);
+			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("its time ran out during the windup")));
+			Attacks->Commit();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage() + BonusDamage, Tolerance),
+				FString::Printf(TEXT("the quickened attack keeps its bonus: lost %g"), World.HealthLost(Enemy))));
+		}
+
+		TEST_METHOD(ABuffsSecondaryImpactRidesItsCastersAttacksWhileItLasts)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Primary = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& BehindIt = World.Spawn(EVeyraTeam::B, FVector(100.0 + ImpactRadius / 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_road")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::E, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			const double Interval = Attacks->GetTiming().IntervalSeconds;
+
+			ASSERT_THAT(IsTrue(AttackNow(Primary) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(BehindIt), ImpactDamage, Tolerance), TEXT("the buff's impact lands behind the target")));
+			Wait(Interval);
+			ASSERT_THAT(IsTrue(AttackNow(Primary) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(BehindIt), 2.0 * ImpactDamage, Tolerance), TEXT("on every attack while it lasts")));
+			Wait(PierceSeconds);
+			ASSERT_THAT(IsTrue(AttackNow(Primary) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(BehindIt), 2.0 * ImpactDamage, Tolerance), TEXT("and on none after")));
+		}
+
+		TEST_METHOD(ABlindedAttackMissesYetCountsAsAnAttack)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			FVeyraStatusSpec Blind;
+			Blind.Id = ArchetypeTestId(TEXT("test_blind"));
+			Blind.Kind = EVeyraStatusKind::Blind;
+			Blind.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy.GetAbilitySystemComponent(), *Attacker->GetAbilitySystemComponent(), Blind)));
+			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_heavy")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			bool bMissed = false;
+			int32 Hits = 0;
+			int32 Modified = 0;
+			Attacks->OnAttack.AddLambda([&bMissed](const FVeyraAttackEvent& Event) { bMissed = Event.bMissed; });
+			Attacks->OnHit.AddLambda([&Hits](const FVeyraAttackEvent&) { ++Hits; });
+			Attacks->OnModifyAttack.AddLambda([&Modified](FVeyraAttackPlan&) { ++Modified; });
+			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(bMissed && Hits == 0 && World.HealthLost(Enemy) == 0.0, TEXT("it misses: nothing lands (ADR-028 §1)")));
+			ASSERT_THAT(IsTrue(Modified == 0, TEXT("and no attack modifier acts on it, since some act at once")));
+			ASSERT_THAT(IsFalse(World.Has(Enemy, TEXT("test_slow")), TEXT("nor the empowerment's status")));
+			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("but the empowerment is spent")));
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::OnCooldown, TEXT("and so is the attack's time")));
+		}
+
 		TEST_METHOD(AStructureTakesTheAttackInFullAndItsRidersAtStructureEffectiveness)
 		{
 			FArchetypeTestWorld World{ Spawner };
@@ -320,6 +459,50 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
 			ASSERT_THAT(IsFalse(bCritical));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage(), Tolerance)));
+		}
+
+		static FVeyraStatusSpec UntargetableSpec()
+		{
+			FVeyraStatusSpec Spec;
+			Spec.Id = ArchetypeTestId(TEXT("test_untargetable"));
+			Spec.Kind = EVeyraStatusKind::Untargetable;
+			Spec.DurationSeconds = LongSeconds;
+			return Spec;
+		}
+
+		TEST_METHOD(AShotAtAnEnemyThatTurnsUntargetableFailsAndACleavePassesOverOne)
+		{
+			// Fixture values: a ranged profile, and its projectile's flight.
+			constexpr double RangedRange = 600.0;
+			constexpr double ShotSpeed = 1000.0;
+			constexpr double ShotRadius = 10.0;
+			FVeyraBasicAttackProfile Ranged = Melee();
+			Ranged.Range = RangedRange;
+			Ranged.Projectile.Add(FVeyraAttackProjectileTuning{ ShotSpeed, ShotRadius });
+			ASSERT_THAT(IsTrue(Attacks->SetProfile(Ranged)));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(RangedRange / 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
+			TActorIterator<AVeyraProjectile> Shot(&Spawner.GetWorld());
+			ASSERT_THAT(IsTrue(static_cast<bool>(Shot)));
+			UAbilitySystemComponent& Struck = *Enemy.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Struck, Struck, UntargetableSpec())));
+			Shot->AdvanceBy(RangedRange / ShotSpeed);
+			ASSERT_THAT(IsTrue(World.HealthLost(Enemy) == 0.0, TEXT("a targeted shot fails on an Untargetable arrival (Combat Bible §10)")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(*Attacker, &Enemy, RangedRange) != EVeyraTargetValidity::Valid, TEXT("and no new attack takes it")));
+		}
+
+		TEST_METHOD(ACleavePassesOverAnUntargetableEnemy)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Primary = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Beside = World.Spawn(EVeyraTeam::B, FVector(CleaveRadius / 2.0, CleaveRadius / 4.0, 0.0));
+			UAbilitySystemComponent& Self = *Attacker->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_cleave"))).GetValue())));
+			UAbilitySystemComponent& Hidden = *Beside.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Hidden, Hidden, UntargetableSpec())));
+			ASSERT_THAT(IsTrue(AttackNow(Primary) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(World.HealthLost(Beside) == 0.0));
 		}
 
 		TEST_METHOD(ACleavingAttackHitsOtherEnemiesForPartOfItsDamage)
@@ -415,11 +598,20 @@ namespace VeyraAbilitiesTests
 			FVeyraEmpoweredAttackAbilityTuning& Heavy = Broken.EmpoweredAttack.FindChecked(ArchetypeTestId(TEXT("test_heavy")));
 			Heavy.ArmorPenetrationByRank = { 1.5 };
 			Heavy.SecondaryImpact[0].Shape.Radius = 0.0;
+			Heavy.Attacks = 0;
+			Heavy.WindupScale = 1.5;
+			FVeyraBuffAttackImpactTuning& Pierce = Broken.SelfBuff.FindChecked(ArchetypeTestId(TEXT("test_road"))).AttackSecondaryImpact[0];
+			Pierce.Seconds = 0.0;
+			Pierce.Impact.Shape.Radius = 0.0;
 			const TArray<FString> Problems = VeyraAbilityRules::Validate(Broken, RankCounts);
 			const FString All = FString::Join(Problems, TEXT(" | "));
 			const auto Mentions = [&Problems](const TCHAR* Pointer) { return Problems.ContainsByPredicate([Pointer](const FString& Problem) { return Problem.StartsWith(Pointer); }); };
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/empoweredAttack/test_heavy/armorPenetrationByRank:")), All));
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/empoweredAttack/test_heavy/secondaryImpact/0/shape:")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/empoweredAttack/test_heavy/attacks:")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/empoweredAttack/test_heavy/windupScale:")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/selfBuff/test_road/attackSecondaryImpact/0/seconds:")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/selfBuff/test_road/attackSecondaryImpact/0/impact/shape:")), All));
 
 			// A cleave takes part of the attack's damage, never more than all of it.
 			FVeyraStatusSpec Cleave = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_cleave"))).GetValue();

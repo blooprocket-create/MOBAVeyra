@@ -24,7 +24,8 @@ struct FVeyraAbilityHitSource
 
 	/**
 	 * Whether the impact skips the Spell Shield check (ADR-025 §4): a grab asked already, before it took
-	 * hold, so one decision covers the hold, the hit and the statuses.
+	 * hold, so one decision covers the hold, the hit and the statuses; a lingering area's pulse is a
+	 * tick, which a Spell Shield lets pass.
 	 */
 	bool bSkipSpellShield = false;
 };
@@ -48,6 +49,13 @@ struct FVeyraAbilityHit
 
 	/** The ability gave its caster a shield for this unit (FVeyraAbilityHitSource). */
 	bool bCasterShielded = false;
+
+	/**
+	 * The statuses the unit held from the caster as the hit landed, before its damage: a passive that
+	 * spends a mark reads them, since a lethal hit's death clears the unit's statuses before the hit is
+	 * announced.
+	 */
+	TArray<FVeyraContentId> HeldFromCaster;
 };
 
 /**

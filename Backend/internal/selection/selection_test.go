@@ -217,7 +217,7 @@ func TestStartingFluxSpellsAreFreeAndFollowTheSavedLoadout(t *testing.T) {
 	if hovered, err := f.svc.Hover(ctx, "acc-1", "oriel"); err != nil || hovered.Seats[0].FluxSpells != ([2]string{}) {
 		t.Fatalf("no saved loadout leaves both slots empty: %+v %v", hovered, err)
 	}
-	for _, refused := range [][2]string{{"blink", "ignite"}, {"mend", "mend"}, {"Blink", ""}} {
+	for _, refused := range [][2]string{{"blink", "enfeeble"}, {"mend", "mend"}, {"Blink", ""}} {
 		if _, err := f.svc.SetFluxSpells(ctx, "acc-1", refused); !errors.Is(err, match.ErrInvalidFluxSpells) {
 			t.Fatalf("%v: want ErrInvalidFluxSpells, got %v", refused, err)
 		}

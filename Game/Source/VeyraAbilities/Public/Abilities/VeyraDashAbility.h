@@ -24,6 +24,8 @@ class VEYRAABILITIES_API UVeyraDashAbility : public UVeyraGameplayAbility
 
 protected:
 	virtual bool Defines(const FVeyraContentId& Ability) const override;
+	virtual bool MovesCaster(const FVeyraContentId& Ability) const override { return Defines(Ability); }
+	virtual bool TakesOverDash(const FVeyraContentId& Ability) const override;
 	virtual double GetResourceCost(const FVeyraContentId& Ability, int32 Rank) const override;
 	virtual double GetCooldownSeconds(const FVeyraContentId& Ability, int32 Rank) const override;
 	virtual EVeyraCastRejection CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const override;

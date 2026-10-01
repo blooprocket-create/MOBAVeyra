@@ -1,6 +1,6 @@
 # ADR-020: The camera, the minimap, and the kill economy's bounty, devaluation and buyback
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §6 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M15 pull requests that add it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §6 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M15 pull requests that add it.  
 **Date:** 2026-09-29  
 **Related:**
 - [ADR-006](ADR-006-unreal-project-scaffold.md): §7, server-side movement.
@@ -40,7 +40,7 @@
 - **Settings:** its speeds and edge are presentation settings in `DefaultGame.ini`, not gameplay tuning.
 - **No sight:** it grants none. The fog gate already decides what a client has.
 - **The one game-driven pan:** at the end of a match the camera pans to the Prime Well that fell (§2, Proposal 16).
-- **Watching the end (Provisional, as League shows its Nexus fall):**
+- **Watching the end (Provisional, so every player sees the Prime Well fall):**
   - An ended match stays up `ending.showSeconds` (Match.json) after it ends. The server reports its result at once, then quits once that time has passed, and each client leaves for the results after the same time.
   - A client whose server quits first leaves as from an ended match, not a lost connection.
   - Meanwhile the camera eases to the fallen Prime Well over `EndPanSeconds` (a presentation setting) and ignores the player's camera input.
@@ -64,7 +64,7 @@ This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
 
 **Settings.** Its scale, icon size and the two click toggles are presentation settings.
 
-**Team pings (Provisional).** The Chat & Communication Bible leaves the ping system to be designed. The Settings Bible already assumes pings exist: ping persistence, ping sounds, and text labels (SET-68). So League's two basic pings stand in until that design:
+**Team pings (Provisional).** The Chat & Communication Bible leaves the ping system to be designed. The Settings Bible already assumes pings exist: ping persistence, ping sounds, and text labels (SET-68). So two basic pings stand in until that design:
 - **Sending:** holding `PingKey` (G) or `DangerPingKey` (V) and clicking pings "look here" or "danger" where the cursor points, on the ground or on the minimap.
 - **The server** (`UVeyraPingSubsystem`, Match) refuses three kinds of ping:
   - one from a player who is not seated;
@@ -91,7 +91,7 @@ This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
   - it respawns the Vanguard at its fountain now, and reverses nothing;
   - it is an order from the shop panel, refused with the reason its rule gives;
   - the record counts each buyback (`buybacks`), and a claimed bounty counts as Gold from kills.
-- **The shop takes League's layout** (amending ADR-012 §11), since the shop panel is where buyback lives:
+- **The shop takes a new layout** (amending ADR-012 §11), since the shop panel is where buyback lives:
   - on the left, quick-buy panels: consumables with the vision tools beside them, boots, and the inventory;
   - in the middle, every item as a tile with its price now, grouped by tier, and a tab for the Flux Spell swaps;
   - on the right, the chosen item: what it builds into, its recipe, the one purchase button, and what it gives;
@@ -109,34 +109,34 @@ This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
 - **M15a:** the camera, the minimap and its clicks, pings on it, and the end-of-match pan.
 - **M15b:** kill streaks and bounty, devaluation, buyback and its UI.
 
-### 6. League answers where canon is silent (for the author to overturn)
+### 6. Provisional answers where canon is silent (for the author to overturn)
 
 - **Bounty by streak:**
-  - 0 and 0 Gold at 1–2 kills, then 150, 300, 450 and 600, capped at 1000 (League's shutdown bounties, simplified);
+  - 0 and 0 Gold at 1–2 kills, then 150, 300, 450 and 600, capped at 1000;
   - a streak counts kills only, and a death resets it.
-- **Buyback:** League has none. The numbers are Dota's shape at Veyra's scale:
+- **Buyback:** a cost that grows with match time and with each earlier buyback, on a cooldown:
   - 300 Gold base;
   - +25 per minute past 10:00;
   - +150 per earlier buyback;
   - a 240 s cooldown.
-- **Camera keys:** Y cycles the camera mode, and Space holds to centre, as League binds them.
-- **The shop's layout** is League's (§3), without its search, its class and stat filters, its Recommended and Item Sets tabs, or its item icons.
+- **Camera keys:** Y cycles the camera mode, and Space holds to centre.
+- **The shop's layout** (§3), for now without search, class and stat filters, recommended or saved-build tabs, or item icons.
 
 ## Consequences
 
-- A player can look around the map as in League, and the minimap makes the fog, the lanes and the objectives legible.
+- A player can look around the map, and the minimap makes the fog, the lanes and the objectives legible.
 - Throwing a lead has a price (bounty), a feeding player costs less (devaluation), and a late fight can be rejoined (buyback).
 
 ## Amendments to earlier records
 
 - **ADR-011:** kill Gold is adjusted by devaluation, and bounty is its own payout.
 - **ADR-017:** the record counts buybacks (`buybacks`); a claimed bounty counts as Gold from kills.
-- **ADR-012 §11:** the shop screen takes League's layout (§3 above).
+- **ADR-012 §11:** the shop screen takes the new layout (§3 above).
 
 ## Open items
 
 - The HUD art pass for the minimap.
 - A spectator camera (Replay Bible).
 - Buyback in practice matches, which the Custom Matches Bible leaves open. It is off here.
-- The rest of League's shop: search (typing must not reach the match's keys), class and stat filters, a Recommended tab, and item icons in place of initials.
+- The rest of the shop: search (typing must not reach the match's keys), class and stat filters, a Recommended tab, and item icons in place of initials.
 - AI Vanguards buying back.

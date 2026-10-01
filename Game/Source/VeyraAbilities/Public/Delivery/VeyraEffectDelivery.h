@@ -12,6 +12,31 @@
 class AActor;
 class UAbilitySystemComponent;
 
+/** A reaction's burst prepared at Commit, its damage from the caster's offence then (ADR-034 §6). */
+struct FVeyraPreparedBurst
+{
+	FVeyraShape Shape;
+
+	/** Invalid when the burst deals no damage. */
+	FVeyraPreparedDamage Damage;
+
+	TArray<FVeyraStatusSpec> Statuses;
+};
+
+/** A reaction prepared at Commit: its damage worked out from the caster's power then (ADR-026 §1). */
+struct FVeyraPreparedReaction
+{
+	FVeyraContentId Status;
+	bool bConsume = false;
+	bool bPerStack = false;
+	FVeyraDamageComponents Damage;
+	TArray<FVeyraStatusSpec> Statuses;
+	TArray<FVeyraContentId> Replaces;
+
+	/** Around the target as it reacts, sparing it; at most one. */
+	TArray<FVeyraPreparedBurst> Burst;
+};
+
 /** What an ability does to each unit it hits, prepared at Commit (Combat Bible §50). */
 struct FVeyraPreparedEffects
 {
@@ -30,6 +55,15 @@ struct FVeyraPreparedEffects
 
 	/** Statuses that spare a unit the displacement. */
 	TArray<FVeyraContentId> DisplacementUnlessStatuses;
+
+	/** What the hit adds against statuses its target holds, in order. */
+	TArray<FVeyraPreparedReaction> Reactions;
+
+	/**
+	 * For a bundle whose only damage is its reactions': their damage prepared at Commit, each type at 0,
+	 * so what they add at impact keeps the caster's offence at Commit (Combat Bible §50).
+	 */
+	FVeyraPreparedDamage ReactionDamage;
 };
 
 /** Where effects are applied from: the point displacements are measured from, and the way they face. */
@@ -48,8 +82,11 @@ namespace VeyraEffectDelivery
 	/** One damage component's amount for Caster at Rank: the rank's amount plus the caster's power times the ratios. */
 	VEYRAABILITIES_API double DamageAmount(const UAbilitySystemComponent& Caster, const FVeyraDamageTuning& Damage, int32 Rank);
 
-	/** The statuses Ids name, as Combat applies them; an ID the statuses map lacks is skipped. */
-	VEYRAABILITIES_API TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids);
+	/**
+	 * The statuses Ids name, as Combat applies them, at their source's Level, which Level-scaled values
+	 * such as a DoT's damage read; an ID the statuses map lacks is skipped.
+	 */
+	VEYRAABILITIES_API TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids, int32 SourceLevel = 1);
 
 	/**
 	 * Shield's grant from Caster at Rank, its amounts worked out now from the caster's stats (Combat
@@ -57,6 +94,12 @@ namespace VeyraEffectDelivery
 	 * and cap group total as shares of Max Health.
 	 */
 	VEYRAABILITIES_API FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank);
+
+	/**
+	 * Server only: grants Holder Shield from Caster at Rank, as ShieldGrant works it out, and has an
+	 * absorbed reward it names watched (ADR-027 §5). Returns the shield's effect, invalid if none was granted.
+	 */
+	VEYRAABILITIES_API FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holder, const FVeyraShieldTuning& Shield, int32 Rank);
 
 	/**
 	 * Impact as a basic attack's secondary impact from Caster at Rank, its damage from the caster's
@@ -69,6 +112,12 @@ namespace VeyraEffectDelivery
 
 	/** Whether Effects do anything. */
 	VEYRAABILITIES_API bool IsEmpty(const FVeyraPreparedEffects& Effects);
+
+	/**
+	 * Whether Effects would do anything to Target as they land: damage, a status or a displacement of
+	 * their own, or a reaction to a status it holds. A Spell Shield is spent only by such a hit (ADR-025 §4).
+	 */
+	VEYRAABILITIES_API bool WouldLandOn(const FVeyraPreparedEffects& Effects, const UAbilitySystemComponent& Target);
 
 	/**
 	 * Applies Effects from Caster to Unit, measuring any displacement from Frame, and announces the hit

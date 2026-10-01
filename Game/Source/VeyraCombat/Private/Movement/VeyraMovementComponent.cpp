@@ -3,10 +3,13 @@
 #include "Movement/VeyraMovementComponent.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+#include "Life/VeyraCombatEventSubsystem.h"
+#include "Movement/VeyraMovementFields.h"
 #include "Movement/VeyraMovementRules.h"
 #include "NavigationSystem.h"
 #include "Shapes/VeyraShapes.h"
@@ -14,6 +17,7 @@
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraCombatVerbs.h"
 
 namespace
 {
@@ -126,7 +130,9 @@ float UVeyraMovementComponent::GetMaxSpeed() const
 			Inputs.SetSpeed = FMath::Max(Inputs.MoveSpeed, FMath::Lerp(RideDecay->FromSpeed, Inputs.MoveSpeed, Alpha));
 		}
 	}
-	return static_cast<float>(VeyraMovementRules::EffectiveSpeed(Inputs, UVeyraCombatTuningSubsystem::Get().Movement));
+	const double Speed = VeyraMovementRules::EffectiveSpeed(Inputs, UVeyraCombatTuningSubsystem::Get().Movement);
+	// A mobile attacker walks through its windup at its share of that speed (ADR-027 §1).
+	return static_cast<float>(WindupSpeedShare.IsSet() ? Speed * WindupSpeedShare.GetValue() : Speed);
 }
 
 bool UVeyraMovementComponent::IsMovingTowardEnemyVanguard() const
@@ -161,14 +167,38 @@ bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double
 		return false;
 	}
 	const bool bInterruptsDash = IsDashing();
+	FVector Heading = Direction;
+	double Reach = Distance;
+	BendThroughFields(Heading, Reach);
 	FForcedMove Move;
 	Move.Mode = EVeyraCustomMovementMode::Displaced;
-	Move.Destination = ResolveForcedMoveEnd(Direction, Distance);
+	Move.Destination = ResolveForcedMoveEnd(Heading, Reach);
 	Move.Speed = Speed;
 	BeginForcedMove(Move);
 	if (bInterruptsDash)
 	{
 		OnDashEnded.Broadcast(FVeyraDashEnd{ EVeyraDashEndReason::Interrupted, nullptr });
+	}
+	return true;
+}
+
+bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double Distance, double Speed, UAbilitySystemComponent& Source,
+	TArray<FVeyraStatusSpec> CollisionStatuses)
+{
+	bool bStopped = false;
+	FVector Heading = Direction;
+	double Reach = Distance;
+	BendThroughFields(Heading, Reach);
+	ResolveForcedMoveEnd(Heading, Reach, &bStopped);
+	if (!StartDisplacement(Direction, Distance, Speed))
+	{
+		return false;
+	}
+	if (!CollisionStatuses.IsEmpty())
+	{
+		ForcedMove->CollisionSource = &Source;
+		ForcedMove->CollisionStatuses = MoveTemp(CollisionStatuses);
+		ForcedMove->bMeetsTerrain = bStopped;
 	}
 	return true;
 }
@@ -384,21 +414,34 @@ FVector UVeyraMovementComponent::AttachSeat(const AActor& Host) const
 
 bool UVeyraMovementComponent::StartDash(const FVeyraDash& Dash)
 {
+	// One that takes over ends the dash under way first, where the unit is (ADR-031 §7).
+	if (Dash.bTakesOver && IsDashing() && IsForcedMoveValid(Dash.Direction, Dash.Distance, Dash.Speed))
+	{
+		EndDash(EVeyraDashEndReason::Replaced, nullptr);
+	}
 	if (!IsForcedMoveValid(Dash.Direction, Dash.Distance, Dash.Speed) || !UpdatedComponent || IsMovementLocked())
 	{
 		return false;
 	}
+	FVector Heading = Dash.Direction;
+	double Reach = Dash.Distance;
+	BendThroughFields(Heading, Reach);
 	FForcedMove Move;
 	Move.Mode = EVeyraCustomMovementMode::Dashing;
-	Move.Destination = ResolveForcedMoveEnd(Dash.Direction, Dash.Distance);
+	Move.Origin = UpdatedComponent->GetComponentLocation();
+	Move.Destination = ResolveForcedMoveEnd(Heading, Reach);
 	Move.Speed = Dash.Speed;
 	Move.Contact = Dash.Contact;
 	BeginForcedMove(Move);
 	return true;
 }
 
-FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, double Distance) const
+FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, double Distance, bool* bOutStopped) const
 {
+	if (bOutStopped)
+	{
+		*bOutStopped = false;
+	}
 	const FVector Start = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
 	const FVector Heading = Direction.GetSafeNormal2D();
 	const UWorld* World = GetWorld();
@@ -422,6 +465,10 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 		FCollisionShape::MakeCapsule(Radius, HalfHeight - Lift / 2.0f), Params))
 	{
 		End = Terrain.bStartPenetrating ? Start : Terrain.Location - Raise;
+		if (bOutStopped)
+		{
+			*bOutStopped = true;
+		}
 	}
 
 	// Where the world has navigation, the path also stops where walkable ground does, as at a map's
@@ -435,6 +482,10 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 		if (UNavigationSystemV1::NavigationRaycast(GetWorld(), Start - ToFeet, End - ToFeet, LastWalkable))
 		{
 			End = FVector(LastWalkable.X, LastWalkable.Y, End.Z);
+			if (bOutStopped)
+			{
+				*bOutStopped = true;
+			}
 		}
 		const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
 		FNavLocation Walkable;
@@ -445,6 +496,49 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 		End = FVector(Walkable.Location.X, Walkable.Location.Y, End.Z);
 	}
 	return End;
+}
+
+bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& Facing)
+{
+	if (!CharacterOwner || !UpdatedComponent || IsDisplaced() || IsFleeing() || IsAttached())
+	{
+		return false;
+	}
+	const FVector From = UpdatedComponent->GetComponentLocation();
+	// Terrain between does not stop a blink; its end must be ground the body may stand on (§9).
+	FVector End(Destination.X, Destination.Y, UpdatedComponent->GetComponentLocation().Z);
+	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	const ANavigationData* NavData = Navigation ? Navigation->GetDefaultNavDataInstance() : nullptr;
+	if (NavData)
+	{
+		const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
+		const FVector ToFeet(0.0, 0.0, Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 0.0);
+		const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
+		FNavLocation Walkable;
+		if (!Navigation->ProjectPointToNavigation(End - ToFeet, Walkable, FVector(Extent), NavData))
+		{
+			return false;
+		}
+		End = FVector(Walkable.Location.X, Walkable.Location.Y, End.Z);
+	}
+	const FRotator Rotation = Facing.IsNearlyZero() ? CharacterOwner->GetActorRotation() : Facing.GetSafeNormal2D().Rotation();
+	if (!CharacterOwner->TeleportTo(End, Rotation))
+	{
+		return false;
+	}
+	// A blink takes over a dash under way, which lands nothing (ADR-031 §7).
+	if (IsDashing())
+	{
+		EndDash(EVeyraDashEndReason::Replaced, nullptr);
+	}
+	// The move it was walking belongs to where it stood; its controller paths again from here.
+	if (AController* Controller = CharacterOwner->GetController())
+	{
+		Controller->StopMovement();
+	}
+	StopMovementImmediately();
+	AnnounceOwnMove(EVeyraOwnMove::Blink, From);
+	return true;
 }
 
 bool UVeyraMovementComponent::IsDisplaced() const
@@ -484,7 +578,15 @@ void UVeyraMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 		PhysAttached(DeltaTime);
 		return;
 	}
+	AdvanceForcedMove(DeltaTime);
+}
 
+void UVeyraMovementComponent::AdvanceForcedMove(float DeltaTime)
+{
+	if (!ForcedMove.IsSet() || !UpdatedComponent || ForcedMove->Mode == EVeyraCustomMovementMode::Attached)
+	{
+		return;
+	}
 	// The path was cleared of terrain when it was planned, and forced movement passes through units,
 	// so the body moves along it without sweeping.
 	const FVector Current = UpdatedComponent->GetComponentLocation();
@@ -498,10 +600,22 @@ void UVeyraMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	{
 		Contact = FindEnemyContact(Current, Next, Next);
 	}
+	// A displacement that collides stops at the first Vanguard or structure it meets (ADR-028 §3).
+	bool bCollides = false;
+	if (ForcedMove->Mode == EVeyraCustomMovementMode::Displaced && !ForcedMove->CollisionStatuses.IsEmpty())
+	{
+		const UAbilitySystemComponent* Source = ForcedMove->CollisionSource.Get();
+		bCollides = FindCollision(Current, Next, Source ? Source->GetAvatarActor() : nullptr, Next) != nullptr
+			|| (bArrives && ForcedMove->bMeetsTerrain);
+	}
 	MoveUpdatedComponent(Next - Current, UpdatedComponent->GetComponentQuat(), /*bSweep*/ false);
 	Velocity = (Next - Current) / DeltaTime;
 
-	if (Contact)
+	if (bCollides)
+	{
+		Collide();
+	}
+	else if (Contact)
 	{
 		EndDash(EVeyraDashEndReason::EnemyContact, Contact);
 	}
@@ -541,8 +655,84 @@ void UVeyraMovementComponent::EndForcedMove()
 
 void UVeyraMovementComponent::EndDash(EVeyraDashEndReason Reason, AActor* Contact)
 {
+	const FVector From = ForcedMove.IsSet() ? ForcedMove->Origin : FVector::ZeroVector;
 	EndForcedMove();
 	OnDashEnded.Broadcast(FVeyraDashEnd{ Reason, Contact });
+	// A dash a displacement interrupts never ends as the unit's own; it does not reach here (ADR-032 §1).
+	AnnounceOwnMove(EVeyraOwnMove::Dash, From);
+}
+
+void UVeyraMovementComponent::BendThroughFields(FVector& Direction, double& Distance) const
+{
+	const UWorld* World = GetWorld();
+	const UVeyraMovementFieldSubsystem* Fields = World ? World->GetSubsystem<UVeyraMovementFieldSubsystem>() : nullptr;
+	if (!Fields || Fields->GetFieldCount() == 0 || !UpdatedComponent)
+	{
+		return;
+	}
+	const FVector Start = UpdatedComponent->GetComponentLocation();
+	const FVector Bent = Fields->Bend(VeyraTeams::TeamOf(CharacterOwner), Start, Start + Direction.GetSafeNormal2D() * Distance);
+	const FVector Offset(Bent.X - Start.X, Bent.Y - Start.Y, 0.0);
+	// A move bent onto its own start goes nowhere: it ends where it began.
+	if (Offset.IsNearlyZero())
+	{
+		Distance = 0.0;
+		return;
+	}
+	Direction = Offset.GetSafeNormal();
+	Distance = Offset.Size();
+}
+
+void UVeyraMovementComponent::AnnounceOwnMove(EVeyraOwnMove Move, const FVector& From) const
+{
+	UWorld* World = GetWorld();
+	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	UAbilitySystemComponent* Unit = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CharacterOwner);
+	if (Events && Unit && UpdatedComponent)
+	{
+		Events->OnUnitMoved.Broadcast(FVeyraUnitMovedEvent{ Unit, Move, From, UpdatedComponent->GetComponentLocation() });
+	}
+}
+
+AActor* UVeyraMovementComponent::FindCollision(const FVector& From, const FVector& To, const AActor* Ignored, FVector& OutContactLocation) const
+{
+	const UWorld* World = GetWorld();
+	const UCapsuleComponent* Capsule = CharacterOwner ? CharacterOwner->GetCapsuleComponent() : nullptr;
+	if (!World || !Capsule)
+	{
+		return nullptr;
+	}
+	TArray<FHitResult> Hits;
+	const FCollisionQueryParams Params(SCENE_QUERY_STAT(VeyraDisplacementCollision), /*bTraceComplex*/ false, CharacterOwner);
+	World->SweepMultiByObjectType(Hits, From, To, FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn),
+		FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight()), Params);
+	Hits.Sort([](const FHitResult& A, const FHitResult& B) { return A.Time < B.Time; });
+	for (const FHitResult& Hit : Hits)
+	{
+		AActor* Unit = Hit.GetActor();
+		if (Unit && Unit != Ignored && !Hit.bStartPenetrating && VeyraTargeting::IsAlive(Unit) && (VeyraUnits::IsVanguard(Unit) || VeyraUnits::IsStructure(Unit)))
+		{
+			OutContactLocation = Hit.Location;
+			return Unit;
+		}
+	}
+	return nullptr;
+}
+
+void UVeyraMovementComponent::Collide()
+{
+	UAbilitySystemComponent* Source = ForcedMove.IsSet() ? ForcedMove->CollisionSource.Get() : nullptr;
+	const TArray<FVeyraStatusSpec> Statuses = ForcedMove.IsSet() ? ForcedMove->CollisionStatuses : TArray<FVeyraStatusSpec>();
+	EndForcedMove();
+	UAbilitySystemComponent* Unit = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CharacterOwner);
+	if (!Source || !Unit)
+	{
+		return;
+	}
+	for (const FVeyraStatusSpec& Status : Statuses)
+	{
+		VeyraCombat::ApplyStatus(*Source, *Unit, Status);
+	}
 }
 
 AActor* UVeyraMovementComponent::FindEnemyContact(const FVector& From, const FVector& To, FVector& OutContactLocation) const
@@ -561,7 +751,7 @@ AActor* UVeyraMovementComponent::FindEnemyContact(const FVector& From, const FVe
 	for (const FHitResult& Hit : Hits)
 	{
 		AActor* Unit = Hit.GetActor();
-		if (Unit && VeyraTargeting::IsAlive(Unit) && VeyraTargeting::AreHostile(CharacterOwner, Unit))
+		if (Unit && VeyraTargeting::IsAlive(Unit) && VeyraTargeting::CanHitEnemy(CharacterOwner, *Unit))
 		{
 			OutContactLocation = Hit.bStartPenetrating ? From : Hit.Location;
 			return Unit;

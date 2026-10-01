@@ -1,6 +1,6 @@
 # ADR-025: Mythicals, Quest Items, Spell Shields and the Item Bible's defensive catalog
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §8 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M19 pull request that adds it.
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §8 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M19 pull request that adds it.
 **Date:** 2026-09-30
 **Related:**
 - [ADR-012](ADR-012-items-and-shop.md): items and the shop.
@@ -79,7 +79,7 @@ A survey of the code (2026-09-30) found:
 
   One decision covers each impact: a site that asks before a side effect passes its answer on, rather than asking twice (PR #47 review).
 
-  Effects that apply while a unit stays in them, a lingering area's ticks and an aura's statuses, pass through as damage over time does; League's spell shields ignore them too.
+  Effects that apply while a unit stays in them, a lingering area's ticks and an aura's statuses, pass through as damage over time does.
 
   A blocked hit deals no damage, applies no crowd control or status, and raises no hit event. The Spellward is consumed.
 - **What it ignores.** Basic attacks, Procs and damage over time already applied pass through, as §19 says.
@@ -121,7 +121,7 @@ Numbers are prototype tuning in `Items.json`, provisional per §8.
   - Safe Harbor's conversion beyond full Health, while both have energy left, becomes Temporary Health at `overflowToTemporaryHealth`, up to `temporaryHealthCapMaxHealthFraction` of Max Health (Combat §7). It is one named grant, topped up and lasting `temporaryHealthSeconds` from its last top-up; Combat gains named Temporary Health grants for it, as named shields merge.
 - **Carried on.** An item made from parts that stored Current or Reserve keeps them when it stores them too, so The Last Harbor starts with its Harness's Reserve and its Reservoir's Current (Item Bible §11: a Mythical may preserve its prerequisites' mechanics).
 
-### 8. League answers where canon is open (provisional)
+### 8. Provisional answers where canon is open
 
 1. **The Mythical lock** comes with the purchase and is released only by undoing it. Selling doesn't release it, and the same Mythical may be bought again.
 2. **Flux Reclaimer and Wayline Reservoir are one quest line.**

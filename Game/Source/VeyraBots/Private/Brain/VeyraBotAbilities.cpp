@@ -42,9 +42,16 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Ability))
 	{
-		// A point-placed area reaches its cast range and then its shape; one at the caster, its shape.
+		// A point-placed area reaches its cast range and then its shape; one at the caster, its shape. Its fog, a
+		// circle or a corridor, is part of its shape (ADR-036 §3).
+		double Extent = LargestZone(Area->Zones);
+		for (const FVeyraAreaFogTuning& Fog : Area->Fog)
+		{
+			Extent = FMath::Max(Extent, Fog.Shape == EVeyraAreaFogShape::Corridor ? Fog.Length : Fog.Radius);
+		}
 		Profile.Targeting = EVeyraBotTargeting::Point;
-		Profile.Reach = (Area->Origin == EVeyraAreaOrigin::TargetPoint ? Area->Cast.CastRange : 0.0) + LargestZone(Area->Zones);
+		Profile.bAreaAtPoint = Area->Origin == EVeyraAreaOrigin::TargetPoint;
+		Profile.Reach = (Profile.bAreaAtPoint ? Area->Cast.CastRange : 0.0) + Extent;
 		Profile.LeadSeconds = Area->Cast.WindupSeconds + Area->DelaySeconds;
 		Profile.CostByRank = Area->Cast.ResourceCostByRank;
 		return Profile;
@@ -67,12 +74,90 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.LeadSeconds = Dash->Cast.WindupSeconds;
 		Profile.bAwayFromPoint = Dash->Direction == EVeyraDashDirection::AwayFromPoint;
 		Profile.CostByRank = Dash->Cast.ResourceCostByRank;
+		// Through a unit it names, within its cast range (ADR-030 §6).
+		if (Dash->Direction == EVeyraDashDirection::ThroughTarget)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Unit;
+			Profile.Reach = Dash->Cast.CastRange;
+			Profile.TargetKinds = Dash->TargetKinds;
+		}
+		return Profile;
+	}
+	if (const FVeyraAmbushAbilityTuning* Ambush = UVeyraAbilitiesTuningSubsystem::FindAmbush(Ability))
+	{
+		// At an enemy Vanguard within its cast range; the cast itself refuses one its caster has not hurt lately.
+		Profile.Targeting = EVeyraBotTargeting::Unit;
+		Profile.Reach = Ambush->Cast.CastRange;
+		Profile.CostByRank = Ambush->Cast.ResourceCostByRank;
+		Profile.TargetKinds = { EVeyraUnitKind::Vanguard };
+		return Profile;
+	}
+	if (const FVeyraPlacementAbilityTuning* Placement = UVeyraAbilitiesTuningSubsystem::FindPlacement(Ability))
+	{
+		// Placed toward an enemy, within its cast range.
+		Profile.Targeting = EVeyraBotTargeting::Point;
+		Profile.Reach = Placement->Cast.CastRange;
+		Profile.LeadSeconds = Placement->Cast.WindupSeconds;
+		Profile.CostByRank = Placement->Cast.ResourceCostByRank;
+		return Profile;
+	}
+	if (const FVeyraBlinkAbilityTuning* Blink = UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
+	{
+		// To its own companion: cast on itself in a fight its departures' eruptions reach (ADR-034 §5).
+		if (Blink->To == EVeyraBlinkTo::OwnCompanion)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Self;
+			Profile.Reach = FMath::Max(LargestZone(Blink->DepartureZones), LargestZone(Blink->CompanionDepartureZones));
+			Profile.CostByRank = Blink->Cast.ResourceCostByRank;
+			return Profile;
+		}
+		// At an enemy unit within its reach; a blink only to its own marker is left to the player.
+		if (Blink->To == EVeyraBlinkTo::OwnMarker)
+		{
+			return {};
+		}
+		Profile.Targeting = EVeyraBotTargeting::Unit;
+		Profile.Reach = Blink->Cast.CastRange;
+		Profile.CostByRank = Blink->Cast.ResourceCostByRank;
+		Profile.TargetKinds = Blink->TargetKinds;
+		return Profile;
+	}
+	if (const FVeyraCommandAbilityTuning* Command = UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
+	{
+		// A summon escorts an ally, the one it guards, or hunts an enemy within its cast range (ADR-035 §5).
+		if (Command->Order == EVeyraCompanionOrder::Summon)
+		{
+			const bool bHunts = Command->BindTo == EVeyraCompanionBind::Enemy;
+			Profile.Targeting = bHunts ? EVeyraBotTargeting::Unit : EVeyraBotTargeting::Self;
+			Profile.Reach = bHunts ? Command->Cast.CastRange : 0.0;
+			Profile.AllyReach = bHunts ? 0.0 : Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
+		// A hold sends the companion at an enemy its landing reaches; a recall or a redirect is left to the player (ADR-034 §5).
+		if (Command->Order != EVeyraCompanionOrder::Hold)
+		{
+			return {};
+		}
+		Profile.Targeting = EVeyraBotTargeting::Point;
+		Profile.Reach = Command->Cast.CastRange + LargestZone(Command->LandingZones);
+		Profile.LeadSeconds = Command->Cast.WindupSeconds;
+		Profile.CostByRank = Command->Cast.ResourceCostByRank;
+		return Profile;
+	}
+	if (const FVeyraStanceAbilityTuning* Stance = UVeyraAbilitiesTuningSubsystem::FindStance(Ability))
+	{
+		// Changed in a fight, as its caster closes to its basic attack's reach, so both sets get their turn.
+		Profile.Targeting = EVeyraBotTargeting::Self;
+		Profile.Reach = AttackRange;
+		Profile.CostByRank = Stance->Cast.ResourceCostByRank;
 		return Profile;
 	}
 	if (const FVeyraSelfBuffAbilityTuning* SelfBuff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
 	{
 		Profile.Targeting = EVeyraBotTargeting::Self;
 		Profile.CostByRank = SelfBuff->Cast.ResourceCostByRank;
+		Profile.AllyReach = SelfBuff->Recipient == EVeyraBuffRecipient::CasterOrAlly ? SelfBuff->Cast.CastRange : 0.0;
 		return Profile;
 	}
 	if (const FVeyraEmpoweredAttackAbilityTuning* Empowered = UVeyraAbilitiesTuningSubsystem::FindEmpoweredAttack(Ability))

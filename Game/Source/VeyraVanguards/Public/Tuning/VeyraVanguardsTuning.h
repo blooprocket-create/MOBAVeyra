@@ -5,6 +5,7 @@
 #include "Attacks/VeyraBasicAttackTypes.h"
 #include "Content/VeyraContentId.h"
 #include "Progression/VeyraProgressionTypes.h"
+#include "Progression/VeyraProgressionTuning.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
 #include "Tuning/VeyraTuningProvenance.h"
@@ -15,11 +16,18 @@
 // The Vanguards domain's tuning, bound from Game/Tuning/Vanguards.json (ADR-006 §6, ADR-008 §2). The
 // schema holds every range; a 0 here only means "not loaded".
 
-/** What a Vanguard spends to cast (Combat Bible §27; ADR-008 §2). Only Mana arrives with M5. */
+/**
+ * What a Vanguard spends to cast (Combat Bible §27; ADR-008 §2). Every family is spent, regenerated and
+ * refunded through the same Resource attributes; Focus has no growth per level and its own colour on
+ * the HUD (ADR-031 §1). Charge starts empty, never regenerates, is kept through death and only effects
+ * restore it (ADR-033 §1).
+ */
 UENUM()
 enum class EVeyraResourceFamily : uint8
 {
 	Mana,
+	Focus,
+	Charge,
 };
 
 /** Who may play a Vanguard (ADR-010 §6). */
@@ -99,6 +107,10 @@ struct FVeyraVanguardDefinition
 
 	UPROPERTY()
 	FVeyraVanguardKitTuning Abilities;
+
+	/** At most one: a rank shape from the Progression tuning, a documented exception to the standard ranks (ADR-031 §2). */
+	UPROPERTY()
+	TArray<FVeyraContentId> RankShape;
 
 	/** At most one passive, from one of the passive maps. */
 	UPROPERTY()
@@ -563,13 +575,514 @@ struct FVeyraMarkProcTuning
 	TArray<FVeyraProcBoltTuning> ProcBolts;
 };
 
+/**
+ * Moro's Wild Dominion (Roster Bible §12; ADR-026 §5): while its owner stands on jungle terrain it holds
+ * the passive's statuses, given again at each check; damage it deals to wildlife restores a share of
+ * that damage as Health. No stacks and no jungle state. Its data is an entry in Vanguards.json's
+ * wildDominion map.
+ */
+USTRUCT()
+struct FVeyraWildDominionTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses, put on the owner at each check it stands in the jungle; each outlasts a check. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** Seconds between checks; above 0. */
+	UPROPERTY()
+	double CheckSeconds = 0.0;
+
+	/** Of the Health its damage takes from wildlife, the share it restores to the owner; from 0 to 1. */
+	UPROPERTY()
+	double WildlifeHealFraction = 0.0;
+};
+
+/**
+ * A passive made wholly of the statuses its kit applies and the reactions to them (ADR-026 §1–§2), as
+ * Korruk's Embedded: Splinters build to Fractured, which his abilities detonate. It names those
+ * statuses, which must exist, for its description and checks, and runs nothing of its own. Its data
+ * is an entry in Vanguards.json's kitStatuses map.
+ */
+USTRUCT()
+struct FVeyraKitStatusesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses; at least one. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/**
+ * Celandrine's Never Break Stride (Roster Bible §22; ADR-027 §1, §8): the share of her Movement Speed she
+ * keeps through a basic attack's windup, and the statuses each primary basic attack that lands on an
+ * enemy Vanguard gives her. Its data is an entry in Vanguards.json's attackStride map.
+ */
+USTRUCT()
+struct FVeyraAttackStrideTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The share of her Movement Speed she keeps while a basic attack winds up; above 0, at most 1. */
+	UPROPERTY()
+	double WindupShare = 0.0;
+
+	/** From Abilities.json's statuses: given her by each primary basic attack that lands on an enemy Vanguard. */
+	UPROPERTY()
+	TArray<FVeyraContentId> HitStatuses;
+};
+
+/**
+ * Aurelisse's Slipstream (Roster Bible §24; ADR-027 §7): each ally-targeted buff she casts at an allied
+ * Vanguard leaves a short current from her toward that ally, a lingering rectangle whose statuses speed
+ * her and the allied Vanguards inside it. Its data is an entry in Vanguards.json's slipstream map.
+ */
+USTRUCT()
+struct FVeyraSlipstreamTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The current's width; above 0. */
+	UPROPERTY()
+	double Width = 0.0;
+
+	/** The longest current, from her toward the ally; above 0. */
+	UPROPERTY()
+	double MaxLength = 0.0;
+
+	/** How long the current lasts, in seconds; above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Seconds between its gifts of its statuses; above 0, at most its duration. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** From Abilities.json's statuses: given her and the allied Vanguards inside at each pulse; each outlasts a pulse. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/**
+ * Silt's Reclaim (Roster Bible §3; ADR-028 §4): each of its owner's basic attacks that lands on an enemy
+ * Vanguard holding the owner's mark consumes the mark and heals the owner, once per lockout per target.
+ * Its data is an entry in Vanguards.json's reclaim map.
+ */
+USTRUCT()
+struct FVeyraReclaimTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: the mark its owner's damaging abilities apply. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	/** The heal at Level 1, and what each Level after adds; at least 0. */
+	UPROPERTY()
+	double HealAmount = 0.0;
+
+	UPROPERTY()
+	double HealPerLevel = 0.0;
+
+	/** Of its owner's Magic Power, added to the heal; at least 0. */
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** Seconds before the same target can be reclaimed from again; above 0. */
+	UPROPERTY()
+	double LockoutSeconds = 0.0;
+};
+
+/**
+ * One discipline's mark (ADR-031 §10), as Angeru's Veiled or Drawn: the other discipline's abilities apply
+ * it through their own effects; the abilities in ConsumedBy spend it.
+ */
+USTRUCT()
+struct FVeyraDisciplineMarkTuning
+{
+	GENERATED_BODY()
+
+	/** From Abilities.json's statuses: the mark. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** The abilities whose hit on an enemy Vanguard holding the mark spends it. */
+	UPROPERTY()
+	TArray<FVeyraContentId> ConsumedBy;
+
+	/** The extra strike as it is spent: its type, its amount at Level 1, what each Level adds, and its Physical Power ratio; 0 for none. */
+	UPROPERTY()
+	EVeyraDamageType DamageType = EVeyraDamageType::Physical;
+
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double PhysicalPowerRatio = 0.0;
+
+	/** The fraction of the resistance its type meets that the strike ignores, from 0 to 1. */
+	UPROPERTY()
+	double Penetration = 0.0;
+
+	/** The fraction of the spending ability's cost that comes back, from 0 to 1. */
+	UPROPERTY()
+	double ResourceRefund = 0.0;
+
+	/** From Abilities.json's statuses: put on the owner as it is spent. */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatuses;
+};
+
+/** What one ability adds as it spends a mark (ADR-031 §10), as Severing Arc's stronger strike. */
+USTRUCT()
+struct FVeyraDisciplineBonusTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	/** Multiplies the extra strike; at least 0. */
+	UPROPERTY()
+	double DamageMultiplier = 1.0;
+
+	/** The fraction of the ability's own remaining cooldown refunded, from 0 to 1. */
+	UPROPERTY()
+	double CooldownRefund = 0.0;
+};
+
+/**
+ * Angeru's No Master (Roster Bible §15; ADR-031 §10): two disciplines' marks, each spent by the other's
+ * abilities for a payoff, and a slot whose remaining cooldown each spending shortens. Its data is an
+ * entry in Vanguards.json's disciplines map.
+ */
+USTRUCT()
+struct FVeyraDisciplinesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	TArray<FVeyraDisciplineMarkTuning> Marks;
+
+	UPROPERTY()
+	TArray<FVeyraDisciplineBonusTuning> Bonuses;
+
+	/** The slot whose ability's remaining cooldown shortens by RefundSeconds as any mark is spent. */
+	UPROPERTY()
+	EVeyraAbilitySlot RefundSlot = EVeyraAbilitySlot::R;
+
+	UPROPERTY()
+	double RefundSeconds = 0.0;
+};
+
+/**
+ * Varkesh's Stress Temper (Roster Bible §14; ADR-032 §2): its owner's damaging abilities coat the enemy
+ * Vanguards they hit; a coated unit that dashes or blinks on its own, and holds no lockout from the owner,
+ * is struck where it lands. The coating goes, the strike's damage and statuses land, and the unit takes the
+ * lockout. Its data is an entry in Vanguards.json's stressTemper map.
+ */
+USTRUCT()
+struct FVeyraStressTemperTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: the coating, put by the owner on each enemy Vanguard its damaging abilities hit. */
+	UPROPERTY()
+	FVeyraContentId Coating;
+
+	/** The strike: its type, Physical or Magic, its amount at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	EVeyraDamageType DamageType = EVeyraDamageType::Magic;
+
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** From Abilities.json's statuses: put on the struck unit, such as a brief Root. */
+	UPROPERTY()
+	TArray<FVeyraContentId> StrikeStatuses;
+
+	/** From Abilities.json's statuses: put on the struck unit by the owner; while it holds, no strike lands on it. */
+	UPROPERTY()
+	FVeyraContentId Lockout;
+};
+
+/**
+ * Relay's Charger (Roster Bible §4; ADR-033 §2): each Fluxborn that dies within Radius of its living owner,
+ * of either side, gives ChargePerDeath of its owner's resource, BoostMultiplier times as much while its
+ * owner holds BoostStatus. Its data is an entry in Vanguards.json's charger map.
+ */
+USTRUCT()
+struct FVeyraChargerTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Units from its owner's centre to where the Fluxborn fell. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	double ChargePerDeath = 0.0;
+
+	/** From Abilities.json's statuses: while its owner holds it, as Overcharge gives it, each death gives BoostMultiplier times as much. */
+	UPROPERTY()
+	FVeyraContentId BoostStatus;
+
+	/** At least 1. */
+	UPROPERTY()
+	double BoostMultiplier = 1.0;
+};
+
+/** The shield an ally earns by following a Mist Trail into its fog (ADR-036 §5): one grant, replaced by the next. */
+USTRUCT()
+struct FVeyraMistShieldTuning
+{
+	GENERATED_BODY()
+
+	/** At Level 1, what each Level adds, and its Magic Power ratio; together above 0. */
+	UPROPERTY()
+	double Amount = 0.0;
+
+	UPROPERTY()
+	double AmountPerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
+/**
+ * Sylra's Follow the Bell (Roster Bible §16; ADR-036 §5). Each LookSeconds it looks where its owner stands. As
+ * she steps from no fog into Dense Fog she leaves a Mist Trail: Area, laid every Spacing along the last
+ * ApproachLength of the way she came, and on along her path for LaySeconds, as hers. The trail's area gives
+ * allies FollowStatus; an allied Vanguard holding it from her in the volume she entered gains FollowShield from
+ * her, once per trail. It grants no vision. Its data is an entry in Vanguards.json's mistTrail map.
+ */
+USTRUCT()
+struct FVeyraMistTrailTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's areas: one that lingers, giving allies FollowStatus. */
+	UPROPERTY()
+	FVeyraContentId Area;
+
+	/** Above 0. */
+	UPROPERTY()
+	double Spacing = 0.0;
+
+	/** How much of the way she came it marks; at least 0. */
+	UPROPERTY()
+	double ApproachLength = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double LaySeconds = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double LookSeconds = 0.0;
+
+	/** From Abilities.json's statuses. */
+	UPROPERTY()
+	FVeyraContentId FollowStatus;
+
+	UPROPERTY()
+	FVeyraMistShieldTuning FollowShield;
+};
+
+/**
+ * Marek's Bound Together (Roster Bible §10; ADR-034 §9). It summons its owner's companion as it starts. When
+ * its owner and the companion have each damaged one enemy within WindowSeconds, Accord deals that enemy magic
+ * damage from its owner, at most once per PerTargetSeconds on it, BoostMultiplier times as much while its
+ * owner holds BoostStatus, and shortens RefundSlot's remaining cooldown by RefundSeconds. Each of the
+ * companion's hits leaves Mark on the enemy, which its owner's abilities may react to. Its data is an entry
+ * in Vanguards.json's accord map.
+ */
+USTRUCT()
+struct FVeyraAccordTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's companions. */
+	UPROPERTY()
+	FVeyraContentId Companion;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	double PerTargetSeconds = 0.0;
+
+	/** Accord's magic damage at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** From Abilities.json's statuses: what each of the companion's hits leaves on the enemy. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	UPROPERTY()
+	EVeyraAbilitySlot RefundSlot = EVeyraAbilitySlot::E;
+
+	UPROPERTY()
+	double RefundSeconds = 0.0;
+
+	/** From Abilities.json's statuses: while its owner holds it, as Hell on a Leash gives it, Accord deals BoostMultiplier times as much. */
+	UPROPERTY()
+	FVeyraContentId BoostStatus;
+
+	/** At least 1. */
+	UPROPERTY()
+	double BoostMultiplier = 1.0;
+};
+
+/**
+ * Tavi's You're It! (Roster Bible §6; ADR-030 §10): one enemy at a time holds its owner's mark. Its owner
+ * moves faster while closing on the holder; its next basic attack on the holder spends the mark for bonus
+ * magic damage and refunds CooldownRefund of Q, W and E's remaining cooldowns; and a kill of the holder
+ * sends the mark to the nearest enemy Vanguard within JumpRadius. Its data is an entry in Vanguards.json's
+ * quarry map.
+ */
+USTRUCT()
+struct FVeyraQuarryTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: the mark its owner's abilities apply. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	/** From Abilities.json's statuses: a MoveSpeed status its owner holds while closing on the holder. */
+	UPROPERTY()
+	FVeyraContentId ChaseStatus;
+
+	UPROPERTY()
+	double ChaseRange = 0.0;
+
+	/** How far from straight at the holder its owner may be moving and still close on it. */
+	UPROPERTY()
+	double ChaseAngleDegrees = 0.0;
+
+	UPROPERTY()
+	double SampleSeconds = 0.0;
+
+	/** The spent mark's magic damage at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	UPROPERTY()
+	double CooldownRefund = 0.0;
+
+	UPROPERTY()
+	double JumpRadius = 0.0;
+};
+
+/** One of Unreturned's Health thresholds: below its fraction, its owner holds its statuses (ADR-028 §7). */
+USTRUCT()
+struct FVeyraUnreturnedThresholdTuning
+{
+	GENERATED_BODY()
+
+	/** Of Max Health; above 0, at most 1. */
+	UPROPERTY()
+	double HealthFraction = 0.0;
+
+	/** From Abilities.json's statuses; each outlasts a check. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/**
+ * Torr's Unreturned (Roster Bible §9; ADR-028 §7): out of Vanguard combat his core restores a share of
+ * his missing Health each second, and below each Health threshold he holds its statuses, given again at
+ * each check. Its data is an entry in Vanguards.json's unreturned map.
+ */
+USTRUCT()
+struct FVeyraUnreturnedTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Seconds between checks; above 0. */
+	UPROPERTY()
+	double CheckSeconds = 0.0;
+
+	/** Of missing Health, what it restores each second out of Vanguard combat; above 0, at most 1. */
+	UPROPERTY()
+	double RestoreFractionPerSecond = 0.0;
+
+	UPROPERTY()
+	TArray<FVeyraUnreturnedThresholdTuning> Thresholds;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 11;
+	static constexpr int32 SchemaVersion = 19;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -603,6 +1116,42 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraMomentumTuning> Momentum;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraWildDominionTuning> WildDominion;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraKitStatusesTuning> KitStatuses;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAttackStrideTuning> AttackStride;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraSlipstreamTuning> Slipstream;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraReclaimTuning> Reclaim;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraUnreturnedTuning> Unreturned;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraQuarryTuning> Quarry;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDisciplinesTuning> Disciplines;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraStressTemperTuning> StressTemper;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraChargerTuning> Charger;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAccordTuning> Accord;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraMistTrailTuning> MistTrail;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */
@@ -611,11 +1160,15 @@ namespace VeyraVanguardRules
 	/**
 	 * Problems with Tuning a schema cannot express, each a JSON pointer and a message: bodies, basic
 	 * attacks, abilities the Abilities tuning does not define or whose rank lists do not suit their
-	 * slot, passives no passive map defines, a passive ID in more than one map, and passive statuses
-	 * the Abilities tuning does not define.
+	 * slot in the Vanguard's rank shape, rank shapes Progression does not define, passives no passive
+	 * map defines, a passive ID in more than one map, and passive statuses the Abilities tuning does not
+	 * define.
 	 */
-	VEYRAVANGUARDS_API TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank,
-		int32 UltimateMaxRank);
+	VEYRAVANGUARDS_API TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities,
+		const FVeyraProgressionTuning& Progression);
+
+	/** The ranks Vanguard's kit takes: its rank shape from Progression, or the standard one (ADR-031 §2). */
+	VEYRAVANGUARDS_API FVeyraRankShape RankShapeOf(const FVeyraVanguardDefinition& Vanguard, const FVeyraProgressionTuning& Progression);
 
 	/** The Physical Power ratio Dead Reckoning adds for Banked units (Roster Bible §2): its ratio per step, by the steps banked. */
 	VEYRAVANGUARDS_API double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Banked);

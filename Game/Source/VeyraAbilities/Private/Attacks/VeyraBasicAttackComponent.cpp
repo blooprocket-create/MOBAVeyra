@@ -22,6 +22,8 @@
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
+#include "VeyraAbilitiesVerbs.h"
+#include "VeyraCombatVerbs.h"
 #include "Targeting/VeyraParticipantData.h"
 
 namespace
@@ -188,6 +190,7 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::CheckAttack(const AActor* Targ
 	case EVeyraTargetValidity::NotHostile:
 	case EVeyraTargetValidity::Structure:
 	case EVeyraTargetValidity::Ward:
+	case EVeyraTargetValidity::NotAllied:
 		return EVeyraAttackRejection::InvalidTarget;
 	}
 	return GetServerNow() < NextAttackAt ? EVeyraAttackRejection::OnCooldown : EVeyraAttackRejection::None;
@@ -203,14 +206,16 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::StartAttack(AActor& Target)
 	// A backswing still running ends as the next attack begins.
 	GetWorld()->GetTimerManager().ClearTimer(PhaseTimer);
 	// Attacking ends Camouflage (Combat Bible §11; ADR-018 §4).
-	VeyraCombat::EndCamouflage(*GetAbilitySystem());
+	VeyraCombat::EndStealth(*GetAbilitySystem());
 
 	const double Now = GetServerNow();
 	FRunningAttack& Attack = Running.Emplace();
 	Attack.Target = &Target;
 	Attack.StartedAt = Now;
 	Attack.Timing = GetTiming();
-	const double WindupSeconds = Attack.Timing.IntervalSeconds * Profile.WindupFraction;
+	// An empowerment may shorten the windups it empowers, never the interval (ADR-027 §2).
+	Attack.bEmpowered = IsEmpowered();
+	const double WindupSeconds = Attack.Timing.IntervalSeconds * Profile.WindupFraction * (Attack.bEmpowered ? Empowerment->WindupScale : 1.0);
 
 	// The attacker turns to face its target.
 	if (AActor* Body = GetAbilitySystem()->GetAvatarActor())
@@ -255,25 +260,41 @@ void UVeyraBasicAttackComponent::Commit()
 	}
 
 	NextAttackAt = Running->StartedAt + Running->Timing.IntervalSeconds;
-	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing);
-	const FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
+	// A blinded attacker's attack misses: its on-attack effects fire and its empowerment is spent, but it
+	// lands nothing (ADR-028 §1). Decided first, so no attack modifier acts on it.
+	const UVeyraStatusComponent* Statuses = GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
+	const bool bMissed = Statuses && Statuses->Has(EVeyraStatusKind::Blind);
+	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing, Running->bEmpowered, bMissed);
+	FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
+	Landing.Event.bMissed = bMissed;
 	OnAttack.Broadcast(Landing.Event);
+	// Each status its attacks spend loses one, a miss's as much as a hit's (ADR-033 §4).
+	VeyraCombat::NoteAttackCommitted(*Attacker);
+	// And each attack may cut the next basic ability's cooldown (ADR-033 §6).
+	if (const double Cut = Statuses ? Statuses->GetTotal(EVeyraStatusKind::AttackShortensCooldown) : 0.0; Cut > 0.0)
+	{
+		const EVeyraAbilitySlot Basics[] = { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::W, EVeyraAbilitySlot::E };
+		VeyraAbilities::ShortenSoonestCooldown(*Attacker, Basics, Cut);
+	}
 
-	if (Profile.Projectile.IsEmpty())
+	if (!Landing.Event.bMissed && Profile.Projectile.IsEmpty())
 	{
 		Land(Landing);
 	}
-	else if (AVeyraProjectile* Projectile = GetWorld()->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(Body->GetActorLocation())))
+	else if (!Landing.Event.bMissed)
 	{
 		// Once launched it cannot be escaped by leaving range (§4); it lands even if the attacker has died.
 		const FVeyraAttackProjectileTuning& Flight = Profile.Projectile[0];
-		Projectile->LaunchHoming(*Attacker, *Target, Flight.Speed, Flight.Radius, FVeyraPreparedEffects(), FVeyraContentId(), 0,
-			[WeakThis = TWeakObjectPtr<UVeyraBasicAttackComponent>(this), Landing](AActor&) {
-				if (UVeyraBasicAttackComponent* Attacks = WeakThis.Get())
-				{
-					Attacks->Land(Landing);
-				}
-			});
+		if (AVeyraProjectile* Projectile = GetWorld()->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(Body->GetActorLocation())))
+		{
+			Projectile->LaunchHoming(*Attacker, *Target, Flight.Speed, Flight.Radius, FVeyraPreparedEffects(), FVeyraContentId(), 0,
+				[WeakThis = TWeakObjectPtr<UVeyraBasicAttackComponent>(this), Landing](AActor&) {
+					if (UVeyraBasicAttackComponent* Attacks = WeakThis.Get())
+					{
+						Attacks->Land(Landing);
+					}
+				});
+		}
 	}
 
 	const double Now = GetServerNow();
@@ -289,7 +310,8 @@ void UVeyraBasicAttackComponent::Commit()
 	}
 }
 
-FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing)
+FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart,
+	bool bMissed)
 {
 	FVeyraAttackPlan Plan;
 	Plan.Target = &Target;
@@ -331,15 +353,36 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 		}
 	}
 
-	if (Empowerment.IsSet() && GetServerNow() <= EmpowermentExpiresAt)
+	// One that waited as the attack started stays its, even if its time runs out during the windup.
+	if (Empowerment.IsSet() && (bEmpoweredAtStart || GetServerNow() <= EmpowermentExpiresAt))
 	{
 		Plan.bEmpowered = true;
 		if (Empowerment->Apply)
 		{
 			Empowerment->Apply(Plan);
 		}
+		// Each attack spends one of the attacks it empowers; the last ends it (ADR-027 §2).
+		if (--Empowerment->Attacks > 0)
+		{
+			EmpowermentView.Attacks = Empowerment->Attacks;
+			MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, EmpowermentView, this);
+		}
+		else
+		{
+			ClearEmpowerment();
+		}
 	}
-	ClearEmpowerment();
+	else
+	{
+		ClearEmpowerment();
+	}
+	// A buff's impact, while it lasts (ADR-027 §3).
+	const double Now = GetServerNow();
+	TimedImpacts.RemoveAll([Now](const FTimedImpact& Each) { return Each.Until < Now; });
+	for (const FTimedImpact& Timed : TimedImpacts)
+	{
+		Plan.OfferSecondaryImpact(Timed.Impact);
+	}
 
 	const UVeyraStatusComponent* Statuses = GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
 	const double CleaveFraction = Statuses ? Statuses->GetStrongest(EVeyraStatusKind::AttackCleave) : 0.0;
@@ -347,7 +390,10 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 	{
 		Plan.Cleave = FVeyraAttackCleave{ CleaveFraction, {} };
 	}
-	OnModifyAttack.Broadcast(Plan);
+	if (!bMissed)
+	{
+		OnModifyAttack.Broadcast(Plan);
+	}
 	// Amplified, against the target's kind when the status names one (ADR-018 §2).
 	if (Statuses)
 	{
@@ -405,6 +451,7 @@ void UVeyraBasicAttackComponent::Land(const FLandingAttack& Landing)
 	{
 		return;
 	}
+	OnLanding.Broadcast(Landing.Event);
 	if (Landing.Damage.IsValid())
 	{
 		VeyraCombat::DealPreparedDamage(Landing.Damage, *Struck);
@@ -442,7 +489,7 @@ void UVeyraBasicAttackComponent::HitAround(const FVeyraAttackEvent& Event, const
 	// Sides belong to the participant, which outlives its body.
 	const AActor* Side = Attacker->GetOwner();
 	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*GetWorld(), Placed, [Side, Target](const AActor& Unit) {
-		return &Unit != Target && VeyraTargeting::AreHostile(Side, &Unit);
+		return &Unit != Target && VeyraTargeting::CanHitEnemy(Side, Unit);
 	});
 	for (AActor* Unit : Units)
 	{
@@ -467,8 +514,14 @@ void UVeyraBasicAttackComponent::Empower(FVeyraAttackEmpowerment InEmpowerment)
 	EmpowermentExpiresAt = GetServerNow() + InEmpowerment.DurationSeconds;
 	EmpowermentView.Ability = InEmpowerment.Ability;
 	EmpowermentView.ExpiresAt = EmpowermentExpiresAt;
+	EmpowermentView.Attacks = InEmpowerment.Attacks;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, EmpowermentView, this);
 	Empowerment = MoveTemp(InEmpowerment);
+}
+
+void UVeyraBasicAttackComponent::OfferImpactWhileLasting(FVeyraSecondaryImpact Impact, double Seconds)
+{
+	TimedImpacts.Add(FTimedImpact{ MoveTemp(Impact), GetServerNow() + Seconds });
 }
 
 void UVeyraBasicAttackComponent::ClearEmpowerment()
@@ -538,6 +591,25 @@ void UVeyraBasicAttackComponent::EnterPhase(EVeyraAttackPhase Phase, AActor* Tar
 	State.Target = Target;
 	State.PhaseEndsAt = EndsAt;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, State, this);
+	// A mobile attacker walks through its windup at its share of speed, and only then (ADR-027 §1).
+	const UAbilitySystemComponent* Attacker = GetAbilitySystem();
+	const AActor* Body = Attacker ? Attacker->GetAvatarActor() : nullptr;
+	if (UVeyraMovementComponent* Movement = Body ? Body->FindComponentByClass<UVeyraMovementComponent>() : nullptr)
+	{
+		const double Share = Phase == EVeyraAttackPhase::Windup ? GetWindupMovementShare() : 0.0;
+		Movement->SetWindupSpeedShare(Share > 0.0 ? TOptional<double>(Share) : TOptional<double>());
+	}
+}
+
+void UVeyraBasicAttackComponent::SetWindupMovement(double Share)
+{
+	BaseWindupShare = Share;
+}
+
+double UVeyraBasicAttackComponent::GetWindupMovementShare() const
+{
+	const UVeyraStatusComponent* Statuses = GetOwner() ? GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return FMath::Max(BaseWindupShare, Statuses ? Statuses->GetStrongest(EVeyraStatusKind::MobileAttack) : 0.0);
 }
 
 void UVeyraBasicAttackComponent::ResetChain()
@@ -568,6 +640,7 @@ void UVeyraBasicAttackComponent::OnDeath(const FVeyraDeathEvent& Death)
 		CancelAttack();
 		ResetChain();
 		ClearEmpowerment();
+		TimedImpacts.Reset();
 	}
 }
 

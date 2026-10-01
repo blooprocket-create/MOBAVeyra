@@ -1,6 +1,6 @@
 # ADR-019: Match flow: reconnect, autopilot, AFK, votes and personal results
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M14 pull requests that add it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M14 pull requests that add it.  
 **Date:** 2026-09-29  
 **Related:**
 - [ADR-006](ADR-006-unreal-project-scaffold.md): §7, server-side movement.
@@ -100,7 +100,7 @@ The Match Flow Bible gives every value, as initial tuning, in `Game/Tuning/Match
 
 The UX Bible approves no layouts for these screens, so they stay grey-box:
 - **AFK warning:** a banner under the match clock.
-- **Vote panel:** under the match clock, with the kind, the tally, the time left, and Yes and No on F1 and F2 (`VoteYesKey`, `VoteNoKey`). A team's vote shows only to that team, as League shows a surrender.
+- **Vote panel:** under the match clock, with the kind, the tally, the time left, and Yes and No on F1 and F2 (`VoteYesKey`, `VoteNoKey`). A team's vote shows only to that team.
 - **Match menu:** Surrender, Remake and Request Pause. Each is refused with the reason its rule gives.
 - **Intermission:** "Paused, resumes in m:ss", with Resume Early.
 - **Scoreboard:** a player who left keeps its line, marked disconnected, since a client's own player list drops inactive PlayerStates.
@@ -110,11 +110,11 @@ The UX Bible approves no layouts for these screens, so they stay grey-box:
 - **M14a:** rejoin, autopilot, AFK, absence, personal loss and forgiveness, the results fields, and a reconnect smoke.
 - **M14b:** votes, surrender and remake results, pause votes and the intermission, and the presentation.
 
-### 9. League answers where canon is silent (for the author to overturn)
+### 9. Provisional answers where canon is silent (for the author to overturn)
 
 - **AI participants in votes.** Modes & Access §4 leaves this "to be designed".
   - A bot never starts a vote.
-  - In a team vote, bot teammates abstain. A team of one human and four bots can't surrender, and League's Co-op has no bot allies.
+  - In a team vote, bot teammates abstain. A team of one human and four bots can't surrender.
   - For pause and resume, enemy AI seats vote YES; otherwise Co-op could never pause.
   - Practice matches take no votes, since their host ends them.
 - **The behind-tower point and the move threshold:** they are data, not canon.

@@ -31,9 +31,9 @@ Three sheets carry visible third-party branding, third-party character/item art,
 
 | Sheet | Third-party content present |
 |---|---|
-| `Raska_The_Redline_Character_Sheet_v2.png` | League of Legends wordmark and logo; lore text placing Raska in "the undercity of Zaun"; two rows of League champion portrait art (Orianna, Zilean, Lulu, Miss Fortune, Rell / Poppy, Cassiopeia, Taliyah, Nasus, Anivia, Vex) |
-| `Kade_Dead_Reckoning_Character_Sheet.png` | League of Legends wordmark and logo; "A Zaunite surveyor"; League champion portrait rows; a "Recommended Build" panel of League item icons (Kraken Slayer, Infinity Edge, Rapid Firecannon, Lord Dominik's Regards, Guardian Angel, Berserker's Greaves) |
-| `Angeru_The_Housebreaker_Character_Sheet.png` | An "Inspiration" panel reproducing League champion splash art and naming Zed, Katarina, Yasuo and Kayn against specific mechanics |
+| `Raska_The_Redline_Character_Sheet_v2.png` | A third-party game's wordmark and logo; lore text placing Raska in a city of that game's setting; two rows of that game's character portrait art (ten characters) |
+| `Kade_Dead_Reckoning_Character_Sheet.png` | The same third-party wordmark and logo; lore text calling Kade a surveyor from that setting's city; that game's character portrait rows; a "Recommended Build" panel of six of that game's item icons |
+| `Angeru_The_Housebreaker_Character_Sheet.png` | An "Inspiration" panel reproducing the same game's character splash art and naming four of its characters against specific mechanics |
 
 **Status:** deleted from the working tree and withdrawn from the sheet index.
 
@@ -111,7 +111,7 @@ Each row states what the sheet shows, what canon says, and which document owns t
 
 *(Sheet also withdrawn under section A; recorded here for regeneration.)*
 
-- **Sheet:** "Born in the undercity of **Zaun**."
+- **Sheet:** born in a third-party setting's city (§A).
 - **Canon** (Character Bible §1): **Iron March, Calder's Run**.
 
 ### B8. Silt — pronouns, and an unresolved title

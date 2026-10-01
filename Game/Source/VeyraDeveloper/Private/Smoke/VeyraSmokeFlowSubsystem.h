@@ -145,6 +145,12 @@ private:
 	bool TickScoreboard(AVeyraPlayerController& Controller);
 
 	/**
+	 * Practice: opens the chat composer as the chat key does, sends a line to Team Chat, and waits until
+	 * the server delivers it back to the player, who is on their own side (ADR-029 §1). True while it waits.
+	 */
+	bool TickChat(AVeyraPlayerController& Controller);
+
+	/**
 	 * Practice: once the Vanguard has walked away from its fountain, recalls home and waits for it to
 	 * arrive (ADR-012 §8). True while it recalls.
 	 */
@@ -242,6 +248,9 @@ private:
 	bool bShopped = false;
 	/** Practice: whether the scoreboard was shown, checked and let go. */
 	bool bScoreboardChecked = false;
+	/** Practice: when the Team Chat line went, and whether it came back. */
+	double ChatSentAt = 0.0;
+	bool bChatChecked = false;
 	/** Practice: whether Match History was opened, and the match found and opened in it. */
 	bool bOpenedHistory = false;
 	bool bCheckedHistory = false;

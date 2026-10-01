@@ -11,8 +11,8 @@ class APlayerController;
 class UHorizontalBox;
 
 /**
- * The in-match scoreboard (Settings Bible #56; ADR-017 §4), built in C++ and laid out as League's
- * Tab screen: both teams side by side, the viewer's first, each player's Vanguard, level, K/D/A, creep
+ * The in-match scoreboard (Settings Bible #56; ADR-017 §4), built in C++:
+ * both teams side by side, the viewer's first, each player's Vanguard, level, K/D/A, creep
  * score and items, and each team's kills. It shows only what every client receives and takes no input:
  * it is open while its key is held.
  */

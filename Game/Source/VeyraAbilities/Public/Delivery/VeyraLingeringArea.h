@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
-#include "Delivery/VeyraEffectDelivery.h"
+#include "Delivery/VeyraAreaDelivery.h"
 #include "Engine/TimerHandle.h"
 #include "GameFramework/Actor.h"
 #include "Shapes/VeyraShapes.h"
@@ -14,20 +14,13 @@
 
 class UAbilitySystemComponent;
 
-/** The statuses a lingering area gives each side inside it, from its caster's Level at Commit (ADR-018 §5). */
-struct FVeyraLingerStatuses
-{
-	TArray<FVeyraStatusSpec> Caster;
-	TArray<FVeyraStatusSpec> Allies;
-	TArray<FVeyraStatusSpec> Enemies;
-};
-
 /**
  * A delivered area that lasts (ADR-018 §5), the smallest of ADR-003's world volumes. As it lands and
  * at every pulse after, it gives the units inside it their side's statuses: its caster, the allied
- * Vanguards, the enemies. The server pulses it on a world timer, so a pause holds it; every machine
- * sees its shape and when it ends. It lasts if its caster dies (Combat Bible §9, Guaranteed
- * Resolution).
+ * Vanguards, the enemies. Each pulse after it lands may also hit the enemies inside, and so may its
+ * end, which every machine is warned of ahead (ADR-026 §4). The server pulses it on a world timer, so
+ * a pause holds it; every machine sees its shape and when it ends. It lasts if its caster dies
+ * (Combat Bible §9, Guaranteed Resolution).
  */
 UCLASS(NotPlaceable)
 class VEYRAABILITIES_API AVeyraLingeringArea : public AActor, public IVeyraTeamMember
@@ -41,27 +34,56 @@ public:
 
 	/**
 	 * Server only: arms the area, at the actor's location facing Placement's direction, to give
-	 * Statuses now and every PulseSeconds until DurationSeconds have passed. Called once, after spawning.
+	 * Statuses now and every PulseSeconds until DurationSeconds have passed, dealing Effects' pulse at
+	 * each pulse after now and their end as it ends. Called once, after spawning.
 	 */
 	void Arm(UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraShape& Shape, FVeyraLingerStatuses Statuses,
-		double DurationSeconds, double PulseSeconds, const FVeyraContentId& Ability);
+		FVeyraLingerEffects Effects, double DurationSeconds, double PulseSeconds, const FVeyraContentId& Ability);
 
 	FVeyraPlacedShape GetPlacedShape() const { return FVeyraPlacedShape{ Shape, GetActorLocation(), Direction }; }
 
 	/** When it ends, in the server's world time. */
 	double GetEndsAt() const { return EndsAt; }
 
+	/** How long before its end the presentation marks it; 0 when its end does nothing (ADR-026 §4). */
+	double GetEndWarningSeconds() const { return EndWarningSeconds; }
+
+	/** Whether its end hits and is near at Now, in the server's world time, so the presentation marks it. */
+	bool IsEndNear(double Now) const { return EndWarningSeconds > 0.0 && Now >= EndsAt - EndWarningSeconds; }
+
+	/** Server only: whose area it is. */
+	const UAbilitySystemComponent* GetCaster() const { return Caster.Get(); }
+
 	/** Its caster's side, so Vision shows it to that side and to those who see it (ADR-016 §3). */
 	virtual EVeyraTeam GetVeyraTeam() const override { return Team; }
 
 	const FVeyraContentId& GetAbility() const { return Ability; }
 
+	/** Server only: while it stands it holds a movement field over its circle, of its caster's side, pulling up to Pull (ADR-033 §5). */
+	void HoldField(double Pull);
+
+	/**
+	 * Server only: as it lands and at each pulse it grants Shield at Rank to its caster and the allied Vanguards
+	 * inside, merging up to its maximum, but not to one damaged within DelayAfterDamageSeconds (ADR-036 §4).
+	 */
+	void BuildShields(const FVeyraShieldTuning& Shield, int32 Rank, double DelayAfterDamageSeconds);
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Destroyed() override;
 
 private:
 	/** Gives the units inside it their side's statuses. */
+	void GiveStatuses();
+
+	/** A pulse after it lands: its statuses and its pulse effects. */
 	void Pulse();
+
+	/** Its end effects, then its end. */
+	void End();
+
+	/** Hits the enemies inside with Zones, measured from its centre: a pulse's as a tick, which Spell Shields let pass. */
+	void Deal(TConstArrayView<FVeyraPreparedZone> Zones, bool bTick);
 
 	UPROPERTY(Replicated)
 	FVeyraShape Shape;
@@ -73,6 +95,9 @@ private:
 	double EndsAt = 0.0;
 
 	UPROPERTY(Replicated)
+	double EndWarningSeconds = 0.0;
+
+	UPROPERTY(Replicated)
 	EVeyraTeam Team = EVeyraTeam::None;
 
 	UPROPERTY(Replicated)
@@ -81,6 +106,22 @@ private:
 	/** Server only. */
 	TWeakObjectPtr<UAbilitySystemComponent> Caster;
 	FVeyraLingerStatuses Statuses;
+	FVeyraLingerEffects Effects;
 	FTimerHandle PulseTimer;
 	FTimerHandle EndTimer;
+	/** Its movement field's handle; 0 for none. */
+	int32 FieldHandle = 0;
+
+	/** Grants its built shield to those inside who may have it now. */
+	void TopUpShields();
+
+	void OnDamageDealt(const struct FVeyraDamageDealtEvent& Event);
+
+	/** The shield it builds, at its cast's rank, and how long damage holds it back; unset for none. */
+	TOptional<FVeyraShieldTuning> BuiltShield;
+	int32 BuiltShieldRank = 1;
+	double BuildDelaySeconds = 0.0;
+	/** When each unit it has seen take damage last took it, in world time. */
+	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, double> LastDamagedAt;
+	FDelegateHandle DamageHandle;
 };

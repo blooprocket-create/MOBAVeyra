@@ -17,7 +17,7 @@ namespace
 	bool IsChangeKind(EVeyraStatusKind Kind)
 	{
 		return Kind == EVeyraStatusKind::MoveSpeed || Kind == EVeyraStatusKind::AttackSpeed || Kind == EVeyraStatusKind::HealthRegeneration
-			|| Kind == EVeyraStatusKind::DamageAmplification;
+			|| Kind == EVeyraStatusKind::DamageAmplification || Kind == EVeyraStatusKind::MaxHealth;
 	}
 }
 
@@ -64,6 +64,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::MoveSpeed:
 	case EVeyraStatusKind::AttackSpeed:
 	case EVeyraStatusKind::HealthRegeneration:
+	case EVeyraStatusKind::MaxHealth:
 		bMagnitudeValid &= Magnitude != 0.0 && AllStacks > -1.0;
 		break;
 	case EVeyraStatusKind::DamageAmplification:
@@ -90,6 +91,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && Spec.MaxStacks == 1;
 		break;
 	case EVeyraStatusKind::SlowResistance:
+	case EVeyraStatusKind::ResourceCostReduction:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::Planted:
@@ -100,10 +102,19 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Knockup:
 	case EVeyraStatusKind::Ghosted:
 	case EVeyraStatusKind::SpellShield:
+	case EVeyraStatusKind::Root:
+	case EVeyraStatusKind::Blind:
+	case EVeyraStatusKind::Grounded:
+	case EVeyraStatusKind::Invisible:
+	case EVeyraStatusKind::Untargetable:
+	case EVeyraStatusKind::Sounded:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	case EVeyraStatusKind::Fear:
 		bMagnitudeValid &= Magnitude >= 0.0 && Magnitude < 1.0;
+		break;
+	case EVeyraStatusKind::MobileAttack:
+		bMagnitudeValid &= Magnitude > 0.0 && Magnitude <= 1.0 && Spec.MaxStacks == 1;
 		break;
 	case EVeyraStatusKind::BodyScale:
 		bMagnitudeValid &= Magnitude > 0.0 && Spec.MaxStacks == 1;
@@ -112,6 +123,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::AttackDamageAmplification:
+	case EVeyraStatusKind::AttackShortensCooldown:
 		bMagnitudeValid &= Magnitude > 0.0;
 		break;
 	}
@@ -154,8 +166,9 @@ int32 TickCount(double DurationSeconds, double TickSeconds)
 
 bool IsTenacityReducible(EVeyraStatusKind Kind)
 {
-	// A Knockup is crowd control Tenacity does not shorten, as League's airborne (§8).
-	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow || Kind == EVeyraStatusKind::Fear;
+	// A Knockup is crowd control Tenacity does not shorten (§8).
+	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow || Kind == EVeyraStatusKind::Fear || Kind == EVeyraStatusKind::Root
+		|| Kind == EVeyraStatusKind::Blind || Kind == EVeyraStatusKind::Grounded;
 }
 
 bool IsCrowdControl(EVeyraStatusKind Kind)
@@ -253,6 +266,16 @@ EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries)
 		else if (Entry.Kind == EVeyraStatusKind::Planted)
 		{
 			Blocks |= EVeyraActionBlocks::Move;
+		}
+		else if (Entry.Kind == EVeyraStatusKind::Root)
+		{
+			// Rooted, it cannot move by walking or by its own abilities; it may attack and cast (ADR-026 §3).
+			Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Dash;
+		}
+		else if (Entry.Kind == EVeyraStatusKind::Grounded)
+		{
+			// Grounded, it cannot move by its own abilities; it may walk, attack and cast (ADR-028 §2).
+			Blocks |= EVeyraActionBlocks::Dash;
 		}
 	}
 	return Blocks;

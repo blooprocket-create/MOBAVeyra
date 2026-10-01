@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "Entities/VeyraMarkerTypes.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Subsystems/WorldSubsystem.h"
@@ -25,8 +26,14 @@ struct FVeyraDeathEvent
 {
 	TWeakObjectPtr<UAbilitySystemComponent> Victim;
 
-	/** Whoever dealt the lethal damage: a Vanguard, a Fluxborn or a structure. Null for damage with no source. */
+	/**
+	 * Whoever answers for the lethal damage (ADR-034 §1): a Vanguard, a Fluxborn or a structure; for an
+	 * owned unit's hit, its owner, so a companion's last hit is its owner's. Null for damage with no source.
+	 */
 	TWeakObjectPtr<UAbilitySystemComponent> Killer;
+
+	/** The unit whose hit was lethal: the Killer, or the owned unit that struck for it. */
+	TWeakObjectPtr<UAbilitySystemComponent> LethalUnit;
 
 	/**
 	 * The enemy Vanguard credited with the kill (Combat Bible §18): the Killer when it is one;
@@ -63,6 +70,9 @@ struct FVeyraShieldShare
 {
 	TWeakObjectPtr<UAbilitySystemComponent> Provider;
 	double Absorbed = 0.0;
+
+	/** The shield's identity, so an ability can count what one grant of it absorbed (ADR-027 §5). */
+	FVeyraContentId Id;
 };
 
 /**
@@ -116,6 +126,9 @@ struct FVeyraCastEvent
 
 	/** Whether it has an effect on enemies: offensive casts end stealth (Combat Bible §11). */
 	bool bOffensive = false;
+
+	/** The unit the cast named, if any, such as the ally an ally-targeted cast buffs (ADR-027 §4). */
+	TWeakObjectPtr<AActor> Target;
 };
 
 /** A forced displacement as it starts (ADR-018 §3): who moved whom, and how far after resistance. */
@@ -124,6 +137,27 @@ struct FVeyraDisplacementEvent
 	TWeakObjectPtr<UAbilitySystemComponent> Source;
 	TWeakObjectPtr<UAbilitySystemComponent> Target;
 	double Distance = 0.0;
+};
+
+/** Which of a unit's own moves ended (ADR-032 §1). */
+enum class EVeyraOwnMove : uint8
+{
+	Dash,
+	Blink,
+};
+
+/**
+ * A unit's own move as it ends (ADR-032 §1): a dash that arrived, stopped at an enemy or was taken over,
+ * or a blink. A displacement is not the unit's own move, and a dash one interrupted never ends as its own.
+ */
+struct FVeyraUnitMovedEvent
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Unit;
+	EVeyraOwnMove Move = EVeyraOwnMove::Dash;
+
+	/** Where the move began and where the unit stands as it ends. */
+	FVector From = FVector::ZeroVector;
+	FVector To = FVector::ZeroVector;
 };
 
 /** A Spell Shield that blocked a hostile ability hit and was consumed (Combat Bible §19). */
@@ -140,9 +174,16 @@ struct FVeyraSpellShieldBlocked
 /** Damage dealt by a unit to a unit on the opposing side, as it lands. */
 struct FVeyraHostileDamageEvent
 {
+	/** The unit whose hit it was, as a companion. */
 	TWeakObjectPtr<UAbilitySystemComponent> Source;
 	TWeakObjectPtr<UAbilitySystemComponent> Target;
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+
+	/**
+	 * The unit Source answers to (ADR-034 §1): its owner for an owned unit, else Source. Towers and
+	 * Fluxborn answer it, so an owned unit's damage draws their aggression to its owner (Combat Bible §33).
+	 */
+	TWeakObjectPtr<UAbilitySystemComponent> Responsible;
 };
 
 /**
@@ -197,7 +238,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStatusApplied, const FVeyraStatusApplied&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCast, const FVeyraCastEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDisplaced, const FVeyraDisplacementEvent&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitMoved, const FVeyraUnitMovedEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSpellShieldBlocked, const FVeyraSpellShieldBlocked&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMarkerEnded, const FVeyraMarkerEnd&);
 
 	FOnDeath OnDeath;
 
@@ -233,6 +276,12 @@ public:
 
 	/** A unit forced another to move: a Knockback, Pull or Knockup's travel (Combat Bible §9). */
 	FOnDisplaced OnDisplaced;
+
+	/** A unit's own dash or blink ended (ADR-032 §1): a passive may punish the move where it landed. */
+	FOnUnitMoved OnUnitMoved;
+
+	/** A placed marker ended: expired, destroyed, recalled, or its owner died (ADR-030 §5). */
+	FOnMarkerEnded OnMarkerEnded;
 
 	/** Broadcasts OnDamageResolved, and counts what the component cost toward the instance being dealt. */
 	void ResolveDamage(const FVeyraDamageResolution& Resolution);

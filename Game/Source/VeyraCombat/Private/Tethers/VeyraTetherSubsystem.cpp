@@ -151,6 +151,10 @@ TOptional<EVeyraTetherEndReason> UVeyraTetherSubsystem::Judge(const FLink& Link,
 	{
 		return EVeyraTetherEndReason::Stretched;
 	}
+	if (VeyraTargeting::AreHostile(SourceBody, TargetBody) && VeyraTargeting::IsUntargetable(*TargetBody))
+	{
+		return EVeyraTetherEndReason::Untargetable;
+	}
 	return {};
 }
 

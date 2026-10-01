@@ -6,9 +6,11 @@
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Engine/World.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Targeting/VeyraVisibility.h"
 #include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -30,12 +32,30 @@ double UVeyraAreaAbility::GetCooldownSeconds(const FVeyraContentId& Ability, int
 	return Area ? VeyraAbilityRules::ValueAtRank(Area->Cast.CooldownSecondsByRank, Rank) : 0.0;
 }
 
-EVeyraCastRejection UVeyraAreaAbility::CheckTarget(const AActor& /*Caster*/, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
+EVeyraCastRejection UVeyraAreaAbility::CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
 {
 	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Ability);
 	if (!Area)
 	{
 		return EVeyraCastRejection::UnknownAbility;
+	}
+	// One that lands on its caster's lingering area needs that area standing (ADR-028 §5).
+	if (Area->Origin == EVeyraAreaOrigin::CastersLingeringArea)
+	{
+		// The validator may run on the archetype's default object, so the world is the caster's.
+		const UAbilitySystemComponent* Own = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Caster);
+		const UWorld* World = Caster.GetWorld();
+		return Own && World && !Area->OriginAbility.IsEmpty() && VeyraAreaDelivery::FindCastersLingeringArea(*World, *Own, Area->OriginAbility[0])
+			? EVeyraCastRejection::None
+			: EVeyraCastRejection::InvalidLocation;
+	}
+	// One that lands on its caster's marker needs that marker standing (ADR-032 §6).
+	if (Area->Origin == EVeyraAreaOrigin::CastersMarker)
+	{
+		const UAbilitySystemComponent* Own = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Caster);
+		return Own && !Area->OriginAbility.IsEmpty() && AVeyraPlacedMarker::FindStanding(*Own, Area->OriginAbility[0])
+			? EVeyraCastRejection::None
+			: EVeyraCastRejection::InvalidLocation;
 	}
 	// An area on the caster may be aimed; one at a ground point needs the point.
 	if ((Area->Origin == EVeyraAreaOrigin::TargetPoint || Target.bHasLocation) && !HasUsablePoint(Target))
@@ -63,7 +83,33 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 
 	// An area on the caster lands where the caster is at Commit, which a free windup may have moved.
 	const AActor* Body = Caster->GetAvatarActor();
-	const FVeyraEffectFrame Placement = VeyraAreaDelivery::Place(*Area, Body ? Body->GetActorLocation() : Cast.CasterLocation, Cast.Point, Cast.Direction);
+	FVeyraEffectFrame Placement = VeyraAreaDelivery::Place(*Area, Body ? Body->GetActorLocation() : Cast.CasterLocation, Cast.Point, Cast.Direction);
+	// On its caster's lingering area, which ends at once without its end effects (ADR-028 §5).
+	if (Area->Origin == EVeyraAreaOrigin::CastersLingeringArea)
+	{
+		AVeyraLingeringArea* Lingering = Area->OriginAbility.IsEmpty() ? nullptr : VeyraAreaDelivery::FindCastersLingeringArea(*World, *Caster, Area->OriginAbility[0]);
+		if (!Lingering)
+		{
+			return FVeyraChannelPlan();
+		}
+		Placement.Origin = Lingering->GetActorLocation();
+		Placement.Direction = Lingering->GetPlacedShape().Direction;
+		Placement.bOriginIsCaster = false;
+		Lingering->Destroy();
+	}
+	// On its caster's marker, facing as it does, which its caster's ability ends (ADR-032 §6).
+	if (Area->Origin == EVeyraAreaOrigin::CastersMarker)
+	{
+		AVeyraPlacedMarker* Marker = Area->OriginAbility.IsEmpty() ? nullptr : AVeyraPlacedMarker::FindStanding(*Caster, Area->OriginAbility[0]);
+		if (!Marker)
+		{
+			return FVeyraChannelPlan();
+		}
+		Placement.Origin = Marker->GetActorLocation();
+		Placement.Direction = Marker->GetActorForwardVector().GetSafeNormal2D();
+		Placement.bOriginIsCaster = false;
+		Marker->EndMarker(EVeyraMarkerEndReason::Recalled);
+	}
 	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, Cast.Rank);
 	// What it spends of its caster's own, as it commits (ADR-018 §6).
 	for (const FVeyraContentId& Spent : Area->ConsumesCasterStatuses)
@@ -85,13 +131,29 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	{
 		VeyraVisibility::RevealArea(*World, VeyraTeams::TeamOf(Caster->GetOwner()), Placement.Origin, Area->Reveal.Radius, Area->Reveal.DurationSeconds);
 	}
+	// And lays its Dense Fog, which Vision owns from then on (ADR-036 §3).
+	if (!Area->Fog.IsEmpty())
+	{
+		const FVeyraAreaFogTuning& Fog = Area->Fog[0];
+		FVeyraFogShape Shape;
+		Shape.Kind = Fog.Shape == EVeyraAreaFogShape::Corridor ? EVeyraFogShapeKind::Corridor : EVeyraFogShapeKind::Circle;
+		Shape.Origin = Placement.Origin;
+		Shape.Direction = Placement.Direction;
+		Shape.Radius = Fog.Radius;
+		Shape.Length = Fog.Length;
+		Shape.Width = Fog.Width;
+		VeyraVisibility::AddDenseFog(*World, Shape, Fog.DurationSeconds);
+	}
 
 	if (Area->DelaySeconds > 0.0)
 	{
 		AVeyraDelayedArea* Delayed = World->SpawnActor<AVeyraDelayedArea>(AVeyraDelayedArea::StaticClass(), FTransform(Placement.Origin));
 		if (Delayed)
 		{
-			Delayed->Arm(*Caster, Placement, MoveTemp(Zones), Area->DelaySeconds, Cast.Ability, Cast.CastId);
+			// Sooner inside the caster's own lingering area of another ability, if the tuning says (ADR-026 §4). Its
+			// lingering area, prepared now, lasts where it lands once it lands (ADR-027 §6).
+			Delayed->Arm(*Caster, Placement, MoveTemp(Zones), VeyraAreaDelivery::DelayAt(*World, *Caster, *Area, Placement.Origin), Cast.Ability, Cast.CastId,
+				VeyraAreaDelivery::PrepareLinger(*Caster, *Area, Cast.Rank, GetCasterLevel(*Caster), Cast.Ability, Cast.CastId));
 		}
 		return FVeyraChannelPlan();
 	}
@@ -105,43 +167,11 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	}
 	const TArray<AActor*> Hit = VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	HealFromHits(*Caster, *Area, Hit);
-	if (!Area->Linger.IsEmpty() && !Area->Zones.IsEmpty())
+	if (const TOptional<FVeyraPreparedLinger> Linger = VeyraAreaDelivery::PrepareLinger(*Caster, *Area, Cast.Rank, GetCasterLevel(*Caster), Cast.Ability, Cast.CastId))
 	{
-		Linger(*Caster, Placement, *Area, Cast);
+		VeyraAreaDelivery::ArmLinger(*World, *Caster, Placement, Linger.GetValue());
 	}
 	return FVeyraChannelPlan();
-}
-
-void UVeyraAreaAbility::Linger(UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraAreaAbilityTuning& Area, const FVeyraCast& Cast) const
-{
-	UWorld* World = GetWorld();
-	const FVeyraLingerTuning& Tuning = Area.Linger[0];
-	// Its statuses from the caster's Level at Commit (Combat Bible §50).
-	const int32 Level = GetCasterLevel(Caster);
-	FVeyraLingerStatuses Statuses;
-	const auto Prepare = [Level](TConstArrayView<FVeyraContentId> Ids, TArray<FVeyraStatusSpec>& Out) {
-		for (const FVeyraContentId& Id : Ids)
-		{
-			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(Id, Level))
-			{
-				Out.Add(Status.GetValue());
-			}
-		}
-	};
-	Prepare(Tuning.CasterStatuses, Statuses.Caster);
-	Prepare(Tuning.AllyStatuses, Statuses.Allies);
-	Prepare(Tuning.EnemyStatuses, Statuses.Enemies);
-	// It lasts in its outermost zone's shape.
-	const FVeyraShape& Shape = Area.Zones.Last().Shape;
-	if (AVeyraLingeringArea* Lingering = World->SpawnActor<AVeyraLingeringArea>(AVeyraLingeringArea::StaticClass(), FTransform(Placement.Origin)))
-	{
-		Lingering->Arm(Caster, Placement, Shape, MoveTemp(Statuses), Tuning.DurationSeconds, Tuning.PulseSeconds, Cast.Ability);
-	}
-	if (Tuning.Sight == EVeyraLingerSight::Ordinary)
-	{
-		VeyraVisibility::RevealShape(*World, VeyraTeams::TeamOf(Caster.GetOwner()), FVeyraPlacedShape{ Shape, Placement.Origin, Placement.Direction },
-			Tuning.DurationSeconds);
-	}
 }
 
 void UVeyraAreaAbility::DeliverChannelTick(const FVeyraCast& Cast, int32 /*Tick*/)

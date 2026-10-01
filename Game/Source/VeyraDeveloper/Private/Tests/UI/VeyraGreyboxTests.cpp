@@ -7,9 +7,11 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Gold/VeyraGoldComponent.h"
@@ -318,6 +320,30 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Telegraph.RemainingSeconds, LongSeconds, Tolerance)));
 		}
 
+		TEST_METHOD(ALingeringAreaIsMarkedAsItsEndDrawsNear)
+		{
+			UAbilitySystemComponent& Self = *Caster->GetAbilitySystemComponent();
+			const auto Linger = [this, &Self](const FVector& At, FVeyraLingerEffects Effects) {
+				AVeyraLingeringArea& Area = Spawner.SpawnActorAt<AVeyraLingeringArea>(At, FRotator::ZeroRotator);
+				FVeyraEffectFrame Placement;
+				Placement.Origin = At;
+				Area.Arm(Self, Placement, CircleOf(InnerRadius), FVeyraLingerStatuses(), MoveTemp(Effects), LongSeconds, LongSeconds, ArchetypeTestId(TEXT("test_field")));
+			};
+			// One whose end hits and is warned of for its whole life, and one whose end does nothing.
+			FVeyraLingerEffects Rupture;
+			Rupture.End.Add(FVeyraPreparedZone{ CircleOf(InnerRadius), FVeyraPreparedEffects() });
+			Rupture.EndWarningSeconds = LongSeconds;
+			const FVector Ending(CastRange, 0.0, 0.0);
+			Linger(Ending, MoveTemp(Rupture));
+			Linger(FVector(0.0, CastRange, 0.0), FVeyraLingerEffects());
+
+			const TArray<FVeyraTelegraph>& Telegraphs = RefreshedGreybox().GetTelegraphs();
+			ASSERT_THAT(AreEqual(2, Telegraphs.Num()));
+			const FVeyraTelegraph* Warned = Telegraphs.FindByPredicate([](const FVeyraTelegraph& Each) { return Each.Source == EVeyraTelegraphSource::LingeringAreaEnding; });
+			ASSERT_THAT(IsTrue(Warned != nullptr && FVector::Dist2D(Warned->Placed.Origin, Ending) < Tolerance, TEXT("its end is marked (ADR-026 §4)")));
+			ASSERT_THAT(AreEqual(1, Telegraphs.FilterByPredicate([](const FVeyraTelegraph& Each) { return Each.Source == EVeyraTelegraphSource::LingeringArea; }).Num()));
+		}
+
 		TEST_METHOD(ALineProjectileIsDrawnFromItsLaunchData)
 		{
 			FArchetypeTestWorld World{ Spawner };
@@ -377,7 +403,7 @@ namespace VeyraAbilitiesTests
 			const double Cooldown = Participant.FindComponentByClass<UVeyraCooldownComponent>()->GetRemainingSeconds(Mortar, Now);
 			ASSERT_THAT(IsTrue(Cooldown > 0.0 && Q.CooldownSeconds == Cooldown, TEXT("the ledger's cooldown")));
 			ASSERT_THAT(IsFalse(Player.Slots[1].Ability.IsValid() || Q.bCanRankUp, TEXT("W is empty, and no skill point is left")));
-			const TOptional<FVeyraHudVitals> Vitals = VeyraHud::VitalsOf(*Caster);
+			const TOptional<FVeyraHudVitals> Vitals = VeyraHud::VitalsOf(*Caster, EVeyraTeam::A);
 			ASSERT_THAT(IsTrue(Vitals.IsSet() && Player.Vitals.Health == Vitals->Health && Player.Vitals.MaxHealth == VeyraCombatTests::ExampleStats().MaxHealth));
 
 			// A level's skill point opens Q, W and E, but not the ultimate before its level.
@@ -385,6 +411,36 @@ namespace VeyraAbilitiesTests
 			Player = VeyraHud::DescribePlayer(Participant, Now);
 			ASSERT_THAT(IsTrue(Player.Level == 2 && Player.UnspentSkillPoints == 1));
 			ASSERT_THAT(IsTrue(Player.Slots[0].bCanRankUp && Player.Slots[1].bCanRankUp && !Player.Slots[3].bCanRankUp));
+		}
+
+		TEST_METHOD(ADecoyShowsItsOwnersBarsAndStatusesButNotTheirStealth)
+		{
+			UAbilitySystemComponent& Own = *Caster->GetAbilitySystemComponent();
+			FVeyraMarkerSpec Spec;
+			Spec.Id = ArchetypeTestId(TEXT("test_illusion"));
+			Spec.LifetimeSeconds = 60.0;
+			Spec.HitsToDestroy = 1;
+			Spec.bPresentsAsOwner = true;
+			AVeyraPlacedMarker* Decoy = AVeyraPlacedMarker::Place(Spawner.GetWorld(), Own, Spec, FTransform(FVector(CastRange, 0.0, 0.0)));
+			ASSERT_THAT(IsNotNull(Decoy));
+			// Its owner's enemies see its owner; its owner's side sees the illusion.
+			ASSERT_THAT(IsTrue(&VeyraHud::PresentedUnitOf(*Decoy, EVeyraTeam::B) == Caster->GetPlayerState()));
+			ASSERT_THAT(IsTrue(&VeyraHud::PresentedUnitOf(*Decoy, EVeyraTeam::A) == Decoy));
+			const TOptional<FVeyraHudVitals> ToAllies = VeyraHud::VitalsOf(*Decoy, EVeyraTeam::A);
+			ASSERT_THAT(IsTrue(ToAllies.IsSet() && ToAllies->MaxHealth == static_cast<double>(Spec.HitsToDestroy), TEXT("allies see its own single point")));
+			FVeyraStatusSpec Hide;
+			Hide.Id = ArchetypeTestId(TEXT("test_hidden"));
+			Hide.Kind = EVeyraStatusKind::Invisible;
+			Hide.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Own, Own, Hide)));
+			const TOptional<FVeyraHudVitals> Shown = VeyraHud::VitalsOf(*Decoy, EVeyraTeam::B);
+			const TOptional<FVeyraHudVitals> Real = VeyraHud::VitalsOf(*Caster, EVeyraTeam::B);
+			ASSERT_THAT(IsTrue(Shown.IsSet() && Real.IsSet() && Shown->MaxHealth == Real->MaxHealth && Shown->Health == Real->Health,
+				TEXT("its owner's Health, not its own single point")));
+			const double Now = RefreshedGreybox().GetServerNow();
+			ASSERT_THAT(IsTrue(VeyraHud::StatusesOf(*Caster, Now, EVeyraTeam::A).ContainsByPredicate([](const FVeyraHudStatus& Each) { return Each.Kind == EVeyraStatusKind::Invisible; })));
+			ASSERT_THAT(IsFalse(VeyraHud::StatusesOf(*Decoy, Now, EVeyraTeam::B).ContainsByPredicate([](const FVeyraHudStatus& Each) { return Each.Kind == EVeyraStatusKind::Invisible; }),
+				TEXT("the stealth it covers for stays hidden")));
 		}
 
 		TEST_METHOD(TheHudShowsGoldTheRespawnWaitAndTeamFlux)

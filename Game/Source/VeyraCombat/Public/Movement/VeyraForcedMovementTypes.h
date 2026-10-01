@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Math/Vector.h"
+#include "Statuses/VeyraStatusTypes.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/WeakObjectPtr.h"
 
@@ -34,6 +35,13 @@ struct FVeyraDisplacement
 
 	/** Units per second; above 0. */
 	double Speed = 0.0;
+
+	/**
+	 * Given the unit, from the displacing source, if the displacement collides (ADR-028 §3): terrain
+	 * shortens its path, or its body meets another Vanguard or a structure on the way, where it stops.
+	 * Empty for one that collides with nothing.
+	 */
+	TArray<FVeyraStatusSpec> CollisionStatuses;
 };
 
 /** One dash: a unit's own movement (Combat Bible §9). Terrain stops it; it never crosses terrain. */
@@ -43,6 +51,9 @@ struct FVeyraDash
 	double Distance = 0.0;
 	double Speed = 0.0;
 	EVeyraDashContact Contact = EVeyraDashContact::None;
+
+	/** Whether it takes over one of the unit's dashes under way, which ends Replaced where it is (ADR-031 §7). */
+	bool bTakesOver = false;
 };
 
 /** Why a dash ended. */
@@ -54,6 +65,8 @@ enum class EVeyraDashEndReason : uint8
 	EnemyContact,
 	/** A displacement took over the unit's movement (§9). */
 	Interrupted,
+	/** Another of the unit's own dashes, or a blink, took over before it landed (ADR-031 §7). */
+	Replaced,
 };
 
 struct FVeyraDashEnd
@@ -86,6 +99,8 @@ enum class EVeyraRideEndReason : uint8
 	Expired,
 	/** Its rider died. */
 	Died,
+	/** A newer ride took its place. */
+	Replaced,
 };
 
 struct FVeyraRideEnd

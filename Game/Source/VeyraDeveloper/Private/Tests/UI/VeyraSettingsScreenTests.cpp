@@ -91,7 +91,7 @@ namespace VeyraSettingsScreenTests
 			const FVeyraSettingsStore Store(Registry);
 			const FVeyraSettingsModel Camera = VeyraSettingsModels::Describe(Store, EVeyraSettingCategory::Camera, FString(), false);
 			ASSERT_THAT(IsTrue(Camera.Categories == (TArray<EVeyraSettingCategory>{ EVeyraSettingCategory::Controls, EVeyraSettingCategory::Camera,
-				EVeyraSettingCategory::Interface, EVeyraSettingCategory::GraphicsDisplay })));
+				EVeyraSettingCategory::Interface, EVeyraSettingCategory::GraphicsDisplay, EVeyraSettingCategory::Communication })));
 			ASSERT_THAT(IsTrue(!Camera.Rows.IsEmpty() && Camera.Rows[0].Id == Setting(TEXT("camera_default_mode")), TEXT("the layout's order")));
 			ASSERT_THAT(IsTrue(Camera.Rows.ContainsByPredicate([](const FVeyraSettingRowModel& Row) { return Row.Category != EVeyraSettingCategory::Camera; }) == false));
 

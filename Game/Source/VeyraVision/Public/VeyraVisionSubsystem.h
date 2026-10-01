@@ -12,6 +12,7 @@
 
 class APlayerController;
 class APlayerState;
+class AVeyraDenseFogBank;
 class AVeyraVisionTeamState;
 class AVeyraWard;
 class FVeyraFogGate;
@@ -55,11 +56,11 @@ public:
 	/**
 	 * The battleground's Dense Fog, both teams' circles (Battleground Bible §11): an enemy Vanguard
 	 * inside a volume is seen only by Vanguards inside the same volume (Vision Bible §2). Match gives
-	 * it World's layout; abilities will add their own.
+	 * it World's layout; abilities lay their own through AddDenseFog (ADR-036 §1).
 	 */
 	void SetDenseFog(TArray<FVeyraFogCircle> Circles);
 
-	/** The battleground's Dense Fog: a place every player knows (the fog itself is always seen). */
+	/** The Dense Fog now, the map's and what abilities laid: a place every player knows (the fog itself is always seen). */
 	TConstArrayView<FVeyraFogCircle> GetDenseFog() const { return Fog; }
 
 	/**
@@ -80,6 +81,8 @@ public:
 	virtual bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target) const override;
 	virtual void RevealArea(EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds) override;
 	virtual void RevealShape(EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds) override;
+	virtual void AddDenseFog(const FVeyraFogShape& Shape, double DurationSeconds) override;
+	virtual int32 FogVolumeAt(const FVector& Point) const override;
 
 	virtual void Deinitialize() override;
 
@@ -155,9 +158,31 @@ private:
 	TSet<TWeakObjectPtr<const AActor>> Known;
 	TArray<FVeyraSightSource> Sources;
 
+	/** Dense Fog an ability laid, until it ends (ADR-036 §1). */
+	struct FFogBank
+	{
+		int32 Id = 0;
+		TArray<FVeyraFogCircle> Circles;
+		TWeakObjectPtr<AVeyraDenseFogBank> Actor;
+		FTimerHandle Ending;
+	};
+
+	/** Fog is the map's and the banks' together; their volumes join wherever they touch (Vision Bible §2). */
+	void RebuildFog();
+
+	/** A bank's time is up: its fog goes at once, and what it joined splits again. */
+	void EndFogBank(int32 Id);
+
+	/** Ends every bank, as vision stops. */
+	void EndAllFogBanks();
+
 	/** The fog, and each circle's volume (VeyraVisionRules::ConnectVolumes). */
 	TArray<FVeyraFogCircle> Fog;
 	TArray<int32> FogVolumes;
+	/** The map's fog, which Match gives; and the fog abilities laid, a bank for each cast. */
+	TArray<FVeyraFogCircle> AuthoredFog;
+	TArray<FFogBank> FogBanks;
+	int32 NextFogBankId = 1;
 	/** The enemy Vanguards inside fog at the last pass, and the volume each is in. */
 	TMap<TWeakObjectPtr<const AActor>, int32> Fogged;
 	/** What each Vanguard sees inside its own fog volume, which its team does not share (Vision Bible §2). */

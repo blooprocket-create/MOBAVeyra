@@ -38,6 +38,18 @@ bool Clear(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability)
 	return Entries.RemoveAll([&Ability](const FVeyraCooldownEntry& Entry) { return Entry.Ability == Ability; }) > 0;
 }
 
+bool Reduce(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double Now, double Fraction, double Seconds)
+{
+	FVeyraCooldownEntry* Entry = Entries.FindByPredicate([&Ability](const FVeyraCooldownEntry& Candidate) { return Candidate.Ability == Ability; });
+	if (!Entry || Entry->ReadyAt <= Now)
+	{
+		return false;
+	}
+	const double Remaining = (Entry->ReadyAt - Now) * (1.0 - FMath::Clamp(Fraction, 0.0, 1.0)) - FMath::Max(0.0, Seconds);
+	Entry->ReadyAt = Now + FMath::Max(0.0, Remaining);
+	return true;
+}
+
 void Rescale(TArray<FVeyraCooldownEntry>& Entries, double Factor, double Now)
 {
 	for (FVeyraCooldownEntry& Entry : Entries)
@@ -107,6 +119,15 @@ void UVeyraCooldownComponent::ClearCooldown(const FVeyraContentId& Ability)
 	}
 }
 
+void UVeyraCooldownComponent::ReduceCooldown(const FVeyraContentId& Ability, double Fraction, double Seconds)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	if (VeyraCooldowns::Reduce(Entries, Ability, GetServerNow(), Fraction, Seconds))
+	{
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+	}
+}
+
 int32 UVeyraCooldownComponent::ClearAllCooldowns()
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
@@ -154,4 +175,10 @@ double UVeyraCooldownComponent::GetDurationSeconds(const FVeyraContentId& Abilit
 {
 	const FVeyraCooldownEntry* Entry = Entries.FindByPredicate([&Ability](const FVeyraCooldownEntry& Candidate) { return Candidate.Ability == Ability; });
 	return Entry ? Entry->DurationSeconds : 0.0;
+}
+
+double UVeyraCooldownComponent::GetReadyAt(const FVeyraContentId& Ability) const
+{
+	const FVeyraCooldownEntry* Entry = Entries.FindByPredicate([&Ability](const FVeyraCooldownEntry& Candidate) { return Candidate.Ability == Ability; });
+	return Entry ? Entry->ReadyAt : 0.0;
 }

@@ -8,11 +8,14 @@
 #include "Engine/World.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraCombatVerbs.h"
 
 namespace VeyraCombatRecords
 {
-void NoteHostileAction(UAbilitySystemComponent* Source, UAbilitySystemComponent& Target)
+void NoteHostileAction(UAbilitySystemComponent* Dealer, UAbilitySystemComponent& Target)
 {
+	// An owned unit's action is its owner's (Combat Bible §32; ADR-034 §1): its fight and its contribution.
+	UAbilitySystemComponent* Source = VeyraCombat::ResponsibleFor(Dealer);
 	AActor* SourceUnit = Source ? Source->GetOwner() : nullptr;
 	AActor* TargetUnit = Target.GetOwner();
 	const bool bVanguardAgainstEnemy = SourceUnit && TargetUnit && SourceUnit != TargetUnit && VeyraUnits::IsVanguard(SourceUnit)

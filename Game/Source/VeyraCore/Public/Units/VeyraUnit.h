@@ -33,6 +33,16 @@ enum class EVeyraUnitKind : uint8
 	 * reaches it, one point of Health each; abilities, areas and skillshots pass it by (ADR-016 §6).
 	 */
 	Ward,
+	/**
+	 * A placed marker a Vanguard's ability leaves (ADR-003; ADR-030 §5), such as an illusion. It counts
+	 * hits as a ward does, but anything of its enemies' may hit it; no status affects it.
+	 */
+	Marker,
+	/**
+	 * A Vanguard's companion (ADR-003's combat entity; ADR-034 §1), such as Nix: an owned unit with its
+	 * own Health and behaviour, on its owner's side. What it causes is its owner's (Combat Bible §32).
+	 */
+	Companion,
 };
 
 UINTERFACE(MinimalAPI, NotBlueprintable)
@@ -69,4 +79,7 @@ namespace VeyraUnits
 
 	/** Whether Object is a ward. */
 	VEYRACORE_API bool IsWard(const UObject* Object);
+
+	/** Whether Object is a placed marker. */
+	VEYRACORE_API bool IsMarker(const UObject* Object);
 }

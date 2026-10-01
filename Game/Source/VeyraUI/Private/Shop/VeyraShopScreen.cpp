@@ -344,7 +344,7 @@ void UVeyraShopScreen::BuildHeading()
 
 void UVeyraShopScreen::BuildQuickBuy()
 {
-	// League's quick-buy panels: what is bought again and again, and the inventory, always to hand.
+	// The quick-buy panels: what is bought again and again, and the inventory, always to hand.
 	QuickBuy->ClearChildren();
 	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	const float Tile = Settings.ShopMarkSize;
@@ -358,7 +358,7 @@ void UVeyraShopScreen::BuildQuickBuy()
 		}
 	};
 
-	// Consumables, with the vision tools beside them as League keeps its trinkets (Vision Bible §3).
+	// Consumables, with the vision tools beside them (Vision Bible §3).
 	AddEyebrow(*QuickBuy, LOCTEXT("Consumables", "Consumables"));
 	UWrapBox* Consumables = MakeGrid(*WidgetTree, Settings.ShopQuickWidth);
 	AddCategory(*Consumables, EVeyraItemCategory::Consumable);
@@ -479,7 +479,7 @@ void UVeyraShopScreen::BuildSpells()
 
 void UVeyraShopScreen::BuildDetails()
 {
-	// The selected item, as League's right-hand pane shows it: what it builds into, its recipe, the one
+	// The selected item, in the right-hand pane: what it builds into, its recipe, the one
 	// purchase button, and what it gives.
 	Details->ClearChildren();
 	const UVeyraShellStyleSettings& Settings = ShopStyle();
@@ -642,7 +642,7 @@ UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVe
 	const FText Name = VeyraContentText::ItemName(Item);
 	UVeyraShellButton* Tile = AddTile(Parent, TileLabel(Item), Name, Price, Size, bLit, bSelected, [this, Item] { Select(Item, INDEX_NONE); },
 		VeyraShellArt::ItemIconOf(Item.ToString()));
-	// Hovering names the item and what it gives, as League's tooltips do: initials alone can be alike.
+	// Hovering names the item and what it gives: initials alone can be alike.
 	const FVeyraItemDefinition* Definition = UVeyraItemsTuningSubsystem::Get().Items.Find(Item);
 	const FText Stats = Definition ? VeyraShopModel::DescribeStats(Definition->Stats) : FText::GetEmpty();
 	Tile->SetToolTipText(Stats.IsEmpty() ? Name : FText::Format(LOCTEXT("TileTip", "{0}\n{1}"), Name, Stats));
@@ -652,7 +652,7 @@ UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVe
 UVeyraShellButton* UVeyraShopScreen::AddTile(UPanelWidget& Parent, const FText& Label, const FText& Name, const FText& Under, float Size, bool bLit,
 	bool bSelected, TFunction<void()> Action, UTexture2D* Icon)
 {
-	// League's tile: the icon framed thinly, the frame lit when chosen, the price beneath in Gold's colour
+	// A tile: the icon framed thinly, the frame lit when chosen, the price beneath in Gold's colour
 	// while it can be bought and dimmed while it cannot.
 	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());

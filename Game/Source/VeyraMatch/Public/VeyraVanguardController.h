@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AIController.h"
+#include "Attacks/VeyraBasicAttackTypes.h"
 #include "Delegates/IDelegateInstance.h"
 #include "Misc/Optional.h"
 #include "UObject/WeakObjectPtr.h"
@@ -107,7 +108,14 @@ private:
 	/** The nearest a rider has come to its destination since it came within its turning circle. */
 	TOptional<double> RideClosest;
 	void StopForAttack();
+
+	/** Whether Attacks winds up while its attacker may walk, so a move order lets it go on (ADR-027 §1). */
+	static bool IsMobileWindup(const UVeyraBasicAttackComponent& Attacks);
 	void ClearAttackOrder();
+	/** Ends the attack order for Why, which the log keeps at Verbose (an order otherwise ends without a word). */
+	void DropAttackOrder(const TCHAR* Why);
+	/** Logs, at Verbose, what the attack answers as it changes over the order's life. */
+	void TraceAttack(const AActor& Target, EVeyraAttackRejection Answer);
 	UVeyraBasicAttackComponent* GetBasicAttack() const;
 
 	/** The nearest living enemy unit within the attack's acquisition radius of the Vanguard's edge. */
@@ -119,6 +127,8 @@ private:
 	TWeakObjectPtr<AActor> AttackTarget;
 	TOptional<FVector> AttackMoveDestination;
 	EAttackPath AttackPath = EAttackPath::None;
+	/** The attack's last answer the trace logged, for this order. */
+	TOptional<EVeyraAttackRejection> TracedAnswer;
 
 	TWeakObjectPtr<UVeyraMovementComponent> WatchedMovement;
 	FDelegateHandle MovementLockHandle;

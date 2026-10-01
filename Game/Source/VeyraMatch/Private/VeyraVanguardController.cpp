@@ -12,6 +12,7 @@
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraMatchLog.h"
 
 namespace
 {
@@ -50,9 +51,10 @@ EVeyraOrderRejection AVeyraVanguardController::MoveToDestination(const FVector& 
 		return EVeyraOrderRejection::Unreachable;
 	}
 
-	// Moving replaces an attack order, cancels an attack before its Commit and cuts a backswing short (§48).
+	// Moving replaces an attack order, cancels an attack before its Commit and cuts a backswing short
+	// (§48); a mobile attacker's windup goes on while it walks (ADR-027 §1).
 	ClearAttackOrder();
-	if (UVeyraBasicAttackComponent* Attacks = GetBasicAttack())
+	if (UVeyraBasicAttackComponent* Attacks = GetBasicAttack(); Attacks && !IsMobileWindup(*Attacks))
 	{
 		Attacks->CancelAttack();
 	}
@@ -94,6 +96,8 @@ EVeyraOrderRejection AVeyraVanguardController::AttackUnit(AActor& Target)
 	AttackMoveDestination.Reset();
 	AttackTarget = &Target;
 	AttackPath = EAttackPath::None;
+	TracedAnswer.Reset();
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("%s takes an attack order on %s."), *GetNameSafe(Body), *GetNameSafe(&Target));
 	UpdateAttackOrder();
 	return EVeyraOrderRejection::None;
 }
@@ -120,7 +124,7 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 		return EVeyraOrderRejection::Unreachable;
 	}
 
-	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
+	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup && !IsMobileWindup(*Attacks))
 	{
 		Attacks->CancelAttack();
 	}
@@ -128,6 +132,12 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 	AttackTarget.Reset();
 	AttackMoveDestination = Walkable.GetValue();
 	AttackPath = EAttackPath::None;
+	// A mobile attacker walks on while its windup goes on, as it does for a move order (ADR-027 §1); the
+	// order takes up its next target once the attack commits.
+	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup && !IsMovementLocked())
+	{
+		FollowAttackMove();
+	}
 	UpdateAttackOrder();
 	return EVeyraOrderRejection::None;
 }
@@ -189,7 +199,7 @@ void AVeyraVanguardController::UpdateAttackOrder()
 	UVeyraBasicAttackComponent* Attacks = GetBasicAttack();
 	if (!Body || !Attacks)
 	{
-		ClearAttackOrder();
+		DropAttackOrder(TEXT("no body, or no basic attack"));
 		return;
 	}
 	// The order waits while something owns the movement, and while an attack winds up.
@@ -229,11 +239,13 @@ void AVeyraVanguardController::UpdateAttackOrder()
 	else if (!Target)
 	{
 		// The unit it attacked died or became invalid. The Vanguard stands: there is no idle acquisition.
-		ClearAttackOrder();
+		DropAttackOrder(TEXT("its target died or is no longer an enemy"));
 		return;
 	}
 
-	switch (Attacks->CheckAttack(Target))
+	const EVeyraAttackRejection Answer = Attacks->CheckAttack(Target);
+	TraceAttack(*Target, Answer);
+	switch (Answer)
 	{
 	case EVeyraAttackRejection::None:
 		StopForAttack();
@@ -259,12 +271,12 @@ void AVeyraVanguardController::UpdateAttackOrder()
 		AttackTarget.Reset();
 		if (!AttackMoveDestination.IsSet())
 		{
-			ClearAttackOrder();
+			DropAttackOrder(LexToString(Answer));
 		}
 		break;
 	case EVeyraAttackRejection::NoProfile:
 	case EVeyraAttackRejection::AttackerDead:
-		ClearAttackOrder();
+		DropAttackOrder(LexToString(Answer));
 		break;
 	case EVeyraAttackRejection::CrowdControlled:
 	case EVeyraAttackRejection::Busy:
@@ -288,6 +300,11 @@ void AVeyraVanguardController::FollowAttackMove()
 	}
 }
 
+bool AVeyraVanguardController::IsMobileWindup(const UVeyraBasicAttackComponent& Attacks)
+{
+	return Attacks.GetState().Phase == EVeyraAttackPhase::Windup && Attacks.GetWindupMovementShare() > 0.0;
+}
+
 void AVeyraVanguardController::StopForAttack()
 {
 	if (AttackPath != EAttackPath::None || GetPathFollowingComponent()->GetStatus() != EPathFollowingStatus::Idle)
@@ -302,6 +319,23 @@ void AVeyraVanguardController::ClearAttackOrder()
 	AttackTarget.Reset();
 	AttackMoveDestination.Reset();
 	AttackPath = EAttackPath::None;
+	TracedAnswer.Reset();
+}
+
+void AVeyraVanguardController::DropAttackOrder(const TCHAR* Why)
+{
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("%s drops its attack order on %s: %s."), *GetNameSafe(GetPawn()), *GetNameSafe(AttackTarget.Get()), Why);
+	ClearAttackOrder();
+}
+
+void AVeyraVanguardController::TraceAttack(const AActor& Target, EVeyraAttackRejection Answer)
+{
+	if (TracedAnswer.IsSet() && TracedAnswer.GetValue() == Answer)
+	{
+		return;
+	}
+	TracedAnswer = Answer;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("%s's attack on %s: %s."), *GetNameSafe(GetPawn()), *GetNameSafe(&Target), LexToString(Answer));
 }
 
 UVeyraBasicAttackComponent* AVeyraVanguardController::GetBasicAttack() const

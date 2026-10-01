@@ -100,6 +100,66 @@ const FVeyraMomentumTuning* UVeyraVanguardsTuningSubsystem::FindMomentum(const F
 	return Get().Momentum.Find(Passive);
 }
 
+const FVeyraWildDominionTuning* UVeyraVanguardsTuningSubsystem::FindWildDominion(const FVeyraContentId& Passive)
+{
+	return Get().WildDominion.Find(Passive);
+}
+
+const FVeyraKitStatusesTuning* UVeyraVanguardsTuningSubsystem::FindKitStatuses(const FVeyraContentId& Passive)
+{
+	return Get().KitStatuses.Find(Passive);
+}
+
+const FVeyraAttackStrideTuning* UVeyraVanguardsTuningSubsystem::FindAttackStride(const FVeyraContentId& Passive)
+{
+	return Get().AttackStride.Find(Passive);
+}
+
+const FVeyraSlipstreamTuning* UVeyraVanguardsTuningSubsystem::FindSlipstream(const FVeyraContentId& Passive)
+{
+	return Get().Slipstream.Find(Passive);
+}
+
+const FVeyraReclaimTuning* UVeyraVanguardsTuningSubsystem::FindReclaim(const FVeyraContentId& Passive)
+{
+	return Get().Reclaim.Find(Passive);
+}
+
+const FVeyraQuarryTuning* UVeyraVanguardsTuningSubsystem::FindQuarry(const FVeyraContentId& Passive)
+{
+	return Get().Quarry.Find(Passive);
+}
+
+const FVeyraDisciplinesTuning* UVeyraVanguardsTuningSubsystem::FindDisciplines(const FVeyraContentId& Passive)
+{
+	return Get().Disciplines.Find(Passive);
+}
+
+const FVeyraStressTemperTuning* UVeyraVanguardsTuningSubsystem::FindStressTemper(const FVeyraContentId& Passive)
+{
+	return Get().StressTemper.Find(Passive);
+}
+
+const FVeyraChargerTuning* UVeyraVanguardsTuningSubsystem::FindCharger(const FVeyraContentId& Passive)
+{
+	return Get().Charger.Find(Passive);
+}
+
+const FVeyraAccordTuning* UVeyraVanguardsTuningSubsystem::FindAccord(const FVeyraContentId& Passive)
+{
+	return Get().Accord.Find(Passive);
+}
+
+const FVeyraMistTrailTuning* UVeyraVanguardsTuningSubsystem::FindMistTrail(const FVeyraContentId& Passive)
+{
+	return Get().MistTrail.Find(Passive);
+}
+
+const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
+{
+	return Get().Unreturned.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.
@@ -118,7 +178,7 @@ VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 	if (Errors.IsEmpty())
 	{
 		const FVeyraProgressionTuning& Progression = UVeyraProgressionTuningSubsystem::Get();
-		Errors = VeyraVanguardRules::Validate(Loaded, UVeyraAbilitiesTuningSubsystem::Get(), Progression.BasicAbilityMaxRank, Progression.UltimateMaxRank);
+		Errors = VeyraVanguardRules::Validate(Loaded, UVeyraAbilitiesTuningSubsystem::Get(), Progression);
 	}
 	if (Errors.IsEmpty())
 	{

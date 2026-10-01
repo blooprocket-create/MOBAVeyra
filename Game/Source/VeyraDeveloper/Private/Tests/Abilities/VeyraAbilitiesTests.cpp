@@ -48,6 +48,23 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("test_bolt")), Start + 2.0 * Duration) == 0.0));
 		}
 
+		TEST_METHOD(ARefundShortensWhatRemainsByAShareThenBySeconds)
+		{
+			// Fixture values: half of what remains, and a second more.
+			constexpr double Half = 0.5;
+			constexpr double MoreSeconds = 1.0;
+			TArray<FVeyraCooldownEntry> Entries;
+			VeyraCooldowns::Start(Entries, Id(TEXT("test_bolt")), Duration, Start);
+			ASSERT_THAT(IsTrue(VeyraCooldowns::Reduce(Entries, Id(TEXT("test_bolt")), Start + 1.0, Half)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("test_bolt")), Start + 1.0), (Duration - 1.0) * Half)));
+			ASSERT_THAT(IsTrue(VeyraCooldowns::Reduce(Entries, Id(TEXT("test_bolt")), Start + 1.0, 0.0, MoreSeconds)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("test_bolt")), Start + 1.0), (Duration - 1.0) * Half - MoreSeconds)));
+			ASSERT_THAT(IsTrue(VeyraCooldowns::Reduce(Entries, Id(TEXT("test_bolt")), Start + 1.0, 0.0, Duration * 2.0)));
+			ASSERT_THAT(IsTrue(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("test_bolt")), Start + 1.0) == 0.0, TEXT("never below ready")));
+			ASSERT_THAT(IsFalse(VeyraCooldowns::Reduce(Entries, Id(TEXT("test_bolt")), Start + 1.0, Half), TEXT("nothing to refund once ready")));
+			ASSERT_THAT(IsFalse(VeyraCooldowns::Reduce(Entries, Id(TEXT("test_other")), Start, Half)));
+		}
+
 		TEST_METHOD(RestartingReplacesTheCooldown)
 		{
 			TArray<FVeyraCooldownEntry> Entries;

@@ -1,6 +1,6 @@
 # ADR-021: Custom lobbies, custom rules, and friends in the client
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §8 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M16 pull requests that add it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §8 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M16 pull requests that add it.  
 **Date:** 2026-09-29  
 **Related:**
 - [ADR-007](ADR-007-match-join-contract.md): the match assignment and join contract.
@@ -22,7 +22,7 @@ A player can play a matchmade 1v1 or solo practice against a fixed line-up of fo
 - **Rules (§4):** the host changes rules such as starting Gold and whether normal victory is enabled. They are editable, validated data applied only to that session, and End Custom Match ends it with no winner.
 - **Rewards (§5):** none.
 
-§7 leaves open the configuration menu, the lobby lifecycle, host transfer and the duplicate policy; this ADR takes League's answers there (§8).
+§7 leaves open the configuration menu, the lobby lifecycle, host transfer and the duplicate policy; this ADR takes provisional answers there (§8).
 
 The code already has most of the parts:
 - **Backend:** friends, blocks and party invites (`Backend/internal/social`, `party`), none of which the client calls; and champion select (`selection`), which is generic over seats and sides.
@@ -105,7 +105,7 @@ Custom results are recorded, with `rules=custom`, and appear in Match History wi
 
 - **A friends panel** is a persistent surface down the right of the shell and the lobby (Art Bible §7). It lists friends, adds one by exact display name (`GET /v1/accounts?displayName=`), answers friend requests, shows pending requests, and shows and answers lobby invitations. In the host's lobby each friend not yet in it has Invite.
 - **Play** gains a Custom Game card, which creates a lobby. The Practice card stays beside it.
-- **The lobby screen**, laid out as League's custom lobby:
+- **The lobby screen**:
   - two columns, Side A and Side B, of `playersPerSide` seats each. Each seat shows a portrait ringed in its side's colour, a name, and Host, Player or the bot's difficulty;
   - for the host, Add Bot on an empty seat and Change on a bot's. Each opens a picker of the Vanguards the lobby offers bots, at a chosen difficulty; a Vanguard another bot on that side plays is not offered. Also Remove on a bot, and Switch Side and Remove on a human. Switch Side moves the human to the other side's first empty seat, the one-click form of the host placing humans (§1);
   - the rules: Turn Victory On or Off, offered only when both sides hold a Vanguard, and starting Gold as Default Gold or one of the style's `LobbyStartingGoldChoices` that lies within the lobby's range. The choices are presentation; the backend's range decides;
@@ -117,7 +117,7 @@ Custom results are recorded, with `rules=custom`, and appear in Match History wi
   - A cancelled or left custom select resumes, which finds the lobby open again. A custom select may be left, as a matchmade one may.
   - Friends and invitations are read every `SocialPollIntervalSeconds` in the shell and the lobby. These reads never raise the screen's problem: a failed read waits for the next.
   - Social refusals (`account_not_found`, `already_friends`, an expired invitation) show in the friends panel, never as the screen's problem. A block is never revealed.
-- **After the match** the lobby is gone (its match started), so the players return to the shell. League's post-game return to the lobby is deferred.
+- **After the match** the lobby is gone (its match started), so the players return to the shell. A post-game return to the lobby is deferred.
 
 ### 7. Deferred
 
@@ -128,19 +128,19 @@ Custom results are recorded, with `rules=custom`, and appear in Match History wi
 - Chat, and the push channel it and the lobby need.
 - Merging solo practice into lobbies.
 - Party invites in the client: the backend has them, but the one matchmade mode (`casual_select`) seats one human a side, so a party has nothing to queue for yet. They come with the first matchmade mode for several humans (Co-op vs AI, Draft).
-- Returning to the lobby after its match, as League's post-game does.
+- Returning to the lobby after its match.
 
-### 8. League answers where canon is silent (for the author to overturn)
+### 8. Provisional answers where canon is silent (for the author to overturn)
 
 - **Joining:** an invitee who accepts joins the side with fewer humans.
 - **Host transfer:** when the host leaves, the longest-present human becomes host.
-- **Duplicates:** unique within a side, bots included; mirrors across sides are allowed (League's blind pick).
+- **Duplicates:** unique within a side, bots included; mirrors across sides are allowed (blind pick).
 - **Selection for customs:** blind champion select for the humans; the bots are chosen in the lobby.
-- **End Custom Match:** the host may end any custom session. League has no such command; canon's sandbox allows it.
-- **Surrender:** allowed in a custom match with victory on, as in League's custom games.
+- **End Custom Match:** the host may end any custom session; canon's sandbox allows it.
+- **Surrender:** allowed in a custom match with victory on.
 - **The rules offered:** victory on or off, and starting Gold within the backend's range.
-- **Moving humans:** one click moves a human to the other side, as League's custom lobby's team switch does; the host does it for anyone (§1).
-- **Finding friends:** by exact display name, as League's add-friend box does; no search or suggestions.
+- **Moving humans:** one click moves a human to the other side; the host does it for anyone (§1).
+- **Finding friends:** by exact display name; no search or suggestions.
 
 ## Consequences
 
