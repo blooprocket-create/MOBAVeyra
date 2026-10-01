@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,6 +17,7 @@ type MemStore struct {
 	devSeeded   map[string]bool    // by ID
 	sessions    map[string]Session // by hex token hash
 	launchCodes map[string]*memLaunchCode
+	links       map[ProviderIdentity]string // account ID by provider identity
 }
 
 type memLaunchCode struct {
@@ -30,6 +32,7 @@ func NewMemStore() *MemStore {
 		devSeeded:   map[string]bool{},
 		sessions:    map[string]Session{},
 		launchCodes: map[string]*memLaunchCode{},
+		links:       map[ProviderIdentity]string{},
 	}
 }
 
@@ -156,5 +159,34 @@ func (m *MemStore) RedeemLaunchCode(_ context.Context, codeHash []byte, buildVer
 	}
 	newSession.AccountID = a.ID
 	m.sessions[hex.EncodeToString(newSession.TokenHash)] = newSession
+	return a, nil
+}
+
+func (m *MemStore) AccountByProvider(_ context.Context, who ProviderIdentity) (Account, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	id, ok := m.links[who]
+	if !ok {
+		return Account{}, ErrNotFound
+	}
+	return m.accounts[id], nil
+}
+
+func (m *MemStore) CreateProviderAccount(_ context.Context, who ProviderIdentity, displayName string) (Account, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.links[who]; ok {
+		return Account{}, ErrAlreadyRegistered
+	}
+	for _, a := range m.accounts {
+		if strings.EqualFold(a.DisplayName, displayName) {
+			return Account{}, ErrDisplayNameTaken
+		}
+	}
+	a, err := m.create(displayName, false)
+	if err != nil {
+		return Account{}, err
+	}
+	m.links[who] = a.ID
 	return a, nil
 }

@@ -196,6 +196,12 @@ Razorwheel is the explicit example proving that Tier 2 may contain a simple Acti
 **Recipe:** Iron Grip + Keensteel + recipe  
 **Stats:** Physical Power + Critical Strike Chance.
 
+### Veil Needle
+**Recipe:** Iron Grip + recipe  
+**Stats:** Physical Power + flat Physical Penetration.
+
+Veil Needle draws its name from the thin throwing needles used by the Veil House tradition of the Reed Provinces. It is a general physical burst/assassin Assembly rather than equipment exclusive to Angeru. It has no Active or Attunement.
+
 ### Killstring Assembly
 **Recipe:** Quickcoil + Keensteel + recipe  
 **Stats:** Attack Speed + Critical Strike Chance.
@@ -326,6 +332,72 @@ Exact reform timing and stat values are prototype tuning values.
 
 Blackreef Bell draws from the Drowned Cantons' black reefs, tuned bells, sea-glass, resonance, and fog-guiding traditions. It is a general anti-magic defensive Masterwork rather than equipment exclusive to any one Vanguard.
 
+### Blank Sigil
+
+**Recipe:** Veil Needle + Striker Assembly + Warforged Grip + Tier 3 recipe  
+**Stat identity:** High Physical Power + flat Physical Penetration + Ability Haste.
+
+**Attunement — No Allegiance**
+
+After going a short period without damaging an enemy Vanguard, the holder's next damaging attack or ability against an enemy Vanguard creates a brief **Opening** on that target.
+
+The holder's next **different** damaging attack or ability against the same Vanguard consumes Opening, gains additional Physical Penetration for that hit, and deals bonus physical damage.
+
+The different-action requirement is deliberate: Blank Sigil rewards a setup → commit → payoff sequence rather than repetitive poke with one attack or spell. Exact out-of-combat timing, Opening duration, penetration amount, bonus-damage ratio, and stat values are prototype tuning values.
+
+Blank Sigil draws its name from the cut-out insignia patches associated with Angeru's rejection of both Reed Provinces martial houses. It is a general assassin/burst Masterwork and is not mechanically exclusive to Angeru.
+
+### Cutline Mantle
+
+**Recipe:** Veil Needle + War Harness + Timing Coil + Tier 3 recipe  
+**Stat identity:** Physical Power + flat Physical Penetration + Health + Ability Haste.
+
+**Attunement — Clean Break**
+
+When an enemy Vanguard dies shortly after the holder damaged them, the holder gains a brief burst of decaying Movement Speed and a temporary shield based partly on the damage the holder personally dealt to that Vanguard during the recent combat window.
+
+Additional qualifying takedowns refresh the Movement Speed and replace or refresh the shield rather than stacking multiple shields.
+
+Clean Break is an escape/reposition window, not a full reset: it does not grant Invisibility, Untargetability, Unstoppable, or complete ability resets. Exact participation window, Movement Speed amount/duration, shield ratio/cap, and stat values are prototype tuning values.
+
+### Oathpiercer
+
+**Recipe:** Veil Needle + War Harness + Titansteel Grip + Tier 3 recipe  
+**Stat identity:** Very high Physical Power + flat Physical Penetration + Health.
+
+**Attunement — Through the Guard**
+
+When the holder damages an enemy Vanguard who currently has a shield granted by another Vanguard, the first qualifying hit brands that shield for a short window.
+
+While branded, a percentage of the damage the holder personally deals to that shield is recorded as **Breach**.
+
+If the holder personally breaks the branded shield before the window expires, the stored Breach detonates against that Vanguard as bonus physical damage.
+
+If the shield expires naturally, another source breaks it, or the holder fails to break it before the brand expires, the Breach payoff is lost.
+
+Self-generated shields do not qualify. Through the Guard does not reduce all shielding, prevent new shields, or globally amplify damage against shields; it specifically rewards committing through ally-granted protection and personally breaking it.
+
+Exact brand duration, recorded-damage percentage, Breach conversion, and stat values are prototype tuning values.
+
+### Witnessless Edge
+
+**Recipe:** Veil Needle + Striker Assembly + Quickcoil + Tier 3 recipe  
+**Stat identity:** Physical Power + flat Physical Penetration + Ability Haste + modest Attack Speed.
+
+**Attunement — No One Coming**
+
+Damaging an enemy Vanguard who has no allied Vanguard within a data-driven protection radius marks that target as **Abandoned** for a short duration.
+
+While moving toward the Abandoned Vanguard, the holder gains Movement Speed.
+
+If the holder deals a required amount of damage to that target before an allied Vanguard enters the protection radius, the mark briefly **locks in**. The holder's next damaging hit against that Vanguard consumes the lock and deals bonus physical damage.
+
+Before the mark locks in, an allied Vanguard entering the protection radius breaks Abandoned and denies the payoff. Once locked in, the short finishing window remains even if an ally arrives.
+
+Witnessless Edge rewards recognizing and committing onto isolated targets while giving the opposing team direct positional counterplay: collapse toward the threatened ally before the assassination condition is secured.
+
+Exact protection radius, mark duration, required damage threshold, Movement Speed amount, lock duration, bonus-damage ratio, and stat values are prototype tuning values.
+
 ### Harborline Harness
 
 **Recipe:** Rescue Rig + Waymark Weave + Warforged Grip + Tier 3 recipe  
@@ -373,6 +445,25 @@ The Doom amounts, threshold, bonus-damage ratio, and item stat values are protot
 **Attunement — Convergence**
 
 Damaging an enemy Vanguard with one ability primes them. The next damaging ability against that target within a short window consumes the prime and deals bonus magic damage.
+
+### Memoryglass Reliquary
+
+**Recipe:** Nullglass Shard + Catalyst Coil + Arc Crystal + Tier 3 recipe  
+**Stat identity:** High Magic Power + flat Magic Penetration + Ability Haste.
+
+**Attunement — Reenactment**
+
+After going a short period without damaging an enemy Vanguard, the first damaging ability the holder lands on an enemy Vanguard is **Remembered**.
+
+The Reliquary records the target, the actual post-mitigation damage dealt by that hit, and the holder's position when the ability was cast.
+
+For a short window, if the holder damages that same Vanguard again after meaningfully repositioning away from the recorded cast position, the memory shatters and a spectral reenactment of the original wound deals a percentage of the recorded damage again as magic damage. The memory is then consumed.
+
+Reenactment copies only the recorded wound. It does not reproduce crowd control, marks, on-hit effects, item effects, secondary spell effects, or other attached properties from the remembered ability.
+
+The reposition requirement is deliberate: Memoryglass Reliquary rewards mobile burst sequences and changing attack angles rather than stationary repeated casting. Exact out-of-combat timing, memory window, required displacement, replay percentage, and stat values are prototype tuning values.
+
+Its visual identity draws from Merrin's relationship with repeated memory: a faint memory-image of the caster remains at the original casting location, then performs the remembered strike when Reenactment triggers before fracturing away like glass.
 
 ### Arc Reactor
 

@@ -31,6 +31,16 @@ Follow the project-wide **no hardcoded gameplay tuning / no magic numbers** rule
 
 When implementing a feature, identify its authoritative configuration owner, validate required settings, and cover data-driven behavior with tests. Treat values borrowed from another game's map as provisional Veyra playtest settings, not hardcoded assumptions. Only genuine, justified mathematical/algorithmic invariants may remain code constants; do not confuse those with balance values.
 
+## Repository-facing reference policy — mandatory
+
+Everything Claude writes into the repository must use **Veyra-native terminology**.
+
+Do not name or reference third-party game titles, publishers, studios, characters, items, maps, branded mechanics, or other external game IP in pull request titles/descriptions/comments, commit messages, issues, changelogs, documentation, filenames, test names, code comments, generated artifacts, or any other repository-visible text.
+
+Comparisons to other games are permitted only in private conversation with the user. Before creating a repository artifact, translate the comparison into a self-contained Veyra requirement and cite Veyra's authoritative documentation when one exists. If outside material informed provisional tuning or an implementation idea, record only the resulting Veyra behavior/data, not the outside reference.
+
+If repository-facing wording still depends on naming an outside game or property, rewrite it in Veyra terms before committing, commenting, or opening a pull request.
+
 ## Hard prohibitions
 
 Do not:

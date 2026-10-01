@@ -243,3 +243,57 @@ func notFound(err error) error {
 	}
 	return err
 }
+
+// Constraints CreateProviderAccount maps to identity errors
+// (migrations/0001_identity.sql, 0021_player_login.sql).
+const (
+	displayNameConstraint       = "accounts_display_name_key"
+	displayNameFoldedConstraint = "accounts_display_name_folded_key"
+	providerLinkConstraint      = "provider_links_pkey"
+)
+
+func (s *Store) AccountByProvider(ctx context.Context, who identity.ProviderIdentity) (identity.Account, error) {
+	var a identity.Account
+	err := s.pool.QueryRow(ctx, `
+		SELECT a.id::text, a.display_name
+		FROM identity.provider_links l JOIN identity.accounts a ON a.id = l.account_id
+		WHERE l.provider = $1 AND l.subject = $2`,
+		who.Provider, who.Subject).Scan(&a.ID, &a.DisplayName)
+	return a, notFound(err)
+}
+
+// CreateProviderAccount creates the account and its link in one transaction;
+// the unique constraints decide a race for the same name or identity.
+func (s *Store) CreateProviderAccount(ctx context.Context, who identity.ProviderIdentity, displayName string) (identity.Account, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return identity.Account{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // no-op after commit
+
+	var a identity.Account
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO identity.accounts (display_name, dev_seeded) VALUES ($1, false)
+		RETURNING id::text, display_name`, displayName).Scan(&a.ID, &a.DisplayName); err != nil {
+		return identity.Account{}, providerAccountError(err)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO identity.provider_links (provider, subject, account_id) VALUES ($1, $2, $3::uuid)`,
+		who.Provider, who.Subject, a.ID); err != nil {
+		return identity.Account{}, providerAccountError(err)
+	}
+	return a, tx.Commit(ctx)
+}
+
+func providerAccountError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
+		switch pgErr.ConstraintName {
+		case displayNameConstraint, displayNameFoldedConstraint:
+			return identity.ErrDisplayNameTaken
+		case providerLinkConstraint:
+			return identity.ErrAlreadyRegistered
+		}
+	}
+	return err
+}

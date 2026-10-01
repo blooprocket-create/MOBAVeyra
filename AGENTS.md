@@ -19,6 +19,16 @@ Before modifying gameplay code, read:
 
 If a task conflicts with those documents, do not silently choose a side. Surface the conflict.
 
+## Repository-facing reference policy — mandatory
+
+All repository-visible work must use **Veyra-native terminology** and Veyra's canonical documentation.
+
+- Do not name or reference third-party game titles, publishers, studios, characters, items, maps, branded mechanics, or other external game IP in pull request titles/descriptions/comments, commit messages, issues, changelogs, documentation, filenames, test names, code comments, generated artifacts, or other repository-visible text.
+- Third-party games may be used privately with the user as comparative design or implementation context, but those references must be translated into Veyra terminology before anything is written to the repository.
+- When Veyra already defines a rule or behavior, cite the authoritative Veyra document/section instead of using comparative shorthand.
+- If outside material informed an early prototype or tuning value, record only the resulting provisional Veyra behavior/data in repository artifacts; do not preserve the outside reference as provenance or shorthand.
+- If a requested repository change would require an external-IP reference to explain it, stop and rewrite the explanation in self-contained Veyra terms before committing or opening a PR.
+
 ## Non-negotiable working rules
 
 - Preserve server authority.

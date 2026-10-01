@@ -3,6 +3,12 @@
   "backend": {
     "baseUrl": "http://127.0.0.1:8080"
   },
+  "playerLogin": {
+    "firebase": {
+      "authUrl": "https://identitytoolkit.googleapis.com",
+      "apiKey": "AIzaSyCcZT7kXAiju0u-a6_Hhde08oiRA27IzXU"
+    }
+  },
   "http": {
     "timeoutSeconds": 10
   },
