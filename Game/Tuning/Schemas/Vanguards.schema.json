@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -638,6 +638,57 @@
                 "stepUnits": { "description": "The units each step of the ratio counts (Roster Bible §2: per 100 units).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "disciplines": {
+      "description": "Passives of two disciplines whose abilities mark enemy Vanguards for the other to spend (Angeru's No Master, Roster Bible §15; ADR-031 §10). When an ability in a mark's consumedBy hits an enemy Vanguard holding the mark from the owner, the mark goes; an extra strike lands (damageAmount + damagePerLevel per Level after the first + physicalPowerRatio of Physical Power, ignoring penetration of the resistance its type meets), scaled by the ability's bonus damageMultiplier; resourceRefund of the ability's cost comes back; the owner takes casterStatuses; the bonus cooldownRefund of the ability's own remaining cooldown is refunded; and the ability in refundSlot has refundSeconds taken off its remaining cooldown.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "marks", "bonuses", "refundSlot", "refundSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "marks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "consumedBy", "damageType", "damageAmount", "damagePerLevel", "physicalPowerRatio", "penetration", "resourceRefund", "casterStatuses"],
+                "properties": {
+                  "status": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "consumedBy": { "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+                  "damageType": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+                  "damageAmount": { "type": "number", "minimum": 0 },
+                  "damagePerLevel": { "type": "number", "minimum": 0 },
+                  "physicalPowerRatio": { "type": "number", "minimum": 0 },
+                  "penetration": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "resourceRefund": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "casterStatuses": { "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+                }
+              }
+            },
+            "bonuses": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["ability", "damageMultiplier", "cooldownRefund"],
+                "properties": {
+                  "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "damageMultiplier": { "type": "number", "minimum": 0 },
+                  "cooldownRefund": { "type": "number", "minimum": 0, "maximum": 1 }
+                }
+              }
+            },
+            "refundSlot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
+            "refundSeconds": { "type": "number", "minimum": 0 }
           }
         }
       }

@@ -219,6 +219,64 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraDisciplinesTuning>& Entry : Tuning.Disciplines)
+	{
+		RegisterPassive(Entry.Key, TEXT("disciplines"));
+		const FString Pointer = TEXT("/disciplines/") + Entry.Key.ToString();
+		const FVeyraDisciplinesTuning& Disciplines = Entry.Value;
+		const auto IsFraction = [](double Value) { return Value >= 0.0 && Value <= 1.0; };
+		if (Disciplines.Marks.IsEmpty() || Disciplines.RefundSeconds < 0.0)
+		{
+			Problem(Pointer, TEXT("names at least one mark, and refundSeconds is at least 0"));
+		}
+		for (int32 Index = 0; Index < Disciplines.Marks.Num(); ++Index)
+		{
+			const FVeyraDisciplineMarkTuning& Mark = Disciplines.Marks[Index];
+			const FString MarkPointer = FString::Printf(TEXT("%s/marks/%d"), *Pointer, Index);
+			if (!Abilities.Statuses.Contains(Mark.Status))
+			{
+				Problem(MarkPointer + TEXT("/status"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Mark.Status.ToString()));
+			}
+			for (const FVeyraContentId& Status : Mark.CasterStatuses)
+			{
+				if (!Abilities.Statuses.Contains(Status))
+				{
+					Problem(MarkPointer + TEXT("/casterStatuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Status.ToString()));
+				}
+			}
+			if (Mark.ConsumedBy.IsEmpty())
+			{
+				Problem(MarkPointer + TEXT("/consumedBy"), TEXT("names at least one ability"));
+			}
+			for (const FVeyraContentId& Ability : Mark.ConsumedBy)
+			{
+				if (!VeyraAbilityRules::Defines(Abilities, Ability))
+				{
+					Problem(MarkPointer + TEXT("/consumedBy"), FString::Printf(TEXT("names ability \"%s\", which Abilities.json does not define"), *Ability.ToString()));
+				}
+			}
+			if (Mark.DamageAmount < 0.0 || Mark.DamagePerLevel < 0.0 || Mark.PhysicalPowerRatio < 0.0 || !IsFraction(Mark.Penetration) || !IsFraction(Mark.ResourceRefund)
+				|| Mark.DamageType == EVeyraDamageType::TrueDamage)
+			{
+				Problem(MarkPointer, TEXT("its damage values are at least 0 and its type Physical or Magic; penetration and resourceRefund are from 0 to 1"));
+			}
+		}
+		for (int32 Index = 0; Index < Disciplines.Bonuses.Num(); ++Index)
+		{
+			const FVeyraDisciplineBonusTuning& Bonus = Disciplines.Bonuses[Index];
+			const FString BonusPointer = FString::Printf(TEXT("%s/bonuses/%d"), *Pointer, Index);
+			const bool bSpends = Disciplines.Marks.ContainsByPredicate([&Bonus](const FVeyraDisciplineMarkTuning& Mark) { return Mark.ConsumedBy.Contains(Bonus.Ability); });
+			if (!bSpends)
+			{
+				Problem(BonusPointer + TEXT("/ability"), FString::Printf(TEXT("names %s, which spends no mark"), *Bonus.Ability.ToString()));
+			}
+			if (Bonus.DamageMultiplier < 0.0 || !IsFraction(Bonus.CooldownRefund))
+			{
+				Problem(BonusPointer, TEXT("damageMultiplier is at least 0, and cooldownRefund from 0 to 1"));
+			}
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));

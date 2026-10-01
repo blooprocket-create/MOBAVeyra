@@ -1039,6 +1039,16 @@ const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVey
 	return Cast;
 }
 
+double ResourceCost(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
+{
+	if (const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability))
+	{
+		return Targeted->ResourceCost;
+	}
+	const FVeyraCastTuning* Cast = FindCast(Tuning, Ability);
+	return Cast ? ValueAtRank(Cast->ResourceCostByRank, Rank) : 0.0;
+}
+
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
 {
 	if (const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability))

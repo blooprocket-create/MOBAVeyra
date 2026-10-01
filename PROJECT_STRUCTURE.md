@@ -129,6 +129,13 @@ M24a added ([ADR-030](Docs/ADR/ADR-030-stealth-markers-and-marked-follow-ups.md)
 - recast windows that open on a held mark or a takedown, casts that take only a marked target, dashes through a target, skillshots that return to their caster, self-buffs that leave a marker, and the ambush archetype (`UVeyraAmbushAbility`);
 - the quarry passive (`UVeyraQuarryPassive`).
 
+M24b added ([ADR-031](Docs/ADR/ADR-031-stances-focus-shadows-and-cross-marks.md)), for Angeru:
+- stances: the loadout stows a slot's own ability, keeping its grant and cooldown, when a stance puts another there (`SwapOwn`), and a follow-up belongs to the own ability whose cast opened it, waiting unseen in another stance; the stance archetype (`UVeyraStanceAbility`) toggles a set;
+- the placement archetype (`UVeyraPlacementAbility`), a marker at a point whose follow-up ends with it; the blink archetype (`UVeyraBlinkAbility`), beside an enemy or to its caster's marker, with a swap; a skillshot its caster's marker throws too, the shots sharing what they strike;
+- dashes that take over a dash under way (`duringDash`), while any other move waits; casts that refuse a target locked out by an earlier one (`targetMustNotHold`); cooldowns a takedown refunds (`takedownRefund`, `UVeyraTakedownRefundSubsystem`), the participants found once by `VeyraKillCredit::TakedownParticipants`;
+- in Combat, `AVeyraPlacedMarker::FindStanding` and `Relocate`, `VeyraCombat::BlinkBeside` and `NearestGround`;
+- the disciplines passive (`UVeyraDisciplinesPassive`).
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
@@ -146,6 +153,8 @@ UI and items request transactions; they do not mutate gold directly.
 **Progression** (XP balances, levels, level-up stat increments and skill points) lives in this module for now as a **separate owner** with its own state, per the Economy & Progression Bible. It shares the module, not code paths: Gold and XP are never mixed in one class.
 
 Progression arrived first, in M5 (ADR-008 §6). It sits in its own Economy layer, above Combat, whose verbs apply level-up growth, and below Abilities, which reads ranks.
+
+M24b added rank shapes ([ADR-031](Docs/ADR/ADR-031-stances-focus-shadows-and-cross-marks.md) §2): `Progression.json` names documented exceptions to the standard ranks, each spending the standard total of skill points, and the progression component holds and replicates its unit's shape, an innate R starting at rank 1.
 
 Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §11):
 

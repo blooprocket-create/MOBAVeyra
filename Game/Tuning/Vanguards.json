@@ -842,6 +842,54 @@
       "abilities": { "q": ["tavi_catch"], "w": ["tavi_hide"], "e": ["tavi_tag"], "r": ["tavi_ready_or_not"] },
       "rankShape": [],
       "passive": ["tavi_youre_it"]
+    },
+    "angeru": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Focus",
+      "body": { "capsuleRadius": 32, "capsuleHalfHeight": 66, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 590,
+        "healthRegen": 0.85,
+        "maxResource": 200,
+        "resourceRegen": 10,
+        "armor": 30,
+        "magicResist": 32,
+        "physicalPower": 63,
+        "magicPower": 0,
+        "attackSpeed": 0.651,
+        "moveSpeed": 345
+      },
+      "growth": {
+        "maxHealth": 95,
+        "healthRegen": 0.14,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 4.5,
+        "magicResist": 2.05,
+        "physicalPower": 3.4,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.033
+      },
+      "basicAttack": {
+        "range": 125,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.27,
+        "acquisitionRadius": 600,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["angeru_shadow_needle"],
+        "w": ["angeru_false_body"],
+        "e": ["angeru_black_step"],
+        "r": ["angeru_forsake_the_schools"]
+      },
+      "rankShape": ["dual_stance"],
+      "passive": ["angeru_no_master"]
     }
   },
   "deepFoundation": {
@@ -1052,6 +1100,41 @@
       "magicPowerRatio": 0.3,
       "cooldownRefund": 0.25,
       "jumpRadius": 1000
+    }
+  },
+  "disciplines": {
+    "angeru_no_master": {
+      "provenance": "Provisional",
+      "marks": [
+        {
+          "status": "angeru_veiled",
+          "consumedBy": ["angeru_flowing_cut", "angeru_severing_arc", "angeru_passing_step"],
+          "damageType": "Physical",
+          "damageAmount": 30,
+          "damagePerLevel": 8,
+          "physicalPowerRatio": 0.25,
+          "penetration": 0.3,
+          "resourceRefund": 0,
+          "casterStatuses": []
+        },
+        {
+          "status": "angeru_drawn",
+          "consumedBy": ["angeru_shadow_needle", "angeru_black_step"],
+          "damageType": "Physical",
+          "damageAmount": 0,
+          "damagePerLevel": 0,
+          "physicalPowerRatio": 0,
+          "penetration": 0,
+          "resourceRefund": 0.5,
+          "casterStatuses": ["angeru_vanish"]
+        }
+      ],
+      "bonuses": [
+        { "ability": "angeru_severing_arc", "damageMultiplier": 2, "cooldownRefund": 0 },
+        { "ability": "angeru_black_step", "damageMultiplier": 1, "cooldownRefund": 0.5 }
+      ],
+      "refundSlot": "R",
+      "refundSeconds": 1
     }
   }
 }

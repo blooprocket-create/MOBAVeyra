@@ -10,6 +10,7 @@
 #include "Passives/VeyraCampRewardPassive.h"
 #include "Passives/VeyraCadencePassive.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
+#include "Passives/VeyraDisciplinesPassive.h"
 #include "Passives/VeyraGatheringLightPassive.h"
 #include "Passives/VeyraHauntPassive.h"
 #include "Passives/VeyraKitStatusesPassive.h"
@@ -96,6 +97,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindQuarry(PassiveId))
 	{
 		return UVeyraQuarryPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindDisciplines(PassiveId))
+	{
+		return UVeyraDisciplinesPassive::StaticClass();
 	}
 	if (UVeyraVanguardsTuningSubsystem::FindUnreturned(PassiveId))
 	{

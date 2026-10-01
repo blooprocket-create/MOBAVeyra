@@ -130,6 +130,11 @@ const FVeyraQuarryTuning* UVeyraVanguardsTuningSubsystem::FindQuarry(const FVeyr
 	return Get().Quarry.Find(Passive);
 }
 
+const FVeyraDisciplinesTuning* UVeyraVanguardsTuningSubsystem::FindDisciplines(const FVeyraContentId& Passive)
+{
+	return Get().Disciplines.Find(Passive);
+}
+
 const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
 {
 	return Get().Unreturned.Find(Passive);

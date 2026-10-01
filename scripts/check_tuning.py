@@ -54,7 +54,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
 ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance", "/placement", "/blink")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry", "/disciplines")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -63,6 +63,10 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/vanguards/*/abilities/r/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
     ("Vanguards", "/vanguards/*/rankShape/*", "Progression", ("/rankShapes",)),
+    ("Vanguards", "/disciplines/*/marks/*/status", "Abilities", ("/statuses",)),
+    ("Vanguards", "/disciplines/*/marks/*/casterStatuses/*", "Abilities", ("/statuses",)),
+    ("Vanguards", "/disciplines/*/marks/*/consumedBy/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/disciplines/*/bonuses/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
     ("Vanguards", "/movingTarget/*/trackedStatus", "Abilities", ("/statuses",)),

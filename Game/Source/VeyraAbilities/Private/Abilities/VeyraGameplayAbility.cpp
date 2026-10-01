@@ -20,6 +20,7 @@
 #include "TimerManager.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
+#include "VeyraAbilitiesVerbs.h"
 #include "VeyraCombatVerbs.h"
 
 namespace
@@ -336,15 +337,7 @@ bool UVeyraGameplayAbility::HasUsablePoint(const FVeyraCastTarget& Target)
 
 int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
 {
-	const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
-	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindAbility(Ability) : nullptr;
-	// An item's Active and a Flux Spell have no ranks: each works at its one rank (ADR-012 §1, ADR-015 §1).
-	if (Entry && (VeyraAbilitySlots::IsItemSlot(Entry->Slot) || VeyraAbilitySlots::IsSpellSlot(Entry->Slot)))
-	{
-		return 1;
-	}
-	const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Caster);
-	return Entry && Progression ? Progression->GetRank(Entry->Slot) : 0;
+	return VeyraAbilities::RankOf(Caster, Ability);
 }
 
 int32 UVeyraGameplayAbility::GetCasterLevel(const UAbilitySystemComponent& Caster)

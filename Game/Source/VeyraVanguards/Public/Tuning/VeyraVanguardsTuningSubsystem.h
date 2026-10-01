@@ -54,6 +54,7 @@ public:
 	static const FVeyraSlipstreamTuning* FindSlipstream(const FVeyraContentId& Passive);
 	static const FVeyraReclaimTuning* FindReclaim(const FVeyraContentId& Passive);
 	static const FVeyraQuarryTuning* FindQuarry(const FVeyraContentId& Passive);
+	static const FVeyraDisciplinesTuning* FindDisciplines(const FVeyraContentId& Passive);
 	static const FVeyraUnreturnedTuning* FindUnreturned(const FVeyraContentId& Passive);
 
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */

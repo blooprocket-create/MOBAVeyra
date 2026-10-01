@@ -676,6 +676,70 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": []
+    },
+    "angeru_veiled": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": ["Vanguard"]
+    },
+    "angeru_drawn": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": ["Vanguard"]
+    },
+    "angeru_passed": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 8,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "angeru_vanish": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
     }
   },
   "targetedDamage": {
@@ -1993,6 +2057,77 @@
       "casterStatuses": [],
       "healOnHit": [],
       "delayWithin": []
+    },
+    "angeru_severing_arc": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [10, 9.5, 9, 8.5, 8, 7.5],
+        "resourceCostByRank": [50],
+        "castRange": 0,
+        "windupSeconds": 0.35,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Sector", "radius": 325, "arcDegrees": 140, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Physical",
+                "amountByRank": [80, 115, 150, 185, 220, 255],
+                "physicalPowerRatio": 0.9,
+                "magicPowerRatio": 0
+              }
+            ],
+            "statuses": ["angeru_drawn"],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        },
+        {
+          "shape": { "kind": "Sector", "radius": 500, "arcDegrees": 140, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Physical",
+                "amountByRank": [120, 175, 225, 280, 330, 385],
+                "physicalPowerRatio": 1.35,
+                "magicPowerRatio": 0
+              }
+            ],
+            "statuses": ["angeru_drawn"],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
     }
   },
   "selfBuff": {
@@ -2916,6 +3051,71 @@
       "casterDash": [],
       "returnIfHeld": [{ "status": "tavi_it", "speed": 1800, "cooldownRefund": 0.4 }],
       "mimic": []
+    },
+    "angeru_shadow_needle": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [6, 5.5, 5, 4.5, 4, 3.5],
+        "resourceCostByRank": [60],
+        "castRange": 925,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "projectile": { "speed": 1700, "radius": 50, "range": 925 },
+      "collision": "Pierce",
+      "effects": {
+        "damage": [
+          {
+            "type": "Physical",
+            "amountByRank": [70, 105, 140, 175, 210, 245],
+            "physicalPowerRatio": 0.9,
+            "magicPowerRatio": 0
+          }
+        ],
+        "statuses": ["angeru_veiled"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [
+        {
+          "markerAbility": "angeru_false_body",
+          "repeatEffects": {
+            "damage": [
+              {
+                "type": "Physical",
+                "amountByRank": [42, 63, 84, 105, 126, 147],
+                "physicalPowerRatio": 0.54,
+                "magicPowerRatio": 0
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          }
+        }
+      ]
     }
   },
   "dash": {
@@ -3428,6 +3628,119 @@
       "endZones": [],
       "rideExit": "Stay",
       "duringDash": "Refused"
+    },
+    "angeru_flowing_cut": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [4, 3.75, 3.5, 3.25, 3, 2.75],
+        "resourceCostByRank": [30],
+        "castRange": 250,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "direction": "TowardPoint",
+      "distance": 250,
+      "speed": 1500,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "contactSelfStatuses": [],
+      "hostEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "endZones": [
+        {
+          "shape": { "kind": "Sector", "radius": 275, "arcDegrees": 120, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Physical",
+                "amountByRank": [45, 70, 95, 120, 145, 170],
+                "physicalPowerRatio": 0.8,
+                "magicPowerRatio": 0
+              }
+            ],
+            "statuses": ["angeru_drawn"],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "rideExit": "Stay",
+      "duringDash": "TakesOver"
+    },
+    "angeru_passing_step": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0.5],
+        "resourceCostByRank": [0],
+        "castRange": 475,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": ["angeru_passed"],
+        "takedownRefund": []
+      },
+      "direction": "ThroughTarget",
+      "distance": 225,
+      "speed": 1400,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": {
+        "damage": [
+          {
+            "type": "Physical",
+            "amountByRank": [30, 40, 50, 60, 70, 80],
+            "physicalPowerRatio": 0.3,
+            "magicPowerRatio": 0
+          }
+        ],
+        "statuses": ["angeru_drawn", "angeru_passed"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "contactSelfStatuses": [],
+      "hostEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "endZones": [],
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     }
   },
   "empoweredAttack": {
@@ -3711,9 +4024,127 @@
       }
     }
   },
-  "stance": {},
-  "placement": {},
-  "blink": {},
+  "stance": {
+    "angeru_forsake_the_schools": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [3],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0.1,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "slots": [
+        { "slot": "Q", "ability": "angeru_flowing_cut" },
+        { "slot": "W", "ability": "angeru_severing_arc" },
+        { "slot": "E", "ability": "angeru_passing_step" }
+      ]
+    }
+  },
+  "placement": {
+    "angeru_false_body": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [20, 18.5, 17, 15.5, 14, 12.5],
+        "resourceCostByRank": [40],
+        "castRange": 650,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "angeru_false_body_swap",
+            "windowSeconds": 5,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "marker": {
+        "lifetimeSeconds": 5,
+        "hitsToDestroy": 0,
+        "look": "Plain",
+        "burstZones": []
+      }
+    }
+  },
+  "blink": {
+    "angeru_false_body_swap": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "to": "OwnMarker",
+      "markerAbility": ["angeru_false_body"],
+      "targetKinds": [],
+      "besideDistance": 0,
+      "swap": "Swap",
+      "effects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      }
+    },
+    "angeru_black_step": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10, 9],
+        "resourceCostByRank": [40],
+        "castRange": 625,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [1]
+      },
+      "to": "EnemyUnitOrOwnMarker",
+      "markerAbility": ["angeru_false_body"],
+      "targetKinds": ["Vanguard", "Fluxborn", "Wildlife"],
+      "besideDistance": 50,
+      "swap": "None",
+      "effects": {
+        "damage": [
+          {
+            "type": "Physical",
+            "amountByRank": [60, 85, 110, 135, 160, 185],
+            "physicalPowerRatio": 0.6,
+            "magicPowerRatio": 0
+          }
+        ],
+        "statuses": ["angeru_veiled"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      }
+    }
+  },
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

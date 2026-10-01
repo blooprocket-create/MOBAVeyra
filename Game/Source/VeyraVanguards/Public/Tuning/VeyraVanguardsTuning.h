@@ -709,6 +709,94 @@ struct FVeyraReclaimTuning
 };
 
 /**
+ * One discipline's mark (ADR-031 §10), as Angeru's Veiled or Drawn: the other discipline's abilities apply
+ * it through their own effects; the abilities in ConsumedBy spend it.
+ */
+USTRUCT()
+struct FVeyraDisciplineMarkTuning
+{
+	GENERATED_BODY()
+
+	/** From Abilities.json's statuses: the mark. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** The abilities whose hit on an enemy Vanguard holding the mark spends it. */
+	UPROPERTY()
+	TArray<FVeyraContentId> ConsumedBy;
+
+	/** The extra strike as it is spent: its type, its amount at Level 1, what each Level adds, and its Physical Power ratio; 0 for none. */
+	UPROPERTY()
+	EVeyraDamageType DamageType = EVeyraDamageType::Physical;
+
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double PhysicalPowerRatio = 0.0;
+
+	/** The fraction of the resistance its type meets that the strike ignores, from 0 to 1. */
+	UPROPERTY()
+	double Penetration = 0.0;
+
+	/** The fraction of the spending ability's cost that comes back, from 0 to 1. */
+	UPROPERTY()
+	double ResourceRefund = 0.0;
+
+	/** From Abilities.json's statuses: put on the owner as it is spent. */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatuses;
+};
+
+/** What one ability adds as it spends a mark (ADR-031 §10), as Severing Arc's stronger strike. */
+USTRUCT()
+struct FVeyraDisciplineBonusTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	/** Multiplies the extra strike; at least 0. */
+	UPROPERTY()
+	double DamageMultiplier = 1.0;
+
+	/** The fraction of the ability's own remaining cooldown refunded, from 0 to 1. */
+	UPROPERTY()
+	double CooldownRefund = 0.0;
+};
+
+/**
+ * Angeru's No Master (Roster Bible §15; ADR-031 §10): two disciplines' marks, each spent by the other's
+ * abilities for a payoff, and a slot whose remaining cooldown each spending shortens. Its data is an
+ * entry in Vanguards.json's disciplines map.
+ */
+USTRUCT()
+struct FVeyraDisciplinesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	TArray<FVeyraDisciplineMarkTuning> Marks;
+
+	UPROPERTY()
+	TArray<FVeyraDisciplineBonusTuning> Bonuses;
+
+	/** The slot whose ability's remaining cooldown shortens by RefundSeconds as any mark is spent. */
+	UPROPERTY()
+	EVeyraAbilitySlot RefundSlot = EVeyraAbilitySlot::R;
+
+	UPROPERTY()
+	double RefundSeconds = 0.0;
+};
+
+/**
  * Tavi's You're It! (Roster Bible §6; ADR-030 §10): one enemy at a time holds its owner's mark. Its owner
  * moves faster while closing on the holder; its next basic attack on the holder spends the mark for bonus
  * magic damage and refunds CooldownRefund of Q, W and E's remaining cooldowns; and a kill of the holder
@@ -859,6 +947,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraQuarryTuning> Quarry;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDisciplinesTuning> Disciplines;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

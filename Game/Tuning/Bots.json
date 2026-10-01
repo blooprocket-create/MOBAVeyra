@@ -281,6 +281,20 @@
         "tavi_ready_or_not": "Secure",
         "tavi_ready_or_not_again": "Secure"
       }
+    },
+    "angeru": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "angeru_shadow_needle": "Damage",
+        "angeru_false_body": "Engage",
+        "angeru_black_step": "Engage",
+        "angeru_forsake_the_schools": "Damage",
+        "angeru_flowing_cut": "Damage",
+        "angeru_severing_arc": "Damage",
+        "angeru_passing_step": "Engage"
+      }
     }
   }
 }

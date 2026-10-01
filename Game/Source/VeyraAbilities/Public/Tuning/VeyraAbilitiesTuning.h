@@ -1761,6 +1761,9 @@ namespace VeyraAbilityRules
 	/** Ability's cooldown at Rank before any Haste, from whichever archetype map defines it; 0 for none. */
 	VEYRAABILITIES_API double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank);
 
+	/** Ability's resource cost at Rank, from whichever archetype map defines it; 0 for none. */
+	VEYRAABILITIES_API double ResourceCost(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank);
+
 	/** Ability's cast tuning, from whichever archetype map defines it; null for none or a targeted-damage ability, which has its own. */
 	VEYRAABILITIES_API const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 

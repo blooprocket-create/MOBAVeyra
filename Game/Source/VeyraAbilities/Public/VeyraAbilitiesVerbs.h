@@ -27,4 +27,16 @@ namespace VeyraAbilities
 
 	/** Server: the same for the abilities Caster holds in Slots now. */
 	VEYRAABILITIES_API void RefundCooldowns(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Fraction);
+
+	/** Server: the remaining cooldown of the ability Caster holds in Slot now shortens by Seconds (ADR-031 §10). */
+	VEYRAABILITIES_API void ShortenCooldown(UAbilitySystemComponent& Caster, EVeyraAbilitySlot Slot, double Seconds);
+
+	/**
+	 * Ability's rank for Caster: its slot's rank from Progression, an override or stowed ability sharing
+	 * its slot's (ADR-018 §1; ADR-031 §3); 1 in a slot that takes no ranks; 0 for one Caster does not hold.
+	 */
+	VEYRAABILITIES_API int32 RankOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
+
+	/** What Ability costs Caster at its rank now, before any reduction (Combat Bible §27). */
+	VEYRAABILITIES_API double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
 }
