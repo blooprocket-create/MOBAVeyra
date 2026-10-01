@@ -61,18 +61,23 @@ A self-buff may name:
 
 Both follow the shield's own effect, which Combat removes when it empties or expires.
 
-### 4. Walls (Combat, Abilities)
+### 4. Walls (Battleground, Combat, Abilities)
 
-**A placed marker may be a wall**, with a length and a thickness.
-- Its body is world-static and blocks units of both teams, as terrain does. So dashes stop at it, blinks land beside it, and line projectiles end at it (Combat Bible §9).
-- It cuts the navigation mesh as a dynamic obstacle, so paths go round it.
-- No one can target or destroy it; it ends with its time, or when its owner's ability ends it.
+**Runtime terrain belongs to the battleground**, the navigation system that owns it (Battleground Bible §2, "Ability-created terrain", ruled 2026-09-23; ADR-003). Combat defines the contract, `IVeyraRuntimeTerrain`, and a registry, as it does for vision. The battleground's terrain subsystem implements it with a replicated terrain wall:
+- world-static, it blocks every unit of both teams and wildlife, so dashes stop at it, blinks land beside it, and line projectiles end at it (Combat Bible §9);
+- it cuts the server's navigation as a dynamic obstacle, so paths go round it, and pathing returns as it is lowered;
+- a unit standing where it forms moves out to the nearest legal point beside it, on its own side: a placement correction, which deals no damage, applies no crowd control and is not the unit's own move (§1).
+
+**A placed marker may hold a wall**, with a length and a thickness: the marker is the ownership and lifetime link, ADR-003's common base.
+- It raises the wall as it is placed and lowers it as it ends.
+- No one can target or destroy it; it ends with its time, its owner's death, or its owner's ability.
+- A marker is never placed for an owner who has fallen, as at the end of a shot that outlived its caster.
 
 **A skillshot may name an `endWall`:** where its projectile's flight ends, at its range or at terrain, it leaves a wall across its path.
 
 ### 5. Follow-ups that arm, and end with their marker (Abilities)
 
-- **Arming:** a recast window may name `armingSeconds`. The follow-up then opens that long after the cast commits, rather than at once.
+- **Arming:** a recast window may name `armingSeconds`. The follow-up then opens that long after the cast commits, rather than at once. If the marker of the ability that opened it ends first, it never opens.
 - **Ending with the marker:** a follow-up ends when the marker of the ability that opened it ends. The rule now lives in one place, a follow-up subsystem, instead of in the placement archetype (ADR-031 §4). It covers placements, walls and self-buff markers alike.
   - A marker that its own ability's new cast replaces ends `Replaced`, which leaves the new cast's follow-up be.
 

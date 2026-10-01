@@ -113,8 +113,6 @@ private:
 		TWeakObjectPtr<UStaticMeshComponent> Mesh;
 		TWeakObjectPtr<UMaterialInstanceDynamic> Material;
 		FLinearColor Shown = FLinearColor::Transparent;
-		/** Whether it stands as a wall's block rather than a unit's capsule (ADR-032 §4). */
-		bool bWall = false;
 	};
 
 	struct FProjectileVisual

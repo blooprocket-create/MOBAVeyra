@@ -232,7 +232,7 @@ void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, c
 			// One that arms opens a while after this Commit (ADR-032 §5).
 			if (UVeyraFollowUpSubsystem* FollowUps = Recast.ArmingSeconds > 0.0 && GetWorld() ? GetWorld()->GetSubsystem<UVeyraFollowUpSubsystem>() : nullptr)
 			{
-				FollowUps->OpenAfter(Caster, Slot.GetValue(), FollowUp, Recast.ArmingSeconds);
+				FollowUps->OpenAfter(Caster, Slot.GetValue(), FollowUp, Ability, Recast.ArmingSeconds);
 			}
 			else
 			{

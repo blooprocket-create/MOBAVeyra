@@ -30,6 +30,7 @@ namespace VeyraAbilitiesTests
 		constexpr double DashSpeed = 1200.0;
 		constexpr double DashDistance = 600.0;
 		constexpr double Tolerance = 1.0;
+		constexpr double Lethal = 100000.0;
 		constexpr float Step = 0.1f;
 
 		inline FVeyraEffectBundleTuning TrueDamage(double Amount)
@@ -190,6 +191,49 @@ namespace VeyraAbilitiesTests
 			Wait(WallFixture::Lifetime);
 			ASSERT_THAT(IsNull(Wall(), TEXT("its time ran out")));
 			ASSERT_THAT(IsTrue(InQ() == ArchetypeTestId(TEXT("test_divide")), TEXT("and the follow-up went with it")));
+		}
+
+		TEST_METHOD(AUnitWhereTheWallFormsIsMovedOutUnharmed)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Caught = World.Spawn(EVeyraTeam::B, Ahead(WallFixture::Range) + FVector(0.0, WallFixture::Length / 4.0, 0.0));
+			Raise();
+			ASSERT_THAT(IsNotNull(Wall()));
+			float Radius = 0.0f;
+			float HalfHeight = 0.0f;
+			Caught.GetSimpleCollisionCylinder(Radius, HalfHeight);
+			const double Along = FMath::Abs(Caught.GetActorLocation().X - Ahead(WallFixture::Range).X);
+			ASSERT_THAT(IsTrue(Along >= WallFixture::Thickness / 2.0 + Radius - WallFixture::Tolerance,
+				*FString::Printf(TEXT("moved clear of the wall: %g from its centre line"), Along)));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::HealthLost(Caught) == 0.0, TEXT("a placement correction, not a hit")));
+		}
+
+		TEST_METHOD(AWallThatFallsBeforeItsFollowUpArmsTakesItAlong)
+		{
+			Raise();
+			AVeyraPlacedMarker* Standing = Wall();
+			ASSERT_THAT(IsNotNull(Standing));
+			Standing->EndMarker(EVeyraMarkerEndReason::OwnerDied);
+			Wait(WallFixture::Arming + WallFixture::Step);
+			ASSERT_THAT(IsTrue(InQ() == ArchetypeTestId(TEXT("test_divide")), TEXT("no follow-up opens for a wall that is gone")));
+		}
+
+		TEST_METHOD(NoWallRisesForACasterWhoFellBeforeTheShotEnded)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, Ahead(-WallFixture::Range));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::Q, Ahead(WallFixture::Range)) == EVeyraCastRejection::None));
+			FVeyraRawDamageEvent Blow;
+			Blow.Components.Add({ EVeyraDamageType::TrueDamage, WallFixture::Lethal });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy.GetAbilitySystemComponent(), *Caster->GetAbilitySystemComponent(), Blow)));
+			for (TActorIterator<AVeyraProjectile> It(&Spawner.GetWorld()); It; ++It)
+			{
+				if (!It->IsActorBeingDestroyed())
+				{
+					It->AdvanceBy(WallFixture::Range / WallFixture::ShotSpeed + WallFixture::Step);
+				}
+			}
+			ASSERT_THAT(IsNull(Wall(), TEXT("a fallen caster's wall never rises")));
 		}
 
 		TEST_METHOD(AnAreaAtTheCastersMarkerIsRefusedWithoutOne)

@@ -7,7 +7,6 @@
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Attribution/VeyraAttributionComponent.h"
-#include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -17,6 +16,8 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraRuntimeTerrain.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatVerbs.h"
 
@@ -42,20 +43,6 @@ AVeyraPlacedMarker::AVeyraPlacedMarker(const FObjectInitializer& ObjectInitializ
 	Body->SetGenerateOverlapEvents(false);
 	RootComponent = Body;
 
-	// A wall's body blocks as terrain does once ApplyWall shapes it (ADR-032 §4): world-static, so
-	// movement, forced moves and line projectiles meet it, but never the cursor's trace or the camera.
-	WallBody = CreateDefaultSubobject<UBoxComponent>(TEXT("WallBody"));
-	WallBody->SetupAttachment(Body);
-	WallBody->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WallBody->SetCollisionObjectType(ECC_WorldStatic);
-	WallBody->SetCollisionResponseToAllChannels(ECR_Block);
-	WallBody->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-	WallBody->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-	WallBody->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
-	WallBody->SetGenerateOverlapEvents(false);
-	WallBody->SetCanEverAffectNavigation(false);
-	WallBody->bDynamicObstacle = true;
-
 	AbilitySystem = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystem"));
 	AbilitySystem->SetIsReplicated(true);
 	AbilitySystem->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
@@ -73,6 +60,13 @@ AVeyraPlacedMarker* AVeyraPlacedMarker::Place(UWorld& World, UAbilitySystemCompo
 	if (!Participant || !Participant->HasAuthority() || !(InSpec.LifetimeSeconds > 0.0) || InSpec.HitsToDestroy < 0)
 	{
 		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a marker %s: only the server places one, for a participant, with a lifetime above 0."), *InSpec.Id.ToString());
+		return nullptr;
+	}
+	// A marker ends with its owner's death, so one whose owner has fallen, as a wall at the end of a
+	// shot that outlived its caster, is never placed (ADR-030 §5).
+	if (!VeyraTargeting::IsAlive(Owner.GetAvatarActor()))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("No marker %s: its owner %s has fallen."), *InSpec.Id.ToString(), *GetNameSafe(Participant));
 		return nullptr;
 	}
 	AVeyraPlacedMarker* Marker = World.SpawnActorDeferred<AVeyraPlacedMarker>(AVeyraPlacedMarker::StaticClass(), Where, nullptr, nullptr,
@@ -114,7 +108,6 @@ void AVeyraPlacedMarker::BeginPlay()
 {
 	Super::BeginPlay();
 	ApplyBody();
-	ApplyWall();
 }
 
 void AVeyraPlacedMarker::ApplyBody()
@@ -125,21 +118,6 @@ void AVeyraPlacedMarker::ApplyBody()
 	}
 }
 
-void AVeyraPlacedMarker::ApplyWall()
-{
-	if (!IsWall() || WallBody->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
-	{
-		return;
-	}
-	// Its thickness along the way it faces, its length across it, as tall as its owner stands.
-	WallBody->SetBoxExtent(FVector(WallSize.Y / 2.0f, WallSize.X / 2.0f, Body->GetUnscaledCapsuleHalfHeight()), /*bUpdateOverlaps*/ false);
-	WallBody->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	// Paths go round it: the server's navigation takes it as an obstacle.
-	if (HasAuthority())
-	{
-		WallBody->SetCanEverAffectNavigation(true);
-	}
-}
 
 AVeyraPlacedMarker* AVeyraPlacedMarker::FindStanding(const UAbilitySystemComponent& Owner, const FVeyraContentId& Id)
 {
@@ -169,7 +147,18 @@ void AVeyraPlacedMarker::ApplySpot()
 void AVeyraPlacedMarker::Start()
 {
 	ApplyBody();
-	ApplyWall();
+	// Its wall is runtime terrain, which the battleground owns: the marker asks for it and keeps the
+	// handle, ownership and lifetime (Battleground Bible §2; ADR-032 §4).
+	if (IsWall())
+	{
+		FVeyraWallRequest Wall;
+		Wall.Centre = GetActorLocation();
+		Wall.Facing = GetActorForwardVector();
+		Wall.Length = WallSize.X;
+		Wall.Thickness = WallSize.Y;
+		Wall.HalfHeight = Body->GetUnscaledCapsuleHalfHeight();
+		WallHandle = VeyraRuntimeTerrain::RaiseWall(*GetWorld(), Wall);
+	}
 	Spot = GetActorLocation();
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlacedMarker, Spot, this);
 	// A point of Health a hit, as a ward counts them (ADR-016 §6); one no one can target has none.
@@ -193,6 +182,11 @@ void AVeyraPlacedMarker::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		Events->OnDeath.Remove(DeathHandle);
 	}
 	GetWorldTimerManager().ClearTimer(LifetimeTimer);
+	if (WallHandle != 0 && GetWorld())
+	{
+		VeyraRuntimeTerrain::LowerWall(*GetWorld(), WallHandle);
+		WallHandle = 0;
+	}
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -231,6 +225,12 @@ void AVeyraPlacedMarker::EndMarker(EVeyraMarkerEndReason Reason, UAbilitySystemC
 	}
 	bEnded = true;
 	GetWorldTimerManager().ClearTimer(LifetimeTimer);
+	// Pathing is restored at once.
+	if (WallHandle != 0)
+	{
+		VeyraRuntimeTerrain::LowerWall(*GetWorld(), WallHandle);
+		WallHandle = 0;
+	}
 	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
 	{
 		Events->OnMarkerEnded.Broadcast(FVeyraMarkerEnd{ this, OwnerAbilities, Spec.Id, Reason, GetActorLocation(), Destroyer });
