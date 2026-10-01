@@ -31,6 +31,8 @@ enum class EVeyraTelegraphSource : uint8
 	LingeringArea,
 	/** A lingering area whose end is near and hits (ADR-026 §4). */
 	LingeringAreaEnding,
+	/** The local player's indicator: where an ability would land, before it is cast (ADR-040 §2). */
+	Indicator,
 };
 
 /** One telegraphed shape, as this machine draws it. */
@@ -145,6 +147,9 @@ private:
 
 	void RefreshProjectiles();
 	void RefreshTelegraphs();
+
+	/** Adds the local player's indicator, while it holds a cast ready or previews one, aimed at the ground under its cursor. */
+	void AddIndicator(const class AVeyraPlayerController& Local, const struct FVeyraAbilitiesTuning& Tuning);
 	void DrawTelegraphs();
 
 	/** The viewer's side's presence pings and outlines, drawn on the ground with the telegraphs (ADR-016 §8). */

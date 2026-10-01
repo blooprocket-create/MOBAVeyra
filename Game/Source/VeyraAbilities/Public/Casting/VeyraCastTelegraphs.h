@@ -7,6 +7,7 @@
 
 struct FVeyraAbilitiesTuning;
 struct FVeyraCastState;
+struct FVeyraContentId;
 
 /**
  * Where a cast will land, for telegraphs on any machine (ADR-009 §4). The shapes come from the
@@ -25,4 +26,13 @@ namespace VeyraCastTelegraphs
 	 */
 	VEYRAABILITIES_API TArray<FVeyraPlacedShape> ForCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraCastState& State, const FVector& CasterLocation,
 		double CasterRadius);
+
+	/**
+	 * Where Ability would land if cast now toward AimPoint, for the indicator its caster sees before
+	 * casting (ADR-040 §2): first the ring of its cast range around the caster, when it has one, then
+	 * the shapes ForCast gives a cast aimed there. Empty for an ability the tuning does not have. It
+	 * shows geometry only and never says whether the cast would be valid.
+	 */
+	VEYRAABILITIES_API TArray<FVeyraPlacedShape> ForAim(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, const FVector& CasterLocation,
+		double CasterRadius, const FVector& AimPoint);
 }

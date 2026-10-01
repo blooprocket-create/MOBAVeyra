@@ -29,13 +29,17 @@
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
 #include "Layout/VeyraLayout.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Structures/VeyraStructure.h"
 #include "Terrain/VeyraTerrainWall.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "VeyraGameState.h"
+#include "VeyraPlayerController.h"
+#include "VeyraVanguardCharacter.h"
 #include "VeyraUILog.h"
 
 namespace
@@ -580,6 +584,34 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), Area.IsEndNear(Now) ? EVeyraTelegraphSource::LingeringAreaEnding : EVeyraTelegraphSource::LingeringArea,
 			Area.GetVeyraTeam(), FMath::Max(0.0, Area.GetEndsAt() - Now) });
 	}
+	if (const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
+	{
+		AddIndicator(*Local, Tuning);
+	}
+}
+
+void UVeyraGreyboxSubsystem::AddIndicator(const AVeyraPlayerController& Local, const FVeyraAbilitiesTuning& Tuning)
+{
+	const TOptional<FVeyraCastIndicator>& Shown = Local.GetCastIndicator();
+	const AVeyraVanguardCharacter* Body = Local.GetVanguard();
+	if (!Shown || !Body || !Local.PlayerState)
+	{
+		return;
+	}
+	const UVeyraAbilityLoadoutComponent* Loadout = Local.PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown->Slot) : nullptr;
+	FHitResult Ground;
+	if (!Entry || !Local.GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
+	{
+		return;
+	}
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Body->GetSimpleCollisionCylinder(Radius, HalfHeight);
+	for (const FVeyraPlacedShape& Placed : VeyraCastTelegraphs::ForAim(Tuning, Entry->Ability, Body->GetActorLocation(), Radius, Ground.Location))
+	{
+		Telegraphs.Add(FVeyraTelegraph{ Placed, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
+	}
 }
 
 FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const
@@ -659,16 +691,21 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 	}
 	TelegraphLines->Flush();
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const float IndicatorThickness = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this)).IndicatorThickness;
 	for (const FVeyraTelegraph& Telegraph : Telegraphs)
 	{
 		FVeyraPlacedShape OnGround = Telegraph.Placed;
 		OnGround.Origin = GroundUnder(Telegraph.Placed.Origin);
-		// An end about to land is marked in one colour for every side, so it reads as a warning (ADR-026 §4).
-		const FLinearColor Color = Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
+		// An end about to land is marked in one colour for every side, so it reads as a warning (ADR-026 §4);
+		// the player's own indicator in its own.
+		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator;
+		const FLinearColor Color = bIndicator ? Settings.IndicatorColor
+			: Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
+		const float Thickness = bIndicator ? IndicatorThickness : Settings.TelegraphThickness;
 		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
 		{
 			// A lifetime of 0 keeps the line until the next refresh flushes it.
-			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Thickness, 0.0f);
 		}
 	}
 }

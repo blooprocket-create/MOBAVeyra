@@ -200,6 +200,19 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
 	FLinearColor EndingColor = FLinearColor::Transparent;
 
+	/**
+	 * The local player's indicator, before a cast (ADR-040 §2): its colour, and its outline in units at
+	 * the Standard and Thick boundaries (Settings Bible §3.3).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
+	FLinearColor IndicatorColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
+	float IndicatorThickness = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
+	float IndicatorThickThickness = 0.0f;
+
 	/** How far above the ground telegraphs are drawn, in units, so the floor does not hide them. */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
 	float TelegraphLift = 0.0f;

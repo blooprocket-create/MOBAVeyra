@@ -64,3 +64,29 @@ TArray<FVeyraPlacedShape> VeyraCastTelegraphs::ForCast(const FVeyraAbilitiesTuni
 	}
 	return Shapes;
 }
+
+TArray<FVeyraPlacedShape> VeyraCastTelegraphs::ForAim(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, const FVector& CasterLocation,
+	double CasterRadius, const FVector& AimPoint)
+{
+	TArray<FVeyraPlacedShape> Shapes;
+	// A targeted-damage ability keeps its range apart from the cast tuning the others share.
+	const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability);
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(Tuning, Ability);
+	if (!Targeted && !Cast)
+	{
+		return Shapes;
+	}
+	const FVector Toward = (AimPoint - CasterLocation).GetSafeNormal2D();
+	const FVector Direction = Toward.IsNearlyZero() ? FVector::ForwardVector : Toward;
+	const double Range = Targeted ? Targeted->CastRange : Cast->CastRange;
+	if (Range > 0.0)
+	{
+		Shapes.Add(FVeyraPlacedShape{ TelegraphCircle(Range), CasterLocation, Direction });
+	}
+	FVeyraCastState Aimed;
+	Aimed.Ability = Ability;
+	Aimed.Location = AimPoint;
+	Aimed.Direction = Direction;
+	Shapes.Append(ForCast(Tuning, Aimed, CasterLocation, CasterRadius));
+	return Shapes;
+}

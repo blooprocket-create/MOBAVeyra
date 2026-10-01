@@ -31,6 +31,8 @@ struct FVeyraInterfacePreferences
 	bool bScoreboardToggles = false;
 	/** The cursor stays inside the game's window during a match (SET-83). */
 	bool bConfineCursor = true;
+	/** The local player's indicator outline, in units: Standard or Thick (Settings Bible §3.3; ADR-040 §2). */
+	float IndicatorThickness = 0.0f;
 	/** The chat's type size (SET-66), its backdrop, clear for Transparent (SET-67), how long a line stays whole, and its timestamps (Settings Bible §5.2). */
 	int32 ChatFontSize = 0;
 	FLinearColor ChatBackdrop = FLinearColor::Transparent;
@@ -52,6 +54,7 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& ShowPing();
 	VEYRAUI_API const FVeyraContentId& ScoreboardMode();
 	VEYRAUI_API const FVeyraContentId& ConfineCursor();
+	VEYRAUI_API const FVeyraContentId& IndicatorBoundary();
 	VEYRAUI_API const FVeyraContentId& ChatTextSize();
 	VEYRAUI_API const FVeyraContentId& ChatBackdrop();
 	VEYRAUI_API const FVeyraContentId& ChatFadeSeconds();
