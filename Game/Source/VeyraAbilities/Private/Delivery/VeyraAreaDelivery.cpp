@@ -76,21 +76,52 @@ TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstA
 		// Its heal from the caster's rank and power at Commit, as its damage is (ADR-035 §4).
 		if (!Zone.AllyEffects.IsEmpty())
 		{
-			const FVeyraZoneAllyEffectsTuning& Allies = Zone.AllyEffects[0];
-			FVeyraPreparedAllyEffects& Help = Ready.AllyEffects.Emplace();
-			Help.Heal = VeyraAbilityRules::ValueAtRank(Allies.HealByRank, Rank)
-				+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Allies.HealMagicPowerRatio;
-			Help.Reach = Allies.Reach;
-			for (const FVeyraContentId& StatusId : Allies.Statuses)
-			{
-				if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, Level))
-				{
-					Help.Statuses.Add(Status.GetValue());
-				}
-			}
+			Ready.AllyEffects = PrepareAllyEffects(Caster, Zone.AllyEffects[0], Rank);
 		}
 	}
 	return Prepared;
+}
+
+FVeyraPreparedAllyEffects PrepareAllyEffects(const UAbilitySystemComponent& Caster, const FVeyraZoneAllyEffectsTuning& Allies, int32 Rank)
+{
+	FVeyraPreparedAllyEffects Help;
+	Help.Heal = VeyraAbilityRules::ValueAtRank(Allies.HealByRank, Rank) + Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Allies.HealMagicPowerRatio;
+	Help.Reach = Allies.Reach;
+	// Its statuses from the caster's Level now, at Commit, as its effects' are (Combat Bible §50).
+	const int32 Level = UVeyraGameplayAbility::GetCasterLevel(Caster);
+	for (const FVeyraContentId& StatusId : Allies.Statuses)
+	{
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, Level))
+		{
+			Help.Statuses.Add(Status.GetValue());
+		}
+	}
+	return Help;
+}
+
+bool Reaches(const UAbilitySystemComponent& Caster, const AActor& Unit, const FVeyraPreparedAllyEffects& Help)
+{
+	// Sides belong to the participant, which outlives its body.
+	const EVeyraTeam Side = VeyraTeams::TeamOf(Caster.GetOwner());
+	return Side != EVeyraTeam::None && VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::IsAlive(&Unit) && VeyraTeams::TeamOf(&Unit) == Side
+		&& (Help.Reach == EVeyraAllyReach::CasterToo || &Unit != Caster.GetAvatarActor());
+}
+
+void HelpAlly(UAbilitySystemComponent& Caster, AActor& Ally, const FVeyraPreparedAllyEffects& Help)
+{
+	UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Ally);
+	if (!Target)
+	{
+		return;
+	}
+	if (Help.Heal > 0.0)
+	{
+		VeyraCombat::RestoreHealthFrom(Caster, *Target, Help.Heal);
+	}
+	for (const FVeyraStatusSpec& Status : Help.Statuses)
+	{
+		VeyraCombat::ApplyStatus(Caster, *Target, Status);
+	}
 }
 
 TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Frame, TConstArrayView<FVeyraPreparedZone> Zones,
@@ -143,37 +174,22 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 
 	// Its caster's allied Vanguards, each once, take what the innermost zone that reaches them does for them
 	// (ADR-035 §4). The heal is the caster's, so every rule of restoration applies (Combat Bible §6).
-	const EVeyraTeam SideTeam = VeyraTeams::TeamOf(Side);
-	const AActor* CasterBody = Caster.GetAvatarActor();
 	TArray<AActor*> Helped;
 	for (const FVeyraPreparedZone& Zone : Zones)
 	{
-		if (!Zone.AllyEffects.IsSet() || SideTeam == EVeyraTeam::None)
+		if (!Zone.AllyEffects.IsSet())
 		{
 			continue;
 		}
 		const FVeyraPreparedAllyEffects& Help = Zone.AllyEffects.GetValue();
 		const FVeyraPlacedShape Placed{ Zone.Shape, Frame.Origin, Frame.Direction };
-		const TArray<AActor*> Allies = VeyraShapes::GatherUnits(World, Placed, [SideTeam, CasterBody, &Help, &Helped](const AActor& Unit) {
-			return VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::IsAlive(&Unit) && VeyraTeams::TeamOf(&Unit) == SideTeam
-				&& (Help.Reach == EVeyraAllyReach::CasterToo || &Unit != CasterBody) && !Helped.Contains(&Unit);
+		const TArray<AActor*> Allies = VeyraShapes::GatherUnits(World, Placed, [&Caster, &Help, &Helped](const AActor& Unit) {
+			return Reaches(Caster, Unit, Help) && !Helped.Contains(&Unit);
 		});
 		for (AActor* Ally : Allies)
 		{
 			Helped.Add(Ally);
-			UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Ally);
-			if (!Target)
-			{
-				continue;
-			}
-			if (Help.Heal > 0.0)
-			{
-				VeyraCombat::RestoreHealthFrom(Caster, *Target, Help.Heal);
-			}
-			for (const FVeyraStatusSpec& Status : Help.Statuses)
-			{
-				VeyraCombat::ApplyStatus(Caster, *Target, Status);
-			}
+			HelpAlly(Caster, *Ally, Help);
 		}
 	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("An area of %s hit %d unit(s) and helped %d ally(ies)."), *GetNameSafe(Side), Hit.Num(), Helped.Num());
@@ -196,6 +212,11 @@ TOptional<FVeyraPreparedLinger> PrepareLinger(UAbilitySystemComponent& Caster, c
 	Linger.Sight = Tuning.Sight;
 	Linger.Ability = Ability;
 	Linger.FieldPull = Tuning.MovementField.IsEmpty() ? 0.0 : Tuning.MovementField[0].Pull;
+	if (!Tuning.ShieldTopUp.IsEmpty())
+	{
+		Linger.ShieldTopUp = Tuning.ShieldTopUp[0];
+	}
+	Linger.Rank = Rank;
 	// Its statuses from the caster's Level at Commit (Combat Bible §50).
 	const auto PrepareStatuses = [Level](TConstArrayView<FVeyraContentId> Ids, TArray<FVeyraStatusSpec>& Out) {
 		for (const FVeyraContentId& Id : Ids)
@@ -223,6 +244,22 @@ TOptional<FVeyraPreparedLinger> PrepareLinger(UAbilitySystemComponent& Caster, c
 	return Linger;
 }
 
+void LayAt(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraContentId& AreaId, const FVeyraEffectFrame& Placement, int32 Rank, int32 Level,
+	int32 CastId)
+{
+	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(AreaId);
+	if (!Area)
+	{
+		return;
+	}
+	const TArray<FVeyraPreparedZone> Zones = PrepareZones(Caster, Area->Zones, Rank);
+	Resolve(World, Caster, Placement, Zones, FVeyraAbilityHitSource{ AreaId, CastId });
+	if (const TOptional<FVeyraPreparedLinger> Linger = PrepareLinger(Caster, *Area, Rank, Level, AreaId, CastId))
+	{
+		ArmLinger(World, Caster, Placement, Linger.GetValue());
+	}
+}
+
 void ArmLinger(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraPreparedLinger& Linger)
 {
 	if (AVeyraLingeringArea* Lingering = World.SpawnActor<AVeyraLingeringArea>(AVeyraLingeringArea::StaticClass(), FTransform(Placement.Origin)))
@@ -231,6 +268,10 @@ void ArmLinger(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffec
 		if (Linger.FieldPull > 0.0)
 		{
 			Lingering->HoldField(Linger.FieldPull);
+		}
+		if (Linger.ShieldTopUp.IsSet())
+		{
+			Lingering->BuildShields(Linger.ShieldTopUp->Shield, Linger.Rank, Linger.ShieldTopUp->DelayAfterDamageSeconds);
 		}
 	}
 	if (Linger.Sight == EVeyraLingerSight::Ordinary)

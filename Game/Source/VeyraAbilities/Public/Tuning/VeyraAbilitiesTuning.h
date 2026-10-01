@@ -679,6 +679,41 @@ struct FVeyraAreaRevealTuning
 	double DurationSeconds = 0.0;
 };
 
+/** The shape of the Dense Fog an area lays (ADR-036 §3). */
+UENUM()
+enum class EVeyraAreaFogShape : uint8
+{
+	/** A circle of its radius where the area lands. */
+	Circle,
+	/** A band of its width from where the area lands, along the cast's direction, for its length. */
+	Corridor,
+};
+
+/** Dense Fog an area lays as it commits, the same construct as the map's (ADR-036 §3), as Lay the Mist's. */
+USTRUCT()
+struct FVeyraAreaFogTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraAreaFogShape Shape = EVeyraAreaFogShape::Circle;
+
+	/** A circle's; above 0, and 0 for a corridor. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** A corridor's; above 0, and 0 for a circle. */
+	UPROPERTY()
+	double Length = 0.0;
+
+	UPROPERTY()
+	double Width = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
 /** What a lingering area shows its caster's side (ADR-018 §5). */
 UENUM()
 enum class EVeyraLingerSight : uint8
@@ -698,6 +733,24 @@ struct FVeyraMovementFieldTuning
 	/** How far, at most, it moves an enemy forced move's end toward its centre; above 0. */
 	UPROPERTY()
 	double Pull = 0.0;
+};
+
+/**
+ * A shield a lingering area builds on its caster and the allied Vanguards who stay inside it (ADR-036 §4), as
+ * Waymark's: each pulse grants it again, merging into what it gave before up to its maximum.
+ */
+USTRUCT()
+struct FVeyraShieldTopUpTuning
+{
+	GENERATED_BODY()
+
+	/** Its reapply is Merge, and its maximum above 0: that is the cap it builds to. */
+	UPROPERTY()
+	FVeyraShieldTuning Shield;
+
+	/** An ally damaged within this many seconds gets nothing from a pulse; at least 0. */
+	UPROPERTY()
+	double DelayAfterDamageSeconds = 0.0;
 };
 
 /** A delivered area that lasts, giving those inside it statuses by side (ADR-018 §5). */
@@ -752,6 +805,10 @@ struct FVeyraLingerTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraMovementFieldTuning> MovementField;
+
+	/** At most one: a shield it builds on its caster and the allied Vanguards inside, pulse by pulse (ADR-036 §4). */
+	UPROPERTY()
+	TArray<FVeyraShieldTopUpTuning> ShieldTopUp;
 };
 
 /**
@@ -826,6 +883,10 @@ struct FVeyraAreaAbilityTuning
 
 	UPROPERTY()
 	FVeyraAreaRevealTuning Reveal;
+
+	/** At most one: Dense Fog it lays as it commits (ADR-036 §3). */
+	UPROPERTY()
+	TArray<FVeyraAreaFogTuning> Fog;
 
 	/** Innermost first: a unit takes the first zone that touches it, and no other. */
 	UPROPERTY()
@@ -1741,6 +1802,55 @@ struct FVeyraRideSlotTuning
 	FVeyraContentId Ability;
 };
 
+/** What a ride's body does to the units it meets, each once a ride (ADR-035 §6), as Tidebreaker's impact. */
+USTRUCT()
+struct FVeyraRideContactTuning
+{
+	GENERATED_BODY()
+
+	/** How far past its rider's edge it meets a unit's edge; at least 0. */
+	UPROPERTY()
+	double Reach = 0.0;
+
+	/** Seconds between its looks for what it meets; above 0. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** On each enemy it meets, as its rider's hit: a knock aside is AsideFromPath, off the ride's line. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning EnemyEffects;
+
+	/** The kinds of enemy unit it strikes; any when empty. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> EnemyKinds;
+
+	/** At most one: what it does for each allied Vanguard it meets (ADR-035 §4). */
+	UPROPERTY()
+	TArray<FVeyraZoneAllyEffectsTuning> AllyEffects;
+};
+
+/** Areas a ride lays along its path (ADR-035 §6), as Tidebreaker's wake and riptide. */
+USTRUCT()
+struct FVeyraRideTrailTuning
+{
+	GENERATED_BODY()
+
+	/** Units of its rider's path between areas, the first as it sets off; above 0. */
+	UPROPERTY()
+	double Spacing = 0.0;
+
+	/** Seconds between its looks at how far its rider has come; above 0. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/**
+	 * The area ability each one is, laid at its rider as its rider's hit at the ride's rank: its zones, then its
+	 * lingering area (ADR-018 §5). It lands at once and lingers.
+	 */
+	UPROPERTY()
+	FVeyraContentId Area;
+};
+
 /**
  * An ambush (ADR-030 §9), as Tavi's Ready or Not!: cast on an enemy Vanguard its caster damaged,
  * crowd-controlled or debuffed within RecentSeconds, the caster vanishes, Invisible and Untargetable,
@@ -1825,6 +1935,14 @@ struct FVeyraRideAbilityTuning
 	/** Innermost first: zones that erupt where the rider is as the ride ends, on every end but death, as the rider's hit (ADR-035 §3). */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> CrashZones;
+
+	/** At most one: what its body does to the units it meets (ADR-035 §6). */
+	UPROPERTY()
+	TArray<FVeyraRideContactTuning> Contact;
+
+	/** At most one: the areas it lays along its path (ADR-035 §6). */
+	UPROPERTY()
+	TArray<FVeyraRideTrailTuning> Trail;
 };
 
 /** An ability that ends its caster's ride at once (ADR-035 §3), as Breaking Wave's recast, which crashes it. */
@@ -1970,6 +2088,24 @@ enum class EVeyraCompanionOrder : uint8
 	Hold,
 	/** Give up its hold and follow its owner again. */
 	Recall,
+	/**
+	 * Form the caster's summoned companion for a while, bound to the unit the cast names: escorting an ally or
+	 * hunting an enemy (ADR-035 §5). Cast while it lives, it is redirected instead.
+	 */
+	Summon,
+	/** Bind the caster's living summoned companion to the unit the cast names, keeping its time (ADR-035 §5). */
+	Redirect,
+};
+
+/** Which unit a summon or redirect binds the companion to (ADR-035 §5); None for the other orders. */
+UENUM()
+enum class EVeyraCompanionBind : uint8
+{
+	None,
+	/** An allied Vanguard, its caster among them, whom it escorts. */
+	Ally,
+	/** An enemy unit, which it hunts. */
+	Enemy,
 };
 
 /** An ability that commands its caster's companion (ADR-034 §5), as Marek's Hunt and its recall. */
@@ -1999,6 +2135,44 @@ struct FVeyraCommandAbilityTuning
 	/** Hold, innermost first: zones that land where it lands, as its own hit, from its own power; none for a recall. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> LandingZones;
+
+	/** Summon: the one companion definition it forms (ADR-035 §5); none for the other orders. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Companion;
+
+	/** Summon: how long the companion stays, in seconds; 0 for the other orders. */
+	UPROPERTY()
+	double LifetimeSeconds = 0.0;
+
+	/** Summon and Redirect: which unit the cast names; None for the other orders. */
+	UPROPERTY()
+	EVeyraCompanionBind BindTo = EVeyraCompanionBind::None;
+};
+
+/**
+ * What a summoned companion does now and then for the ally it escorts (ADR-035 §5), as the Waterling in Calm:
+ * a heal of its own, from its Magic Power, and statuses such as a little Movement Speed.
+ */
+USTRUCT()
+struct FVeyraEscortTuning
+{
+	GENERATED_BODY()
+
+	/** Seconds between its pulses, the first as it binds; above 0. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** Health the ally regains each pulse, before Magic Power; at least 0. */
+	UPROPERTY()
+	double HealAmount = 0.0;
+
+	/** Added to each heal for each point of the companion's own Magic Power; at least 0. */
+	UPROPERTY()
+	double HealMagicPowerRatio = 0.0;
+
+	/** Status IDs the ally takes each pulse. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
 };
 
 /**
@@ -2057,6 +2231,14 @@ struct FVeyraCompanionTuning
 	/** How often it and its keeper think, in seconds of world time. */
 	UPROPERTY()
 	double ThinkSeconds = 0.0;
+
+	/** At most one: what it does now and then for the ally it escorts (ADR-035 §5). */
+	UPROPERTY()
+	TArray<FVeyraEscortTuning> Escort;
+
+	/** Status IDs its basic attack's hit gives, as the Waterling's slow (ADR-035 §5). */
+	UPROPERTY()
+	TArray<FVeyraContentId> AttackStatuses;
 };
 
 USTRUCT()
@@ -2065,7 +2247,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 21;
+	static constexpr int32 SchemaVersion = 23;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

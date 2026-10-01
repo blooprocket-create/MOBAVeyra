@@ -297,6 +297,23 @@ namespace
 			{
 				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
 			}
+			// Dense Fog it lays: a circle has a radius, a corridor a length and a width (ADR-036 §3).
+			if (Area.Fog.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/fog"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Area.Fog.Num(); ++Index)
+			{
+				const FVeyraAreaFogTuning& Fog = Area.Fog[Index];
+				const bool bCircle = Fog.Shape == EVeyraAreaFogShape::Circle;
+				const bool bShaped = bCircle ? Fog.Radius > 0.0 && Fog.Length == 0.0 && Fog.Width == 0.0
+					: Fog.Radius == 0.0 && Fog.Length > 0.0 && Fog.Width > 0.0;
+				if (!bShaped || !(Fog.DurationSeconds > 0.0))
+				{
+					Problem(FString::Printf(TEXT("%s/fog/%d"), *Pointer, Index),
+						TEXT("a Circle has a radius above 0 and no length or width, a Corridor a length and width above 0 and no radius; durationSeconds is above 0"));
+				}
+			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
 			// Landing on its caster's lingering area or marker names one ability that leaves one; no other origin names any.
 			const bool bOnLingering = Area.Origin == EVeyraAreaOrigin::CastersLingeringArea;
@@ -365,6 +382,21 @@ namespace
 				for (int32 Bundle = 0; Bundle < Linger.EndEffects.Num(); ++Bundle)
 				{
 					CheckEffects(FString::Printf(TEXT("%s/endEffects/%d"), *LingerPointer, Bundle), Linger.EndEffects[Bundle]);
+				}
+				// A shield it builds pulse by pulse merges into itself, up to its maximum (ADR-036 §4).
+				if (Linger.ShieldTopUp.Num() > 1)
+				{
+					Problem(LingerPointer + TEXT("/shieldTopUp"), TEXT("holds at most one"));
+				}
+				for (int32 TopUp = 0; TopUp < Linger.ShieldTopUp.Num(); ++TopUp)
+				{
+					const FVeyraShieldTopUpTuning& Built = Linger.ShieldTopUp[TopUp];
+					const FString TopUpPointer = FString::Printf(TEXT("%s/shieldTopUp/%d"), *LingerPointer, TopUp);
+					CheckShield(TopUpPointer + TEXT("/shield"), Built.Shield);
+					if (Built.Shield.Reapply != EVeyraShieldReapply::Merge || !(Built.Shield.MaxAmountMaxHealthRatio > 0.0) || Built.DelayAfterDamageSeconds < 0.0)
+					{
+						Problem(TopUpPointer, TEXT("its shield merges, with a maximum above 0, and delayAfterDamageSeconds is at least 0"));
+					}
 				}
 				if ((Linger.EndWarningSeconds > 0.0) == Linger.EndEffects.IsEmpty() || Linger.EndWarningSeconds > Linger.DurationSeconds)
 				{
@@ -553,9 +585,32 @@ namespace
 			{
 				Problem(Pointer, TEXT("a hold has a cast range, a leap speed and hold seconds above 0"));
 			}
-			if (Command.Order == EVeyraCompanionOrder::Recall && (Command.LeapSpeed != 0.0 || Command.HoldSeconds != 0.0 || !Command.LandingZones.IsEmpty()))
+			const bool bHoldOrRecall = Command.Order == EVeyraCompanionOrder::Hold || Command.Order == EVeyraCompanionOrder::Recall;
+			if (Command.Order != EVeyraCompanionOrder::Hold && (Command.LeapSpeed != 0.0 || Command.HoldSeconds != 0.0 || !Command.LandingZones.IsEmpty()))
 			{
-				Problem(Pointer, TEXT("a recall leaps nowhere, holds nothing and lands nothing"));
+				Problem(Pointer, TEXT("only a hold leaps, holds and lands"));
+			}
+			// A summon forms one companion for a while, bound to the unit it names; a redirect binds it anew (ADR-035 §5).
+			if (bHoldOrRecall && (!Command.Companion.IsEmpty() || Command.LifetimeSeconds != 0.0 || Command.BindTo != EVeyraCompanionBind::None))
+			{
+				Problem(Pointer, TEXT("a hold or a recall names no companion, lifetime or unit to bind"));
+			}
+			if (Command.Order == EVeyraCompanionOrder::Summon
+				&& (Command.Companion.Num() != 1 || !(Command.LifetimeSeconds > 0.0) || Command.BindTo == EVeyraCompanionBind::None || !(Command.Cast.CastRange > 0.0)))
+			{
+				Problem(Pointer, TEXT("a summon names one companion, a lifetime above 0, the unit it binds and a cast range above 0"));
+			}
+			if (Command.Order == EVeyraCompanionOrder::Redirect
+				&& (!Command.Companion.IsEmpty() || Command.LifetimeSeconds != 0.0 || Command.BindTo == EVeyraCompanionBind::None || !(Command.Cast.CastRange > 0.0)))
+			{
+				Problem(Pointer, TEXT("a redirect names no companion or lifetime, but the unit it binds and a cast range above 0"));
+			}
+			for (const FVeyraContentId& Companion : Command.Companion)
+			{
+				if (!Tuning.Companions.Contains(Companion))
+				{
+					Problem(Pointer + TEXT("/companion"), FString::Printf(TEXT("names \"%s\", which /companions does not define"), *Companion.ToString()));
+				}
 			}
 		}
 
@@ -574,23 +629,27 @@ namespace
 					CheckShield(FString::Printf(TEXT("%s/casterShieldPerVanguard/%d"), *ZonePointer, ShieldIndex), Zones[Index].CasterShieldPerVanguard[ShieldIndex]);
 				}
 				CheckStatusIds(ZonePointer + TEXT("/casterStatusesPerVanguard"), Zones[Index].CasterStatusesPerVanguard);
-				// What it does for its caster's allies: a heal, statuses, or both (ADR-035 §4).
-				const TArray<FVeyraZoneAllyEffectsTuning>& AllyEffects = Zones[Index].AllyEffects;
-				if (AllyEffects.Num() > 1)
+				CheckAllyEffects(ZonePointer + TEXT("/allyEffects"), Zones[Index].AllyEffects);
+			}
+		}
+
+		/** What a zone or a ride's contact does for its caster's allies: a heal, statuses, or both (ADR-035 §4). */
+		void CheckAllyEffects(const FString& Pointer, TConstArrayView<FVeyraZoneAllyEffectsTuning> AllyEffects)
+		{
+			if (AllyEffects.Num() > 1)
+			{
+				Problem(Pointer, TEXT("holds at most one"));
+			}
+			for (int32 AllyIndex = 0; AllyIndex < AllyEffects.Num(); ++AllyIndex)
+			{
+				const FVeyraZoneAllyEffectsTuning& Allies = AllyEffects[AllyIndex];
+				const FString AllyPointer = FString::Printf(TEXT("%s/%d"), *Pointer, AllyIndex);
+				CheckByRank(AllyPointer + TEXT("/healByRank"), Allies.HealByRank);
+				CheckStatusIds(AllyPointer + TEXT("/statuses"), Allies.Statuses);
+				const bool bHeals = Allies.HealMagicPowerRatio > 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount > 0.0; });
+				if (Allies.HealMagicPowerRatio < 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount < 0.0; }) || (!bHeals && Allies.Statuses.IsEmpty()))
 				{
-					Problem(ZonePointer + TEXT("/allyEffects"), TEXT("holds at most one"));
-				}
-				for (int32 AllyIndex = 0; AllyIndex < AllyEffects.Num(); ++AllyIndex)
-				{
-					const FVeyraZoneAllyEffectsTuning& Allies = AllyEffects[AllyIndex];
-					const FString AllyPointer = FString::Printf(TEXT("%s/allyEffects/%d"), *ZonePointer, AllyIndex);
-					CheckByRank(AllyPointer + TEXT("/healByRank"), Allies.HealByRank);
-					CheckStatusIds(AllyPointer + TEXT("/statuses"), Allies.Statuses);
-					const bool bHeals = Allies.HealMagicPowerRatio > 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount > 0.0; });
-					if (Allies.HealMagicPowerRatio < 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount < 0.0; }) || (!bHeals && Allies.Statuses.IsEmpty()))
-					{
-						Problem(AllyPointer, TEXT("heals by at least 0 and a ratio of at least 0, and heals or gives a status"));
-					}
+					Problem(AllyPointer, TEXT("heals by at least 0 and a ratio of at least 0, and heals or gives a status"));
 				}
 			}
 		}
@@ -755,15 +814,16 @@ namespace
 			{
 				Problem(Pointer + TEXT("/slots"), TEXT("holds at least one slot"));
 			}
-			TArray<EVeyraAbilitySlot, TInlineAllocator<3>> Held;
+			TArray<EVeyraAbilitySlot, TInlineAllocator<4>> Held;
 			for (int32 Index = 0; Index < Stance.Slots.Num(); ++Index)
 			{
 				const FVeyraStanceSlotTuning& Slot = Stance.Slots[Index];
 				const FString SlotPointer = FString::Printf(TEXT("%s/slots/%d"), *Pointer, Index);
-				// It takes the place of a basic ability; the stance itself keeps its own slot.
-				if (Slot.Slot != EVeyraAbilitySlot::Q && Slot.Slot != EVeyraAbilitySlot::W && Slot.Slot != EVeyraAbilitySlot::E)
+				// It takes the place of an ability of the kit's, its ultimate too (ADR-035 §1); the Vanguard's rules keep
+				// the stance's own slot its own.
+				if (Slot.Slot != EVeyraAbilitySlot::Q && Slot.Slot != EVeyraAbilitySlot::W && Slot.Slot != EVeyraAbilitySlot::E && Slot.Slot != EVeyraAbilitySlot::R)
 				{
-					Problem(SlotPointer + TEXT("/slot"), TEXT("must be Q, W or E: a stance holds basic abilities' slots"));
+					Problem(SlotPointer + TEXT("/slot"), TEXT("must be Q, W, E or R: a stance holds the slots of its kit's abilities"));
 				}
 				if (Held.Contains(Slot.Slot))
 				{
@@ -874,6 +934,22 @@ namespace
 			{
 				Problem(Pointer + TEXT("/stats"), TEXT("maxHealth, attackSpeed and moveSpeed are above 0"));
 			}
+			// An escort's pulse and an attack's statuses (ADR-035 §5).
+			if (Companion.Escort.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/escort"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Companion.Escort.Num(); ++Index)
+			{
+				const FVeyraEscortTuning& Escort = Companion.Escort[Index];
+				const FString EscortPointer = FString::Printf(TEXT("%s/escort/%d"), *Pointer, Index);
+				if (!(Escort.PulseSeconds > 0.0) || Escort.HealAmount < 0.0 || Escort.HealMagicPowerRatio < 0.0)
+				{
+					Problem(EscortPointer, TEXT("pulseSeconds is above 0, and healAmount and healMagicPowerRatio at least 0"));
+				}
+				CheckStatusIds(EscortPointer + TEXT("/statuses"), Escort.Statuses);
+			}
+			CheckStatusIds(Pointer + TEXT("/attackStatuses"), Companion.AttackStatuses);
 		}
 
 		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
@@ -921,6 +997,38 @@ namespace
 				}
 			}
 			CheckZones(Pointer + TEXT("/crashZones"), Ride.CrashZones);
+			// What its body meets, and what it lays along its path (ADR-035 §6).
+			if (Ride.Contact.Num() > 1 || Ride.Trail.Num() > 1)
+			{
+				Problem(Pointer, TEXT("holds at most one contact and one trail"));
+			}
+			for (int32 Index = 0; Index < Ride.Contact.Num(); ++Index)
+			{
+				const FVeyraRideContactTuning& Contact = Ride.Contact[Index];
+				const FString ContactPointer = FString::Printf(TEXT("%s/contact/%d"), *Pointer, Index);
+				if (Contact.Reach < 0.0 || !(Contact.PulseSeconds > 0.0))
+				{
+					Problem(ContactPointer, TEXT("reach is at least 0 and pulseSeconds above 0"));
+				}
+				CheckEffects(ContactPointer + TEXT("/enemyEffects"), Contact.EnemyEffects);
+				CheckTargetKinds(ContactPointer + TEXT("/enemyKinds"), Contact.EnemyKinds);
+				CheckAllyEffects(ContactPointer + TEXT("/allyEffects"), Contact.AllyEffects);
+			}
+			for (int32 Index = 0; Index < Ride.Trail.Num(); ++Index)
+			{
+				const FVeyraRideTrailTuning& Trail = Ride.Trail[Index];
+				const FString TrailPointer = FString::Printf(TEXT("%s/trail/%d"), *Pointer, Index);
+				// It looks at least once per spacing at its rider's set speed, so one area a look keeps pace.
+				if (!(Trail.Spacing > 0.0) || !(Trail.PulseSeconds > 0.0) || Trail.PulseSeconds * Ride.SetSpeed > Trail.Spacing)
+				{
+					Problem(TrailPointer, TEXT("spacing and pulseSeconds are above 0, and a pulse at the ride's set speed covers no more than its spacing"));
+				}
+				const FVeyraAreaAbilityTuning* Area = Tuning.Area.Find(Trail.Area);
+				if (!Area || Area->Linger.IsEmpty() || Area->DelaySeconds > 0.0 || Area->ChannelTicks > 1)
+				{
+					Problem(TrailPointer + TEXT("/area"), FString::Printf(TEXT("names \"%s\": an area ability that lands at once and lingers"), *Trail.Area.ToString()));
+				}
+			}
 		}
 
 		void CheckAttach(const FString& Pointer, const FVeyraAttachAbilityTuning& Attach)

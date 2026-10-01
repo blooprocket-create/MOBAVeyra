@@ -44,6 +44,12 @@ private:
 	/** Sends the vehicle on without its rider, from End's place along its heading (§56, "The separated vehicle"). */
 	void LaunchVehicle(UAbilitySystemComponent& Rider, const FVeyraContentId& Vehicle, const FVeyraRideEnd& End) const;
 
+	/** Its body strikes the enemies and helps the allies it meets, each once a ride (ADR-035 §6). */
+	void PulseContact();
+
+	/** It lays its trail's area each time its rider has come its spacing (ADR-035 §6). */
+	void PulseTrail();
+
 	/** The group its mounted actions hold their slots under. */
 	FName MountedGroup() const;
 
@@ -61,4 +67,15 @@ private:
 	FTimerHandle ExpiryTimer;
 	/** Its crash, prepared at Commit from the rider's rank and power (Combat Bible §50). */
 	TArray<FVeyraPreparedZone> CrashZones;
+
+	/** Its contact's effects, prepared at Commit, and the units it has met this ride. */
+	TOptional<FVeyraPreparedEffects> ContactEffects;
+	TOptional<FVeyraPreparedAllyEffects> ContactHelp;
+	TArray<TWeakObjectPtr<AActor>> Met;
+	FTimerHandle ContactTimer;
+
+	/** Its trail: where its rider was at the last look, and how far it has come since its last area. */
+	FVector TrailFrom = FVector::ZeroVector;
+	double TrailTravelled = 0.0;
+	FTimerHandle TrailTimer;
 };

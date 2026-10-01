@@ -43,6 +43,7 @@ The survey for this ADR found that:
 - A cast gains **`cooldownOf`**: at most one other ability whose cooldown it shares. Its cooldown is held under that ability's ID, so casting either starts the one cooldown, at the length of the ability cast.
 - The named ability must be defined and must name none itself.
 - Neris's Storm abilities share their Calm counterparts' cooldowns, so switching never resets a slot. Change the Weather's own cooldown stops it being a free toggle.
+- **A stance may hold R** as well as Q, W and E (amends ADR-031 §3), so the Sea State reaches Tidebreaker. It never holds the slot it sits in, which the Vanguard's rules check.
 
 ### 2. Casts refused while a status holds (Abilities)
 
@@ -83,7 +84,7 @@ The survey for this ADR found that:
   - `enemyEffects`: damage, statuses and a displacement. A knock aside is `AsideFromPath`, out of the rider's line.
   - `allyEffects`, as §4's.
   - `reach`: how far past the rider's edge it touches.
-- **A ride gains `trail`:** lingering areas laid along its path every `spacing` units, each with its shape and its lingering statuses by side (ADR-018 §5).
+- **A ride gains `trail`:** an area ability laid along its path every `spacing` units, the first as it sets off. Each is delivered at the rider as the rider's hit, at the ride's rank: its zones, then its lingering area with its statuses by side (ADR-018 §5). Any area ability that lands at once and lingers will do.
 - **Tidebreaker** is a ride with a larger body, contact and a trail. Calm's lays Healing Wake (allies' Movement Speed and regeneration) and Storm's lays Riptide (enemies' damage over time and a slow).
 
 ### 7. Neris (Vanguards)
@@ -110,7 +111,7 @@ The survey for this ADR found that:
 1. **The Sea State passive** is the variants' values; there is no separate passive effect.
 2. **Change the Weather** shares cooldowns between the states and has a cooldown of its own.
 3. **The Waterling** lasts a fixed time and does not reform.
-4. **A redirect** keeps the Waterling's remaining time.
+4. **A redirect** keeps the Waterling's remaining time. **An escort** may be its caster, so Neris alone in a lane can keep the Waterling herself.
 5. **Breaking Wave's crash** happens on every end but death.
 6. **Tidebreaker's impact** strikes each unit once per cast; the knock aside pushes a Vanguard off the wave's line.
 7. **The lock** lasts as long as the Tidebreaker ride.

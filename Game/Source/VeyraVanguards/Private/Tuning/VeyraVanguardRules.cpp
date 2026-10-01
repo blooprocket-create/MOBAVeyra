@@ -345,6 +345,30 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraMistTrailTuning>& Entry : Tuning.MistTrail)
+	{
+		RegisterPassive(Entry.Key, TEXT("mistTrail"));
+		const FString Pointer = TEXT("/mistTrail/") + Entry.Key.ToString();
+		const FVeyraMistTrailTuning& Trail = Entry.Value;
+		// Its area lingers, giving allies the mark a follower carries into the fog (ADR-036 §5).
+		const FVeyraAreaAbilityTuning* Area = Abilities.Area.Find(Trail.Area);
+		if (!Area || Area->Linger.IsEmpty() || !Area->Linger[0].AllyStatuses.Contains(Trail.FollowStatus))
+		{
+			Problem(Pointer + TEXT("/area"), TEXT("names an area Abilities.json defines that lingers, giving allies followStatus"));
+		}
+		if (!Abilities.Statuses.Contains(Trail.FollowStatus))
+		{
+			Problem(Pointer + TEXT("/followStatus"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Trail.FollowStatus.ToString()));
+		}
+		const FVeyraMistShieldTuning& Shield = Trail.FollowShield;
+		if (!(Trail.Spacing > 0.0) || Trail.ApproachLength < 0.0 || !(Trail.LaySeconds > 0.0) || !(Trail.LookSeconds > 0.0) || Shield.Amount < 0.0
+			|| Shield.AmountPerLevel < 0.0 || Shield.MagicPowerRatio < 0.0 || !(Shield.Amount + Shield.AmountPerLevel + Shield.MagicPowerRatio > 0.0)
+			|| !(Shield.DurationSeconds > 0.0))
+		{
+			Problem(Pointer, TEXT("spacing, laySeconds and lookSeconds are above 0, approachLength at least 0, and followShield gives something for above 0 seconds"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));
@@ -550,16 +574,23 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 				Kit.Add(Ability);
 			}
 		}
-		// A stance's abilities rank with the slots they hold, and are the kit's own as much (ADR-031 §3).
-		for (const TArray<FVeyraContentId>* Ids : { &Vanguard.Abilities.Q, &Vanguard.Abilities.W, &Vanguard.Abilities.E, &Vanguard.Abilities.R })
+		// A stance's abilities rank with the slots they hold, and are the kit's own as much (ADR-031 §3). It never
+		// holds the slot it sits in itself, which keeps it (ADR-035 §1).
+		const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*> OwnSlots[] = { { EVeyraAbilitySlot::Q, &Vanguard.Abilities.Q },
+			{ EVeyraAbilitySlot::W, &Vanguard.Abilities.W }, { EVeyraAbilitySlot::E, &Vanguard.Abilities.E }, { EVeyraAbilitySlot::R, &Vanguard.Abilities.R } };
+		for (const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*>& Own : OwnSlots)
 		{
-			for (const FVeyraContentId& Ability : *Ids)
+			for (const FVeyraContentId& Ability : *Own.Value)
 			{
 				const FVeyraStanceAbilityTuning* Stance = Abilities.Stance.Find(Ability);
 				for (int32 Index = 0; Stance && Index < Stance->Slots.Num(); ++Index)
 				{
 					const FVeyraStanceSlotTuning& Held = Stance->Slots[Index];
 					const FString HeldPointer = FString::Printf(TEXT("%s/abilities (stance %s, slot %d)"), *Pointer, *Ability.ToString(), Index);
+					if (Held.Slot == Own.Key)
+					{
+						Problem(HeldPointer, TEXT("holds the slot the stance sits in; a stance keeps its own slot"));
+					}
 					for (const FString& RankProblem : VeyraAbilityRules::ValidateRanks(Abilities, Held.Ability, VeyraProgression::MaxRank(Held.Slot, Progression, Shape)))
 					{
 						Problem(HeldPointer, TEXT("in its slot, ") + RankProblem);

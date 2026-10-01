@@ -62,6 +62,12 @@ public:
 	/** Server only: while it stands it holds a movement field over its circle, of its caster's side, pulling up to Pull (ADR-033 §5). */
 	void HoldField(double Pull);
 
+	/**
+	 * Server only: as it lands and at each pulse it grants Shield at Rank to its caster and the allied Vanguards
+	 * inside, merging up to its maximum, but not to one damaged within DelayAfterDamageSeconds (ADR-036 §4).
+	 */
+	void BuildShields(const FVeyraShieldTuning& Shield, int32 Rank, double DelayAfterDamageSeconds);
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Destroyed() override;
@@ -105,4 +111,17 @@ private:
 	FTimerHandle EndTimer;
 	/** Its movement field's handle; 0 for none. */
 	int32 FieldHandle = 0;
+
+	/** Grants its built shield to those inside who may have it now. */
+	void TopUpShields();
+
+	void OnDamageDealt(const struct FVeyraDamageDealtEvent& Event);
+
+	/** The shield it builds, at its cast's rank, and how long damage holds it back; unset for none. */
+	TOptional<FVeyraShieldTuning> BuiltShield;
+	int32 BuiltShieldRank = 1;
+	double BuildDelaySeconds = 0.0;
+	/** When each unit it has seen take damage last took it, in world time. */
+	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, double> LastDamagedAt;
+	FDelegateHandle DamageHandle;
 };

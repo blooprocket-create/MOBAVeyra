@@ -4,6 +4,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "CQTest.h"
 #include "Delivery/VeyraAreaDelivery.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Engine/World.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -78,6 +79,12 @@ namespace VeyraAbilitiesTests
 			Wave.Mounted.Add(FVeyraRideSlotTuning{ EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_crash")) });
 			Wave.CrashZones.Add(CrashZone(EVeyraAllyReach::OthersOnly));
 			Tuning.Ride.Add(ArchetypeTestId(TEXT("test_wave")), Wave);
+			FVeyraRideAbilityTuning Surge;
+			Surge.Cast = InstantCast(0.0, LongSeconds, 0.0);
+			Surge.SetSpeed = RideSpeed;
+			Surge.TurnRateDegreesPerSecond = TurnRate;
+			Surge.DurationSeconds = RideSeconds * 3.0;
+			Tuning.Ride.Add(ArchetypeTestId(TEXT("test_surge")), Surge);
 			FVeyraAreaAbilityTuning Tide;
 			Tide.Cast = InstantCast(Far, LongSeconds, 0.0);
 			Tide.Origin = EVeyraAreaOrigin::TargetPoint;
@@ -217,6 +224,28 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Ready.Num() == 1 && Ready[0].AllyEffects.IsSet() && !Ready[0].AllyEffects->Statuses.IsEmpty()));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ready[0].AllyEffects->Statuses[0].Magnitude, Expected, Tolerance), TEXT("an ally's status from its caster's level")));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ready[0].CasterStatusesPerVanguard[0].Magnitude, Expected, Tolerance), TEXT("and its caster's own")));
+		}
+
+		TEST_METHOD(ANewerRideEndsTheOlderWhichCrashesAndLeavesTheNewerBe)
+		{
+			using namespace CrashFixture;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(Ride()));
+			// A second ride in another slot, as Tidebreaker beside Breaking Wave.
+			APlayerState* Participant = Rider->GetPlayerState();
+			Participant->FindComponentByClass<UVeyraProgressionComponent>()->AddExperience(ManyLevels);
+			ASSERT_THAT(IsTrue(Participant->FindComponentByClass<UVeyraAbilityLoadoutComponent>()->Grant(*Rider->GetAbilitySystemComponent(), EVeyraAbilitySlot::W,
+				ArchetypeTestId(TEXT("test_surge")))));
+			ASSERT_THAT(IsTrue(Participant->FindComponentByClass<UVeyraProgressionComponent>()->AllocateRank(EVeyraAbilitySlot::W) == EVeyraRankRefusal::None));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Rider, EVeyraAbilitySlot::W, FVector::ZeroVector) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Lost(Enemy), Crash, Tolerance), TEXT("the older ride ends, and crashes")));
+			ASSERT_THAT(IsTrue(Rider->GetVeyraMovement()->IsRiding(), TEXT("the newer rides on")));
+			Wait(RideSeconds + Step * 3.0);
+			ASSERT_THAT(IsTrue(Rider->GetVeyraMovement()->IsRiding(), TEXT("the older's time running out ends nothing")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Lost(Enemy), Crash, Tolerance), TEXT("nor crashes again")));
+			Wait(RideSeconds * 2.0);
+			ASSERT_THAT(IsFalse(Rider->GetVeyraMovement()->IsRiding(), TEXT("the newer ends in its own time")));
 		}
 
 		TEST_METHOD(ValidationWantsAZoneToDoSomethingForItsAllies)

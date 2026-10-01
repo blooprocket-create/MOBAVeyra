@@ -162,6 +162,20 @@ M27a added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-co
 - rides' crash zones, which erupt where the rider is on every end but death, and the dismount archetype (`Abilities/UVeyraDismountAbility`), a mounted action that ends its ride;
 - zones' ally effects: the caster's heal and statuses for the allied Vanguards in a zone, each once (`VeyraAreaDelivery::Resolve`).
 
+M27b added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-companions.md)), for Neris:
+- summoned companions: the command orders Summon and Redirect, `UVeyraCompanionSubsystem::SummonFor` and `Redirect` (a companion for a while, bound to an ally it escorts or an enemy it hunts, gone for good when its time runs out or it is killed), the Escort and Hunt modes, and companions' escort pulse and attack statuses;
+- rides' contact (the rider's body strikes each enemy and helps each ally it meets once a ride) and trail (an area ability laid along its path), with `VeyraAreaDelivery::PrepareAllyEffects`, `Reaches` and `HelpAlly` shared with zones;
+- stances that may hold R, never the slot they sit in;
+- Neris, The Tidebound, and her Waterling: Calm and Storm variants of Breaking Wave, Little Current and Tidebreaker that share cooldowns, and Change the Weather.
+
+M28a added ([ADR-036](Docs/ADR/ADR-036-runtime-dense-fog-sounded-waymarks-and-the-mist-trail.md)), for Sylra:
+- in Combat, the visibility contract's `AddDenseFog` (a circle or a corridor, for a while) and `FogVolumeAt`, and the Sounded status kind, read through `VeyraCombat::HasStatusKindFromSide`;
+- in Vision, Dense Fog that abilities lay: each cast's `Fog/AVeyraDenseFogBank`, replicated to every player and joined to the map's fog into volumes while it lasts, and presence pings for a Sounded enemy in fog to the side that sounded it;
+- in Abilities, areas' `fog` and lingering areas' `shieldTopUp` (a merging shield built on the caster and allies who stay, held back a while after damage), and `VeyraAreaDelivery::LayAt`, which the ride trail and the Mist Trail share;
+- in Vanguards, the Mist Trail passive (`UVeyraMistTrailPassive`).
+
+M28b added Sylra, The Mistwarden: Harbor Bell, Lay the Mist, Waymark, Through the White and Follow the Bell, all data.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

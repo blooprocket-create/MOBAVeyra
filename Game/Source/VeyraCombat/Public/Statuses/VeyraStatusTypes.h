@@ -190,6 +190,12 @@ enum class EVeyraStatusKind : uint8
 	 * stack, every stack together above -1.
 	 */
 	MaxHealth,
+	/**
+	 * Sounded (ADR-036 §2): while its holder stands in Dense Fog, the fog pings its presence to its source's
+	 * side, at the presence cadence. It reveals nothing, outlines nothing and grants no targeting; outside
+	 * fog it does nothing. Not crowd control. Magnitude: 0.
+	 */
+	Sounded,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

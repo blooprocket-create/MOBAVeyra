@@ -54,7 +54,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
 ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance", "/placement", "/blink", "/command", "/dismount")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry", "/disciplines", "/stressTemper", "/charger", "/accord")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry", "/disciplines", "/stressTemper", "/charger", "/accord", "/mistTrail")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -74,6 +74,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/accord/*/companion", "Abilities", ("/companions",)),
     ("Vanguards", "/accord/*/mark", "Abilities", ("/statuses",)),
     ("Vanguards", "/accord/*/boostStatus", "Abilities", ("/statuses",)),
+    ("Vanguards", "/mistTrail/*/area", "Abilities", ("/area",)),
+    ("Vanguards", "/mistTrail/*/followStatus", "Abilities", ("/statuses",)),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
     ("Vanguards", "/movingTarget/*/trackedStatus", "Abilities", ("/statuses",)),
@@ -134,6 +136,10 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/*/*/cast/cooldownWhile/*/status", "Abilities", ("/statuses",)),
     ("Abilities", "/*/*/cast/cooldownOf/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Abilities", "/*/*/cast/refusedWhile/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/command/*/companion/*", "Abilities", ("/companions",)),
+    ("Abilities", "/ride/*/trail/*/area", "Abilities", ("/area",)),
+    ("Abilities", "/companions/*/escort/*/statuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/companions/*/attackStatuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/skillshot/*/mimic/*/repeatEffects/statuses/*", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),

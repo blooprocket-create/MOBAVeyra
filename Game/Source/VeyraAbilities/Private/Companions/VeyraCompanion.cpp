@@ -246,6 +246,17 @@ void AVeyraCompanion::EndHold()
 	}
 }
 
+void AVeyraCompanion::Bind(EVeyraCompanionMode InMode, AActor& Unit)
+{
+	// Escort an ally or hunt an enemy, whichever it was summoned for (ADR-035 §5).
+	if (InMode != EVeyraCompanionMode::Escort && InMode != EVeyraCompanionMode::Hunt)
+	{
+		return;
+	}
+	Mode = InMode;
+	BoundTo = &Unit;
+}
+
 void AVeyraCompanion::SetChained(bool bInChained)
 {
 	if (bChained != bInChained)
