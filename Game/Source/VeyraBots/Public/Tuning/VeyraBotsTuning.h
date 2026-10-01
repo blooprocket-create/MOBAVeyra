@@ -208,6 +208,10 @@ struct FVeyraBotVanguardTuning
 	/** What each ability of the kit is for. */
 	UPROPERTY()
 	TMap<FVeyraContentId, EVeyraBotAbilityUse> Abilities;
+
+	/** The roles its bot plays, best first: a team deals its places by them, the Jungle first (ADR-038 §5). */
+	UPROPERTY()
+	TArray<EVeyraBotRole> Roles;
 };
 
 /** How a jungler plays (ADR-014 §7). */
@@ -282,7 +286,7 @@ struct FVeyraBotsTuning
 	GENERATED_BODY()
 
 	/** The Bots.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	FVeyraBotSensesTuning Senses;

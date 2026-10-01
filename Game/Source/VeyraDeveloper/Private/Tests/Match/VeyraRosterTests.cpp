@@ -247,7 +247,18 @@ namespace VeyraMatchTests
 
 			FVeyraMatchAssignment StandardWithBots = TwoParticipantAssignment();
 			StandardWithBots.Bots = Practice.Bots;
-			ASSERT_THAT(IsTrue(IsRefused(StandardWithBots, TEXT("only a practice or custom match has bots"))));
+			ASSERT_THAT(IsTrue(IsRefused(StandardWithBots, TEXT("only a practice or custom match has bots beside humans"))));
+
+			// A co-op match: its humans on one side, its enemy team on the other (ADR-038 §4).
+			FVeyraMatchAssignment Coop = TwoParticipantAssignment();
+			Coop.Participants.SetNum(1);
+			Coop.Bots = Practice.Bots;
+			for (FVeyraAssignedBot& Bot : Coop.Bots)
+			{
+				Bot.Side = Coop.Participants[0].Side == EVeyraTeam::A ? EVeyraTeam::B : EVeyraTeam::A;
+			}
+			ASSERT_THAT(IsTrue(Host->SetAssignment(Coop).IsEmpty(), TEXT("a co-op match's enemy team is welcome")));
+			Host->ClearAssignment();
 		}
 
 		TEST_METHOD(ACustomMatchHasItsHostBotsOnEitherSideAndItsSettings)

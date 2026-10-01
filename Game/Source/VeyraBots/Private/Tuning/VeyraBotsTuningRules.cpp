@@ -67,6 +67,12 @@ TArray<FString> Validate(const FVeyraBotsTuning& Tuning)
 				Problems.Add(FString::Printf(TEXT("%s/abilities: %s is not an ability a bot can aim"), *Pointer, *Use.Key.ToString()));
 			}
 		}
+		// It names the roles it plays, each once (ADR-038 §5).
+		const TSet<EVeyraBotRole> Distinct(Vanguard.Roles);
+		if (Vanguard.Roles.IsEmpty() || Distinct.Num() != Vanguard.Roles.Num())
+		{
+			Problems.Add(FString::Printf(TEXT("%s/roles: names at least one role, each once"), *Pointer));
+		}
 		for (const EVeyraBotSkill Skill : { EVeyraBotSkill::Q, EVeyraBotSkill::W, EVeyraBotSkill::E })
 		{
 			const int32 Count = Algo::Count(Vanguard.SkillPriority, Skill);
