@@ -34,7 +34,8 @@ void UVeyraFollowUpSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UVeyraFollowUpSubsystem::OpenAfter(UAbilitySystemComponent& Caster, EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, double Seconds)
+void UVeyraFollowUpSubsystem::OpenAfter(UAbilitySystemComponent& Caster, EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, const FVeyraContentId& OpenedBy,
+	double Seconds)
 {
 	UWorld* World = GetWorld();
 	if (!World)
@@ -46,6 +47,7 @@ void UVeyraFollowUpSubsystem::OpenAfter(UAbilitySystemComponent& Caster, EVeyraA
 	Added.Caster = &Caster;
 	Added.Slot = Slot;
 	Added.FollowUp = FollowUp;
+	Added.OpenedBy = OpenedBy;
 	World->GetTimerManager().SetTimer(Added.Timer, FTimerDelegate::CreateUObject(this, &UVeyraFollowUpSubsystem::Open, Added.Key), static_cast<float>(Seconds),
 		/*bLoop*/ false);
 }
@@ -72,8 +74,19 @@ void UVeyraFollowUpSubsystem::OnMarkerEnded(const FVeyraMarkerEnd& End)
 	// The follow-up its marker's ability opened has nothing left to act on (ADR-032 §5); one its own
 	// ability's new cast replaced leaves that cast's follow-up be.
 	UAbilitySystemComponent* Owner = End.Owner.Get();
-	if (Owner && End.Reason != EVeyraMarkerEndReason::Replaced)
+	if (!Owner || End.Reason == EVeyraMarkerEndReason::Replaced)
 	{
-		VeyraAbilities::EndFollowUp(*Owner, End.Id);
+		return;
 	}
+	VeyraAbilities::EndFollowUp(*Owner, End.Id);
+	// One still arming goes too, as when its owner falls before it opens.
+	UWorld* World = GetWorld();
+	Arming.RemoveAll([Owner, &End, World](FArming& Each) {
+		const bool bGoes = Each.Caster.Get() == Owner && Each.OpenedBy == End.Id;
+		if (bGoes && World)
+		{
+			World->GetTimerManager().ClearTimer(Each.Timer);
+		}
+		return bGoes;
+	});
 }

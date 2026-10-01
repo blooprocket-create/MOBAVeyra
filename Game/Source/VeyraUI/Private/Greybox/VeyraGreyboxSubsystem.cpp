@@ -29,6 +29,7 @@
 #include "Layout/VeyraLayout.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Structures/VeyraStructure.h"
+#include "Terrain/VeyraTerrainWall.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -284,32 +285,28 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			continue;
 		}
-		// A wall stands as a block across the way it faces (ADR-032 §4); every other unit as its capsule.
+		// A wall's marker shows nothing of its own: the terrain it holds is drawn as terrain (ADR-032 §4).
 		const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(&Unit);
-		const bool bWall = Marker && Marker->IsWall();
-		FBody* Body = Bodies.Find(&Unit);
-		if (Body && Body->Mesh.IsValid() && Body->bWall != bWall)
+		if (Marker && Marker->IsWall())
 		{
-			// Its size arrived after its body was first drawn.
-			Body->Mesh->DestroyComponent();
-			Body = nullptr;
+			continue;
 		}
+		FBody* Body = Bodies.Find(&Unit);
 		if (!Body || !Body->Mesh.IsValid())
 		{
 			UMaterialInstanceDynamic* Material = nullptr;
-			UStaticMeshComponent* Mesh = AddShape(Unit, bWall ? *GroundMesh : *BodyMesh, Material);
+			UStaticMeshComponent* Mesh = AddShape(Unit, *BodyMesh, Material);
 			if (!Mesh)
 			{
 				continue;
 			}
-			Body = &Bodies.Add(&Unit, FBody{ Mesh, Material, FLinearColor::Transparent, bWall });
+			Body = &Bodies.Add(&Unit, FBody{ Mesh, Material });
 		}
-		// Its capsule, which its Vanguard's definition shapes (ADR-008 §2); a wall stands as tall as its capsule.
+		// Its capsule, which its Vanguard's definition shapes (ADR-008 §2).
 		float Radius = 0.0f;
 		float HalfHeight = 0.0f;
 		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
-		const FVector2f Wall = bWall ? Marker->GetWallSize() : FVector2f::ZeroVector;
-		FitGreyboxShape(*Body->Mesh, bWall ? FVector(Wall.Y / 2.0, Wall.X / 2.0, HalfHeight) : FVector(Radius, Radius, HalfHeight));
+		FitGreyboxShape(*Body->Mesh, FVector(Radius, Radius, HalfHeight));
 
 		const FLinearColor Color = BodyColorOf(Unit);
 		if (UMaterialInstanceDynamic* Material = Body->Material.Get(); Material && !Color.Equals(Body->Shown))
@@ -317,6 +314,28 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 			Material->SetVectorParameterValue(ColorParameter, Color);
 			Body->Shown = Color;
 		}
+	}
+	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (TActorIterator<AVeyraTerrainWall> It(GetWorld()); It; ++It)
+	{
+		AVeyraTerrainWall& Wall = **It;
+		if (Wall.GetHalfExtent().GetMin() <= 0.0 || (Bodies.Contains(&Wall) && Bodies.FindChecked(&Wall).Mesh.IsValid()))
+		{
+			continue;
+		}
+		UMaterialInstanceDynamic* Material = nullptr;
+		UStaticMeshComponent* Mesh = AddShape(Wall, *GroundMesh, Material);
+		if (!Mesh)
+		{
+			continue;
+		}
+		FitGreyboxShape(*Mesh, Wall.GetHalfExtent());
+		if (Material)
+		{
+			Material->SetVectorParameterValue(ColorParameter, Settings.NeutralColor);
+		}
+		Bodies.Add(&Wall, FBody{ Mesh, Material, Settings.NeutralColor });
 	}
 	for (auto It = Bodies.CreateIterator(); It; ++It)
 	{

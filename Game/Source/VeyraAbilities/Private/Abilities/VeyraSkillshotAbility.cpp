@@ -8,6 +8,7 @@
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
 #include "VeyraAbilitiesVerbs.h"
@@ -57,7 +58,8 @@ TFunction<void(const FVector&)> UVeyraSkillshotAbility::WallAtEnd(UAbilitySystem
 	return [WeakCaster = TWeakObjectPtr<UAbilitySystemComponent>(&Caster), Wall, Ability, Facing = Direction.GetSafeNormal2D()](const FVector& Where) {
 		UAbilitySystemComponent* Owner = WeakCaster.Get();
 		UWorld* World = Owner ? Owner->GetWorld() : nullptr;
-		if (!World)
+		// A caster who has fallen raises nothing: its markers end with it (ADR-030 §5).
+		if (!World || !VeyraTargeting::IsAlive(Owner->GetAvatarActor()))
 		{
 			return;
 		}

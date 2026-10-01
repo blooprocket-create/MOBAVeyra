@@ -13,7 +13,6 @@
 
 class APlayerState;
 class UAbilitySystemComponent;
-class UBoxComponent;
 class UCapsuleComponent;
 class UVeyraAttributionComponent;
 class UVeyraDamageAbsorptionComponent;
@@ -74,7 +73,7 @@ public:
 	/** The participant it presents itself as to enemies, or null: its owner's PlayerState, on every machine. */
 	APlayerState* GetPresentedAs() const { return PresentedAs; }
 
-	/** Whether it is a wall (ADR-032 §4), on every machine. */
+	/** Whether it holds a wall of runtime terrain, which the battleground raises for it (ADR-032 §4), on every machine. */
 	bool IsWall() const { return WallSize.X > 0.0f && WallSize.Y > 0.0f; }
 
 	/** A wall's length, across the way it faces, and its thickness; zero for a marker that is no wall. */
@@ -92,9 +91,6 @@ private:
 	UFUNCTION()
 	void ApplySpot();
 
-	/** A wall's body blocks as terrain does, sized from WallSize, on every machine (ADR-032 §4). */
-	UFUNCTION()
-	void ApplyWall();
 
 	void OnDeath(const FVeyraDeathEvent& Death);
 
@@ -115,16 +111,13 @@ private:
 	UPROPERTY(ReplicatedUsing = ApplySpot)
 	FVector_NetQuantize Spot = FVector::ZeroVector;
 
-	/** A wall's length and thickness, so every machine's movement meets it; zero for no wall. */
-	UPROPERTY(ReplicatedUsing = ApplyWall)
+	/** A wall's length and thickness; zero for no wall. Presentation draws the terrain, not the marker. */
+	UPROPERTY(Replicated)
 	FVector2f WallSize = FVector2f::ZeroVector;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> Body;
 
-	/** A wall's body: it blocks nothing until ApplyWall shapes it. */
-	UPROPERTY()
-	TObjectPtr<UBoxComponent> WallBody;
 
 	/** Replicated in Minimal mode: a marker has no effects of its own to show. */
 	UPROPERTY()
@@ -153,6 +146,8 @@ private:
 	TWeakObjectPtr<UAbilitySystemComponent> OwnerAbilities;
 	FVeyraMarkerSpec Spec;
 	FTimerHandle LifetimeTimer;
+	/** Server: the runtime terrain's handle for its wall; 0 for none. */
+	int32 WallHandle = 0;
 	FDelegateHandle DeathHandle;
 	bool bEnded = false;
 };

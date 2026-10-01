@@ -139,7 +139,7 @@ M24b added ([ADR-031](Docs/ADR/ADR-031-stances-focus-shadows-and-cross-marks.md)
 M25a added ([ADR-032](Docs/ADR/ADR-032-movement-punishment-shield-holds-and-walls.md)), for Varkesh:
 - Combat's `OnUnitMoved`, announced by the movement component as a unit's own dash or blink ends, and the stress temper passive (`UVeyraStressTemperPassive`) that strikes a coated mover where it lands;
 - self-buffs whose shield holds statuses and bursts as it ends (`Delivery/VeyraShieldHoldSubsystem`, watching the shield's effect);
-- walls: a placed marker may be a wall, a world-static box that blocks units, forced moves and line projectiles and cuts the navigation mesh; a skillshot leaves one where its flight ends (`endWall`), and the grey-box draws it as a block;
+- walls: runtime terrain is the battleground's (`Terrain/UVeyraTerrainSubsystem` and `AVeyraTerrainWall` in World), reached through Combat's `IVeyraRuntimeTerrain` contract and registry; a wall blocks units, forced moves and line projectiles, cuts the navigation mesh and moves out the units it would trap; a placed marker holds one as its ownership and lifetime link, a skillshot leaves one where its flight ends (`endWall`), and the grey-box draws the terrain as a block;
 - follow-ups that arm after their cast and end with their opening ability's marker, both in `Loadout/VeyraFollowUpSubsystem` (the placement archetype's own watch moved there), and areas at the caster's marker (`CastersMarker`).
 
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).

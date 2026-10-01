@@ -27,8 +27,11 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	/** Opens FollowUp in Caster's Slot after Seconds of world time, so a pause holds it. */
-	void OpenAfter(UAbilitySystemComponent& Caster, EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, double Seconds);
+	/**
+	 * Opens FollowUp, which OpenedBy's cast opens, in Caster's Slot after Seconds of world time, so a pause
+	 * holds it; a marker of OpenedBy's that ends meanwhile takes it along.
+	 */
+	void OpenAfter(UAbilitySystemComponent& Caster, EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, const FVeyraContentId& OpenedBy, double Seconds);
 
 	/** How many follow-ups wait to open. */
 	int32 GetArmingCount() const { return Arming.Num(); }
@@ -43,6 +46,7 @@ private:
 		TWeakObjectPtr<UAbilitySystemComponent> Caster;
 		EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Q;
 		FVeyraOverrideSpec FollowUp;
+		FVeyraContentId OpenedBy;
 		FTimerHandle Timer;
 	};
 	TArray<FArming> Arming;
