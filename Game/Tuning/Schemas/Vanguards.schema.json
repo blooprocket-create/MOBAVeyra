@@ -178,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [14]
+      "enum": [15]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -188,7 +188,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "availability", "resource", "body", "baseStats", "growth", "basicAttack", "abilities", "passive"],
+          "required": ["provenance", "availability", "resource", "body", "baseStats", "growth", "basicAttack", "abilities", "rankShape", "passive"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "availability": {
@@ -196,7 +196,11 @@
               "type": "string",
               "enum": ["Playable", "Developer"]
             },
-            "resource": { "description": "What the Vanguard spends to cast (Combat Bible §27).", "type": "string", "enum": ["Mana"] },
+            "resource": {
+              "description": "What the Vanguard spends to cast (Combat Bible §27). Every family is spent, regenerated and refunded alike; Focus has no growth per level and its own colour on the HUD (ADR-031 §1).",
+              "type": "string",
+              "enum": ["Mana", "Focus"]
+            },
             "body": {
               "type": "object",
               "additionalProperties": false,
@@ -222,6 +226,7 @@
                 "r": { "$ref": "#/definitions/contentIds" }
               }
             },
+            "rankShape": { "description": "At most one: a rank shape from Progression.json's rankShapes, a documented exception to the standard ranks (ADR-031 §2). None ranks as standard.", "$ref": "#/definitions/contentIds" },
             "passive": { "description": "The passive, from one of the passive maps.", "$ref": "#/definitions/contentIds" }
           }
         }

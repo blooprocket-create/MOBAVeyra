@@ -3,6 +3,7 @@
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
 #include "Engine/Engine.h"
+#include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -121,9 +122,8 @@ VeyraTuning::FErrors UVeyraAbilitiesTuningSubsystem::Reload()
 	}
 	if (Errors.IsEmpty())
 	{
-		const FVeyraProgressionTuning& Progression = UVeyraProgressionTuningSubsystem::Get();
-		const int32 RankCounts[] = { Progression.BasicAbilityMaxRank, Progression.UltimateMaxRank };
-		Errors = VeyraAbilityRules::Validate(Loaded, RankCounts);
+		// One value per rank for any count of ranks a rank shape gives a slot (ADR-031 §2).
+		Errors = VeyraAbilityRules::Validate(Loaded, VeyraProgression::RankCounts(UVeyraProgressionTuningSubsystem::Get()));
 	}
 	if (Errors.IsEmpty())
 	{

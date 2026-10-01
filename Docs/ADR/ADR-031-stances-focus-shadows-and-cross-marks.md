@@ -60,7 +60,7 @@ None of the following exists yet:
   - An innate ultimate starts at rank 1 and refuses every point.
   - Basic abilities keep no level gate; an innate ultimate needs none.
 - Ability tuning accepts one value per rank for any rank count a shape uses (1, 3, 5 and 6 here).
-- The HUD shows each slot's pips from the shape; an innate slot shows none. Bots rank through the component's check.
+- The HUD shows each slot's pips from the shape; an innate R shows its one rank, already filled. Bots rank through the component's check.
 
 ### 3. Stances (Abilities)
 

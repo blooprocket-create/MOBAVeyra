@@ -153,7 +153,7 @@ VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 	if (Errors.IsEmpty())
 	{
 		const FVeyraProgressionTuning& Progression = UVeyraProgressionTuningSubsystem::Get();
-		Errors = VeyraVanguardRules::Validate(Loaded, UVeyraAbilitiesTuningSubsystem::Get(), Progression.BasicAbilityMaxRank, Progression.UltimateMaxRank);
+		Errors = VeyraVanguardRules::Validate(Loaded, UVeyraAbilitiesTuningSubsystem::Get(), Progression);
 	}
 	if (Errors.IsEmpty())
 	{

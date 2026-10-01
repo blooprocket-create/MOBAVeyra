@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -46,6 +46,7 @@
         "e": ["cairn_immovable"],
         "r": ["cairn_burden_of_the_depths"]
       },
+      "rankShape": [],
       "passive": ["cairn_deep_foundation"]
     },
     "qazharr": {
@@ -93,6 +94,7 @@
         "e": ["qazharr_boarding_rush"],
         "r": ["qazharr_no_quarter"]
       },
+      "rankShape": [],
       "passive": ["qazharr_sea_dog"]
     },
     "oriel": {
@@ -140,6 +142,7 @@
         "e": ["oriel_mirror_veil"],
         "r": ["oriel_final_radiance"]
       },
+      "rankShape": [],
       "passive": ["oriel_gathering_light"]
     },
     "bryn": {
@@ -187,6 +190,7 @@
         "e": ["bryn_kickback"],
         "r": ["bryn_last_broadside"]
       },
+      "rankShape": [],
       "passive": ["bryn_breach"]
     },
     "test_vanguard": {
@@ -234,6 +238,7 @@
         "e": [],
         "r": []
       },
+      "rankShape": [],
       "passive": []
     },
     "kade": {
@@ -276,6 +281,7 @@
         "cleave": []
       },
       "abilities": { "q": ["kade_throughline"], "w": ["kade_sightline"], "e": ["kade_reposition"], "r": ["kade_kill_corridor"] },
+      "rankShape": [],
       "passive": ["kade_moving_target"]
     },
     "vera": {
@@ -318,6 +324,7 @@
         "cleave": []
       },
       "abilities": { "q": ["vera_range_found"], "w": ["vera_dig_in"], "e": ["vera_break_the_line"], "r": ["vera_the_last_volley"] },
+      "rankShape": [],
       "passive": ["vera_cadence"]
     },
     "mimzi": {
@@ -360,6 +367,7 @@
         "cleave": []
       },
       "abilities": { "q": ["mimzi_twinklebolt"], "w": ["mimzi_winkbomb"], "e": ["mimzi_now_you_see_me"], "r": ["mimzi_grand_prank"] },
+      "rankShape": [],
       "passive": ["mimzi_pocket_hex"]
     },
     "patch": {
@@ -402,6 +410,7 @@
         "cleave": []
       },
       "abilities": { "q": ["patch_bear_hug"], "w": ["patch_play_dead"], "e": ["patch_dont_leave_me"], "r": ["patch_the_thing_inside"] },
+      "rankShape": [],
       "passive": ["patch_haunted_attachment"]
     },
     "gorraveth": {
@@ -444,6 +453,7 @@
         "cleave": []
       },
       "abilities": { "q": ["gorraveth_rip_through"], "w": ["gorraveth_furnace_rake"], "e": ["gorraveth_ravine_bound"], "r": ["gorraveth_tear_them_apart"] },
+      "rankShape": [],
       "passive": ["gorraveth_no_time_to_bleed"]
     },
     "raska": {
@@ -486,6 +496,7 @@
         "cleave": []
       },
       "abilities": { "q": ["raska_breakneck"], "w": ["raska_countersteer"], "e": ["raska_kickstart"], "r": ["raska_no_brakes"] },
+      "rankShape": [],
       "passive": ["raska_redline"]
     },
     "moro": {
@@ -528,6 +539,7 @@
         "cleave": []
       },
       "abilities": { "q": ["moro_arc_bolt"], "w": ["moro_bursting_ground"], "e": ["moro_pounce"], "r": ["moro_wildstorm"] },
+      "rankShape": [],
       "passive": ["moro_wild_dominion"]
     },
     "korruk": {
@@ -570,6 +582,7 @@
         "cleave": []
       },
       "abilities": { "q": ["korruk_spineburst"], "w": ["korruk_pressure_mine"], "e": ["korruk_rupture"], "r": ["korruk_shatterfield"] },
+      "rankShape": [],
       "passive": ["korruk_embedded"]
     },
     "mavra": {
@@ -612,6 +625,7 @@
         "cleave": []
       },
       "abilities": { "q": ["mavra_caustic_line"], "w": ["mavra_flash_cure"], "e": ["mavra_pressure_leak"], "r": ["mavra_code_black"] },
+      "rankShape": [],
       "passive": ["mavra_hazard_exposure"]
     },
     "celandrine": {
@@ -654,6 +668,7 @@
         "cleave": []
       },
       "abilities": { "q": ["celandrine_doubletime"], "w": ["celandrine_briar_scatter"], "e": ["celandrine_sidebound"], "r": ["celandrine_open_road"] },
+      "rankShape": [],
       "passive": ["celandrine_never_break_stride"]
     },
     "aurelisse": {
@@ -696,6 +711,7 @@
         "cleave": []
       },
       "abilities": { "q": ["aurelisse_crosswind"], "w": ["aurelisse_rising_current"], "e": ["aurelisse_windward"], "r": ["aurelisse_room_to_breathe"] },
+      "rankShape": [],
       "passive": ["aurelisse_slipstream"]
     },
     "silt": {
@@ -738,6 +754,7 @@
         "cleave": []
       },
       "abilities": { "q": ["silt_scattershot"], "w": ["silt_sink"], "e": ["silt_sandstorm"], "r": ["silt_buried_alive"] },
+      "rankShape": [],
       "passive": ["silt_reclaim"]
     },
     "torr": {
@@ -780,6 +797,7 @@
         "cleave": []
       },
       "abilities": { "q": ["torr_battering_mass"], "w": ["torr_fortify"], "e": ["torr_anchor"], "r": ["torr_overcapacity"] },
+      "rankShape": [],
       "passive": ["torr_unreturned"]
     },
     "tavi": {
@@ -822,6 +840,7 @@
         "cleave": []
       },
       "abilities": { "q": ["tavi_catch"], "w": ["tavi_hide"], "e": ["tavi_tag"], "r": ["tavi_ready_or_not"] },
+      "rankShape": [],
       "passive": ["tavi_youre_it"]
     }
   },

@@ -77,6 +77,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ResourceColor = FLinearColor::Transparent;
 
+	/** The resource bar of a Vanguard that spends Focus (ADR-031 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor FocusColor = FLinearColor::Transparent;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor BarBackgroundColor = FLinearColor::Transparent;
 

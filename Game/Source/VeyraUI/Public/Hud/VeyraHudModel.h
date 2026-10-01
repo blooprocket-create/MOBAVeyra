@@ -27,6 +27,9 @@ struct FVeyraHudVitals
 
 	double Resource = 0.0;
 	double MaxResource = 0.0;
+
+	/** Whether the resource is Focus, which has its own colour (ADR-031 §1). */
+	bool bFocus = false;
 };
 
 /** A status on a unit, with the time it has left. */

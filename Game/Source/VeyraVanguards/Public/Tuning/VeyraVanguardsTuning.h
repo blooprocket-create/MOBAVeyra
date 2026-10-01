@@ -5,6 +5,7 @@
 #include "Attacks/VeyraBasicAttackTypes.h"
 #include "Content/VeyraContentId.h"
 #include "Progression/VeyraProgressionTypes.h"
+#include "Progression/VeyraProgressionTuning.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
 #include "Tuning/VeyraTuningProvenance.h"
@@ -15,11 +16,16 @@
 // The Vanguards domain's tuning, bound from Game/Tuning/Vanguards.json (ADR-006 §6, ADR-008 §2). The
 // schema holds every range; a 0 here only means "not loaded".
 
-/** What a Vanguard spends to cast (Combat Bible §27; ADR-008 §2). Only Mana arrives with M5. */
+/**
+ * What a Vanguard spends to cast (Combat Bible §27; ADR-008 §2). Every family is spent, regenerated and
+ * refunded through the same Resource attributes; Focus has no growth per level and its own colour on
+ * the HUD (ADR-031 §1).
+ */
 UENUM()
 enum class EVeyraResourceFamily : uint8
 {
 	Mana,
+	Focus,
 };
 
 /** Who may play a Vanguard (ADR-010 §6). */
@@ -99,6 +105,10 @@ struct FVeyraVanguardDefinition
 
 	UPROPERTY()
 	FVeyraVanguardKitTuning Abilities;
+
+	/** At most one: a rank shape from the Progression tuning, a documented exception to the standard ranks (ADR-031 §2). */
+	UPROPERTY()
+	TArray<FVeyraContentId> RankShape;
 
 	/** At most one passive, from one of the passive maps. */
 	UPROPERTY()
@@ -794,7 +804,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 14;
+	static constexpr int32 SchemaVersion = 15;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -857,11 +867,15 @@ namespace VeyraVanguardRules
 	/**
 	 * Problems with Tuning a schema cannot express, each a JSON pointer and a message: bodies, basic
 	 * attacks, abilities the Abilities tuning does not define or whose rank lists do not suit their
-	 * slot, passives no passive map defines, a passive ID in more than one map, and passive statuses
-	 * the Abilities tuning does not define.
+	 * slot in the Vanguard's rank shape, rank shapes Progression does not define, passives no passive
+	 * map defines, a passive ID in more than one map, and passive statuses the Abilities tuning does not
+	 * define.
 	 */
-	VEYRAVANGUARDS_API TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank,
-		int32 UltimateMaxRank);
+	VEYRAVANGUARDS_API TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities,
+		const FVeyraProgressionTuning& Progression);
+
+	/** The ranks Vanguard's kit takes: its rank shape from Progression, or the standard one (ADR-031 §2). */
+	VEYRAVANGUARDS_API FVeyraRankShape RankShapeOf(const FVeyraVanguardDefinition& Vanguard, const FVeyraProgressionTuning& Progression);
 
 	/** The Physical Power ratio Dead Reckoning adds for Banked units (Roster Bible §2): its ratio per step, by the steps banked. */
 	VEYRAVANGUARDS_API double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Banked);

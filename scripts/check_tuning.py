@@ -62,6 +62,7 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/vanguards/*/abilities/e/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Vanguards", "/vanguards/*/abilities/r/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
+    ("Vanguards", "/vanguards/*/rankShape/*", "Progression", ("/rankShapes",)),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
     ("Vanguards", "/movingTarget/*/trackedStatus", "Abilities", ("/statuses",)),

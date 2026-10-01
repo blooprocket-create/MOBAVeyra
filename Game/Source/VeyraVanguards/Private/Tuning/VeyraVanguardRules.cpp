@@ -2,6 +2,8 @@
 
 #include "Tuning/VeyraVanguardsTuning.h"
 
+#include "Progression/VeyraProgressionRules.h"
+
 namespace VeyraVanguardRules
 {
 double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Banked)
@@ -9,7 +11,13 @@ double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Ban
 	return Reckoning.StepUnits > 0.0 ? Reckoning.PhysicalPowerRatioPerStep * (Banked / Reckoning.StepUnits) : 0.0;
 }
 
-TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank, int32 UltimateMaxRank)
+FVeyraRankShape RankShapeOf(const FVeyraVanguardDefinition& Vanguard, const FVeyraProgressionTuning& Progression)
+{
+	const TOptional<FVeyraRankShape> Shape = Vanguard.RankShape.IsEmpty() ? TOptional<FVeyraRankShape>() : VeyraProgression::FindShape(Progression, Vanguard.RankShape[0]);
+	return Shape.IsSet() ? Shape.GetValue() : VeyraProgression::StandardShape(Progression);
+}
+
+TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, const FVeyraProgressionTuning& Progression)
 {
 	TArray<FString> Problems;
 	const auto Problem = [&Problems](const FString& Pointer, const FString& Message) { Problems.Add(FString::Printf(TEXT("%s: %s"), *Pointer, *Message)); };
@@ -377,8 +385,16 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 			const TArray<FVeyraContentId>* Ids;
 			int32 RankCount;
 		};
-		const FSlot Slots[] = { { TEXT("q"), &Vanguard.Abilities.Q, BasicAbilityMaxRank }, { TEXT("w"), &Vanguard.Abilities.W, BasicAbilityMaxRank },
-			{ TEXT("e"), &Vanguard.Abilities.E, BasicAbilityMaxRank }, { TEXT("r"), &Vanguard.Abilities.R, UltimateMaxRank } };
+		if (!Vanguard.RankShape.IsEmpty() && !Progression.RankShapes.Contains(Vanguard.RankShape[0]))
+		{
+			Problem(Pointer + TEXT("/rankShape/0"), FString::Printf(TEXT("names rank shape \"%s\", which Progression.json does not define"), *Vanguard.RankShape[0].ToString()));
+		}
+		// Each slot's abilities rank as the Vanguard's rank shape says (ADR-031 §2).
+		const FVeyraRankShape Shape = RankShapeOf(Vanguard, Progression);
+		const int32 BasicRanks = VeyraProgression::MaxRank(EVeyraAbilitySlot::Q, Progression, Shape);
+		const int32 UltimateRanks = VeyraProgression::MaxRank(EVeyraAbilitySlot::R, Progression, Shape);
+		const FSlot Slots[] = { { TEXT("q"), &Vanguard.Abilities.Q, BasicRanks }, { TEXT("w"), &Vanguard.Abilities.W, BasicRanks },
+			{ TEXT("e"), &Vanguard.Abilities.E, BasicRanks }, { TEXT("r"), &Vanguard.Abilities.R, UltimateRanks } };
 		TArray<FVeyraContentId, TInlineAllocator<4>> Kit;
 		for (const FSlot& Slot : Slots)
 		{

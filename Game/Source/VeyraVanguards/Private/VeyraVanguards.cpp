@@ -21,6 +21,7 @@
 #include "Passives/VeyraUnreturnedPassive.h"
 #include "Passives/VeyraWildDominionPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Shared/VeyraHitChainPassive.h"
 #include "Shared/VeyraMarkProcPassive.h"
 #include "Slots/VeyraAbilitySlot.h"
@@ -133,8 +134,10 @@ FVeyraPreparedVanguard PrepareCombatant(UAbilitySystemComponent& AbilitySystem, 
 			}
 		}
 	}
-	// Level 1, with that level's skill point; the player chooses the first rank.
-	Progression->Initialize(Definition->Growth, Definition->BaseStats.AttackSpeed);
+	// Level 1, with that level's skill point; the player chooses the first rank. A rank shape may
+	// learn R from the start (ADR-031 §2).
+	const FVeyraRankShape Shape = VeyraVanguardRules::RankShapeOf(*Definition, UVeyraProgressionTuningSubsystem::Get());
+	Progression->Initialize(Definition->Growth, Definition->BaseStats.AttackSpeed, &Shape);
 
 	FVeyraPreparedVanguard Prepared;
 	Prepared.bPrepared = true;

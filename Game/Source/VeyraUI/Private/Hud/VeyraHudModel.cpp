@@ -66,6 +66,9 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 	{
 		Vitals.Resource = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
 		Vitals.MaxResource = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute());
+		const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(AbilitySystem->GetOwner());
+		const FVeyraVanguardDefinition* Definition = Participant ? UVeyraVanguardsTuningSubsystem::FindVanguard(Participant->GetVanguardId()) : nullptr;
+		Vitals.bFocus = Definition && Definition->Resource == EVeyraResourceFamily::Focus;
 	}
 	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(PresentedUnitOf(Unit)))
 	{
@@ -185,7 +188,8 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	{
 		FVeyraHudSlot& Shown = Player.Slots.AddDefaulted_GetRef();
 		Shown.Slot = Slot;
-		Shown.MaxRank = VeyraProgression::MaxRank(Slot, Tuning);
+		// The unit's own rank shape, once it has one (ADR-031 §2).
+		Shown.MaxRank = Progression && Progression->IsInitialized() ? Progression->GetMaxRank(Slot) : VeyraProgression::MaxRank(Slot, Tuning);
 		if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr)
 		{
 			Shown.Ability = Entry->Ability;

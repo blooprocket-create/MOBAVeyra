@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "maxLevel": 18,
   "skillPointsPerLevel": 1,
   "basicAbilityMaxRank": 5,
@@ -8,5 +8,8 @@
   "experience": {
     "provenance": "Provisional",
     "toNextLevel": [280, 380, 480, 580, 680, 780, 880, 980, 1080, 1180, 1280, 1380, 1480, 1580, 1680, 1780, 1880]
+  },
+  "rankShapes": {
+    "dual_stance": { "basicAbilityMaxRank": 6, "ultimate": "Innate" }
   }
 }
