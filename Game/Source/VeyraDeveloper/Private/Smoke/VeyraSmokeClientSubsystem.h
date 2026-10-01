@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Containers/Ticker.h"
+#include "Content/VeyraContentId.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
@@ -116,7 +117,12 @@ private:
 	int32 KitSlotIndex = 0;
 	bool bKitCastPending = false;
 	int32 KitRejectionsBefore = 0;
+	/** The order refusals before the pending cast, and when the next try may go after a refusal. */
+	int32 KitOrderRejectionsBefore = 0;
+	double KitNextTryAt = 0.0;
 	int32 KitCastAttempts = 0;
+	/** The ability the pending cast asked for: once it commits, its slot may hold a follow-up instead. */
+	FVeyraContentId KitCastAbility;
 	/** -VeyraSmokeKit: when the slot being cast was first refused, in real seconds. */
 	TOptional<double> KitFirstRefusedAt;
 	FDelegateHandle NetworkFailureHandle;

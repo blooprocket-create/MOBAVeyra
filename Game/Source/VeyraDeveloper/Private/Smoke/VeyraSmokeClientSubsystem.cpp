@@ -47,6 +47,8 @@ namespace
 	// the Vanguards to close to a targeted ability's range, or for a state that holds a caster, such as
 	// Patch's Play Dead, to end.
 	constexpr double KitCastPatienceRealSeconds = 10.0;
+	// Between tries after a refusal: the server turns away orders that come too often.
+	constexpr double KitRetryRealSeconds = 0.25;
 
 	/** -VeyraSmokeKit: whether a refused cast may succeed if tried again a moment later. */
 	bool IsPassingKitRejection(EVeyraCastRejection Rejection)
@@ -434,10 +436,11 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 	}
 	if (bKitCastPending)
 	{
-		// A cast counts once the server starts its cooldown, at Commit (ADR-008 §4).
-		if (Cooldowns->GetRemainingSecondsNow(Entry->Ability) > 0.0)
+		// A cast counts once the server starts its cooldown, at Commit (ADR-008 §4). Its slot may hold a
+		// follow-up by then (ADR-030 §7), so it is the ability asked for that counts.
+		if (Cooldowns->GetRemainingSecondsNow(Loadout->CooldownIdOf(KitCastAbility)) > 0.0)
 		{
-			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s committed after %d attempt(s)."), *Entry->Ability.ToString(), KitCastAttempts);
+			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s committed after %d attempt(s)."), *KitCastAbility.ToString(), KitCastAttempts);
 			bKitCastPending = false;
 			KitCastAttempts = 0;
 			KitFirstRefusedAt.Reset();
@@ -464,7 +467,20 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			// Refused while something passing held the Vanguard, such as another cast or crowd control: try again.
 			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s refused (%s); trying again."), *Entry->Ability.ToString(), LexToString(Rejection));
 			bKitCastPending = false;
+			KitNextTryAt = Now + KitRetryRealSeconds;
 		}
+		else if (Controller.GetOrderRejectionCount() > KitOrderRejectionsBefore)
+		{
+			// The order itself was turned away, as one sent too often is: try again after a pause.
+			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: the order for %s was turned away (%s); trying again."), *KitCastAbility.ToString(),
+				LexToString(Controller.GetLastOrderRejection()));
+			bKitCastPending = false;
+			KitNextTryAt = FPlatformTime::Seconds() + KitRetryRealSeconds;
+		}
+		return;
+	}
+	if (FPlatformTime::Seconds() < KitNextTryAt)
+	{
 		return;
 	}
 	AActor* Target = FindNearestEnemyBody(Controller, GameState, Vanguard.GetActorLocation());
@@ -477,8 +493,10 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 	CastTarget.bHasLocation = true;
 	CastTarget.Location = Target->GetActorLocation();
 	KitRejectionsBefore = Controller.GetCastRejectionCount();
+	KitOrderRejectionsBefore = Controller.GetOrderRejectionCount();
 	++KitCastAttempts;
 	bKitCastPending = true;
+	KitCastAbility = Entry->Ability;
 	Controller.IssueCastOrder(Slot, CastTarget);
 }
 

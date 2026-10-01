@@ -2,6 +2,7 @@
 
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "CQTest.h"
+#include "Delivery/VeyraProjectile.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "EngineUtils.h"
 #include "Entities/VeyraPlacedMarker.h"
@@ -149,6 +150,36 @@ namespace VeyraVanguardsTests
 			Lethal.Components.Add({ EVeyraDamageType::TrueDamage, 100000.0 });
 			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Tavi->GetAbilitySystemComponent(), *Falling.GetAbilitySystemComponent(), Lethal)));
 			ASSERT_THAT(IsTrue(IsIt(Nearby) && !IsIt(Distant) && Passive->GetQuarry() == &Nearby, TEXT("the game goes on")));
+		}
+
+		TEST_METHOD(AfterCatchAndHideSheTagsItAndMayTagItAgain)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near * 3.0, 0.0, 0.0));
+			// Each learnt as it is cast: the helper starts her progression over every time.
+			FVeyraCastTarget On;
+			On.Actor = &Enemy;
+			On.bHasLocation = true;
+			On.Location = Enemy.GetActorLocation();
+			UAbilitySystemComponent& Own = *Tavi->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Tavi, EVeyraAbilitySlot::Q, Id(TEXT("tavi_catch")))));
+			const EVeyraCastRejection Catch = VeyraAbilities::TryCast(Own, EVeyraAbilitySlot::Q, On);
+			ASSERT_THAT(IsTrue(Catch == EVeyraCastRejection::None, FString::Printf(TEXT("Catch! refused: %s"), LexToString(Catch))));
+			// Past its windup; a world ticked for time alone moves no projectile, so the ball is flown by hand.
+			Wait(1.0);
+			for (TActorIterator<AVeyraProjectile> It(&Spawner.GetWorld()); It; ++It)
+			{
+				It->AdvanceBy(1.0);
+			}
+			ASSERT_THAT(IsTrue(IsIt(Enemy), TEXT("the ball marked It")));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Tavi, EVeyraAbilitySlot::W, Id(TEXT("tavi_hide")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(Own, EVeyraAbilitySlot::W, On) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Tavi, EVeyraAbilitySlot::E, Id(TEXT("tavi_tag")))));
+			const EVeyraCastRejection Tag = VeyraAbilities::TryCast(Own, EVeyraAbilitySlot::E, On);
+			ASSERT_THAT(IsTrue(Tag == EVeyraCastRejection::None, FString::Printf(TEXT("Tag! refused: %s"), LexToString(Tag))));
+			ASSERT_THAT(IsTrue(Tavi->GetVeyraMovement()->IsDashing(), TEXT("through It")));
+			const FVeyraLoadoutEntry* Again = Tavi->GetPlayerState()->FindComponentByClass<UVeyraAbilityLoadoutComponent>()->FindSlot(EVeyraAbilitySlot::E);
+			ASSERT_THAT(IsTrue(Again && Again->Ability == Id(TEXT("tavi_tag_again")), TEXT("It was It already, so Tag! may come again")));
 		}
 
 		TEST_METHOD(HideLeavesHerIllusionAndReadyOrNotStrikesAPlaymate)
