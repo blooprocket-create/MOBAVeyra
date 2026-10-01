@@ -113,6 +113,7 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/selfBuff/*/endPayload/*/status", "Abilities", ("/statuses",)),
     ("Abilities", "/area/*/originAbility/*", "Abilities", ("/area",)),
     ("Abilities", "/selfBuff/*/shields/*/absorbedReward/*/statuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/selfBuff/*/shieldHolds/*", "Abilities", ("/statuses",)),
     ("Abilities", "/selfBuff/*/aura/*/enemyStatuses/*", "Abilities", ("/statuses",)),
     # Marks a cast reads (ADR-030 §7, §8): the target it takes, the follow-up it opens, the shot that comes back.
     ("Abilities", "/*/*/cast/targetMustHold/*", "Abilities", ("/statuses",)),

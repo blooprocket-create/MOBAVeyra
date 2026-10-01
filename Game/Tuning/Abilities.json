@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 16,
+  "schemaVersion": 17,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -2204,7 +2204,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "qazharr_weather_it": {
       "provenance": "Provisional",
@@ -2244,7 +2246,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "oriel_mirror_veil": {
       "provenance": "Provisional",
@@ -2284,7 +2288,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "mend": {
       "provenance": "Provisional",
@@ -2311,7 +2317,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "vera_dig_in": {
       "provenance": "Provisional",
@@ -2338,7 +2346,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "vera_dig_in_volley": {
       "provenance": "Provisional",
@@ -2365,7 +2375,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "vera_the_last_volley": {
       "provenance": "Provisional",
@@ -2392,7 +2404,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "mimzi_now_you_see_me": {
       "provenance": "Provisional",
@@ -2419,7 +2433,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "patch_play_dead": {
       "provenance": "Provisional",
@@ -2446,7 +2462,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "patch_the_thing_inside": {
       "provenance": "Provisional",
@@ -2473,7 +2491,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "gorraveth_tear_them_apart": {
       "provenance": "Provisional",
@@ -2500,7 +2520,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "raska_countersteer": {
       "provenance": "Provisional",
@@ -2527,7 +2549,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "raska_countersteer_redlined": {
       "provenance": "Provisional",
@@ -2554,7 +2578,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "celandrine_open_road": {
       "provenance": "Provisional",
@@ -2581,7 +2607,9 @@
       "attackSecondaryImpact": [{ "seconds": 6, "impact": { "priority": 1, "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 80 }, "damage": [{ "type": "Physical", "amountByRank": [20, 40, 60], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [] } }],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "aurelisse_windward": {
       "provenance": "Provisional",
@@ -2621,7 +2649,9 @@
       "attackSecondaryImpact": [],
       "recipient": "CasterOrAlly",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "aurelisse_room_to_breathe": {
       "provenance": "Provisional",
@@ -2661,7 +2691,9 @@
       "attackSecondaryImpact": [],
       "recipient": "CasterOrAlly",
       "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "torr_fortify": {
       "provenance": "Provisional",
@@ -2688,7 +2720,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "torr_overcapacity": {
       "provenance": "Provisional",
@@ -2715,7 +2749,9 @@
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
-      "marker": []
+      "marker": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
     },
     "tavi_hide": {
       "provenance": "Provisional",
@@ -2764,7 +2800,9 @@
             }
           ]
         }
-      ]
+      ],
+      "shieldHolds": [],
+      "shieldEndZones": []
     }
   },
   "skillshot": {

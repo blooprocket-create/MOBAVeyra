@@ -1019,6 +1019,17 @@ struct FVeyraSelfBuffAbilityTuning
 	/** At most one: a placed marker it leaves where its caster stood (ADR-030 §5). */
 	UPROPERTY()
 	TArray<FVeyraBuffMarkerTuning> Marker;
+
+	/**
+	 * Status IDs its recipient holds while the buff's shield holds, lasting no longer than the shield, and
+	 * removed as it breaks or runs out (ADR-032 §3), as Tempered Shell's resistances. They need a shield.
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> ShieldHolds;
+
+	/** Innermost first: zones that land around its recipient as the buff's shield breaks or runs out (ADR-032 §3). They need a shield. */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> ShieldEndZones;
 };
 
 /** How a projectile flies (Combat Bible §13). */
@@ -1676,7 +1687,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 16;
+	static constexpr int32 SchemaVersion = 17;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

@@ -274,7 +274,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [16]
+      "enum": [17]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -488,7 +488,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones", "marker"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones", "marker", "shieldHolds", "shieldEndZones"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -610,6 +610,16 @@
                   "burstZones": { "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
                 }
               }
+            },
+            "shieldHolds": {
+              "description": "Status IDs the recipient holds while the buff's shield holds, lasting no longer than the shield, removed as it breaks or runs out (ADR-032 §3). They need a shield.",
+              "type": "array", "minItems": 0,
+              "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+            },
+            "shieldEndZones": {
+              "description": "Innermost first: zones that land around the recipient as the buff's shield breaks or runs out, the caster's (ADR-032 §3). They need a shield.",
+              "type": "array", "minItems": 0,
+              "items": { "$ref": "#/definitions/zone" }
             },
             "attackSecondaryImpact": {
               "description": "At most one: for a while after the cast, its recipient's basic attacks offer this secondary impact, as a piercing shot (ADR-027 §3).",

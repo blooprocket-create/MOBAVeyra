@@ -11,6 +11,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Delivery/VeyraAreaDelivery.h"
 #include "Delivery/VeyraEffectDelivery.h"
+#include "Delivery/VeyraShieldHoldSubsystem.h"
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -228,10 +229,28 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 		VeyraAreaDelivery::Resolve(*World, *Caster, Frame, VeyraAreaDelivery::PrepareZones(*Caster, Buff->RecipientZones, Cast.Rank),
 			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
+	UVeyraShieldHoldSubsystem* Holds = World->GetSubsystem<UVeyraShieldHoldSubsystem>();
+	const bool bShieldHolds = Holds && (!Buff->ShieldHolds.IsEmpty() || !Buff->ShieldEndZones.IsEmpty());
 	for (const FVeyraShieldTuning& Shield : Buff->Shields)
 	{
+		// A new grant takes over the watch on the one it replaces, which neither sheds nor bursts (ADR-032 §3).
+		if (bShieldHolds)
+		{
+			Holds->Release(*Caster, *Recipient, Shield.Id);
+		}
 		// §51: the amount is built from the rank and the caster's stats, then the shield is created.
-		VeyraEffectDelivery::GrantShield(*Caster, *Recipient, Shield, Cast.Rank);
+		const FActiveGameplayEffectHandle Granted = VeyraEffectDelivery::GrantShield(*Caster, *Recipient, Shield, Cast.Rank);
+		if (bShieldHolds && Granted.IsValid())
+		{
+			// What it holds lasts no longer than the shield, and goes with it.
+			TArray<FVeyraStatusSpec> Held = VeyraEffectDelivery::StatusSpecs(Buff->ShieldHolds, GetCasterLevel(*Caster));
+			for (FVeyraStatusSpec& Status : Held)
+			{
+				Status.DurationSeconds = FMath::Min(Status.DurationSeconds, Shield.DurationSeconds);
+			}
+			Holds->Hold(*Caster, *Recipient, Granted, Shield.Id, Held, VeyraAreaDelivery::PrepareZones(*Caster, Buff->ShieldEndZones, Cast.Rank),
+				FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+		}
 	}
 	for (const FVeyraAuraTuning& Aura : Buff->Aura)
 	{

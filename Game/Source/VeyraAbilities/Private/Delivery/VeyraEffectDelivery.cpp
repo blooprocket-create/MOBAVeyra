@@ -145,12 +145,13 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 	return Prepared;
 }
 
-bool GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holder, const FVeyraShieldTuning& Shield, int32 Rank)
+FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holder, const FVeyraShieldTuning& Shield, int32 Rank)
 {
 	const FVeyraShieldGrant Grant = ShieldGrant(Caster, Shield, Rank);
-	if (!VeyraCombat::GrantShield(Caster, Holder, Grant).IsValid())
+	const FActiveGameplayEffectHandle Granted = VeyraCombat::GrantShield(Caster, Holder, Grant);
+	if (!Granted.IsValid())
 	{
-		return false;
+		return Granted;
 	}
 	UWorld* World = Holder.GetWorld();
 	UVeyraShieldRewardSubsystem* Rewards = World ? World->GetSubsystem<UVeyraShieldRewardSubsystem>() : nullptr;
@@ -161,7 +162,7 @@ bool GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holde
 			Rewards->Watch(Caster, Holder, Grant, Reward);
 		}
 	}
-	return true;
+	return Granted;
 }
 
 FVeyraSecondaryImpact SecondaryImpact(const UAbilitySystemComponent& Caster, const FVeyraSecondaryImpactTuning& Impact, int32 Rank)

@@ -357,6 +357,13 @@ namespace
 				Problem(Pointer + TEXT("/recipient"), TEXT("an ally's buff has a cast range above 0, and no variants, end payload or early end"));
 			}
 			CheckZones(Pointer + TEXT("/recipientZones"), Buff.RecipientZones);
+			// What its shield holds, and its burst, follow the shield (ADR-032 §3).
+			if ((!Buff.ShieldHolds.IsEmpty() || !Buff.ShieldEndZones.IsEmpty()) && Buff.Shields.IsEmpty())
+			{
+				Problem(Pointer, TEXT("shieldHolds and shieldEndZones need a shield"));
+			}
+			CheckStatusIds(Pointer + TEXT("/shieldHolds"), Buff.ShieldHolds);
+			CheckZones(Pointer + TEXT("/shieldEndZones"), Buff.ShieldEndZones);
 			for (int32 Index = 0; Index < Buff.AttackSecondaryImpact.Num(); ++Index)
 			{
 				const FString ImpactPointer = FString::Printf(TEXT("%s/attackSecondaryImpact/%d"), *Pointer, Index);
