@@ -214,11 +214,15 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		if (const UVeyraProgressionComponent* Progression = Controller->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraProgressionComponent>();
 			Progression && Progression->GetLevel() >= KitLevel)
 		{
+			// A slot ranked already, as an R learnt from the start (ADR-031 §2), takes no point.
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
-				Controller->RequestRankUp(Slot);
+				if (Progression->GetRank(Slot) == 0)
+				{
+					Controller->RequestRankUp(Slot);
+				}
 			}
-			Advance(EStep::WaitForRanks, TEXT("reached the ultimate's level; asked to rank every ability"));
+			Advance(EStep::WaitForRanks, TEXT("reached the ultimate's level; asked to rank every ability not ranked yet"));
 		}
 		break;
 
