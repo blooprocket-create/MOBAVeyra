@@ -192,7 +192,7 @@
         "riverWidth": { "description": "How wide the river is drawn along its diagonal.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "lanes": { "description": "Top, Mid and Bottom, once each.", "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/definitions/lane" } },
         "denseFog": {
-          "description": "Team A's Dense Fog, the battleground's bush (Battleground Bible §11; Vision Bible §2; ADR-016 §4): circles wholly in Team A's half, at League's brush spots (ADR-016 §11). Team B's is their mirror; circles that touch are one fog volume.",
+          "description": "Team A's Dense Fog, the battleground's bush (Battleground Bible §11; Vision Bible §2; ADR-016 §4): circles wholly in Team A's half, at the spots ADR-016 §11 lists. Team B's is their mirror; circles that touch are one fog volume.",
           "type": "array",
           "minItems": 1,
           "items": {

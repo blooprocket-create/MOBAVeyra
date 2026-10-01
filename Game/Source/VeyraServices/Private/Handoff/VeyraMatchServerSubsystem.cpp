@@ -200,6 +200,11 @@ void UVeyraMatchServerSubsystem::Report(const FString& What, const FString& Path
 			if (!Response.IsTransient() || Attempt >= Settings.ReportAttempts)
 			{
 				UE_LOG(LogVeyraServices, Error, TEXT("VeyraHandoff: the %s report failed after %d attempt(s): %s."), *What, Attempt, *Response.Describe());
+				// What the backend refused, so the refusal can be read; a report carries no ticket or credential.
+				if (!Response.IsTransient())
+				{
+					UE_LOG(LogVeyraServices, Warning, TEXT("VeyraHandoff: the refused %s report: %s"), *What, *Body);
+				}
 				OnDone(false);
 				return;
 			}

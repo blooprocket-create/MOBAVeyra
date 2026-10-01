@@ -9,7 +9,9 @@
 #include "Misc/Optional.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Tools/VeyraVisionToolComponent.h"
+#include "Tuning/VeyraVanguardsTuning.h"
 #include "Statuses/VeyraStatusTypes.h"
+#include "Teams/VeyraTeam.h"
 #include "Teams/VeyraTeam.h"
 
 class AActor;
@@ -27,6 +29,9 @@ struct FVeyraHudVitals
 
 	double Resource = 0.0;
 	double MaxResource = 0.0;
+
+	/** Which resource it is: Focus and Charge have their own colours (ADR-031 §1; ADR-033 §1). */
+	EVeyraResourceFamily Family = EVeyraResourceFamily::Mana;
 };
 
 /** A status on a unit, with the time it has left. */
@@ -223,11 +228,24 @@ struct FVeyraHudVision
 
 namespace VeyraHud
 {
-	/** Unit's bars, from its Ability System Component and shields; nothing when it has neither Health nor an Ability System Component. */
-	VEYRAUI_API TOptional<FVeyraHudVitals> VitalsOf(const AActor& Unit);
+	/**
+	 * What a unit's bars and statuses show to a viewer on Viewer's side: a placed marker that presents as
+	 * its owner shows its owner's participant to its owner's enemies (ADR-030 §5); its owner's side, and
+	 * a viewer on no side, see it for what it is; anything else shows itself.
+	 */
+	VEYRAUI_API const AActor& PresentedUnitOf(const AActor& Unit, EVeyraTeam Viewer);
 
-	/** Unit's statuses in the order they were applied, each with its time left at ServerNow, in server gameplay time. */
-	VEYRAUI_API TArray<FVeyraHudStatus> StatusesOf(const AActor& Unit, double ServerNow);
+	/**
+	 * Unit's bars as Viewer's side sees them, from its Ability System Component and shields; nothing when it
+	 * has neither Health nor an Ability System Component.
+	 */
+	VEYRAUI_API TOptional<FVeyraHudVitals> VitalsOf(const AActor& Unit, EVeyraTeam Viewer);
+
+	/**
+	 * Unit's statuses as Viewer's side sees them, in the order they were applied, each with its time left at
+	 * ServerNow, in server gameplay time.
+	 */
+	VEYRAUI_API TArray<FVeyraHudStatus> StatusesOf(const AActor& Unit, double ServerNow, EVeyraTeam Viewer);
 
 	/** What Unit's bar says about it as a structure at ServerNow; nothing when it is not one. */
 	VEYRAUI_API TOptional<FVeyraHudStructure> StructureOf(const AActor& Unit, double ServerNow);

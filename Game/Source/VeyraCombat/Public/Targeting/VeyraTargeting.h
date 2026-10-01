@@ -63,9 +63,19 @@ namespace VeyraTargeting
 
 	/**
 	 * Whether Acquirer, a unit or anything with a side, may acquire Target as a target now: whether
-	 * the world's vision lets it see Target (ADR-016 §2). A world without vision allows every target.
+	 * the world's vision lets it see Target (ADR-016 §2), and, for an enemy, whether Target is not
+	 * Untargetable (Combat Bible §10; ADR-030 §2). A world without vision allows every visible target.
 	 */
 	VEYRACOMBAT_API bool CanAcquire(const UObject* Acquirer, const AActor& Target);
+
+	/** Whether Unit holds an Untargetable status now (Combat Bible §10). */
+	VEYRACOMBAT_API bool IsUntargetable(const AActor& Unit);
+
+	/**
+	 * Whether Unit is Source's enemy and Source's new hits may land on it: an Untargetable unit takes no
+	 * skillshot, area, cleave or contact of its enemies' (Combat Bible §10; ADR-030 §2).
+	 */
+	VEYRACOMBAT_API bool CanHitEnemy(const UObject* Source, const AActor& Unit);
 
 	/** Distance between two units' collision edges on the ground plane, never below 0 (Combat Bible §40). */
 	VEYRACOMBAT_API double EdgeToEdgeDistance(const AActor& A, const AActor& B);

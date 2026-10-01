@@ -14,7 +14,8 @@ namespace VeyraVisionTests
 		{
 			const FVeyraVisionTuning& Tuning = UVeyraVisionTuningSubsystem::Get();
 			ASSERT_THAT(IsTrue(Tuning.Update.UpdateSeconds > 0.0));
-			ASSERT_THAT(IsTrue(Tuning.Sight.Vanguard > 0.0 && Tuning.Sight.Fluxborn > 0.0 && Tuning.Sight.Structure > 0.0 && Tuning.Sight.Ward > 0.0));
+			ASSERT_THAT(IsTrue(Tuning.Sight.Vanguard > 0.0 && Tuning.Sight.Fluxborn > 0.0 && Tuning.Sight.Structure > 0.0 && Tuning.Sight.Ward > 0.0
+				&& Tuning.Sight.Companion > 0.0));
 			// Canon: a Vanguard carries three ward charges (Vision Bible §4).
 			constexpr int32 CanonWardCharges = 3;
 			ASSERT_THAT(IsTrue(Tuning.WardCharges.Max == CanonWardCharges && Tuning.WardCharges.Provenance == EVeyraTuningProvenance::Canon));

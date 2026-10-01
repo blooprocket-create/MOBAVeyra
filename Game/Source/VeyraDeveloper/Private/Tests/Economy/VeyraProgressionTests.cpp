@@ -101,6 +101,44 @@ namespace VeyraEconomyTests
 			ASSERT_THAT(IsTrue(VeyraProgression::Validate(TestProgressionTuning()).IsEmpty()));
 		}
 
+		TEST_METHOD(ARankShapeMovesRanksButSpendsTheStandardTotal)
+		{
+			// The standard 5 + 5 + 5 + 3 spends 18 points; Q, W and E to 6 with an innate R spends 18 too
+			// (ADR-031 §2). Test fixture values.
+			FVeyraProgressionTuning Shaped = TestProgressionTuning();
+			Shaped.BasicAbilityMaxRank = 5;
+			Shaped.UltimateMaxRank = 3;
+			Shaped.UltimateRankLevels = { 2, 3, 4 };
+			FVeyraRankShapeTuning DualStance;
+			DualStance.BasicAbilityMaxRank = 6;
+			DualStance.Ultimate = EVeyraUltimateRanks::Innate;
+			Shaped.RankShapes.Add(FVeyraContentId::FromText(TEXT("dual_stance")).GetValue(), DualStance);
+			ASSERT_THAT(IsTrue(VeyraProgression::Validate(Shaped).IsEmpty(), FString::Join(VeyraProgression::Validate(Shaped), TEXT(" | "))));
+			ASSERT_THAT(IsTrue(VeyraProgression::RankCounts(Shaped).Contains(6) && VeyraProgression::RankCounts(Shaped).Contains(1)));
+
+			FVeyraRankShapeTuning Greedy = DualStance;
+			Greedy.BasicAbilityMaxRank = 7;
+			Shaped.RankShapes.Add(FVeyraContentId::FromText(TEXT("greedy")).GetValue(), Greedy);
+			const TArray<FString> Problems = VeyraProgression::Validate(Shaped);
+			ASSERT_THAT(IsTrue(Problems.ContainsByPredicate([](const FString& Problem) { return Problem.StartsWith(TEXT("/rankShapes/greedy:")); }),
+				FString::Join(Problems, TEXT(" | "))));
+		}
+
+		TEST_METHOD(AnInnateUltimateHoldsRankOneAndBasicsReachTheShapesTop)
+		{
+			FVeyraRankShape Shape;
+			Shape.BasicAbilityMaxRank = 4;
+			Shape.bUltimateInnate = true;
+			ASSERT_THAT(AreEqual(1, VeyraProgression::StartingRank(EVeyraAbilitySlot::R, Shape)));
+			ASSERT_THAT(AreEqual(0, VeyraProgression::StartingRank(EVeyraAbilitySlot::Q, Shape)));
+			ASSERT_THAT(AreEqual(1, VeyraProgression::MaxRank(EVeyraAbilitySlot::R, Tuning, Shape)));
+			ASSERT_THAT(IsTrue(VeyraProgression::CheckRankUp(EVeyraAbilitySlot::R, 1, 5, 1, Tuning, Shape) == EVeyraRankRefusal::MaxRank));
+			// Past the standard top rank of 3, up to the shape's 4.
+			ASSERT_THAT(IsTrue(VeyraProgression::CheckRankUp(EVeyraAbilitySlot::Q, 3, 5, 1, Tuning, Shape) == EVeyraRankRefusal::None));
+			ASSERT_THAT(IsTrue(VeyraProgression::CheckRankUp(EVeyraAbilitySlot::Q, 4, 5, 1, Tuning, Shape) == EVeyraRankRefusal::MaxRank));
+			ASSERT_THAT(IsTrue(VeyraProgression::CheckRankUp(EVeyraAbilitySlot::Q, 3, 5, 1, Tuning) == EVeyraRankRefusal::MaxRank));
+		}
+
 		TEST_METHOD(TheCommittedFileLoads)
 		{
 			const UVeyraProgressionTuningSubsystem* Subsystem = GEngine->GetEngineSubsystem<UVeyraProgressionTuningSubsystem>();
@@ -181,6 +219,21 @@ namespace VeyraEconomyTests
 			ASSERT_THAT(AreEqual(1, Progression->GetRank(EVeyraAbilitySlot::Q)));
 			ASSERT_THAT(AreEqual(0, Progression->GetUnspentSkillPoints()));
 			ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::W) == EVeyraRankRefusal::NoSkillPoint));
+		}
+
+		TEST_METHOD(AnInnateUltimateStartsLearntAndTakesNoPoint)
+		{
+			FVeyraRankShape Shape;
+			Shape.BasicAbilityMaxRank = 4;
+			Shape.bUltimateInnate = true;
+			Progression->Initialize(FVeyraStatGrowth(), 0.0, &Shape);
+			ASSERT_THAT(AreEqual(1, Progression->GetRank(EVeyraAbilitySlot::R)));
+			ASSERT_THAT(AreEqual(4, Progression->GetMaxRank(EVeyraAbilitySlot::Q)));
+			ASSERT_THAT(AreEqual(1, Progression->GetMaxRank(EVeyraAbilitySlot::R)));
+			ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::R) == EVeyraRankRefusal::MaxRank));
+			// The point it kept goes elsewhere.
+			ASSERT_THAT(AreEqual(1, Progression->GetUnspentSkillPoints()));
+			ASSERT_THAT(IsTrue(Progression->CheckRankUp(EVeyraAbilitySlot::E) == EVeyraRankRefusal::None));
 		}
 
 		TEST_METHOD(ItemSlotsTakeNoRanks)

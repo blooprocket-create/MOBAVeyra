@@ -1,6 +1,6 @@
 # ADR-024: Player settings, their two stores, and the Settings screen
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M18 pull request that adds it.
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M18 pull request that adds it.
 **Date:** 2026-09-30
 **Related:**
 - [Settings & Accessibility Bible](../Design/Veyra_Settings_Accessibility_Bible_v0.1.md): §6 (autosave, resets, Undo, in-match editing), §7 (account versus device), §8 and §12.3 (graphics, display, camera), §13 (the menu).
@@ -133,17 +133,17 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
 - **Keep/Revert** timing, on an injected clock.
 - **A smoke** (`-Flow Settings`): change the display mode and a binding, restart, and find both kept.
 
-### 9. League answers where canon is open (Settings Bible §9, §14.6: "do not silently invent")
+### 9. Provisional answers where canon is open (Settings Bible §9, §14.6: "do not silently invent")
 
 Every value here is Provisional data in `Settings.json`.
 
-1. **Speed sliders** show 0–100 and map to 0.5× to 2× the developer default, with 50 as the default, as League's camera speed slider does: evenly in ratio, so each step multiplies the speed alike (`UVeyraCameraSettings::SpeedSettingSlowest` and `SpeedSettingFastest`).
+1. **Speed sliders** show 0–100 and map to 0.5× to 2× the developer default, with 50 as the default, evenly in ratio, so each step multiplies the speed alike (`UVeyraCameraSettings::SpeedSettingSlowest` and `SpeedSettingFastest`).
 2. **Edge zones** Narrow / Standard / Wide are 6 / 12 / 24 pixels. **Edge delays** Immediate / Short / Long are 0 / 0.15 / 0.3 s (`EdgeZonePixels` and `EdgeDelaySeconds` in `DefaultGame.ini`).
-3. **The camera key's mode is kept.** Pressing it sets the Default Camera Mode, so the next match starts where the player left it, as League keeps its camera lock.
+3. **The camera key's mode is kept.** Pressing it sets the Default Camera Mode, so the next match starts where the player left it.
 4. **HUD scales** run 50–150% in steps of 5, with 100% as the default. Minimap scale and icon scale use the same range.
 5. **Frame caps** are 30 / 60 / 120 / 144 / 240 / Uncapped, with the foreground default Uncapped and the background default 30 (SET-109). Render scale runs 50–100%, default 100%.
 6. **The account document** is at most 32 KiB (`Backend/config settings.maxDocumentBytes`), under the backend's 64 KiB request body limit so a document that fits can always be sent. The backend keeps the latest revision only.
-7. **The conflict choice** is asked once after sign-in, before the shell shows, like League's settings conflict dialog.
+7. **The conflict choice** is asked once after sign-in, before the shell shows.
 
 ## Consequences
 

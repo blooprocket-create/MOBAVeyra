@@ -52,6 +52,24 @@ namespace VeyraBotAbilitiesTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ride->Cast.WindupSeconds, Rides->LeadSeconds)));
 		}
 
+		TEST_METHOD(AnAreasFogCountsInItsReachAndAPointAreaIsMarked)
+		{
+			// A corridor of fog from its caster reaches as far as the corridor runs, past its small zone.
+			const FVeyraContentId CorridorId = ProfileId(TEXT("sylra_through_the_white"));
+			const FVeyraAreaAbilityTuning* Corridor = UVeyraAbilitiesTuningSubsystem::FindArea(CorridorId);
+			ASSERT_THAT(IsTrue(Corridor && Corridor->Fog.Num() == 1 && Corridor->Origin == EVeyraAreaOrigin::Caster));
+			const TOptional<FVeyraBotAbilityProfile> Runs = VeyraBotAbilities::ProfileOf(CorridorId, AnyAttackRange);
+			ASSERT_THAT(IsTrue(Runs.IsSet() && FMath::IsNearlyEqual(Runs->Reach, Corridor->Fog[0].Length), FString::Printf(TEXT("%g"), Runs.IsSet() ? Runs->Reach : -1.0)));
+			ASSERT_THAT(IsFalse(Runs->bAreaAtPoint));
+			// A circle of fog at its point reaches its cast range and the circle.
+			const FVeyraContentId MistId = ProfileId(TEXT("sylra_lay_the_mist"));
+			const FVeyraAreaAbilityTuning* Mist = UVeyraAbilitiesTuningSubsystem::FindArea(MistId);
+			ASSERT_THAT(IsTrue(Mist && Mist->Fog.Num() == 1 && Mist->Origin == EVeyraAreaOrigin::TargetPoint));
+			const TOptional<FVeyraBotAbilityProfile> Lays = VeyraBotAbilities::ProfileOf(MistId, AnyAttackRange);
+			ASSERT_THAT(IsTrue(Lays.IsSet() && Lays->bAreaAtPoint));
+			ASSERT_THAT(IsTrue(Lays->Reach >= Mist->Cast.CastRange + Mist->Fog[0].Radius));
+		}
+
 		TEST_METHOD(ADashReachesAsFarAsItsLandingsAreasReach)
 		{
 			const FVeyraContentId DashId = ProfileId(TEXT("raska_last_exit"));

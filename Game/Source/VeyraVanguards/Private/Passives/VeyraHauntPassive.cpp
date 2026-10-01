@@ -44,7 +44,8 @@ void UVeyraHauntPassive::OnHostileDamage(const FVeyraHostileDamageEvent& Event)
 {
 	UAbilitySystemComponent* Owner = OwnerAbilitySystem.Get();
 	const FVeyraHauntTuning* Tuning = UVeyraVanguardsTuningSubsystem::FindHaunt(PassiveId);
-	UAbilitySystemComponent* Source = Event.Source.Get();
+	// A companion's damage is its owner's (ADR-034 §1).
+	UAbilitySystemComponent* Source = Event.Responsible.IsValid() ? Event.Responsible.Get() : Event.Source.Get();
 	UAbilitySystemComponent* Target = Event.Target.Get();
 	const UWorld* World = GetWorld();
 	const AActor* Body = Owner ? Owner->GetAvatarActor() : nullptr;

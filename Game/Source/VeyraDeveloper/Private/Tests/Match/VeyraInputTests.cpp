@@ -105,7 +105,7 @@ namespace VeyraMatchTests
 				ASSERT_THAT(IsTrue(Keys[Index].IsValid()));
 				ASSERT_THAT(IsFalse(Keys.Find(Keys[Index]) != Index, TEXT("two actions share a default key")));
 			}
-			// League's layout: the items around the vision tool's 4 (ADR-016 §6).
+			// The items around the vision tool's 4 (ADR-016 §6).
 			ASSERT_THAT(IsTrue(Settings.VisionToolKey == EKeys::Four && Settings.Item4Key == EKeys::Five && Settings.Item6Key == EKeys::Seven));
 			ASSERT_THAT(IsTrue(Settings.HeldMoveOrderIntervalSeconds > 0.0f));
 			// A held move order repeats no faster than the server accepts orders.

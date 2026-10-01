@@ -478,7 +478,8 @@ void UVeyraBattlegroundSubsystem::OnFluxbornDied(AVeyraFluxborn& Unit, const FVe
 
 void UVeyraBattlegroundSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Event)
 {
-	const UAbilitySystemComponent* Source = Event.Source.Get();
+	// An owned unit's damage draws aggression to its owner, while its owner is in range (Combat Bible §33; ADR-034 §1).
+	const UAbilitySystemComponent* Source = Event.Responsible.IsValid() ? Event.Responsible.Get() : Event.Source.Get();
 	const UAbilitySystemComponent* Target = Event.Target.Get();
 	AActor* Attacker = Source ? Source->GetAvatarActor() : nullptr;
 	const AActor* Defender = Target ? Target->GetAvatarActor() : nullptr;

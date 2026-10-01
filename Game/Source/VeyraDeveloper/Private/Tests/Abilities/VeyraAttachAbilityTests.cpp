@@ -96,6 +96,29 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(QHolds(TEXT("test_throw")), TEXT("its recast is ready")));
 		}
 
+		TEST_METHOD(ATargetThatTurnsUntargetableBeforeTheGrabLandsIsMissed)
+		{
+			constexpr double Windup = 0.3;
+			constexpr float Step = 0.05f;
+			Tuning.Attach.FindChecked(ArchetypeTestId(TEXT("test_hug"))).Cast.WindupSeconds = Windup;
+			FVeyraStatusSpec Gone;
+			Gone.Id = ArchetypeTestId(TEXT("test_gone"));
+			Gone.Kind = EVeyraStatusKind::Untargetable;
+			Gone.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(Hugging() == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Host->GetAbilitySystemComponent(), *Host->GetAbilitySystemComponent(), Gone)));
+			UWorld& World = Spawner.GetWorld();
+			const double Until = World.GetTimeSeconds() + Windup * 2.0;
+			while (World.GetTimeSeconds() < Until)
+			{
+				World.Tick(LEVELTICK_TimeOnly, Step);
+				++GFrameCounter;
+				World.GetTimerManager().Tick(Step);
+			}
+			ASSERT_THAT(IsFalse(Caster->GetVeyraMovement()->IsAttached(), TEXT("nothing to hold on to")));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::HealthLost(*Host) == 0.0 && !FArchetypeTestWorld::Has(*Host, TEXT("test_hugged")), TEXT("and no hit")));
+		}
+
 		TEST_METHOD(ASpellShieldBlocksTheWholeGrab)
 		{
 			FVeyraStatusSpec Ward;

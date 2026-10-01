@@ -27,7 +27,7 @@ namespace VeyraBotsTests
 			const FVeyraBotsTuning& Tuning = UVeyraBotsTuningSubsystem::Get();
 			ASSERT_THAT(IsTrue(VeyraBots::Validate(Tuning).IsEmpty()));
 			ASSERT_THAT(IsFalse(Tuning.Seats.IsEmpty()));
-			// League's five roles: a seat of five plays the jungle (ADR-014 §7), and takes the spell that finishes camps (ADR-015 §8).
+			// Five roles: a seat of five plays the jungle (ADR-014 §7), and takes the spell that finishes camps (ADR-015 §8).
 			const FVeyraBotSeatTuning* Jungler = Tuning.Seats.FindByPredicate([](const FVeyraBotSeatTuning& Seat) { return Seat.Role == EVeyraBotRole::Jungle; });
 			ASSERT_THAT(IsNotNull(Jungler));
 			ASSERT_THAT(IsTrue(Jungler->FluxSpells.ContainsByPredicate([&Tuning](const FVeyraContentId& Spell) {
@@ -36,7 +36,7 @@ namespace VeyraBotsTests
 			})));
 			// A seat's spells come off the roster, and each has a use.
 			FVeyraBotsTuning Broken = Tuning;
-			Broken.Seats[0].FluxSpells = { FVeyraContentId::FromText(TEXT("ignite")).GetValue() };
+			Broken.Seats[0].FluxSpells = { FVeyraContentId::FromText(TEXT("no_such_spell")).GetValue() };
 			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/seats/0/fluxSpells"))));
 			Broken = Tuning;
 			Broken.FluxSpells.Remove(Tuning.Seats[0].FluxSpells[0]);
@@ -48,7 +48,7 @@ namespace VeyraBotsTests
 					ASSERT_THAT(IsNotNull(UVeyraBotsTuningSubsystem::FindVanguard(Pair.Key), *Pair.Key.ToString()));
 				}
 			}
-			// League's jungler and support ward: the warding seats are seats, each named once (ADR-016 §7).
+			// The jungler and support ward: the warding seats are seats, each named once (ADR-016 §7).
 			ASSERT_THAT(IsTrue(Tuning.Warding.Seats.ContainsByPredicate([&Tuning](int32 Seat) { return Tuning.Seats[Seat].Role == EVeyraBotRole::Jungle; })));
 			Broken = Tuning;
 			Broken.Warding.Seats.Add(Tuning.Seats.Num());

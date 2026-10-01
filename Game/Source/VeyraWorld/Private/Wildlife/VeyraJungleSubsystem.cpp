@@ -185,12 +185,13 @@ void UVeyraJungleSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Even
 	{
 		return;
 	}
-	// A Vanguard that hurt it helps clear its camp (ADR-018 §3).
-	if (Camps.IsValidIndex(Hurt->GetCamp()) && VeyraUnits::IsVanguard(Source->GetOwner()))
+	// A Vanguard that hurt it helps clear its camp (ADR-018 §3), through its companion's hits too (ADR-034 §1).
+	const TWeakObjectPtr<UAbilitySystemComponent> Responsible = Event.Responsible.IsValid() ? Event.Responsible : Event.Source;
+	if (Camps.IsValidIndex(Hurt->GetCamp()) && Responsible.IsValid() && VeyraUnits::IsVanguard(Responsible->GetOwner()))
 	{
-		Camps[Hurt->GetCamp()].Contributors.AddUnique(Event.Source);
+		Camps[Hurt->GetCamp()].Contributors.AddUnique(Responsible);
 	}
-	// The whole camp answers, as League's camps do.
+	// The whole camp answers whoever hit it, a companion itself.
 	for (AVeyraWildlife* Creature : GetCreatures(Hurt->GetCamp()))
 	{
 		if (AVeyraWildlifeController* Controller = Cast<AVeyraWildlifeController>(Creature->GetController()))

@@ -65,7 +65,7 @@
         "provenance": { "$ref": "#/definitions/provenance" },
         "inventorySlots": { "description": "Normal inventory slots, shared by equipment, Boots, components and consumables (§10: six).", "type": "integer", "minimum": 1 },
         "resaleFraction": { "description": "What selling a used or carried-away item returns, as a fraction of the Gold spent on its present form (§12: 70%).", "type": "number", "minimum": 0, "maximum": 1 },
-        "uniqueFromTier": { "description": "Items of this tier and above may be held once each (League's unique legendaries; ADR-012 §9).", "type": "integer", "minimum": 1 },
+        "uniqueFromTier": { "description": "Items of this tier and above may be held once each (ADR-012 §9).", "type": "integer", "minimum": 1 },
         "maxBoots": { "description": "The most Boots one Vanguard may hold (ADR-012 §9).", "type": "integer", "minimum": 1 }
       }
     },

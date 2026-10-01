@@ -51,3 +51,9 @@ Game/Source/VeyraServices/Schemas/** text eol=lf
 # The Go backend keeps LF line endings on every platform, so gofmt, which runs in a Linux
 # container (Backend/Check.ps1), sees the files exactly as they are committed.
 Backend/** text eol=lf
+
+# Data the game and the checks read byte for byte: always LF, whatever core.autocrlf says, so a
+# Windows checkout never hands the settings loader or the tuning check a carriage return.
+Game/Settings/*.json text eol=lf
+Game/Tuning/*.json text eol=lf
+Game/Tuning/Schemas/*.json text eol=lf

@@ -2,22 +2,28 @@
 
 #include "Abilities/VeyraGameplayAbility.h"
 
+#include "Movement/VeyraMovementComponent.h"
+#include "Attributes/VeyraResourceSet.h"
 #include "Units/VeyraUnit.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Casting/VeyraCastSubsystem.h"
+#include "Companions/VeyraCompanionSubsystem.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Loadout/VeyraFollowUpSubsystem.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
+#include "VeyraAbilitiesVerbs.h"
 #include "VeyraCombatVerbs.h"
 
 namespace
@@ -49,6 +55,21 @@ namespace
 			return EVeyraCooldownHaste::Fixed;
 		}
 		return Entry && VeyraAbilitySlots::IsItemSlot(Entry->Slot) ? EVeyraCooldownHaste::Item : EVeyraCooldownHaste::Ability;
+	}
+
+	/** What Ability's cooldown is scaled by now, for each status it names that its caster holds from itself (ADR-034 §8). */
+	double CooldownScaleOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+	{
+		const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), Ability);
+		double Scale = 1.0;
+		for (const FVeyraCooldownWhileTuning& While : Cast ? Cast->CooldownWhile : TArray<FVeyraCooldownWhileTuning>())
+		{
+			if (VeyraCombat::HasStatusFrom(Caster.GetAvatarActor(), While.Status, Caster))
+			{
+				Scale *= While.Multiplier;
+			}
+		}
+		return Scale;
 	}
 
 	/** The ID Ability cools down under: its slot's own ability's, for a variant that shares it (ADR-018 §1). */
@@ -106,6 +127,12 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::None;
 	}
+	// A dash of its own under way holds back another move, unless that one takes over (ADR-031 §7).
+	const UVeyraMovementComponent* Movement = Avatar->FindComponentByClass<UVeyraMovementComponent>();
+	if (Movement && Movement->IsDashing() && MovesCaster(Ability) && !TakesOverDash(Ability))
+	{
+		return EVeyraCastRejection::Busy;
+	}
 	const int32 Rank = GetRank(Caster, Ability);
 	if (Rank < 1)
 	{
@@ -121,11 +148,42 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::OnCooldown;
 	}
-	if (!VeyraCombat::CanAffordResource(Caster, GetResourceCost(Ability, Rank)))
+	// It may need a least of the resource held, as well as its cost (ADR-033 §3).
+	const FVeyraCastTuning* Costs = GetCastTuning(Ability);
+	const double Held = Caster.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+	if (!VeyraCombat::CanAffordResource(Caster, CostFor(Caster, Ability, Rank)) || (Costs && !Costs->MinimumResource.IsEmpty() && Held < Costs->MinimumResource[0]))
 	{
 		return EVeyraCastRejection::InsufficientResource;
 	}
-	return CheckTarget(*Avatar, Ability, Target);
+	// It may need its caster's companion on the battleground (ADR-034 §8).
+	const UVeyraCompanionSubsystem* Companions = Caster.GetWorld() ? Caster.GetWorld()->GetSubsystem<UVeyraCompanionSubsystem>() : nullptr;
+	if (Costs && Costs->NeedsCompanion == EVeyraCompanionNeed::Living && !(Companions && Companions->FindLiving(Caster)))
+	{
+		return EVeyraCastRejection::NoCompanion;
+	}
+	// A status its caster holds may hold it back, as a ride's lock holds back a change of stance (ADR-035 §2).
+	const UVeyraStatusComponent* Statuses = FindBesideAbilitySystem<UVeyraStatusComponent>(Caster);
+	if (Costs && Statuses && Statuses->GetLedger().Entries.ContainsByPredicate([Costs](const FVeyraStatusEntry& Entry) { return Costs->RefusedWhile.Contains(Entry.Id); }))
+	{
+		return EVeyraCastRejection::HeldBack;
+	}
+	const EVeyraCastRejection TargetRejection = CheckTarget(*Avatar, Ability, Target);
+	if (TargetRejection != EVeyraCastRejection::None)
+	{
+		return TargetRejection;
+	}
+	// A follow-up may take only a target that holds its caster's mark, as Tavi's second Tag! takes only It (ADR-030 §7).
+	const FVeyraCastTuning* CastTuning = GetCastTuning(Ability);
+	if (CastTuning && !CastTuning->TargetMustHold.IsEmpty() && !VeyraCombat::HasStatusFrom(Target.Actor.Get(), CastTuning->TargetMustHold[0], Caster))
+	{
+		return EVeyraCastRejection::InvalidTarget;
+	}
+	// Nor one locked out by an earlier cast, as Passing Step's lockout keeps it off a unit for a while (ADR-031 §8).
+	if (CastTuning && !CastTuning->TargetMustNotHold.IsEmpty() && VeyraCombat::HasStatusFrom(Target.Actor.Get(), CastTuning->TargetMustNotHold[0], Caster))
+	{
+		return EVeyraCastRejection::InvalidTarget;
+	}
+	return EVeyraCastRejection::None;
 }
 
 EVeyraCastRejection UVeyraGameplayAbility::CheckTarget(const AActor& /*Caster*/, const FVeyraContentId& /*Ability*/, const FVeyraCastTarget& /*Target*/) const
@@ -166,7 +224,7 @@ void UVeyraGameplayAbility::NoteCastStarted(UAbilitySystemComponent& Caster, con
 	}
 	if (bOffensive)
 	{
-		VeyraCombat::EndCamouflage(Caster);
+		VeyraCombat::EndStealth(Caster);
 	}
 }
 
@@ -195,8 +253,70 @@ void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, c
 		FollowUp.DurationSeconds = Recast.WindowSeconds;
 		FollowUp.Use = EVeyraOverrideUse::Once;
 		FollowUp.bCastOnExpiry = Recast.OnExpiry == EVeyraRecastExpiry::Cast;
-		Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+		// It belongs to the slot's own ability: in another stance it waits unseen (ADR-031 §3).
+		if (const FVeyraLoadoutEntry* Own = Loadout->FindOwnSlot(Slot.GetValue()))
+		{
+			FollowUp.Over = Own->Ability;
+		}
+		switch (Recast.OpensWhen)
+		{
+		case EVeyraRecastCondition::Always:
+			// One that arms opens a while after this Commit (ADR-032 §5).
+			if (UVeyraFollowUpSubsystem* FollowUps = Recast.ArmingSeconds > 0.0 && GetWorld() ? GetWorld()->GetSubsystem<UVeyraFollowUpSubsystem>() : nullptr)
+			{
+				FollowUps->OpenAfter(Caster, Slot.GetValue(), FollowUp, Ability, Recast.ArmingSeconds);
+			}
+			else
+			{
+				Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+			}
+			break;
+		case EVeyraRecastCondition::TargetHeld:
+			// Judged at Commit, before this cast lands anything of its own (ADR-030 §7).
+			if (!Recast.HeldStatus.IsEmpty() && VeyraCombat::HasStatusFrom(Target, Recast.HeldStatus[0], Caster))
+			{
+				Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+			}
+			break;
+		case EVeyraRecastCondition::TargetFalls:
+			if (Target && GetWorld())
+			{
+				OpenOnFall(*GetWorld(), *Loadout, Caster, *Target, Slot.GetValue(), FollowUp, Recast.FallsWithinSeconds);
+			}
+			break;
+		}
 	}
+}
+
+void UVeyraGameplayAbility::OpenOnFall(UWorld& World, UVeyraAbilityLoadoutComponent& Loadout, UAbilitySystemComponent& Caster, const AActor& Target,
+	EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, double WithinSeconds)
+{
+	UVeyraCombatEventSubsystem* Events = World.GetSubsystem<UVeyraCombatEventSubsystem>();
+	UAbilitySystemComponent* Watched = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Target);
+	if (!Events || !Watched)
+	{
+		return;
+	}
+	// Until the target falls, credited to the caster, or the window passes: a death after it lets go too.
+	const double Until = World.GetTimeSeconds() + WithinSeconds;
+	const TSharedRef<FDelegateHandle> Handle = MakeShared<FDelegateHandle>();
+	*Handle = Events->OnDeath.AddWeakLambda(&Loadout,
+		[Handle, WeakEvents = TWeakObjectPtr<UVeyraCombatEventSubsystem>(Events), WeakLoadout = TWeakObjectPtr<UVeyraAbilityLoadoutComponent>(&Loadout),
+			WeakCaster = TWeakObjectPtr<UAbilitySystemComponent>(&Caster), WeakWatched = TWeakObjectPtr<UAbilitySystemComponent>(Watched), Slot, FollowUp,
+			Until](const FVeyraDeathEvent& Death) {
+			UVeyraCombatEventSubsystem* Announcer = WeakEvents.Get();
+			UAbilitySystemComponent* Credited = WeakCaster.Get();
+			const bool bLapsed = !Announcer || !Announcer->GetWorld() || Announcer->GetWorld()->GetTimeSeconds() > Until;
+			const bool bFell = Credited && Death.Victim.Get() == WeakWatched.Get() && Death.CreditedKiller.Get() == Credited;
+			if (bFell && !bLapsed && WeakLoadout.IsValid())
+			{
+				WeakLoadout->Override(*Credited, Slot, FollowUp);
+			}
+			if ((bFell || bLapsed) && Announcer)
+			{
+				Announcer->OnDeath.Remove(*Handle);
+			}
+		});
 }
 
 void UVeyraGameplayAbility::DeliverChannelTick(const FVeyraCast& /*Cast*/, int32 /*Tick*/)
@@ -209,7 +329,7 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, 
 	{
 	case EVeyraTargetValidity::Valid:
 	{
-		// It may be for some kinds of unit only, as a Smite is for monsters (ADR-015 §3).
+		// It may be for some kinds of unit only, as Wildstrike is for monsters (ADR-015 §3).
 		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Target);
 		const bool bKindAllowed = Kinds.IsEmpty() || (Kind.IsSet() && Kinds.Contains(Kind.GetValue()));
 		return bKindAllowed ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidTarget;
@@ -232,21 +352,20 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, 
 	return EVeyraCastRejection::InvalidTarget;
 }
 
+double UVeyraGameplayAbility::CostFor(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const
+{
+	double Cost = GetResourceCost(Ability, Rank);
+	const FVeyraCastTuning* Costs = GetCastTuning(Ability);
+	if (Costs && !Costs->CurrentResourceFraction.IsEmpty())
+	{
+		Cost += Costs->CurrentResourceFraction[0] * Caster.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+	}
+	return Cost * VeyraCombat::GetCostShare(Caster);
+}
+
 void UVeyraGameplayAbility::EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
 {
-	const FVeyraCastTuning* CastTuning = GetCastTuning(Ability);
-	UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
-	if (!CastTuning || CastTuning->RecastWindow.IsEmpty() || !Loadout)
-	{
-		return;
-	}
-	const FVeyraContentId& FollowUp = CastTuning->RecastWindow[0].Ability;
-	const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(FollowUp);
-	const FVeyraLoadoutEntry* Current = Entry ? Loadout->FindSlot(Entry->Slot) : nullptr;
-	if (Current && Current->Ability == FollowUp)
-	{
-		Loadout->EndOverride(Caster, Entry->Slot);
-	}
+	VeyraAbilities::EndFollowUp(Caster, Ability);
 }
 
 bool UVeyraGameplayAbility::HasUsablePoint(const FVeyraCastTarget& Target)
@@ -257,15 +376,7 @@ bool UVeyraGameplayAbility::HasUsablePoint(const FVeyraCastTarget& Target)
 
 int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
 {
-	const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
-	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindAbility(Ability) : nullptr;
-	// An item's Active and a Flux Spell have no ranks: each works at its one rank (ADR-012 §1, ADR-015 §1).
-	if (Entry && (VeyraAbilitySlots::IsItemSlot(Entry->Slot) || VeyraAbilitySlots::IsSpellSlot(Entry->Slot)))
-	{
-		return 1;
-	}
-	const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Caster);
-	return Entry && Progression ? Progression->GetRank(Entry->Slot) : 0;
+	return VeyraAbilities::RankOf(Caster, Ability);
 }
 
 int32 UVeyraGameplayAbility::GetCasterLevel(const UAbilitySystemComponent& Caster)
@@ -367,8 +478,11 @@ void UVeyraGameplayAbility::OnWindupEnded()
 		VeyraCombat::SetCastLocksMovement(*Caster, false);
 	}
 	// A caster that died or lost its body during the windup casts nothing.
-	if (!Caster || !Avatar || !VeyraTargeting::IsAlive(Avatar) || !CommitAbility(Run.Handle, Run.ActorInfo, Run.ActivationInfo))
+	const bool bCasterStands = Caster && Avatar && VeyraTargeting::IsAlive(Avatar);
+	if (!bCasterStands || !CommitAbility(Run.Handle, Run.ActorInfo, Run.ActivationInfo))
 	{
+		UE_LOG(LogVeyraAbilities, Warning, TEXT("%s's %s (cast %d) ends at its windup without Commit: %s."), *GetNameSafe(Avatar), *Run.Cast.Ability.ToString(),
+			Run.Cast.CastId, bCasterStands ? TEXT("the commit check failed") : TEXT("its caster is gone or dead"));
 		FinishCast(/*bCancelled*/ true);
 		return;
 	}
@@ -429,12 +543,13 @@ void UVeyraGameplayAbility::OnCasterInterrupted()
 	{
 		// Before Commit nothing is paid, and part of the cooldown starts (Combat Bible §26).
 		const FVeyraCast& Cast = Running->Cast;
+		UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s (cast %d) is interrupted in its windup."), *Cast.Ability.ToString(), Cast.CastId);
 		UAbilitySystemComponent* Caster = Cast.Caster.Get();
 		UVeyraCooldownComponent* Cooldowns = Caster ? FindBesideAbilitySystem<UVeyraCooldownComponent>(*Caster) : nullptr;
 		if (Cooldowns)
 		{
-			Cooldowns->StartCooldown(CooldownIdOf(*Caster, Cast.Ability), GetCooldownSeconds(Cast.Ability, Cast.Rank) * UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction,
-				HasteOf(*Caster, Cast.Ability));
+			Cooldowns->StartCooldown(CooldownIdOf(*Caster, Cast.Ability), GetCooldownSeconds(Cast.Ability, Cast.Rank) * CooldownScaleOf(*Caster, Cast.Ability)
+				* UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction, HasteOf(*Caster, Cast.Ability));
 		}
 		FinishCast(/*bCancelled*/ true);
 		break;
@@ -518,7 +633,8 @@ void UVeyraGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handl
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
 	if (Cooldowns && Caster && Ability.IsValid())
 	{
-		Cooldowns->StartCooldown(CooldownIdOf(*Caster, Ability), GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)), HasteOf(*Caster, Ability));
+		Cooldowns->StartCooldown(CooldownIdOf(*Caster, Ability), GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)) * CooldownScaleOf(*Caster, Ability),
+			HasteOf(*Caster, Ability));
 	}
 }
 
@@ -541,7 +657,7 @@ bool UVeyraGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, c
 	{
 		return false;
 	}
-	return EndsEarlyOnRecast(*AbilitySystem, Ability) || VeyraCombat::CanAffordResource(*AbilitySystem, GetResourceCost(Ability, GetCommitRank(*AbilitySystem, Ability)));
+	return EndsEarlyOnRecast(*AbilitySystem, Ability) || VeyraCombat::CanAffordResource(*AbilitySystem, CostFor(*AbilitySystem, Ability, GetCommitRank(*AbilitySystem, Ability)));
 }
 
 void UVeyraGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -549,7 +665,7 @@ void UVeyraGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, c
 {
 	UAbilitySystemComponent* AbilitySystem = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
-	if (AbilitySystem && !VeyraCombat::SpendResource(*AbilitySystem, GetResourceCost(Ability, GetCommitRank(*AbilitySystem, Ability))))
+	if (AbilitySystem && !VeyraCombat::SpendResource(*AbilitySystem, CostFor(*AbilitySystem, Ability, GetCommitRank(*AbilitySystem, Ability))))
 	{
 		// CommitAbility checked the cost a moment ago, so this means the rules changed underneath it.
 		UE_LOG(LogVeyraAbilities, Error, TEXT("%s committed but could not pay its cost."), *GetNameSafe(this));

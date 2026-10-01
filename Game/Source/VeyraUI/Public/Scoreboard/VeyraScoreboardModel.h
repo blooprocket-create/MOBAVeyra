@@ -19,7 +19,7 @@ struct FVeyraScoreboardRow
 	int32 Deaths = 0;
 	int32 Assists = 0;
 
-	/** Minions and monsters together, as League's creep score counts them. */
+	/** Minions and monsters together. */
 	int32 CreepScore = 0;
 
 	/** Its visible kill-streak bounty in whole Gold; 0 for none (Economy & Progression Bible §5.3). */
@@ -74,6 +74,6 @@ namespace VeyraScoreboardModel
 	 */
 	VEYRAUI_API FVeyraScoreboardView Describe(TConstArrayView<const APlayerState*> Participants, const APlayerState* Local);
 
-	/** K/D/A as League writes it: "3 / 1 / 2". */
+	/** K/D/A as the scoreboard writes it: "3 / 1 / 2". */
 	VEYRAUI_API FText KdaText(const FVeyraScoreboardRow& Row);
 }

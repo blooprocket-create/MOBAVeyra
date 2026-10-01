@@ -84,3 +84,13 @@ AVeyraTestWard::AVeyraTestWard(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }
+
+AVeyraTestObjective::AVeyraTestObjective(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+AVeyraTestOwnedUnit::AVeyraTestOwnedUnit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}

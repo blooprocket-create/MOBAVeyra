@@ -28,6 +28,12 @@ bool IsWard(const UObject* Object)
 	return Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Ward;
 }
 
+bool IsMarker(const UObject* Object)
+{
+	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);
+	return Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Marker;
+}
+
 bool IsNeutral(const UObject* Object)
 {
 	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);

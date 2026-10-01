@@ -20,7 +20,7 @@
       "type": "integer",
       "minimum": 1,
       "enum": [
-        3
+        4
       ]
     },
     "update": {
@@ -33,7 +33,7 @@
       ],
       "properties": {
         "provenance": {
-          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; provisional answers stand in (ADR-016 §11).",
           "type": "string",
           "enum": [
             "Provisional",
@@ -58,11 +58,12 @@
         "vanguard",
         "fluxborn",
         "structure",
-        "ward"
+        "ward",
+        "companion"
       ],
       "properties": {
         "provenance": {
-          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; provisional answers stand in (ADR-016 §11).",
           "type": "string",
           "enum": [
             "Provisional",
@@ -90,6 +91,12 @@
         },
         "ward": {
           "description": "A placed ward's sight radius (Vision Bible §4). Inside Dense Fog it sees no enemy Vanguard; it senses presence instead.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "companion": {
+          "description": "A Vanguard's companion's sight radius (ADR-034 §4); a banished one sees nothing.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
@@ -137,7 +144,7 @@
       ],
       "properties": {
         "provenance": {
-          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; provisional answers stand in (ADR-016 §11).",
           "type": "string",
           "enum": [
             "Provisional",
@@ -201,7 +208,7 @@
       ],
       "properties": {
         "provenance": {
-          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; provisional answers stand in (ADR-016 §11).",
           "type": "string",
           "enum": [
             "Provisional",
@@ -248,7 +255,7 @@
       ],
       "properties": {
         "provenance": {
-          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; provisional answers stand in (ADR-016 §11).",
           "type": "string",
           "enum": [
             "Provisional",
@@ -292,7 +299,7 @@
       ],
       "properties": {
         "provenance": {
-          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; provisional answers stand in (ADR-016 §11).",
           "type": "string",
           "enum": [
             "Provisional",

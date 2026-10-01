@@ -18,7 +18,7 @@ class UWidget;
 enum class EVeyraShellButtonKind : uint8;
 
 /**
- * The shop (Economy & Progression Bible §10–§12; ADR-012 §11), laid out as League's is:
+ * The shop (Economy & Progression Bible §10–§12; ADR-012 §11), laid out as follows:
  * - on the left, the quick-buy panels: consumables and the vision tools, boots, and the inventory;
  * - in the middle, every item as a tile with its price now, by tier; a tab holds the Flux Spell swaps;
  * - on the right, the selected item: what it builds into, its recipe, the one purchase button, and

@@ -322,7 +322,7 @@ namespace
 		const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
 		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
 		const FVeyraVoteState& Vote = Player ? Player->GetOpenVote() : GameState.GetVote();
-		// A team's vote reaches only that team, as League shows a surrender.
+		// A team's vote reaches only that team.
 		if (Vote.bOpen && Own)
 		{
 			const UVeyraInputSettings& Input = Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>();
@@ -656,7 +656,7 @@ namespace
 		if (Player.Vitals.MaxResource > 0.0)
 		{
 			DrawBar(Paint, BarsAt + FVector2D(0.0f, HealthHeight + Paint.S(3.0f)), FVector2D(BarsWidth, ResourceHeight), Player.Vitals.Resource / Player.Vitals.MaxResource,
-				Settings.ResourceColor, FString());
+				Settings.ResourceColorOf(Player.Vitals.Family), FString());
 		}
 
 		// The Flux Spells and the vision tool.

@@ -11,6 +11,9 @@
 
 #include "VeyraGameplayAbility.generated.h"
 
+class UVeyraAbilityLoadoutComponent;
+struct FVeyraOverrideSpec;
+
 class UAbilitySystemComponent;
 struct FVeyraCastTuning;
 
@@ -98,8 +101,21 @@ protected:
 	 */
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const;
 
+	/**
+	 * Opens FollowUp in Slot if Target dies, its kill credited to Caster, within WithinSeconds (ADR-030 §7):
+	 * a recast that a takedown earns.
+	 */
+	static void OpenOnFall(UWorld& World, UVeyraAbilityLoadoutComponent& Loadout, UAbilitySystemComponent& Caster, const AActor& Target,
+		EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, double WithinSeconds);
+
 	/** Whether Ability moves its caster, as a dash, leap or attach does: a Root refuses it (ADR-026 §3). */
 	virtual bool MovesCaster(const FVeyraContentId& Ability) const { return false; }
+
+	/**
+	 * Whether Ability may be cast during one of its caster's own dashes, taking over from it (ADR-031 §7).
+	 * Any other ability that moves its caster is refused until the dash ends.
+	 */
+	virtual bool TakesOverDash(const FVeyraContentId& Ability) const { return false; }
 
 	/** Whether casting Ability again now would end its lasting effect early instead (ADR-008 §9). */
 	virtual bool EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
@@ -139,6 +155,12 @@ protected:
 	 * the follow-up acts on ended first, as a hold let go (ADR-018 §1).
 	 */
 	void EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+
+	/**
+	 * What Ability costs Caster at Rank now (Combat Bible §27; ADR-033 §3): its cost by rank, plus its share
+	 * of the caster's current resource, times the share its cost reductions leave.
+	 */
+	double CostFor(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const;
 
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/DeveloperSettings.h"
+#include "Tuning/VeyraVanguardsTuning.h"
 
 #include "VeyraGreyboxSettings.generated.h"
 
@@ -76,6 +77,20 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ResourceColor = FLinearColor::Transparent;
+
+	/** The resource bar of a Vanguard that spends Focus (ADR-031 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor FocusColor = FLinearColor::Transparent;
+
+	/** The resource bar of a Vanguard that runs on Charge (ADR-033 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor ChargeColor = FLinearColor::Transparent;
+
+	/** The colour of a resource bar of Family. */
+	FLinearColor ResourceColorOf(EVeyraResourceFamily Family) const
+	{
+		return Family == EVeyraResourceFamily::Focus ? FocusColor : Family == EVeyraResourceFamily::Charge ? ChargeColor : ResourceColor;
+	}
 
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor BarBackgroundColor = FLinearColor::Transparent;
@@ -239,7 +254,7 @@ public:
 	float GroundMarkingLift = 0.0f;
 
 	// The HUD's deck and strips (VeyraHudDeck). The Art Bible leaves the in-game HUD open (v0.1 §9), so
-	// its layout follows League's, in the client's design language, as provisional presentation.
+	// its layout is provisional presentation, in the client's design language.
 
 	/** The screen height the HUD's sizes are given for; it scales with the real height. */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))

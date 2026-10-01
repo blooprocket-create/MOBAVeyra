@@ -18,7 +18,7 @@ namespace VeyraAbilitiesTests
 		static constexpr double Reach = 300.0;
 		static constexpr double Detection = 400.0;
 		static constexpr double LongSeconds = 60.0;
-		static constexpr double SmiteDamage = 50.0;
+		static constexpr double WildstrikeDamage = 50.0;
 		static constexpr double Hit = 10.0;
 
 		FActorTestSpawner Spawner;
@@ -52,11 +52,11 @@ namespace VeyraAbilitiesTests
 			Zone.Effects.Statuses.Add(ArchetypeTestId(TEXT("test_slow")));
 			Tuning.Area.Add(ArchetypeTestId(TEXT("test_blast")), Blast);
 
-			FVeyraTargetedDamageAbilityTuning Smite;
-			Smite.CastRange = Reach;
-			Smite.DamageType = EVeyraDamageType::TrueDamage;
-			Smite.DamageAmount = SmiteDamage;
-			Tuning.TargetedDamage.Add(ArchetypeTestId(TEXT("test_smite")), Smite);
+			FVeyraTargetedDamageAbilityTuning Wildstrike;
+			Wildstrike.CastRange = Reach;
+			Wildstrike.DamageType = EVeyraDamageType::TrueDamage;
+			Wildstrike.DamageAmount = WildstrikeDamage;
+			Tuning.TargetedDamage.Add(ArchetypeTestId(TEXT("test_wildstrike")), Wildstrike);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -101,13 +101,13 @@ namespace VeyraAbilitiesTests
 		{
 			TArray<FVeyraCastEvent> Committed;
 			Spawner.GetWorld().GetSubsystem<UVeyraCombatEventSubsystem>()->OnCastCommitted.AddLambda([&Committed](const FVeyraCastEvent& Event) { Committed.Add(Event); });
-			ASSERT_THAT(IsTrue(Hold(TEXT("test_smite"))));
+			ASSERT_THAT(IsTrue(Hold(TEXT("test_wildstrike"))));
 			FVeyraCastTarget Target;
 			Target.Actor = Enemy;
 			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Caster->GetAbilitySystemComponent(), EVeyraAbilitySlot::Q, Target) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsFalse(Hidden()));
-			ASSERT_THAT(IsTrue(FArchetypeTestWorld::HealthLost(*Enemy) == SmiteDamage));
-			ASSERT_THAT(IsTrue(Committed.Num() == 1 && Committed[0].Ability == ArchetypeTestId(TEXT("test_smite")) && Committed[0].bOffensive));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::HealthLost(*Enemy) == WildstrikeDamage));
+			ASSERT_THAT(IsTrue(Committed.Num() == 1 && Committed[0].Ability == ArchetypeTestId(TEXT("test_wildstrike")) && Committed[0].bOffensive));
 		}
 
 		TEST_METHOD(AnAttackEndsIt)

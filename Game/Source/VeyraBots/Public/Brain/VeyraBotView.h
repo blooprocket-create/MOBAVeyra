@@ -41,6 +41,9 @@ struct FVeyraBotAbilityProfile
 	/** A dash that carries the caster away from its point, not toward it. */
 	bool bAwayFromPoint = false;
 
+	/** An area laid at its point, which an escape lays on its caster to cover it (a fog to hide in). */
+	bool bAreaAtPoint = false;
+
 	/**
 	 * For a buff it may cast at an allied Vanguard (ADR-027 §4): how far, edge to edge; 0 for one that
 	 * buffs only its caster.
@@ -123,7 +126,7 @@ struct FVeyraBotCamp
 	FVector Center = FVector::ZeroVector;
 
 	/**
-	 * How many of its creatures stand, seen or not: a jungler knows its own camps are up, as League
+	 * How many of its creatures stand, seen or not: a jungler knows its own camps are up, as
 	 * players keep their timers. None while it waits to respawn.
 	 */
 	int32 Standing = 0;

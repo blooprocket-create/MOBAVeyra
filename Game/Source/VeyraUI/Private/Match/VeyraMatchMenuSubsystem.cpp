@@ -124,7 +124,7 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	UEnhancedInputComponent* Component = NewObject<UEnhancedInputComponent>(Controller, NAME_None, RF_Transient);
 	Component->BindAction(MenuAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleMenu);
 	Component->BindAction(ShopAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleShop);
-	// Held, as League's Tab, or toggled, as the player chooses (Settings Bible #56).
+	// Held or toggled, as the player chooses (Settings Bible #56).
 	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressScoreboardKey);
 	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::ReleaseScoreboardKey);
 	Component->BindAction(ChatAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressChatKey);

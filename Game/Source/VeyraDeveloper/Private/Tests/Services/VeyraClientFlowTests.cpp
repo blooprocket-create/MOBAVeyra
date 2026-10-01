@@ -219,7 +219,7 @@ namespace VeyraClientFlowTests
 				SelectBody(TEXT("picking"), FString(), FString(), FString(), FString(), 29.0, TEXT("[\"blink\",\"\"]")))));
 			ASSERT_THAT(IsTrue(Spells() == TArray<FString>{ TEXT("blink"), FString() }));
 
-			// The first slot's spell chosen for the second moves over, as League's picker does. Here the backend refuses it.
+			// The first slot's spell chosen for the second moves over. Here the backend refuses it.
 			TestRunner->AddExpectedMessagePlain(TEXT("the backend refused the Flux Spells"), ELogVerbosity::Warning, EAutomationExpectedMessageFlags::Contains, 1);
 			ASSERT_THAT(IsTrue(Flow->ChooseFluxSpell(1, TEXT("blink"))));
 			ASSERT_THAT(AreEqual(Backend.Find(TEXT("PUT"), TEXT("/v1/me/select/spells"))->Body, FString(TEXT("{\"fluxSpells\":[\"\",\"blink\"]}"))));

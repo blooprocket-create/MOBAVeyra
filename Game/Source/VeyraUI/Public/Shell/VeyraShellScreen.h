@@ -149,7 +149,7 @@ private:
 	void BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent, bool bPages = true);
 
 	/**
-	 * A custom lobby (ADR-021; VeyraShellLobby.cpp), laid out as League's: both sides' seats with their
+	 * A custom lobby (ADR-021; VeyraShellLobby.cpp): both sides' seats with their
 	 * humans and bots, the session's rules, Start and Leave, and the friends panel.
 	 */
 	void BuildLobby(const FVeyraClientSnapshot& Snapshot);
@@ -189,7 +189,7 @@ private:
 	/** A Vanguard with art, chosen at random once each time the game runs; HomeVanguard when none has art. */
 	static FString PickFeaturedVanguard();
 	void BuildMatchFound(const FVeyraClientSnapshot& Snapshot);
-	/** Champion select in League's layout (VeyraShellChampionSelect.cpp). */
+	/** Champion select (VeyraShellChampionSelect.cpp). */
 	void BuildChampionSelect(const FVeyraClientSnapshot& Snapshot);
 	UWidget& MakeSelectHeader(const FVeyraSelectModel& Model);
 	UWidget& MakeSeatColumn(const FVeyraSelectModel& Model, bool bAllies);

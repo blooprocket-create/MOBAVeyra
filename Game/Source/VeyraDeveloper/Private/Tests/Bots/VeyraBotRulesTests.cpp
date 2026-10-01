@@ -138,6 +138,20 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(Intent.CastTarget.bHasLocation && Intent.CastTarget.Location == View.EnemyVanguards[0].Location));
 		}
 
+		TEST_METHOD(AnEscapeAreaPlacedAtItsPointIsLaidOnTheBotItself)
+		{
+			// Fixture value: an area's cast range and size, as a fog laid to hide in.
+			constexpr double AreaReach = 1200.0;
+			FVeyraBotView View = AliveAt(0.0, 0.2);
+			View.EnemyVanguards.Add(Unit(Near));
+			FVeyraBotSlot Mist = Slot(EVeyraAbilitySlot::W, EVeyraBotAbilityUse::Escape, EVeyraBotTargeting::Point, AreaReach);
+			Mist.Profile.bAreaAtPoint = true;
+			View.Slots.Add(Mist);
+			const FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::W));
+			ASSERT_THAT(IsTrue(Intent.CastTarget.bHasLocation && Intent.CastTarget.Location.Equals(View.Self.Location), Intent.CastTarget.Location.ToString()));
+		}
+
 		TEST_METHOD(ABlinkEscapesHomewardAndAHealIsCastWhileRetreating)
 		{
 			// Fixture value: a Blink's distance.
@@ -158,28 +172,28 @@ namespace VeyraBotsTests
 
 		TEST_METHOD(ASecureSpellFinishesTheLargestCreatureOrWellItWouldKill)
 		{
-			// Fixture values: a Smite's True damage and reach.
-			constexpr double SmiteDamage = 600.0;
-			constexpr double SmiteReach = 500.0;
+			// Fixture values: a Wildstrike's True damage and reach.
+			constexpr double WildstrikeDamage = 600.0;
+			constexpr double WildstrikeReach = 500.0;
 			FVeyraBotView View = AliveAt(0.0);
-			FVeyraBotSlot Smite = Slot(EVeyraAbilitySlot::Spell2, EVeyraBotAbilityUse::Secure, EVeyraBotTargeting::Unit, SmiteReach);
-			Smite.Profile.Damage = SmiteDamage;
-			Smite.Profile.bTrueDamage = true;
-			View.Slots.Add(Smite);
+			FVeyraBotSlot Wildstrike = Slot(EVeyraAbilitySlot::Spell2, EVeyraBotAbilityUse::Secure, EVeyraBotTargeting::Unit, WildstrikeReach);
+			Wildstrike.Profile.Damage = WildstrikeDamage;
+			Wildstrike.Profile.bTrueDamage = true;
+			View.Slots.Add(Wildstrike);
 			FVeyraBotCamp& Camp = View.Camps.AddDefaulted_GetRef();
 			Camp.Creatures.Add(Unit(Near, 0.7));
-			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Cast, TEXT("700 Health: the Smite would not finish it")));
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Cast, TEXT("700 Health: the Wildstrike would not finish it")));
 
 			Camp.Creatures.Add(Unit(Near, 0.5));
 			FVeyraBotUnit Well = Unit(Near, 0.1);
 			Well.MaxHealth *= 4.0;
-			Well.Health = SmiteDamage;
+			Well.Health = WildstrikeDamage;
 			View.Wells.Add(Well);
 			const FVeyraBotIntent Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::Spell2 && Intent.CastTarget.Actor == Well.Actor.Get(),
 				TEXT("the Well first: a steal")));
 
-			View.Wells[0].Location = FVector(SmiteReach * 2.0, 0.0, 0.0);
+			View.Wells[0].Location = FVector(WildstrikeReach * 2.0, 0.0, 0.0);
 			ASSERT_THAT(IsTrue(Decide(View).CastTarget.Actor == View.Camps[0].Creatures[1].Actor.Get(), TEXT("out of reach: the creature it would finish")));
 		}
 
@@ -188,9 +202,9 @@ namespace VeyraBotsTests
 			FVeyraBotView View = AliveAt(0.0);
 			View.EnemyVanguards.Add(Unit(Near, 0.5));
 			Memory.FirstSeen.Add(View.EnemyVanguards[0].Actor, -Far);
-			FVeyraBotSlot Smite = Slot(EVeyraAbilitySlot::Spell2, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Unit, Near * 2.0);
-			Smite.Profile.TargetKinds = { EVeyraUnitKind::Wildlife, EVeyraUnitKind::Objective };
-			View.Slots.Add(Smite);
+			FVeyraBotSlot Wildstrike = Slot(EVeyraAbilitySlot::Spell2, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Unit, Near * 2.0);
+			Wildstrike.Profile.TargetKinds = { EVeyraUnitKind::Wildlife, EVeyraUnitKind::Objective };
+			View.Slots.Add(Wildstrike);
 			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Attack, TEXT("it fights with basic attacks")));
 		}
 
@@ -471,7 +485,7 @@ namespace VeyraBotsTests
 
 		TEST_METHOD(AWardingSeatWardsTheFogItPassesThatNoWardOfItsSideCovers)
 		{
-			// As League's jungler and support ward the bushes they pass (ADR-016 §7).
+			// The warding seats ward the Dense Fog they pass (ADR-016 §7).
 			FVeyraBotView View = AliveAt(0.0);
 			View.bWards = true;
 			View.WardCharges = 1;
