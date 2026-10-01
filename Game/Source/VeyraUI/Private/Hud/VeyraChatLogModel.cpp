@@ -30,6 +30,8 @@ namespace
 			return LOCTEXT("TooMany", "You are sending messages too quickly. Wait a moment.");
 		case EVeyraChatRefusal::AllChatOff:
 			return LOCTEXT("AllChatOff", "All Chat is off. Turn it on in Settings, under Communication.");
+		case EVeyraChatRefusal::UnknownChannel:
+			return LOCTEXT("UnknownChannel", "That chat channel does not exist.");
 		}
 		return FText::GetEmpty();
 	}

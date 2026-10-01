@@ -34,6 +34,8 @@ enum class EVeyraChatRefusal : uint8
 	TooMany,
 	/** All Chat is off for the sender (Chat Bible §2). */
 	AllChatOff,
+	/** Neither Team nor All: no client of this build sends one. */
+	UnknownChannel,
 };
 
 /** A chat message as its recipients receive it. */
