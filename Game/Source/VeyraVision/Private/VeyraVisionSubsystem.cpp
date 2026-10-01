@@ -473,14 +473,27 @@ void UVeyraVisionSubsystem::SetDenseFog(TArray<FVeyraFogCircle> Circles)
 
 void UVeyraVisionSubsystem::RebuildFog()
 {
+	const TArray<FVeyraFogCircle> Before = MoveTemp(Fog);
 	Fog = AuthoredFog;
 	for (const FFogBank& Bank : FogBanks)
 	{
 		Fog.Append(Bank.Circles);
 	}
 	FogVolumes = VeyraVisionRules::ConnectVolumes(Fog);
-	// A ping's cadence is kept per circle, and the circles have moved: each sensor starts afresh.
-	LastPings.Reset();
+	// A ping's cadence is kept per circle: a circle that stays keeps its cadence at its new place, and only
+	// one that went forgets it, so fog laid or lifted elsewhere pings nobody early.
+	TMap<TPair<uint64, int32>, double> Kept;
+	for (const TPair<TPair<uint64, int32>, double>& Each : LastPings)
+	{
+		const FVeyraFogCircle* Was = Before.IsValidIndex(Each.Key.Value) ? &Before[Each.Key.Value] : nullptr;
+		const int32 Now = Was ? Fog.IndexOfByPredicate([Was](const FVeyraFogCircle& Circle) { return Circle.Center == Was->Center && Circle.Radius == Was->Radius; })
+							  : INDEX_NONE;
+		if (Now != INDEX_NONE)
+		{
+			Kept.Add(TPair<uint64, int32>(Each.Key.Key, Now), Each.Value);
+		}
+	}
+	LastPings = MoveTemp(Kept);
 	UE_LOG(LogVeyraVision, Log, TEXT("Dense Fog: %d circle(s) in %d volume(s), %d laid by abilities."), Fog.Num(),
 		FogVolumes.IsEmpty() ? 0 : FMath::Max(FogVolumes) + 1, FogBanks.Num());
 }
