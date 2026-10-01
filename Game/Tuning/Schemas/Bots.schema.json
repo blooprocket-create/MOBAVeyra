@@ -77,7 +77,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [4]
+      "enum": [5]
     },
     "senses": {
       "description": "What a bot notices (ADR-013 §4).",
@@ -147,12 +147,13 @@
       "description": "How a jungler plays (ADR-014 §7).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "gankRange", "gankHealthFraction", "wellRange"],
+      "required": ["provenance", "gankRange", "gankHealthFraction", "wellRange", "abilityResourceFloor"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "gankRange": { "description": "How near an enemy Vanguard must be for a jungler to gank it.", "type": "number", "minimum": 0 },
         "gankHealthFraction": { "description": "How hurt that enemy must be: below this fraction of its Health.", "type": "number", "minimum": 0, "maximum": 1 },
-        "wellRange": { "description": "How near an open Flux Well must be for a jungler to take it.", "type": "number", "minimum": 0 }
+        "wellRange": { "description": "How near an open Flux Well must be for a jungler to take it.", "type": "number", "minimum": 0 },
+        "abilityResourceFloor": { "description": "The share of its resource a jungler keeps: it casts its basic abilities at its camp only above this fraction of its most.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "warding": {

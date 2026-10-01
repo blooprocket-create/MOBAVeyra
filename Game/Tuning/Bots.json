@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -56,7 +56,8 @@
     "provenance": "Provisional",
     "gankRange": 3000,
     "gankHealthFraction": 0.5,
-    "wellRange": 7000
+    "wellRange": 7000,
+    "abilityResourceFloor": 0.4
   },
   "warding": {
     "provenance": "Provisional",
