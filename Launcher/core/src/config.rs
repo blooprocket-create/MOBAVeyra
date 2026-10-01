@@ -1,7 +1,9 @@
 //! The launcher's configuration (Launcher/config/local.json, and `VeyraLauncher.json` beside an
-//! installed launcher): where the backend is, how long to wait, and where the game comes from: a
-//! packaged build or a release store (ADR-022 §6). Parsed strictly: every field is required and an
-//! unknown field is an error (ADR-010 §12), and the values are validated before anything uses them.
+//! installed launcher): where the backend is, how long to wait, where the game comes from: a
+//! packaged build or a release store (ADR-022 §6), and how players sign in (ADR-038). Parsed
+//! strictly: every field is required, except `playerLogin`, whose absence means a development
+//! launcher with only the development sign-in; an unknown field is an error (ADR-010 §12), and the
+//! values are validated before anything uses them.
 
 use crate::release;
 use serde::Deserialize;
@@ -24,6 +26,24 @@ pub struct LauncherConfig {
     pub http: HttpConfig,
     pub launch: LaunchConfig,
     pub game: GameConfig,
+    /// Player registration and sign-in (ADR-038). Absent: only the development sign-in.
+    #[serde(default)]
+    pub player_login: Option<PlayerLoginConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PlayerLoginConfig {
+    pub firebase: FirebaseConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct FirebaseConfig {
+    /// Firebase Authentication's REST API, https://identitytoolkit.googleapis.com.
+    pub auth_url: String,
+    /// The Firebase project's web API key. It names the project; it is not a secret.
+    pub api_key: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -199,6 +219,14 @@ pub fn validate(config: &LauncherConfig) -> Vec<String> {
             problems.push(format!("{name} must be a positive number of seconds"));
         }
     }
+    if let Some(login) = &config.player_login {
+        if !login.firebase.auth_url.starts_with("https://") || !is_base_url(&login.firebase.auth_url) {
+            problems.push("playerLogin.firebase.authUrl must be an https URL with no path, such as https://identitytoolkit.googleapis.com".to_string());
+        }
+        if !is_firebase_api_key(&login.firebase.api_key) {
+            problems.push("playerLogin.firebase.apiKey must be a Firebase web API key (AIza and 35 more letters, digits, '-' or '_')".to_string());
+        }
+    }
     match (&config.game.build_manifest, &config.game.install) {
         (Some(_), Some(_)) | (None, None) => {
             problems.push("game must have exactly one of buildManifest (a packaged build) and install (a release store)".to_string())
@@ -266,6 +294,11 @@ pub fn is_releases_url(text: &str) -> bool {
         })
 }
 
+/// Whether `text` has the form of a Google API key, as Firebase issues for web apps.
+fn is_firebase_api_key(text: &str) -> bool {
+    text.len() == 39 && text.starts_with("AIza") && text.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+}
+
 /// An http or https URL with a host, an optional port and nothing else.
 pub fn is_base_url(text: &str) -> bool {
     let Some(rest) = text.strip_prefix("http://").or_else(|| text.strip_prefix("https://")) else {
@@ -298,6 +331,23 @@ mod tests {
         assert_eq!(config.backend.base_url, "http://127.0.0.1:8080");
         assert_eq!(config.launch.await_ready_seconds, 180.0);
         assert_eq!(config.game.arguments, ["-windowed"]);
+    }
+
+    #[test]
+    fn player_login_is_optional_and_validated() {
+        assert!(parse(VALID).expect("valid").player_login.is_none());
+        let with = |auth_url: &str, api_key: &str| {
+            VALID.replace(
+                r#""http": {"#,
+                &format!(r#""playerLogin": {{ "firebase": {{ "authUrl": "{auth_url}", "apiKey": "{api_key}" }} }}, "http": {{"#),
+            )
+        };
+        let key = format!("AIza{}", "x".repeat(35));
+        let config = parse(&with("https://identitytoolkit.googleapis.com", &key)).expect("valid player login");
+        assert_eq!(config.player_login.expect("present").firebase.api_key, key);
+        let problems = parse(&with("http://identitytoolkit.googleapis.com", "nope")).expect_err("invalid");
+        assert_eq!(problems.len(), 2, "{problems:?}");
+        assert!(problems[0].contains("authUrl") && problems[1].contains("apiKey"), "{problems:?}");
     }
 
     #[test]
@@ -408,6 +458,10 @@ mod tests {
         assert!(matches!(local.game, GameSource::Packaged(_)), "development launches the packaged build");
         let installed = load(&folder.join("installed.json")).expect("config/installed.json, which Setup installs");
         assert!(matches!(installed.game, GameSource::Install(_)), "Setup's launcher installs the game");
+        assert!(
+            local.config.player_login.is_some() && installed.config.player_login.is_some(),
+            "players can sign in"
+        );
     }
 
     #[test]

@@ -19,6 +19,7 @@ const validJSON = `{
   "sessions": {"launcherLifetime": "720h", "gameLifetime": "24h"},
   "launchCodes": {"lifetime": "20s"},
   "devLogin": {"enabled": true, "accounts": ["DevOne", "DevTwo"]},
+  "playerLogin": {"provider": "firebase", "firebase": {"projectId": "veyra-test1", "keysUrl": "https://keys.example.com/certs", "keysFetchTimeout": "10s", "clockSkew": "30s"}},
   "party": {"maxSize": 5, "inviteLifetime": "2m", "defaultPrivacy": "private"},
   "modes": [
     {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
@@ -87,6 +88,27 @@ func TestParseAllocatorNone(t *testing.T) {
 	}
 	if c.Allocator.Kind != AllocatorNone || c.Allocator.Docker != nil {
 		t.Fatalf("allocator not parsed: %+v", c.Allocator)
+	}
+}
+
+func TestParsePlayerLogin(t *testing.T) {
+	c, err := Parse([]byte(validJSON))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := FirebaseLogin{ProjectID: "veyra-test1", KeysURL: "https://keys.example.com/certs", KeysFetchTimeout: 10 * time.Second, ClockSkew: 30 * time.Second}
+	if c.PlayerLogin.Provider != PlayerLoginFirebase || c.PlayerLogin.Firebase == nil || *c.PlayerLogin.Firebase != want {
+		t.Fatalf("player login not parsed: %+v %+v", c.PlayerLogin, c.PlayerLogin.Firebase)
+	}
+	start := strings.Index(validJSON, `"playerLogin"`)
+	end := strings.Index(validJSON, `"party"`)
+	c, err = Parse([]byte(validJSON[:start] + `"playerLogin": {"provider": "none"},
+  ` + validJSON[end:]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.PlayerLogin.Provider != PlayerLoginNone || c.PlayerLogin.Firebase != nil {
+		t.Fatalf("provider none not parsed: %+v", c.PlayerLogin)
 	}
 }
 
@@ -183,8 +205,16 @@ func TestParseRejects(t *testing.T) {
 		"map in server args":        {`["-port=7777", "-log"]`, `["/Game/Maps/L_Play", "-log"]`, "serverArgs must not name a map"},
 		"no maps": {`,
     "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}`, ``, "matches.maps is required"},
-		"no development map": {`, "development": "/Game/Maps/L_Dev"`, ``, "matches.maps.development is required"},
-		"map not a path":     {`"play": "/Game/Maps/L_Play"`, `"play": "L_Play"`, "matches.maps.play must be a map path"},
+		"no development map":   {`, "development": "/Game/Maps/L_Dev"`, ``, "matches.maps.development is required"},
+		"map not a path":       {`"play": "/Game/Maps/L_Play"`, `"play": "L_Play"`, "matches.maps.play must be a map path"},
+		"no provider":          {`"playerLogin": {"provider": "firebase", `, `"playerLogin": {`, "playerLogin.provider is required"},
+		"unknown provider":     {`"provider": "firebase"`, `"provider": "auth0"`, "playerLogin.provider must be"},
+		"none with firebase":   {`"provider": "firebase"`, `"provider": "none"`, "playerLogin.firebase must be absent"},
+		"bad project id":       {`"projectId": "veyra-test1"`, `"projectId": "Veyra Test"`, "projectId must be a Firebase project ID"},
+		"plain http keys":      {`"keysUrl": "https://keys.example.com/certs"`, `"keysUrl": "http://keys.example.com/certs"`, "keysUrl must be an https URL"},
+		"no keys timeout":      {`"keysFetchTimeout": "10s", `, ``, "keysFetchTimeout is required"},
+		"clock skew too large": {`"clockSkew": "30s"`, `"clockSkew": "1h"`, "clockSkew must be from"},
+		"negative clock skew":  {`"clockSkew": "30s"`, `"clockSkew": "-1s"`, "clockSkew must be from"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

@@ -1,5 +1,11 @@
 // Package identity owns accounts, Veyra session tokens and launch codes.
 //
+// Players register and sign in through an external identity provider
+// (Firebase Authentication, ADR-038). The provider proves who someone is; the
+// launcher exchanges the provider's short-lived credential here for a Veyra
+// launcher session, so the provider never reaches the game and replacing it
+// changes neither the game nor the launch handshake (ADR-005 H3).
+//
 // The launcher logs in and holds a launcher session. It exchanges that session
 // for a single-use, short-lived launch code bound to the account and client
 // build version, and hands the code to the game over a private channel
@@ -13,6 +19,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/secret"
 )
@@ -33,6 +40,17 @@ const (
 	prefixLaunchCode      = "vlc_"
 )
 
+// Display names a player chooses at registration (Profiles & Identity Bible
+// §4). The bible leaves allowed characters and lengths to a later pass; until
+// then names are 3–16 ASCII letters, digits and underscores, unique without
+// regard to case. Provisional (ADR-038 §4).
+const (
+	MinDisplayNameLength = 3
+	MaxDisplayNameLength = 16
+)
+
+var displayNamePattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+
 // maxBuildVersionLength bounds the client build identifier (protocol limit).
 const maxBuildVersionLength = 64
 
@@ -51,7 +69,33 @@ var (
 	// ErrNotDevAccount is returned when seeding a dev account whose name is
 	// already held by an account that was not created as a dev account.
 	ErrNotDevAccount = errors.New("account exists and is not a dev account")
+
+	// ErrPlayerLoginDisabled: no identity provider is configured.
+	ErrPlayerLoginDisabled = errors.New("player login disabled")
+	// ErrNotRegistered: the provider vouched for the player, but they have
+	// not yet created a Veyra account (chosen a display name).
+	ErrNotRegistered = errors.New("no Veyra account for this sign-in")
+	// ErrAlreadyRegistered: this provider identity already has an account.
+	ErrAlreadyRegistered = errors.New("already registered")
+	// ErrDisplayNameTaken: another account holds the name, in any case.
+	ErrDisplayNameTaken = errors.New("display name taken")
+	// ErrInvalidDisplayName: the name breaks the display-name rules.
+	ErrInvalidDisplayName = errors.New("invalid display name")
 )
+
+// ProviderIdentity is who an external identity provider says a player is:
+// the provider's name and its stable, unique ID for that user.
+type ProviderIdentity struct {
+	Provider string
+	Subject  string
+}
+
+// Verifier checks a credential an identity provider issued (a Firebase ID
+// token) and says whom it identifies. A credential that is malformed, forged,
+// expired or meant for another project fails with ErrInvalidCredentials.
+type Verifier interface {
+	Verify(ctx context.Context, credential string) (ProviderIdentity, error)
+}
 
 // Account is a player account.
 type Account struct {
@@ -102,6 +146,14 @@ type Store interface {
 	// nothing changes and the code stays redeemable. An unknown, expired or
 	// already-consumed code returns ErrNotFound.
 	RedeemLaunchCode(ctx context.Context, codeHash []byte, buildVersion string, now time.Time, newSession Session) (Account, error)
+	// AccountByProvider finds the account linked to a provider identity, or
+	// returns ErrNotFound.
+	AccountByProvider(ctx context.Context, who ProviderIdentity) (Account, error)
+	// CreateProviderAccount atomically creates an account with displayName
+	// and links it to who. It fails with ErrDisplayNameTaken if any account
+	// holds the name in any letter case, and with ErrAlreadyRegistered if who
+	// is already linked; either way nothing is created.
+	CreateProviderAccount(ctx context.Context, who ProviderIdentity, displayName string) (Account, error)
 }
 
 // Settings are the validated lifetimes the service needs.
@@ -110,6 +162,9 @@ type Settings struct {
 	GameSessionLifetime     time.Duration
 	LaunchCodeLifetime      time.Duration
 	DevLoginEnabled         bool
+	// PlayerLogin verifies identity-provider credentials; nil disables
+	// player registration and sign-in (ErrPlayerLoginDisabled).
+	PlayerLogin Verifier
 }
 
 // Service implements identity operations.
@@ -146,6 +201,64 @@ func (s *Service) DevLogin(ctx context.Context, displayName string) (IssuedToken
 	}
 	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
 	return tok, acct, err
+}
+
+// PlayerLogin exchanges an identity-provider credential for a launcher
+// session. A valid credential for someone who has no Veyra account yet fails
+// with ErrNotRegistered, so the launcher can ask them for a display name.
+func (s *Service) PlayerLogin(ctx context.Context, credential string) (IssuedToken, Account, error) {
+	who, err := s.verify(ctx, credential)
+	if err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	acct, err := s.store.AccountByProvider(ctx, who)
+	if errors.Is(err, ErrNotFound) {
+		return IssuedToken{}, Account{}, ErrNotRegistered
+	}
+	if err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
+	return tok, acct, err
+}
+
+// Register creates the Veyra account for an identity-provider credential,
+// with the display name the player chose, and signs it in. The credential
+// proves who is registering; the name is checked and reserved atomically.
+func (s *Service) Register(ctx context.Context, credential, displayName string) (IssuedToken, Account, error) {
+	// The name is checked first: it costs nothing and leaks nothing.
+	if err := ValidateDisplayName(displayName); err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	who, err := s.verify(ctx, credential)
+	if err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	acct, err := s.store.CreateProviderAccount(ctx, who, displayName)
+	if err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
+	return tok, acct, err
+}
+
+func (s *Service) verify(ctx context.Context, credential string) (ProviderIdentity, error) {
+	if s.settings.PlayerLogin == nil {
+		return ProviderIdentity{}, ErrPlayerLoginDisabled
+	}
+	if credential == "" {
+		return ProviderIdentity{}, ErrInvalidCredentials
+	}
+	return s.settings.PlayerLogin.Verify(ctx, credential)
+}
+
+// ValidateDisplayName reports whether a chosen display name keeps the rules.
+func ValidateDisplayName(name string) error {
+	n := utf8.RuneCountInString(name)
+	if n < MinDisplayNameLength || n > MaxDisplayNameLength || !displayNamePattern.MatchString(name) {
+		return ErrInvalidDisplayName
+	}
+	return nil
 }
 
 // IssueLaunchCode exchanges a launcher session for a single-use launch code.

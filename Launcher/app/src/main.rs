@@ -1,8 +1,8 @@
 //! The Veyra launcher's window (ADR-005 L1–L4, ADR-010 §5, ADR-022 §7): a Tauri app whose static UI
 //! (Launcher/ui) shows what the launcher's core reports and asks it to act. It installs, updates or
-//! repairs the game from a release store (or uses a packaged build, in development), signs in with
-//! the development login, starts the game and hands it a launch code, then closes once the game has
-//! signed in. All HTTP is the core's, in Rust; the web view makes no requests of its own.
+//! repairs the game from a release store (or uses a packaged build, in development), signs the player
+//! in or registers them with Firebase (ADR-038; a local backend also offers the development
+//! accounts), starts the game and hands it a launch code, then closes once the game has signed in. All HTTP is the core's, in Rust; the web view makes no requests of its own.
 //!
 //! `--config <file>` names the configuration; otherwise VEYRA_LAUNCHER_CONFIG, otherwise
 //! `VeyraLauncher.json` beside the launcher, otherwise Launcher/config/local.json beside the build
@@ -19,10 +19,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
-use veyra_launcher_core::backend::Backend;
+use veyra_launcher_core::backend::{Backend, BackendError, LauncherSession};
 use veyra_launcher_core::config::{self, GameSource, InstallSource, LoadedConfig};
 use veyra_launcher_core::install::{self, Mode, Progress, Target};
 use veyra_launcher_core::launch::{self, LaunchStage};
+use veyra_launcher_core::player::{self, SignIn};
+use veyra_launcher_core::secret::Secret;
 use veyra_launcher_core::{game, manifest};
 
 /// The switch Setup's uninstaller starts the launcher with.
@@ -48,12 +50,24 @@ struct GameStatus {
     problem: Option<String>,
 }
 
-/// The development accounts to sign in as, or why there are none.
+/// How a player may sign in: with an account (ADR-038), as a development account (a local backend
+/// only), or both. `problem` is set when neither is possible.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Accounts {
+struct SignInOptions {
+    player_login: bool,
     accounts: Vec<String>,
+    /// Who is signed in already, if anyone: the window offers Play rather than sign-in.
+    signed_in_as: Option<String>,
     problem: Option<String>,
+}
+
+/// Where signing in or registering got to: "signedIn" with the name, or "chooseName".
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SignInResult {
+    state: &'static str,
+    display_name: Option<String>,
 }
 
 /// Where a launch is. The window asks for it while one runs.
@@ -83,6 +97,10 @@ struct Launcher {
     install: Mutex<InstallStatus>,
     /// The channel's release as the window last found it: what Install installs.
     release: Mutex<Option<Target>>,
+    /// The signed-in player's session, in memory only (ADR-005 L4).
+    session: Mutex<Option<LauncherSession>>,
+    /// Firebase's proof for a player who still has to choose a display name (player::SignIn).
+    pending: Mutex<Option<Secret>>,
 }
 
 fn config_path() -> PathBuf {
@@ -251,23 +269,102 @@ fn install_status(launcher: State<'_, Arc<Launcher>>) -> InstallStatus {
 }
 
 #[tauri::command(async)]
-fn accounts() -> Accounts {
-    let result = load().and_then(|loaded| {
-        Backend::new(&loaded.config.backend.base_url, loaded.http_timeout())
-            .dev_accounts()
-            .map_err(|error| error.to_string())
-    });
-    match result {
-        Ok(accounts) => Accounts { accounts, problem: None },
-        Err(problem) => Accounts {
-            accounts: Vec::new(),
-            problem: Some(sentence(problem)),
-        },
+fn sign_in_options(launcher: State<'_, Arc<Launcher>>) -> SignInOptions {
+    let loaded = match load() {
+        Ok(loaded) => loaded,
+        Err(problem) => {
+            return SignInOptions {
+                player_login: false,
+                accounts: Vec::new(),
+                signed_in_as: None,
+                problem: Some(sentence(problem)),
+            }
+        }
+    };
+    let player_login = player::available(&loaded);
+    // A backend without development sign-in has no such route; that is not a problem.
+    let accounts = Backend::new(&loaded.config.backend.base_url, loaded.http_timeout()).dev_accounts();
+    let (accounts, problem) = match accounts {
+        Ok(accounts) => (accounts, None),
+        // Without development accounts, or with the backend down, players still sign in their own
+        // way; a backend that is down says so when they try.
+        Err(BackendError::Refused { status: 404, .. }) => (Vec::new(), None),
+        Err(_) if player_login => (Vec::new(), None),
+        Err(error) => (Vec::new(), Some(sentence(error))),
+    };
+    let problem = problem
+        .or_else(|| (!player_login && accounts.is_empty()).then(|| "This launcher has no way to sign in: its configuration has no playerLogin.".to_string()));
+    SignInOptions {
+        player_login,
+        accounts,
+        signed_in_as: launcher.session.lock().unwrap().as_ref().map(|session| session.display_name.clone()),
+        problem,
     }
 }
 
+/// Keeps what signing in or registering came to, and tells the window.
+fn settle(launcher: &Launcher, outcome: SignIn) -> SignInResult {
+    match outcome {
+        SignIn::SignedIn(session) => {
+            let display_name = session.display_name.clone();
+            *launcher.session.lock().unwrap() = Some(session);
+            *launcher.pending.lock().unwrap() = None;
+            SignInResult {
+                state: "signedIn",
+                display_name: Some(display_name),
+            }
+        }
+        SignIn::ChooseName(proof) => {
+            *launcher.pending.lock().unwrap() = Some(proof);
+            SignInResult {
+                state: "chooseName",
+                display_name: None,
+            }
+        }
+    }
+}
+
+#[tauri::command(async)]
+fn sign_in(launcher: State<'_, Arc<Launcher>>, email: String, password: String) -> Result<SignInResult, String> {
+    let loaded = load().map_err(sentence)?;
+    let outcome = player::sign_in(&loaded, &email, &password).map_err(sentence)?;
+    Ok(settle(&launcher, outcome))
+}
+
+#[tauri::command(async)]
+fn register(launcher: State<'_, Arc<Launcher>>, email: String, password: String, display_name: String) -> Result<SignInResult, String> {
+    let loaded = load().map_err(sentence)?;
+    let outcome = player::register(&loaded, &email, &password, &display_name).map_err(sentence)?;
+    Ok(settle(&launcher, outcome))
+}
+
+#[tauri::command(async)]
+fn choose_name(launcher: State<'_, Arc<Launcher>>, display_name: String) -> Result<SignInResult, String> {
+    let loaded = load().map_err(sentence)?;
+    let proof = launcher.pending.lock().unwrap().clone().ok_or("Your sign-in has expired. Sign in again.")?;
+    let session = player::choose_name(&loaded, &proof, &display_name).map_err(sentence)?;
+    Ok(settle(&launcher, SignIn::SignedIn(session)))
+}
+
+#[tauri::command(async)]
+fn reset_password(email: String) -> Result<(), String> {
+    let loaded = load().map_err(sentence)?;
+    player::send_password_reset(&loaded, &email).map_err(sentence)
+}
+
 #[tauri::command]
-fn start_launch(app: AppHandle, launcher: State<'_, Arc<Launcher>>, account: String) -> Result<(), String> {
+fn sign_out(launcher: State<'_, Arc<Launcher>>) {
+    *launcher.session.lock().unwrap() = None;
+    *launcher.pending.lock().unwrap() = None;
+}
+
+/// Launches for the signed-in player, or, with `account`, as that development account.
+#[tauri::command]
+fn start_launch(app: AppHandle, launcher: State<'_, Arc<Launcher>>, account: Option<String>) -> Result<(), String> {
+    let session = launcher.session.lock().unwrap().clone();
+    if account.is_none() && session.is_none() {
+        return Err("Sign in first.".to_string());
+    }
     {
         let mut status = launcher.launch.lock().unwrap();
         if status.running {
@@ -284,7 +381,12 @@ fn start_launch(app: AppHandle, launcher: State<'_, Arc<Launcher>>, account: Str
         let result = load().and_then(|loaded| {
             let build = game::build(&loaded).map_err(sentence)?;
             let mut progress = |stage: LaunchStage| launcher.launch.lock().unwrap().stage = stage.describe().to_string();
-            launch::sign_in_and_launch(&loaded, &build, &account, &[], &mut progress).map_err(|error| error.to_string())
+            match (&account, &session) {
+                (Some(account), _) => launch::sign_in_and_launch(&loaded, &build, account, &[], &mut progress),
+                (None, Some(session)) => launch::launch(&loaded, &build, session, &[], &mut progress),
+                (None, None) => unreachable!("checked before the launch started"),
+            }
+            .map_err(|error| error.to_string())
         });
         match result {
             // The launcher's work is done once the game has signed in (ADR-005 L4).
@@ -325,7 +427,12 @@ fn main() -> ExitCode {
             choose_folder,
             start_install,
             install_status,
-            accounts,
+            sign_in_options,
+            sign_in,
+            register,
+            choose_name,
+            reset_password,
+            sign_out,
             start_launch,
             launch_status
         ])

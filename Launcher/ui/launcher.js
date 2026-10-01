@@ -1,5 +1,7 @@
 // The launcher's window. It shows what the launcher's core reports and asks it to install, update,
-// repair and launch; the core, in Rust, does all the work (Launcher/app/src/main.rs, ADR-022 §7).
+// repair, sign in or register a player (ADR-038) and launch; the core, in Rust, does all the work
+// (Launcher/app/src/main.rs, ADR-022 §7). Passwords pass straight through to the core and are never
+// kept here.
 "use strict";
 
 const invoke = window.__TAURI__.core.invoke;
@@ -8,10 +10,12 @@ const invoke = window.__TAURI__.core.invoke;
 const STATUS_INTERVAL_MS = 200;
 // The download speed shown is the average over this many milliseconds.
 const SPEED_WINDOW_MS = 3000;
-// Where the window remembers the last account chosen, on this machine only.
+// Where the window remembers the last development account chosen and the last email signed in with,
+// on this machine only. Never a password.
 const ACCOUNT_KEY = "veyra.launcher.account";
+const EMAIL_KEY = "veyra.launcher.email";
 
-const sections = ["loading", "install", "installing", "sign-in", "progress", "problem"];
+const sections = ["loading", "install", "installing", "sign-in", "register", "choose-name", "ready", "progress", "problem"];
 // The Vanguards whose art the launcher carries (art/, launcher.css); one fills the window each time it opens.
 const FEATURED = ["bryn", "cairn", "gorraveth", "kade", "mimzi", "oriel", "patch", "qazharr", "raska", "vera"];
 const element = (id) => document.getElementById(id);
@@ -147,37 +151,212 @@ async function followInstall() {
   }
 }
 
+function remembered(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function remember(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Remembering is a convenience; the launcher works without it.
+  }
+}
+
+// A form's message, or none.
+function say(id, text) {
+  element(id).textContent = text || "";
+  element(id).hidden = !text;
+}
+
+// Disables a form's controls while the core works on it, so a click cannot send it twice.
+async function busy(form, work) {
+  const controls = element(form).querySelectorAll("input, button");
+  controls.forEach((control) => (control.disabled = true));
+  try {
+    return await work();
+  } finally {
+    controls.forEach((control) => (control.disabled = false));
+  }
+}
+
 async function signIn(game) {
-  const found = await invoke("accounts");
-  if (found.problem) {
-    showProblem(found.problem, start);
+  const options = await invoke("sign_in_options");
+  if (options.problem) {
+    showProblem(options.problem, start);
     return;
   }
+  element("repair").hidden = !game.installable;
+  for (const id of ["game-note", "ready-note"]) {
+    say(id, game.note);
+  }
+  showDevAccounts(options.accounts);
+  if (options.signedInAs) {
+    showReady(options.signedInAs);
+  } else if (options.playerLogin) {
+    showSignIn();
+  } else {
+    // A development launcher: only the development accounts.
+    element("sign-in-form").hidden = true;
+    document.querySelector("#sign-in .links").hidden = true;
+    element("dev-sign-in").open = true;
+    show("sign-in");
+  }
+}
+
+function showDevAccounts(accounts) {
+  element("dev-sign-in").hidden = accounts.length === 0;
   const select = element("account");
   select.replaceChildren(
-    ...found.accounts.map((name) => {
+    ...accounts.map((name) => {
       const option = document.createElement("option");
       option.value = name;
       option.textContent = name;
       return option;
     }),
   );
-  const remembered = localStorage.getItem(ACCOUNT_KEY);
-  if (found.accounts.includes(remembered)) {
-    select.value = remembered;
+  const last = remembered(ACCOUNT_KEY);
+  if (accounts.includes(last)) {
+    select.value = last;
   }
-  element("game-note").textContent = game.note || "";
-  element("game-note").hidden = !game.note;
-  element("repair").hidden = !game.installable;
-  show("sign-in");
 }
 
-async function play() {
-  const account = element("account").value;
-  if (!account) {
+function showSignIn() {
+  say("sign-in-note", "");
+  element("sign-in-password").value = "";
+  element("sign-in-email").value = element("sign-in-email").value || remembered(EMAIL_KEY) || "";
+  show("sign-in");
+  (element("sign-in-email").value ? element("sign-in-password") : element("sign-in-email")).focus();
+}
+
+function showRegister() {
+  say("register-note", "");
+  element("register-password").value = "";
+  element("register-email").value = element("register-email").value || element("sign-in-email").value;
+  show("register");
+  element("register-name").focus();
+}
+
+function showChooseName(note) {
+  say("choose-name-note", note || "");
+  show("choose-name");
+  element("choose-name-input").focus();
+}
+
+function showReady(displayName) {
+  element("signed-in-as").textContent = `Signed in as ${displayName}`;
+  show("ready");
+  element("play").focus();
+}
+
+// Where signing in, registering or choosing a name came to.
+function settle(result) {
+  if (result.state === "signedIn") {
+    showReady(result.displayName);
+  } else {
+    showChooseName();
+  }
+}
+
+async function submitSignIn(event) {
+  event.preventDefault();
+  const email = element("sign-in-email").value.trim();
+  const password = element("sign-in-password").value;
+  if (!email || !password) {
+    say("sign-in-note", "Enter your email and password.");
     return;
   }
-  localStorage.setItem(ACCOUNT_KEY, account);
+  say("sign-in-note", "");
+  try {
+    const result = await busy("sign-in-form", () => invoke("sign_in", { email, password }));
+    remember(EMAIL_KEY, email);
+    element("sign-in-password").value = "";
+    settle(result);
+  } catch (problem) {
+    say("sign-in-note", String(problem));
+  }
+}
+
+async function submitRegister(event) {
+  event.preventDefault();
+  const displayName = element("register-name").value.trim();
+  const email = element("register-email").value.trim();
+  const password = element("register-password").value;
+  if (!/^[A-Za-z0-9_]{3,16}$/.test(displayName)) {
+    say("register-note", "A name is 3 to 16 letters, digits or underscores.");
+    return;
+  }
+  if (!email) {
+    say("register-note", "Enter your email address.");
+    return;
+  }
+  if (password.length < 6) {
+    say("register-note", "Choose a password of at least 6 characters.");
+    return;
+  }
+  say("register-note", "");
+  try {
+    const result = await busy("register-form", () => invoke("register", { email, password, displayName }));
+    remember(EMAIL_KEY, email);
+    element("register-password").value = "";
+    if (result.state === "chooseName") {
+      // The account exists, but someone took the name a moment ago.
+      element("choose-name-input").value = displayName;
+      showChooseName("That name is taken. Choose another.");
+    } else {
+      settle(result);
+    }
+  } catch (problem) {
+    say("register-note", String(problem));
+  }
+}
+
+async function submitChooseName(event) {
+  event.preventDefault();
+  const displayName = element("choose-name-input").value.trim();
+  if (!/^[A-Za-z0-9_]{3,16}$/.test(displayName)) {
+    say("choose-name-note", "A name is 3 to 16 letters, digits or underscores.");
+    return;
+  }
+  say("choose-name-note", "");
+  try {
+    settle(await busy("choose-name-form", () => invoke("choose_name", { displayName })));
+  } catch (problem) {
+    say("choose-name-note", String(problem));
+  }
+}
+
+async function forgotPassword() {
+  const email = element("sign-in-email").value.trim();
+  if (!email) {
+    say("sign-in-note", "Enter your email, then choose Forgot password.");
+    element("sign-in-email").focus();
+    return;
+  }
+  try {
+    await invoke("reset_password", { email });
+    say("sign-in-note", `If ${email} has an account, an email to reset its password is on its way.`);
+  } catch (problem) {
+    say("sign-in-note", String(problem));
+  }
+}
+
+async function signOut() {
+  await invoke("sign_out");
+  showSignIn();
+}
+
+async function play(account) {
+  if (account !== null) {
+    if (!account) {
+      return;
+    }
+    remember(ACCOUNT_KEY, account);
+  }
   try {
     await invoke("start_launch", { account });
   } catch (problem) {
@@ -199,7 +378,16 @@ async function follow() {
   }
 }
 
-element("play").addEventListener("click", play);
+element("play").addEventListener("click", () => play(null));
+element("dev-play").addEventListener("click", () => play(element("account").value));
+element("sign-in-form").addEventListener("submit", submitSignIn);
+element("register-form").addEventListener("submit", submitRegister);
+element("choose-name-form").addEventListener("submit", submitChooseName);
+element("show-register").addEventListener("click", showRegister);
+element("show-sign-in").addEventListener("click", showSignIn);
+element("choose-name-back").addEventListener("click", signOut);
+element("forgot-password").addEventListener("click", forgotPassword);
+element("sign-out").addEventListener("click", signOut);
 element("change-folder").addEventListener("click", changeFolder);
 element("repair").addEventListener("click", () => {
   element("repair").hidden = true;

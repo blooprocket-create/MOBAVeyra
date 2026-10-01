@@ -1,5 +1,5 @@
-//! The launcher's conversation with the backend (ADR-005 L3): the development sign-in, and a launch
-//! code for the game. Every request goes from Rust over rustls; a credential goes only in the
+//! The launcher's conversation with the backend (ADR-005 L3): a player's sign-in and registration with
+//! a Firebase ID token (ADR-038), the development sign-in, and a launch code for the game. Every request goes from Rust over rustls; a credential goes only in the
 //! Authorization header, and no error ever quotes a response body.
 
 use crate::secret::{self, Secret};
@@ -11,8 +11,8 @@ use ureq::Agent;
 /// The longest display name the launcher shows.
 const MAX_DISPLAY_NAME_LENGTH: usize = 64;
 
-/// The launcher's session: who is signed in. Kept in memory only (ADR-005 L4: no remembered login
-/// until an identity provider is chosen).
+/// The launcher's session: who is signed in. Kept in memory only (ADR-005 L4: a remembered login is
+/// stored only if the player opts in, which the launcher does not offer yet).
 #[derive(Debug, Clone)]
 pub struct LauncherSession {
     token: Secret,
@@ -98,9 +98,28 @@ impl Backend {
         Ok(names)
     }
 
-    /// Signs in as a development account (ADR-010 §5: until an identity provider is chosen).
+    /// Signs in as a development account (a local backend only).
     pub fn dev_login(&self, account: &str) -> Result<LauncherSession, BackendError> {
         let answer: TokenAnswer = self.post("/v1/dev/login", None, &serde_json::json!({ "accountName": account }))?;
+        Self::session(answer)
+    }
+
+    /// Trades a Firebase ID token for a launcher session (ADR-038). A player Firebase knows but who
+    /// has no Veyra account yet is refused with `not_registered`.
+    pub fn player_login(&self, provider_token: &Secret) -> Result<LauncherSession, BackendError> {
+        let answer: TokenAnswer = self.post("/v1/login", None, &serde_json::json!({ "providerToken": provider_token.expose() }))?;
+        Self::session(answer)
+    }
+
+    /// Creates the Veyra account for a Firebase ID token with the display name the player chose, and
+    /// signs it in. A name someone holds is refused with `display_name_taken`.
+    pub fn register(&self, provider_token: &Secret, display_name: &str) -> Result<LauncherSession, BackendError> {
+        let body = serde_json::json!({ "providerToken": provider_token.expose(), "displayName": display_name });
+        let answer: TokenAnswer = self.post("/v1/register", None, &body)?;
+        Self::session(answer)
+    }
+
+    fn session(answer: TokenAnswer) -> Result<LauncherSession, BackendError> {
         let Some(account) = answer.account else {
             return Err(BackendError::BadAnswer("the sign-in named no account".to_string()));
         };
