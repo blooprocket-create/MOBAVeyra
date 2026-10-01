@@ -151,6 +151,12 @@ FText VanguardNameOf(const FString& VanguardId)
 	return Id.IsSet() ? VeyraContentText::VanguardName(Id.GetValue()) : NameOf(VanguardId);
 }
 
+FText ModeNameOf(const FString& ModeId)
+{
+	const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(ModeId);
+	return Id.IsSet() ? VeyraContentText::ModeName(Id.GetValue(), NameOf(ModeId).ToString()) : NameOf(ModeId);
+}
+
 FVeyraStatusModel DescribeStatus(const FVeyraClientSnapshot& Snapshot)
 {
 	switch (Snapshot.State)
@@ -513,8 +519,7 @@ TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot)
 		}
 		FVeyraModeCardModel Card;
 		Card.ModeId = Mode.Id;
-		const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(Mode.Id);
-		Card.Name = Id.IsSet() ? VeyraContentText::ModeName(Id.GetValue(), NameOf(Mode.Id).ToString()) : NameOf(Mode.Id);
+		Card.Name = ModeNameOf(Mode.Id);
 		// Against an enemy AI team, its humans alone (ADR-038 §2).
 		Card.Format = Mode.bVersusAI ? FText::Format(LOCTEXT("ModeFormatVersusAI", "{0} vs AI"), FText::AsNumber(Mode.HumanPlayersPerTeam))
 									 : FText::Format(LOCTEXT("ModeFormat", "{0}v{0}"), FText::AsNumber(Mode.HumanPlayersPerTeam));

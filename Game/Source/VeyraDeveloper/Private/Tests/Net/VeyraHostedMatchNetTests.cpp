@@ -261,8 +261,10 @@ namespace VeyraNetTests
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 			Tickets = MakeUnique<FScopedTestTickets>();
-			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("cairn")), EVeyraBotDifficulty::Beginner },
-				{ EVeyraTeam::B, ContentId(TEXT("bryn")), EVeyraBotDifficulty::Intermediate } };
+			// Seated before the match goes live, the side deals its places by the roles of their Vanguards: Eudora,
+			// seated second, takes the first seat's Mid, which she plays before Top, and Varkesh her Top (ADR-038 §5).
+			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("varkesh")), EVeyraBotDifficulty::Beginner },
+				{ EVeyraTeam::B, ContentId(TEXT("eudora")), EVeyraBotDifficulty::Intermediate } };
 			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, EVeyraMatchRules::Practice,
 				TArray<FVeyraContentId>{}, PracticeBots);
 			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
@@ -351,6 +353,7 @@ namespace VeyraNetTests
 						Preferences.Add(BotTuning.Vanguards.FindChecked(PracticeBots[Index].VanguardId).Roles);
 					}
 					const TArray<int32> PlaceOf = VeyraBotRoles::Deal(Places, Preferences);
+					ASSERT_THAT(IsTrue(PlaceOf.Num() == 2 && PlaceOf[0] == 1 && PlaceOf[1] == 0, TEXT("the side swaps their seats' places")));
 					for (int32 Index = 0; Index < Bots.Num(); ++Index)
 					{
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVeyraTeam() == PracticeBots[Index].Side));

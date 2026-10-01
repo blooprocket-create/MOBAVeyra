@@ -348,6 +348,9 @@ namespace VeyraShellModels
 	/** A Vanguard's name, from VeyraContentText; NameOf for an ID the table does not know. */
 	VEYRAUI_API FText VanguardNameOf(const FString& VanguardId);
 
+	/** A mode's name, as its card on the Play page shows it: from VeyraContentText; NameOf for an ID the table does not know. */
+	VEYRAUI_API FText ModeNameOf(const FString& ModeId);
+
 	/** The Status and Stopped screens' title and detail. */
 	VEYRAUI_API FVeyraStatusModel DescribeStatus(const FVeyraClientSnapshot& Snapshot);
 

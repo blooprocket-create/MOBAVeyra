@@ -7,8 +7,10 @@
 
 #include "AbilitySystemComponent.h"
 #include "Bots/VeyraMatchEvents.h"
+#include "Brain/VeyraBotBrainComponent.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
+#include "Tuning/VeyraBotsTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardController.h"
 
@@ -88,6 +90,26 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(Announced[0].Key == First && Announced[0].Value.Seat == 0 && Announced[0].Value.Difficulty == EVeyraBotDifficulty::Beginner));
 					ASSERT_THAT(IsTrue(Announced[1].Key == Second && Announced[1].Value.Seat == 1 && Announced[1].Value.Difficulty == EVeyraBotDifficulty::Intermediate));
 					ASSERT_THAT(IsTrue(Announced[1].Value.Side == EVeyraTeam::B && Announced[1].Value.Vanguard == Vanguard));
+				});
+		}
+
+		TEST_METHOD(BotsSeatedInPreparationAreDealtTheirPlacesTogether)
+		{
+			// Each spawns as it is seated in preparation; its side still deals the places of all it seated before the
+			// match goes live (ADR-038 §5). Varkesh plays Top before Mid, Eudora Mid before Top: seated in that order
+			// in the Mid and Top seats, they swap.
+			StartMatch(Network, Layout, EVeyraMatchPhase::Preparation)
+				.ThenServer(TEXT("Seat Varkesh, then Eudora, on one side"), [this](FState& State) {
+					const AVeyraPlayerState* First = GameModeOf(State.World)->AddPlayingBot(TEXT("First"), EVeyraTeam::B, FVeyraContentId::FromText(TEXT("varkesh")).GetValue(), EVeyraBotDifficulty::Beginner);
+					const AVeyraPlayerState* Second = GameModeOf(State.World)->AddPlayingBot(TEXT("Second"), EVeyraTeam::B, FVeyraContentId::FromText(TEXT("eudora")).GetValue(), EVeyraBotDifficulty::Beginner);
+					ASSERT_THAT(IsTrue(First && Second && First->GetPawn(), TEXT("seated in preparation, each has its Vanguard at once")));
+					const TArray<FVeyraBotSeatTuning>& Seats = UVeyraBotsTuningSubsystem::Get().Seats;
+					const auto RoleOf = [](const AVeyraPlayerState& Bot) {
+						const UVeyraBotBrainComponent* Brain = Bot.GetVanguardController()->FindComponentByClass<UVeyraBotBrainComponent>();
+						return Brain ? Brain->GetRole() : EVeyraBotRole::Jungle;
+					};
+					ASSERT_THAT(IsTrue(RoleOf(*First) == Seats[1].Role && RoleOf(*Second) == Seats[0].Role,
+						FString::Printf(TEXT("Varkesh plays %s, Eudora %s"), *UEnum::GetValueAsString(RoleOf(*First)), *UEnum::GetValueAsString(RoleOf(*Second)))));
 				});
 		}
 

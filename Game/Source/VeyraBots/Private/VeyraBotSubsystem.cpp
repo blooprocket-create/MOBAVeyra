@@ -9,6 +9,7 @@
 #include "Tuning/VeyraBotsTuningSubsystem.h"
 #include "VeyraBotsLog.h"
 #include "VeyraGameMode.h"
+#include "VeyraGameState.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardController.h"
 
@@ -75,12 +76,15 @@ void UVeyraBotSubsystem::Deal(EVeyraTeam Side)
 	{
 		return;
 	}
-	// Only those not yet in play: a bot whose Vanguard has spawned keeps its Flux Spells and its place.
+	// Only those not yet in play. Before the match goes live none is, though each spawns at the fountain as it is
+	// seated in preparation; after, a bot whose Vanguard has spawned keeps its Flux Spells and its place.
 	Team->RemoveAll([](const FSeated& Each) { return !Each.Bot.IsValid() || !Each.Brain.IsValid(); });
+	const AVeyraGameState* GameState = GetWorld()->GetGameState<AVeyraGameState>();
+	const bool bBeforeLive = !GameState || GameState->GetPhase() < EVeyraMatchPhase::Live;
 	TArray<FSeated*> Waiting;
 	for (FSeated& Each : *Team)
 	{
-		if (!Each.Bot->GetPawn())
+		if (bBeforeLive || !Each.Bot->GetPawn())
 		{
 			Waiting.Add(&Each);
 		}

@@ -193,6 +193,9 @@ private:
 	/** The label of a Vanguard's button. */
 	static FString VanguardLabel(const FString& VanguardId);
 
+	/** The label of a mode's card on the Play page. */
+	static FString ModeLabel(const FString& ModeId);
+
 	/**
 	 * With -VeyraSmokeFlowScreenshots, asks once for a screenshot called Name and waits a moment for
 	 * it to be saved. True if it asked now, so the caller acts on a later tick.

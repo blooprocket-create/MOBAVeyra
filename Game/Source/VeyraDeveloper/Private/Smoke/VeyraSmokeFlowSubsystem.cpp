@@ -464,7 +464,7 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 			// A party of an earlier run still has the mode.
 			ChosenMode = Mode->Id;
 		}
-		else if (Flow.CanIssue(EVeyraClientIntent::SelectMode) && Click(VanguardLabel(Mode->Id)))
+		else if (Flow.CanIssue(EVeyraClientIntent::SelectMode) && Click(ModeLabel(Mode->Id)))
 		{
 			ChosenMode = Mode->Id;
 			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: chose %s."), *Mode->Id);
@@ -1521,10 +1521,20 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 FString UVeyraSmokeFlowSubsystem::VanguardLabel(const FString& VanguardId)
 {
 #if WITH_VEYRA_UI
-	// A Vanguard's or a mode's button shows its name, not its content ID.
+	// A Vanguard's button shows its name, not its content ID.
 	return VeyraShellModels::NameOf(VanguardId).ToString();
 #else
 	return VanguardId;
+#endif
+}
+
+FString UVeyraSmokeFlowSubsystem::ModeLabel(const FString& ModeId)
+{
+#if WITH_VEYRA_UI
+	// A mode's card shows the text table's name, such as "Co-op vs AI: Beginner" (ADR-038 §6).
+	return VeyraShellModels::ModeNameOf(ModeId).ToString();
+#else
+	return ModeId;
 #endif
 }
 
