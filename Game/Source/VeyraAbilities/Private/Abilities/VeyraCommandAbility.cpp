@@ -52,9 +52,15 @@ EVeyraCastRejection UVeyraCommandAbility::CheckTarget(const AActor& Caster, cons
 	}
 	// A summon or redirect binds to the unit the cast names: an allied Vanguard, its caster among them, or an
 	// enemy unit its caster can see (ADR-035 §5). A summon forms its companion; a redirect needs it living.
-	if (Command->Order == EVeyraCompanionOrder::Summon || Command->Order == EVeyraCompanionOrder::Redirect)
+	if (Command->Order == EVeyraCompanionOrder::Summon || Command->Order == EVeyraCompanionOrder::Redirect || Command->Order == EVeyraCompanionOrder::Unanchor)
 	{
 		if (Command->Order == EVeyraCompanionOrder::Redirect && !LivingCompanionOf(*Abilities))
+		{
+			return EVeyraCastRejection::NoCompanion;
+		}
+		// A move needs a deployed companion, anchored or moving already (ADR-037 §3).
+		const AVeyraCompanion* Deployed = Command->Order == EVeyraCompanionOrder::Unanchor ? LivingCompanionOf(*Abilities) : nullptr;
+		if (Command->Order == EVeyraCompanionOrder::Unanchor && (!Deployed || (Deployed->GetMode() != EVeyraCompanionMode::Anchored && !Deployed->IsMoving())))
 		{
 			return EVeyraCastRejection::NoCompanion;
 		}
@@ -87,6 +93,12 @@ EVeyraCastRejection UVeyraCommandAbility::CheckTarget(const AActor& Caster, cons
 	if (!LivingCompanionOf(*Abilities))
 	{
 		return EVeyraCastRejection::NoCompanion;
+	}
+	// A posture change needs a companion with postures to change between (ADR-037 §2).
+	if (Command->Order == EVeyraCompanionOrder::ChangePosture)
+	{
+		const FVeyraCompanionTuning* Definition = LivingCompanionOf(*Abilities)->GetDefinition();
+		return Definition && Definition->Postures.Num() >= 2 ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidTarget;
 	}
 	if (Command->Order != EVeyraCompanionOrder::Hold)
 	{
@@ -130,6 +142,16 @@ FVeyraChannelPlan UVeyraCommandAbility::Deliver(const FVeyraCast& Cast)
 		}
 		return FVeyraChannelPlan();
 	}
+	// Moved with the ally the cast names, facing the cast's way (ADR-037 §3).
+	if (Command && World && Command->Order == EVeyraCompanionOrder::Unanchor)
+	{
+		UVeyraCompanionSubsystem* Keeper = World->GetSubsystem<UVeyraCompanionSubsystem>();
+		if (AActor* Ally = Cast.TargetActor.Get(); Keeper && Ally)
+		{
+			Keeper->Move(*Caster, *Ally, Cast.Point - Cast.CasterLocation, Command->LifetimeSeconds, Cast.Rank);
+		}
+		return FVeyraChannelPlan();
+	}
 	// Deployed at the point, facing away from its caster (ADR-037 §1).
 	if (Command && World && Command->Order == EVeyraCompanionOrder::Deploy)
 	{
@@ -142,6 +164,12 @@ FVeyraChannelPlan UVeyraCommandAbility::Deliver(const FVeyraCast& Cast)
 	AVeyraCompanion* Companion = Caster ? LivingCompanionOf(*Caster) : nullptr;
 	if (!Command || !Companion || !World)
 	{
+		return FVeyraChannelPlan();
+	}
+	if (Command->Order == EVeyraCompanionOrder::ChangePosture)
+	{
+		// Facing the cast's point (ADR-037 §2).
+		Companion->NextPosture(Cast.Point - Companion->GetActorLocation());
 		return FVeyraChannelPlan();
 	}
 	if (Command->Order == EVeyraCompanionOrder::Recall)

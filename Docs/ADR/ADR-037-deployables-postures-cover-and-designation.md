@@ -59,7 +59,8 @@ The survey for this ADR found that:
 - **A companion definition gains `postures`**, in order, the first its starting posture. Each:
   - `attacks`: `Attacks` or `Holds`;
   - `statuses` it holds while it stands in the posture.
-- **The command order `ChangePosture`:** the caster's living companion takes its next posture, its statuses replacing the last one's. The ability's cooldown is the mode cooldown.
+- **The command order `ChangePosture`:** the caster's living companion takes its next posture, its statuses replacing the last one's, and turns to face the cast's point. The ability's cooldown is the mode cooldown.
+- **A posture's statuses are held:** each is given afresh as the companion takes the posture, and again only if it lapses.
 - **A companion definition gains `movingStatuses`**, which it holds instead of its posture's while an order moves it (§3).
 
 ### 3. Moving a deployed companion (Abilities)
@@ -68,7 +69,8 @@ The survey for this ADR found that:
   - It holds its moving statuses instead of its posture's, facing the cast's direction.
   - It then anchors where it is, in its earlier posture.
   - If the companion is destroyed, the order ends.
-- **A companion definition gains `movingAura`**, at most one: statuses for the allied units of the given kinds within a radius, at a pulse, while it moves (Picket's shield for nearby Fluxborn).
+- **A companion definition gains `movingAura`**, at most one: statuses, and at most one shield of the companion's own at the moving order's rank, for the allied units of the given kinds within a radius, at a pulse, while it moves (Picket's shield for nearby Fluxborn).
+- **While it moves it fires** at what its attack reaches, whatever its posture, and keeps facing the way it was sent between shots.
 
 ### 4. Cover (Combat; Combat Bible §20)
 

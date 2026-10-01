@@ -6,10 +6,13 @@
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Companions/VeyraCompanion.h"
+#include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Shapes/VeyraShapes.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
 #include "VeyraCombatVerbs.h"
@@ -173,6 +176,25 @@ bool UVeyraCompanionSubsystem::Deploy(UAbilitySystemComponent& Owner, const FVey
 	return true;
 }
 
+bool UVeyraCompanionSubsystem::Move(const UAbilitySystemComponent& Owner, AActor& Ally, const FVector& Facing, double Seconds, int32 Rank)
+{
+	FKept* Entry = FindKept(Owner);
+	AVeyraCompanion* Companion = Entry && Entry->bDeployed ? FindLiving(Owner) : nullptr;
+	if (!Companion || !(Seconds > 0.0))
+	{
+		return false;
+	}
+	const double Now = GetWorld()->GetTimeSeconds();
+	Entry->MovesUntil = Now + Seconds;
+	Entry->MoveRank = Rank;
+	// Its aura reaches its allies as it sets off, then on its pulse.
+	Entry->NextAuraAt = Now;
+	Companion->StartMoving(Ally, Facing);
+	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s moves with %s for %g s."), *GetNameSafe(Companion), *GetNameSafe(&Ally), Seconds);
+	Keep(Owner);
+	return true;
+}
+
 bool UVeyraCompanionSubsystem::Redirect(const UAbilitySystemComponent& Owner, EVeyraCompanionMode Mode, AActor& Unit)
 {
 	const FKept* Entry = FindKept(Owner);
@@ -257,6 +279,21 @@ void UVeyraCompanionSubsystem::Keep(const UAbilitySystemComponent& Owner)
 	if (Companion->GetMode() == EVeyraCompanionMode::Escort && Now >= Entry->NextPulseAt && Companion->IsAlive() && !Companion->IsBanished())
 	{
 		Pulse(*Entry, *Companion);
+	}
+	if (Companion->IsAlive() && !Companion->IsBanished())
+	{
+		// A move ends with its time: it anchors where it is, in its earlier posture (ADR-037 §3).
+		if (Entry->MovesUntil > 0.0 && Now >= Entry->MovesUntil)
+		{
+			Entry->MovesUntil = 0.0;
+			Companion->Anchor(Companion->GetActorLocation(), Companion->GetAnchorFacing());
+		}
+		// What its posture or its move holds stays held, given afresh only once it has lapsed.
+		Companion->KeepHeldStatuses();
+		if (Companion->IsMoving() && Now >= Entry->NextAuraAt)
+		{
+			PulseAura(*Entry, *Companion);
+		}
 	}
 }
 
@@ -387,6 +424,48 @@ void UVeyraCompanionSubsystem::Pulse(FKept& Entry, AVeyraCompanion& Companion)
 		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
 		{
 			VeyraCombat::ApplyStatus(Helper, *AllyAbilities, Status.GetValue());
+		}
+	}
+}
+
+void UVeyraCompanionSubsystem::PulseAura(FKept& Entry, AVeyraCompanion& Companion)
+{
+	const FVeyraCompanionTuning* Tuning = Companion.GetDefinition();
+	if (!Tuning || Tuning->MovingAura.IsEmpty())
+	{
+		return;
+	}
+	const FVeyraMovingAuraTuning& Aura = Tuning->MovingAura[0];
+	Entry.NextAuraAt = GetWorld()->GetTimeSeconds() + Aura.PulseSeconds;
+	FVeyraShape Around;
+	Around.Kind = EVeyraShapeKind::Circle;
+	Around.Radius = Aura.Radius;
+	const EVeyraTeam Side = Companion.GetVeyraTeam();
+	const TArray<AActor*> Allies = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Around, Companion.GetActorLocation(), Companion.GetActorForwardVector() },
+		[&Companion, &Aura, Side](const AActor& Unit) {
+			const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
+			return &Unit != &Companion && VeyraTargeting::IsAlive(&Unit) && VeyraTeams::TeamOf(&Unit) == Side
+				&& (Aura.UnitKinds.IsEmpty() || (Kind.IsSet() && Aura.UnitKinds.Contains(Kind.GetValue())));
+		});
+	// Its own, from its own stats (ADR-034 §3).
+	UAbilitySystemComponent& Source = *Companion.GetAbilitySystemComponent();
+	for (AActor* Ally : Allies)
+	{
+		UAbilitySystemComponent* Holder = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Ally);
+		if (!Holder)
+		{
+			continue;
+		}
+		for (const FVeyraShieldTuning& Shield : Aura.Shield)
+		{
+			VeyraEffectDelivery::GrantShield(Source, *Holder, Shield, Entry.MoveRank);
+		}
+		for (const FVeyraContentId& StatusId : Aura.Statuses)
+		{
+			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+			{
+				VeyraCombat::ApplyStatus(Source, *Holder, Status.GetValue());
+			}
 		}
 	}
 }

@@ -84,7 +84,7 @@ void AVeyraCompanionController::Think()
 	APawn* OwnerBody = Keeper ? AVeyraCompanion::BodyOf(*Keeper) : nullptr;
 	// Banished, or with its owner fallen, it waits for its keeper to bring it back; anchored, it stands on (ADR-037 §1).
 	const bool bAnchored = Tuning && Body->GetMode() == EVeyraCompanionMode::Anchored;
-	if (!Tuning || !Body->IsAlive() || Body->IsBanished() || (!bAnchored && !VeyraTargeting::IsAlive(OwnerBody)))
+	if (!Tuning || !Body->IsAlive() || Body->IsBanished() || (!bAnchored && !Body->IsMoving() && !VeyraTargeting::IsAlive(OwnerBody)))
 	{
 		Target.Reset();
 		Halt();
@@ -101,6 +101,12 @@ void AVeyraCompanionController::Think()
 	if (bAnchored)
 	{
 		Halt();
+		// A posture that holds its fire fights nothing (ADR-037 §2).
+		if (Body->HoldsFire())
+		{
+			Target.Reset();
+			return;
+		}
 		Target = const_cast<AActor*>(VeyraCompanionRules::Choose(EVeyraCompanionMode::Anchored, Target.Get(), GatherCandidates(*Body, OwnerBody, *Tuning)));
 		AActor* Enemy = Target.Get();
 		if (Enemy && Attacks->CheckAttack(Enemy) == EVeyraAttackRejection::None)
@@ -121,9 +127,33 @@ void AVeyraCompanionController::Think()
 	// is gone; or it hunts its enemy while that enemy stays within its leash of its owner (ADR-035 §5).
 	if (Body->GetMode() == EVeyraCompanionMode::Escort)
 	{
-		Target.Reset();
 		AActor* Ally = Body->GetBoundTo();
-		Follow(Ally && VeyraTargeting::IsAlive(Ally) ? *Ally : static_cast<AActor&>(*OwnerBody), Tuning->FollowDistance);
+		AActor* Leader = Ally && VeyraTargeting::IsAlive(Ally) ? Ally : VeyraTargeting::IsAlive(OwnerBody) ? OwnerBody : nullptr;
+		// Moved with an ally, it fires as it goes at what its attack reaches, and keeps the way it was sent facing (ADR-037 §3).
+		if (Body->IsMoving())
+		{
+			Target = const_cast<AActor*>(VeyraCompanionRules::Choose(EVeyraCompanionMode::Anchored, Target.Get(), GatherCandidates(*Body, OwnerBody, *Tuning)));
+			AActor* Enemy = Target.Get();
+			if (Enemy && Attacks->CheckAttack(Enemy) == EVeyraAttackRejection::None)
+			{
+				Halt();
+				Attacks->StartAttack(*Enemy);
+				return;
+			}
+			Body->FaceAnchor();
+		}
+		else
+		{
+			Target.Reset();
+		}
+		if (Leader)
+		{
+			Follow(*Leader, Tuning->FollowDistance);
+		}
+		else
+		{
+			Halt();
+		}
 		return;
 	}
 	if (Body->GetMode() == EVeyraCompanionMode::Hunt)
@@ -162,7 +192,8 @@ TArray<FVeyraCompanionCandidate> AVeyraCompanionController::GatherCandidates(con
 {
 	TArray<FVeyraCompanionCandidate> Candidates;
 	const UAbilitySystemComponent* Keeper = Body.GetOwnerAbilities();
-	const bool bAnchored = Body.GetMode() == EVeyraCompanionMode::Anchored;
+	// Deployed, anchored or moved, it fights what its attack reaches, its owner's distance aside (ADR-037 §1, §3).
+	const bool bAnchored = Body.GetMode() == EVeyraCompanionMode::Anchored || Body.IsMoving();
 	if (!Keeper || (!bAnchored && !OwnerBody))
 	{
 		return Candidates;

@@ -127,6 +127,21 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 			Profile.CostByRank = Command->Cast.ResourceCostByRank;
 			return Profile;
 		}
+		// A posture change faces the fight; a move walks the companion with its caster (ADR-037 §2, §3).
+		if (Command->Order == EVeyraCompanionOrder::ChangePosture)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Point;
+			Profile.Reach = Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
+		if (Command->Order == EVeyraCompanionOrder::Unanchor)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Self;
+			Profile.AllyReach = Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
 		// A deployment sets the companion down between its caster and the fight (ADR-037 §1).
 		if (Command->Order == EVeyraCompanionOrder::Deploy)
 		{

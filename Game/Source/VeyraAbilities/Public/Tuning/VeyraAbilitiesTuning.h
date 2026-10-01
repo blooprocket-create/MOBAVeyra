@@ -2122,6 +2122,13 @@ enum class EVeyraCompanionOrder : uint8
 	 * (ADR-037 §1). Cast while it lives, it moves there instead, keeping its Health, its time starting again.
 	 */
 	Deploy,
+	/** The caster's living companion takes its next posture, facing the cast's point (ADR-037 §2). */
+	ChangePosture,
+	/**
+	 * The caster's living deployed companion walks with the allied Vanguard the cast names for a while, facing the
+	 * cast's way and holding its moving statuses, then anchors where it is in its earlier posture (ADR-037 §3).
+	 */
+	Unanchor,
 };
 
 /** Which unit a summon or redirect binds the companion to (ADR-035 §5); None for the other orders. */
@@ -2167,11 +2174,11 @@ struct FVeyraCommandAbilityTuning
 	UPROPERTY()
 	TArray<FVeyraContentId> Companion;
 
-	/** Summon and Deploy: how long the companion stays, in seconds; 0 for the other orders. */
+	/** Summon and Deploy: how long the companion stays; Unanchor: how long it walks; in seconds; 0 for the other orders. */
 	UPROPERTY()
 	double LifetimeSeconds = 0.0;
 
-	/** Summon and Redirect: which unit the cast names; None for the other orders. */
+	/** Summon, Redirect and Unanchor: which unit the cast names; None for the other orders. */
 	UPROPERTY()
 	EVeyraCompanionBind BindTo = EVeyraCompanionBind::None;
 };
@@ -2200,6 +2207,56 @@ struct FVeyraEscortTuning
 	/** Status IDs the ally takes each pulse. */
 	UPROPERTY()
 	TArray<FVeyraContentId> Statuses;
+};
+
+/** Whether a companion fights in a posture (ADR-037 §2). */
+UENUM()
+enum class EVeyraPostureAttacks : uint8
+{
+	Attacks,
+	/** It holds its fire. */
+	Holds,
+};
+
+/** One posture of a companion's (ADR-037 §2), as Picket's Gun Platform and Bulwark. */
+USTRUCT()
+struct FVeyraCompanionPostureTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraPostureAttacks Attacks = EVeyraPostureAttacks::Attacks;
+
+	/** Status IDs it holds while it stands in the posture, each given afresh as it takes the posture. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/** What a moving companion does now and then for the allies about it (ADR-037 §3), as Picket's shield for nearby Fluxborn. */
+USTRUCT()
+struct FVeyraMovingAuraTuning
+{
+	GENERATED_BODY()
+
+	/** How far about it, centre to centre; above 0. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** Seconds between its pulses, the first as it starts moving; above 0. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** The kinds of ally it reaches, empty for all. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> UnitKinds;
+
+	/** Status IDs each ally takes each pulse. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** At most one: a shield each ally takes each pulse, from the companion, at the moving order's rank. */
+	UPROPERTY()
+	TArray<FVeyraShieldTuning> Shield;
 };
 
 /**
@@ -2266,6 +2323,18 @@ struct FVeyraCompanionTuning
 	/** Status IDs its basic attack's hit gives, as the Waterling's slow (ADR-035 §5). */
 	UPROPERTY()
 	TArray<FVeyraContentId> AttackStatuses;
+
+	/** Its postures in order, the first its starting one (ADR-037 §2): none, or at least two to change between. */
+	UPROPERTY()
+	TArray<FVeyraCompanionPostureTuning> Postures;
+
+	/** Status IDs it holds instead of its posture's while an order moves it (ADR-037 §3). */
+	UPROPERTY()
+	TArray<FVeyraContentId> MovingStatuses;
+
+	/** At most one: what it does for the allies about it while an order moves it (ADR-037 §3). */
+	UPROPERTY()
+	TArray<FVeyraMovingAuraTuning> MovingAura;
 };
 
 USTRUCT()

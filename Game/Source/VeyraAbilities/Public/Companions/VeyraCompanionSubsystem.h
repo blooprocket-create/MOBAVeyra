@@ -58,6 +58,12 @@ public:
 	 */
 	bool Deploy(UAbilitySystemComponent& Owner, const FVeyraContentId& Id, const FVector& Where, const FVector& Facing, double LifetimeSeconds);
 
+	/**
+	 * Server: Owner's living deployed companion walks with Ally for Seconds, facing Facing, and its moving aura's
+	 * shield is of Rank (ADR-037 §3); then it anchors where it is. False without one.
+	 */
+	bool Move(const UAbilitySystemComponent& Owner, AActor& Ally, const FVector& Facing, double Seconds, int32 Rank);
+
 	/** Server: binds Owner's living summoned companion to Unit as Mode says, keeping its time. False without one. */
 	bool Redirect(const UAbilitySystemComponent& Owner, EVeyraCompanionMode Mode, AActor& Unit);
 
@@ -87,6 +93,11 @@ private:
 		double NextPulseAt = 0.0;
 		/** Whether it was deployed at a point, where it stands through its owner's death (ADR-037 §1). */
 		bool bDeployed = false;
+		/** When a deployed companion's move ends, in world time; 0 while it is not moved (ADR-037 §3). */
+		double MovesUntil = 0.0;
+		/** When its moving aura next pulses, in world time, and the rank of the order that moved it. */
+		double NextAuraAt = 0.0;
+		int32 MoveRank = 1;
 		FTimerHandle Timer;
 	};
 
@@ -101,6 +112,8 @@ private:
 	void Dismiss(const UAbilitySystemComponent& Owner);
 	/** An escort's heal and statuses for its ally, if near enough (ADR-035 §5). */
 	void Pulse(FKept& Entry, AVeyraCompanion& Companion);
+	/** A moving companion's aura for the allies about it (ADR-037 §3). */
+	void PulseAura(FKept& Entry, AVeyraCompanion& Companion);
 	void OnDeath(const FVeyraDeathEvent& Death);
 	void OnDamageDealt(const FVeyraDamageDealtEvent& Dealt);
 

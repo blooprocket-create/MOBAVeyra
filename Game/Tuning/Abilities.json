@@ -7407,7 +7407,10 @@
       "reformSeconds": 30,
       "thinkSeconds": 0.25,
       "escort": [],
-      "attackStatuses": []
+      "attackStatuses": [],
+      "postures": [],
+      "movingStatuses": [],
+      "movingAura": []
     },
     "neris_waterling": {
       "provenance": "Provisional",
@@ -7463,7 +7466,10 @@
           "statuses": ["neris_current_swell"]
         }
       ],
-      "attackStatuses": ["neris_current_drag"]
+      "attackStatuses": ["neris_current_drag"],
+      "postures": [],
+      "movingStatuses": [],
+      "movingAura": []
     }
   }
 }

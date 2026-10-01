@@ -19,7 +19,8 @@ struct FVeyraCompanionTuning;
  * - holding, it fights what comes near its point, its owner's foes first, then Vanguards, and returns to
  *   the point between fights, until its time runs out or its owner leaves the leash;
  * - anchored, it never walks: it fights the enemies within its basic attack's reach, its owner's mark first, and stands
- *   whatever becomes of its owner (ADR-037 §1);
+ *   whatever becomes of its owner (ADR-037 §1), unless its posture holds its fire (§2);
+ * - moved with an ally, it follows the ally and fires as it goes, facing the way it was sent (§3);
  * - while crowd control locks its movement it holds, as a Fluxborn does.
  */
 UCLASS(NotBlueprintable, NotPlaceable)
