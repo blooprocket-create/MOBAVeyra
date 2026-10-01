@@ -193,6 +193,9 @@ private:
 	/** The label of a Vanguard's button. */
 	static FString VanguardLabel(const FString& VanguardId);
 
+	/** The label of a mode's card on the Play page. */
+	static FString ModeLabel(const FString& ModeId);
+
 	/**
 	 * With -VeyraSmokeFlowScreenshots, asks once for a screenshot called Name and waits a moment for
 	 * it to be saved. True if it asked now, so the caller acts on a later tick.
@@ -226,6 +229,9 @@ private:
 	int32 MostOthers = 0;
 	FString WantedVanguard;
 	FString LockedVanguard;
+	/** A matchmade script: the mode it was asked to queue for, and whether that mode is against AI (ADR-039 §6). */
+	FString WantedMode;
+	bool bVersusAI = false;
 	FString ScreenshotFolder;
 	TSet<FString> Captured;
 	/** Real time until which the script waits, for a screenshot to be saved. */

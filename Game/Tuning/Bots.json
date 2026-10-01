@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -70,6 +70,7 @@
       "provenance": "Provisional",
       "build": ["swift_boots", "siegeheart_core", "riverhold_bastion", "blackreef_bell", "colossus_temper"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Top", "Bottom", "Jungle"],
       "abilities": {
         "cairn_iron_grasp": "Engage",
         "cairn_crushing_hold": "Damage",
@@ -81,6 +82,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "razorwheel_prime", "colossus_temper", "striker_assembly", "siege_frame"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Top", "Jungle", "Mid"],
       "abilities": {
         "qazharr_heavy_hand": "Empower",
         "qazharr_weather_it": "Defend",
@@ -92,6 +94,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "starfall_prism", "nullglass_shard", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Mid", "Bottom"],
       "abilities": {
         "oriel_splinter_lance": "Damage",
         "oriel_shattered_sky": "Damage",
@@ -103,6 +106,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "doombringer_bow", "cycler_core", "sovereign_edge", "striker_assembly"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Bottom", "Mid"],
       "abilities": {
         "bryn_breach_round": "Empower",
         "bryn_sounding_flare": "Damage",
@@ -114,6 +118,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Bottom", "Mid"],
       "abilities": {
         "kade_throughline": "Damage",
         "kade_sightline": "Damage",
@@ -126,6 +131,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "cycler_core", "doombringer_bow", "sovereign_edge", "razorwheel"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Bottom", "Mid"],
       "abilities": {
         "vera_range_found": "Damage",
         "vera_dig_in": "Never",
@@ -137,6 +143,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Mid", "Bottom"],
       "abilities": {
         "mimzi_twinklebolt": "Damage",
         "mimzi_winkbomb": "Damage",
@@ -148,6 +155,7 @@
       "provenance": "Provisional",
       "build": ["swift_boots", "siegeheart_core", "blackreef_bell", "riverhold_bastion", "impact_aegis"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Top", "Jungle", "Bottom"],
       "abilities": {
         "patch_bear_hug": "Engage",
         "patch_bear_hug_inside": "Engage",
@@ -161,6 +169,7 @@
       "provenance": "Provisional",
       "build": ["flux_reclaimer", "war_boots", "the_last_harbor", "cycler_core", "impact_aegis"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Jungle", "Top"],
       "abilities": {
         "gorraveth_rip_through": "Damage",
         "gorraveth_rip_through_hunt": "Damage",
@@ -174,6 +183,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "sovereign_edge", "striker_assembly", "cycler_core", "razorwheel"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Mid", "Bottom", "Top"],
       "abilities": {
         "korruk_spineburst": "Damage",
         "korruk_pressure_mine": "Damage",
@@ -185,6 +195,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "spellguard_plate", "cycler_core", "sovereign_edge", "striker_assembly"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Top", "Jungle", "Bottom"],
       "abilities": {
         "torr_battering_mass": "Engage",
         "torr_battering_mass_over": "Engage",
@@ -200,6 +211,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Mid", "Top", "Bottom"],
       "abilities": {
         "silt_scattershot": "Damage",
         "silt_sink": "Damage",
@@ -211,6 +223,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["E", "Q", "W"],
+      "roles": ["Bottom", "Mid"],
       "abilities": {
         "aurelisse_crosswind": "Damage",
         "aurelisse_rising_current": "Damage",
@@ -222,6 +235,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "cycler_core", "doombringer_bow", "sovereign_edge", "razorwheel"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Bottom", "Mid"],
       "abilities": {
         "celandrine_doubletime": "Empower",
         "celandrine_briar_scatter": "Damage",
@@ -233,6 +247,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Mid", "Bottom"],
       "abilities": {
         "mavra_caustic_line": "Damage",
         "mavra_flash_cure": "Damage",
@@ -244,6 +259,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_lens", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Jungle", "Mid"],
       "abilities": {
         "moro_arc_bolt": "Damage",
         "moro_bursting_ground": "Damage",
@@ -255,6 +271,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "colossus_temper", "razorwheel_prime", "cycler_core", "reinforced_chassis"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Top", "Jungle", "Mid"],
       "abilities": {
         "raska_breakneck": "Engage",
         "raska_breakneck_through": "Damage",
@@ -273,6 +290,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Jungle", "Mid"],
       "abilities": {
         "tavi_catch": "Damage",
         "tavi_hide": "Escape",
@@ -286,6 +304,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Jungle", "Mid", "Top"],
       "abilities": {
         "angeru_shadow_needle": "Damage",
         "angeru_false_body": "Engage",
@@ -300,6 +319,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Top", "Jungle", "Mid"],
       "abilities": {
         "varkesh_slagshot": "Damage",
         "varkesh_tempered_shell": "Defend",
@@ -311,6 +331,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Bottom", "Mid", "Top"],
       "abilities": {
         "relay_rapid_discharge": "Empower",
         "relay_overcharge": "Defend",
@@ -322,6 +343,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "starfall_prism", "nullglass_shard", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Jungle", "Mid"],
       "abilities": {
         "marek_witchfire": "Damage",
         "marek_hunt": "Damage",
@@ -333,6 +355,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Bottom", "Mid"],
       "abilities": {
         "neris_breaking_wave": "Engage",
         "neris_breaking_wave_storm": "Engage",
@@ -347,6 +370,7 @@
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
+      "roles": ["Bottom", "Mid"],
       "abilities": {
         "sylra_harbor_bell": "Damage",
         "sylra_lay_the_mist": "Escape",
@@ -358,6 +382,7 @@
       "provenance": "Provisional",
       "build": ["war_boots", "cycler_core", "sovereign_edge", "siege_frame", "striker_assembly"],
       "skillPriority": ["Q", "W", "E"],
+      "roles": ["Bottom", "Mid", "Top"],
       "abilities": {
         "eudora_drive_rivet": "Damage",
         "eudora_set_the_picket": "Engage",

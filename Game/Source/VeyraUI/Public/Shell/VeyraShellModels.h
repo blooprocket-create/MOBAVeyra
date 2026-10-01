@@ -149,6 +149,8 @@ struct FVeyraSelectModel
 struct FVeyraModeCardModel
 {
 	FString ModeId;
+	/** The Play page's group it shows in (ADR-039 §6). */
+	VeyraBackendProtocol::EModeCategory Category = VeyraBackendProtocol::EModeCategory::Casual;
 	FText Name;
 	/** Such as "1v1": the human players on each team. */
 	FText Format;
@@ -347,6 +349,9 @@ namespace VeyraShellModels
 
 	/** A Vanguard's name, from VeyraContentText; NameOf for an ID the table does not know. */
 	VEYRAUI_API FText VanguardNameOf(const FString& VanguardId);
+
+	/** A mode's name, as its card on the Play page shows it: from VeyraContentText; NameOf for an ID the table does not know. */
+	VEYRAUI_API FText ModeNameOf(const FString& ModeId);
 
 	/** The Status and Stopped screens' title and detail. */
 	VEYRAUI_API FVeyraStatusModel DescribeStatus(const FVeyraClientSnapshot& Snapshot);

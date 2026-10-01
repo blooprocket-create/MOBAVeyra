@@ -45,7 +45,7 @@
       "description": "How bots play one Vanguard.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "build", "skillPriority", "abilities"],
+      "required": ["provenance", "build", "skillPriority", "abilities", "roles"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "build": {
@@ -68,6 +68,13 @@
             "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/abilityUse" }
           },
           "additionalProperties": false
+        },
+        "roles": {
+          "description": "The roles the bot plays, best first, each once. A team's seats set the places it fills; its bots share them by these, the Jungle first (ADR-039 §5).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": { "type": "string", "enum": ["Top", "Mid", "Bottom", "Jungle"] }
         }
       }
     }
@@ -77,7 +84,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [5]
+      "enum": [6]
     },
     "senses": {
       "description": "What a bot notices (ADR-013 §4).",

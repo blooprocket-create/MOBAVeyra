@@ -6,6 +6,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "Brain/VeyraBotBrainComponent.h"
+#include "Brain/VeyraBotRoles.h"
 #include "EngineUtils.h"
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -260,8 +261,10 @@ namespace VeyraNetTests
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 			Tickets = MakeUnique<FScopedTestTickets>();
-			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("cairn")), EVeyraBotDifficulty::Beginner },
-				{ EVeyraTeam::B, ContentId(TEXT("bryn")), EVeyraBotDifficulty::Intermediate } };
+			// Seated before the match goes live, the side deals its places by the roles of their Vanguards: Eudora,
+			// seated second, takes the first seat's Mid, which she plays before Top, and Varkesh her Top (ADR-039 §5).
+			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("varkesh")), EVeyraBotDifficulty::Beginner },
+				{ EVeyraTeam::B, ContentId(TEXT("eudora")), EVeyraBotDifficulty::Intermediate } };
 			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, EVeyraMatchRules::Practice,
 				TArray<FVeyraContentId>{}, PracticeBots);
 			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
@@ -337,16 +340,27 @@ namespace VeyraNetTests
 					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
 					return Bots.Num() == PracticeBots.Num() && !Bots.ContainsByPredicate([](const AVeyraPlayerState* Bot) { return !Bot->GetPawn(); });
 				})
-				.ThenServer(TEXT("They play their sides and Vanguards, each with a brain for its seat"), [this](FState& State) {
+				.ThenServer(TEXT("They play their sides and Vanguards, each with a brain for the place its side dealt it"), [this](FState& State) {
 					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
-					const TArray<FVeyraBotSeatTuning>& Seats = UVeyraBotsTuningSubsystem::Get().Seats;
+					const FVeyraBotsTuning& BotTuning = UVeyraBotsTuningSubsystem::Get();
+					const TArray<FVeyraBotSeatTuning>& Seats = BotTuning.Seats;
+					// Both bots sit on one side, in seats 0 and 1: the side deals those places by the roles their Vanguards play (ADR-039 §5).
+					TArray<EVeyraBotRole> Places;
+					TArray<TArray<EVeyraBotRole>> Preferences;
+					for (int32 Index = 0; Index < PracticeBots.Num(); ++Index)
+					{
+						Places.Add(Seats[Index % Seats.Num()].Role);
+						Preferences.Add(BotTuning.Vanguards.FindChecked(PracticeBots[Index].VanguardId).Roles);
+					}
+					const TArray<int32> PlaceOf = VeyraBotRoles::Deal(Places, Preferences);
+					ASSERT_THAT(IsTrue(PlaceOf.Num() == 2 && PlaceOf[0] == 1 && PlaceOf[1] == 0, TEXT("the side swaps their seats' places")));
 					for (int32 Index = 0; Index < Bots.Num(); ++Index)
 					{
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVeyraTeam() == PracticeBots[Index].Side));
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVanguardId() == PracticeBots[Index].VanguardId));
 						const UVeyraBotBrainComponent* Brain = Bots[Index]->GetVanguardController()->FindComponentByClass<UVeyraBotBrainComponent>();
 						ASSERT_THAT(IsNotNull(Brain));
-						const FVeyraBotSeatTuning& Seat = Seats[Index % Seats.Num()];
+						const FVeyraBotSeatTuning& Seat = Seats[PlaceOf[Index] % Seats.Num()];
 						ASSERT_THAT(IsTrue(Brain->GetDifficulty() == PracticeBots[Index].Difficulty && Brain->GetRole() == Seat.Role));
 						// Its seat's Flux Spells, equipped though it spawned before it was seated (ADR-015 §8).
 						const UVeyraAbilityLoadoutComponent* Loadout = Bots[Index]->FindComponentByClass<UVeyraAbilityLoadoutComponent>();

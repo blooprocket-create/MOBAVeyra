@@ -61,6 +61,8 @@ namespace
 	const TCHAR* const AwaitsReturnSwitch = TEXT("VeyraSmokeFlowAwaitsReturn");
 	const TCHAR* const FriendSwitch = TEXT("VeyraSmokeFlowFriend=");
 	const TCHAR* const BotsSwitch = TEXT("VeyraSmokeFlowBots=");
+	// A matchmade script: the mode it queues for, such as a co-op queue; the first matchmade one without it.
+	const TCHAR* const ModeSwitch = TEXT("VeyraSmokeFlowMode=");
 	// Custom: how long the host waits for its friend to join before inviting them again, as after an
 	// invitation that expired or went unseen.
 	constexpr double InviteAgainRealSeconds = 30.0;
@@ -140,6 +142,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	FString Bots;
 	// A list: FParse stops at its first comma unless told not to.
 	FParse::Value(FCommandLine::Get(), BotsSwitch, Bots, /*bShouldStopOnSeparator*/ false);
+	FParse::Value(FCommandLine::Get(), ModeSwitch, WantedMode);
 	Bots.ParseIntoArray(BotVanguards, TEXT(","));
 	StartRealTime = FPlatformTime::Seconds();
 	const TPair<const TCHAR*, EScript> Scripts[] = {
@@ -433,13 +436,16 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 	{
 		return;
 	}
-	const VeyraBackendProtocol::FModeInfo* Mode =
-		Snapshot.Modes.FindByPredicate([](const VeyraBackendProtocol::FModeInfo& Candidate) { return Candidate.bEnabled && Candidate.bMatchmade; });
+	// The queue it was asked for, or the first matchmade one (ADR-039 §6).
+	const VeyraBackendProtocol::FModeInfo* Mode = Snapshot.Modes.FindByPredicate([this](const VeyraBackendProtocol::FModeInfo& Candidate) {
+		return Candidate.bEnabled && Candidate.bMatchmade && (WantedMode.IsEmpty() || Candidate.Id == WantedMode);
+	});
 	if (!Mode)
 	{
-		Finish(false, TEXT("the backend offers no matchmade mode"));
+		Finish(false, WantedMode.IsEmpty() ? FString(TEXT("the backend offers no matchmade mode")) : FString::Printf(TEXT("the backend offers no matchmade mode %s"), *WantedMode));
 		return;
 	}
+	bVersusAI = Mode->bVersusAI;
 	if (ChosenMode.IsEmpty())
 	{
 		if (!bOpenedPlay)
@@ -458,7 +464,7 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 			// A party of an earlier run still has the mode.
 			ChosenMode = Mode->Id;
 		}
-		else if (Flow.CanIssue(EVeyraClientIntent::SelectMode) && Click(VanguardLabel(Mode->Id)))
+		else if (Flow.CanIssue(EVeyraClientIntent::SelectMode) && Click(ModeLabel(Mode->Id)))
 		{
 			ChosenMode = Mode->Id;
 			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: chose %s."), *Mode->Id);
@@ -1479,9 +1485,9 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	const VeyraBackendProtocol::FPlayerOutcome* You = Result->Players.FindByPredicate([](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.bYou; });
 	const int32 Bots = Algo::CountIf(Result->Players, [](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.Name.StartsWith(TEXT("Bot ")); });
 	if (!Result->bHasScoreboard || !You || You->VanguardId != LockedVanguard || !(You->Statistics.GoldBySource.Starting > 0.0) || You->Statistics.Level < 1
-		|| ((bPractice || IsCustom()) && Bots == 0))
+		|| ((bPractice || IsCustom() || bVersusAI) && Bots == 0))
 	{
-		Finish(false, TEXT("the verified result has no scoreboard with the player's own line, and in practice or a custom match its bots"));
+		Finish(false, TEXT("the verified result has no scoreboard with the player's own line, and in practice, a custom or a co-op match its bots"));
 		return;
 	}
 	// A custom match starts with the Gold its host chose in the lobby (ADR-021 §3).
@@ -1515,10 +1521,20 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 FString UVeyraSmokeFlowSubsystem::VanguardLabel(const FString& VanguardId)
 {
 #if WITH_VEYRA_UI
-	// A Vanguard's or a mode's button shows its name, not its content ID.
+	// A Vanguard's button shows its name, not its content ID.
 	return VeyraShellModels::NameOf(VanguardId).ToString();
 #else
 	return VanguardId;
+#endif
+}
+
+FString UVeyraSmokeFlowSubsystem::ModeLabel(const FString& ModeId)
+{
+#if WITH_VEYRA_UI
+	// A mode's card shows the text table's name, such as "Co-op vs AI: Beginner" (ADR-039 §6).
+	return VeyraShellModels::ModeNameOf(ModeId).ToString();
+#else
+	return ModeId;
 #endif
 }
 
