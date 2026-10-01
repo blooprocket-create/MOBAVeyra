@@ -213,6 +213,17 @@ struct FVeyraCastTuning
 	/** Each status its caster holds as it starts its cooldown scales the cooldown (ADR-034 §8). */
 	UPROPERTY()
 	TArray<FVeyraCooldownWhileTuning> CooldownWhile;
+
+	/**
+	 * At most one: another ability whose cooldown it shares, held under that ability's ID, as one Sea State's
+	 * ability shares the other's (ADR-035 §1). The ability it names shares none itself.
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> CooldownOf;
+
+	/** Status IDs whose holding refuses the cast, as HeldBack, as Tidebreaker's lock refuses Change the Weather (ADR-035 §2). */
+	UPROPERTY()
+	TArray<FVeyraContentId> RefusedWhile;
 };
 
 /** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */
@@ -2001,7 +2012,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 20;
+	static constexpr int32 SchemaVersion = 21;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

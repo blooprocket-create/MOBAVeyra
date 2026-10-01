@@ -116,6 +116,21 @@ namespace
 					Problem(WhilePointer + TEXT("/multiplier"), TEXT("must be above 0 and at most 1"));
 				}
 			}
+			// A cooldown held under another ability's ID, one step only (ADR-035 §1).
+			if (Cast.CooldownOf.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/cooldownOf"), TEXT("names at most one ability"));
+			}
+			for (int32 Index = 0; Index < Cast.CooldownOf.Num(); ++Index)
+			{
+				const FVeyraCastTuning* Other = FindCast(Tuning, Cast.CooldownOf[Index]);
+				if (!Other || Other == &Cast || !Other->CooldownOf.IsEmpty())
+				{
+					Problem(FString::Printf(TEXT("%s/cooldownOf/%d"), *Pointer, Index), FString::Printf(TEXT("names \"%s\": another ability with a cast, which shares no cooldown itself"),
+						*Cast.CooldownOf[Index].ToString()));
+				}
+			}
+			CheckStatusIds(Pointer + TEXT("/refusedWhile"), Cast.RefusedWhile);
 		}
 
 		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)

@@ -46,7 +46,7 @@ The survey for this ADR found that:
 
 ### 2. Casts refused while a status holds (Abilities)
 
-- A cast gains **`refusedWhile`**: status IDs on its caster that refuse it, as `Locked`.
+- A cast gains **`refusedWhile`**: status IDs on its caster that refuse it, as `HeldBack`. (`Locked` stays the refusal of a Flux Spell slot not yet unlocked.)
 - Tidebreaker gives Neris its lock status for as long as it rides, and Change the Weather names that status. That is how the ultimate locks the Sea State.
 
 ### 3. Rides that crash (Abilities)

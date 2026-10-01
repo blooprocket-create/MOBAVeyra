@@ -63,6 +63,8 @@ enum class EVeyraCastRejection : uint8
 	NotVisible,
 	/** The ability needs its caster's companion, which is not on the battleground (ADR-034 §8). */
 	NoCompanion,
+	/** A status its caster holds refuses it, as Tidebreaker's lock refuses Change the Weather (ADR-035 §2). */
+	HeldBack,
 };
 
 VEYRAABILITIES_API const TCHAR* LexToString(EVeyraCastRejection Rejection);

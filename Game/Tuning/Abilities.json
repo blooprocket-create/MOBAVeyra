@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 20,
+  "schemaVersion": 21,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -1200,6 +1200,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1244,6 +1246,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1288,6 +1292,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1343,6 +1349,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1411,6 +1419,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1455,6 +1465,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1499,6 +1511,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1543,6 +1557,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1587,6 +1603,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1642,6 +1660,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1694,6 +1714,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1738,6 +1760,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1782,6 +1806,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1826,6 +1852,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1858,6 +1886,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1890,6 +1920,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1922,6 +1954,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1954,6 +1988,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1986,6 +2022,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2018,6 +2056,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2050,6 +2090,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2082,6 +2124,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2114,6 +2158,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2146,6 +2192,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2178,6 +2226,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2210,6 +2260,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2242,6 +2294,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2274,6 +2328,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2306,6 +2362,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2338,6 +2396,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2370,6 +2430,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2402,6 +2464,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2434,6 +2498,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2466,6 +2532,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2498,6 +2566,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2530,6 +2600,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "CastersLingeringArea",
@@ -2562,6 +2634,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2594,6 +2668,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "CastersLingeringArea",
@@ -2626,6 +2702,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2701,6 +2779,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2755,6 +2835,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2825,6 +2907,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "CastersMarker",
@@ -2879,6 +2963,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2943,6 +3029,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
@@ -2980,6 +3068,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["qazharr_weather_it_tenacity"],
@@ -3030,6 +3120,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["oriel_mirror_veil_haste"],
@@ -3080,6 +3172,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": [],
@@ -3117,6 +3211,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_reach", "vera_dig_in_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
@@ -3154,6 +3250,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_volley_reach", "vera_dig_in_volley_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
@@ -3191,6 +3289,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_last_volley"],
@@ -3228,6 +3328,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["mimzi_camouflage", "mimzi_scamper"],
@@ -3265,6 +3367,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["patch_dormant", "patch_play_dead_guard", "patch_play_dead_anchor"],
@@ -3302,6 +3406,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["patch_inside_body", "patch_inside_footing"],
@@ -3339,6 +3445,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["gorraveth_frenzy_haste", "gorraveth_frenzy_hunt"],
@@ -3376,6 +3484,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["raska_countersteer_guard"],
@@ -3413,6 +3523,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["raska_countersteer_guard"],
@@ -3450,6 +3562,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["celandrine_open_road_haste", "celandrine_open_road_stride"],
@@ -3487,6 +3601,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["aurelisse_windward_haste"],
@@ -3537,6 +3653,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["aurelisse_room_stride"],
@@ -3587,6 +3705,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["torr_fortify_guard", "torr_fortify_brace"],
@@ -3624,6 +3744,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["torr_overcapacity_size", "torr_overcapacity_steady"],
@@ -3661,6 +3783,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["tavi_hidden", "tavi_hide_haste"],
@@ -3720,6 +3844,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": [],
@@ -3792,6 +3918,8 @@
         "currentResourceFraction": [0.5],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": [20]
       },
       "statuses": ["relay_overclocked"],
@@ -3829,6 +3957,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["relay_overcharged"],
@@ -3866,6 +3996,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": [20]
       },
       "statuses": ["relay_grid_planted", "relay_grid_discount"],
@@ -3914,6 +4046,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "Living",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["marek_leashed"],
@@ -3975,6 +4109,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1650, "radius": 55, "range": 1050 },
@@ -4012,6 +4148,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
@@ -4049,6 +4187,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
@@ -4081,6 +4221,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 750 },
@@ -4113,6 +4255,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 5000, "radius": 60, "range": 3000 },
@@ -4145,6 +4289,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
@@ -4177,6 +4323,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 1100 },
@@ -4204,6 +4352,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1900, "radius": 45, "range": 1000 },
@@ -4236,6 +4386,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1400, "radius": 90, "range": 1000 },
@@ -4263,6 +4415,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1500, "radius": 120, "range": 1100 },
@@ -4290,6 +4444,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1400, "radius": 110, "range": 900 },
@@ -4317,6 +4473,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1500, "radius": 60, "range": 900 },
@@ -4367,6 +4525,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1700, "radius": 50, "range": 925 },
@@ -4447,6 +4607,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1200, "radius": 150, "range": 1000 },
@@ -4506,6 +4668,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1600, "radius": 45, "range": 950 },
@@ -4588,6 +4752,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4624,6 +4790,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "AwayFromPoint",
@@ -4672,6 +4840,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4708,6 +4878,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "AwayFromHost",
@@ -4739,6 +4911,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4770,6 +4944,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4801,6 +4977,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4832,6 +5010,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4863,6 +5043,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4894,6 +5076,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4925,6 +5109,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4956,6 +5142,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4987,6 +5175,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -5018,6 +5208,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -5049,6 +5241,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -5090,6 +5284,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -5137,6 +5333,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -5184,6 +5382,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -5253,6 +5453,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -5309,6 +5511,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 5,
@@ -5336,6 +5540,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 6,
@@ -5370,6 +5576,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 5,
@@ -5399,6 +5607,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "shot": "kade_kill_corridor_shot",
@@ -5426,6 +5636,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -5453,6 +5665,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -5478,6 +5692,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -5505,6 +5721,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "setSpeed": 575,
@@ -5531,6 +5749,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "setSpeed": 750,
@@ -5569,6 +5789,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "recentSeconds": 4,
@@ -5601,6 +5823,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "recentSeconds": 4,
@@ -5635,6 +5859,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "slots": [
@@ -5671,6 +5897,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "marker": {
@@ -5698,6 +5926,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "to": "OwnMarker",
@@ -5733,6 +5963,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "None",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "to": "EnemyUnitOrOwnMarker",
@@ -5775,6 +6007,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "Living",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "to": "OwnCompanion",
@@ -5872,6 +6106,8 @@
         "cooldownWhile": [
           { "status": "marek_leashed", "multiplier": 0.5 }
         ],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "order": "Hold",
@@ -5917,6 +6153,8 @@
         "currentResourceFraction": [],
         "needsCompanion": "Living",
         "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "order": "Recall",

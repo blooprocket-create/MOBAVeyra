@@ -76,7 +76,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund", "currentResourceFraction", "minimumResource", "needsCompanion", "cooldownWhile"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund", "currentResourceFraction", "minimumResource", "needsCompanion", "cooldownWhile", "cooldownOf", "refusedWhile"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -131,6 +131,19 @@
         "currentResourceFraction": { "description": "At most one: the share of the caster's current resource it also costs, above 0 and at most 1, paid at Commit with the cost by rank (Combat Bible §27; ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 } },
         "minimumResource": { "description": "At most one: the resource, above 0, the caster must hold to cast it at all (ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true } },
         "needsCompanion": { "description": "Living: refused, as NoCompanion, while its caster has no living companion (ADR-034 §8).", "type": "string", "enum": ["None", "Living"] },
+        "cooldownOf": {
+          "description": "At most one: another ability with a cast whose cooldown this one shares, held under that ability's ID; that one shares none itself (ADR-035 §1).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+        },
+        "refusedWhile": {
+          "description": "Status IDs whose holding refuses the cast, as HeldBack (ADR-035 §2).",
+          "type": "array",
+          "minItems": 0,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+        },
         "cooldownWhile": {
           "description": "Each status its caster holds from itself as it starts its cooldown scales the cooldown by its multiplier (ADR-034 §8).",
           "type": "array", "minItems": 0,
@@ -352,7 +365,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [20]
+      "enum": [21]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",

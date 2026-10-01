@@ -70,6 +70,8 @@ namespace
 		case EVeyraCastRejection::Paused:
 		// A companion forms or reforms beside its owner a moment later (ADR-034 §3).
 		case EVeyraCastRejection::NoCompanion:
+		// The status that holds the cast back ends with its time, as a ride's lock does (ADR-035 §2).
+		case EVeyraCastRejection::HeldBack:
 			return true;
 		default:
 			return false;
