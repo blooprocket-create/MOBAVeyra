@@ -77,6 +77,8 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 				Circles.Add(FVeyraFogCircle{ Placement.Center, Placement.Radius });
 			}
 			Vision->SetDenseFog(MoveTemp(Circles));
+			// And its walls, which no sight passes (ADR-042 §3).
+			Vision->SetSightWalls(VeyraLayout::Walls(*Layout));
 		}
 	}
 	if (UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get())

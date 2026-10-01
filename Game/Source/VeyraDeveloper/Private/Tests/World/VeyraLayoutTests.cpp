@@ -135,6 +135,55 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/fluxWells/sites/0: must lie on the river")), All));
 		}
 
+		TEST_METHOD(WallsLieInTeamAsHalfAndTeamBsMirrorThem)
+		{
+			// The battleground's walls (ADR-042 §1): Team A's, then their mirrors.
+			const FVeyraBattlegroundLayout& Layout = Committed();
+			ASSERT_THAT(IsFalse(Layout.Walls.IsEmpty()));
+			const TArray<FVeyraTerrainBox> Walls = VeyraLayout::Walls(Layout);
+			ASSERT_THAT(AreEqual(Walls.Num(), Layout.Walls.Num() * 2));
+			for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
+			{
+				const FVeyraTerrainBox& A = Walls[Index];
+				const FVeyraTerrainBox& B = Walls[Index + Layout.Walls.Num()];
+				for (const FVector2D& Corner : A.Corners())
+				{
+					ASSERT_THAT(IsTrue(VeyraLayout::DepthInTeamAHalf(Layout, Corner) > 0.0));
+				}
+				ASSERT_THAT(IsTrue(B.Centre.Equals(VeyraLayout::Mirror(A.Centre), Tolerance) && B.Facing.Equals(VeyraLayout::Mirror(A.Facing), Tolerance)));
+				ASSERT_THAT(IsTrue(B.Length == A.Length && B.Thickness == A.Thickness));
+				// Each corner of Team B's wall is the mirror of one of Team A's.
+				for (const FVector2D& Corner : B.Corners())
+				{
+					ASSERT_THAT(IsTrue(A.DistanceTo(VeyraLayout::Mirror(Corner)) < 1e-3));
+				}
+			}
+		}
+
+		TEST_METHOD(AWallKeepsClearOfWhatStandsOnTheBattleground)
+		{
+			FVeyraWorldTuning Broken = UVeyraWorldTuningSubsystem::Get();
+			const FVeyraMapPoint Camp = Broken.Wildlife.Camps[0].Center;
+			const double Edge = Broken.Layout.HalfExtent;
+			Broken.Layout.Walls = {
+				{ { 0.0, 0.0 }, 0.0, 300.0, 100.0 },         // across the dividing line
+				{ { -2000.0, -2000.0 }, 45.0, 300.0, 100.0 }, // on the mid lane
+				{ Camp, 0.0, 300.0, 100.0 },                  // on a camp
+				{ { -Edge, -1000.0 }, 0.0, 300.0, 100.0 },    // off the floor's edge
+				{ { -3000.0, -6000.0 }, 0.0, 0.0, 100.0 },    // no length
+			};
+			Broken.Layout.WallHalfHeight = 0.0;
+			const TArray<FString> Problems = VeyraWorld::Validate(Broken);
+			const FString All = FString::Join(Problems, TEXT(" | "));
+			const auto Mentions = [&Problems](const TCHAR* Text) { return Problems.ContainsByPredicate([Text](const FString& Problem) { return Problem.Contains(Text); }); };
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/wallHalfHeight: walls need a height")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/0: the wall must lie wholly in Team A's half")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/1: the wall must keep wallClearance from the EVeyraLane::Mid lane's road")), All));
+			ASSERT_THAT(IsTrue(Mentions(*FString::Printf(TEXT("/layout/walls/2: the wall must keep wallClearance from what stands at (%.0f, %.0f)"), Camp.X, Camp.Y)), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/3: the wall must lie on the floor")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/4: a wall needs a length and a thickness")), All));
+		}
+
 		TEST_METHOD(DenseFogLiesInTeamAsHalfAndTeamBsMirrorsIt)
 		{
 			// The battleground's bush (Battleground Bible §11): Team A's circles, then their mirrors.

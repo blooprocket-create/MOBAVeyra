@@ -105,6 +105,32 @@ struct FVeyraFogLayout
 };
 
 /**
+ * One wall of Team A's half (ADR-042 §1): an oriented box of terrain standing on the floor, Length long
+ * across the way it faces and Thickness deep along it. Team B's is its mirror. Grey-box geometry,
+ * Veyra's own.
+ */
+USTRUCT()
+struct FVeyraWallLayout
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraMapPoint Center;
+
+	/** The way it faces, in degrees from +X toward +Y. */
+	UPROPERTY()
+	double Facing = 0.0;
+
+	/** In units; above 0. */
+	UPROPERTY()
+	double Length = 0.0;
+
+	/** In units; above 0. */
+	UPROPERTY()
+	double Thickness = 0.0;
+};
+
+/**
  * The battleground's grey-box layout (ADR-011 §12): the one source for the generated map and the
  * server's spawning. Team B's half is Team A's reflected across the river's diagonal, the line
  * Y = -X, which maps every lane onto itself and swaps the bases, so both teams' distances match.
@@ -134,6 +160,22 @@ struct FVeyraBattlegroundLayout
 	/** Team A's Dense Fog (ADR-016 §4, §11); Team B's is its mirror. */
 	UPROPERTY()
 	TArray<FVeyraFogLayout> DenseFog;
+
+	/** Team A's walls (ADR-042 §1); Team B's are their mirror. */
+	UPROPERTY()
+	TArray<FVeyraWallLayout> Walls;
+
+	/** Half of every wall's height, in units: taller than any body it blocks. */
+	UPROPERTY()
+	double WallHalfHeight = 0.0;
+
+	/**
+	 * How far every wall keeps from a lane's road, a camp's creatures, a Flux Well's radius, a structure's
+	 * body, the fountain and Dense Fog (ADR-042 §1), in units: so nothing placed in a straight line
+	 * stands in a wall.
+	 */
+	UPROPERTY()
+	double WallClearance = 0.0;
 };
 
 /** One kind of structure's stats and body (Combat Bible §33: structures have their own Armor and MR). */
@@ -679,7 +721,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 4;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;

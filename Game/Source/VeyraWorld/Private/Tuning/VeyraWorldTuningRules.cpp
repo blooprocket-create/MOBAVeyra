@@ -11,6 +11,106 @@ namespace
 	{
 		return FMath::Abs(Point.X) <= HalfExtent && FMath::Abs(Point.Y) <= HalfExtent;
 	}
+
+	double BodyRadius(const FVeyraWorldTuning& Tuning, EVeyraStructureKind Kind)
+	{
+		switch (Kind)
+		{
+		case EVeyraStructureKind::LaneSpire:
+			return Tuning.Structures.LaneSpire.CapsuleRadius;
+		case EVeyraStructureKind::BaseTower:
+			return Tuning.Structures.BaseTower.CapsuleRadius;
+		case EVeyraStructureKind::Inhibitor:
+			return Tuning.Structures.Inhibitor.CapsuleRadius;
+		case EVeyraStructureKind::PrimeWell:
+			return Tuning.Structures.PrimeWell.CapsuleRadius;
+		}
+		return 0.0;
+	}
+
+	/**
+	 * Each of Team A's walls (ADR-042 §1): sized, on the floor, wholly in Team A's half so it never meets
+	 * its mirror, and WallClearance from everything placed in a straight line. Team B's are the mirror,
+	 * so they are too.
+	 */
+	void ValidateWalls(const FVeyraWorldTuning& Tuning, TArray<FString>& Problems)
+	{
+		const FVeyraBattlegroundLayout& Layout = Tuning.Layout;
+		if (!Layout.Walls.IsEmpty() && Layout.WallHalfHeight <= 0.0)
+		{
+			Problems.Add(TEXT("/layout/wallHalfHeight: walls need a height"));
+		}
+		const double Clearance = Layout.WallClearance;
+		TArray<TPair<FVector2D, double>> Keeps;
+		for (const FVeyraCampTuning& Camp : Tuning.Wildlife.Camps)
+		{
+			const FVeyraWildlifeSpecies* Species = Tuning.FindSpecies(Camp.Species);
+			Keeps.Add({ VeyraLayout::ToVector(Camp.Center), Camp.Spacing + (Species ? Species->CapsuleRadius : 0.0) });
+		}
+		for (const FVeyraMapPoint& Site : Tuning.FluxWells.Sites)
+		{
+			Keeps.Add({ VeyraLayout::ToVector(Site), Tuning.FluxWells.Radius });
+		}
+		for (const FVeyraStructurePlacement& Structure : VeyraLayout::Structures(Layout))
+		{
+			if (Structure.Team == EVeyraTeam::A)
+			{
+				Keeps.Add({ Structure.Location, BodyRadius(Tuning, Structure.Kind) });
+			}
+		}
+		Keeps.Add({ VeyraLayout::ToVector(Layout.Base.Fountain), Layout.Base.FountainRadius });
+		for (const FVeyraFogLayout& Fog : Layout.DenseFog)
+		{
+			Keeps.Add({ VeyraLayout::ToVector(Fog.Center), Fog.Radius });
+		}
+
+		for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
+		{
+			const FVeyraWallLayout& Entry = Layout.Walls[Index];
+			const FString Pointer = FString::Printf(TEXT("/layout/walls/%d"), Index);
+			if (Entry.Length <= 0.0 || Entry.Thickness <= 0.0)
+			{
+				Problems.Add(Pointer + TEXT(": a wall needs a length and a thickness"));
+				continue;
+			}
+			const FVeyraTerrainBox Box = VeyraLayout::Wall(Entry, EVeyraTeam::A);
+			bool bOnFloor = true;
+			bool bInTeamAsHalf = true;
+			for (const FVector2D& Corner : Box.Corners())
+			{
+				bOnFloor &= FMath::Abs(Corner.X) <= Layout.HalfExtent && FMath::Abs(Corner.Y) <= Layout.HalfExtent;
+				bInTeamAsHalf &= VeyraLayout::DepthInTeamAHalf(Layout, Corner) > 0.0;
+			}
+			if (!bOnFloor)
+			{
+				Problems.Add(Pointer + TEXT(": the wall must lie on the floor"));
+			}
+			if (!bInTeamAsHalf)
+			{
+				Problems.Add(Pointer + TEXT(": the wall must lie wholly in Team A's half; Team B's is its mirror"));
+			}
+			for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+			{
+				for (int32 Point = 1; Point < Lane.Points.Num(); ++Point)
+				{
+					const double Apart = Box.DistanceToSegment(VeyraLayout::ToVector(Lane.Points[Point - 1]), VeyraLayout::ToVector(Lane.Points[Point]));
+					if (Apart < Lane.Width / 2.0 + Clearance)
+					{
+						Problems.Add(Pointer + FString::Printf(TEXT(": the wall must keep wallClearance from the %s lane's road"), *UEnum::GetValueAsString(Lane.Lane)));
+						break;
+					}
+				}
+			}
+			for (const TPair<FVector2D, double>& Keep : Keeps)
+			{
+				if (Box.DistanceTo(Keep.Key) < Keep.Value + Clearance)
+				{
+					Problems.Add(Pointer + FString::Printf(TEXT(": the wall must keep wallClearance from what stands at (%.0f, %.0f): a camp, a Flux Well, a structure, the fountain or Dense Fog"),
+						Keep.Key.X, Keep.Key.Y));
+				}
+			}
+		}
+	}
 }
 
 TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
@@ -237,6 +337,8 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 	{
 		Problems.Add(TEXT("/fluxWells/radius: must reach beyond the Well's body"));
 	}
+
+	ValidateWalls(Tuning, Problems);
 	return Problems;
 }
 }

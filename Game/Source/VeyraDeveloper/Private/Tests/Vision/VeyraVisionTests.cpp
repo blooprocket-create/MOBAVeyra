@@ -35,6 +35,22 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsFalse(VeyraVisionRules::IsSeenBy(EVeyraTeam::None, Sources, FVector2D(0.0, 0.0))));
 		}
 
+		TEST_METHOD(AWallBetweenASourceAndAPointHidesIt)
+		{
+			// Fixture: a wall facing +X at 500 along X, 400 long across it (ADR-042 §3).
+			const FVeyraTerrainBox Walls[] = { { FVector2D(500.0, 0.0), FVector2D(1.0, 0.0), 400.0, 100.0 } };
+			FVeyraSightSource Sources[] = { { EVeyraTeam::A, FVector2D(0.0, 0.0), 1000.0, /*bDetects*/ true } };
+			ASSERT_THAT(IsTrue(VeyraVisionRules::IsBlocked(Walls, FVector2D(0.0, 0.0), FVector2D(900.0, 0.0))));
+			ASSERT_THAT(IsFalse(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(900.0, 0.0), Walls), TEXT("behind the wall")));
+			ASSERT_THAT(IsTrue(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(900.0, 0.0)), TEXT("with no walls given")));
+			ASSERT_THAT(IsTrue(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(300.0, 0.0), Walls), TEXT("before the wall")));
+			ASSERT_THAT(IsTrue(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(700.0, 600.0), Walls), TEXT("past its end")));
+			ASSERT_THAT(IsFalse(VeyraVisionRules::IsDetectedBy(EVeyraTeam::A, Sources, FVector2D(900.0, 0.0), 1000.0, Walls), TEXT("no detection through it")));
+			// A lit area lights what lies inside it, walls or none.
+			Sources[0].bThroughWalls = true;
+			ASSERT_THAT(IsTrue(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(900.0, 0.0), Walls)));
+		}
+
 		TEST_METHOD(FogCirclesThatTouchAreOneVolume)
 		{
 			// Two touching circles, one apart, and a third touching the second (Vision Bible §2).
@@ -100,6 +116,23 @@ namespace VeyraVisionTests
 			Far.SetActorLocation(FVector(0.0, SightRadius() / 2.0, 0.0));
 			Vision().UpdateNow();
 			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Far)));
+		}
+
+		TEST_METHOD(TheBattlegroundsWallsHideWhatStandsBehindThem)
+		{
+			// Fixture: an enemy within sight, a wall between them, and a reveal that lights it anyway (ADR-042 §3).
+			AVeyraVanguardCharacter& Watcher = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Behind = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, 0.0, 0.0));
+			Vision().Start();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Behind)));
+			const FVeyraTerrainBox Wall{ FVector2D(SightRadius() / 4.0, 0.0), FVector2D(1.0, 0.0), SightRadius(), SightRadius() / 20.0 };
+			Vision().SetSightWalls({ Wall });
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Behind), TEXT("the wall hides it")));
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::B, Watcher), TEXT("and hides it both ways")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Watcher, &Behind, SightRadius()) == EVeyraTargetValidity::NotVisible));
+			Vision().RevealArea(EVeyraTeam::A, Behind.GetActorLocation(), SightRadius() / 10.0, /*DurationSeconds*/ 5.0);
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Behind), TEXT("a lit area lights it through the wall")));
 		}
 
 		TEST_METHOD(TheDeadGiveNoVision)

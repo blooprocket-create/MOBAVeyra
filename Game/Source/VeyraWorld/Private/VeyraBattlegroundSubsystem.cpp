@@ -16,6 +16,8 @@
 #include "Structures/VeyraStructure.h"
 #include "Structures/VeyraStructureAttackComponent.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraRuntimeTerrain.h"
+#include "Terrain/VeyraTerrainSubsystem.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
@@ -105,11 +107,35 @@ void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout
 		}
 	}
 	RefreshInvulnerability();
+	RaiseWalls(InLayout);
 	const float Tick = static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds);
 	World->GetTimerManager().SetTimer(RegenerationTimer, FTimerDelegate::CreateUObject(this, &UVeyraBattlegroundSubsystem::OnRegenerationTimer), Tick, /*bLoop*/ true);
 	const float Backdoor = static_cast<float>(UVeyraWorldTuningSubsystem::Get().Backdoor.UpdateSeconds);
 	World->GetTimerManager().SetTimer(BackdoorTimer, FTimerDelegate::CreateUObject(this, &UVeyraBattlegroundSubsystem::OnBackdoorTimer), Backdoor, /*bLoop*/ true);
 	UE_LOG(LogVeyraWorld, Log, TEXT("Spawned the battleground's %d structures."), Structures.Num());
+}
+
+void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InLayout)
+{
+	// The layout's walls (ADR-042 §2), raised as the same terrain as an ability's wall: the server's
+	// paths go round them, every machine's movement meets them, and they stand for the whole match.
+	UVeyraTerrainSubsystem* Terrain = GetWorld()->GetSubsystem<UVeyraTerrainSubsystem>();
+	int32 Raised = 0;
+	for (const FVeyraTerrainBox& Box : VeyraLayout::Walls(InLayout))
+	{
+		FVeyraWallRequest Request;
+		// Standing on the floor.
+		Request.Centre = FVector(Box.Centre, InLayout.WallHalfHeight);
+		Request.Facing = FVector(Box.Facing, 0.0);
+		Request.Length = Box.Length;
+		Request.Thickness = Box.Thickness;
+		Request.HalfHeight = InLayout.WallHalfHeight;
+		Raised += Terrain && Terrain->RaiseWall(Request) != 0 ? 1 : 0;
+	}
+	if (Raised > 0)
+	{
+		UE_LOG(LogVeyraWorld, Log, TEXT("Raised the battleground's %d walls."), Raised);
+	}
 }
 
 AVeyraStructure* UVeyraBattlegroundSubsystem::FindStructure(EVeyraTeam Team, EVeyraStructureKind Kind, TOptional<EVeyraLane> Lane, int32 Order) const

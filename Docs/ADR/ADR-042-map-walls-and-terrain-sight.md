@@ -48,7 +48,7 @@ Every mover already paths on that navmesh. Vision has no line-of-sight test.
   - **for clients,** a replicated body their predicted movement collides with;
   - **for everyone,** a stop for dashes, displacement and line projectiles.
 - Blinks cross them, as they cross Forge Divide.
-- They never move or end, so each goes dormant once replicated.
+- They never move, change or end; their one replicated property is push-based, so after their first replication they send nothing more.
 - The map asset is not rebaked: walls are data, and every test battleground built from a layout has them.
 
 ### 3. Map walls block sight (Vision)

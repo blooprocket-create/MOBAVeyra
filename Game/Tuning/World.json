@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "layout": {
     "provenance": "Provisional",
     "halfExtent": 9000,
@@ -46,7 +46,31 @@
       { "center": { "x": -3500, "y": 2100 }, "radius": 300 },
       { "center": { "x": -1000, "y": 300 }, "radius": 300 },
       { "center": { "x": 300, "y": -1000 }, "radius": 300 }
-    ]
+    ],
+    "walls": [
+      { "center": { "x": -2247, "y": -5300 }, "facing": -164.2, "length": 1196, "thickness": 300 },
+      { "center": { "x": -2644, "y": -4341 }, "facing": -150.8, "length": 1196, "thickness": 300 },
+      { "center": { "x": -4341, "y": -2644 }, "facing": -119.2, "length": 1196, "thickness": 300 },
+      { "center": { "x": -5300, "y": -2247 }, "facing": -105.8, "length": 1196, "thickness": 300 },
+      { "center": { "x": -750, "y": -5550 }, "facing": 90.0, "length": 1900, "thickness": 600 },
+      { "center": { "x": -5550, "y": -750 }, "facing": 180.0, "length": 1900, "thickness": 600 },
+      { "center": { "x": 3300, "y": -5550 }, "facing": 90.0, "length": 2100, "thickness": 600 },
+      { "center": { "x": -5550, "y": 3300 }, "facing": 180.0, "length": 2100, "thickness": 600 },
+      { "center": { "x": -1200, "y": -2400 }, "facing": 135.0, "length": 1500, "thickness": 600 },
+      { "center": { "x": -2400, "y": -1200 }, "facing": 135.0, "length": 1500, "thickness": 600 },
+      { "center": { "x": 650, "y": -3500 }, "facing": 135.0, "length": 1300, "thickness": 800 },
+      { "center": { "x": -3500, "y": 650 }, "facing": 135.0, "length": 1300, "thickness": 800 },
+      { "center": { "x": 3200, "y": -4500 }, "facing": 135.0, "length": 1000, "thickness": 500 },
+      { "center": { "x": -4500, "y": 3200 }, "facing": 135.0, "length": 1000, "thickness": 500 },
+      { "center": { "x": -700, "y": -7250 }, "facing": 90.0, "length": 2400, "thickness": 500 },
+      { "center": { "x": -7250, "y": -700 }, "facing": 180.0, "length": 2400, "thickness": 500 },
+      { "center": { "x": 4900, "y": -7250 }, "facing": 90.0, "length": 1700, "thickness": 500 },
+      { "center": { "x": -7250, "y": 4900 }, "facing": 180.0, "length": 1700, "thickness": 500 },
+      { "center": { "x": 2400, "y": -8750 }, "facing": 90.0, "length": 2600, "thickness": 300 },
+      { "center": { "x": -8750, "y": 2400 }, "facing": 180.0, "length": 2600, "thickness": 300 }
+    ],
+    "wallHalfHeight": 250,
+    "wallClearance": 150
   },
   "structures": {
     "provenance": "Provisional",

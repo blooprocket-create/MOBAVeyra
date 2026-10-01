@@ -4,7 +4,12 @@
 
 namespace VeyraVisionRules
 {
-bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point)
+bool IsBlocked(TConstArrayView<FVeyraTerrainBox> Walls, const FVector2D& From, const FVector2D& To)
+{
+	return Walls.ContainsByPredicate([&From, &To](const FVeyraTerrainBox& Wall) { return Wall.Crosses(From, To); });
+}
+
+bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, TConstArrayView<FVeyraTerrainBox> Walls)
 {
 	for (const FVeyraSightSource& Source : Sources)
 	{
@@ -14,7 +19,8 @@ bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const
 		}
 		const bool bInside = Source.Shape.IsSet() ? VeyraShapes::Touches(Source.Shape.GetValue(), FVector(Point, 0.0), 0.0)
 												  : FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Source.Radius);
-		if (bInside)
+		// Within its reach first: a wall is looked for only between a source and what it could see.
+		if (bInside && (Source.bThroughWalls || !IsBlocked(Walls, Source.Position, Point)))
 		{
 			return true;
 		}
@@ -22,12 +28,14 @@ bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const
 	return false;
 }
 
-bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius)
+bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius,
+	TConstArrayView<FVeyraTerrainBox> Walls)
 {
 	for (const FVeyraSightSource& Source : Sources)
 	{
 		const double Reach = FMath::Min(Source.Radius, DetectionRadius);
-		if (Source.Team == Team && Source.bDetects && FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Reach))
+		if (Source.Team == Team && Source.bDetects && FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Reach)
+			&& (Source.bThroughWalls || !IsBlocked(Walls, Source.Position, Point)))
 		{
 			return true;
 		}
