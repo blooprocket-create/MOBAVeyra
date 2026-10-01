@@ -101,6 +101,15 @@ namespace VeyraBotsTests
 			Broken.Vanguards[BotsId(TEXT("raska"))].Abilities.Add(BotsId(TEXT("no_such_ability")), EVeyraBotAbilityUse::Damage);
 			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/vanguards/raska/abilities"))));
 		}
+
+		TEST_METHOD(AnAbilityCastAtAFoeReachesOne)
+		{
+			// MOVE THE LINE reaches only allies: as an engage a bot would never cast it.
+			FVeyraBotsTuning Broken = UVeyraBotsTuningSubsystem::Get();
+			Broken.Vanguards[BotsId(TEXT("eudora"))].Abilities[BotsId(TEXT("eudora_move_the_line"))] = EVeyraBotAbilityUse::Engage;
+			const TArray<FString> Problems = VeyraBots::Validate(Broken);
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/vanguards/eudora/abilities")), FString::Join(Problems, TEXT(" | "))));
+		}
 	};
 }
 

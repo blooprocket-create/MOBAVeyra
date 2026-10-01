@@ -108,6 +108,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Invisible:
 	case EVeyraStatusKind::Untargetable:
 	case EVeyraStatusKind::Sounded:
+	case EVeyraStatusKind::Designated:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	case EVeyraStatusKind::Fear:
@@ -126,15 +127,25 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::AttackShortensCooldown:
 		bMagnitudeValid &= Magnitude > 0.0;
 		break;
+	case EVeyraStatusKind::Cover:
+		bMagnitudeValid &= Magnitude > 0.0 && Magnitude < 1.0 && Spec.MaxStacks == 1;
+		break;
 	}
-	const bool bGuards = Spec.Kind == EVeyraStatusKind::DirectionalDamageReduction;
+	const bool bCovers = Spec.Kind == EVeyraStatusKind::Cover;
+	const bool bGuards = Spec.Kind == EVeyraStatusKind::DirectionalDamageReduction || bCovers;
 	if (bGuards ? !(Spec.ArcDegrees > 0.0 && Spec.ArcDegrees <= 360.0) : Spec.ArcDegrees != 0.0)
 	{
-		Problems.Add(TEXT("arcDegrees: a directional reduction guards an arc above 0 and at most 360 degrees; any other kind has none"));
+		Problems.Add(TEXT("arcDegrees: a directional reduction or a cover guards an arc above 0 and at most 360 degrees; any other kind has none"));
 	}
-	if (Spec.Kind != EVeyraStatusKind::AttackDamageAmplification && !Spec.UnitKinds.IsEmpty())
+	const bool bCoverValid = bCovers ? Spec.CoverReach > 0.0 && Spec.CoverCapacity > 0.0 && Spec.CoverTransferShare >= 0.0 && Spec.CoverTransferShare <= 1.0
+									 : Spec.CoverReach == 0.0 && Spec.CoverCapacity == 0.0 && Spec.CoverTransferShare == 0.0;
+	if (!bCoverValid)
 	{
-		Problems.Add(TEXT("unitKinds: only an attack amplification names unit kinds"));
+		Problems.Add(TEXT("cover: a cover reaches and holds above 0 and passes a share within [0, 1] to its holder; any other kind has none (ADR-037 §4)"));
+	}
+	if (Spec.Kind != EVeyraStatusKind::AttackDamageAmplification && !bCovers && !Spec.UnitKinds.IsEmpty())
+	{
+		Problems.Add(TEXT("unitKinds: only an attack amplification or a cover names unit kinds"));
 	}
 	if (!bMagnitudeValid)
 	{
@@ -279,5 +290,19 @@ EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries)
 		}
 	}
 	return Blocks;
+}
+
+bool Shelters(const FVector& HolderAt, const FVector& Facing, double ArcDegrees, double Reach, const FVector& ShelteredAt, const FVector& SourceAt)
+{
+	const FVector Ahead = Facing.GetSafeNormal2D();
+	const FVector Toward = (SourceAt - HolderAt).GetSafeNormal2D();
+	FVector Behind = ShelteredAt - HolderAt;
+	Behind.Z = 0.0;
+	if (Ahead.IsNearlyZero() || Toward.IsNearlyZero() || Behind.Size() > Reach || FVector::DotProduct(Behind, Ahead) > 0.0)
+	{
+		return false;
+	}
+	const double Off = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Ahead, Toward), -1.0, 1.0)));
+	return Off <= ArcDegrees / 2.0;
 }
 }

@@ -134,6 +134,29 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 			Profile.CostByRank = Command->Cast.ResourceCostByRank;
 			return Profile;
 		}
+		// A posture change faces the fight; a move walks the companion with its caster (ADR-037 §2, §3).
+		if (Command->Order == EVeyraCompanionOrder::ChangePosture)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Point;
+			Profile.Reach = Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
+		if (Command->Order == EVeyraCompanionOrder::Unanchor)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Self;
+			Profile.AllyReach = Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
+		// A deployment sets the companion down between its caster and the fight (ADR-037 §1).
+		if (Command->Order == EVeyraCompanionOrder::Deploy)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Point;
+			Profile.Reach = Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
 		// A hold sends the companion at an enemy its landing reaches; a recall or a redirect is left to the player (ADR-034 §5).
 		if (Command->Order != EVeyraCompanionOrder::Hold)
 		{
@@ -155,7 +178,10 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraSelfBuffAbilityTuning* SelfBuff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
 	{
+		// Cast to open a fight, or to slip one, as a foe closes to its caster's basic attack reach, as a
+		// stance is.
 		Profile.Targeting = EVeyraBotTargeting::Self;
+		Profile.Reach = AttackRange;
 		Profile.CostByRank = SelfBuff->Cast.ResourceCostByRank;
 		Profile.AllyReach = SelfBuff->Recipient == EVeyraBuffRecipient::CasterOrAlly ? SelfBuff->Cast.CastRange : 0.0;
 		return Profile;

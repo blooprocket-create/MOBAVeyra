@@ -28,6 +28,9 @@ struct FVeyraAbilityHitSource
 	 * tick, which a Spell Shield lets pass.
 	 */
 	bool bSkipSpellShield = false;
+
+	/** Where the projectile that carries the hit was launched, a skillshot's or a targeted ability's, which cover judges it from (ADR-037 §4); unset for none. */
+	TOptional<FVector> ProjectileFrom;
 };
 
 /** One ability connecting with a unit (Combat Bible §16, On Ability Hit), and the control it applied there. */

@@ -303,13 +303,16 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	{
 		if (Effects.ReactionDamage.IsValid())
 		{
-			VeyraCombat::DealPreparedDamage(Effects.ReactionDamage, *Target, ReactionDamage);
+			FVeyraPreparedDamage Reaction = Effects.ReactionDamage;
+			Reaction.ProjectileFrom = Source.ProjectileFrom;
+			VeyraCombat::DealPreparedDamage(Reaction, *Target, ReactionDamage);
 		}
 		else
 		{
 			// Effects prepared by hand, without a bundle: the caster's offence now.
 			FVeyraRawDamageEvent Raw;
 			Raw.Components = ReactionDamage;
+			Raw.ProjectileFrom = Source.ProjectileFrom;
 			VeyraCombat::DealDamage(Caster, *Target, Raw);
 		}
 	}
@@ -334,7 +337,10 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 				AddedAtImpact.Add({ Component.Type, Component.Amount * (Multiplier->Multiplier - 1.0) });
 			}
 		}
-		VeyraCombat::DealPreparedDamage(Effects.Damage, *Target, AddedAtImpact);
+		// The copy shares the prepared spec; only whether a projectile carries it differs (ADR-037 §4).
+		FVeyraPreparedDamage Damage = Effects.Damage;
+		Damage.ProjectileFrom = Source.ProjectileFrom;
+		VeyraCombat::DealPreparedDamage(Damage, *Target, AddedAtImpact);
 	}
 	for (const FVeyraStatusSpec& Status : Effects.Statuses)
 	{

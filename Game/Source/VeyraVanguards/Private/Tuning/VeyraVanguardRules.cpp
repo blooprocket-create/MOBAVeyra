@@ -369,6 +369,19 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraAllHandsTuning>& Entry : Tuning.AllHands)
+	{
+		RegisterPassive(Entry.Key, TEXT("allHands"));
+		const FVeyraAllHandsTuning& Hands = Entry.Value;
+		// Bounded Work from each contributor, spent at its threshold on a repair (ADR-037 §6).
+		if (!(Hands.Radius > 0.0) || !(Hands.Work > 0.0) || !(Hands.PerContributorSeconds > 0.0) || !(Hands.Threshold >= Hands.Work) || Hands.Repair < 0.0
+			|| Hands.RepairMaxHealthRatio < 0.0 || !(Hands.Repair + Hands.RepairMaxHealthRatio > 0.0))
+		{
+			Problem(TEXT("/allHands/") + Entry.Key.ToString(),
+				TEXT("radius, work and perContributorSeconds are above 0, threshold at least work, and its repair at least 0 each and above 0 together"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));

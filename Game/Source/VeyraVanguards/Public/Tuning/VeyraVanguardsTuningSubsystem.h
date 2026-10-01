@@ -60,6 +60,8 @@ public:
 	static const FVeyraAccordTuning* FindAccord(const FVeyraContentId& Passive);
 
 	static const FVeyraMistTrailTuning* FindMistTrail(const FVeyraContentId& Passive);
+
+	static const FVeyraAllHandsTuning* FindAllHands(const FVeyraContentId& Passive);
 	static const FVeyraUnreturnedTuning* FindUnreturned(const FVeyraContentId& Passive);
 
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */

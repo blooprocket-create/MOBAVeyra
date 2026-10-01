@@ -422,6 +422,11 @@ UVeyraBasicAttackComponent::FLandingAttack UVeyraBasicAttackComponent::Prepare(U
 		? VeyraBasicAttacks::AgainstStructure(Plan, UVeyraCombatTuningSubsystem::Get().Structures.Effectiveness)
 		: Plan.Damage);
 	Landing.Damage.bCritical = Plan.bCritical;
+	// A ranged attack's own damage flies from where its attacker loosed it; its cleaves and secondary impacts do not (ADR-037 §4).
+	if (!Profile.Projectile.IsEmpty())
+	{
+		Landing.Damage.ProjectileFrom = Landing.AttackerLocation;
+	}
 	Landing.TargetStatuses = Plan.TargetStatuses;
 	if (Plan.Cleave.IsSet() && !Profile.Cleave.IsEmpty())
 	{

@@ -9,12 +9,14 @@
 #include "Companions/VeyraCompanion.h"
 #include "Companions/VeyraCompanionRules.h"
 #include "Engine/World.h"
+#include "Statuses/VeyraStatusTypes.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Shapes/VeyraShapes.h"
 #include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraCombatVerbs.h"
 
 namespace
 {
@@ -80,8 +82,9 @@ void AVeyraCompanionController::Think()
 	const FVeyraCompanionTuning* Tuning = Body ? Body->GetDefinition() : nullptr;
 	UAbilitySystemComponent* Keeper = Body ? Body->GetOwnerAbilities() : nullptr;
 	APawn* OwnerBody = Keeper ? AVeyraCompanion::BodyOf(*Keeper) : nullptr;
-	// Banished, or with its owner fallen, it waits for its keeper to bring it back.
-	if (!Tuning || !Body->IsAlive() || Body->IsBanished() || !VeyraTargeting::IsAlive(OwnerBody))
+	// Banished, or with its owner fallen, it waits for its keeper to bring it back; anchored, it stands on (ADR-037 §1).
+	const bool bAnchored = Tuning && Body->GetMode() == EVeyraCompanionMode::Anchored;
+	if (!Tuning || !Body->IsAlive() || Body->IsBanished() || (!bAnchored && !Body->IsMoving() && !VeyraTargeting::IsAlive(OwnerBody)))
 	{
 		Target.Reset();
 		Halt();
@@ -92,6 +95,24 @@ void AVeyraCompanionController::Think()
 	// It holds while something owns its movement, and lets an attack's windup finish.
 	if (!Attacks || (Movement && Movement->IsMovementLocked()) || Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
 	{
+		return;
+	}
+	// Anchored, it fights what its attack reaches from where it stands, and never walks (ADR-037 §1).
+	if (bAnchored)
+	{
+		Halt();
+		// A posture that holds its fire fights nothing (ADR-037 §2).
+		if (Body->HoldsFire())
+		{
+			Target.Reset();
+			return;
+		}
+		Target = const_cast<AActor*>(VeyraCompanionRules::Choose(EVeyraCompanionMode::Anchored, Target.Get(), GatherCandidates(*Body, OwnerBody, *Tuning)));
+		AActor* Enemy = Target.Get();
+		if (Enemy && Attacks->CheckAttack(Enemy) == EVeyraAttackRejection::None)
+		{
+			Attacks->StartAttack(*Enemy);
+		}
 		return;
 	}
 	// A hold ends with its time, or as its owner leaves the leash (ADR-034 §4).
@@ -106,9 +127,33 @@ void AVeyraCompanionController::Think()
 	// is gone; or it hunts its enemy while that enemy stays within its leash of its owner (ADR-035 §5).
 	if (Body->GetMode() == EVeyraCompanionMode::Escort)
 	{
-		Target.Reset();
 		AActor* Ally = Body->GetBoundTo();
-		Follow(Ally && VeyraTargeting::IsAlive(Ally) ? *Ally : static_cast<AActor&>(*OwnerBody), Tuning->FollowDistance);
+		AActor* Leader = Ally && VeyraTargeting::IsAlive(Ally) ? Ally : VeyraTargeting::IsAlive(OwnerBody) ? OwnerBody : nullptr;
+		// Moved with an ally, it fires as it goes at what its attack reaches, and keeps the way it was sent facing (ADR-037 §3).
+		if (Body->IsMoving())
+		{
+			Target = const_cast<AActor*>(VeyraCompanionRules::Choose(EVeyraCompanionMode::Anchored, Target.Get(), GatherCandidates(*Body, OwnerBody, *Tuning)));
+			AActor* Enemy = Target.Get();
+			if (Enemy && Attacks->CheckAttack(Enemy) == EVeyraAttackRejection::None)
+			{
+				Halt();
+				Attacks->StartAttack(*Enemy);
+				return;
+			}
+			Body->FaceAnchor();
+		}
+		else
+		{
+			Target.Reset();
+		}
+		if (Leader)
+		{
+			Follow(*Leader, Tuning->FollowDistance);
+		}
+		else
+		{
+			Halt();
+		}
 		return;
 	}
 	if (Body->GetMode() == EVeyraCompanionMode::Hunt)
@@ -128,7 +173,7 @@ void AVeyraCompanionController::Think()
 		return;
 	}
 
-	Target = const_cast<AActor*>(VeyraCompanionRules::Choose(Body->GetMode(), Target.Get(), GatherCandidates(*Body, *OwnerBody, *Tuning)));
+	Target = const_cast<AActor*>(VeyraCompanionRules::Choose(Body->GetMode(), Target.Get(), GatherCandidates(*Body, OwnerBody, *Tuning)));
 	if (AActor* Enemy = Target.Get())
 	{
 		Engage(*Enemy, *Attacks);
@@ -143,33 +188,36 @@ void AVeyraCompanionController::Think()
 	}
 }
 
-TArray<FVeyraCompanionCandidate> AVeyraCompanionController::GatherCandidates(const AVeyraCompanion& Body, const AActor& OwnerBody, const FVeyraCompanionTuning& Tuning) const
+TArray<FVeyraCompanionCandidate> AVeyraCompanionController::GatherCandidates(const AVeyraCompanion& Body, const AActor* OwnerBody, const FVeyraCompanionTuning& Tuning) const
 {
 	TArray<FVeyraCompanionCandidate> Candidates;
 	const UAbilitySystemComponent* Keeper = Body.GetOwnerAbilities();
-	if (!Keeper)
+	// Deployed, anchored or moved, it fights what its attack reaches, its owner's distance aside (ADR-037 §1, §3).
+	const bool bAnchored = Body.GetMode() == EVeyraCompanionMode::Anchored || Body.IsMoving();
+	if (!Keeper || (!bAnchored && !OwnerBody))
 	{
 		return Candidates;
 	}
-	// Following, it looks about itself; holding, about its point. A circle this wide touches every body
-	// within its acquire range of its edge.
+	// Following, it looks about itself; holding, about its point; anchored, as far as its attack reaches, its owner's
+	// distance aside. A circle this wide touches every body within that range of its edge.
 	const bool bHolding = Body.GetMode() == EVeyraCompanionMode::Hold;
 	FVeyraShape Reach;
 	Reach.Kind = EVeyraShapeKind::Circle;
-	Reach.Radius = Tuning.AcquireRange + Body.GetSimpleCollisionRadius();
+	Reach.Radius = (bAnchored ? Tuning.BasicAttack.Range : Tuning.AcquireRange) + Body.GetSimpleCollisionRadius();
 	const FVector Centre = bHolding ? Body.GetHoldPoint() : Body.GetActorLocation();
-	const FVector OwnerAt = OwnerBody.GetActorLocation();
+	const TOptional<FVector> OwnerAt = bAnchored ? TOptional<FVector>() : TOptional<FVector>(OwnerBody->GetActorLocation());
 	const double Leash = Tuning.LeashRange;
 	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Reach, Centre, Body.GetActorForwardVector() },
 		[&Body, &OwnerAt, Leash](const AActor& Unit) {
 			return VeyraTargeting::AreHostile(&Body, &Unit) && VeyraTargeting::CanAcquire(&Body, Unit)
-				&& FVector::Dist2D(Unit.GetActorLocation(), OwnerAt) <= Leash;
+				&& (!OwnerAt.IsSet() || FVector::Dist2D(Unit.GetActorLocation(), OwnerAt.GetValue()) <= Leash);
 		});
 	const double Now = GetWorld()->GetTimeSeconds();
 	for (const AActor* Unit : Units)
 	{
-		Candidates.Add({ Unit, OwnerFoughtLately(*Unit, *Keeper, Now, Tuning.OwnerTargetSeconds), VeyraUnits::IsVanguard(Unit),
-			VeyraTargeting::EdgeToEdgeDistance(Body, *Unit), Unit->GetUniqueID() });
+		FVeyraCompanionCandidate& Candidate = Candidates.Add_GetRef({ Unit, OwnerFoughtLately(*Unit, *Keeper, Now, Tuning.OwnerTargetSeconds),
+			VeyraUnits::IsVanguard(Unit), VeyraTargeting::EdgeToEdgeDistance(Body, *Unit), Unit->GetUniqueID() });
+		Candidate.bDesignated = VeyraCombat::HasStatusKindFrom(Unit, EVeyraStatusKind::Designated, *Keeper);
 	}
 	return Candidates;
 }

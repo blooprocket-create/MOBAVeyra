@@ -196,6 +196,18 @@ enum class EVeyraStatusKind : uint8
 	 * fog it does nothing. Not crowd control. Magnitude: 0.
 	 */
 	Sounded,
+	/**
+	 * Cover (Combat Bible §20; ADR-037 §4): its holder shelters its allies behind it, against its facing and within
+	 * its reach, from projectiles whose source lies in front of it within its arc. It prevents a share of their
+	 * damage out of its capacity, and passes some of what it prevents to its holder. Not crowd control.
+	 * Magnitude: the share prevented, above 0 and below 1; one stack.
+	 */
+	Cover,
+	/**
+	 * Designated (ADR-037 §5): its source's companion prefers it among the targets it may attack anyway. It
+	 * reveals nothing and extends no range. Not crowd control. Magnitude: 0.
+	 */
+	Designated,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -280,11 +292,11 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	UPROPERTY()
 	double StackDecaySeconds = 0.0;
 
-	/** DirectionalDamageReduction: the arc of the unit's facing it guards, in degrees; 0 for any other kind. */
+	/** DirectionalDamageReduction and Cover: the arc of the unit's facing it guards, in degrees; 0 for any other kind. */
 	UPROPERTY()
 	double ArcDegrees = 0.0;
 
-	/** AttackDamageAmplification: the unit kinds it amplifies attacks against, empty for all; empty for any other kind. */
+	/** AttackDamageAmplification: the unit kinds it amplifies attacks against; Cover: the kinds of ally it shelters. Empty for all, and for any other kind. */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> UnitKinds;
 
@@ -295,6 +307,16 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	/** How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend. */
 	UPROPERTY()
 	int32 AttackCharges = 0;
+
+	/** Cover: how far behind its holder it shelters, how much it prevents in all, and the share of that its holder takes; 0 for any other kind. */
+	UPROPERTY()
+	double CoverReach = 0.0;
+
+	UPROPERTY()
+	double CoverCapacity = 0.0;
+
+	UPROPERTY()
+	double CoverTransferShare = 0.0;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */
@@ -389,4 +411,11 @@ namespace VeyraStatuses
 
 	/** How many whole ticks a DamageOverTime status of DurationSeconds deals, one every TickSeconds (§14). */
 	VEYRACOMBAT_API int32 TickCount(double DurationSeconds, double TickSeconds);
+
+	/**
+	 * Whether a cover held at HolderAt, facing Facing, shelters a unit at ShelteredAt from a projectile whose source
+	 * stands at SourceAt (ADR-037 §4): the unit is behind the cover or beside it, against its facing, within Reach of
+	 * it, and the source lies within ArcDegrees of its facing. Judged on the ground plane.
+	 */
+	VEYRACOMBAT_API bool Shelters(const FVector& HolderAt, const FVector& Facing, double ArcDegrees, double Reach, const FVector& ShelteredAt, const FVector& SourceAt);
 }

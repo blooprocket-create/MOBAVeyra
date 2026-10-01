@@ -98,6 +98,12 @@ struct FVeyraRawDamageEvent
 
 	/** How the event is delivered; an ability's by default. */
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+
+	/**
+	 * Where the projectile that carries it was launched, as a ranged attack's or a skillshot's: cover judges the shot
+	 * from there, wherever its shooter has gone since (ADR-037 §4). Unset for damage no projectile carries.
+	 */
+	TOptional<FVector> ProjectileFrom;
 };
 
 /** Resistance reduction applied to one of a target's resistances (Combat Bible §3). */

@@ -19,6 +19,7 @@
 #include "Passives/VeyraMovingTargetPassive.h"
 #include "Passives/VeyraAccordPassive.h"
 #include "Passives/VeyraMistTrailPassive.h"
+#include "Passives/VeyraAllHandsPassive.h"
 #include "Passives/VeyraQuarryPassive.h"
 #include "Passives/VeyraReclaimPassive.h"
 #include "Passives/VeyraStressTemperPassive.h"
@@ -125,6 +126,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindMistTrail(PassiveId))
 	{
 		return UVeyraMistTrailPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindAllHands(PassiveId))
+	{
+		return UVeyraAllHandsPassive::StaticClass();
 	}
 	return nullptr;
 }

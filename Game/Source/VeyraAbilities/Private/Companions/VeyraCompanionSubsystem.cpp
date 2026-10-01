@@ -6,10 +6,13 @@
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Companions/VeyraCompanion.h"
+#include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Shapes/VeyraShapes.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
 #include "VeyraCombatVerbs.h"
@@ -124,6 +127,74 @@ bool UVeyraCompanionSubsystem::SummonFor(UAbilitySystemComponent& Owner, const F
 	return true;
 }
 
+bool UVeyraCompanionSubsystem::Deploy(UAbilitySystemComponent& Owner, const FVeyraContentId& Id, const FVector& Where, const FVector& Facing, double LifetimeSeconds)
+{
+	const FVeyraCompanionTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindCompanion(Id);
+	UWorld* World = GetWorld();
+	if (!Tuning || !World || !(LifetimeSeconds > 0.0))
+	{
+		UE_LOG(LogVeyraAbilities, Error, TEXT("%s cannot deploy companion %s: Abilities.json defines none, or it would last no time."),
+			*GetNameSafe(Owner.GetOwner()), *Id.ToString());
+		return false;
+	}
+	const FVector Ground = VeyraCombat::NearestGround(*World, Where);
+	const double EndsAt = World->GetTimeSeconds() + LifetimeSeconds;
+	// One at a time (ADR-034 §3): one deployed and living moves, keeping its Health; a companion kept for good stays.
+	if (FKept* Existing = FindKept(Owner))
+	{
+		if (Existing->EndsAt <= 0.0)
+		{
+			return false;
+		}
+		AVeyraCompanion* Living = FindLiving(Owner);
+		if (Living && Existing->bDeployed && Existing->Id == Id)
+		{
+			Existing->EndsAt = EndsAt;
+			Living->Anchor(Ground, Facing);
+			UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s redeployed for %g s."), *GetNameSafe(Living), LifetimeSeconds);
+			return true;
+		}
+		Dismiss(Owner);
+	}
+	FKept& Entry = Kept.AddDefaulted_GetRef();
+	Entry.Owner = &Owner;
+	Entry.Id = Id;
+	Entry.EndsAt = EndsAt;
+	Entry.bDeployed = true;
+	const FVector Flat = Facing.GetSafeNormal2D();
+	FormAt(Entry, FTransform(Flat.IsNearlyZero() ? FRotator::ZeroRotator : Flat.Rotation(), Ground));
+	AVeyraCompanion* Companion = Entry.Companion.Get();
+	if (!Companion)
+	{
+		Kept.Pop();
+		return false;
+	}
+	StartKeeping(Entry, *Tuning);
+	Companion->Anchor(Ground, Facing);
+	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s deploys %s for %g s."), *GetNameSafe(Owner.GetOwner()), *Id.ToString(), LifetimeSeconds);
+	Keep(Owner);
+	return true;
+}
+
+bool UVeyraCompanionSubsystem::Move(const UAbilitySystemComponent& Owner, AActor& Ally, const FVector& Facing, double Seconds, int32 Rank)
+{
+	FKept* Entry = FindKept(Owner);
+	AVeyraCompanion* Companion = Entry && Entry->bDeployed ? FindLiving(Owner) : nullptr;
+	if (!Companion || !(Seconds > 0.0))
+	{
+		return false;
+	}
+	const double Now = GetWorld()->GetTimeSeconds();
+	Entry->MovesUntil = Now + Seconds;
+	Entry->MoveRank = Rank;
+	// Its aura reaches its allies as it sets off, then on its pulse.
+	Entry->NextAuraAt = Now;
+	Companion->StartMoving(Ally, Facing);
+	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s moves with %s for %g s."), *GetNameSafe(Companion), *GetNameSafe(&Ally), Seconds);
+	Keep(Owner);
+	return true;
+}
+
 bool UVeyraCompanionSubsystem::Redirect(const UAbilitySystemComponent& Owner, EVeyraCompanionMode Mode, AActor& Unit)
 {
 	const FKept* Entry = FindKept(Owner);
@@ -185,7 +256,8 @@ void UVeyraCompanionSubsystem::Keep(const UAbilitySystemComponent& Owner)
 	// It grows with its owner, and holds its share of its owner's power as it is now (ADR-034 §3).
 	Companion->GrowTo(LevelOf(*Keeper));
 	Companion->Inherit(Keeper->GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()));
-	if (!bOwnerAlive)
+	// A deployed companion stands at its point whatever becomes of its owner (ADR-037 §1).
+	if (!bOwnerAlive && !Entry->bDeployed)
 	{
 		// A summon leaves with its owner for good; a companion kept for good returns as its owner revives.
 		if (bSummoned)
@@ -207,6 +279,21 @@ void UVeyraCompanionSubsystem::Keep(const UAbilitySystemComponent& Owner)
 	if (Companion->GetMode() == EVeyraCompanionMode::Escort && Now >= Entry->NextPulseAt && Companion->IsAlive() && !Companion->IsBanished())
 	{
 		Pulse(*Entry, *Companion);
+	}
+	if (Companion->IsAlive() && !Companion->IsBanished())
+	{
+		// A move ends with its time: it anchors where it is, in its earlier posture (ADR-037 §3).
+		if (Entry->MovesUntil > 0.0 && Now >= Entry->MovesUntil)
+		{
+			Entry->MovesUntil = 0.0;
+			Companion->Anchor(Companion->GetActorLocation(), Companion->GetAnchorFacing());
+		}
+		// What its posture or its move holds stays held, given afresh only once it has lapsed.
+		Companion->KeepHeldStatuses();
+		if (Companion->IsMoving() && Now >= Entry->NextAuraAt)
+		{
+			PulseAura(*Entry, *Companion);
+		}
 	}
 }
 
@@ -241,7 +328,17 @@ void UVeyraCompanionSubsystem::Form(FKept& Entry, const AActor& OwnerBody)
 		return;
 	}
 	const FVeyraCompanionTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindCompanion(Entry.Id);
-	const FTransform Where(OwnerBody.GetActorRotation(), BesideOwner(OwnerBody, Tuning ? Tuning->CapsuleRadius : 0.0));
+	FormAt(Entry, FTransform(OwnerBody.GetActorRotation(), BesideOwner(OwnerBody, Tuning ? Tuning->CapsuleRadius : 0.0)));
+}
+
+void UVeyraCompanionSubsystem::FormAt(FKept& Entry, const FTransform& Where)
+{
+	UWorld* World = GetWorld();
+	UAbilitySystemComponent* Owner = Entry.Owner.Get();
+	if (!World || !Owner)
+	{
+		return;
+	}
 	AVeyraCompanion* Companion = World->SpawnActorDeferred<AVeyraCompanion>(AVeyraCompanion::StaticClass(), Where, nullptr, nullptr,
 		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 	if (!Companion)
@@ -257,7 +354,7 @@ void UVeyraCompanionSubsystem::Form(FKept& Entry, const AActor& OwnerBody)
 		return;
 	}
 	Entry.Companion = Companion;
-	UE_LOG(LogVeyraAbilities, Log, TEXT("%s formed beside %s."), *GetNameSafe(Companion), *GetNameSafe(&OwnerBody));
+	UE_LOG(LogVeyraAbilities, Log, TEXT("%s formed at %s."), *GetNameSafe(Companion), *Where.GetLocation().ToCompactString());
 }
 
 void UVeyraCompanionSubsystem::Banish(FKept& Entry)
@@ -331,6 +428,48 @@ void UVeyraCompanionSubsystem::Pulse(FKept& Entry, AVeyraCompanion& Companion)
 	}
 }
 
+void UVeyraCompanionSubsystem::PulseAura(FKept& Entry, AVeyraCompanion& Companion)
+{
+	const FVeyraCompanionTuning* Tuning = Companion.GetDefinition();
+	if (!Tuning || Tuning->MovingAura.IsEmpty())
+	{
+		return;
+	}
+	const FVeyraMovingAuraTuning& Aura = Tuning->MovingAura[0];
+	Entry.NextAuraAt = GetWorld()->GetTimeSeconds() + Aura.PulseSeconds;
+	FVeyraShape Around;
+	Around.Kind = EVeyraShapeKind::Circle;
+	Around.Radius = Aura.Radius;
+	const EVeyraTeam Side = Companion.GetVeyraTeam();
+	const TArray<AActor*> Allies = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Around, Companion.GetActorLocation(), Companion.GetActorForwardVector() },
+		[&Companion, &Aura, Side](const AActor& Unit) {
+			const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
+			return &Unit != &Companion && VeyraTargeting::IsAlive(&Unit) && VeyraTeams::TeamOf(&Unit) == Side
+				&& (Aura.UnitKinds.IsEmpty() || (Kind.IsSet() && Aura.UnitKinds.Contains(Kind.GetValue())));
+		});
+	// Its own, from its own stats (ADR-034 §3).
+	UAbilitySystemComponent& Source = *Companion.GetAbilitySystemComponent();
+	for (AActor* Ally : Allies)
+	{
+		UAbilitySystemComponent* Holder = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Ally);
+		if (!Holder)
+		{
+			continue;
+		}
+		for (const FVeyraShieldTuning& Shield : Aura.Shield)
+		{
+			VeyraEffectDelivery::GrantShield(Source, *Holder, Shield, Entry.MoveRank);
+		}
+		for (const FVeyraContentId& StatusId : Aura.Statuses)
+		{
+			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+			{
+				VeyraCombat::ApplyStatus(Source, *Holder, Status.GetValue());
+			}
+		}
+	}
+}
+
 void UVeyraCompanionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 {
 	const UAbilitySystemComponent* Victim = Death.Victim.Get();
@@ -357,7 +496,7 @@ void UVeyraCompanionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 			Entry.ReformsAt = Death.DiedAtSeconds + (Tuning ? Tuning->ReformSeconds : 0.0);
 			Banish(Entry);
 		}
-		else if (Victim == Entry.Owner.Get())
+		else if (Victim == Entry.Owner.Get() && !Entry.bDeployed)
 		{
 			// It leaves with its owner, and returns as its owner revives (ADR-034 §11); a summon does not return.
 			if (bSummoned)
