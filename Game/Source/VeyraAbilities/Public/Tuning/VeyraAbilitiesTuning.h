@@ -1511,13 +1511,47 @@ struct FVeyraRideAbilityTuning
 	TArray<FVeyraContentId> Vehicle;
 };
 
+/** One slot a stance holds, and the ability it holds there (ADR-031 §3). */
+USTRUCT()
+struct FVeyraStanceSlotTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Q;
+
+	/** Another ability's ID: the slot's own ability while the stance lasts. It takes the slot's rank. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+};
+
+/**
+ * An ability that swaps its caster's own abilities in some slots for another set, and back (ADR-031 §3),
+ * as Angeru's Forsake the Schools. Each set keeps its own cooldowns.
+ */
+USTRUCT()
+struct FVeyraStanceAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** The slots it holds, each once, with what it holds there. */
+	UPROPERTY()
+	TArray<FVeyraStanceSlotTuning> Slots;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 15;
+	static constexpr int32 SchemaVersion = 16;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -1557,6 +1591,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraAmbushAbilityTuning> Ambush;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraStanceAbilityTuning> Stance;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

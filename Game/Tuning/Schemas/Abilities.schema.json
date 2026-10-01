@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "fluxSpells"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "fluxSpells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -260,7 +260,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [15]
+      "enum": [16]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -907,6 +907,36 @@
             "vanishStatuses": { "description": "Status IDs on the caster while it is gone, ended as it strikes.", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
             "besideDistance": { "description": "How far from its target's edge it reappears.", "type": "number", "minimum": 0 },
             "effects": { "description": "On the target as it strikes.", "$ref": "#/definitions/effects" }
+          }
+        }
+      }
+    },
+    "stance": {
+      "description": "Abilities that swap their caster's own abilities in some slots for another set, and back (ADR-031 §3), as Angeru's Forsake the Schools: each set keeps its own cooldowns, each slot its rank, and a follow-up of a stowed ability waits for it.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "slots"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "slots": {
+              "description": "Q, W or E, each once, with the ability it holds while the stance lasts. Each takes its slot's rank.",
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["slot", "ability"],
+                "properties": {
+                  "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
+                  "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+                }
+              }
+            }
           }
         }
       }

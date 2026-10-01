@@ -50,6 +50,7 @@ public:
 	static const FVeyraAttachAbilityTuning* FindAttach(const FVeyraContentId& Ability);
 	static const FVeyraRideAbilityTuning* FindRide(const FVeyraContentId& Ability);
 	static const FVeyraAmbushAbilityTuning* FindAmbush(const FVeyraContentId& Ability);
+	static const FVeyraStanceAbilityTuning* FindStance(const FVeyraContentId& Ability);
 
 	/**
 	 * Status Id as Combat applies it from a source at SourceLevel, or nothing if the statuses map has

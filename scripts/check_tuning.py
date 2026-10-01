@@ -53,7 +53,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # name content too. An ID is valid when any of the maps defines it (ADR-008 §7). The game checks
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
-ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush")
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance")
 PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
@@ -112,6 +112,7 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/*/*/cast/recastWindow/*/heldStatus/*", "Abilities", ("/statuses",)),
     ("Abilities", "/skillshot/*/returnIfHeld/*/status", "Abilities", ("/statuses",)),
     ("Abilities", "/ambush/*/vanishStatuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/stance/*/slots/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.

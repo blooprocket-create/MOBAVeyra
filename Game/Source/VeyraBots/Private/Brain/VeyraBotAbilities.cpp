@@ -84,6 +84,14 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.TargetKinds = { EVeyraUnitKind::Vanguard };
 		return Profile;
 	}
+	if (const FVeyraStanceAbilityTuning* Stance = UVeyraAbilitiesTuningSubsystem::FindStance(Ability))
+	{
+		// Changed in a fight, as its caster closes to its basic attack's reach, so both sets get their turn.
+		Profile.Targeting = EVeyraBotTargeting::Self;
+		Profile.Reach = AttackRange;
+		Profile.CostByRank = Stance->Cast.ResourceCostByRank;
+		return Profile;
+	}
 	if (const FVeyraSelfBuffAbilityTuning* SelfBuff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
 	{
 		Profile.Targeting = EVeyraBotTargeting::Self;

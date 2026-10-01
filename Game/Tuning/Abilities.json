@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 15,
+  "schemaVersion": 16,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -3488,6 +3488,7 @@
       }
     }
   },
+  "stance": {},
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

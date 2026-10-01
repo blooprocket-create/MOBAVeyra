@@ -207,6 +207,11 @@ void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, c
 		FollowUp.DurationSeconds = Recast.WindowSeconds;
 		FollowUp.Use = EVeyraOverrideUse::Once;
 		FollowUp.bCastOnExpiry = Recast.OnExpiry == EVeyraRecastExpiry::Cast;
+		// It belongs to the slot's own ability: in another stance it waits unseen (ADR-031 §3).
+		if (const FVeyraLoadoutEntry* Own = Loadout->FindOwnSlot(Slot.GetValue()))
+		{
+			FollowUp.Over = Own->Ability;
+		}
 		switch (Recast.OpensWhen)
 		{
 		case EVeyraRecastCondition::Always:
@@ -303,8 +308,9 @@ void UVeyraGameplayAbility::EndRecastWindow(UAbilitySystemComponent& Caster, con
 	}
 	const FVeyraContentId& FollowUp = CastTuning->RecastWindow[0].Ability;
 	const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(FollowUp);
-	const FVeyraLoadoutEntry* Current = Entry ? Loadout->FindSlot(Entry->Slot) : nullptr;
-	if (Current && Current->Ability == FollowUp)
+	// Whether it shows now or waits in another stance.
+	const FVeyraSlotOverride* Current = Entry ? Loadout->FindOverride(Entry->Slot) : nullptr;
+	if (Current && Current->Entry.Ability == FollowUp)
 	{
 		Loadout->EndOverride(Caster, Entry->Slot);
 	}

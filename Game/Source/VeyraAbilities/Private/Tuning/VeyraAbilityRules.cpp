@@ -571,6 +571,36 @@ namespace
 			}
 		}
 
+		void CheckStance(const FString& Pointer, const FVeyraContentId& Id, const FVeyraStanceAbilityTuning& Stance)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Stance.Cast);
+			if (Stance.Slots.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/slots"), TEXT("holds at least one slot"));
+			}
+			TArray<EVeyraAbilitySlot, TInlineAllocator<3>> Held;
+			for (int32 Index = 0; Index < Stance.Slots.Num(); ++Index)
+			{
+				const FVeyraStanceSlotTuning& Slot = Stance.Slots[Index];
+				const FString SlotPointer = FString::Printf(TEXT("%s/slots/%d"), *Pointer, Index);
+				// It takes the place of a basic ability; the stance itself keeps its own slot.
+				if (Slot.Slot != EVeyraAbilitySlot::Q && Slot.Slot != EVeyraAbilitySlot::W && Slot.Slot != EVeyraAbilitySlot::E)
+				{
+					Problem(SlotPointer + TEXT("/slot"), TEXT("must be Q, W or E: a stance holds basic abilities' slots"));
+				}
+				if (Held.Contains(Slot.Slot))
+				{
+					Problem(SlotPointer + TEXT("/slot"), TEXT("is already held; a stance holds each slot once"));
+				}
+				Held.Add(Slot.Slot);
+				if (Slot.Ability == Id || !Defines(Tuning, Slot.Ability))
+				{
+					Problem(SlotPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which is the stance itself or no archetype defines"),
+						*Slot.Ability.ToString()));
+				}
+			}
+		}
+
 		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Ride.Cast);
@@ -744,6 +774,10 @@ namespace
 			{
 				Note(Entry.Key, TEXT("ambush"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraStanceAbilityTuning>& Entry : Tuning.Stance)
+			{
+				Note(Entry.Key, TEXT("stance"));
+			}
 		}
 	};
 }
@@ -835,6 +869,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckAmbush(TEXT("/ambush/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraStanceAbilityTuning>& Entry : Tuning.Stance)
+	{
+		Checker.CheckStance(TEXT("/stance/") + Entry.Key.ToString(), Entry.Key, Entry.Value);
+	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();
 	return Checker.Problems;
@@ -849,7 +887,8 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 {
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
-		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability) || Tuning.Ambush.Contains(Ability);
+		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability) || Tuning.Ambush.Contains(Ability)
+		|| Tuning.Stance.Contains(Ability);
 }
 
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
@@ -899,6 +938,10 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Ambush->Cast;
 	}
+	else if (const FVeyraStanceAbilityTuning* Stance = Tuning.Stance.Find(Ability))
+	{
+		Cast = &Stance->Cast;
+	}
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
@@ -946,6 +989,10 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraAmbushAbilityTuning* Ambush = Tuning.Ambush.Find(Ability))
 	{
 		Checker.CheckAmbush(TEXT("/ambush/") + Key, *Ambush);
+	}
+	if (const FVeyraStanceAbilityTuning* Stance = Tuning.Stance.Find(Ability))
+	{
+		Checker.CheckStance(TEXT("/stance/") + Key, Ability, *Stance);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;

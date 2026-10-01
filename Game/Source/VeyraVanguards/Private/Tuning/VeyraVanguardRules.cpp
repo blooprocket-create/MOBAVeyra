@@ -419,6 +419,28 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 				Kit.Add(Ability);
 			}
 		}
+		// A stance's abilities rank with the slots they hold, and are the kit's own as much (ADR-031 §3).
+		for (const TArray<FVeyraContentId>* Ids : { &Vanguard.Abilities.Q, &Vanguard.Abilities.W, &Vanguard.Abilities.E, &Vanguard.Abilities.R })
+		{
+			for (const FVeyraContentId& Ability : *Ids)
+			{
+				const FVeyraStanceAbilityTuning* Stance = Abilities.Stance.Find(Ability);
+				for (int32 Index = 0; Stance && Index < Stance->Slots.Num(); ++Index)
+				{
+					const FVeyraStanceSlotTuning& Held = Stance->Slots[Index];
+					const FString HeldPointer = FString::Printf(TEXT("%s/abilities (stance %s, slot %d)"), *Pointer, *Ability.ToString(), Index);
+					for (const FString& RankProblem : VeyraAbilityRules::ValidateRanks(Abilities, Held.Ability, VeyraProgression::MaxRank(Held.Slot, Progression, Shape)))
+					{
+						Problem(HeldPointer, TEXT("in its slot, ") + RankProblem);
+					}
+					if (Kit.Contains(Held.Ability))
+					{
+						Problem(HeldPointer, FString::Printf(TEXT("names %s, already in the kit; each slot has its own ability"), *Held.Ability.ToString()));
+					}
+					Kit.Add(Held.Ability);
+				}
+			}
+		}
 
 		for (int32 Index = 0; Index < Vanguard.Passive.Num(); ++Index)
 		{
