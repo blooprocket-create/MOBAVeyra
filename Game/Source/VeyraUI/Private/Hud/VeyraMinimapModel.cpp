@@ -2,6 +2,9 @@
 
 #include "Hud/VeyraMinimapModel.h"
 
+#include "Hud/VeyraFogOfWarModel.h"
+#include "State/VeyraVisionTeamState.h"
+
 #include "Entities/VeyraPlacedMarker.h"
 
 #include "EngineUtils.h"
@@ -21,6 +24,20 @@ FVeyraMinimapFrame FrameFor(const FVector2D& Viewport, double Size, double Margi
 	Frame.HalfExtent = HalfExtent;
 	Frame.Origin = FVector2D(Viewport.X - Margin - Size, Viewport.Y - Margin - Size);
 	return Frame;
+}
+
+TArray<FBox2D> DescribeFog(const FVeyraMinimapFrame& Frame, const FVeyraSeenGround& Ground)
+{
+	TArray<FBox2D> Fog;
+	for (const FVeyraUnseenRun& Run : VeyraFogOfWar::UnseenRuns(Ground))
+	{
+		// The map turns the world's axes, so a box's corners are sorted again on the screen.
+		const FBox2D Box = VeyraFogOfWar::BoundsOf(Ground, Run);
+		const FVector2D A = ToMap(Frame, FVector(Box.Min, 0.0));
+		const FVector2D B = ToMap(Frame, FVector(Box.Max, 0.0));
+		Fog.Add(FBox2D(FVector2D(FMath::Min(A.X, B.X), FMath::Min(A.Y, B.Y)), FVector2D(FMath::Max(A.X, B.X), FMath::Max(A.Y, B.Y))));
+	}
+	return Fog;
 }
 
 FVector2D ToMap(const FVeyraMinimapFrame& Frame, const FVector& World)
@@ -78,6 +95,11 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 {
 	FVeyraMinimapView View;
 	View.Frame = Frame;
+	// What the viewer's side does not see lies under the fog (ADR-054 §3).
+	if (const FVeyraSeenGround* Ground = VeyraFogOfWar::OwnGround(World, Viewer))
+	{
+		View.Fog = DescribeFog(Frame, *Ground);
+	}
 	const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
 	// The river runs along the diagonal Y = -X: the band |X + Y| <= its width / sqrt(2), cut to the map's
 	// square, round its outline. The walls stand where the layout puts them.

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "update": {
     "provenance": "Provisional",
     "updateSeconds": 0.2
@@ -43,5 +43,10 @@
   "presence": {
     "provenance": "Provisional",
     "pingEverySeconds": 2
+  },
+  "presentation": {
+    "provenance": "Provisional",
+    "updateSeconds": 0.5,
+    "cellsAcross": 64
   }
 }

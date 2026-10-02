@@ -82,13 +82,14 @@ namespace VeyraNetTests
 				});
 		}
 
-		TEST_METHOD(OrdersBeforeTheMatchIsLiveAreRefused)
+		TEST_METHOD(OrdersBeforeTheMatchIsLiveAreRefusedSaveMoving)
 		{
-			// Long enough that the order arrives during preparation.
+			// Long enough that the order arrives during preparation, which takes only moves inside the fountain
+			// (Veyra.Net.Preparation; ADR-054 §1).
 			constexpr double LongPreparationSeconds = 600.0;
 			Tuning->Tuning.Phases.PreparationSeconds = LongPreparationSeconds;
 			StartMatch(Network, Layout, EVeyraMatchPhase::Preparation)
-				.ThenClient(0, [](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(FVector::ZeroVector); })
+				.ThenClient(0, [](FState& State) { LocalControllerOf(State.World)->IssueAttackMoveOrder(FVector::ZeroVector); })
 				.UntilClient(0, [](FState& State) {
 					return LocalControllerOf(State.World)->GetLastOrderRejection() == EVeyraOrderRejection::WrongPhase;
 				});

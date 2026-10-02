@@ -305,6 +305,8 @@ VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §
 
 Combat still owns targetability and hit validation; Vision supplies what each team can see. Sits at the same layer as World.
 
+Since M44 ([ADR-054](Docs/ADR/ADR-054-fountain-preparation-and-fog-of-war-on-screen.md)) Vision also publishes each side's seen ground for presentation. Every `presentation.updateSeconds` it works out, by the gate's own sight and wall rules, which cells of a grid over the battleground each side sees (`VeyraVisionRules::SeenCells`). It sets them on that side's `AVeyraVisionTeamState` (`FVeyraSeenGround`), which only that side receives. Nothing decides gameplay from it.
+
 ### VeyraMatch
 
 - teams;
@@ -346,6 +348,8 @@ Since M42 ([ADR-052](Docs/ADR/ADR-052-combat-text-health-bars-zoom-and-attack-ra
 - `Feedback/` holds floating combat text. `FVeyraCombatTextLink`, owned by the game mode, hears Combat's damage, healing and shields on the server; the pure `VeyraCombatTextRouting` says which numbers each outcome gives a player. Each number goes only to its player's controller (`ClientCombatText`, unreliable), and never one about a unit that player's side cannot see. The controller raises it as `OnCombatText` for the UI.
 - The camera zooms: the `camera_zoom` level persists, the zoom keys step it (`VeyraCameraPreferences::ZoomLevelAfter`), and the rig eases its arm to the length it gives within one game-wide range.
 - The controller publishes Show Attack Range's key (`IsShowingAttackRange`) and the units the player targets (`GetTargetedUnits`).
+
+Since M44 ([ADR-054](Docs/ADR/ADR-054-fountain-preparation-and-fog-of-war-on-screen.md)), fountain preparation takes move orders, each brought inside the side's fountain area by `VeyraMatchRules::ClampToFountain`, and refuses every other order until the match is live.
 
 Since M23 `Chat/` holds in-match Team and All Chat ([ADR-029](Docs/ADR/ADR-029-in-match-chat.md)). `UVeyraChatSubsystem` validates each message on the server (`VeyraChatRules`: cleaning, length, rate, who receives which channel) and hands it to each recipient's controller, keeping mutes and the All Chat preference at delivery. No replicated actor carries chat, so spectators and replays never see it. The player controller holds the client's chat log, its own notices included, capped by `chat.keepMessages`.
 
@@ -437,6 +441,8 @@ M43 added ([ADR-053](Docs/ADR/ADR-053-leave-match-match-found-alert-loading-scre
 - the Match Found alert: taskbar attention for a client in the background and the match-ready sound, the first Audio settings;
 - `Loading/`: the match loading screen (`UVeyraLoadingScreenSubsystem`, `UVeyraLoadingScreen` and the pure `VeyraLoadingModel`), with plain stages and the text table's tips and lore (`loading.tip.*`, `loading.lore.*`) in the player's categories;
 - the dismissible break reminder on the results and Home.
+
+M44 added `Hud/VeyraFogOfWarModel` ([ADR-054](Docs/ADR/ADR-054-fountain-preparation-and-fog-of-war-on-screen.md) §3): the ground the viewer's side does not see, as runs of unseen cells from its seen ground. The grey box lays one translucent dark sheet over them, redrawn only when the seen ground changes, and the minimap darkens the same ground (`VeyraMinimap::DescribeFog`).
 
 ### VeyraDeveloper
 

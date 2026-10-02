@@ -323,6 +323,11 @@ namespace
 				Canvas.DrawItem(Line);
 			}
 		}
+		// The fog over the ground, under every mark and unit on it (ADR-054 §3).
+		for (const FBox2D& Fog : View.Fog)
+		{
+			DrawHudRect(Canvas, Fog.Min, Fog.GetSize(), Settings.MinimapFogColor);
+		}
 		for (const FVeyraMinimapPing& Ping : View.Pings)
 		{
 			DrawHudOutline(Canvas, Ping.Centre, 2.0 * Ping.Radius, Settings.PresencePingColor.CopyWithNewOpacity(Ping.Fade));

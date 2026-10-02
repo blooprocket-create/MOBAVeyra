@@ -162,6 +162,24 @@ struct FVeyraPresenceTuning
 	double PingEverySeconds = 0.0;
 };
 
+/** How each side's seen ground is published for the client to darken the rest (ADR-054 §2). Presentation only. */
+USTRUCT()
+struct FVeyraVisionPresentationTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Seconds between two publications; above 0. */
+	UPROPERTY()
+	double UpdateSeconds = 0.0;
+
+	/** Cells along each side of the grid over the battleground; the schema bounds it. */
+	UPROPERTY()
+	int32 CellsAcross = 0;
+};
+
 /** The Vision domain's tuning, bound from Game/Tuning/Vision.json (ADR-006 §6, ADR-016 §9). */
 USTRUCT()
 struct FVeyraVisionTuning
@@ -169,7 +187,7 @@ struct FVeyraVisionTuning
 	GENERATED_BODY()
 
 	/** The Vision.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraVisionUpdateTuning Update;
@@ -191,6 +209,9 @@ struct FVeyraVisionTuning
 
 	UPROPERTY()
 	FVeyraPresenceTuning Presence;
+
+	UPROPERTY()
+	FVeyraVisionPresentationTuning Presentation;
 };
 
 /** The Vision domain's checks that a schema cannot express. */
