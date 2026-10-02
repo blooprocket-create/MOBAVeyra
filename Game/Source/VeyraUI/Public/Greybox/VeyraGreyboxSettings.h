@@ -298,6 +298,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Vision", meta = (ClampMin = "1"))
 	float OutlineMarkerRadius = 0.0f;
 
+	/**
+	 * A projected Echo's tether (ADR-050 §7): below this share of its Integrity its circle and stream read strained, in
+	 * EchoStrainColor, warning that the circle is closing. Above 0 and below 1.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Echoes", meta = (ClampMin = "0", ClampMax = "1"))
+	float EchoStrainShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Echoes")
+	FLinearColor EchoStrainColor = FLinearColor::Transparent;
+
 	/** How thick each marking is, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
 	float GroundMarkingThickness = 0.0f;

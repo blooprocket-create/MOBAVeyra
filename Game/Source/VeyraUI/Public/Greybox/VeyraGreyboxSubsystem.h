@@ -179,6 +179,9 @@ private:
 	/** The chains between companions and their owners, joining the telegraphs' lines (ADR-034 §7). */
 	void DrawChains();
 
+	/** A projected Echo's tether circle and stream (ADR-050 §7). */
+	void DrawEchoTethers();
+
 	/**
 	 * Has the local player's HUD draw the grey-box HUD, through an overlay actor it renders for
 	 * (AVeyraHudOverlay), once per HUD. That puts the HUD on the HUD's own canvas, under the menus.

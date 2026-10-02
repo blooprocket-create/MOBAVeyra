@@ -73,6 +73,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("DenseFogColor"), DenseFogColor },
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
+		{ TEXT("EchoStrainColor"), EchoStrainColor },
 		{ TEXT("EndingColor"), EndingColor },
 		{ TEXT("ChatBackdropColor"), ChatBackdropColor },
 		{ TEXT("ChatHighContrastBackdropColor"), ChatHighContrastBackdropColor },
@@ -105,6 +106,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(TelegraphThickness > 0.0f, TEXT("TelegraphThickness"), TEXT("must be above 0."));
 	Require(CircleSegments >= 3, TEXT("CircleSegments"), TEXT("must be at least 3."));
 	Require(OutlineMarkerRadius >= 1.0f, TEXT("OutlineMarkerRadius"), TEXT("must be at least 1 unit."));
+	Require(EchoStrainShare > 0.0f && EchoStrainShare < 1.0f, TEXT("EchoStrainShare"), TEXT("must be above 0 and below 1."));
 	Require(TelegraphLift >= 0.0f, TEXT("TelegraphLift"), TEXT("must not be negative."));
 	Require(GroundProbeDistance >= 1.0f, TEXT("GroundProbeDistance"), TEXT("must be at least 1 unit."));
 	Require(GroundMarkingThickness > 0.0f, TEXT("GroundMarkingThickness"), TEXT("must be above 0."));

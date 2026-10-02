@@ -85,6 +85,7 @@ void AVeyraEcho::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraEcho, Radius, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraEcho, ImmuneUntil, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraEcho, ControlAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraEcho, RepeatsLeft, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraEcho, bWithdrawn, Params);
 }
 
@@ -136,6 +137,15 @@ void AVeyraEcho::SetIntegrity(double Integrity, double InRadius)
 	{
 		Radius = InRadius;
 		MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraEcho, Radius, this);
+	}
+}
+
+void AVeyraEcho::SetRepeatsLeft(int32 InRepeatsLeft)
+{
+	if (RepeatsLeft != InRepeatsLeft)
+	{
+		RepeatsLeft = InRepeatsLeft;
+		MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraEcho, RepeatsLeft, this);
 	}
 }
 

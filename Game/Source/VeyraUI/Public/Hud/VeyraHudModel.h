@@ -91,6 +91,21 @@ struct FVeyraHudItemSlot
 	double CooldownSeconds = 0.0;
 };
 
+/** A player's projected Echo on the HUD (ADR-050 §7): its Integrity, its formation and immunity, and what it may still cast. */
+struct FVeyraHudEcho
+{
+	/** Its Integrity as a share of what it formed with, from 0 to 1. */
+	double IntegrityShare = 0.0;
+
+	/** Seconds until it takes control, and until its immunity ends; 0 once each has passed. */
+	double FormingSeconds = 0.0;
+	double ImmuneSeconds = 0.0;
+
+	/** How many of the slots' abilities it may still cast, and which slots. */
+	int32 RepeatsLeft = 0;
+	TArray<EVeyraAbilitySlot> Slots;
+};
+
 /** One Flux Spell slot on the HUD (ADR-015 §7): locked with the permanent Flux it needs, ready, or cooling down. */
 struct FVeyraHudSpellSlot
 {
@@ -151,6 +166,9 @@ struct FVeyraHudPlayer
 	bool bRecalling = false;
 	double RecallSeconds = 0.0;
 	double RecallProgress = 0.0;
+
+	/** The player's projected Echo while it stands (ADR-050 §7); unset without one. */
+	TOptional<FVeyraHudEcho> Echo;
 
 	/** Q, W, E and R, in order. */
 	TArray<FVeyraHudSlot> Slots;

@@ -196,6 +196,12 @@ M40a added ([ADR-050](Docs/ADR/ADR-050-stasis-and-the-echo-item-line.md)), the E
 - in Abilities, `Echoes/`: `AVeyraEcho`, its holder's owned projection whose Integrity is its sealed Health; `UVeyraEchoSubsystem`, which forms one Echo per holder and hands a waiting Echo the repeat of its holder's next eligible cast; the pure `VeyraEchoRules`; and the echo archetype (`Abilities/UVeyraEchoAbility`), Abilities.json's `echo` map. `UVeyraGameplayAbility::CanReverberate` says which deliveries an Echo may repeat (areas from their caster or point without a channel, skillshots without a recoil);
 - in Items, the Reverberation Attunement and Echo Lens.
 
+M40b added ([ADR-050](Docs/ADR/ADR-050-stasis-and-the-echo-item-line.md)), The Second Self:
+- in Abilities, the echo archetype's projection: `UVeyraEchoSubsystem::Project` puts its holder in Stasis and keeps the Echo's Integrity (decay and each enemy hit's set loss after its immunity) and tether, passes control to it once formed (`OnEchoCommanded`) and ends it at 0 Integrity or beyond its tether, ending the Stasis; `CastFrom` casts one of its holder's eligible abilities from it, and `UVeyraGameplayAbility::DeliverRepeat` delivers a repeat;
+- in Match, `Echoes/FVeyraEchoLink`, owned by the game mode: a controller of its own for a commanded Echo, the participant's move and attack orders routed to it and its casts to the Echo, and `AVeyraPlayerController::GetCommandedBody`, replicated to its owner, which the camera follows;
+- in the client, the grey-box tether circle and stream, and the HUD's Echo panel;
+- in Items, The Second Self.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

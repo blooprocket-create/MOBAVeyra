@@ -13,6 +13,7 @@
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
+#include "Echoes/VeyraEchoSubsystem.h"
 #include "EngineUtils.h"
 #include "Entities/VeyraPlacedMarker.h"
 #include "Fluxborn/VeyraFluxborn.h"
@@ -589,6 +590,48 @@ namespace VeyraAbilitiesTests
 
 			ASSERT_THAT(IsTrue(Recall.Interrupt()));
 			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, StartedAt + Passed).bRecalling, TEXT("an interrupted channel leaves the HUD")));
+		}
+
+		TEST_METHOD(TheHudShowsACommandedEchosIntegrityAndWhatItMayCast)
+		{
+			// Fixture projection: forming for a second, immune for two, its Integrity decaying from 100 at 10 a second.
+			constexpr double Forming = 1.0;
+			constexpr double Immune = 2.0;
+			constexpr double Integrity = 100.0;
+			constexpr double Reach = 800.0;
+			const FVeyraContentId Stasis = ArchetypeTestId(TEXT("test_hud_stasis"));
+			const FVeyraContentId Project = ArchetypeTestId(TEXT("test_hud_echo"));
+			Tuning.Statuses.Add(Stasis, StatusOf(EVeyraStatusKind::Stasis, 0.0, Integrity));
+			FVeyraEchoAbilityTuning& Echo = Tuning.Echo.Add(Project);
+			Echo.Cast = InstantCast(Reach, 0.0, 0.0);
+			Echo.DamageCoefficient = 0.25;
+			Echo.Slots = { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::E };
+			Echo.Repeats = 1;
+			FVeyraEchoProjectionTuning& Projection = Echo.Projection.AddDefaulted_GetRef();
+			Projection.Stasis = Stasis;
+			Projection.FormationSeconds = Forming;
+			Projection.ImmunitySeconds = Immune;
+			Projection.Integrity = Integrity;
+			Projection.DecayPerSecond = Integrity / 10.0;
+			Projection.MaxRadius = Reach;
+			Projection.MinRadius = Reach / 2.0;
+			Projection.RadiusExponent = 1.0;
+			Projection.UpdateSeconds = 0.1;
+
+			AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			// The Echo's times are the server's world time, as the HUD's clock is.
+			const double Now = Spawner.GetWorld().GetTimeSeconds();
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, Now).Echo.IsSet()));
+			UVeyraEchoSubsystem* Echoes = Spawner.GetWorld().GetSubsystem<UVeyraEchoSubsystem>();
+			ASSERT_THAT(IsNotNull(Echoes->Project(*Participant.GetAbilitySystemComponent(), Project, Caster->GetActorLocation() + FVector(Reach / 2.0, 0.0, 0.0))));
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
+			ASSERT_THAT(IsTrue(Player.Echo.IsSet()));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.Echo->IntegrityShare, 1.0), TEXT("whole as it forms")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.Echo->FormingSeconds, Forming) && FMath::IsNearlyEqual(Player.Echo->ImmuneSeconds, Immune)));
+			ASSERT_THAT(IsTrue(Player.Echo->RepeatsLeft == 1 && Player.Echo->Slots == Echo.Slots, TEXT("what it may cast, and how often")));
+
+			Echoes->End(*Participant.GetAbilitySystemComponent(), EVeyraEchoEnd::Faded);
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, Now).Echo.IsSet(), TEXT("an ended Echo leaves the HUD")));
 		}
 
 		TEST_METHOD(TheHudShowsAnEmpowermentWaitingForTheNextAttack)

@@ -12,6 +12,7 @@
 #include "Components/LineBatchComponent.h"
 #include "Companions/VeyraCompanion.h"
 #include "Echoes/VeyraEcho.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Components/StaticMeshComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
@@ -193,6 +194,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawTelegraphs();
 	DrawVisionMarks();
 	DrawChains();
+	DrawEchoTethers();
 	AttachHudOverlay();
 }
 
@@ -794,6 +796,38 @@ void UVeyraGreyboxSubsystem::DrawChains()
 		}
 		TelegraphLines->DrawLine(GroundUnder(Companion.GetActorLocation()), GroundUnder(OwnerBody->GetActorLocation()), ColorOfSide(Companion.GetVeyraTeam()),
 			SDPG_World, Settings.TelegraphThickness, 0.0f);
+	}
+}
+
+void UVeyraGreyboxSubsystem::DrawEchoTethers()
+{
+	// A projected Echo's tether is gameplay information (Item Bible §11; ADR-050 §7): the circle it must stay within,
+	// around the Stasis body, and the stream from the body to it, strained as its Integrity runs low.
+	if (!TelegraphLines)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (TActorIterator<AVeyraEcho> It(GetWorld()); It; ++It)
+	{
+		const AVeyraEcho& Echo = **It;
+		const UAbilitySystemComponent* Abilities = Echo.GetAbilitySystemComponent();
+		if (Echo.IsWithdrawn() || Echo.IsHidden() || !(Echo.GetRadius() > 0.0) || !Abilities)
+		{
+			continue;
+		}
+		const double Max = Abilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+		const double Share = Max > 0.0 ? Abilities->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) / Max : 0.0;
+		const FLinearColor Color = Share < Settings.EchoStrainShare ? Settings.EchoStrainColor : ColorOfSide(Echo.GetVeyraTeam());
+		FVeyraShape Circle;
+		Circle.Kind = EVeyraShapeKind::Circle;
+		Circle.Radius = Echo.GetRadius();
+		const FVeyraPlacedShape OnGround{ Circle, GroundUnder(Echo.GetAnchor()), FVector::ForwardVector };
+		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
+		{
+			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+		}
+		TelegraphLines->DrawLine(GroundUnder(Echo.GetAnchor()), GroundUnder(Echo.GetActorLocation()), Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
 	}
 }
 

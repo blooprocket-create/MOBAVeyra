@@ -128,7 +128,7 @@ When a Projection Echo forms, `UVeyraEchoSubsystem` announces control passing to
   - Move, attack, attack-move and stop orders reach a controller possessing the commanded unit. Match spawns one when control passes and releases it when control returns.
   - Cast orders go to the Echo subsystem while an Echo is commanded.
   - The Vanguard's own controller keeps nothing from the Echo's orders.
-- **Camera:** the PlayerController replicates the commanded unit to its owner. The camera follows it, and the HUD's ability bar shows only the slots the Echo may still repeat.
+- **Camera:** the PlayerController replicates the commanded unit to its owner. The camera, smart self-cast and self-cast follow it. Over the deck, the HUD shows an Echo panel in place of a Recall bar: its Integrity, whether it is still forming or protected, and the keys of the slots it may still cast with, with its repeats left.
 - **Bots:** bots do not buy the Echo items until their brains can play a projection. Their builds are data, and the Echo items are left out.
 
 ### 7. Presentation reads replicated state only
@@ -136,12 +136,12 @@ When a Projection Echo forms, `UVeyraEchoSubsystem` announces control passing to
 The Echo replicates:
 - its holder and anchor (the Stasis position);
 - its Integrity and maximum;
-- its immunity end, its formation end and its current radius.
+- its immunity end, its formation end, its current radius and its repeats left.
 
 The grey-box draws:
 - the Echo as a unit's body in its side's colour, in its holder's own colour for its holder, its health bar showing Integrity;
 - the **tether circle** around the anchor at the current radius;
-- the **stream** from the anchor to the Echo. It reads strained once Integrity falls below a set share, and warns near the boundary.
+- the **stream** from the anchor to the Echo. Below a set share of Integrity the circle and the stream turn the strain colour (grey-box settings `EchoStrainShare` and `EchoStrainColor`), warning that the circle is closing.
 
 None of this is authority. Effects come later, from the same state.
 

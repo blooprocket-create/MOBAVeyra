@@ -119,6 +119,7 @@ AVeyraEcho* UVeyraEchoSubsystem::Form(UAbilitySystemComponent& Holder, const FVe
 	Entry.Holder = &Holder;
 	Entry.Echo = Echo;
 	Entry.RepeatsLeft = Tuning->Repeats;
+	Echo->SetRepeatsLeft(Entry.RepeatsLeft);
 	UE_LOG(LogVeyraAbilities, Log, TEXT("%s formed for %s at %s."), *GetNameSafe(Echo), *GetNameSafe(Holder.GetOwner()), *Ground.ToCompactString());
 	return Echo;
 }
@@ -297,7 +298,8 @@ TOptional<FVeyraCast> UVeyraEchoSubsystem::TakeRepeat(UAbilitySystemComponent& H
 	Repeat.Direction = Aim.Direction;
 	UE_LOG(LogVeyraAbilities, Log, TEXT("%s repeats %s (cast %d as %d)."), *GetNameSafe(Echo), *Cast.Ability.ToString(), Cast.CastId, Repeat.CastId);
 	// Its last repeat ends it once the repeat is delivered: an Echo withdrawn first would deliver from the dead.
-	if (--Entry->RepeatsLeft == 0)
+	Echo->SetRepeatsLeft(--Entry->RepeatsLeft);
+	if (Entry->RepeatsLeft == 0)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(Entry->Timer);
 		Entry->Timer = GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this,
@@ -356,7 +358,7 @@ EVeyraCastRejection UVeyraEchoSubsystem::CastFrom(UAbilitySystemComponent& Holde
 	Repeat.Point = Aim.Point;
 	Repeat.Direction = Aim.Direction;
 	Echo->RefreshOffence();
-	--Entry->RepeatsLeft;
+	Echo->SetRepeatsLeft(--Entry->RepeatsLeft);
 	UE_LOG(LogVeyraAbilities, Log, TEXT("%s casts %s (cast %d)."), *GetNameSafe(Echo), *Held->Ability.ToString(), Repeat.CastId);
 	Instance->DeliverRepeat(Repeat);
 	return EVeyraCastRejection::None;
