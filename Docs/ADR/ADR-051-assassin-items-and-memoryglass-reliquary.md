@@ -46,7 +46,7 @@ All five live in `UVeyraAttunementSubsystem` and act only against **enemy Vangua
   - **Opening:** after `quietSeconds` without damaging an enemy Vanguard, the holder's next action against one opens it for `openingSeconds`.
   - **Payoff:** the holder's next *different* action against that Vanguard consumes the Opening. It deals a bonus Physical hit (Proc) of `bonus.base + bonus.physicalPowerRatio × Physical Power`, which carries `penetration` extra flat Physical Penetration.
 - **Clean Break (Cutline Mantle):**
-  - **The tally:** the subsystem counts, for each holder and enemy Vanguard, the damage the holder dealt within the last `windowSeconds`.
+  - **The tally:** the subsystem counts, for each holder and enemy Vanguard, the damage the holder dealt within the last `windowSeconds`, as each hit resolves. The killing blow counts too: it resolves before the death it causes is announced.
   - **The trigger:** when that Vanguard dies within `windowSeconds` of the holder's last hit on them, the holder gains the `speed` status and a shield of `shieldShare × tally`, capped at `shieldCap`, lasting `shieldSeconds`.
   - **The speed** is a stacking status whose stacks decay one at a time.
   - **Refresh, not stack:** a later takedown refreshes the speed and replaces the shield, which keeps one identity.
@@ -57,7 +57,8 @@ All five live in `UVeyraAttunementSubsystem` and act only against **enemy Vangua
   - **Loss:** an expiry, another source's break, or the brand running out loses the Breach.
 - **No One Coming (Witnessless Edge):**
   - **The mark:** when the holder damages an enemy Vanguard with no allied Vanguard of its own within `protectionRadius`, it is marked Abandoned for `markSeconds`. The holder gains the `speed` status, Movement Speed toward enemy Vanguards, while the mark lasts.
-  - **Lock-in:** if the holder deals `lockDamage` to it before an ally enters the radius, the mark locks in for `lockSeconds`. The holder's next hit on it then deals a bonus Physical hit (Proc) of `bonus.base + bonus.physicalPowerRatio × Physical Power`.
+  - **Lock-in:** if the holder deals `lockDamage` to it before an ally enters the radius, the mark locks in for `lockSeconds`. The holder's next hit on it then deals a bonus Physical hit (Proc) of `bonus.base + bonus.physicalPowerRatio × Physical Power`. Once locked, the lock's window is all the mark has left: unused, it ends with the window, and a new mark must lock again.
+  - **The speed** lasts while the holder has a mark of this Attunement, and ends when the last one is consumed, broken or over.
   - **Breaking:** an ally entering the radius before the lock breaks the mark. Proximity is checked on the Tempered by Conflict timer.
 - **Reenactment (Memoryglass Reliquary):**
   - **Remembering:** after `quietSeconds` without damaging an enemy Vanguard, the holder's first ability hit on one is remembered: the target, its post-mitigation damage, and where the holder stood.

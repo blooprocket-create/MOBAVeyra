@@ -180,10 +180,6 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 		{
 			NoAllegiance(Attunement, Event, *Holder, *Target, Now, LastDealt);
 		}
-		else if (Tuning.CleanBreak.Contains(Attunement))
-		{
-			TallyForCleanBreak(Attunement, Event, *Holder, *Target, Now);
-		}
 		else if (Tuning.NoOneComing.Contains(Attunement))
 		{
 			NoOneComing(Attunement, Event, *Holder, *Target, Now);

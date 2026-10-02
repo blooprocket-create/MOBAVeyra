@@ -126,8 +126,11 @@ private:
 	/** ADR-051 §3's Attunements, in VeyraBurstAttunements.cpp. LastDealt is when Holder last damaged an enemy Vanguard before this hit. */
 	void NoAllegiance(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
 		double Now, TOptional<double> LastDealt);
-	void TallyForCleanBreak(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder,
-		UAbilitySystemComponent& Target, double Now);
+	/**
+	 * Counts Amount the holder's own damage cost Target toward Clean Break. It reads damage as it resolves, so a killing blow
+	 * is counted before the death it causes is announced.
+	 */
+	void TallyForCleanBreak(const FVeyraContentId& Attunement, double Amount, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target, double Now);
 	void CleanBreak(const FVeyraDeathEvent& Death);
 	void NoOneComing(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
 		double Now);
@@ -190,10 +193,15 @@ private:
 		FVeyraContentId Attunement;
 		double Until = 0.0;
 		double Dealt = 0.0;
-		/** When its lock ends; 0 until it locks in. */
+		/** When its lock ends; 0 until it locks in. Once locked, the lock's window is all the mark has left. */
 		double LockedUntil = 0.0;
+
+		bool IsOver(double Now) const { return LockedUntil > 0.0 ? LockedUntil <= Now : Until <= Now; }
 	};
 	TArray<FAbandoned> Abandons;
+
+	/** Ends Holder's chase speed from Attunement unless one of its marks still lasts (ADR-051 §9.3). */
+	void EndChaseUnlessMarked(UAbilitySystemComponent& Holder, const FVeyraContentId& Attunement, double Now);
 
 	/** Reenactment's memories, by holder and target. */
 	struct FMemory

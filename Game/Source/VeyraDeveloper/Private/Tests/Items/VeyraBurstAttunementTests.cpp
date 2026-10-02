@@ -3,6 +3,7 @@
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Attunements/VeyraAttunementSubsystem.h"
 #include "Components/ActorTestSpawner.h"
 #include "CQTest.h"
@@ -230,6 +231,27 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(ShieldOn(Holder()) <= Before + Tolerance, TEXT("no shield for a takedown past the window")));
 		}
 
+		TEST_METHOD(CleanBreakCountsTheHoldersKillingBlow)
+		{
+			using namespace BurstFixture;
+			constexpr double Share = 0.25;
+			FVeyraCleanBreakTuning& CleanBreak = Tuning.CleanBreak.Add(ItemId(TEXT("test_break")));
+			CleanBreak.WindowSeconds = 3.0;
+			CleanBreak.SpeedPerStack = 0.1;
+			CleanBreak.SpeedStacks = 2;
+			CleanBreak.SpeedStackSeconds = 0.5;
+			CleanBreak.ShieldShare = Share;
+			CleanBreak.ShieldCap = Lethal;
+			CleanBreak.ShieldSeconds = 3.0;
+			Hold(TEXT("test_break"));
+
+			// A one-shot: the hit that kills is the whole of what the holder dealt, never more than the Health it took.
+			const double Health = Enemy->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
+			Hit(EVeyraDamageDelivery::Ability, Health);
+			ASSERT_THAT(IsNotNull(StatusOn(Holder(), EVeyraStatusKind::MoveSpeed), TEXT("a one-shot takedown speeds the holder")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ShieldOn(Holder()), Share * Health, Tolerance), TEXT("and shields it by the killing blow")));
+		}
+
 		TEST_METHOD(ThroughTheGuardDetonatesTheBreachOfAnAllysShieldTheHolderBreaks)
 		{
 			using namespace BurstFixture;
@@ -291,6 +313,38 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsFalse(Attunements().IsAbandoned(Holder(), Other), TEXT("an ally's arrival breaks an unlocked mark")));
 			Hit(Holder(), Other, Blow / 2.0, EVeyraDamageDelivery::BasicAttack);
 			ASSERT_THAT(IsFalse(Attunements().IsAbandoned(Holder(), Other), TEXT("and no new mark while it stands near")));
+		}
+
+		TEST_METHOD(NoOneComingsLockLastsOnlyItsWindowAndItsSpeedOnlyItsMark)
+		{
+			using namespace BurstFixture;
+			constexpr double LockSeconds = 1.0;
+			FVeyraNoOneComingTuning& NoOneComing = Tuning.NoOneComing.Add(ItemId(TEXT("test_alone")));
+			NoOneComing.ProtectionRadius = 1000.0;
+			NoOneComing.MarkSeconds = 4.0;
+			NoOneComing.Speed = 0.15;
+			NoOneComing.LockDamage = Blow;
+			NoOneComing.LockSeconds = LockSeconds;
+			NoOneComing.Bonus.Base = Bonus;
+			NoOneComing.CheckSeconds = 0.25;
+			Hold(TEXT("test_alone"));
+
+			// Locked at once, well inside its mark; its lock window lapses unused.
+			bool bLocked = false;
+			Hit(EVeyraDamageDelivery::BasicAttack, Blow);
+			ASSERT_THAT(IsTrue(Attunements().IsAbandoned(Holder(), *Enemy, &bLocked) && bLocked));
+			RunFor(LockSeconds + WorldStep);
+			Attunements().UpdateAbandoned();
+			ASSERT_THAT(IsFalse(Attunements().IsAbandoned(Holder(), *Enemy), TEXT("a locked mark ends with its lock window")));
+			ASSERT_THAT(IsNull(StatusOn(Holder(), EVeyraStatusKind::MoveSpeedTowardEnemyVanguards), TEXT("and its chase speed with it")));
+			Hit(EVeyraDamageDelivery::BasicAttack, Blow / 2.0);
+			Hit(EVeyraDamageDelivery::BasicAttack, Blow / 2.0);
+			ASSERT_THAT(IsTrue(Procs().IsEmpty(), TEXT("no finishing hit long after its window: a new mark must lock again")));
+
+			// The finishing hit consumes the mark, and the chase ends with it.
+			Hit(EVeyraDamageDelivery::BasicAttack, Blow);
+			ASSERT_THAT(IsTrue(Procs().Num() == 1, TEXT("the newly locked mark pays")));
+			ASSERT_THAT(IsNull(StatusOn(Holder(), EVeyraStatusKind::MoveSpeedTowardEnemyVanguards), TEXT("no chase speed without a mark")));
 		}
 
 		TEST_METHOD(ReenactmentReplaysARememberedWoundAfterRepositioning)

@@ -150,8 +150,8 @@ void UVeyraAttunementSubsystem::NoAllegiance(const FVeyraContentId& Attunement, 
 	Opening.Until = Now + Tuning.OpeningSeconds;
 }
 
-void UVeyraAttunementSubsystem::TallyForCleanBreak(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder,
-	UAbilitySystemComponent& Target, double Now)
+void UVeyraAttunementSubsystem::TallyForCleanBreak(const FVeyraContentId& Attunement, double Amount, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
+	double Now)
 {
 	// What the holder personally dealt the Vanguard lately, procs included (Item Bible §8).
 	const FVeyraCleanBreakTuning& Tuning = UVeyraItemsTuningSubsystem::Get().CleanBreak.FindChecked(Attunement);
@@ -166,7 +166,7 @@ void UVeyraAttunementSubsystem::TallyForCleanBreak(const FVeyraContentId& Attune
 		Tally->Attunement = Attunement;
 	}
 	Tally->Hits.RemoveAll([Now, &Tuning](const TPair<double, double>& Hit) { return Hit.Key < Now - Tuning.WindowSeconds; });
-	Tally->Hits.Emplace(Now, Event.Total());
+	Tally->Hits.Emplace(Now, Amount);
 }
 
 void UVeyraAttunementSubsystem::CleanBreak(const FVeyraDeathEvent& Death)
@@ -243,11 +243,32 @@ void UVeyraAttunementSubsystem::OnDamageResolved(const FVeyraDamageResolution& R
 	UAbilitySystemComponent* Holder = Resolution.Source.Get();
 	UAbilitySystemComponent* Target = Resolution.Target.Get();
 	const UWorld* World = GetWorld();
-	if (!Holder || !Target || !World || Resolution.Shields.IsEmpty())
+	if (!Holder || !Target || !World)
 	{
 		return;
 	}
 	const double Now = World->GetTimeSeconds();
+	// Clean Break counts what the holder's hit cost an enemy Vanguard as it resolves: a killing blow resolves before its death.
+	if (VeyraUnits::IsVanguard(Target->GetOwner()) && VeyraTargeting::AreHostile(Holder->GetOwner(), Target->GetOwner()))
+	{
+		double Cost = Resolution.HealthLost + Resolution.TemporaryHealthSpent;
+		for (const FVeyraShieldShare& Share : Resolution.Shields)
+		{
+			Cost += Share.Absorbed;
+		}
+		const FVeyraItemsTuning& Items = UVeyraItemsTuningSubsystem::Get();
+		for (const FVeyraContentId& Attunement : Cost > 0.0 ? HeldBy(*Holder) : TArray<FVeyraContentId, TInlineAllocator<6>>())
+		{
+			if (Items.CleanBreak.Contains(Attunement))
+			{
+				TallyForCleanBreak(Attunement, Cost, *Holder, *Target, Now);
+			}
+		}
+	}
+	if (Resolution.Shields.IsEmpty())
+	{
+		return;
+	}
 	Brands.RemoveAllSwap([Now](const FBrand& Entry) { return Entry.Until <= Now || !Entry.Holder.IsValid() || !Entry.Target.IsValid(); });
 	// Another source breaking a branded shield loses its Breach (Item Bible §8).
 	for (const FVeyraShieldShare& Share : Resolution.Shields)
@@ -315,19 +336,18 @@ void UVeyraAttunementSubsystem::NoOneComing(const FVeyraContentId& Attunement, c
 		return;
 	}
 	const FVeyraNoOneComingTuning& Tuning = UVeyraItemsTuningSubsystem::Get().NoOneComing.FindChecked(Attunement);
-	Abandons.RemoveAllSwap([Now](const FAbandoned& Entry) {
-		return (Entry.Until <= Now && Entry.LockedUntil <= Now) || !Entry.Holder.IsValid() || !Entry.Target.IsValid();
-	});
+	Abandons.RemoveAllSwap([Now](const FAbandoned& Entry) { return Entry.IsOver(Now) || !Entry.Holder.IsValid() || !Entry.Target.IsValid(); });
 	const int32 Marked = Abandons.IndexOfByPredicate([&Holder, &Target, &Attunement](const FAbandoned& Entry) {
 		return Entry.Holder.Get() == &Holder && Entry.Target.Get() == &Target && Entry.Attunement == Attunement;
 	});
 	if (Marked != INDEX_NONE)
 	{
 		FAbandoned& Mark = Abandons[Marked];
-		// Locked in, the holder's next hit finishes it (Item Bible §8).
+		// Locked in, the holder's next hit finishes it (Item Bible §8), and the chase ends with the mark.
 		if (Mark.LockedUntil > Now)
 		{
 			Abandons.RemoveAtSwap(Marked);
+			EndChaseUnlessMarked(Holder, Attunement, Now);
 			DealBonus(Holder, Target, EVeyraDamageType::Physical, BonusHitOf(Tuning.Bonus, Holder));
 			return;
 		}
@@ -377,17 +397,29 @@ void UVeyraAttunementSubsystem::UpdateAbandoned()
 		const FAbandoned& Mark = Abandons[Index];
 		const UAbilitySystemComponent* Target = Mark.Target.Get();
 		const FVeyraNoOneComingTuning* NoOneComing = Tuning.NoOneComing.Find(Mark.Attunement);
-		const bool bExpired = Mark.Until <= Now && Mark.LockedUntil <= Now;
 		// Before it locks in, an ally arriving breaks it; once locked, the finishing window stays.
-		const bool bRescued = Target && NoOneComing && Mark.LockedUntil <= Now && HasAllyNear(*World, *Target, NoOneComing->ProtectionRadius);
-		if (!Target || !Mark.Holder.IsValid() || bExpired || bRescued)
+		const bool bRescued = Target && NoOneComing && Mark.LockedUntil <= 0.0 && HasAllyNear(*World, *Target, NoOneComing->ProtectionRadius);
+		if (!Target || !Mark.Holder.IsValid() || Mark.IsOver(Now) || bRescued)
 		{
-			if (UAbilitySystemComponent* Holder = const_cast<UAbilitySystemComponent*>(Mark.Holder.Get()); Holder && bRescued)
-			{
-				VeyraCombat::RemoveStatus(*Holder, Mark.Attunement);
-			}
+			UAbilitySystemComponent* Holder = const_cast<UAbilitySystemComponent*>(Mark.Holder.Get());
+			const FVeyraContentId Attunement = Mark.Attunement;
 			Abandons.RemoveAtSwap(Index);
+			if (Holder)
+			{
+				EndChaseUnlessMarked(*Holder, Attunement, Now);
+			}
 		}
+	}
+}
+
+void UVeyraAttunementSubsystem::EndChaseUnlessMarked(UAbilitySystemComponent& Holder, const FVeyraContentId& Attunement, double Now)
+{
+	const bool bMarked = Abandons.ContainsByPredicate([&Holder, &Attunement, Now](const FAbandoned& Entry) {
+		return Entry.Holder.Get() == &Holder && Entry.Attunement == Attunement && !Entry.IsOver(Now);
+	});
+	if (!bMarked)
+	{
+		VeyraCombat::RemoveStatus(Holder, Attunement);
 	}
 }
 
@@ -396,7 +428,7 @@ bool UVeyraAttunementSubsystem::IsAbandoned(const UAbilitySystemComponent& Holde
 	const UWorld* World = GetWorld();
 	const double Now = World ? World->GetTimeSeconds() : 0.0;
 	const FAbandoned* Mark = Abandons.FindByPredicate([&Holder, &Target, Now](const FAbandoned& Entry) {
-		return Entry.Holder.Get() == &Holder && Entry.Target.Get() == &Target && (Entry.Until > Now || Entry.LockedUntil > Now);
+		return Entry.Holder.Get() == &Holder && Entry.Target.Get() == &Target && !Entry.IsOver(Now);
 	});
 	if (bOutLocked)
 	{
