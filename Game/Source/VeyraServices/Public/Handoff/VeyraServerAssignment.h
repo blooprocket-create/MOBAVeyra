@@ -38,6 +38,13 @@ struct FVeyraAssignmentParticipantDocument
 	/** The starting Flux Spells in slot order; an empty string is an empty slot (ADR-015 §5). */
 	UPROPERTY()
 	TArray<FString> FluxSpells;
+
+	/** The account's Mastery of the Vanguard it plays, and its mastery emote's tier (ADR-045 §9); 0 when unknown. */
+	UPROPERTY()
+	int32 MasteryLevel = 0;
+
+	UPROPERTY()
+	int32 EmoteTier = 0;
 };
 
 /** One AI participant in the assignment document. */
@@ -127,7 +134,7 @@ struct FVeyraServerAssignment
 namespace VeyraServerAssignment
 {
 	/** The only assignment version this build reads (AssignmentSchemaVersion in Backend/internal/match). */
-	constexpr int32 SchemaVersion = 5;
+	constexpr int32 SchemaVersion = 6;
 
 	/** Where the assignment's schema is, in the project folder or the packaged build. */
 	VEYRASERVICES_API FString SchemaPath();

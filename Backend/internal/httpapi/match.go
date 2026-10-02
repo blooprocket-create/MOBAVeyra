@@ -280,8 +280,17 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 		VanguardID    *string           `json:"vanguardId"`
 		FailureReason *string           `json:"failureReason"`
 		Result        *playerResultJSON `json:"result"`
+		// Rewards is what the match gave the player, null until it is
+		// adjudicated (ADR-045 §7).
+		Rewards *rewardsJSON `json:"rewards"`
 	}{ID: m.ID, Mode: m.Mode, Rules: string(m.Rules), State: string(m.State), Side: string(p.Side), VanguardID: textOrNil(p.VanguardID),
 		FailureReason: textOrNil(string(m.FailureReason))}
+	if m.Result != nil {
+		if out.Rewards, err = s.matchRewards(r, m.ID, actor); err != nil {
+			s.fail(w, err)
+			return
+		}
+	}
 	if res := m.Result; res != nil {
 		out.Result = &playerResultJSON{EndReason: string(res.EndReason), Winner: textOrNil(string(res.Winner)), DurationSeconds: res.DurationSeconds,
 			Players: scoreboardFor(res.Players, actor), Wells: res.Wells}

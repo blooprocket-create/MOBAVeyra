@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "matchId", "backendUrl", "serverCredential", "mode", "rules", "hostAccountId", "participants", "bots", "settings"],
   "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [5] },
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [6] },
     "matchId": {
       "type": "string",
       "description": "The match's ID, a lowercase UUID. The server reports under it.",
@@ -46,7 +46,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["accountId", "displayName", "side", "ticketHash", "vanguardId", "fluxSpells"],
+        "required": ["accountId", "displayName", "side", "ticketHash", "vanguardId", "fluxSpells", "masteryLevel", "emoteTier"],
         "properties": {
           "accountId": {
             "type": "string",
@@ -75,6 +75,16 @@
             "minItems": 2,
             "maxItems": 2,
             "items": { "type": "string", "pattern": "^([a-z][a-z0-9]*(_[a-z0-9]+)*)?$" }
+          },
+          "masteryLevel": {
+            "type": "integer",
+            "description": "The account's Mastery Level of the Vanguard it plays, which its mastery emote shows (ADR-045 §9); 0 when the backend keeps no progression.",
+            "minimum": 0
+          },
+          "emoteTier": {
+            "type": "integer",
+            "description": "How many of the mastery emote's appearances that level has reached (ADR-045 §5); 0 when the backend keeps no progression.",
+            "minimum": 0
           }
         }
       }

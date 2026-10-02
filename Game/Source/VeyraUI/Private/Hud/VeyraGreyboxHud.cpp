@@ -153,6 +153,13 @@ namespace
 			Y -= HudLineHeight();
 			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
 		}
+		// The mastery emote: the player's Mastery Level in its tier's colour, nearest the bar (ADR-045 §9).
+		if (const TOptional<FVeyraHudMasteryEmote> Emote = VeyraHud::MasteryEmoteOf(Unit, Now); Emote && !Settings.MasteryEmoteTierColors.IsEmpty())
+		{
+			const int32 Index = FMath::Clamp(Emote->Tier - 1, 0, Settings.MasteryEmoteTierColors.Num() - 1);
+			Y -= HudLineHeight();
+			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("Mastery %d"), Emote->Level), Settings.MasteryEmoteTierColors[Index]);
+		}
 		if (const TOptional<FVeyraContentId> Species = VeyraHud::SpeciesOf(Unit))
 		{
 			Y -= HudLineHeight();

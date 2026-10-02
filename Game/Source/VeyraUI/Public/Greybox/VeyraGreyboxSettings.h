@@ -101,6 +101,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor TextColor = FLinearColor::Transparent;
 
+	/**
+	 * The mastery emote's colour for each of its tiers, the first for tier 1 (ADR-045 §9); a tier past the last
+	 * keeps the last. Presentation only.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	TArray<FLinearColor> MasteryEmoteTierColors;
+
 	/** The line under each ability on the player's panel that says what it does. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor DescriptionColor = FLinearColor::Transparent;

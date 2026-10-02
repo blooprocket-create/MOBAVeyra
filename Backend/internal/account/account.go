@@ -17,13 +17,18 @@ import (
 var (
 	ErrNotAStarter   = errors.New("not a starter Vanguard")
 	ErrAlreadyChosen = errors.New("the starter was already chosen")
+	ErrNotReleased   = errors.New("not a released Vanguard")
 )
 
 // Source says how an account came to own a Vanguard.
 type Source string
 
-// SourceStarter is the Vanguard chosen at the end of onboarding.
-const SourceStarter Source = "starter"
+const (
+	// SourceStarter is the Vanguard chosen at the end of onboarding.
+	SourceStarter Source = "starter"
+	// SourcePurchase is a Vanguard bought with an account currency (ADR-045 §6).
+	SourcePurchase Source = "purchase"
+)
 
 // Profile is an account's onboarding state.
 type Profile struct {
@@ -84,6 +89,8 @@ type Store interface {
 	Entitlements(ctx context.Context, accountID string) ([]Entitlement, error)
 	// ResetOnboarding removes the account's onboarding and starter.
 	ResetOnboarding(ctx context.Context, accountID string) error
+	// ResetPurchases removes the Vanguards the account bought, in ctx's transaction.
+	ResetPurchases(ctx context.Context, accountID string) error
 }
 
 // Service applies onboarding and entitlement rules.
@@ -150,6 +157,24 @@ func (s *Service) Vanguards(ctx context.Context, accountID string) (Availability
 	return out, nil
 }
 
+// Entitlements returns the Vanguards the account owns and how it came to own
+// each.
+func (s *Service) Entitlements(ctx context.Context, accountID string) ([]Entitlement, error) {
+	return s.store.Entitlements(ctx, accountID)
+}
+
+// GrantPurchase gives the account a Vanguard it bought. The progression
+// domain decides the purchase and calls this in its transaction, which ctx
+// carries, so the entitlement commits with the spending (ADR-045 §6).
+func (s *Service) GrantPurchase(ctx context.Context, accountID, vanguardID string, at time.Time) error {
+	if !s.catalog.IsReleased(vanguardID) {
+		return ErrNotReleased
+	}
+	return s.store.InTx(ctx, func(tx Tx) error {
+		return tx.Grant(accountID, Entitlement{VanguardID: vanguardID, Source: SourcePurchase, GrantedAt: at})
+	})
+}
+
 // IsReleased reports whether a Vanguard is released: one a draft may ban
 // (ADR-042 §1).
 func (s *Service) IsReleased(vanguardID string) bool { return s.catalog.IsReleased(vanguardID) }
@@ -168,4 +193,10 @@ func (s *Service) MayPick(ctx context.Context, accountID, vanguardID string) (bo
 // expose it only in development, for repeatable test runs.
 func (s *Service) ResetOnboarding(ctx context.Context, accountID string) error {
 	return s.store.ResetOnboarding(ctx, accountID)
+}
+
+// ResetPurchases removes the Vanguards the account bought. The progression domain calls it,
+// only in development, so scripted runs can buy again (ADR-045 §6).
+func (s *Service) ResetPurchases(ctx context.Context, accountID string) error {
+	return s.store.ResetPurchases(ctx, accountID)
 }
