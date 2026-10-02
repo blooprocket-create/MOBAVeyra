@@ -215,6 +215,8 @@ func run(log *slog.Logger) error {
 	go talk.RunPruner(ctx, cfg.Chat.PruneInterval, log)
 	// Reports and commendation name players as the match recorded them (ADR-047 §5).
 	conductService := newConductService(store.Conduct(), cfg.Conduct, matches)
+	// Profiles read levels, ownership and Mastery from progression, and blocks from social (ADR-048 §1).
+	profiles := newProfileService(store.Profile(), cfg.Profile, svc, progress, accounts, soc)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
@@ -231,6 +233,7 @@ func run(log *slog.Logger) error {
 			Settings:       prefs,
 			Chat:           talk,
 			Conduct:        conductService,
+			Profile:        profiles,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,

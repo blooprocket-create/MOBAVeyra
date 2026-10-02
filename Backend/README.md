@@ -214,6 +214,20 @@ A match's participants report other humans in it, and commend one teammate ([ADR
 
 The tuning is `conduct` in `config/local.json`, all of it provisional (ADR-047 §6): the reasons, the details' length and the two windows.
 
+### Player profiles
+
+Each account has a public profile ([ADR-048](../Docs/ADR/ADR-048-player-profiles.md); `internal/profile`). It shows the display name, an official icon and background, the account level, and one permanently owned Vanguard the player chose to feature, with its Mastery level. Match History is private until the owner shares it. A block in either direction makes a profile read as unknown. Profiles never carry account IDs.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/profiles/{name}` | `Bearer <game token>` | — | `profile` (`name`, `icon`, `background`, `level`, `featured` {`vanguardId`, `masteryLevel`} or `null`, `sharesMatchHistory`). Refusal: `profile_unavailable` (an unknown name, or a block either way) |
+| `GET /v1/profiles/{name}/matches` | `Bearer <game token>` | — | the owner's Match History page, as `GET /v1/me/matches`, while they share it. Refusals: `history_private`, `profile_unavailable` |
+| `GET /v1/profiles/{name}/matches/{matchId}` | `Bearer <game token>` | — | one of those matches as the owner sees it, without the owner's rewards. Refusals as above, and `match_not_found` |
+| `GET /v1/me/profile-settings` | `Bearer <game token>` | — | `settings` (`icon`, `background`, `featuredVanguardId` or `null`, `showMatchHistory`) and the `catalog` |
+| `PUT /v1/me/profile-settings` | `Bearer <game token>` | `settings`' fields | the saved `settings` and the `catalog`. Refusals: `invalid_icon`, `invalid_background`, `not_owned` (only a permanently owned Vanguard may be featured, never one lent by the rotation) |
+
+The catalog is `profile` in `config/local.json` (ADR-048 §2, provisional): a neutral default, plus each released Vanguard's portrait as an icon and its hero art as a background.
+
 ### Custom practice and champion select
 
 Solo Custom practice opens a champion select with no lobby; an accepted match found opens a Casual Select. The select creates the match ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–8, §10).
