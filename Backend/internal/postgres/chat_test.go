@@ -107,9 +107,9 @@ func TestPartyAndDirectChatInPostgres(t *testing.T) {
 	one, two := f.matchFixture.ids["DevOne"], f.matchFixture.ids["DevTwo"]
 	f.d.party[one] = chat.Membership{PartyID: "party-1", JoinedAt: f.clock}
 	f.d.party[two] = chat.Membership{PartyID: "party-1", JoinedAt: f.clock}
-	first := f.send(t, "DevOne", chat.KindParty, "", "one")
-	f.send(t, "DevTwo", chat.KindParty, "", "two")
-	f.send(t, "DevOne", chat.KindParty, "", "three")
+	first := f.send(t, "DevOne", chat.KindParty, "party-1", "one")
+	f.send(t, "DevTwo", chat.KindParty, "party-1", "two")
+	f.send(t, "DevOne", chat.KindParty, "party-1", "three")
 	if got := f.read(t, "DevTwo"); !slices.Equal(got, []string{"one", "two", "three"}) {
 		t.Fatalf("party: %q", got)
 	}
@@ -118,7 +118,7 @@ func TestPartyAndDirectChatInPostgres(t *testing.T) {
 		t.Fatalf("history: %+v %v", page, err)
 	}
 	// A resend finds the first message.
-	again, err := f.chat.Send(ctx, one, chat.Send{Kind: chat.KindParty, ClientID: first.ClientID, Text: "one"})
+	again, err := f.chat.Send(ctx, one, chat.Send{Kind: chat.KindParty, Target: "party-1", ClientID: first.ClientID, Text: "one"})
 	if err != nil || again.Seq != first.Seq || !again.SentAt.Equal(first.SentAt) {
 		t.Fatalf("resend: %+v %v", again, err)
 	}
@@ -134,17 +134,17 @@ func TestPartyAndDirectChatInPostgres(t *testing.T) {
 	// The rate window counts stored messages.
 	f.clock = f.clock.Add(time.Minute)
 	for i := range chatTuning.MaxPerWindow {
-		if _, err := f.chat.Send(ctx, one, chat.Send{Kind: chat.KindParty, ClientID: fmt.Sprintf("pg-flood-%04d", i), Text: "x"}); err != nil {
+		if _, err := f.chat.Send(ctx, one, chat.Send{Kind: chat.KindParty, Target: "party-1", ClientID: fmt.Sprintf("pg-flood-%04d", i), Text: "x"}); err != nil {
 			t.Fatalf("message %d: %v", i, err)
 		}
 	}
-	if _, err := f.chat.Send(ctx, one, chat.Send{Kind: chat.KindParty, ClientID: "pg-flood-over", Text: "x"}); !errors.Is(err, chat.ErrRateLimited) {
+	if _, err := f.chat.Send(ctx, one, chat.Send{Kind: chat.KindParty, Target: "party-1", ClientID: "pg-flood-over", Text: "x"}); !errors.Is(err, chat.ErrRateLimited) {
 		t.Fatalf("over the limit: %v", err)
 	}
 	// Old messages are pruned by the next send.
 	f.clock = f.clock.Add(chatTuning.Retention + time.Second)
 	f.d.party[two] = chat.Membership{PartyID: "party-1", JoinedAt: f.clock.Add(-2 * chatTuning.Retention)}
-	f.send(t, "DevTwo", chat.KindParty, "", "fresh")
+	f.send(t, "DevTwo", chat.KindParty, "party-1", "fresh")
 	if got := f.read(t, "DevTwo"); !slices.Equal(got, []string{"fresh"}) {
 		t.Fatalf("after retention: %q", got)
 	}
@@ -193,7 +193,7 @@ func TestConcurrentSendsAreAllDeliveredInOrderInPostgres(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, err := f.chat.Send(ctx, sender, chat.Send{Kind: chat.KindParty, ClientID: fmt.Sprintf("pg-race-%s-%d", sender[:8], i), Text: "race"})
+				_, err := f.chat.Send(ctx, sender, chat.Send{Kind: chat.KindParty, Target: "party-1", ClientID: fmt.Sprintf("pg-race-%s-%d", sender[:8], i), Text: "race"})
 				errs <- err
 			}()
 		}

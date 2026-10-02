@@ -17,8 +17,19 @@
 
 namespace VeyraNetTests
 {
+	namespace MasteryEmoteNet
+	{
+		/** A client's world as it is now: leaving and returning replace the one the network began with. */
+		UWorld* CurrentWorldOf(int32 PIEInstance)
+		{
+			const FWorldContext* Context = GEngine->GetWorldContextFromPIEInstance(PIEInstance);
+			return Context ? Context->World() : nullptr;
+		}
+	}
+
 	// Veyra.Net.MasteryEmote.*: the assignment's Mastery reaches each player's state, and a player's mastery
-	// emote shows their Mastery above their Vanguard to every player (ADR-045 §9).
+	// emote shows their Mastery above their Vanguard to every player, at most once per cooldown, even across
+	// a reconnect (ADR-045 §9).
 	NETWORK_TEST_CLASS(MasteryEmote, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState
@@ -39,6 +50,10 @@ namespace VeyraNetTests
 		static constexpr int32 FirstEmoteTier = 2;
 		static constexpr int32 EmoterIndex = 0;
 		static constexpr int32 WatcherIndex = 1;
+		// The PIE instance of the first client, the emoter.
+		static constexpr int32 EmoterInstance = EmoterIndex + 1;
+
+		TWeakObjectPtr<AVeyraPlayerState> Returning;
 
 		BEFORE_EACH()
 		{
@@ -54,6 +69,9 @@ namespace VeyraNetTests
 			Assignment->Assignment.Participants[EmoterIndex].EmoteTier = FirstEmoteTier;
 			Assignment->Problems = UVeyraMatchHostSubsystem::Get()->SetAssignment(Assignment->Assignment);
 			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
+			// A client that disconnects returns to the default map in this same process, which loads
+			// MovieSceneCapture; load it before the network starts (see Veyra.Net.Reconnect).
+			FModuleManager::Get().LoadModule(TEXT("MovieSceneCapture"));
 			BuildMatchNetwork(Network);
 		}
 
@@ -113,6 +131,32 @@ namespace VeyraNetTests
 #else
 					return true;
 #endif
+				});
+		}
+
+		TEST_METHOD(AReturningPlayerStillWaitsOutTheCooldown)
+		{
+			using namespace MasteryEmoteNet;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenClient(TEXT("The first player plays the emote"), EmoterIndex, [](FState& State) { LocalControllerOf(State.World)->RequestMasteryEmote(); })
+				.UntilServer(TEXT("The server shows it"), [this](FState& State) {
+					Returning = &ServerParticipant(State, EmoterIndex);
+					return Returning->GetMasteryEmoteUntil() > 0.0;
+				})
+				.ThenServer(TEXT("It leaves"), [](FState& /*State*/) { GEngine->Exec(CurrentWorldOf(EmoterInstance), TEXT("disconnect")); })
+				.UntilServer(TEXT("The server keeps its PlayerState, inactive"), [this](FState& /*State*/) { return Returning.IsValid() && Returning->IsInactive(); })
+				.ThenServer(TEXT("It comes back"), [](FState& /*State*/) { GEngine->Exec(CurrentWorldOf(EmoterInstance), TEXT("reconnect")); })
+				.UntilServer(TEXT("A new controller holds the PlayerState it left"), [this](FState& /*State*/) {
+					const APlayerController* Owner = Returning.IsValid() ? Cast<APlayerController>(Returning->GetOwner()) : nullptr;
+					return IsValid(Owner) && Owner->PlayerState == Returning.Get() && !Returning->IsInactive();
+				})
+				.ThenServer(TEXT("Asked again through its new controller, within the cooldown, the emote does not show again"), [this](FState& /*State*/) {
+					AVeyraPlayerController* Owner = Cast<AVeyraPlayerController>(Returning->GetOwner());
+					ASSERT_THAT(IsNotNull(Owner));
+					const double ShownUntil = Returning->GetMasteryEmoteUntil();
+					// A server RPC called on the server runs at once.
+					Owner->RequestMasteryEmote();
+					ASSERT_THAT(IsTrue(Returning->GetMasteryEmoteUntil() == ShownUntil));
 				});
 		}
 	};

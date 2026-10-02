@@ -3,7 +3,6 @@
 #include "VeyraPlayerController.h"
 
 #include "Camera/VeyraCameraPreferences.h"
-#include "Emote/VeyraMasteryEmote.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Input/VeyraControlPreferences.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -301,13 +300,10 @@ void AVeyraPlayerController::ServerMasteryEmote_Implementation()
 	// World time, so a pause holds both the emote and its cooldown.
 	const double Now = GameState->GetServerWorldTimeSeconds();
 	const FVeyraMasteryEmoteTuning& Emote = UVeyraMatchTuningSubsystem::Get().MasteryEmote;
-	const TOptional<double> Until = VeyraMasteryEmote::Show(Participant->GetMasteryLevel(), Now, NextMasteryEmoteAt, Emote);
-	if (!Until)
+	if (!Participant->TryShowMasteryEmote(Now, Emote))
 	{
 		return;
 	}
-	NextMasteryEmoteAt = Now + Emote.CooldownSeconds;
-	Participant->ShowMasteryEmote(Until.GetValue());
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s shows the mastery emote: Mastery %d, tier %d."), *Participant->GetPlayerName(), Participant->GetMasteryLevel(),
 		Participant->GetEmoteTier());
 }

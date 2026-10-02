@@ -16,6 +16,7 @@
 #include "Buyback/VeyraBuybackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Emote/VeyraMasteryEmote.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -30,6 +31,7 @@
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraParticipantData.h"
 #include "Tools/VeyraVisionToolComponent.h"
+#include "Tuning/VeyraMatchTuning.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
 #include "VeyraVanguardCharacter.h"
@@ -150,10 +152,17 @@ void AVeyraPlayerState::SetMastery(int32 InLevel, int32 InEmoteTier)
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, EmoteTier, this);
 }
 
-void AVeyraPlayerState::ShowMasteryEmote(double Until)
+bool AVeyraPlayerState::TryShowMasteryEmote(double Now, const FVeyraMasteryEmoteTuning& Emote)
 {
-	MasteryEmoteUntil = Until;
+	const TOptional<double> Until = VeyraMasteryEmote::Show(MasteryLevel, Now, NextMasteryEmoteAt, Emote);
+	if (!Until)
+	{
+		return false;
+	}
+	NextMasteryEmoteAt = Now + Emote.CooldownSeconds;
+	MasteryEmoteUntil = Until.GetValue();
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, MasteryEmoteUntil, this);
+	return true;
 }
 
 void AVeyraPlayerState::OnRep_VanguardId()

@@ -146,6 +146,45 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(PurchaseIdOf(Backend.Find(TEXT("POST"), TEXT("/v1/me/purchases"))->Body) != FirstId));
 		}
 
+		TEST_METHOD(AResultWithoutItsRewardsWaitsForThem)
+		{
+			Rig.ShellProgression = ProgressionAnswer(7, 1200, 250);
+			ASSERT_THAT(IsTrue(Rig.ReachResults(ScoredOutcomeBody())));
+			ASSERT_THAT(IsTrue(Snapshot().RewardsWait == EVeyraRewardsWait::Pending));
+			// Still none on the next read; the one after brings them.
+			Rig.Advance(FClientFlowTestRig::ResultPollSeconds);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, ScoredOutcomeBody())));
+			ASSERT_THAT(IsTrue(Snapshot().RewardsWait == EVeyraRewardsWait::Pending));
+			Rig.Advance(FClientFlowTestRig::ResultPollSeconds);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, RewardedOutcomeBody())));
+			ASSERT_THAT(IsTrue(Snapshot().RewardsWait == EVeyraRewardsWait::None && Snapshot().Result.IsSet() && Snapshot().Result->Rewards.IsSet()
+				&& Snapshot().Result->Rewards->AccountXP == 181));
+			Rig.Advance(FClientFlowTestRig::ResultPollSeconds);
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), MatchOutcomePath()), TEXT("nothing more to ask for")));
+		}
+
+		TEST_METHOD(RewardsThatNeverArriveAreLateNotAProblem)
+		{
+			Rig.ShellProgression = ProgressionAnswer(7, 1200, 250);
+			ASSERT_THAT(IsTrue(Rig.ReachResults(ScoredOutcomeBody())));
+			const int32 MostReads = FMath::CeilToInt32(FClientFlowTestRig::ResultWaitSeconds / FClientFlowTestRig::ResultPollSeconds) + 1;
+			for (int32 Read = 0; Read < MostReads && Snapshot().RewardsWait == EVeyraRewardsWait::Pending; ++Read)
+			{
+				Rig.Advance(FClientFlowTestRig::ResultPollSeconds);
+				ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), MatchOutcomePath(), 503, ErrorBody(TEXT("unavailable")))));
+			}
+			ASSERT_THAT(IsTrue(Snapshot().RewardsWait == EVeyraRewardsWait::Late));
+			ASSERT_THAT(IsTrue(Rig.State() == EVeyraClientState::Results && !Snapshot().Problem.IsSet(), TEXT("the results screen stays")));
+		}
+
+		TEST_METHOD(WithoutProgressionAResultWaitsForNoRewards)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachResults(ScoredOutcomeBody())));
+			ASSERT_THAT(IsTrue(Snapshot().RewardsWait == EVeyraRewardsWait::None));
+			Rig.Advance(FClientFlowTestRig::ResultPollSeconds);
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), MatchOutcomePath())));
+		}
+
 		TEST_METHOD(TheCollectionIsTheShellsAlone)
 		{
 			for (const EVeyraClientIntent Intent : { EVeyraClientIntent::LoadCollection, EVeyraClientIntent::PurchaseVanguard })

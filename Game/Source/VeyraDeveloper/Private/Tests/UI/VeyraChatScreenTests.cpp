@@ -128,7 +128,7 @@ namespace VeyraChatScreenTests
 			ASSERT_THAT(IsNotNull(Screen->GetChatBox(), TEXT("the party's chat shows below the friends")));
 			Screen->SetChatDraft(TEXT("hello party"));
 			ASSERT_THAT(IsTrue(Press(FText::FromString(TEXT("Send to Party Chat")))));
-			const FFlowTestBackend::FRequest* Request = Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/party"));
+			const FFlowTestBackend::FRequest* Request = Rig.Backend.Find(TEXT("POST"), FString(TEXT("/v1/me/chat/party/")) + PartyId);
 			ASSERT_THAT(IsTrue(Request && Request->Body.Contains(TEXT("\"text\":\"hello party\""))));
 			ASSERT_THAT(IsTrue(Screen->GetChatBox() && Screen->GetChatBox()->GetText().IsEmpty(), TEXT("the composer empties once sent")));
 			ASSERT_THAT(IsTrue(Rig.Flow->GetSnapshot().Chat.Party.Lines.Num() == 1 && Rig.Flow->GetSnapshot().Chat.Party.Lines[0].bPending));
@@ -177,9 +177,12 @@ namespace VeyraChatScreenTests
 			}
 		}
 
+		/** A practice champion select, started from an idle party of two, so /p has a party to write to. */
 		bool ShowSelect()
 		{
-			if (!Rig.ReachSelect())
+			if (!Rig.ReachShell() || !Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyOfTwoBody(TEXT("idle"), /*bYouLead*/ true))
+				|| !Rig.Flow->StartPractice() || !Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/practice"), 201, SelectBody(TEXT("picking")))
+				|| !Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody) || Rig.State() != EVeyraClientState::Selecting)
 			{
 				return false;
 			}
@@ -234,12 +237,12 @@ namespace VeyraChatScreenTests
 			Screen->SetChatDraft(TEXT("/p duo bot"));
 			ASSERT_THAT(AreEqual(Screen->GetChatRecipient().ToString(), FString(TEXT("Party")), TEXT("the recipient follows the draft")));
 			ASSERT_THAT(IsTrue(Press(TEXT("Send to Team Chat"))));
-			const FFlowTestBackend::FRequest* Party = Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/party"));
+			const FFlowTestBackend::FRequest* Party = Rig.Backend.Find(TEXT("POST"), FString(TEXT("/v1/me/chat/party/")) + PartyId);
 			ASSERT_THAT(IsTrue(Party && Party->Body.Contains(TEXT("\"text\":\"duo bot\"")), TEXT("/p is taken off")));
 			ASSERT_THAT(AreEqual(Screen->GetChatRecipient().ToString(), FString(TEXT("Team")), TEXT("back to the team once sent")));
 			Screen->SetChatDraft(TEXT("mid?"));
 			ASSERT_THAT(IsTrue(Press(TEXT("Send to Team Chat"))));
-			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/select"))));
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), FString(TEXT("/v1/me/chat/select/")) + SelectId)));
 		}
 
 		TEST_METHOD(ThePanelCollapsesAndComesBack)

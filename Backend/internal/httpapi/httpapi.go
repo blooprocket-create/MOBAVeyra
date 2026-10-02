@@ -403,6 +403,7 @@ var errorStatus = []struct {
 	{chat.ErrRateLimited, http.StatusTooManyRequests, "rate_limited"},
 	{chat.ErrInvalidMessage, http.StatusBadRequest, "invalid_message"},
 	{chat.ErrClientIDConflict, http.StatusConflict, "client_id_conflict"},
+	{chat.ErrConversationChanged, http.StatusConflict, "conversation_changed"},
 
 	{conduct.ErrNotParticipant, http.StatusNotFound, "not_participant"},
 	{conduct.ErrUnknownPlayer, http.StatusNotFound, "unknown_player"},

@@ -177,7 +177,7 @@
     "historyMessages": 100,
     "pageSize": 200,
     "retention": "168h",
-    "postMatchWindow": "10m"
+    "postMatchWindow": "10m", "pruneInterval": "10m"
   },
   "conduct": {
     "reasons": ["abusive_chat", "afk", "griefing", "cheating", "offensive_name", "other"],

@@ -38,7 +38,7 @@ const validJSON = `{
   "selection": {"tickInterval": "1s", "startingTimeout": "60s"},
   "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m", "historyPageSize": 20,
     "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}},
-  "chat": {"maxCharacters": 250, "maxPerWindow": 5, "window": "5s", "historyMessages": 100, "pageSize": 200, "retention": "168h", "postMatchWindow": "10m"},
+  "chat": {"maxCharacters": 250, "maxPerWindow": 5, "window": "5s", "historyMessages": 100, "pageSize": 200, "retention": "168h", "postMatchWindow": "10m", "pruneInterval": "10m"},
   "conduct": {"reasons": ["afk", "other"], "detailsMaxCharacters": 500, "reportWindow": "336h", "commendWindow": "10m"},
   "progression": {
     "accountXp": {"perMinute": 6, "winBonus": 30, "coopBelowLevel": 10},

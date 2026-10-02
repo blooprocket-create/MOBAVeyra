@@ -15,9 +15,9 @@ func (s *Server) routeChat(mux *http.ServeMux) {
 		return
 	}
 	mux.HandleFunc("GET /v1/me/chat", s.authed(s.pollChat))
-	mux.HandleFunc("POST /v1/me/chat/party", s.authed(s.sendChat(chat.KindParty, "")))
+	mux.HandleFunc("POST /v1/me/chat/party/{partyId}", s.authed(s.sendChat(chat.KindParty, "partyId")))
 	mux.HandleFunc("POST /v1/me/chat/direct/{accountId}", s.authed(s.sendChat(chat.KindDirect, "accountId")))
-	mux.HandleFunc("POST /v1/me/chat/select", s.authed(s.sendChat(chat.KindSelect, "")))
+	mux.HandleFunc("POST /v1/me/chat/select/{selectId}", s.authed(s.sendChat(chat.KindSelect, "selectId")))
 	mux.HandleFunc("POST /v1/me/chat/matches/{matchId}", s.authed(s.sendChat(chat.KindPostMatch, "matchId")))
 	mux.HandleFunc("DELETE /v1/me/chat/matches/{matchId}", s.authed(s.leavePostMatchChat))
 	mux.HandleFunc("PUT /v1/me/chat/matches/{matchId}/mutes/{accountId}", s.authed(s.mutePostMatch(true)))
@@ -67,7 +67,8 @@ func (s *Server) pollChat(w http.ResponseWriter, r *http.Request, actor string) 
 }
 
 // sendChat sends one message of a kind; target names the path value holding
-// a direct message's friend or a post-match message's match. The client
+// its conversation: the party or select the player wrote in, a direct
+// message's friend or a post-match message's match. The client
 // generates clientId, so a retry after a lost answer returns the first
 // message (ADR-046 §3).
 func (s *Server) sendChat(kind chat.Kind, target string) func(http.ResponseWriter, *http.Request, string) {
