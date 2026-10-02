@@ -63,6 +63,12 @@ public:
 	/** Server: the battleground's walls, which no sight passes (ADR-043 §3); walls abilities raise are not among them. */
 	void SetSightWalls(TArray<FVeyraTerrainBox> Walls);
 
+	/**
+	 * Server: the square each side's seen ground is published over, reaching HalfExtent from Centre (ADR-054 §2).
+	 * Match gives it World's layout; until then none is published.
+	 */
+	void SetSeenGroundArea(const FVector2D& Centre, double HalfExtent);
+
 	/** The Dense Fog now, the map's and what abilities laid: a place every player knows (the fog itself is always seen). */
 	TConstArrayView<FVeyraFogCircle> GetDenseFog() const { return Fog; }
 
@@ -178,6 +184,13 @@ private:
 
 	/** Ends every bank, as vision stops. */
 	void EndAllFogBanks();
+
+	/** Publishes each side's seen ground on its team state, at the presentation cadence (ADR-054 §2). */
+	void PublishSeenGround(double Now);
+
+	/** The square the seen ground covers, its centre and half extent, once Match gives it; and when it is next published. */
+	TOptional<TPair<FVector2D, double>> SeenGroundArea;
+	double NextSeenGroundAt = 0.0;
 
 	/** The fog, and each circle's volume (VeyraVisionRules::ConnectVolumes). */
 	TArray<FVeyraFogCircle> Fog;

@@ -22,6 +22,7 @@ void AVeyraVisionTeamState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraVisionTeamState, Team, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraVisionTeamState, Pings, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraVisionTeamState, Outlines, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraVisionTeamState, SeenGround, Params);
 }
 
 void AVeyraVisionTeamState::SetVeyraTeam(EVeyraTeam InTeam)
@@ -45,6 +46,19 @@ void AVeyraVisionTeamState::SetOutlines(TArray<FVeyraOutline> InOutlines)
 	}
 	Outlines = MoveTemp(InOutlines);
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraVisionTeamState, Outlines, this);
+}
+
+void AVeyraVisionTeamState::SetSeenGround(const FVeyraSeenGrid& Grid, TArray<uint8> Cells)
+{
+	if (SeenGround.Cells == Cells && SeenGround.CellsAcross == Grid.CellsAcross && SeenGround.CellSize == Grid.CellSize && SeenGround.Min == Grid.Min)
+	{
+		return;
+	}
+	SeenGround.Min = Grid.Min;
+	SeenGround.CellSize = Grid.CellSize;
+	SeenGround.CellsAcross = Grid.CellsAcross;
+	SeenGround.Cells = MoveTemp(Cells);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraVisionTeamState, SeenGround, this);
 }
 
 AVeyraVisionTeamState* AVeyraVisionTeamState::Find(const UWorld* World, EVeyraTeam Team)

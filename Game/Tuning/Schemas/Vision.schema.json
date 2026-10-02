@@ -12,7 +12,8 @@
     "persistentWard",
     "sweeper",
     "quickSight",
-    "presence"
+    "presence",
+    "presentation"
   ],
   "properties": {
     "schemaVersion": {
@@ -20,7 +21,7 @@
       "type": "integer",
       "minimum": 1,
       "enum": [
-        4
+        5
       ]
     },
     "update": {
@@ -312,6 +313,39 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
+        }
+      }
+    },
+    "presentation": {
+      "description": "Each side's seen ground, published as a coarse grid for the client to darken what it does not see (ADR-054 §2). Presentation only: nothing decides gameplay from it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "updateSeconds",
+        "cellsAcross"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; provisional answers stand in (ADR-054 §5).",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "updateSeconds": {
+          "description": "Seconds between two publications of the seen ground; at least one vision pass apart in effect.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "cellsAcross": {
+          "description": "Cells along each side of the grid over the battleground. Each side's grid is sent as one bit a cell.",
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 256
         }
       }
     }

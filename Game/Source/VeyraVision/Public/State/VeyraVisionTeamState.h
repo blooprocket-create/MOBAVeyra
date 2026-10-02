@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/Info.h"
+#include "Rules/VeyraVisionRules.h"
 #include "Teams/VeyraTeam.h"
 
 #include "VeyraVisionTeamState.generated.h"
@@ -45,7 +46,42 @@ struct FVeyraOutline
 };
 
 /**
- * What one side's vision tells that side alone (ADR-016 §5): its presence pings and its outlines. Vision
+ * The ground a side sees now, on a coarse grid over the battleground (ADR-054 §2): presentation only, which nothing
+ * reads to decide gameplay. Its cells are packed as VeyraVisionRules::SeenCells packs them.
+ */
+USTRUCT()
+struct FVeyraSeenGround
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVector2D Min = FVector2D::ZeroVector;
+
+	UPROPERTY()
+	double CellSize = 0.0;
+
+	UPROPERTY()
+	int32 CellsAcross = 0;
+
+	UPROPERTY()
+	TArray<uint8> Cells;
+
+	FVeyraSeenGrid Grid() const
+	{
+		FVeyraSeenGrid Out;
+		Out.Min = Min;
+		Out.CellSize = CellSize;
+		Out.CellsAcross = CellsAcross;
+		return Out;
+	}
+
+	/** Whether cell (X, Y) is seen; false outside the grid or before any arrives. */
+	bool IsSeen(int32 X, int32 Y) const { return VeyraVisionRules::IsCellSeen(Cells, Grid(), X, Y); }
+};
+
+/**
+ * What one side's vision tells that side alone (ADR-016 §5; ADR-054 §2): its presence pings, its outlines and the
+ * ground it sees. Vision
  * spawns one per side on the server and keeps it current; the fog gate lets only that side's clients
  * receive it. Nothing reads it to decide gameplay.
  */
@@ -70,6 +106,11 @@ public:
 	/** Server: replaces the outlines. */
 	void SetOutlines(TArray<FVeyraOutline> InOutlines);
 
+	/** Server: the ground its side sees now over Grid, as SeenCells packs it; sent only when it changed. */
+	void SetSeenGround(const FVeyraSeenGrid& Grid, TArray<uint8> Cells);
+
+	const FVeyraSeenGround& GetSeenGround() const { return SeenGround; }
+
 	const TArray<FVeyraPresencePing>& GetPings() const { return Pings; }
 	const TArray<FVeyraOutline>& GetOutlines() const { return Outlines; }
 
@@ -85,4 +126,7 @@ private:
 
 	UPROPERTY(Replicated)
 	TArray<FVeyraOutline> Outlines;
+
+	UPROPERTY(Replicated)
+	FVeyraSeenGround SeenGround;
 };
