@@ -19,6 +19,16 @@ namespace VeyraBotAbilitiesTests
 	{
 		static constexpr double AnyAttackRange = 150.0;
 
+		TEST_METHOD(EveryItemActiveABotUsesIsOneItCanAim)
+		{
+			// Bots cast the Actives Bots.json gives a use, so each of those must have a profile (ADR-051 §6).
+			for (const TCHAR* Active : { TEXT("razorwheel_cleave"), TEXT("seize_momentum") })
+			{
+				const TOptional<FVeyraBotAbilityProfile> Profile = VeyraBotAbilities::ProfileOf(ProfileId(Active), AnyAttackRange);
+				ASSERT_THAT(IsTrue(Profile.IsSet() && Profile->Reach > 0.0, Active));
+			}
+		}
+
 		TEST_METHOD(ATetherOrALeapToHoldOnIsCastAtAUnitInItsCastRange)
 		{
 			const FVeyraContentId TetherId = ProfileId(TEXT("patch_dont_leave_me"));

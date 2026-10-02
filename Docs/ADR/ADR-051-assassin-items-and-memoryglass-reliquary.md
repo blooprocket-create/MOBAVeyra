@@ -77,6 +77,13 @@ All five live in `UVeyraAttunementSubsystem` and act only against **enemy Vangua
 
 Each gets its text and a placeholder icon until the author's art replaces it.
 
+### 6. Bots cast item Actives
+
+Bots bought Razorwheel and Razorwheel Prime but never used their Actives.
+- `Bots.json` gains `itemActives`: what each item's Active is for, in the same terms as Flux Spells (`Damage`, `Engage` and so on). Validation requires an entry for every Active an item carries.
+- A bot's senses read its item slots as they read its spell slots: no ranks, each Active cooling down under its own ID.
+- The Echo Actives are `Never`: no bot buys those items yet.
+
 ### 5. Tests
 
 - **Items:**
@@ -85,6 +92,7 @@ Each gets its text and a placeholder icon until the author's art replaces it.
   - the new stat in the holder's offence;
   - the catalog, its recipes and its validation.
 - **UI:** the shop's stat line, item text and icons.
+- **Bots:** every item Active has a use, and the ones bots cast have a profile they can aim.
 
 ## 9. Provisional answers where canon is open
 
@@ -102,4 +110,5 @@ Each gets its text and a placeholder icon until the author's art replaces it.
 ## Out of scope
 
 - The author's icons for these six items.
-- Bots buying them: their builds are data, and these are left out for now.
+- Bots buying these six: their builds are data, and these are left out for now.
+- Bots fighting companions and Echoes: they still pass owned units by (ADR-034 §11.9).
