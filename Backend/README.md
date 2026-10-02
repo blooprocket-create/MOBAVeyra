@@ -201,6 +201,19 @@ Party Chat, friend direct messages, champion-select team chat and post-match cha
 
 Every send's text is cleaned (control characters become spaces, ends trimmed) and refused as `empty_message` or `message_too_long`; more than `chat.maxPerWindow` in `chat.window` is `rate_limited`. The client generates `clientId` (8–64 letters, digits and hyphens), so a resend after a lost answer returns the first message; reusing one for another kind is `client_id_conflict`. The tuning is `chat` in `config/local.json`, all of it provisional (ADR-046 §9).
 
+### Reports and commendation
+
+A match's participants report other humans in it, and commend one teammate ([ADR-047](../Docs/ADR/ADR-047-reports-commendation-player-menu.md); `internal/conduct`). Players are named as the results show them; the backend resolves the name among the match's recorded participants, so results never expose account IDs. A match's reports group into one case. A report is an allegation and changes nothing else; nothing reads a commendation.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `POST /v1/me/matches/{matchId}/reports` | `Bearer <game token>` | `{"reportedName", "reason", "details", "clientId"}` | `report` (`reportedName`, `status`: `received`), whatever the case holds. One per reporter, reported player and match: a repeat, or a resend with the same `clientId`, returns the first. Refusals: `not_participant`, `unknown_player`, `invalid_reason`, `details_too_long`, `report_closed` (more than `conduct.reportWindow` after the end, or no result), `invalid_report` |
+| `POST /v1/me/matches/{matchId}/commendation` | `Bearer <game token>` | `{"name"}` | `commendation` (`name`): one teammate, once. Refusals: `not_teammate`, `unknown_player`, `already_commended`, `commend_closed` (more than `conduct.commendWindow` after the end) |
+| `GET /v1/me/matches/{matchId}/conduct` | `Bearer <game token>` | — | `conduct`: `reported` (the names the player reported) and `commended` (or `null`) |
+| `GET /v1/dev/matches/{matchId}/conduct` | — | — | the match's `case` (`open`, `reports`) and `commendations`. **Local only**, with `matches.devCreate` |
+
+The tuning is `conduct` in `config/local.json`, all of it provisional (ADR-047 §6): the reasons, the details' length and the two windows.
+
 ### Custom practice and champion select
 
 Solo Custom practice opens a champion select with no lobby; an accepted match found opens a Casual Select. The select creates the match ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–8, §10).

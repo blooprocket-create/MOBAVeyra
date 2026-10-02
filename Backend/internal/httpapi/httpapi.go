@@ -14,6 +14,7 @@ import (
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/chat"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/conduct"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
@@ -65,9 +66,12 @@ type Deps struct {
 	// registered (ADR-024 §1).
 	Settings *settings.Service
 	// Chat is optional; without it no chat routes are registered (ADR-046).
-	Chat  *chat.Service
-	Modes []ModeInfo
-	Ready Pinger
+	Chat *chat.Service
+	// Conduct is optional; without it no report or commendation routes are
+	// registered (ADR-047).
+	Conduct *conduct.Service
+	Modes   []ModeInfo
+	Ready   Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -115,6 +119,7 @@ func New(d Deps) http.Handler {
 	s.routeMatchFound(mux)
 	s.routeSettings(mux)
 	s.routeChat(mux)
+	s.routeConduct(mux)
 	return mux
 }
 
@@ -398,6 +403,16 @@ var errorStatus = []struct {
 	{chat.ErrRateLimited, http.StatusTooManyRequests, "rate_limited"},
 	{chat.ErrInvalidMessage, http.StatusBadRequest, "invalid_message"},
 	{chat.ErrClientIDConflict, http.StatusConflict, "client_id_conflict"},
+
+	{conduct.ErrNotParticipant, http.StatusNotFound, "not_participant"},
+	{conduct.ErrUnknownPlayer, http.StatusNotFound, "unknown_player"},
+	{conduct.ErrInvalidReason, http.StatusBadRequest, "invalid_reason"},
+	{conduct.ErrDetailsTooLong, http.StatusBadRequest, "details_too_long"},
+	{conduct.ErrReportClosed, http.StatusConflict, "report_closed"},
+	{conduct.ErrInvalidRequest, http.StatusBadRequest, "invalid_report"},
+	{conduct.ErrNotTeammate, http.StatusConflict, "not_teammate"},
+	{conduct.ErrCommendClosed, http.StatusConflict, "commend_closed"},
+	{conduct.ErrAlreadyCommended, http.StatusConflict, "already_commended"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {

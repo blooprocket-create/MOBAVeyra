@@ -211,6 +211,8 @@ func run(log *slog.Logger) error {
 	prefs := settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes)
 	// Chat asks the party, social, selection, match and settings domains who reads each conversation (ADR-046 §1).
 	talk := newChatService(store.Chat(), cfg.Chat, parties, soc, selects, matches, prefs, displayNames(svc))
+	// Reports and commendation name players as the match recorded them (ADR-047 §5).
+	conductService := newConductService(store.Conduct(), cfg.Conduct, matches)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
@@ -226,6 +228,7 @@ func run(log *slog.Logger) error {
 			Matchmaking:    matchmaker,
 			Settings:       prefs,
 			Chat:           talk,
+			Conduct:        conductService,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,
