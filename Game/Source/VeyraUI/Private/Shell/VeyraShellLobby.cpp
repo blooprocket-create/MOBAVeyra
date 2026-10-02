@@ -508,12 +508,13 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 {
 	const FString Id = Friend.AccountId;
 	const FString Name = Friend.Name.ToString();
-	const bool bOpen = OpenCardId == Id;
+	const FString Key = FriendCardKey(Id);
+	const bool bOpen = OpenCardId == Key;
 	UVerticalBox* Card = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Card->AddChildToVerticalBox(Line);
 	// The friend's card opens its other actions (UX-10: contextual, not a row of buttons for each friend).
-	AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::FriendCardLabel(Name), Friend.Name, [this, Id] { OpenCard(Id); }, true, bOpen);
+	AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::FriendCardLabel(Name), Friend.Name, [this, Key] { OpenCard(Key); }, true, bOpen);
 	AddLobbyFilling(*Line, *WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()));
 	// The one action the line always offers: in the lobby its host's invitation (Custom Matches Bible §1); in the
 	// shell, joining the friend's Public party when it has room, or else inviting them into the player's (UX-9).
@@ -577,9 +578,9 @@ void UVeyraShellScreen::AddBlockConfirmation(UPanelWidget& Parent, const FString
 	VeyraShellStyle::AddSpaced(Parent, *Answers);
 }
 
-void UVeyraShellScreen::OpenCard(const FString& AccountId)
+void UVeyraShellScreen::OpenCard(const FString& Key)
 {
-	OpenCardId = OpenCardId == AccountId ? FString() : AccountId;
+	OpenCardId = OpenCardId == Key ? FString() : Key;
 	Confirm = EVeyraShellConfirm::None;
 	ConfirmId.Reset();
 	Refresh();

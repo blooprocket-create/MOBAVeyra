@@ -108,8 +108,13 @@ public:
 	/** Types Name into the friends panel's name field, as the player would. For tests and scripts. */
 	void SetFriendNameDraft(const FString& Name);
 
-	/** The member's or friend's card whose actions show, by account; empty while none is open (ADR-043 §2). */
+	/**
+	 * The card whose actions show, empty while none is open (ADR-043 §2): a party member's card is its
+	 * MemberCardKey, a friend's its FriendCardKey, so one player's two cards open apart.
+	 */
 	const FString& GetOpenCard() const { return OpenCardId; }
+	static FString MemberCardKey(const FString& AccountId) { return TEXT("member:") + AccountId; }
+	static FString FriendCardKey(const FString& AccountId) { return TEXT("friend:") + AccountId; }
 
 	/** The art behind the screen: the Vanguard champion select shows, or null. */
 	UTexture2D* GetBackdrop() const;
@@ -183,8 +188,8 @@ private:
 	void BuildFriend(const FVeyraFriendModel& Friend, UPanelWidget& Parent);
 	/** A block's question and its answers, in place of the actions that asked it. */
 	void AddBlockConfirmation(UPanelWidget& Parent, const FString& AccountId, const FString& Name);
-	/** Opens AccountId's card, a party member's or a friend's, or closes it when it is open; either forgets a confirmation. */
-	void OpenCard(const FString& AccountId);
+	/** Opens the card Key names (MemberCardKey, FriendCardKey), or closes it when it is open; either forgets a confirmation. */
+	void OpenCard(const FString& Key);
 	/** Asks the player to confirm Kind for AccountId, or withdraws the question with None. */
 	void AskToConfirm(EVeyraShellConfirm Kind, const FString& AccountId);
 	/** Forgets the open card and its confirmation, as once its action is sent. */

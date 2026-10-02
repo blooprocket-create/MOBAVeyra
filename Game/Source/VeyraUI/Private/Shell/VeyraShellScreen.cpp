@@ -549,7 +549,20 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 	UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	AddText(*Who, LOCTEXT("PartyTitle", "Party"), RoleOf(EVeyraShellText::Eyebrow));
 	AddText(*Who, Model.Mode, RoleOf(EVeyraShellText::Heading))->SetAutoWrapText(false);
-	AddText(*Who, Model.Privacy, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
+	UHorizontalBox* Settings = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddText(*Settings, Model.Privacy, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
+	// The leader's privacy (Parties & Social Bible §1), and anyone's Leave Party.
+	if (Model.bOffersPrivacy)
+	{
+		const VeyraBackendProtocol::EPartyPrivacy Target = Model.PrivacyTarget;
+		AddKindButton(*Settings, EVeyraShellButtonKind::Quiet, Model.PrivacyLabel, [this, Target] { Client->SetPartyPrivacy(Target); }, Model.bCanSetPrivacy)
+			->KeepLabelOnOneLine();
+	}
+	AddKindButton(*Settings, EVeyraShellButtonKind::Quiet, VeyraShellModels::LeavePartyLabel(), [this] {
+		Client->LeaveParty();
+		CloseCard();
+	}, Model.bCanLeave)->KeepLabelOnOneLine();
+	Who->AddChildToVerticalBox(Settings);
 	VeyraShellStyle::AddSpaced(*Row, *Who);
 	AddGap(*WidgetTree, *Row, Style.ScreenPadding / 2.0f);
 	// The member cards (UX-10). The leader selects another member's card for its actions, which open
@@ -563,8 +576,9 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 			continue;
 		}
 		const FString Id = Card.AccountId;
-		const bool bOpen = OpenCardId == Id;
-		AddNamedButton(*Members, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), Card.Line, [this, Id] { OpenCard(Id); }, true, bOpen);
+		const FString Key = MemberCardKey(Id);
+		const bool bOpen = OpenCardId == Key;
+		AddNamedButton(*Members, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), Card.Line, [this, Key] { OpenCard(Key); }, true, bOpen);
 		if (!bOpen)
 		{
 			continue;
@@ -607,17 +621,6 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 	{
 		AddText(*Row, Model.Status, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
 	}
-	// The leader's privacy (Parties & Social Bible §1), and anyone's Leave Party.
-	if (Model.bOffersPrivacy)
-	{
-		const VeyraBackendProtocol::EPartyPrivacy Target = Model.PrivacyTarget;
-		AddKindButton(*Row, EVeyraShellButtonKind::Quiet, Model.PrivacyLabel, [this, Target] { Client->SetPartyPrivacy(Target); }, Model.bCanSetPrivacy)
-			->KeepLabelOnOneLine();
-	}
-	AddKindButton(*Row, EVeyraShellButtonKind::Quiet, VeyraShellModels::LeavePartyLabel(), [this] {
-		Client->LeaveParty();
-		CloseCard();
-	}, Model.bCanLeave)->KeepLabelOnOneLine();
 	if (!Model.bQueued)
 	{
 		const bool bReady = Model.bReadyTarget;

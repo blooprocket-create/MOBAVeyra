@@ -142,7 +142,8 @@ namespace VeyraPartyScreenTests
 			ASSERT_THAT(IsTrue(ShowShell(PartyOfTwoBody(TEXT("idle"), /*bYouLead*/ true))));
 			ASSERT_THAT(IsNull(Button(VeyraShellModels::MakeLeaderLabel(TEXT("DevTwo"))), TEXT("a card's actions wait until it is selected")));
 			ASSERT_THAT(IsTrue(Press(VeyraShellModels::PartyMemberLabel(TEXT("DevTwo")))));
-			ASSERT_THAT(AreEqual(Screen->GetOpenCard(), FString(FriendId)));
+			ASSERT_THAT(AreEqual(Screen->GetOpenCard(), UVeyraShellScreen::MemberCardKey(FriendId)));
+			ASSERT_THAT(IsNull(Button(VeyraShellModels::BlockLabel(TEXT("DevTwo"))), TEXT("DevTwo's friend card stays closed")));
 			ASSERT_THAT(IsNotNull(Button(VeyraShellModels::RemoveFromPartyLabel(TEXT("DevTwo")))));
 			ASSERT_THAT(IsTrue(Press(VeyraShellModels::MakeLeaderLabel(TEXT("DevTwo")))));
 			ASSERT_THAT(IsNull(Rig.Backend.Find(TEXT("PUT"), TEXT("/v1/party/leader")), TEXT("nothing is sent before the player confirms")));

@@ -454,6 +454,17 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 		return;
 	}
 
+	// These scripts queue alone: a party an earlier run left with another player, as -Flow Party does, goes first.
+	if (!bFoundMatch && Party.IsSet() && Party->Members.Num() > 1)
+	{
+		if (Flow.CanIssue(EVeyraClientIntent::LeaveParty))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving an earlier run's party of %d."), Party->Members.Num());
+			Flow.LeaveParty();
+		}
+		return;
+	}
+
 	// Into the queue: the first matchmade mode, Ready, then Find Match (UX-6).
 	if (bFoundMatch)
 	{
