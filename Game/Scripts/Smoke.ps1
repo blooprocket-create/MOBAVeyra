@@ -936,7 +936,7 @@ if ($Handoff -or $Flow) {
                 'Party' { 'Home', 'PartyFormed', 'PartyConfirm', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
                 'Chat' { 'Home', 'PartyFormed', 'Chat' }
-                'Profile' { 'Profile', 'ProfileView' }
+                'Profile' { 'Profile' }
             }
             foreach ($screen in $screens) {
                 $shot = Join-Path $reportDir "Flow-$screen.png"
