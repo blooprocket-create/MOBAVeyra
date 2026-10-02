@@ -13,6 +13,8 @@
  */
 namespace VeyraBackendProtocol
 {
+	struct FHistoryFilter;
+
 	/** A profile's featured Vanguard with its owner's Mastery Level. */
 	struct FProfileFeatured
 	{
