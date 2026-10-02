@@ -78,9 +78,15 @@ namespace
 		return FText::Format(LOCTEXT("PurchaseFailed", "The purchase of {0} did not go through ({1})."), Name, FText::FromString(Code));
 	}
 
-	int64 BalanceOf(const TOptional<VeyraBackendProtocol::FProgression>& Progression, ECurrency Currency)
+	int64 BalanceOf(const VeyraBackendProtocol::FProgression& Progression, ECurrency Currency)
 	{
-		return !Progression.IsSet() ? MAX_int64 : Currency == ECurrency::RefinedFlux ? Progression->RefinedFlux : Progression->Flux;
+		return Currency == ECurrency::RefinedFlux ? Progression.RefinedFlux : Progression.Flux;
+	}
+
+	/** Whether the balance as last read covers Price; an unread balance covers nothing. */
+	bool Affords(const TOptional<VeyraBackendProtocol::FProgression>& Progression, ECurrency Currency, int64 Price)
+	{
+		return Progression.IsSet() && BalanceOf(*Progression, Currency) >= Price;
 	}
 }
 
@@ -111,11 +117,10 @@ FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, b
 	const FVeyraCollection& Collection = Snapshot.Collection;
 	Model.bLoaded = Collection.bLoaded;
 	Model.Feedback = FeedbackText(Collection.Feedback, VeyraShellModels::VanguardNameOf(Collection.FeedbackVanguard));
-	if (Snapshot.Progression.IsSet())
-	{
-		Model.Balance = FText::Format(LOCTEXT("Balance", "You have {0} and {1}."), Amount(ECurrency::Flux, Snapshot.Progression->Flux),
-			Amount(ECurrency::RefinedFlux, Snapshot.Progression->RefinedFlux));
-	}
+	Model.Balance = Snapshot.Progression.IsSet()
+		? FText::Format(LOCTEXT("Balance", "You have {0} and {1}."), Amount(ECurrency::Flux, Snapshot.Progression->Flux),
+			  Amount(ECurrency::RefinedFlux, Snapshot.Progression->RefinedFlux))
+		: LOCTEXT("BalanceUnread", "Reading your balance. Buying opens once it is known.");
 	for (const VeyraBackendProtocol::FCollectionEntry& Entry : Collection.Vanguards)
 	{
 		FVeyraCollectionCard& Card = Model.Cards.AddDefaulted_GetRef();
@@ -133,16 +138,24 @@ FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, b
 		Card.bPurchasable = Entry.bPurchasable;
 		Card.PriceFlux = Entry.PriceFlux;
 		Card.PriceRefinedFlux = Entry.PriceRefinedFlux;
-		// The balance as last read only hides a Buy the player cannot afford; the backend decides every purchase.
-		Card.bCanBuyWithFlux = bCanPurchase && Entry.bPurchasable && BalanceOf(Snapshot.Progression, ECurrency::Flux) >= Entry.PriceFlux;
-		Card.bCanBuyWithRefinedFlux = bCanPurchase && Entry.bPurchasable && BalanceOf(Snapshot.Progression, ECurrency::RefinedFlux) >= Entry.PriceRefinedFlux;
+		// The balance as last read only hides a Buy the player cannot afford, and none is offered before it is
+		// read; the backend decides every purchase.
+		Card.bCanBuyWithFlux = bCanPurchase && Entry.bPurchasable && Affords(Snapshot.Progression, ECurrency::Flux, Entry.PriceFlux);
+		Card.bCanBuyWithRefinedFlux = bCanPurchase && Entry.bPurchasable && Affords(Snapshot.Progression, ECurrency::RefinedFlux, Entry.PriceRefinedFlux);
 	}
 	return Model;
 }
 
-FVeyraRewardsModel DescribeRewards(const TOptional<VeyraBackendProtocol::FMatchOutcome>& Result)
+FVeyraRewardsModel DescribeRewards(const TOptional<VeyraBackendProtocol::FMatchOutcome>& Result, EVeyraRewardsWait Wait)
 {
 	FVeyraRewardsModel Model;
+	if (Result.IsSet() && Result->bHasResult && !Result->Rewards.IsSet() && Wait != EVeyraRewardsWait::None)
+	{
+		Model.bShown = true;
+		Model.Lines.Add(Wait == EVeyraRewardsWait::Pending ? LOCTEXT("RewardsPending", "Your rewards are still being counted.")
+														   : LOCTEXT("RewardsLate", "Your rewards are taking longer than usual. They reach your account once counted."));
+		return Model;
+	}
 	if (!Result.IsSet() || !Result->Rewards.IsSet())
 	{
 		return Model;
@@ -222,6 +235,7 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		Text << TEXT(";") << Entry.VanguardId << TEXT(":") << (Entry.bOwned ? 1 : 0) << (Entry.bRotation ? 1 : 0) << (Entry.bPurchasable ? 1 : 0) << TEXT(":")
 			 << Entry.Mastery.Level << TEXT(":") << Entry.Mastery.LevelPoints << TEXT(":") << Entry.PriceFlux << TEXT(":") << Entry.PriceRefinedFlux;
 	}
+	Text << TEXT("|rewardswait:") << static_cast<int32>(Snapshot.RewardsWait);
 	if (Snapshot.Result.IsSet() && Snapshot.Result->Rewards.IsSet())
 	{
 		const VeyraBackendProtocol::FMatchRewards& R = *Snapshot.Result->Rewards;
