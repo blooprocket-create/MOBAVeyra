@@ -170,6 +170,15 @@
     },
     "devGrant": {"enabled": true}
   },
+  "chat": {
+    "maxCharacters": 250,
+    "maxPerWindow": 5,
+    "window": "5s",
+    "historyMessages": 100,
+    "pageSize": 200,
+    "retention": "168h",
+    "postMatchWindow": "10m"
+  },
   "allocator": {
     "kind": "docker",
     "docker": {
