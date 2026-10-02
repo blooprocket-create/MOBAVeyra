@@ -33,5 +33,13 @@ TArray<FString> UVeyraUIInputSettings::Validate() const
 	{
 		Problems.Add(TEXT("ChatKey: the menu, the shop or the scoreboard already uses that key."));
 	}
+	if (!FocusShopSearchKey.IsValid())
+	{
+		Problems.Add(TEXT("FocusShopSearchKey: a key is required."));
+	}
+	else if (FocusShopSearchKey == MatchMenuKey || FocusShopSearchKey == ShopKey || FocusShopSearchKey == ScoreboardKey || FocusShopSearchKey == ChatKey)
+	{
+		Problems.Add(TEXT("FocusShopSearchKey: the menu, the shop, the scoreboard or the chat already uses that key."));
+	}
 	return Problems;
 }

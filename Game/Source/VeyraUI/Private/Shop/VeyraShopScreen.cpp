@@ -7,6 +7,7 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Border.h"
 #include "Components/ButtonSlot.h"
+#include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
@@ -17,7 +18,9 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
+#include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerState.h"
+#include "InputCoreTypes.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
@@ -141,10 +144,18 @@ bool UVeyraShopScreen::Initialize()
 		QuickWidth->AddChild(QuickScroll);
 		Body->AddChildToHorizontalBox(QuickWidth)->SetPadding(FMargin(0.0f, 0.0f, Gap, 0.0f));
 
+		// The catalog under its search (SET-58; ADR-058 §1), which is built once and so keeps the keyboard.
+		UVerticalBox* CatalogColumn = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		SearchBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+		VeyraShellStyle::StyleTextField(*SearchBox, Settings.ButtonPadding);
+		SearchBox->SetHintText(LOCTEXT("SearchHint", "Search items or stats"));
+		SearchBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShopScreen::HandleSearchChanged);
+		VeyraShellStyle::AddSpaced(*CatalogColumn, *SearchBox);
 		UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
 		Catalog = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Scroll->AddChild(Catalog);
-		Body->AddChildToHorizontalBox(Scroll)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		CatalogColumn->AddChildToVerticalBox(Scroll)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		Body->AddChildToHorizontalBox(CatalogColumn)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 
 		USizeBox* DetailsWidth = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		DetailsWidth->SetWidthOverride(Settings.ShopDetailsWidth);
@@ -421,8 +432,13 @@ void UVeyraShopScreen::BuildCatalog()
 	const float Width = Settings.ShopWidth - Settings.ShopQuickWidth - Settings.ShopDetailsWidth - Settings.Spacing * 9.0f;
 	UWrapBox* Grid = nullptr;
 	int32 GridTier = INDEX_NONE;
+	const FVeyraItemsTuning& Items = UVeyraItemsTuningSubsystem::Get();
 	for (const FVeyraShopOffer& Offer : View.Offers)
 	{
+		if (!VeyraShopModel::MatchesSearch(Items, Offer.Item, Search))
+		{
+			continue;
+		}
 		if (!Grid || Offer.Tier != GridTier)
 		{
 			GridTier = Offer.Tier;
@@ -432,6 +448,81 @@ void UVeyraShopScreen::BuildCatalog()
 		}
 		AddItemTile(*Grid, Offer.Item, Settings.ShopTileSize);
 	}
+	if (!Grid)
+	{
+		AddEyebrow(*Catalog, FText::Format(LOCTEXT("NoMatch", "No item matches \"{0}\"."), FText::FromString(Search.TrimStartAndEnd())));
+	}
+}
+
+void UVeyraShopScreen::HandleSearchChanged(const FText& Text)
+{
+	Search = Text.ToString();
+	if (Tab == ETab::Items)
+	{
+		Rebuild();
+	}
+}
+
+void UVeyraShopScreen::SetSearch(const FString& InSearch)
+{
+	if (SearchBox)
+	{
+		// Through the field, as typing is.
+		SearchBox->SetText(FText::FromString(InSearch));
+	}
+	HandleSearchChanged(FText::FromString(InSearch));
+}
+
+void UVeyraShopScreen::FocusSearch()
+{
+	if (Tab != ETab::Items)
+	{
+		Tab = ETab::Items;
+		Rebuild();
+	}
+	if (SearchBox)
+	{
+		SearchBox->SetKeyboardFocus();
+	}
+}
+
+bool UVeyraShopScreen::IsSearching() const
+{
+	return SearchBox && SearchBox->HasKeyboardFocus();
+}
+
+bool UVeyraShopScreen::LeaveSearch()
+{
+	if (!IsSearching())
+	{
+		return false;
+	}
+	// The keys are the match's again; the shop stays open until the next Escape.
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().SetAllUserFocusToGameViewport();
+	}
+	return true;
+}
+
+FReply UVeyraShopScreen::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	// Escape leaves the search first, before it reaches the menu's key, which would close the shop (SET-58).
+	if (InKeyEvent.GetKey() == EKeys::Escape && LeaveSearch())
+	{
+		return FReply::Handled();
+	}
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UVeyraShopScreen::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	// Typed into the search, a key never casts, moves or buys in the match (SET-58).
+	if (IsSearching())
+	{
+		return FReply::Handled();
+	}
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
 void UVeyraShopScreen::BuildSpells()
