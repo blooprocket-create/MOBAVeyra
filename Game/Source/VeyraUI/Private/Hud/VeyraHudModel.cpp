@@ -202,6 +202,10 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 				Shown.EmpoweredSeconds = FMath::Max(0.0, Attacks->GetEmpowermentView().ExpiresAt - ServerNow);
 			}
 		}
+		if (const FVeyraLoadoutEntry* Own = Loadout ? Loadout->FindOwnSlot(Slot) : nullptr)
+		{
+			Shown.OwnAbility = Own->Ability;
+		}
 		if (Progression && Progression->IsInitialized())
 		{
 			Shown.Rank = Progression->GetRank(Slot);

@@ -85,6 +85,12 @@ UTexture2D* AbilityIconOf(const FString& AbilityId)
 	return AbilityId.IsEmpty() ? nullptr : CachedIcon(TEXT("ability:") + AbilityId, AbilityIconPackageName(AbilityId));
 }
 
+UTexture2D* SlotIconOf(const FString& AbilityId, const FString& OwnAbilityId)
+{
+	UTexture2D* Own = AbilityIconOf(AbilityId);
+	return Own ? Own : AbilityIconOf(OwnAbilityId);
+}
+
 FBox2f Crop(const FString& VanguardId, int32 Width, int32 Height, float Aspect, bool bPortrait)
 {
 	if (Width <= 0 || Height <= 0 || Aspect <= 0.0f)
