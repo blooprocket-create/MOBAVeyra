@@ -1,9 +1,9 @@
 # Veyra World Production Bible
 
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** Production guidance for the Meridian Crucible  
-**Engine target:** Unreal Engine 5.8  
-**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [Project Structure](../../PROJECT_STRUCTURE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [World Validation Standard](VEYRA_WORLD_VALIDATION_STANDARD.md)
+**Engine target:** Unreal Engine 5.8.3, Epic source build  
+**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [Project Structure](../../PROJECT_STRUCTURE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [World Validation Standard](VEYRA_WORLD_VALIDATION_STANDARD.md)
 
 ## 1. Purpose
 
@@ -80,6 +80,10 @@ Final environment art must preserve that separation. A beautiful decorative towe
 8. **Agents inspect before editing.**
 9. **Every substantial visual change has a rollback path.**
 10. **Reusable visual families should be generated from shared Veyra visual grammar rather than authored as disconnected one-offs.**
+11. **The Epic engine source checkout is read-only by default.** Project world work belongs in Veyra-owned modules/plugins; an engine fork requires explicit author approval and its own ADR.
+12. **Production world automation belongs in `Game/Plugins/VeyraWorldTools/`.** Packaged gameplay code may not depend on that editor plugin.
+13. **The production Crucible does not assume Z=0.** Terrain-bound runtime actors resolve the real playable surface through the Veyra-owned world contract.
+14. **A successful generator run is not visual acceptance.** Agents must inspect repeatable Unreal captures and iterate on the owning source/tooling.
 
 ## 4. Protected competitive geometry
 
@@ -150,7 +154,7 @@ Later stages may iterate earlier **presentation**, but stages 5–12 may not sil
 
 The default final-world approach is:
 
-- **Unreal Landscape or another approved Unreal-native terrain substrate** for broad playable ground;
+- **Unreal Landscape** for the continuous playable ground, as locked by ADR-040;
 - **Blender-authored meshes** for cliffs, overhangs, shelves, roots, caves, retaining structures, bridge geometry, and hero formations;
 - **PCG** for constrained dressing;
 - **shared Veyra materials** for visual unity.
@@ -161,7 +165,7 @@ Do not replace the entire Crucible with one giant Blender terrain mesh unless a 
 
 Terrain shaping must respect lane/jungle/river geometry from `World.json`.
 
-The intended future pipeline should allow the editor tool to derive or query:
+`VeyraWorldTools` must derive or query these constraints from Veyra-owned layout/world APIs:
 - lane envelopes;
 - river corridor;
 - base pads;
@@ -177,7 +181,11 @@ Broad terrain may be sculpted artistically around these constraints, but its pla
 
 Verticality must remain readable from the MOBA camera.
 
-Decorative height is welcome, but:
+Decorative height is welcome, but production terrain is not decorative-only: the river basin, lane benches, jungle shelves/ridges and background relief should use real world-space elevation where appropriate.
+
+The runtime must not keep flat-greybox assumptions. Structures, Fluxborn, wildlife, Flux Wells, team starts and other terrain-bound actors must resolve their standing transform from the actual playable surface rather than constructing Z from zero plus capsule height.
+
+Rules:
 - traversability must be explicit;
 - cliff tops must not accidentally become reachable;
 - decorative steps cannot become hidden pathing changes;
@@ -218,20 +226,25 @@ The final river production representation should expose or derive:
 - traversal/collision policy;
 - VFX interaction hooks.
 
-Today `World.json` provides the macro river width and diagonal map relationship. As the river becomes more detailed, extend the existing world data/tooling rather than creating a hidden art-only path.
+Today `World.json` provides the macro river width and diagonal map relationship. The production river must upgrade this to an explicit, reviewable spline/path with intentional bends and width variation. The exact schema may evolve, but gameplay-significant river control points, widths/crossings/clearances belong in the existing world data/tooling rather than a hidden art-only path.
+
+A straight diagonal placeholder is not an acceptable final river. The path should read as a naturally landscaped watercourse while preserving the canonical macro relationship and protected gameplay topology.
 
 ### 7.3 Epic Water plugin
 
-UE 5.8 includes Epic's Water system, including spline-driven river actors.
+UE 5.8.3 includes Epic's Water system, including spline-driven river actors.
 
-However, under ADR-001, **Experimental engine features are not automatically approved for shipping**. Epic still marks the Water plugin Experimental in UE 5.8.
+ADR-040 explicitly approves Epic Water for the first production Crucible as a **replaceable presentation implementation** behind Veyra's own river/world contract.
 
 Therefore:
 
-- agents may prototype it in isolated test content when explicitly authorized;
+- VeyraWorldTools may create/configure Water-plugin river actors for the generated battleground;
 - gameplay code must remain behind a Veyra-owned water/world contract;
-- production systems may not hard-depend on Water-plugin actor classes unless an ADR explicitly approves that shipping dependency;
-- the river visual implementation must remain replaceable.
+- gameplay modules may not hard-depend on Water-plugin actor classes;
+- the implementation must pass cook/package, readability and performance validation;
+- the river visual implementation must remain replaceable without changing gameplay layout authority.
+
+This is a scoped approval for the Crucible river, not a blanket approval of Experimental engine features.
 
 ### 7.4 What belongs in Unreal
 
@@ -388,7 +401,7 @@ Do not solve every scale with one scatter graph.
 
 ### 9.4 Runtime versus editor-time
 
-Stable competitive map dressing should default to **editor/build-time generation**.
+Stable competitive map dressing should default to **editor/build-time generation through VeyraWorldTools**.
 
 Runtime PCG needs explicit justification and performance/network validation. Randomly changing environment layout per match is not an implied goal.
 
@@ -473,7 +486,9 @@ Subtle animation is preferred over motion for motion's sake. The world should fe
 Claude/Codex should operate through reproducible tools wherever practical.
 
 Preferred operations:
-- edit/query `World.json`;
+- read/extend the authoritative spatial contract in `World.json`;
+- invoke `Game/Plugins/VeyraWorldTools/` editor/commandlet/Python entry points;
+- build/run the pinned source-built UE 5.8.3 editor without modifying engine source;
 - run map-generation commandlets;
 - run Blender generators;
 - import/reimport asset families;
@@ -686,11 +701,11 @@ For generated `L_Battleground.umap`, the source data/tooling should make the bin
 
 This document intentionally does not silently decide:
 
-- final Landscape implementation details;
-- final detailed river spline/data schema;
-- whether Epic Water ships;
+- exact Landscape resolution/component sizing and erosion/detail parameters;
+- exact JSON field names/interpolation rules for the detailed river spline and terrain semantic regions;
+- whether Epic Water remains the release renderer after full packaging/performance validation;
 - whether World Partition is adopted;
-- exact PCG graph architecture;
+- exact PCG graph asset organization and style-profile layout;
 - exact world-performance targets/hardware tiers;
 - final Flux environmental-state art language;
 - exact standard-camera storage/capture tool;
