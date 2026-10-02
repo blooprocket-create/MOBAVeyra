@@ -4,7 +4,7 @@
 **Date:** 2026-09-20
 **Supersedes:** `Sheet_Generation_Prompt_v0.1.md`, which prompted for a whole sheet with its text baked in. It was removed rather than archived; no copy remains in the repository. [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) now owns the text, so only the artwork needs generating.
 
-## The pipeline, as it now stands
+## Vanguard illustration pipeline
 
 Artwork is **authored outside this repository** and the finished file is dropped in:
 
@@ -28,6 +28,40 @@ Whoever writes the next prompt writes it by hand, from the Character Bible parag
 signature colour below, and the model notes at the end of this document. The house style,
 the hues and the guardrail shape are all still canon — only the machine that assembled
 them into prompt text is gone.
+
+## Crucible structure greybox meshes
+
+**2026-10-01 production pass: provisional geometry, awaiting author review.**
+The [structure kit](../../Game/ArtSource/Structures/README.md) supplies actual
+placeable Unreal static meshes. This is a separate workflow from the Vanguard
+illustrations above and does not make generated art approved canon.
+
+The Battleground Bible sections 1, 3, 5, 10 and 18 own the design: an ancient
+paired-Well installation with network Spires, reconstructing inhibitors and a
+passive Prime Well. Both teams attune to the same installation; their structures
+do not represent different political factions. The World Bible's ancient Flux
+network and this document's stone, metal and geometric Flux language guide the
+materials. Appearance choices below are a greybox study, not new setting facts.
+
+| Structure | Provisional silhouette |
+|---|---|
+| Lane Spire | Tapered three-rib housing, exposed conduits and a three-pronged discharge crown. |
+| Base-defense tower | Heavier four-pylon housing around a protected discharge chamber. |
+| Inhibitor | Low segmented reconstruction bed and central spindle. |
+| Prime Well | Broad open reservoir, three stabilizer arches and an elevated collector oculus. |
+
+Each has a standing and a destroyed mesh. Wrecks expose the dismantled network
+node; the cracking, corruption venting and energy release required by Battleground
+section 5 remain work for destruction animation and VFX. Rebuilding and
+invulnerability presentation remain separate integration work.
+
+All geometry uses one shared stone, iron, alloy and Flux material set. Network
+blue is the review default, not an approved team-color system. Ground pivots,
+centimetre import scale, separate surface/lightmap UVs and no gameplay collision
+make the kit suitable for placement review. `World.json` remains the sole owner
+of structure footprints; scripts read it rather than adding balance values.
+The [reproduction and placement notes](../../Game/ArtSource/Structures/README.md)
+record the source files, import validation and remaining production limits.
 
 ## Approved art is canon
 

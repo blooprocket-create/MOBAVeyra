@@ -7,6 +7,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "Hud/VeyraHudModel.h"
+#include "Layout/VeyraLayout.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -77,7 +78,24 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 {
 	FVeyraMinimapView View;
 	View.Frame = Frame;
-	for (const FVeyraLaneLayout& Lane : UVeyraWorldTuningSubsystem::Get().Layout.Lanes)
+	const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
+	// The river runs along the diagonal Y = -X: the band |X + Y| <= its width / sqrt(2), cut to the map's
+	// square, round its outline. The walls stand where the layout puts them.
+	const double H = Frame.HalfExtent;
+	const double C = FMath::Min(Layout.RiverWidth / UE_SQRT_2, 2.0 * H);
+	for (const FVector2D& Corner : { FVector2D(-H, H), FVector2D(C - H, H), FVector2D(H, C - H), FVector2D(H, -H), FVector2D(H - C, -H), FVector2D(-H, H - C) })
+	{
+		View.River.Add(ToMap(Frame, FVector(Corner, 0.0)));
+	}
+	for (const FVeyraTerrainBox& Wall : VeyraLayout::Walls(Layout))
+	{
+		FVeyraMinimapWall& Drawn = View.Walls.AddDefaulted_GetRef();
+		for (const FVector2D& Corner : Wall.Corners())
+		{
+			Drawn.Corners.Add(ToMap(Frame, FVector(Corner, 0.0)));
+		}
+	}
+	for (const FVeyraLaneLayout& Lane : Layout.Lanes)
 	{
 		FVeyraMinimapLane& Drawn = View.Lanes.AddDefaulted_GetRef();
 		for (const FVeyraMapPoint& Point : Lane.Points)

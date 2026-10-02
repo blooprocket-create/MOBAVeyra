@@ -94,7 +94,7 @@ func run(log *slog.Logger) error {
 	rules := party.Rules{MaxSize: cfg.Party.MaxSize, Modes: map[string]party.Mode{}}
 	var modes []httpapi.ModeInfo
 	for _, m := range cfg.Modes {
-		matchmade := m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop
+		matchmade := m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop || m.Matchmaking == config.MatchmakingDraftPick
 		rules.Modes[m.ID] = party.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmade: matchmade}
 		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, Category: m.Category, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmaking: m.Matchmaking})
 	}
@@ -147,6 +147,11 @@ func run(log *slog.Logger) error {
 		Casual: selection.CasualSettings{
 			PickDuration:    cfg.CasualSelect.PickDuration,
 			PresenceTimeout: cfg.CasualSelect.PresenceTimeout,
+			FinalDuration:   cfg.CasualSelect.FinalDuration,
+		},
+		Draft: selection.DraftSettings{
+			Timing:          draftTiming(cfg.DraftPick),
+			PresenceTimeout: cfg.DraftPick.PresenceTimeout,
 		},
 		Custom: selection.CustomSettings{
 			Mode:         cfg.CustomLobby.Mode,
@@ -175,9 +180,13 @@ func run(log *slog.Logger) error {
 	parties.SetActivity(busy)
 	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
 	for _, m := range cfg.Modes {
-		if m.Enabled && (m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop) {
+		if m.Enabled && (m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop || m.Matchmaking == config.MatchmakingDraftPick) {
 			mmSettings.Modes = append(mmSettings.Modes, matchmaking.Mode{ID: m.ID, TeamSize: m.HumanPlayersPerTeam, VersusAI: m.Matchmaking == config.MatchmakingCoop})
 		}
+	}
+	draft := map[string]bool{}
+	for _, m := range cfg.Modes {
+		draft[m.ID] = m.Matchmaking == config.MatchmakingDraftPick
 	}
 	coop := map[string]config.Mode{}
 	for _, m := range cfg.Modes {
@@ -185,7 +194,7 @@ func run(log *slog.Logger) error {
 			coop[m.ID] = m
 		}
 	}
-	matchmaker := matchmaking.NewService(store.Matchmaking(), parties, soc, busy, casualSelects{selects: selects, vanguards: vanguards, coop: coop},
+	matchmaker := matchmaking.NewService(store.Matchmaking(), parties, soc, busy, casualSelects{selects: selects, vanguards: vanguards, coop: coop, draft: draft},
 		mmSettings, time.Now, log)
 	selects.SetMatchmaking(matchmaker)
 	go matchmaker.Run(ctx, cfg.Matchmaking.Interval)
@@ -331,6 +340,8 @@ type casualSelects struct {
 	vanguards *catalog.Catalog
 	// coop holds each co-op mode's enemy AI team.
 	coop map[string]config.Mode
+	// draft marks the Draft Pick modes, whose select bans and picks in turns (ADR-042 §3).
+	draft map[string]bool
 }
 
 func (c casualSelects) OpenCasual(ctx context.Context, mode string, seats []matchmaking.SelectSeat) (string, error) {
@@ -341,6 +352,9 @@ func (c casualSelects) OpenCasual(ctx context.Context, mode string, seats []matc
 		if seat.Side == match.SideB {
 			opponents = match.SideA
 		}
+	}
+	if c.draft[mode] {
+		return c.selects.OpenDraft(ctx, mode, casual)
 	}
 	coop, ok := c.coop[mode]
 	if !ok {
@@ -356,6 +370,15 @@ func (c casualSelects) OpenCasual(ctx context.Context, mode string, seats []matc
 		return "", err
 	}
 	return c.selects.OpenCoop(ctx, mode, casual, bots)
+}
+
+// draftTiming is Draft Pick's turns and phase lengths for its selects.
+func draftTiming(d config.DraftPick) selection.Timing {
+	timing := selection.Timing{Ban: d.BanDuration, Pick: d.PickDuration, Final: d.FinalDuration}
+	for _, t := range d.Turns {
+		timing.Turns = append(timing.Turns, selection.Turn{Ban: t.Ban, Side: match.Side(t.Side), Count: t.Count})
+	}
+	return timing
 }
 
 // newMatchService builds the match service with the configured allocator.

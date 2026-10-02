@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"context"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
@@ -18,8 +20,13 @@ func (s *Server) routeSelection(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/me/selects/{selectId}", s.authed(s.mySelectByID))
 	mux.HandleFunc("PUT /v1/me/select/hover", s.authed(s.hoverVanguard))
 	mux.HandleFunc("POST /v1/me/select/lock", s.authed(s.lockVanguard))
+	mux.HandleFunc("PUT /v1/me/select/ban/hover", s.authed(s.hoverBan))
+	mux.HandleFunc("POST /v1/me/select/ban", s.authed(s.banVanguard))
 	mux.HandleFunc("PUT /v1/me/select/spells", s.authed(s.setFluxSpells))
 	mux.HandleFunc("POST /v1/me/select/leave", s.authed(s.leaveSelect))
+	mux.HandleFunc("POST /v1/me/select/trade", s.authed(s.offerTrade))
+	mux.HandleFunc("POST /v1/me/select/trade/accept", s.authed(s.acceptTrade))
+	mux.HandleFunc("POST /v1/me/select/trade/decline", s.authed(s.declineTrade))
 }
 
 type selectSeatJSON struct {
@@ -29,6 +36,16 @@ type selectSeatJSON struct {
 	// Hover is shown only to the seat's team (Battleground Bible §15).
 	Hover  *string `json:"hover"`
 	Locked *string `json:"locked"`
+	// BanHover is the ban the seat is considering, shown only to its team
+	// (ADR-042 §1).
+	BanHover *string `json:"banHover"`
+	// Acting is whether the seat bans or picks in the draft's current turn.
+	Acting bool `json:"acting"`
+	// OffersYou is whether the seat offers the viewer a trade, and
+	// OfferedByYou whether the viewer offers it one (ADR-042 §2): an offer is
+	// seen only by its two players.
+	OffersYou    bool `json:"offersYou"`
+	OfferedByYou bool `json:"offeredByYou"`
 	// FluxSpells are the seat's starting Flux Spells in slot order, "" for an
 	// empty slot, shown only to their player (ADR-015 §5).
 	FluxSpells []string `json:"fluxSpells"`
@@ -39,12 +56,19 @@ type selectJSON struct {
 	Kind  string `json:"kind"`
 	Mode  string `json:"mode"`
 	State string `json:"state"`
+	// Phase is a draft's ban or pick turn, any select's picking, or the final
+	// window after the last lock (ADR-042 §1–§2).
+	Phase string `json:"phase"`
+	// Turn is a draft's current turn; null outside one.
+	Turn *selectTurnJSON `json:"turn"`
+	// Bans are a draft's bans, in order, which both teams see.
+	Bans []selectBanJSON `json:"bans"`
 	// Deadline is the server's; RemainingSeconds is what is left of it by the
 	// server's clock, so a client counts down without trusting its own.
 	Deadline         time.Time `json:"deadline"`
 	RemainingSeconds float64   `json:"remainingSeconds"`
-	// PickSeconds is the pick timer's full length, so a client can draw how
-	// much of it is left.
+	// PickSeconds is the current phase or turn's full length, so a client can
+	// draw how much of it is left.
 	PickSeconds float64          `json:"pickSeconds"`
 	Seats       []selectSeatJSON `json:"seats"`
 	// Bots are a custom select's bots, chosen in the lobby: seats already
@@ -60,6 +84,20 @@ type selectBotJSON struct {
 	Difficulty string `json:"difficulty"`
 }
 
+// selectTurnJSON is a draft's turn: Count bans or picks by Side, Done of them
+// made.
+type selectTurnJSON struct {
+	Ban   bool   `json:"ban"`
+	Side  string `json:"side"`
+	Count int    `json:"count"`
+	Done  int    `json:"done"`
+}
+
+type selectBanJSON struct {
+	Side       string `json:"side"`
+	VanguardID string `json:"vanguardId"`
+}
+
 // toSelectJSON is a select as one of its players sees it.
 func (s *Server) toSelectJSON(session selection.Session, actor string) selectJSON {
 	out := selectJSON{
@@ -67,13 +105,21 @@ func (s *Server) toSelectJSON(session selection.Session, actor string) selectJSO
 		Kind:             string(session.Kind),
 		Mode:             session.Mode,
 		State:            string(session.State),
+		Phase:            string(session.Phase),
+		Bans:             []selectBanJSON{},
 		Deadline:         session.Deadline,
 		RemainingSeconds: s.Selection.RemainingPick(session).Seconds(),
-		PickSeconds:      session.Deadline.Sub(session.CreatedAt).Seconds(),
+		PickSeconds:      session.PhaseLength().Seconds(),
 		Seats:            []selectSeatJSON{},
 		Bots:             []selectBotJSON{},
 		MatchID:          textOrNil(session.MatchID),
 		CancelReason:     textOrNil(string(session.CancelReason)),
+	}
+	if turn, ok := session.CurrentTurn(); ok {
+		out.Turn = &selectTurnJSON{Ban: turn.Ban, Side: string(turn.Side), Count: turn.Count, Done: session.TurnDone}
+	}
+	for _, ban := range session.Bans {
+		out.Bans = append(out.Bans, selectBanJSON{Side: string(ban.Side), VanguardID: ban.VanguardID})
 	}
 	var actorSide string
 	for _, bot := range session.Bots {
@@ -84,10 +130,13 @@ func (s *Server) toSelectJSON(session selection.Session, actor string) selectJSO
 			actorSide = string(seat.Side)
 		}
 	}
+	acting := session.Acting()
 	for _, seat := range session.Seats {
-		view := selectSeatJSON{DisplayName: seat.DisplayName, Side: string(seat.Side), You: seat.AccountID == actor, Locked: textOrNil(seat.Locked)}
+		view := selectSeatJSON{DisplayName: seat.DisplayName, Side: string(seat.Side), You: seat.AccountID == actor, Locked: textOrNil(seat.Locked),
+			Acting: slices.Contains(acting, seat.AccountID), OffersYou: session.Offered(seat.AccountID, actor), OfferedByYou: session.Offered(actor, seat.AccountID)}
 		if string(seat.Side) == actorSide {
 			view.Hover = textOrNil(seat.Hover)
+			view.BanHover = textOrNil(seat.BanHover)
 		}
 		if view.You {
 			view.FluxSpells = seat.FluxSpells[:]
@@ -198,4 +247,74 @@ func (s *Server) lockVanguard(w http.ResponseWriter, r *http.Request, actor stri
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"select": s.toSelectJSON(session, actor)})
+}
+
+// hoverBan records the ban the player considers in their draft's ban turn,
+// which only their team sees (ADR-042 §1).
+func (s *Server) hoverBan(w http.ResponseWriter, r *http.Request, actor string) {
+	s.withVanguard(w, r, actor, s.Selection.HoverBan)
+}
+
+// banVanguard bans a Vanguard for the player's side in their draft's ban turn.
+func (s *Server) banVanguard(w http.ResponseWriter, r *http.Request, actor string) {
+	s.withVanguard(w, r, actor, s.Selection.Ban)
+}
+
+// withVanguard runs a select action on the Vanguard a request names.
+func (s *Server) withVanguard(w http.ResponseWriter, r *http.Request, actor string,
+	act func(ctx context.Context, actor, vanguardID string) (selection.Session, error)) {
+	var req struct {
+		VanguardID string `json:"vanguardId"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	session, err := act(r.Context(), actor, req.VanguardID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"select": s.toSelectJSON(session, actor)})
+}
+
+// tradeRequest names a teammate by their seat, its place in the select's
+// seats as the select JSON lists them.
+type tradeRequest struct {
+	Seat *int `json:"seat"`
+}
+
+// tradeWith runs a trade action on the teammate a request names.
+func (s *Server) tradeWith(w http.ResponseWriter, r *http.Request, actor string,
+	act func(ctx context.Context, actor string, seat int) (selection.Session, error)) {
+	var req tradeRequest
+	if !s.decode(w, r, &req) {
+		return
+	}
+	if req.Seat == nil {
+		s.fail(w, selection.ErrCannotTrade)
+		return
+	}
+	session, err := act(r.Context(), actor, *req.Seat)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"select": s.toSelectJSON(session, actor)})
+}
+
+// offerTrade offers a locked teammate the player's locked Vanguard for theirs
+// (ADR-042 §2); a new offer replaces the player's last.
+func (s *Server) offerTrade(w http.ResponseWriter, r *http.Request, actor string) {
+	s.tradeWith(w, r, actor, s.Selection.OfferTrade)
+}
+
+// acceptTrade accepts a teammate's offer, which swaps the two locked
+// Vanguards.
+func (s *Server) acceptTrade(w http.ResponseWriter, r *http.Request, actor string) {
+	s.tradeWith(w, r, actor, s.Selection.AcceptTrade)
+}
+
+// declineTrade turns down a teammate's offer.
+func (s *Server) declineTrade(w http.ResponseWriter, r *http.Request, actor string) {
+	s.tradeWith(w, r, actor, s.Selection.DeclineTrade)
 }

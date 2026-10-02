@@ -26,6 +26,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
 #include "Layout/VeyraLayout.h"
@@ -88,6 +89,24 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ShapeMaterial = Settings.ShapeMaterial.LoadSynchronous();
 		GroundMesh = Settings.GroundMesh.LoadSynchronous();
 		PadMesh = Settings.PadMesh.LoadSynchronous();
+		// The structure kit's art set must dress every kind (ADR-006 §6: asset references by stable ID).
+		StructureArt = Settings.StructureArt.LoadSynchronous();
+		if (!StructureArt)
+		{
+			Problems.Add(FString::Printf(TEXT("StructureArt: %s does not load."), *Settings.StructureArt.ToString()));
+		}
+		else
+		{
+			TArray<FName> Kinds;
+			for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+			{
+				Kinds.Add(UVeyraGreyboxSettings::StructureArtId(Kind));
+			}
+			for (const FString& Problem : StructureArt->Validate(Kinds))
+			{
+				Problems.Add(TEXT("StructureArt ") + Problem);
+			}
+		}
 		if (!GroundMesh)
 		{
 			Problems.Add(FString::Printf(TEXT("GroundMesh: %s does not load."), *Settings.GroundMesh.ToString()));
@@ -194,6 +213,12 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::FindBody(const AActor& Unit) const
 	return Body ? Body->Mesh.Get() : nullptr;
 }
 
+UStaticMeshComponent* UVeyraGreyboxSubsystem::FindArt(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	return Body ? Body->Art.Get() : nullptr;
+}
+
 UStaticMeshComponent* UVeyraGreyboxSubsystem::FindProjectileVisual(const AVeyraProjectile& Projectile) const
 {
 	const FProjectileVisual* Visual = Projectiles.Find(&Projectile);
@@ -288,6 +313,61 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMes
 	return Shape;
 }
 
+void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structure, FBody& Body)
+{
+	// Standing, or the wreck it leaves (Battleground Bible §5); an inhibitor rebuilt stands again.
+	const FVeyraUnitArt* Art = StructureArt ? StructureArt->Find(UVeyraGreyboxSettings::StructureArtId(Structure.GetStructureKind())) : nullptr;
+	if (UStaticMesh* Mesh = Art ? (Structure.IsDestroyed() ? Art->Fallen : Art->Intact).Get() : nullptr)
+	{
+		ShowArt(Structure, Body, *Mesh, *StructureArt, SideColorOf(Structure));
+	}
+}
+
+void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
+{
+	USceneComponent* Root = Unit.GetRootComponent();
+	if (!Root)
+	{
+		return;
+	}
+	if (!Body.Art.IsValid())
+	{
+		// Presentation only, as a body is.
+		UStaticMeshComponent* Art = NewObject<UStaticMeshComponent>(const_cast<APawn*>(&Unit), NAME_None, RF_Transient);
+		Art->SetMobility(EComponentMobility::Movable);
+		Art->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Art->SetGenerateOverlapEvents(false);
+		Art->SetCanEverAffectNavigation(false);
+		Art->SetupAttachment(Root);
+		Art->RegisterComponent();
+		Body.Art = Art;
+		Body.ArtMesh = nullptr;
+	}
+	UStaticMeshComponent* Art = Body.Art.Get();
+	// It stands on the floor, its pivot at the capsule's foot.
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+	Art->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
+	if (Body.ArtMesh.Get() != &Mesh)
+	{
+		Art->SetStaticMesh(&Mesh);
+		const int32 Slot = Art->GetMaterialIndex(Set.FluxSlot);
+		Body.ArtFlux = Slot != INDEX_NONE ? Art->CreateDynamicMaterialInstance(Slot) : nullptr;
+		Body.ArtMesh = &Mesh;
+		Body.ArtShown = FLinearColor::Transparent;
+	}
+	if (UStaticMeshComponent* Shape = Body.Mesh.Get())
+	{
+		Shape->SetVisibility(false);
+	}
+	if (UMaterialInstanceDynamic* Flux = Body.ArtFlux.Get(); Flux && !Color.Equals(Body.ArtShown))
+	{
+		Flux->SetVectorParameterValue(Set.FluxParameter, Color);
+		Body.ArtShown = Color;
+	}
+}
+
 void UVeyraGreyboxSubsystem::RefreshBodies()
 {
 	const FName ColorParameter = GetDefault<UVeyraGreyboxSettings>()->ColorParameter;
@@ -326,6 +406,10 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			Material->SetVectorParameterValue(ColorParameter, Color);
 			Body->Shown = Color;
+		}
+		if (const AVeyraStructure* Structure = Cast<AVeyraStructure>(&Unit))
+		{
+			RefreshStructureArt(*Structure, *Body);
 		}
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).

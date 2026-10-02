@@ -199,8 +199,9 @@ namespace
 	}
 
 	/**
-	 * The minimap, bottom-right (Settings Bible §3.2; ADR-020 §2): the lanes, every unit this client has
-	 * (so only what its side sees), its side's presence pings, and where the camera looks.
+	 * The minimap, bottom-right (Settings Bible §3.2; ADR-020 §2): the river, the walls (ADR-043 §4), the
+	 * lanes, every unit this client has (so only what its side sees), its side's presence pings, and where
+	 * the camera looks.
 	 */
 	void DrawMinimap(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const FVeyraMinimapView& View)
 	{
@@ -210,6 +211,26 @@ namespace
 		Edge.SetColor(Settings.HudHairlineColor);
 		Edge.BlendMode = SE_BLEND_Translucent;
 		Canvas.DrawItem(Edge);
+		// The river, a convex polygon: a fan of triangles from its first corner.
+		for (int32 Index = 2; Index < View.River.Num(); ++Index)
+		{
+			FCanvasTriangleItem Piece(View.River[0], View.River[Index - 1], View.River[Index], GWhiteTexture);
+			Piece.SetColor(Settings.RiverColor);
+			Canvas.DrawItem(Piece);
+		}
+		for (const FVeyraMinimapWall& Wall : View.Walls)
+		{
+			// A box is two triangles.
+			if (Wall.Corners.Num() == 4)
+			{
+				for (const int32 Third : { 2, 3 })
+				{
+					FCanvasTriangleItem Half(Wall.Corners[0], Wall.Corners[Third - 1], Wall.Corners[Third], GWhiteTexture);
+					Half.SetColor(Settings.MinimapWallColor);
+					Canvas.DrawItem(Half);
+				}
+			}
+		}
 		for (const FVeyraMinimapLane& Lane : View.Lanes)
 		{
 			for (int32 Index = 1; Index < Lane.Points.Num(); ++Index)

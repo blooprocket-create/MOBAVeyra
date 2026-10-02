@@ -184,6 +184,76 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsFalse(Model.bTeams || Model.bOffersLeave));
 		}
 
+		TEST_METHOD(DraftSelectModel)
+		{
+			// The player's ban turn in a draft (ADR-042 §1): the cards are every released Vanguard, the ban hover is chosen,
+			// and the tile bans.
+			FVeyraClientSnapshot Snapshot = SelectSnapshot(TEXT("oriel"), FString());
+			Snapshot.Select.Kind = TEXT("draft");
+			Snapshot.Select.Mode = TEXT("draft_pick");
+			Snapshot.Select.Phase = VeyraBackendProtocol::ESelectPhase::Banning;
+			Snapshot.Select.Turn = VeyraBackendProtocol::FSelectTurn{ true, TEXT("A"), 1, 0 };
+			Snapshot.Select.Seats[0].bActing = true;
+			Snapshot.Select.Seats[0].BanHover = TEXT("bryn");
+			Snapshot.Select.Seats.Add(VeyraBackendProtocol::FSelectSeat{ TEXT("DevThree"), TEXT("A"), false, FString(), FString() });
+			Snapshot.Select.Seats.Add(VeyraBackendProtocol::FSelectSeat{ TEXT("DevTwo"), TEXT("B"), false, FString(), FString() });
+			Snapshot.Select.Bans.Add(VeyraBackendProtocol::FSelectBan{ TEXT("B"), TEXT("qazharr") });
+			Snapshot.ReleasedVanguards = { TEXT("cairn"), TEXT("qazharr"), TEXT("oriel"), TEXT("bryn") };
+			FVeyraSelectDraftPermissions Draft;
+			Draft.bCanBan = true;
+			FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(Snapshot, 20.0, true, false, true, true, Draft);
+			ASSERT_THAT(IsTrue(Model.bDraft && Model.bBanning && Model.bCanChoose));
+			ASSERT_THAT(AreEqual(Model.Phase.ToString(), FString(TEXT("Your turn to ban."))));
+			ASSERT_THAT(AreEqual(Model.Cards.Num(), 4));
+			ASSERT_THAT(IsTrue(Model.Cards[1].bBanned && Model.Cards[1].bTaken, TEXT("Qazharr is banned already")));
+			ASSERT_THAT(IsTrue(Model.Cards[3].bChosen && Model.BanVanguardId == TEXT("bryn") && Model.bCanBan));
+			ASSERT_THAT(IsTrue(Model.Bans.Num() == 1 && !Model.Bans[0].bAlly && Model.Bans[0].Name.ToString() == TEXT("Qazharr")));
+			ASSERT_THAT(IsTrue(Model.Seats[0].bActing && Model.Seats[0].SeatIndex == 0 && Model.Seats[2].SeatIndex == 2));
+			ASSERT_THAT(AreEqual(Model.Seats[0].BanHover.ToString(), FString(TEXT("Banning Bryn"))));
+			ASSERT_THAT(IsTrue(Model.bOffersLeave, TEXT("a draft may be left, as a dodge")));
+
+			// The player's turn is one key through the turn, a teammate's ban in it included; none outside it.
+			const FString Turn = VeyraShellModels::PlayersTurn(Snapshot);
+			ASSERT_THAT(IsFalse(Turn.IsEmpty()));
+			FVeyraClientSnapshot Teammate = Snapshot;
+			Teammate.Select.Turn = VeyraBackendProtocol::FSelectTurn{ true, TEXT("A"), 2, 1 };
+			Teammate.Select.Bans.Add(VeyraBackendProtocol::FSelectBan{ TEXT("A"), TEXT("cairn") });
+			ASSERT_THAT(AreEqual(VeyraShellModels::PlayersTurn(Teammate), VeyraShellModels::PlayersTurn(
+				[&Snapshot] { FVeyraClientSnapshot Before = Snapshot; Before.Select.Turn = VeyraBackendProtocol::FSelectTurn{ true, TEXT("A"), 2, 0 }; return Before; }())));
+
+			// The enemy's ban turn says so; the bench is the player's own again, with the bans taken.
+			Snapshot.Select.Turn = VeyraBackendProtocol::FSelectTurn{ true, TEXT("B"), 1, 0 };
+			Snapshot.Select.Seats[0].bActing = false;
+			Snapshot.Select.Seats[2].bActing = true;
+			Model = VeyraShellModels::DescribeSelect(Snapshot, 20.0, true, false, true, true, FVeyraSelectDraftPermissions());
+			ASSERT_THAT(IsTrue(!Model.bBanning && !Model.bCanBan));
+			ASSERT_THAT(AreEqual(Model.Phase.ToString(), FString(TEXT("The enemy team is banning."))));
+			ASSERT_THAT(AreEqual(Model.Cards.Num(), 2));
+			ASSERT_THAT(IsTrue(VeyraShellModels::PlayersTurn(Snapshot).IsEmpty(), TEXT("the enemy's turn is not the player's")));
+
+			// The final window: locked teammates trade. An offer to DevThree stands; DevTwo is an enemy.
+			Snapshot.Select.Phase = VeyraBackendProtocol::ESelectPhase::Final;
+			Snapshot.Select.Turn.Reset();
+			Snapshot.Select.Seats[2].bActing = false;
+			for (VeyraBackendProtocol::FSelectSeat& Seat : Snapshot.Select.Seats)
+			{
+				Seat.Locked = Seat.bYou ? TEXT("oriel") : TEXT("cairn");
+			}
+			Draft = FVeyraSelectDraftPermissions();
+			Draft.bCanOfferTrade = true;
+			Model = VeyraShellModels::DescribeSelect(Snapshot, 8.0, false, false, true, true, Draft);
+			ASSERT_THAT(AreEqual(Model.Phase.ToString(), FString(TEXT("Everyone is locked in. Locked teammates may trade until the match starts."))));
+			ASSERT_THAT(IsTrue(!Model.Seats[0].bCanOfferTrade && Model.Seats[1].bCanOfferTrade && !Model.Seats[2].bCanOfferTrade));
+			Snapshot.Select.Seats[1].bOfferedByYou = true;
+			Model = VeyraShellModels::DescribeSelect(Snapshot, 8.0, false, false, true, true, Draft);
+			ASSERT_THAT(IsTrue(Model.Seats[1].bOfferedByYou && !Model.Seats[1].bCanOfferTrade, TEXT("one offer is enough")));
+			Snapshot.Select.Seats[1].bOfferedByYou = false;
+			Snapshot.Select.Seats[1].bOffersYou = true;
+			Draft.bCanAnswerTrade = true;
+			Model = VeyraShellModels::DescribeSelect(Snapshot, 8.0, false, false, true, true, Draft);
+			ASSERT_THAT(IsTrue(Model.Seats[1].bOffersYou && Model.Seats[1].bCanAnswerTrade));
+		}
+
 		TEST_METHOD(MatchFoundModel)
 		{
 			FVeyraClientSnapshot Snapshot;
@@ -538,6 +608,47 @@ namespace VeyraShellTests
 			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/lock"))->Body, FString(TEXT("{\"vanguardId\":\"oriel\"}"))));
 		}
 
+		TEST_METHOD(ADraftBansFromTheBenchInThePlayersTurn)
+		{
+			// The screen shows from Match Found on, as in a game, while the draft opens on the player's ban turn.
+			ASSERT_THAT(IsTrue(Rig.ReachMatchFound()));
+			ShowScreen();
+			const TCHAR* const ABan = TEXT("{\"ban\":true,\"side\":\"A\",\"count\":1,\"done\":0}");
+			const TCHAR* const Teammate = TEXT("\"hover\":null,\"locked\":null,\"acting\":false");
+			ASSERT_THAT(IsTrue(Rig.Flow->AcceptMatch()));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200,
+				MatchFoundBody(TEXT("accepted"), TEXT("accepted"), 2, SelectId))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200,
+				DraftSelectBody(TEXT("banning"), ABan, TEXT("[]"), TEXT("\"hover\":null,\"locked\":null,\"acting\":true"), Teammate))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody)));
+			ASSERT_THAT(IsTrue(Rig.Flow->CanIssue(EVeyraClientIntent::BanVanguard)));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Your turn to ban.")), Screen->DescribeText()));
+			// The player's turn asked for their attention once, as it began (UX-31, UX-32).
+			ASSERT_THAT(AreEqual(Screen->GetTurnAttentionCount(), 1));
+			// Every released Vanguard is on the bench, Silt too, which the player does not own.
+			UVeyraShellButton* Silt = Button(TEXT("Silt"));
+			ASSERT_THAT(IsTrue(Silt && Silt->GetIsEnabled(), FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
+			ASSERT_THAT(IsFalse(Button(TEXT("Ban"))->GetIsEnabled(), TEXT("nothing is hovered yet")));
+			Silt->Press();
+			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("PUT"), TEXT("/v1/me/select/ban/hover"))->Body, FString(TEXT("{\"vanguardId\":\"silt\"}"))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/ban/hover"), 200,
+				DraftSelectBody(TEXT("banning"), ABan, TEXT("[]"), TEXT("\"hover\":null,\"locked\":null,\"banHover\":\"silt\",\"acting\":true"), Teammate))));
+			ASSERT_THAT(IsTrue(Button(TEXT("Ban"))->GetIsEnabled(), TEXT("the hovered ban can be banned")));
+			ASSERT_THAT(AreEqual(Screen->GetTurnAttentionCount(), 1, TEXT("not again within the same turn")));
+			Button(TEXT("Ban"))->Press();
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/ban"))));
+
+			// The next turn is the enemy's: a poll that changes only the turn and the bans rebuilds the screen.
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/ban"), 200,
+				DraftSelectBody(TEXT("banning"), TEXT("{\"ban\":true,\"side\":\"B\",\"count\":1,\"done\":0}"), TEXT("[{\"side\":\"A\",\"vanguardId\":\"silt\"}]"),
+					TEXT("\"hover\":null,\"locked\":null,\"acting\":false"), Teammate))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("The enemy team is banning.")) && Screen->DescribeText().Contains(TEXT("Bans: Silt")),
+				Screen->DescribeText()));
+			ASSERT_THAT(IsNull(Button(TEXT("Silt")), TEXT("the bench is the player's own again")));
+			ASSERT_THAT(AreEqual(Screen->GetTurnAttentionCount(), 1, TEXT("the enemy's turn asks nothing of the player")));
+		}
+
 		TEST_METHOD(APollThatChangesNothingKeepsTheButtons)
 		{
 			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
@@ -727,11 +838,12 @@ namespace VeyraShellTests
 			// Mode cards: one to choose, one not yet available; no party panel before a mode is chosen. They show
 			// in their categories, and Customs holds Practice and Custom Game (ADR-039 §6).
 			ASSERT_THAT(IsTrue(Button(TEXT("Blind Pick"))->GetIsEnabled()));
-			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Casual")) && Screen->DescribeText().Contains(TEXT("Customs")), Screen->DescribeText()));
-			ASSERT_THAT(IsFalse(Screen->DescribeText().Contains(TEXT("Ranked")), TEXT("no ranked mode, no Ranked heading")));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Casual")) && Screen->DescribeText().Contains(TEXT("Customs"))
+					&& Screen->DescribeText().Contains(TEXT("Ranked")),
+				Screen->DescribeText()));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Practice"))));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Custom Game"))));
-			ASSERT_THAT(IsFalse(Button(TEXT("Draft Pick"))->GetIsEnabled()));
+			ASSERT_THAT(IsFalse(Button(TEXT("Ranked Draft Pick"))->GetIsEnabled()));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Not yet available"))));
 			ASSERT_THAT(IsNull(Button(TEXT("Ready"))));
 

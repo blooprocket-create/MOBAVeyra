@@ -67,6 +67,14 @@ enum class EVeyraClientIntent : uint8
 	LeaveSelect,
 	/** Chooses a starting Flux Spell for one slot, before or after lock-in (ADR-015 §5). */
 	ChooseFluxSpell,
+	/** Considers a ban in the player's draft ban turn, which their team sees (ADR-042 §1). */
+	HoverBan,
+	/** Bans a Vanguard for the player's side in their draft ban turn. */
+	BanVanguard,
+	/** Offers a locked teammate the player's locked Vanguard for theirs (ADR-042 §2). */
+	OfferTrade,
+	/** Accepts or declines a teammate's trade offer. */
+	AnswerTrade,
 	Reconnect,
 	ContinueFromResults,
 	/** Repeats the step whose problem is showing. */
@@ -217,6 +225,8 @@ struct FVeyraClientSnapshot
 	double AcceptEndsAt = 0.0;
 	/** Selecting: the Vanguards the player may pick, in the catalog's order; empty until read. */
 	TArray<FString> AvailableVanguards;
+	/** Selecting: every released Vanguard, which a draft's bans may name (ADR-042 §1); empty until read. */
+	TArray<FString> ReleasedVanguards;
 	/** Selecting: the select as last read. */
 	VeyraBackendProtocol::FSelect Select;
 	/** Selecting: when the pick timer ends, on the flow host's clock. */

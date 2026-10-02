@@ -179,13 +179,13 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [3]
+      "enum": [4]
     },
     "layout": {
       "description": "The grey-box battleground (Battleground Bible §2, macro shape ruled 2026-09-28): bases in opposite corners, top and bot lanes along the sides set in from the edge with outer jungle beyond, mid on the diagonal, the river across the other diagonal. Team A's half is authored; Team B's is its mirror across Y = -X.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "halfExtent", "riverWidth", "lanes", "base", "denseFog"],
+      "required": ["provenance", "halfExtent", "riverWidth", "lanes", "base", "denseFog", "walls", "wallHalfHeight", "wallClearance"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "halfExtent": { "description": "The square floor reaches this far from the centre in each direction.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -205,6 +205,24 @@
             }
           }
         },
+        "walls": {
+          "description": "Team A's walls (ADR-043 §1): oriented boxes of terrain wholly in Team A's half, clear of the lanes, camps, Flux Wells, structures, the fountain and Dense Fog by wallClearance. Team B's are their mirror. They block movement, paths, forced moves, line projectiles and sight.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["center", "facing", "length", "thickness"],
+            "properties": {
+              "center": { "$ref": "#/definitions/point" },
+              "facing": { "description": "The way the wall faces, in degrees from +X toward +Y: its thickness runs along it and its length across it.", "type": "number", "minimum": -360, "maximum": 360 },
+              "length": { "description": "In units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+              "thickness": { "description": "In units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            }
+          }
+        },
+        "wallHalfHeight": { "description": "Half of every wall's height: taller than any body it blocks.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "wallClearance": { "description": "How far every wall keeps from a lane's road, a camp's creatures, a Flux Well's radius, a structure's body, the fountain and Dense Fog.", "type": "number", "minimum": 0 },
         "base": {
           "description": "Team A's base (Battleground Bible §3, §12, §18).",
           "type": "object",

@@ -40,6 +40,21 @@ var fixtureFluxSpells = []string{"blink", "mend", "scorch"}
 // casualMode is a matchmade mode, one a side as in local play.
 const casualMode = "casual_select"
 
+// teamMode is a matchmade mode of full teams.
+const teamMode = "team_select"
+
+// draftMode is a Draft Pick mode, one a side.
+const draftMode = "draft_pick"
+
+// fixtureDraft is a short draft: a ban a side, then a pick a side.
+var fixtureDraft = DraftSettings{
+	Timing: Timing{
+		Turns: []Turn{{Ban: true, Side: match.SideA, Count: 1}, {Ban: true, Side: match.SideB, Count: 1}, {Side: match.SideA, Count: 1}, {Side: match.SideB, Count: 1}},
+		Ban:   20 * time.Second, Pick: fixturePick, Final: 5 * time.Second,
+	},
+	PresenceTimeout: 15 * time.Second,
+}
+
 type fixture struct {
 	svc      *Service
 	store    *MemStore
@@ -91,7 +106,8 @@ func newFixture(t *testing.T) *fixture {
 		return out, nil
 	})
 	f.matches = match.NewService(match.NewMemStore(), names, f.alloc, match.Settings{
-		Modes:             map[string]match.Mode{casualMode: {ID: casualMode, Enabled: true, HumanPlayersPerTeam: 1}},
+		Modes: map[string]match.Mode{casualMode: {ID: casualMode, Enabled: true, HumanPlayersPerTeam: 1},
+			draftMode: {ID: draftMode, Enabled: true, HumanPlayersPerTeam: 1}, teamMode: {ID: teamMode, Enabled: true, HumanPlayersPerTeam: 5}},
 		Maps:              match.FakeMaps,
 		Practice:          match.PracticeSettings{Enabled: true, Mode: fixturePractice.Mode, HostSide: fixturePractice.HostSide},
 		Custom:            match.CustomModeSettings{Enabled: true, Mode: fixtureCustomMode, PlayersPerSide: 5, StartingGoldMax: 20000},
@@ -108,7 +124,8 @@ func newFixture(t *testing.T) *fixture {
 	f.accounts = account.NewService(account.NewMemStore(), vanguards, clock)
 	parties := PartiesFunc(func(_ context.Context, id string) (bool, error) { return f.queued[id], nil })
 	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, f.blocks,
-		Settings{Practice: fixturePractice, Casual: fixtureCasual, Custom: fixtureCustom, StartingTimeout: fixtureStarting, FluxSpells: fixtureFluxSpells}, clock,
+		Settings{Practice: fixturePractice, Casual: fixtureCasual, Draft: fixtureDraft, Custom: fixtureCustom, StartingTimeout: fixtureStarting,
+			FluxSpells: fixtureFluxSpells}, clock,
 		slog.New(slog.NewTextHandler(io.Discard, nil)))
 	f.svc.SetMatchmaking(f.ends)
 	return f

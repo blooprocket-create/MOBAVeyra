@@ -35,7 +35,7 @@
   },
   "modes": [
     {"id": "casual_select", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
-    {"id": "draft_pick", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
+    {"id": "draft_pick", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "draftPick"},
     {"id": "coop_beginner", "category": "ai", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "beginner"},
     {"id": "coop_intermediate", "category": "ai", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "intermediate"},
     {"id": "ranked", "category": "ranked", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
@@ -84,6 +84,25 @@
   },
   "casualSelect": {
     "pickDuration": "60s",
+    "presenceTimeout": "10s",
+    "finalDuration": "10s"
+  },
+  "draftPick": {
+    "turns": [
+      {"phase": "ban", "side": "A", "count": 1},
+      {"phase": "ban", "side": "B", "count": 2},
+      {"phase": "ban", "side": "A", "count": 2},
+      {"phase": "ban", "side": "B", "count": 1},
+      {"phase": "pick", "side": "A", "count": 1},
+      {"phase": "pick", "side": "B", "count": 2},
+      {"phase": "pick", "side": "A", "count": 2},
+      {"phase": "pick", "side": "B", "count": 2},
+      {"phase": "pick", "side": "A", "count": 2},
+      {"phase": "pick", "side": "B", "count": 1}
+    ],
+    "banDuration": "30s",
+    "pickDuration": "30s",
+    "finalDuration": "10s",
     "presenceTimeout": "10s"
   },
   "selection": {

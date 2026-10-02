@@ -51,6 +51,9 @@ type Availability struct {
 	Available []string
 	// Starters are what a new account may choose from.
 	Starters []string
+	// Released is every released Vanguard, in the catalog's order: what a
+	// draft's bans may name (ADR-042 §1).
+	Released []string
 }
 
 // Catalog answers questions about released Vanguards. The catalog package
@@ -132,7 +135,8 @@ func (s *Service) Vanguards(ctx context.Context, accountID string) (Availability
 		owned[e.VanguardID] = true
 	}
 	rotation := s.catalog.Rotation()
-	out := Availability{Owned: []string{}, Rotation: append([]string{}, rotation...), Available: []string{}, Starters: s.catalog.Starters()}
+	out := Availability{Owned: []string{}, Rotation: append([]string{}, rotation...), Available: []string{}, Starters: s.catalog.Starters(),
+		Released: append([]string{}, s.catalog.Released()...)}
 	// In the catalog's order, so every client lists them the same way. A
 	// Vanguard no longer released is owned but not pickable.
 	for _, id := range s.catalog.Released() {
@@ -145,6 +149,10 @@ func (s *Service) Vanguards(ctx context.Context, accountID string) (Availability
 	}
 	return out, nil
 }
+
+// IsReleased reports whether a Vanguard is released: one a draft may ban
+// (ADR-042 §1).
+func (s *Service) IsReleased(vanguardID string) bool { return s.catalog.IsReleased(vanguardID) }
 
 // MayPick reports whether the account may pick a Vanguard now: it has
 // finished onboarding, and owns the Vanguard or the rotation offers it.

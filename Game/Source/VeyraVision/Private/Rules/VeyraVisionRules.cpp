@@ -2,9 +2,94 @@
 
 #include "Rules/VeyraVisionRules.h"
 
+FVeyraSightWalls::FVeyraSightWalls(TArray<FVeyraTerrainBox> InWalls)
+	: Walls(MoveTemp(InWalls))
+{
+	for (const FVeyraTerrainBox& Wall : Walls)
+	{
+		CellSize = FMath::Max(CellSize, Wall.Bounds().GetSize().GetMax());
+	}
+	if (!(CellSize > 0.0))
+	{
+		return;
+	}
+	for (int32 Index = 0; Index < Walls.Num(); ++Index)
+	{
+		const FBox2D Bounds = Walls[Index].Bounds();
+		const FIntPoint Low = CellOf(Bounds.Min);
+		const FIntPoint High = CellOf(Bounds.Max);
+		for (int32 X = Low.X; X <= High.X; ++X)
+		{
+			for (int32 Y = Low.Y; Y <= High.Y; ++Y)
+			{
+				Cells.FindOrAdd(FIntPoint(X, Y)).Add(Index);
+			}
+		}
+	}
+}
+
+FIntPoint FVeyraSightWalls::CellOf(const FVector2D& Point) const
+{
+	return FIntPoint(FMath::FloorToInt32(Point.X / CellSize), FMath::FloorToInt32(Point.Y / CellSize));
+}
+
+TArray<int32> FVeyraSightWalls::CandidatesFor(const FVector2D& From, const FVector2D& To) const
+{
+	TArray<int32> Candidates;
+	if (Cells.IsEmpty())
+	{
+		return Candidates;
+	}
+	// The cells under the line's bounds: a wall that crosses the line lies in one of them.
+	const FIntPoint Low = CellOf(FVector2D(FMath::Min(From.X, To.X), FMath::Min(From.Y, To.Y)));
+	const FIntPoint High = CellOf(FVector2D(FMath::Max(From.X, To.X), FMath::Max(From.Y, To.Y)));
+	for (int32 X = Low.X; X <= High.X; ++X)
+	{
+		for (int32 Y = Low.Y; Y <= High.Y; ++Y)
+		{
+			if (const TArray<int32>* InCell = Cells.Find(FIntPoint(X, Y)))
+			{
+				for (const int32 Index : *InCell)
+				{
+					Candidates.AddUnique(Index);
+				}
+			}
+		}
+	}
+	return Candidates;
+}
+
+bool FVeyraSightWalls::Blocks(const FVector2D& From, const FVector2D& To) const
+{
+	if (Cells.IsEmpty())
+	{
+		return false;
+	}
+	// As CandidatesFor, without gathering: a wall in two of the cells is only tested twice.
+	const FIntPoint Low = CellOf(FVector2D(FMath::Min(From.X, To.X), FMath::Min(From.Y, To.Y)));
+	const FIntPoint High = CellOf(FVector2D(FMath::Max(From.X, To.X), FMath::Max(From.Y, To.Y)));
+	for (int32 X = Low.X; X <= High.X; ++X)
+	{
+		for (int32 Y = Low.Y; Y <= High.Y; ++Y)
+		{
+			const TArray<int32>* InCell = Cells.Find(FIntPoint(X, Y));
+			if (InCell && InCell->ContainsByPredicate([this, &From, &To](int32 Index) { return Walls[Index].Crosses(From, To); }))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 namespace VeyraVisionRules
 {
-bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point)
+bool IsBlocked(const FVeyraSightWalls& Walls, const FVector2D& From, const FVector2D& To)
+{
+	return Walls.Blocks(From, To);
+}
+
+bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, const FVeyraSightWalls& Walls)
 {
 	for (const FVeyraSightSource& Source : Sources)
 	{
@@ -14,7 +99,8 @@ bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const
 		}
 		const bool bInside = Source.Shape.IsSet() ? VeyraShapes::Touches(Source.Shape.GetValue(), FVector(Point, 0.0), 0.0)
 												  : FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Source.Radius);
-		if (bInside)
+		// Within its reach first: a wall is looked for only between a source and what it could see.
+		if (bInside && (Source.bThroughWalls || !IsBlocked(Walls, Source.Position, Point)))
 		{
 			return true;
 		}
@@ -22,12 +108,14 @@ bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const
 	return false;
 }
 
-bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius)
+bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius,
+	const FVeyraSightWalls& Walls)
 {
 	for (const FVeyraSightSource& Source : Sources)
 	{
 		const double Reach = FMath::Min(Source.Radius, DetectionRadius);
-		if (Source.Team == Team && Source.bDetects && FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Reach))
+		if (Source.Team == Team && Source.bDetects && FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Reach)
+			&& (Source.bThroughWalls || !IsBlocked(Walls, Source.Position, Point)))
 		{
 			return true;
 		}

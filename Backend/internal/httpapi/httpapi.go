@@ -351,6 +351,8 @@ var errorStatus = []struct {
 	{selection.ErrInvalidState, http.StatusConflict, "invalid_state"},
 	{selection.ErrTaken, http.StatusConflict, "taken"},
 	{selection.ErrCannotLeave, http.StatusConflict, "cannot_leave"},
+	{selection.ErrNotYourTurn, http.StatusConflict, "not_your_turn"},
+	{selection.ErrCannotTrade, http.StatusConflict, "cannot_trade"},
 
 	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
 	{match.ErrInvalidRules, http.StatusBadRequest, "invalid_rules"},

@@ -61,7 +61,10 @@ public:
 	virtual void Deinitialize() override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 
-	/** Server: spawns every structure the layout places. The map's marker does this; tests call it with their own layout. */
+	/**
+	 * Server: spawns every structure the layout places, and raises its walls (ADR-043 §2). The map's marker
+	 * does this; tests call it with their own layout.
+	 */
 	void SpawnStructures(const FVeyraBattlegroundLayout& InLayout);
 
 	/** Whether this world is the battleground, with its structures spawned. */
@@ -136,6 +139,9 @@ public:
 	void UpdateBackdoorProtection(double Seconds);
 
 private:
+	/** Server: raises the layout's walls as terrain, for the whole match. */
+	void RaiseWalls(const FVeyraBattlegroundLayout& InLayout);
+
 	void OnDeath(const FVeyraDeathEvent& Death);
 	void OnFluxbornDied(AVeyraFluxborn& Fluxborn, const FVeyraDeathEvent& Death);
 
