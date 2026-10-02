@@ -25,7 +25,7 @@ enum class EVeyraEchoEnd : uint8
 	Expired,
 	/** Its holder formed another. */
 	Replaced,
-	/** Its holder died or left the battleground. */
+	/** Its holder died, left the battleground, or its player disconnected. */
 	HolderGone,
 	/** Its Integrity ran out. */
 	Faded,

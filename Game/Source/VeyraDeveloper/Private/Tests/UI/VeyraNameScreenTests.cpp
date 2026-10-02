@@ -110,13 +110,16 @@ namespace VeyraNameScreenTests
 		TEST_METHOD(AClaimedAccountChoosesANewNameBeforeTheShell)
 		{
 			Rig.bRenameRequired = true;
-			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.ReachProfile(true) && Rig.State() == EVeyraClientState::Shell));
 			Show();
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Choose a new name"))));
 			ASSERT_THAT(IsNull(Screen->FindButton(PageLabel()), TEXT("nothing else until a name is chosen")));
 			Screen->SetNameDraft(TEXT("Returned"));
 			ASSERT_THAT(IsTrue(Press(ChooseNameLabel())));
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200, ShownName(TEXT("Returned"), true))));
+			// Named, it goes on where it was bound: here, the shell.
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch) && Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)
+				&& Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(true)) && Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby)));
 			ASSERT_THAT(IsNotNull(Screen->FindButton(PageLabel()), TEXT("the shell, once chosen")));
 		}
 	};

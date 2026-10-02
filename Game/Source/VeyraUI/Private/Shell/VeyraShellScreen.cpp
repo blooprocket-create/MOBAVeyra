@@ -625,9 +625,12 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 	}
 	AddText(Parent, LOCTEXT("HistoryEyebrow", "Your record"), RoleOf(EVeyraShellText::Eyebrow));
 	AddText(Parent, LOCTEXT("HistoryTitle", "Match History"), RoleOf(EVeyraShellText::Display));
-	AddHistoryFilter(Parent, Model.Vanguards, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.VanguardId = Value; });
-	AddHistoryFilter(Parent, Model.Modes, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Mode = Value; });
-	AddHistoryFilter(Parent, Model.Outcomes, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Outcome = Value; });
+	const VeyraBackendProtocol::FHistoryFilter& Current = Snapshot.History.Filter;
+	const auto Load = [this](const VeyraBackendProtocol::FHistoryFilter& Filter) { Client->LoadHistory(Filter); };
+	const bool bCanLoad = Client->CanIssue(EVeyraClientIntent::LoadHistory);
+	AddHistoryFilter(Parent, Model.Vanguards, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.VanguardId = Value; }, Load, bCanLoad);
+	AddHistoryFilter(Parent, Model.Modes, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Mode = Value; }, Load, bCanLoad);
+	AddHistoryFilter(Parent, Model.Outcomes, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Outcome = Value; }, Load, bCanLoad);
 	if (!Model.Empty.IsEmpty())
 	{
 		AddText(Parent, Model.Empty, RoleOf(EVeyraShellText::Muted));
@@ -654,18 +657,17 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 	}
 }
 
-void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
-	TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply)
+void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options, const VeyraBackendProtocol::FHistoryFilter& Current,
+	TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply, TFunction<void(const VeyraBackendProtocol::FHistoryFilter&)> Load, bool bCanLoad)
 {
 	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	const bool bCanLoad = Client->CanIssue(EVeyraClientIntent::LoadHistory);
 	for (const FVeyraHistoryOption& Option : Options)
 	{
 		const FString Value = Option.Value;
-		AddKindButton(*Row, EVeyraShellButtonKind::Tab, Option.Label, [this, Value, Apply] {
-			VeyraBackendProtocol::FHistoryFilter Filter = Client->GetSnapshot().History.Filter;
+		AddKindButton(*Row, EVeyraShellButtonKind::Tab, Option.Label, [Current, Value, Apply, Load] {
+			VeyraBackendProtocol::FHistoryFilter Filter = Current;
 			Apply(Filter, Value);
-			Client->LoadHistory(Filter);
+			Load(Filter);
 		}, bCanLoad, Option.bSelected)->KeepLabelOnOneLine();
 	}
 	VeyraShellStyle::AddSpaced(Parent, *Row);

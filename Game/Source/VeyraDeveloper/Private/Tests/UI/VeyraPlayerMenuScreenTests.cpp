@@ -106,6 +106,18 @@ namespace VeyraPlayerMenuScreenTests
 			// The details hold no more than the backend accepts.
 			Screen->SetReportDetailsDraft(FString::ChrN(600, TEXT('x')));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(DetailsCount(500, 500).ToString())));
+			// Counted as the backend counts, by character: an emoji is one, and a limit never splits one.
+			const FString Smile = TEXT("\U0001F600");
+			FString Smiles;
+			for (int32 Index = 0; Index < 501; ++Index)
+			{
+				Smiles += Smile;
+			}
+			ASSERT_THAT(IsTrue(CharacterCount(Smiles) == 501 && Smiles.Len() == 1002));
+			Screen->SetReportDetailsDraft(Smiles);
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(DetailsCount(500, 500).ToString())));
+			ASSERT_THAT(IsTrue(LeftCharacters(Smiles, 500) == Smiles.Left(1000), TEXT("five hundred whole emoji")));
+			ASSERT_THAT(IsTrue(LeftCharacters(TEXT("abc"), 5) == TEXT("abc")));
 			Screen->SetReportDetailsDraft(TEXT("stood in base"));
 			ASSERT_THAT(IsTrue(Press(SubmitReportLabel(TEXT("DevTwo")))));
 			const FFlowTestBackend::FRequest* Request = Rig.Backend.Find(TEXT("POST"), MenuRoute(TEXT("reports")));
