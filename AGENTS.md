@@ -46,6 +46,10 @@ All repository-visible work must use **Veyra-native terminology** and Veyra's ca
 
 ## World, asset, and VFX production
 
+- Crucible world-authoring architecture is governed by [ADR-040](Docs/ADR/ADR-040-crucible-world-authoring-toolchain.md). The pinned Epic source checkout is **read-only by default**: agents may inspect/build/run it, but may not modify `Engine/Source`, `Engine/Plugins`, engine build files, or engine-owned content unless the author explicitly approves an engine fork and a separate ADR.
+- Production Crucible generation belongs in the project-owned `Game/Plugins/VeyraWorldTools/` editor plugin plus the existing Veyra runtime/layout contracts. Packaged gameplay code may not depend on the editor plugin.
+- Do not assume battleground Z=0. World/runtime spawn work on the production Crucible must use the Veyra-owned playable-surface resolution path required by ADR-040 rather than ad-hoc traces or per-system height assumptions.
+
 For substantial visual/world work:
 
 - `Game/Tuning/World.json` is the current machine-readable gameplay-layout source under ADR-011. Do not create a second private map layout in Blender, Blueprints, PCG, or hand-edited map actors.

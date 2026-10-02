@@ -20,7 +20,7 @@ If a production task would require changing gameplay topology, art canon, an arc
 - [`VEYRA_ASSET_AND_VFX_PIPELINE.md`](VEYRA_ASSET_AND_VFX_PIPELINE.md) — how Blender and Unreal divide responsibility for meshes, materials, foliage, animation, Niagara, dynamic effects, and reusable asset-family generators.
 - [`VEYRA_WORLD_VALIDATION_STANDARD.md`](VEYRA_WORLD_VALIDATION_STANDARD.md) — acceptance gates for generated assets and map changes: reproducibility, navigation, readability, performance, screenshots, cooking/packaging, and rollback.
 
-Visual work must also read [`Docs/Design/Art_Direction_v0.1.md`](../Design/Art_Direction_v0.1.md). Crucible layout work must also read [`Docs/Design/Veyra_Battleground_Bible_v0.9.md`](../Design/Veyra_Battleground_Bible_v0.9.md) and [ADR-011](../ADR/ADR-011-battleground-runtime.md).
+Visual work must also read [`Docs/Design/Art_Direction_v0.1.md`](../Design/Art_Direction_v0.1.md). Crucible layout/world-authoring work must also read [`Docs/Design/Veyra_Battleground_Bible_v0.9.md`](../Design/Veyra_Battleground_Bible_v0.9.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), and [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md).
 
 ## Core production doctrine
 
@@ -88,6 +88,6 @@ Do not hand-edit a generated result when the correct fix belongs in its generato
 
 ## Engine target
 
-The repository targets **Unreal Engine 5.8** under [ADR-001](../ADR/ADR-001-unreal-version-policy.md). Production guidance must be interpreted against the version pinned by the repository.
+The repository targets **Unreal Engine 5.8.3 built from Epic's source repository** under [ADR-001](../ADR/ADR-001-unreal-version-policy.md). [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md) makes that engine checkout read-only by default for project work and places Crucible generation/editor automation in the project-owned `Game/Plugins/VeyraWorldTools/` plugin. Production guidance must be interpreted against the version pinned by the repository.
 
 Experimental engine features are not automatically approved merely because UE 5.8 contains them. Their use must follow ADR-001 and the specific cautions in these documents.

@@ -416,6 +416,15 @@ The debug commands are the `Veyra.Dev.*` console commands in `DevCommands/`, one
 
 Its scripted players drive the game from the command line for `Game/Scripts/Smoke.ps1`: one plays a match's script, one plays a Vanguard's whole kit, and since M6 one plays the play flow by clicking the same shell and menu buttons a player would. It plays practice alone (`-Flow Practice`), and a matchmade 1v1 in two games at once (`-Flow Casual`, `-Flow CasualDecline`). The same scripted player is also a sparring partner for a person playing the matchmade path (`Game/Scripts/Play.ps1 -Opponent`).
 
+### VeyraWorldTools project plugin
+
+[ADR-040](Docs/ADR/ADR-040-crucible-world-authoring-toolchain.md) places production Crucible authoring in `Game/Plugins/VeyraWorldTools/`, a project-owned **editor/developer plugin** rather than an engine fork or a packaged gameplay dependency.
+
+- It may read VeyraWorld/VeyraCore layout contracts and `Game/Tuning/World.json`, create/update Landscape, drive the river presentation layer, invoke constrained editor-time PCG, regenerate scoped world regions, create review cameras/captures and emit generation metadata.
+- Production modules do not depend on this plugin. If runtime gameplay needs a capability discovered during authoring — notably resolving a 2D gameplay placement onto the real terrain surface — that capability belongs in the appropriate production module (for the Crucible surface contract, VeyraWorld), and the plugin consumes it.
+- The Epic UE 5.8.3 source checkout is read-only by default for project work. Engine changes require explicit author approval and their own ADR.
+- `L_Battleground.umap` remains generated output. The plugin/tooling plus reviewed source data must make its terrain/water/art layers reproducible.
+
 ## 2. Dependency direction
 
 Conceptually:
