@@ -62,7 +62,7 @@ public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 
 	/**
-	 * Server: spawns every structure the layout places, and raises its walls (ADR-042 §2). The map's marker
+	 * Server: spawns every structure the layout places, and raises its walls (ADR-043 §2). The map's marker
 	 * does this; tests call it with their own layout.
 	 */
 	void SpawnStructures(const FVeyraBattlegroundLayout& InLayout);

@@ -55,7 +55,7 @@ struct FVeyraMinimapLane
 	TArray<FVector2D> Points;
 };
 
-/** One of the battleground's walls (ADR-042 §4): its corners round its outline, in screen pixels. */
+/** One of the battleground's walls (ADR-043 §4): its corners round its outline, in screen pixels. */
 struct FVeyraMinimapWall
 {
 	TArray<FVector2D> Corners;

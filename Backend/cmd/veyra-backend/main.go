@@ -340,7 +340,7 @@ type casualSelects struct {
 	vanguards *catalog.Catalog
 	// coop holds each co-op mode's enemy AI team.
 	coop map[string]config.Mode
-	// draft marks the Draft Pick modes, whose select bans and picks in turns (ADR-041 §3).
+	// draft marks the Draft Pick modes, whose select bans and picks in turns (ADR-042 §3).
 	draft map[string]bool
 }
 

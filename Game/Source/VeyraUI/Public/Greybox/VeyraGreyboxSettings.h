@@ -10,39 +10,7 @@
 
 class UMaterialInterface;
 class UStaticMesh;
-
-/** A kind of structure's art: its mesh standing, and its wreck once destroyed. Ground-pivoted, in centimetres. */
-USTRUCT()
-struct FVeyraStructureArt
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Standing;
-
-	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Destroyed;
-};
-
-/**
- * A kind of Fluxborn's art, by its content ID in World.json: its body active, and collapsed where it fell for its
- * corpse's moment (Battleground Bible §4). Ground-pivoted, facing +X, in centimetres.
- */
-USTRUCT()
-struct FVeyraFluxbornArt
-{
-	GENERATED_BODY()
-
-	/** The kind it dresses, such as "strider". */
-	UPROPERTY(EditAnywhere)
-	FString Kind;
-
-	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Active;
-
-	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Collapsed;
-};
+class UVeyraUnitArtSet;
 
 /**
  * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
@@ -158,7 +126,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
 
-	/** The battleground's walls on the minimap (ADR-042 §4); its river is drawn in RiverColor. */
+	/** The battleground's walls on the minimap (ADR-043 §4); its river is drawn in RiverColor. */
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapWallColor = FLinearColor::Transparent;
 
@@ -239,7 +207,7 @@ public:
 	FLinearColor EndingColor = FLinearColor::Transparent;
 
 	/**
-	 * The local player's indicator, before a cast (ADR-040 §2): its colour, and its outline in units at
+	 * The local player's indicator, before a cast (ADR-041 §2): its colour, and its outline in units at
 	 * the Standard and Thick boundaries (Settings Bible §3.3).
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
@@ -268,47 +236,23 @@ public:
 	TSoftObjectPtr<UStaticMesh> PadMesh;
 
 	/**
-	 * Each kind of structure's provisional art (Art Direction, Crucible structure greybox meshes), drawn
-	 * in place of its body. Visual only: its capsule stays its only collision and navigation.
+	 * The structure kit's provisional art (Art Direction, Crucible structure greybox meshes), keyed by each
+	 * kind's stable ID (StructureArtId), drawn in place of each structure's body: standing, then its wreck.
+	 * Visual only: its capsule stays its only collision and navigation.
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt LaneSpireArt;
+	TSoftObjectPtr<UVeyraUnitArtSet> StructureArt;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt BaseTowerArt;
-
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt InhibitorArt;
-
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt PrimeWellArt;
-
-	/** The art's material slot whose Flux glows in each structure's side colour, and the parameter that colours it. */
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FName StructureFluxSlot;
-
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FName StructureFluxParameter;
-
-	/** The art of a kind of structure. */
-	const FVeyraStructureArt& ArtOf(EVeyraStructureKind Kind) const;
+	/** A kind of structure's stable ID in its art kit, as the kit's manifest names it: "laneSpire" and the like. */
+	static FName StructureArtId(EVeyraStructureKind Kind);
 
 	/**
-	 * Each kind of Fluxborn's provisional art (Art Direction, Fluxborn greybox meshes), drawn in place of its
-	 * body; a kind without art keeps its body. Visual only: its capsule stays its only collision and movement.
+	 * The Fluxborn kit's provisional art (Art Direction, Fluxborn greybox meshes), keyed by each kind's content ID,
+	 * drawn in place of each Fluxborn's body: active, then collapsed where it fell for its corpse's moment. A kind
+	 * without art keeps its body. Visual only: its capsule stays its only collision and movement.
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	TArray<FVeyraFluxbornArt> FluxbornArt;
-
-	/**
-	 * The art's material slot whose Flux shows each Fluxborn's side, tinted while it is crowd controlled as a
-	 * body is, and the parameter that colours it.
-	 */
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FName FluxbornFluxSlot;
-
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FName FluxbornFluxParameter;
+	TSoftObjectPtr<UVeyraUnitArtSet> FluxbornArt;
 
 	/** The lanes' road, the river, and each side's base as the viewer sees it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")

@@ -26,7 +26,7 @@ namespace
 	const TCHAR* const LockPath = TEXT("/v1/me/select/lock");
 	const TCHAR* const FluxSpellsPath = TEXT("/v1/me/select/spells");
 	const TCHAR* const LeaveSelectPath = TEXT("/v1/me/select/leave");
-	// A draft's bans and the trades between locked teammates (ADR-041).
+	// A draft's bans and the trades between locked teammates (ADR-042).
 	const TCHAR* const BanHoverPath = TEXT("/v1/me/select/ban/hover");
 	const TCHAR* const BanPath = TEXT("/v1/me/select/ban");
 	const TCHAR* const TradePath = TEXT("/v1/me/select/trade");
@@ -140,7 +140,7 @@ namespace
 		return IsMatchmade(Select) || Select.Kind == CustomSelectKind;
 	}
 
-	/** Whether the player has locked, in a matchmade select still picking: what a trade needs on each side (ADR-041 §2). */
+	/** Whether the player has locked, in a matchmade select still picking: what a trade needs on each side (ADR-042 §2). */
 	const VeyraBackendProtocol::FSelectSeat* LockedTrader(const VeyraBackendProtocol::FSelect& Select)
 	{
 		const VeyraBackendProtocol::FSelectSeat* You = Select.FindYou();
@@ -561,7 +561,7 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	case EVeyraClientIntent::HoverVanguard:
 	{
 		// A lock is permanent (Battleground Bible §15). In a draft a pick may be hovered before its turn,
-		// as the player's intent (ADR-041 §1).
+		// as the player's intent (ADR-042 §1).
 		const VeyraBackendProtocol::FSelectSeat* You = Snapshot.Select.FindYou();
 		return Snapshot.Select.State == ESelectState::Picking && Snapshot.Select.Phase != VeyraBackendProtocol::ESelectPhase::Final && You
 			&& You->Locked.IsEmpty() && !Snapshot.AvailableVanguards.IsEmpty();

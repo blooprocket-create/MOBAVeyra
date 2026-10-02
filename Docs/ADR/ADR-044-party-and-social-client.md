@@ -6,7 +6,7 @@
 - [Parties, Social & Matchmaking Bible](../Design/Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) §1–§2 (membership, leader, privacy, invites, readiness, the queue lock), §5 (friends) and §6 (blocks).
 - [Pre-Game Client UX Bible](../Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) proposals 7–11: invitations from the sidebar, a solo invite making a mode-less party, member cards with contextual actions, and the confirmed **Make Party Leader**.
 - [ADR-010](ADR-010-play-flow.md): the client flow, its intents, and the party it polls.
-- [ADR-021](ADR-021-custom-lobbies.md): the friends panel. Its open item "party invites in the client", which waited for a matchmade mode for several humans, is closed here: Draft Pick (ADR-041) and Co-op vs AI (ADR-039) both take parties.
+- [ADR-021](ADR-021-custom-lobbies.md): the friends panel. Its open item "party invites in the client", which waited for a matchmade mode for several humans, is closed here: Draft Pick (ADR-042) and Co-op vs AI (ADR-039) both take parties.
 
 ## Context
 

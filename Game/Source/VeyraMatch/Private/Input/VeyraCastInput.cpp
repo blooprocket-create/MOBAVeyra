@@ -18,7 +18,7 @@ FVeyraCastOutcome FVeyraCastInput::Press(EVeyraAbilitySlot Slot, EVeyraCastMode 
 	}
 	if (Indicator && Indicator->Slot == Slot && !Indicator->bPreviewOnly)
 	{
-		// A second press of the waiting ability's key keeps it waiting (ADR-040 §8.3).
+		// A second press of the waiting ability's key keeps it waiting (ADR-041 §8.3).
 		return {};
 	}
 	// Another ability's key moves the indicator to it, casting nothing.

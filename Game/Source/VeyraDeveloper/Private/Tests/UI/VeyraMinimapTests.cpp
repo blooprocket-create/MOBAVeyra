@@ -60,7 +60,7 @@ namespace VeyraMinimapTests
 			ASSERT_THAT(IsTrue(View.Lanes.Num() == 3 && View.Lanes[0].Points.Num() >= 2, TEXT("the battleground's three lanes")));
 			ASSERT_THAT(IsTrue(View.Focus.IsSet() && View.Focus->Equals(FVector2D(1800.0, 960.0))));
 			ASSERT_THAT(IsTrue(View.Dots.IsEmpty(), TEXT("a world with no units has no dots")));
-			// The river crosses from corner to corner, and every wall of both halves stands on it (ADR-042 §4).
+			// The river crosses from corner to corner, and every wall of both halves stands on it (ADR-043 §4).
 			const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
 			ASSERT_THAT(IsTrue(View.River.Num() == 6 && View.River.Contains(FVector2D(1700.0, 860.0)) && View.River.Contains(FVector2D(1900.0, 1060.0)),
 				TEXT("from the top-left corner to the bottom-right")));

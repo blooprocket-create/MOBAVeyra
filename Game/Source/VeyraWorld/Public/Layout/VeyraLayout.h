@@ -79,7 +79,7 @@ namespace VeyraLayout
 	/** Both teams' Dense Fog: Team A's circles, then their mirrors. */
 	VEYRAWORLD_API TArray<FVeyraFogPlacement> DenseFog(const FVeyraBattlegroundLayout& Layout);
 
-	/** One of Team A's walls, as it stands for Team (ADR-042 §1). */
+	/** One of Team A's walls, as it stands for Team (ADR-043 §1). */
 	VEYRAWORLD_API FVeyraTerrainBox Wall(const FVeyraWallLayout& Wall, EVeyraTeam Team);
 
 	/** Both teams' walls: Team A's, then their mirrors. */

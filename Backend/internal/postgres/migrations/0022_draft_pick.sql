@@ -1,4 +1,4 @@
--- Draft Pick (ADR-041): a select of turns, with bans; trades between locked
+-- Draft Pick (ADR-042): a select of turns, with bans; trades between locked
 -- teammates; and the phase each select is in, its turn, and the timing it
 -- opened with.
 
@@ -23,7 +23,7 @@ CREATE TABLE selection.bans (
     UNIQUE (session_id, vanguard_id)
 );
 
--- One standing offer per player (ADR-041 §7.5).
+-- One standing offer per player (ADR-042 §7.5).
 CREATE TABLE selection.trades (
     session_id   uuid NOT NULL REFERENCES selection.sessions(id) ON DELETE CASCADE,
     from_account uuid NOT NULL REFERENCES identity.accounts(id) ON DELETE CASCADE,

@@ -116,6 +116,9 @@ public:
 	static FString MemberCardKey(const FString& AccountId) { return TEXT("member:") + AccountId; }
 	static FString FriendCardKey(const FString& AccountId) { return TEXT("friend:") + AccountId; }
 
+	/** How many times a draft turn of the player's own asked for their attention (UX-31, UX-32). For tests. */
+	int32 GetTurnAttentionCount() const { return TurnAttentions; }
+
 	/** The art behind the screen: the Vanguard champion select shows, or null. */
 	UTexture2D* GetBackdrop() const;
 
@@ -348,4 +351,11 @@ private:
 	FString OpenCardId;
 	EVeyraShellConfirm Confirm = EVeyraShellConfirm::None;
 	FString ConfirmId;
+
+	/** The player's draft turn that last asked for attention, and how many have (VeyraShellModels::PlayersTurn). */
+	FString AttendedTurn;
+	int32 TurnAttentions = 0;
+
+	/** Once as the player's draft turn begins: the window asks to come forward, or draws attention, and the cue plays. */
+	void DrawTurnAttention();
 };

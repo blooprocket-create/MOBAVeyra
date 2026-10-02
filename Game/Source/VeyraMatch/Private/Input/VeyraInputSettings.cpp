@@ -88,7 +88,7 @@ namespace
 
 	/**
 	 * An ability's action: no trigger, so it starts when its key goes down and completes when it comes up,
-	 * which a Quick Cast with Indicator casts on (ADR-040 §1).
+	 * which a Quick Cast with Indicator casts on (ADR-041 §1).
 	 */
 	UInputAction* NewAbilityAction(UObject& Outer, const TCHAR* BaseName)
 	{

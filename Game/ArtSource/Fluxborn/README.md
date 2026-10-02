@@ -79,10 +79,13 @@ triangle budgets and capsule-radius footprint containment. The importer checks
 source hashes, material mapping, centimetre bounds, ground pivot, forward socket,
 two UV channels and disabled collision.
 
-The grey-box presentation draws them in play: `UVeyraGreyboxSettings::FluxbornArt`
-(`Config/DefaultGame.ini`) maps each content ID to its active and collapsed mesh,
-and the presentation shows the active mesh in place of each Fluxborn's capsule
-body, then the collapsed one once its replicated life state says it died. The
+The grey-box presentation draws them in play. Their asset references live in the
+Data Asset `DA_FluxbornArt` (a `UVeyraUnitArtSet`), keyed by each kind's content
+ID, as Architecture section 1.3 and ADR-006 section 6 require;
+`UVeyraGreyboxSettings::FluxbornArt` names it, and `Game/Scripts/BuildUnitArtSets.ps1`
+writes it from this manifest after an import. The presentation shows the active
+mesh in place of each Fluxborn's capsule body, then the collapsed one once its
+replicated life state says it died. The
 `M_FluxbornFlux` slot's `FluxTint` takes the body colour a capsule would show:
 the viewer-relative side colour, tinted while crowd controlled, as the structure
 kit's Flux does (provisional, for legibility). A kind without art keeps its

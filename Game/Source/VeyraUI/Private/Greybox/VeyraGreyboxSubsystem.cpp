@@ -27,6 +27,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
 #include "Layout/VeyraLayout.h"
@@ -89,30 +90,35 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ShapeMaterial = Settings.ShapeMaterial.LoadSynchronous();
 		GroundMesh = Settings.GroundMesh.LoadSynchronous();
 		PadMesh = Settings.PadMesh.LoadSynchronous();
-		for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+		// The structure kit's art set must dress every kind (ADR-006 §6: asset references by stable ID).
+		StructureArt = Settings.StructureArt.LoadSynchronous();
+		if (!StructureArt)
 		{
-			const FVeyraStructureArt& Art = Settings.ArtOf(Kind);
-			for (const TSoftObjectPtr<UStaticMesh>* State : { &Art.Standing, &Art.Destroyed })
+			Problems.Add(FString::Printf(TEXT("StructureArt: %s does not load."), *Settings.StructureArt.ToString()));
+		}
+		else
+		{
+			TArray<FName> Kinds;
+			for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
 			{
-				UStaticMesh* Loaded = State->LoadSynchronous();
-				if (!Loaded)
-				{
-					Problems.Add(FString::Printf(TEXT("%sArt: %s does not load."), *UEnum::GetValueAsName(Kind).ToString(), *State->ToString()));
-				}
-				StructureMeshes.Add(Loaded);
+				Kinds.Add(UVeyraGreyboxSettings::StructureArtId(Kind));
+			}
+			for (const FString& Problem : StructureArt->Validate(Kinds))
+			{
+				Problems.Add(TEXT("StructureArt ") + Problem);
 			}
 		}
-		for (const FVeyraFluxbornArt& Art : Settings.FluxbornArt)
+		// The Fluxborn kit's set need not dress every kind: one without art keeps its body.
+		FluxbornArt = Settings.FluxbornArt.LoadSynchronous();
+		if (!FluxbornArt)
 		{
-			FluxbornArtIndex.Add(Art.Kind, FluxbornArtIndex.Num());
-			for (const TSoftObjectPtr<UStaticMesh>* State : { &Art.Active, &Art.Collapsed })
+			Problems.Add(FString::Printf(TEXT("FluxbornArt: %s does not load."), *Settings.FluxbornArt.ToString()));
+		}
+		else
+		{
+			for (const FString& Problem : FluxbornArt->Validate(TConstArrayView<FName>()))
 			{
-				UStaticMesh* Loaded = State->LoadSynchronous();
-				if (!Loaded)
-				{
-					Problems.Add(FString::Printf(TEXT("FluxbornArt %s: %s does not load."), *Art.Kind, *State->ToString()));
-				}
-				FluxbornMeshes.Add(Loaded);
+				Problems.Add(TEXT("FluxbornArt ") + Problem);
 			}
 		}
 		if (!GroundMesh)
@@ -323,30 +329,27 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMes
 
 void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structure, FBody& Body)
 {
-	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	// Standing, or the wreck it leaves (Battleground Bible §5); an inhibitor rebuilt stands again.
-	const int32 Index = static_cast<int32>(Structure.GetStructureKind()) * 2 + (Structure.IsDestroyed() ? 1 : 0);
-	if (UStaticMesh* Mesh = StructureMeshes.IsValidIndex(Index) ? StructureMeshes[Index].Get() : nullptr)
+	const FVeyraUnitArt* Art = StructureArt ? StructureArt->Find(UVeyraGreyboxSettings::StructureArtId(Structure.GetStructureKind())) : nullptr;
+	if (UStaticMesh* Mesh = Art ? (Structure.IsDestroyed() ? Art->Fallen : Art->Intact).Get() : nullptr)
 	{
-		ShowArt(Structure, Body, *Mesh, Settings.StructureFluxSlot, Settings.StructureFluxParameter, SideColorOf(Structure));
+		ShowArt(Structure, Body, *Mesh, *StructureArt, SideColorOf(Structure));
 	}
 }
 
 void UVeyraGreyboxSubsystem::RefreshFluxbornArt(const AVeyraFluxborn& Unit, FBody& Body)
 {
-	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	// Its kind arrives with it; until then, and for a kind without art, its body shows.
-	const int32* Pair = FluxbornArtIndex.Find(Unit.GetKind().ToString());
+	const FVeyraUnitArt* Art = FluxbornArt && Unit.GetKind().IsValid() ? FluxbornArt->Find(FName(Unit.GetKind().ToString())) : nullptr;
 	// Active, or collapsed where it fell, for its corpse's moment (Battleground Bible §4).
-	const int32 Index = Pair ? *Pair * 2 + (Unit.IsAlive() ? 0 : 1) : INDEX_NONE;
-	if (UStaticMesh* Mesh = FluxbornMeshes.IsValidIndex(Index) ? FluxbornMeshes[Index].Get() : nullptr)
+	if (UStaticMesh* Mesh = Art ? (Unit.IsAlive() ? Art->Intact : Art->Fallen).Get() : nullptr)
 	{
 		// Its Flux shows what its body would: its side, tinted while it is crowd controlled.
-		ShowArt(Unit, Body, *Mesh, Settings.FluxbornFluxSlot, Settings.FluxbornFluxParameter, BodyColorOf(Unit));
+		ShowArt(Unit, Body, *Mesh, *FluxbornArt, BodyColorOf(Unit));
 	}
 }
 
-void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, FName FluxSlot, FName FluxParameter, const FLinearColor& Color)
+void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
 {
 	USceneComponent* Root = Unit.GetRootComponent();
 	if (!Root)
@@ -375,7 +378,7 @@ void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh
 	if (Body.ArtMesh.Get() != &Mesh)
 	{
 		Art->SetStaticMesh(&Mesh);
-		const int32 Slot = Art->GetMaterialIndex(FluxSlot);
+		const int32 Slot = Art->GetMaterialIndex(Set.FluxSlot);
 		Body.ArtFlux = Slot != INDEX_NONE ? Art->CreateDynamicMaterialInstance(Slot) : nullptr;
 		Body.ArtMesh = &Mesh;
 		Body.ArtShown = FLinearColor::Transparent;
@@ -386,7 +389,7 @@ void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh
 	}
 	if (UMaterialInstanceDynamic* Flux = Body.ArtFlux.Get(); Flux && !Color.Equals(Body.ArtShown))
 	{
-		Flux->SetVectorParameterValue(FluxParameter, Color);
+		Flux->SetVectorParameterValue(Set.FluxParameter, Color);
 		Body.ArtShown = Color;
 	}
 }

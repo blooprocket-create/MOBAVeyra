@@ -319,7 +319,7 @@ Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-a
 
 Since M12 `Statistics/` holds the match's one statistics service ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §3). `UVeyraMatchStatisticsSubsystem` records every participant, bots too, from the events Combat, Economy, World and Vision report, and never computes what they decide. Pure rules (`VeyraStatisticsRules`) hold the crowd-control union and which Gold counts as earned. Each PlayerState's `UVeyraScoreComponent` carries the public part, K/D/A and last hits, to every client.
 
-Since M31 `Input/` decides how the player's keys cast ([ADR-040](Docs/ADR/ADR-040-casting-modes-and-targeting-aids.md)):
+Since M31 `Input/` decides how the player's keys cast ([ADR-041](Docs/ADR/ADR-041-casting-modes-and-targeting-aids.md)):
 - `FVeyraCastInput`, the casting modes (Quick, Quick with Indicator, Normal) and Show Cast Range as pure transitions;
 - `VeyraControlPreferences`, the control settings;
 - `VeyraCursorPicks`, which unit under the cursor an order or cast names, for Target Vanguards Only and Smart Self-Cast.
@@ -423,6 +423,15 @@ The debug commands are the `Veyra.Dev.*` console commands in `DevCommands/`, one
 - Each command acts through its owner's verbs, never by writing that owner's state: Developer Gold through Economy, damage through Combat's pipeline, items through the shop's rules. Amounts come from the typed arguments or the tuning.
 
 Its scripted players drive the game from the command line for `Game/Scripts/Smoke.ps1`: one plays a match's script, one plays a Vanguard's whole kit, and since M6 one plays the play flow by clicking the same shell and menu buttons a player would. It plays practice alone (`-Flow Practice`), and a matchmade 1v1 in two games at once (`-Flow Casual`, `-Flow CasualDecline`). The same scripted player is also a sparring partner for a person playing the matchmade path (`Game/Scripts/Play.ps1 -Opponent`).
+
+### VeyraWorldTools project plugin
+
+[ADR-040](Docs/ADR/ADR-040-crucible-world-authoring-toolchain.md) places production Crucible authoring in `Game/Plugins/VeyraWorldTools/`, a project-owned **editor/developer plugin** rather than an engine fork or a packaged gameplay dependency.
+
+- It may read VeyraWorld/VeyraCore layout contracts and `Game/Tuning/World.json`, create/update Landscape, drive the river presentation layer, invoke constrained editor-time PCG, regenerate scoped world regions, create review cameras/captures and emit generation metadata.
+- Production modules do not depend on this plugin. If runtime gameplay needs a capability discovered during authoring — notably resolving a 2D gameplay placement onto the real terrain surface — that capability belongs in the appropriate production module (for the Crucible surface contract, VeyraWorld), and the plugin consumes it.
+- The Epic UE 5.8.3 source checkout is read-only by default for project work. Engine changes require explicit author approval and their own ADR.
+- `L_Battleground.umap` remains generated output. The plugin/tooling plus reviewed source data must make its terrain/water/art layers reproducible.
 
 ## 2. Dependency direction
 

@@ -15,7 +15,8 @@ Before modifying gameplay code, read:
 1. [`ARCHITECTURE.md`](ARCHITECTURE.md)
 2. [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)
 3. The relevant *current owning sections*, selected using [`Docs/CONTEXT_MAP.md`](Docs/CONTEXT_MAP.md)
-4. Relevant ADRs under [`Docs/ADR/`](Docs/ADR/)
+4. For world, environment, Blender, asset, material, PCG, water, lighting, or VFX work: [`Docs/Production/README.md`](Docs/Production/README.md) and the relevant production guide it indexes
+5. Relevant ADRs under [`Docs/ADR/`](Docs/ADR/)
 
 If a task conflicts with those documents, do not silently choose a side. Surface the conflict.
 
@@ -42,6 +43,24 @@ All repository-visible work must use **Veyra-native terminology** and Veyra's ca
 - Do not expand a convenient class into a god object.
 - **Never hardcode gameplay tuning values or leave magic numbers in gameplay C++/Blueprints.** Every prototype and final balance/timing/cost/range/cap value must come from validated, designer-editable data; a named C++ constant is not a substitute. Treat other games' numbers as provisional data, especially map-dependent wave and objective timings. Allow only justified true algorithmic invariants (e.g. mathematical identities), not concealed balance literals.
 - Do not bypass architecture merely to make a task compile.
+
+## World, asset, and VFX production
+
+- Crucible world-authoring architecture is governed by [ADR-040](Docs/ADR/ADR-040-crucible-world-authoring-toolchain.md). The pinned Epic source checkout is **read-only by default**: agents may inspect/build/run it, but may not modify `Engine/Source`, `Engine/Plugins`, engine build files, or engine-owned content unless the author explicitly approves an engine fork and a separate ADR.
+- Production Crucible generation belongs in the project-owned `Game/Plugins/VeyraWorldTools/` editor plugin plus the existing Veyra runtime/layout contracts. Packaged gameplay code may not depend on the editor plugin.
+- Do not assume battleground Z=0. World/runtime spawn work on the production Crucible must use the Veyra-owned playable-surface resolution path required by ADR-040 rather than ad-hoc traces or per-system height assumptions.
+
+For substantial visual/world work:
+
+- `Game/Tuning/World.json` is the current machine-readable gameplay-layout source under ADR-011. Do not create a second private map layout in Blender, Blueprints, PCG, or hand-edited map actors.
+- Protected competitive geometry may not be changed by ordinary art/PCG work.
+- Blender owns reproducible source geometry/generators; Unreal owns runtime materials, Niagara, lighting, gameplay integration, and final visual validation.
+- Edit the authoritative source/generator instead of hand-patching generated output.
+- Record deterministic seeds/inputs for procedural production content.
+- Validate important visual work from the actual Unreal gameplay camera and use the repeatable screenshot/debug views defined by `Docs/Production/`.
+- Presentation systems may observe authoritative gameplay state but never own gameplay outcomes.
+- Experimental UE features are not shipping dependencies unless approved through the repository's ADR process.
+- Record provenance and AI-use restrictions for third-party visual content before allowing agents to inspect or transform it.
 
 ## Task workflow
 
@@ -90,6 +109,7 @@ For substantial PRs, include:
 - networking/replication implications;
 - tests/builds run;
 - architecture checklist result;
-- screenshots/video only when visual verification is relevant.
+- for generated world/asset work: generator/source, seed/profile, affected region, whether `World.json` or protected gameplay geometry changed, and regeneration steps;
+- screenshots/video when visual verification is relevant, using standard validation cameras where defined.
 
 A passing build is necessary but not sufficient. The implementation must also preserve architectural boundaries.

@@ -86,7 +86,7 @@ namespace VeyraBackendProtocol
 		TArray<FString> Available;
 		/** What a new player chooses a starter from. */
 		TArray<FString> Starters;
-		/** Every released Vanguard, owned or not: what a draft's bans may name (ADR-041 §1). */
+		/** Every released Vanguard, owned or not: what a draft's bans may name (ADR-042 §1). */
 		TArray<FString> Released;
 	};
 
@@ -104,7 +104,7 @@ namespace VeyraBackendProtocol
 	};
 
 	/**
-	 * Where a picking select is (ADR-041 §1–§2): a draft's ban turn, picking (a draft's pick turn, or
+	 * Where a picking select is (ADR-042 §1–§2): a draft's ban turn, picking (a draft's pick turn, or
 	 * any other select's whole time), or the final window after the last lock, in which locked
 	 * teammates may still trade before the match starts.
 	 */
@@ -115,7 +115,7 @@ namespace VeyraBackendProtocol
 		Final,
 	};
 
-	/** A draft's turn: Count bans or picks by Side, Done of them made (ADR-041 §1). */
+	/** A draft's turn: Count bans or picks by Side, Done of them made (ADR-042 §1). */
 	struct FSelectTurn
 	{
 		bool bBan = false;
@@ -154,7 +154,7 @@ namespace VeyraBackendProtocol
 		FString BanHover;
 		/** Whether the seat bans or picks in the draft's current turn. */
 		bool bActing = false;
-		/** Whether the seat offers the reading player a trade of locked Vanguards (ADR-041 §2). */
+		/** Whether the seat offers the reading player a trade of locked Vanguards (ADR-042 §2). */
 		bool bOffersYou = false;
 		/** Whether the reading player offers the seat one. */
 		bool bOfferedByYou = false;

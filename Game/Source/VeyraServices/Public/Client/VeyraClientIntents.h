@@ -47,10 +47,10 @@ public:
 	 * other slot's spell swaps the two.
 	 */
 	virtual bool ChooseFluxSpell(int32 Slot, const FString& SpellId) = 0;
-	/** Considers banning VanguardId, any released Vanguard, in the player's draft ban turn (ADR-041 §1). */
+	/** Considers banning VanguardId, any released Vanguard, in the player's draft ban turn (ADR-042 §1). */
 	virtual bool HoverBan(const FString& VanguardId) = 0;
 	virtual bool BanVanguard(const FString& VanguardId) = 0;
-	/** Offers the locked teammate in seat Seat, an index into the select's seats, the player's locked Vanguard for theirs (ADR-041 §2). */
+	/** Offers the locked teammate in seat Seat, an index into the select's seats, the player's locked Vanguard for theirs (ADR-042 §2). */
 	virtual bool OfferTrade(int32 Seat) = 0;
 	/** Accepts or declines the trade the teammate in seat Seat offers. */
 	virtual bool AnswerTrade(int32 Seat, bool bAccept) = 0;

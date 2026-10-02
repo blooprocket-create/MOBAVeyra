@@ -105,7 +105,7 @@ struct FVeyraFogLayout
 };
 
 /**
- * One wall of Team A's half (ADR-042 §1): an oriented box of terrain standing on the floor, Length long
+ * One wall of Team A's half (ADR-043 §1): an oriented box of terrain standing on the floor, Length long
  * across the way it faces and Thickness deep along it. Team B's is its mirror. Grey-box geometry,
  * Veyra's own.
  */
@@ -161,7 +161,7 @@ struct FVeyraBattlegroundLayout
 	UPROPERTY()
 	TArray<FVeyraFogLayout> DenseFog;
 
-	/** Team A's walls (ADR-042 §1); Team B's are their mirror. */
+	/** Team A's walls (ADR-043 §1); Team B's are their mirror. */
 	UPROPERTY()
 	TArray<FVeyraWallLayout> Walls;
 
@@ -171,7 +171,7 @@ struct FVeyraBattlegroundLayout
 
 	/**
 	 * How far every wall keeps from a lane's road, a camp's creatures, a Flux Well's radius, a structure's
-	 * body, the fountain and Dense Fog (ADR-042 §1), in units: so nothing placed in a straight line
+	 * body, the fountain and Dense Fog (ADR-043 §1), in units: so nothing placed in a straight line
 	 * stands in a wall.
 	 */
 	UPROPERTY()

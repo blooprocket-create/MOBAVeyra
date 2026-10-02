@@ -206,7 +206,7 @@
           }
         },
         "walls": {
-          "description": "Team A's walls (ADR-042 §1): oriented boxes of terrain wholly in Team A's half, clear of the lanes, camps, Flux Wells, structures, the fountain and Dense Fog by wallClearance. Team B's are their mirror. They block movement, paths, forced moves, line projectiles and sight.",
+          "description": "Team A's walls (ADR-043 §1): oriented boxes of terrain wholly in Team A's half, clear of the lanes, camps, Flux Wells, structures, the fountain and Dense Fog by wallClearance. Team B's are their mirror. They block movement, paths, forced moves, line projectiles and sight.",
           "type": "array",
           "minItems": 0,
           "items": {

@@ -249,13 +249,13 @@ public:
 	void SetMinimapHitTest(FMinimapHitTest InHitTest) { MinimapHitTest = MoveTemp(InHitTest); }
 	bool HasMinimapHitTest() const { return static_cast<bool>(MinimapHitTest); }
 
-	/** Owning client: the indicator the player sees, while a cast waits or Show Cast Range previews one (ADR-040 §1). */
+	/** Owning client: the indicator the player sees, while a cast waits or Show Cast Range previews one (ADR-041 §1). */
 	const TOptional<FVeyraCastIndicator>& GetCastIndicator() const { return CastInput.GetIndicator(); }
 
 	/** Owning client: hides a waiting cast or a preview, and whether one showed. Escape asks this before the menu opens. */
 	bool CancelPendingCast();
 
-	/** Owning client: Attack Move's key was pressed and its click is awaited (ADR-040 §4). */
+	/** Owning client: Attack Move's key was pressed and its click is awaited (ADR-041 §4). */
 	bool IsAttackMoveWaiting() const { return bAttackMoveWaiting; }
 
 	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
@@ -430,7 +430,7 @@ private:
 	/** The player's camera settings over the developer's (ADR-024 §6). */
 	FVeyraCameraPreferences CameraPreferences() const;
 
-	/** The player's control settings (ADR-040 §5). */
+	/** The player's control settings (ADR-041 §5). */
 	struct FVeyraControlPreferences ControlPreferences() const;
 
 	/** Makes PlayerKeys the developer's keys with the player's bindings, and maps the actions to them anew. */
@@ -477,7 +477,7 @@ private:
 	/** Casts Slot now, at the unit and the ground under the cursor. */
 	void CastAtCursor(EVeyraAbilitySlot Slot);
 
-	/** Which indicator shows, and when a key, its release or a click casts (ADR-040 §1). */
+	/** Which indicator shows, and when a key, its release or a click casts (ADR-041 §1). */
 	FVeyraCastInput CastInput;
 
 	/** Owning client: the enemy unit under the cursor, if any; only a Vanguard while Target Vanguards Only holds. */

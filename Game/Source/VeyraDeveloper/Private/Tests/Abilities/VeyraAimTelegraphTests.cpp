@@ -22,7 +22,7 @@ namespace VeyraAimTelegraphTests
 	}
 
 	// Veyra.Abilities.AimTelegraphs.*: the indicator a player sees before casting shows the ability's range and where it
-	// would land, as its delivery places it (ADR-040 §2).
+	// would land, as its delivery places it (ADR-041 §2).
 	TEST_CLASS(AimTelegraphs, "Veyra.Abilities")
 	{
 		TEST_METHOD(ASkillshotShowsItsRangeThenItsPathTowardTheAim)

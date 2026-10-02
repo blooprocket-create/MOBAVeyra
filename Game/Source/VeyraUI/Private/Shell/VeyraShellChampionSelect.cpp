@@ -4,7 +4,7 @@
 // with the countdown between two draining bars; the player's team down the left and the enemy team
 // down the right, each with its bans in a draft; the shown Vanguard's art large in the middle; the
 // Flux Spell slots, Lock In (Ban in the player's ban turn), the match setup and the mode along the
-// bottom (Pre-Game Client UX Bible §5, 23–40; ADR-041).
+// bottom (Pre-Game Client UX Bible §5, 23–40; ADR-042).
 
 #include "Shell/VeyraShellScreen.h"
 
@@ -175,7 +175,7 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 	UVerticalBox* Header = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 
 	// The roster as a bench: a portrait for each Vanguard the player may pick, the taken and banned
-	// ones disabled (UX 29). In the player's ban turn, every released Vanguard, to ban (ADR-041 §1).
+	// ones disabled (UX 29). In the player's ban turn, every released Vanguard, to ban (ADR-042 §1).
 	UHorizontalBox* Bench = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	UTextBlock* BenchTitle = VeyraShellStyle::MakeText(*WidgetTree,
 		Model.bBanning ? LOCTEXT("BanAVanguard", "BAN A VANGUARD") : LOCTEXT("AvailableVanguards", "AVAILABLE VANGUARDS"), EVeyraShellText::Eyebrow);
@@ -253,7 +253,7 @@ UWidget& UVeyraShellScreen::MakeSeatColumn(const FVeyraSelectModel& Model, bool 
 			bAllies ? HAlign_Left : HAlign_Right);
 		if (Model.bDraft)
 		{
-			// The team's bans, which both teams see (ADR-041 §1).
+			// The team's bans, which both teams see (ADR-042 §1).
 			TArray<FText> Names;
 			for (const FVeyraSelectBanModel& Ban : Model.Bans)
 			{
@@ -292,7 +292,7 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 	}
 	else if (Seat.bActing)
 	{
-		// Whoever bans or picks now, outlined in the accent (ADR-041 §1).
+		// Whoever bans or picks now, outlined in the accent (ADR-042 §1).
 		Row->SetBrush(FSlateRoundedBoxBrush(Settings.PanelColor, Settings.PanelCornerRadius, Settings.AccentColor, 1.0f));
 	}
 	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -312,7 +312,7 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 	{
 		AddLine(*WidgetTree, *Texts, Seat.BanHover, EVeyraShellText::Small, Align);
 	}
-	// Trades between locked teammates (ADR-041 §2): an offer to make, one made, or one to answer.
+	// Trades between locked teammates (ADR-042 §2): an offer to make, one made, or one to answer.
 	const int32 SeatIndex = Seat.SeatIndex;
 	if (Seat.bOffersYou)
 	{
@@ -465,7 +465,7 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 			Model.bCanChooseSpells, OpenSpellSlot == SpellSlot);
 		SpellButton->SetToolTipText(FText::Format(LOCTEXT("SpellTileTip", "{0}: {1}"), SlotModel.Title, SlotModel.Chosen));
 	}
-	// In the player's ban turn the tile bans their ban hover instead (ADR-041 §1).
+	// In the player's ban turn the tile bans their ban hover instead (ADR-042 §1).
 	const bool bBan = Model.bBanning;
 	const bool bCanPress = bBan ? Model.bCanBan : Model.bCanLockIn;
 	const FString LockInId = bBan ? Model.BanVanguardId : Model.LockInVanguardId;

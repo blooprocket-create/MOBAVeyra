@@ -182,7 +182,7 @@ Canon gives the three carried charges; every other value is Provisional.
 ## Open items
 
 - Darkening unseen ground on the client (presentation).
-- Terrain line of sight: the grey-box map has no walls. *Decided: [ADR-042](ADR-042-map-walls-and-terrain-sight.md) §3, map walls block sight.*
+- Terrain line of sight: the grey-box map has no walls. *Decided: [ADR-043](ADR-043-map-walls-and-terrain-sight.md) §3, map walls block sight.*
 - Camouflage and Invisibility statuses for Vanguards (Tavi, Mimzi) use §2's rules when those Vanguards arrive.
 - A minimap, and pings on it.
 - Replicating fog that abilities create, so clients draw it; the map's own fog is drawn from the layout every machine has.

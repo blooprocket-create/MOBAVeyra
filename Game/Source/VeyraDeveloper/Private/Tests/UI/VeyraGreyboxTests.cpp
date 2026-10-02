@@ -20,6 +20,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
+#include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Layout/VeyraLayout.h"
 #include "Ledger/VeyraFluxLedger.h"
@@ -118,6 +119,12 @@ namespace VeyraAbilitiesTests
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
 		}
 
+		/** The structure kit's art set, as the settings name it. */
+		static const UVeyraUnitArtSet& StructureArt()
+		{
+			return *GetDefault<UVeyraGreyboxSettings>()->StructureArt.LoadSynchronous();
+		}
+
 		UVeyraGreyboxSubsystem& RefreshedGreybox()
 		{
 			UVeyraGreyboxSubsystem* Subsystem = Spawner.GetWorld().GetSubsystem<UVeyraGreyboxSubsystem>();
@@ -159,6 +166,18 @@ namespace VeyraAbilitiesTests
 			FLinearColor Unused;
 			ASSERT_THAT(IsTrue(Material->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.ColorParameter), Unused),
 				TEXT("the shape material has the colour parameter")));
+			// The structure kit's art set dresses every kind, standing and wrecked, by its stable ID (ADR-006 §6).
+			const UVeyraUnitArtSet* Structures = Settings.StructureArt.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Structures));
+			TArray<FName> Kinds;
+			for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+			{
+				Kinds.Add(UVeyraGreyboxSettings::StructureArtId(Kind));
+			}
+			const TArray<FString> ArtProblems = Structures->Validate(Kinds);
+			ASSERT_THAT(IsTrue(ArtProblems.IsEmpty(), FString::Join(ArtProblems, TEXT(" "))));
+			const FVeyraUnitArt* Spire = Structures->Find(TEXT("laneSpire"));
+			ASSERT_THAT(IsTrue(Spire->Intact->GetMaterialIndex(Structures->FluxSlot) != INDEX_NONE, TEXT("the meshes have the Flux slot")));
 		}
 
 		TEST_METHOD(OnlyClientsLoadThePresentation)
@@ -224,7 +243,8 @@ namespace VeyraAbilitiesTests
 				ASSERT_THAT(IsNotNull(Presentation.FindBody(*Structure), TEXT("every structure has a body")));
 				// Its kind's art stands in for its body, on the floor, deciding nothing.
 				const UStaticMeshComponent* Art = Presentation.FindArt(*Structure);
-				ASSERT_THAT(IsTrue(Art && Art->GetStaticMesh() == GetDefault<UVeyraGreyboxSettings>()->ArtOf(Structure->GetStructureKind()).Standing.Get()));
+				const FVeyraUnitArt* KindArt = StructureArt().Find(UVeyraGreyboxSettings::StructureArtId(Structure->GetStructureKind()));
+				ASSERT_THAT(IsTrue(Art && KindArt && Art->GetStaticMesh() == KindArt->Intact));
 				ASSERT_THAT(IsTrue(Art->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Art->CanEverAffectNavigation()));
 				float Radius = 0.0f;
 				float HalfHeight = 0.0f;
@@ -249,19 +269,22 @@ namespace VeyraAbilitiesTests
 			VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Outermost->GetAbilitySystemComponent(), Lethal);
 			ASSERT_THAT(IsTrue(Outermost->IsDestroyed()));
 			RefreshedGreybox();
-			ASSERT_THAT(IsTrue(Presentation.FindArt(*Outermost)->GetStaticMesh() == GetDefault<UVeyraGreyboxSettings>()->LaneSpireArt.Destroyed.Get()));
+			ASSERT_THAT(IsTrue(Presentation.FindArt(*Outermost)->GetStaticMesh() == StructureArt().Find(TEXT("laneSpire"))->Fallen));
 		}
 
 		TEST_METHOD(EachFluxbornWearsItsKindsArtAndCollapsesWhereItFalls)
 		{
-			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-			// Every kind World.json defines has art (Art Direction, Fluxborn greybox meshes).
+			// Every kind World.json defines has art in the Fluxborn kit's set (Art Direction, Fluxborn greybox meshes).
+			const UVeyraUnitArtSet* Fluxborn = GetDefault<UVeyraGreyboxSettings>()->FluxbornArt.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Fluxborn));
+			TArray<FName> Kinds;
 			for (const TPair<FVeyraContentId, FVeyraFluxbornDefinition>& Kind : UVeyraWorldTuningSubsystem::Get().Fluxborn.Units)
 			{
-				const FString Id = Kind.Key.ToString();
-				ASSERT_THAT(IsTrue(Settings.FluxbornArt.ContainsByPredicate([&Id](const FVeyraFluxbornArt& Art) { return Art.Kind == Id; }), Id));
+				Kinds.Add(FName(Kind.Key.ToString()));
 			}
-			const FVeyraFluxbornArt* StriderArt = Settings.FluxbornArt.FindByPredicate([](const FVeyraFluxbornArt& Art) { return Art.Kind == TEXT("strider"); });
+			const TArray<FString> Problems = Fluxborn->Validate(Kinds);
+			ASSERT_THAT(IsTrue(Problems.IsEmpty(), FString::Join(Problems, TEXT(" "))));
+			const FVeyraUnitArt* StriderArt = Fluxborn->Find(TEXT("strider"));
 			ASSERT_THAT(IsNotNull(StriderArt));
 
 			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
@@ -273,18 +296,18 @@ namespace VeyraAbilitiesTests
 
 			// Its kind's art stands in for its body, on the floor, deciding nothing; its Flux shows its side.
 			const UStaticMeshComponent* Art = Presentation.FindArt(*Strider);
-			ASSERT_THAT(IsTrue(Art && Art->GetStaticMesh() == StriderArt->Active.Get()));
+			ASSERT_THAT(IsTrue(Art && Art->GetStaticMesh() == StriderArt->Intact));
 			ASSERT_THAT(IsTrue(Art->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Art->CanEverAffectNavigation()));
 			float Radius = 0.0f;
 			float HalfHeight = 0.0f;
 			Strider->GetSimpleCollisionCylinder(Radius, HalfHeight);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Art->GetComponentLocation().Z, Strider->GetActorLocation().Z - HalfHeight, Tolerance), TEXT("standing on the floor")));
 			ASSERT_THAT(IsFalse(Presentation.FindBody(*Strider)->IsVisible(), TEXT("its body hides behind it")));
-			const int32 FluxSlot = Art->GetMaterialIndex(Settings.FluxbornFluxSlot);
+			const int32 FluxSlot = Art->GetMaterialIndex(Fluxborn->FluxSlot);
 			ASSERT_THAT(IsTrue(FluxSlot != INDEX_NONE, TEXT("the art has the Flux slot")));
 			FLinearColor Flux = FLinearColor::Transparent;
-			ASSERT_THAT(IsTrue(Art->GetMaterial(FluxSlot)->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.FluxbornFluxParameter), Flux)));
-			ASSERT_THAT(IsTrue(Flux.Equals(Settings.EnemyColor), TEXT("side B is the enemy of a viewer on no side")));
+			ASSERT_THAT(IsTrue(Art->GetMaterial(FluxSlot)->GetVectorParameterValue(FHashedMaterialParameterInfo(Fluxborn->FluxParameter), Flux)));
+			ASSERT_THAT(IsTrue(Flux.Equals(GetDefault<UVeyraGreyboxSettings>()->EnemyColor), TEXT("side B is the enemy of a viewer on no side")));
 
 			// Once dead, it lies collapsed where it fell, for its corpse's moment (Battleground Bible §4).
 			FVeyraRawDamageEvent Lethal;
@@ -293,7 +316,7 @@ namespace VeyraAbilitiesTests
 			VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Strider->GetAbilitySystemComponent(), Lethal);
 			ASSERT_THAT(IsFalse(Strider->IsAlive()));
 			RefreshedGreybox();
-			ASSERT_THAT(IsTrue(Presentation.FindArt(*Strider)->GetStaticMesh() == StriderArt->Collapsed.Get()));
+			ASSERT_THAT(IsTrue(Presentation.FindArt(*Strider)->GetStaticMesh() == StriderArt->Fallen));
 		}
 
 		TEST_METHOD(NeutralUnitsAreDrawnGreyAndNamedOnTheHud)

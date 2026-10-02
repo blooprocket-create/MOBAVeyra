@@ -18,7 +18,7 @@
 namespace VeyraNetTests
 {
 	// Veyra.Net.BattlegroundWalls.*: the committed battleground's walls stand solid on every machine, and
-	// the server's paths go round them to every lane, camp and Flux Well (ADR-042 §2).
+	// the server's paths go round them to every lane, camp and Flux Well (ADR-043 §2).
 	NETWORK_TEST_CLASS(BattlegroundWalls, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState

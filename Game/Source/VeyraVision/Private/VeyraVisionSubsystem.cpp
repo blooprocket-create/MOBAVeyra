@@ -299,9 +299,11 @@ void UVeyraVisionSubsystem::RevealShape(EVeyraTeam Team, const FVeyraPlacedShape
 bool UVeyraVisionSubsystem::IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const
 {
 	const FVector2D Where(Unit.GetActorLocation());
-	return TrueSights.ContainsByPredicate([Side, &Where](const FTrueSight& Sight) {
+	// True Sight is sight: a map wall between it and the unit hides the unit from it (ADR-043 §3).
+	return TrueSights.ContainsByPredicate([this, Side, &Where](const FTrueSight& Sight) {
 		const AActor* Around = Sight.Follow.Get();
-		return Sight.Team == Side && Around && FVector2D::DistSquared(FVector2D(Around->GetActorLocation()), Where) <= FMath::Square(Sight.Radius);
+		const FVector2D From = Around ? FVector2D(Around->GetActorLocation()) : FVector2D::ZeroVector;
+		return Sight.Team == Side && Around && FVector2D::DistSquared(From, Where) <= FMath::Square(Sight.Radius) && !SightWalls.Blocks(From, Where);
 	});
 }
 
@@ -467,7 +469,7 @@ void UVeyraVisionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 
 void UVeyraVisionSubsystem::SetSightWalls(TArray<FVeyraTerrainBox> Walls)
 {
-	SightWalls = MoveTemp(Walls);
+	SightWalls = FVeyraSightWalls(MoveTemp(Walls));
 	UE_LOG(LogVeyraVision, Log, TEXT("Sight: %d wall(s) block it."), SightWalls.Num());
 	UpdateNow();
 }

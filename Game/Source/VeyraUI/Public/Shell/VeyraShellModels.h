@@ -60,11 +60,11 @@ struct FVeyraSelectSeatModel
 	bool bAlly = true;
 	/** The seat's place in the select's seats, which a trade names it by; INDEX_NONE for a bot. */
 	int32 SeatIndex = INDEX_NONE;
-	/** Bans or picks in the draft's current turn (ADR-041 §1). */
+	/** Bans or picks in the draft's current turn (ADR-042 §1). */
 	bool bActing = false;
 	/** A teammate's ban hover in their ban turn, as "Banning Cairn"; empty otherwise. */
 	FText BanHover;
-	/** A locked teammate the player may offer a trade (ADR-041 §2). */
+	/** A locked teammate the player may offer a trade (ADR-042 §2). */
 	bool bCanOfferTrade = false;
 	/** The player's standing offer to this teammate. */
 	bool bOfferedByYou = false;
@@ -73,7 +73,7 @@ struct FVeyraSelectSeatModel
 	bool bCanAnswerTrade = false;
 };
 
-/** A draft's ban, as the bans row shows it (ADR-041 §1). */
+/** A draft's ban, as the bans row shows it (ADR-042 §1). */
 struct FVeyraSelectBanModel
 {
 	FString VanguardId;
@@ -167,7 +167,7 @@ struct FVeyraSelectModel
 	FText ModeLabel;
 	/** The pick timer's full length, for its bars; 0 when the backend does not say. */
 	double PickSeconds = 0.0;
-	/** A Draft Pick select: it has bans, and turns (ADR-041 §1). */
+	/** A Draft Pick select: it has bans, and turns (ADR-042 §1). */
 	bool bDraft = false;
 	/** The draft's ban turn names the player: the cards are every released Vanguard, choosing one hovers a ban, and Ban bans it. */
 	bool bBanning = false;
@@ -178,7 +178,7 @@ struct FVeyraSelectModel
 	TArray<FVeyraSelectBanModel> Bans;
 };
 
-/** Which of champion select's draft and trade intents the coordinator allows now (ADR-041). */
+/** Which of champion select's draft and trade intents the coordinator allows now (ADR-042). */
 struct FVeyraSelectDraftPermissions
 {
 	/** HoverBan and BanVanguard. */
@@ -576,4 +576,11 @@ namespace VeyraShellModels
 	 * when this changes, so a poll that changes nothing never interrupts a click.
 	 */
 	VEYRAUI_API FString Signature(const FVeyraClientSnapshot& Snapshot);
+
+	/**
+	 * The player's own draft turn, a ban or a pick, as a key that stays the same through the turn and
+	 * differs from every other turn; empty outside one (Pre-Game Client UX Bible 31-32). The screen asks
+	 * for the player's attention once as a new key appears.
+	 */
+	VEYRAUI_API FString PlayersTurn(const FVeyraClientSnapshot& Snapshot);
 }

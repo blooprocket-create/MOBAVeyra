@@ -96,7 +96,7 @@
     backend must record a standard match won by the player's side; the server must add the mode's
     whole enemy team, and the verified scoreboard must list its bots.
 
-    -Flow Draft plays Draft Pick (ADR-041) as -Flow Casual does, against the local Draft Pick mode of
+    -Flow Draft plays Draft Pick (ADR-042) as -Flow Casual does, against the local Draft Pick mode of
     one human a side: each client bans in its side's ban turns, from the roster's end so neither
     player's Vanguard is banned, and locks its Vanguard in its pick turn. The first ends the match
     from its menu. Each client must have banned, and the backend must record the draft's match.
@@ -495,7 +495,7 @@ if ($Handoff -or $Flow) {
     # The committed config's queues hold five humans a side (Modes Bible §1, §4). A smoke has one client a
     # side, so its backend runs the committed config with the smoke's mode sized to it (ADR-039 §6).
     $smokeModeSize = $null
-    # -Flow Draft: as -Flow Casual, in a Draft Pick select of bans and picks in turns (ADR-041).
+    # -Flow Draft: as -Flow Casual, in a Draft Pick select of bans and picks in turns (ADR-042).
     $isDraft = $Flow -eq 'Draft'
     if ($isMatchmade) {
         $matchmaking = $(if ($isDraft) { 'draftPick' } else { 'casualSelect' })
@@ -808,7 +808,7 @@ if ($Handoff -or $Flow) {
                         $failed = $true
                     }
                 }
-                # In a draft each side bans in its turns (ADR-041 §1).
+                # In a draft each side bans in its turns (ADR-042 §1).
                 if ($isDraft -and -not (Select-String -LiteralPath $client.Log -SimpleMatch 'VeyraClientFlow: banning ' -Quiet)) {
                     Write-Host '  It never banned in its draft.'
                     $failed = $true

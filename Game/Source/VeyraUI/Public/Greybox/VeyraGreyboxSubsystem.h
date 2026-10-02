@@ -31,7 +31,7 @@ enum class EVeyraTelegraphSource : uint8
 	LingeringArea,
 	/** A lingering area whose end is near and hits (ADR-026 §4). */
 	LingeringAreaEnding,
-	/** The local player's indicator: where an ability would land, before it is cast (ADR-040 §2). */
+	/** The local player's indicator: where an ability would land, before it is cast (ADR-041 §2). */
 	Indicator,
 };
 
@@ -79,7 +79,7 @@ public:
 	/** The body drawn for Unit, once it has one. */
 	UStaticMeshComponent* FindBody(const AActor& Unit) const;
 
-	/** A structure's or a Fluxborn's art, once drawn; null for any other unit, or one whose art has not loaded. */
+	/** A structure's art, once drawn; null for any other unit. */
 	UStaticMeshComponent* FindArt(const AActor& Unit) const;
 
 	/** The sphere drawn for Projectile, once it has one. */
@@ -119,7 +119,7 @@ private:
 		TWeakObjectPtr<UMaterialInstanceDynamic> Material;
 		FLinearColor Shown = FLinearColor::Transparent;
 
-		/** A structure's or a Fluxborn's art, which stands in for its body: the component, the mesh it shows, and its Flux's colour. */
+		/** A unit's art, which stands in for its body: the component, the mesh it shows, and its Flux's colour. */
 		TWeakObjectPtr<UStaticMeshComponent> Art;
 		TWeakObjectPtr<UStaticMesh> ArtMesh;
 		TWeakObjectPtr<UMaterialInstanceDynamic> ArtFlux;
@@ -144,10 +144,10 @@ private:
 	void RefreshFluxbornArt(const class AVeyraFluxborn& Unit, FBody& Body);
 
 	/**
-	 * Draws Mesh over Unit in place of its body, its pivot at the capsule's foot, and colours its FluxSlot Color
-	 * through FluxParameter. Visual only, as a body is: it blocks nothing and shapes no navigation.
+	 * Draws Mesh over Unit in place of its body, its pivot at the capsule's foot, and colours the art set's Flux
+	 * slot Color. Visual only, as a body is: it blocks nothing and shapes no navigation.
 	 */
-	void ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, FName FluxSlot, FName FluxParameter, const FLinearColor& Color);
+	void ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const class UVeyraUnitArtSet& Set, const FLinearColor& Color);
 
 	/**
 	 * Once the world shows the battleground (its structures have arrived), draws its ground from
@@ -206,15 +206,12 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> PadMesh;
 
-	/** Each kind of structure's art, standing then destroyed, in EVeyraStructureKind's order. */
+	/** The structure kit's and the Fluxborn kit's art sets, loaded with the settings. */
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UStaticMesh>> StructureMeshes;
+	TObjectPtr<class UVeyraUnitArtSet> StructureArt;
 
-	/** Each kind of Fluxborn's art, active then collapsed, in the settings' order; FluxbornArtIndex finds a kind's pair. */
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UStaticMesh>> FluxbornMeshes;
-
-	TMap<FString, int32> FluxbornArtIndex;
+	TObjectPtr<class UVeyraUnitArtSet> FluxbornArt;
 
 	/** The actor holding the battleground's ground markings, once drawn. */
 	TWeakObjectPtr<AActor> GroundMarkings;
