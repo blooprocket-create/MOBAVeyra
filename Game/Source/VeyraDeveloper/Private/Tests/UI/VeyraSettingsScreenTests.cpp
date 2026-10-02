@@ -16,7 +16,9 @@
 #include "Settings/VeyraSettingsModels.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellScreen.h"
+#include "Shell/VeyraShellStyleSettings.h"
 #include "Tests/Services/VeyraClientFlowTestRig.h"
 #include "Text/VeyraContentText.h"
 #include "VeyraPlayerController.h"
@@ -272,6 +274,19 @@ namespace VeyraSettingsScreenTests
 			Settings->Store().Set(Setting(TEXT("interface_show_fps")), VeyraSettings::On());
 			ASSERT_THAT(IsTrue(Row(TEXT("interface_show_fps")).Options[0].bSelected, TEXT("the account's sync or Undo shows at once")));
 			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::CloseLabel()) && Closes == 1));
+		}
+
+		TEST_METHOD(TheWholeWindowTakesANewLookWhileItIsOpen)
+		{
+			// The look is the client's: the next test starts from the standard one.
+			const FVeyraScopedShellLook Restore{ FVeyraShellLook() };
+			const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+			const int32 StandardTitle = Screen->GetTitleTextSize();
+			// Text size and transparency changed while Settings is open reach its frame too, not only its rows (ADR-055 §2–§3).
+			Settings->Store().Set(Setting(TEXT("accessibility_text_size")), TEXT("ExtraLarge"));
+			Settings->Store().Set(Setting(TEXT("accessibility_reduce_transparency")), VeyraSettings::On());
+			ASSERT_THAT(IsTrue(Screen->GetTitleTextSize() > StandardTitle, TEXT("the title grows")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Screen->GetWindowFill().A, 1.0f) && Style.SurfaceRaisedColor.A < 1.0f, TEXT("the window goes opaque")));
 		}
 	};
 

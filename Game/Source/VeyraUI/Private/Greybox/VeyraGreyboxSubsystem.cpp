@@ -227,6 +227,8 @@ void UVeyraGreyboxSubsystem::RefreshWarnings()
 	bool bConnectionTrouble = false;
 	if (Connection && Preferences.bConnectionWarning)
 	{
+		// Despite its name, the engine's average loss is a fraction from 0 to 1, lost packets over sent (NetAnalyticsTypes.h),
+		// as the threshold is.
 		const double Loss = FMath::Max(Connection->GetInLossPercentage().GetAvgLossPercentage(), Connection->GetOutLossPercentage().GetAvgLossPercentage());
 		bConnectionTrouble = VeyraHudWarnings::IsConnectionTroubled(Loss, Connection->AvgLag * 1000.0, Settings.ConnectionWarningLossFraction, Settings.ConnectionWarningRoundTripMs);
 	}

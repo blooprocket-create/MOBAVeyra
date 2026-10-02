@@ -9,6 +9,7 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
@@ -157,6 +158,25 @@ UBorder* MakeSurface(UWidgetTree& Tree, EVeyraShellSurface Surface, const FMargi
 	Border->SetBrush(FSlateRoundedBoxBrush(Fill, Style.PanelCornerRadius, Style.HairlineColor, 1.0f));
 	Border->SetPadding(Padding);
 	return Border;
+}
+
+void StyleTextField(UEditableTextBox& Box, float Padding)
+{
+	const UVeyraShellStyleSettings& Style = Settings();
+	FEditableTextBoxStyle FieldStyle = Box.GetWidgetStyle();
+	const FLinearColor Fill = VeyraShellLook::Panel(Style.SurfaceRaisedColor);
+	const FVeyraFocusEdge Edge = VeyraShellLook::FieldFocusEdge();
+	const FSlateRoundedBoxBrush Plain(Fill, Style.ButtonCornerRadius, Style.HairlineColor, 1.0f);
+	const FSlateRoundedBoxBrush Focused(Fill, Style.ButtonCornerRadius, Edge.Color, Edge.Width);
+	FieldStyle.SetBackgroundImageNormal(Plain);
+	FieldStyle.SetBackgroundImageHovered(Plain);
+	FieldStyle.SetBackgroundImageFocused(Focused);
+	FieldStyle.SetBackgroundImageReadOnly(Plain);
+	FieldStyle.SetForegroundColor(FSlateColor(Style.TextColor));
+	FieldStyle.SetFocusedForegroundColor(FSlateColor(Style.TextColor));
+	FieldStyle.SetPadding(FMargin(Padding));
+	FieldStyle.SetFont(FontFor(EVeyraShellText::Body));
+	Box.SetWidgetStyle(FieldStyle);
 }
 
 UWidget* MakeRule(UWidgetTree& Tree)

@@ -25,6 +25,7 @@ FVeyraShellLook For(const FVeyraInterfacePreferences& Preferences)
 	Look.TextScale = Scale ? *Scale : 1.0f;
 	Look.bOpaquePanels = Preferences.bReduceTransparency;
 	Look.bStillAnimation = Preferences.bReduceUiAnimation;
+	Look.bEnhancedFocus = Preferences.bEnhancedFocus;
 	return Look;
 }
 
@@ -57,4 +58,21 @@ FLinearColor Panel(const FLinearColor& Fill)
 {
 	return Shared().bOpaquePanels ? Fill.CopyWithNewOpacity(1.0f) : Fill;
 }
+
+FVeyraFocusEdge FieldFocusEdge()
+{
+	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+	return Shared().bEnhancedFocus ? FVeyraFocusEdge{ Style.FocusOutlineColor, Style.FocusOutlineWidth } : FVeyraFocusEdge{ Style.AccentColor, 1.0f };
+}
+}
+
+FVeyraScopedShellLook::FVeyraScopedShellLook(const FVeyraShellLook& Look)
+	: Previous(VeyraShellLook::Current())
+{
+	VeyraShellLook::Use(Look);
+}
+
+FVeyraScopedShellLook::~FVeyraScopedShellLook()
+{
+	VeyraShellLook::Use(Previous);
 }
