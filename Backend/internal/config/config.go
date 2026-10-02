@@ -108,6 +108,9 @@ type Config struct {
 	Selection Selection
 	Matches   Matches
 	Allocator Allocator
+	// Progression is account progression, the account currencies, the
+	// storefront and Mastery (ADR-045).
+	Progression Progression
 }
 
 // Vanguards configures the catalog of Vanguards players may own and pick
@@ -532,6 +535,7 @@ type fileConfig struct {
 		Kind   *string           `json:"kind"`
 		Docker *fileDockerConfig `json:"docker"`
 	} `json:"allocator"`
+	Progression *fileProgression `json:"progression"`
 }
 
 type fileDockerConfig struct {
@@ -1185,6 +1189,8 @@ func Parse(raw []byte) (Config, error) {
 			c.Matches.Maps.Development = mapPath("development", f.Matches.Maps.Development)
 		}
 	}
+
+	c.Progression = parseProgression(f.Progression, c.Vanguards.Released, c.Environment, missing, func(s string) { problems = append(problems, s) })
 
 	// A select waits for its match's creation, which waits for the allocator.
 	if d := c.Allocator.Docker; d != nil && c.Selection.StartingTimeout > 0 && c.Selection.StartingTimeout <= d.RequestTimeout {
