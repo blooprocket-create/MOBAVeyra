@@ -160,6 +160,97 @@ namespace VeyraChatScreenTests
 			ASSERT_THAT(AreEqual(Screen->GetChatBox()->GetText().ToString(), FString(TEXT("for the party"))));
 		}
 	};
+
+	// Veyra.UI.SelectChatScreen.*: champion select's one compact chat panel (UX-33–34): the team's lines and the
+	// party's in one display, Team by default and Party with /p, collapsible.
+	TEST_CLASS(SelectChatScreen, "Veyra.UI")
+	{
+		FActorTestSpawner Spawner;
+		FClientFlowTestRig Rig;
+		UVeyraShellScreen* Screen = nullptr;
+
+		AFTER_EACH()
+		{
+			if (Screen)
+			{
+				Screen->Unbind();
+			}
+		}
+
+		bool ShowSelect()
+		{
+			if (!Rig.ReachSelect())
+			{
+				return false;
+			}
+			Screen = CreateWidget<UVeyraShellScreen>(&Spawner.GetWorld());
+			Screen->Bind(*Rig.Flow);
+			return true;
+		}
+
+		bool Press(const FString& Label)
+		{
+			UVeyraShellButton* Found = Screen->FindButton(FText::FromString(Label));
+			if (!Found || !Found->GetIsEnabled())
+			{
+				return false;
+			}
+			Found->Press();
+			return true;
+		}
+
+		TEST_METHOD(TheTeamsAndThePartysLinesShareOneDisplayInOrder)
+		{
+			FVeyraClientSnapshot Snapshot = ChatSnapshot(/*bInParty*/ true);
+			Snapshot.State = EVeyraClientState::Selecting;
+			Snapshot.Chat.Select.Lines.Add(ChatEntry(EChatKind::Select, FriendId, TEXT("DevTwo"), TEXT("mid?"), 5));
+			Snapshot.Chat.Party.Lines.Add(ChatEntry(EChatKind::Party, FriendId, TEXT("DevTwo"), TEXT("duo bot"), 4));
+			FVeyraChatEntry Mine = ChatEntry(EChatKind::Select, AccountId, TEXT("DevOne"), TEXT("ok"), 0);
+			Mine.bPending = true;
+			Snapshot.Chat.Select.Lines.Add(Mine);
+			const FVeyraChatPanelModel Panel = VeyraChatModels::DescribeSelectChat(Snapshot, true);
+			ASSERT_THAT(IsTrue(Panel.bVisible && Panel.Kind == EChatKind::Select && Panel.bShowsRecipient && Panel.Title.ToString() == TEXT("Team Chat")));
+			ASSERT_THAT(AreEqual(Panel.Lines.Num(), 3));
+			ASSERT_THAT(IsTrue(Panel.Lines[0].bParty && Panel.Lines[0].Text.ToString() == TEXT("duo bot"), TEXT("the party's line, marked, by its sequence")));
+			ASSERT_THAT(IsTrue(!Panel.Lines[1].bParty && Panel.Lines[1].Text.ToString() == TEXT("mid?")));
+			ASSERT_THAT(IsTrue(Panel.Lines[2].bOwn && !Panel.Lines[2].Status.IsEmpty(), TEXT("the unanswered line last")));
+		}
+
+		TEST_METHOD(SlashPAddressesThePartyAndAnythingElseTheTeam)
+		{
+			FString Text;
+			ASSERT_THAT(IsTrue(VeyraChatModels::SelectRecipient(TEXT("/p duo bot"), Text) == EChatKind::Party && Text == TEXT("duo bot")));
+			ASSERT_THAT(IsTrue(VeyraChatModels::SelectRecipient(TEXT("  /P   go  "), Text) == EChatKind::Party && Text == TEXT("go")));
+			ASSERT_THAT(IsTrue(VeyraChatModels::SelectRecipient(TEXT("/party"), Text) == EChatKind::Select && Text == TEXT("/party"), TEXT("not the command")));
+			ASSERT_THAT(IsTrue(VeyraChatModels::SelectRecipient(TEXT("mid?"), Text) == EChatKind::Select && Text == TEXT("mid?")));
+			ASSERT_THAT(AreEqual(VeyraChatModels::RecipientLabel(EChatKind::Party).ToString(), FString(TEXT("Party"))));
+			ASSERT_THAT(AreEqual(VeyraChatModels::RecipientLabel(EChatKind::Select).ToString(), FString(TEXT("Team"))));
+		}
+
+		TEST_METHOD(TheComposerSendsToTheTeamOrWithSlashPToTheParty)
+		{
+			ASSERT_THAT(IsTrue(ShowSelect()));
+			ASSERT_THAT(AreEqual(Screen->GetChatRecipient().ToString(), FString(TEXT("Team"))));
+			Screen->SetChatDraft(TEXT("/p duo bot"));
+			ASSERT_THAT(AreEqual(Screen->GetChatRecipient().ToString(), FString(TEXT("Party")), TEXT("the recipient follows the draft")));
+			ASSERT_THAT(IsTrue(Press(TEXT("Send to Team Chat"))));
+			const FFlowTestBackend::FRequest* Party = Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/party"));
+			ASSERT_THAT(IsTrue(Party && Party->Body.Contains(TEXT("\"text\":\"duo bot\"")), TEXT("/p is taken off")));
+			ASSERT_THAT(AreEqual(Screen->GetChatRecipient().ToString(), FString(TEXT("Team")), TEXT("back to the team once sent")));
+			Screen->SetChatDraft(TEXT("mid?"));
+			ASSERT_THAT(IsTrue(Press(TEXT("Send to Team Chat"))));
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/select"))));
+		}
+
+		TEST_METHOD(ThePanelCollapsesAndComesBack)
+		{
+			ASSERT_THAT(IsTrue(ShowSelect()));
+			ASSERT_THAT(IsTrue(Press(TEXT("Hide Chat"))));
+			ASSERT_THAT(IsTrue(Screen->FindButton(FText::FromString(TEXT("Send to Team Chat"))) == nullptr && Screen->GetChatBox() == nullptr));
+			ASSERT_THAT(IsTrue(Press(TEXT("Show Chat"))));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(FText::FromString(TEXT("Send to Team Chat")))));
+		}
+	};
 }
 
 #endif

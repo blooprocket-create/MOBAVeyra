@@ -43,6 +43,16 @@ namespace
 	{
 		return FString(VeyraBackendProtocol::ChatKindName(Kind)) + TEXT(":") + Target;
 	}
+
+	/** Champion select's recipient as Draft stands: changed in place as the player types, never by a rebuild. */
+	void ShowChatRecipient(UTextBlock* Recipient, const FString& Draft)
+	{
+		if (Recipient)
+		{
+			FString Text;
+			Recipient->SetText(VeyraChatModels::RecipientLabel(VeyraChatModels::SelectRecipient(Draft, Text)));
+		}
+	}
 }
 
 void UVeyraShellScreen::BuildSidebarChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
@@ -103,6 +113,15 @@ void UVeyraShellScreen::BuildChatPanel(const FVeyraChatPanelModel& Model, UPanel
 	ChatBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleChatChanged);
 	ChatBox->OnTextCommitted.AddUniqueDynamic(this, &UVeyraShellScreen::HandleChatCommitted);
 	UHorizontalBox* Composer = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	ChatRecipient = nullptr;
+	if (Model.bShowsRecipient)
+	{
+		// Team by default, Party while /p leads the draft (UX-34).
+		ChatRecipient = VeyraShellStyle::MakeText(*WidgetTree, FText::GetEmpty(), EVeyraShellText::Eyebrow);
+		ChatRecipient->SetAutoWrapText(false);
+		ShowChatRecipient(ChatRecipient, ChatDrafts.FindRef(ChatBoxKey));
+		Composer->AddChildToHorizontalBox(ChatRecipient)->SetVerticalAlignment(VAlign_Center);
+	}
 	Composer->AddChildToHorizontalBox(ChatBox)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	// Enabled whatever the field holds, so typing never rebuilds the panel; an empty message sends nothing.
 	AddNamedButton(*Composer, EVeyraShellButtonKind::Secondary, FText::Format(LOCTEXT("SendChatLabel", "Send to {0}"), Model.Title),
@@ -110,12 +129,42 @@ void UVeyraShellScreen::BuildChatPanel(const FVeyraChatPanelModel& Model, UPanel
 	VeyraShellStyle::AddSpaced(Parent, *Composer);
 }
 
+void UVeyraShellScreen::BuildSelectChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
+{
+	const UVeyraShellStyleSettings& Style = ChatStyle();
+	USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Width->SetWidthOverride(Style.FriendsPanelWidth);
+	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Width->AddChild(Column);
+	// Collapsible, and never over the picks, bans, trades or the countdown (UX-33).
+	AddKindButton(*Column, EVeyraShellButtonKind::Quiet, bSelectChatHidden ? LOCTEXT("ShowSelectChat", "Show Chat") : LOCTEXT("HideSelectChat", "Hide Chat"),
+		[this] {
+			bSelectChatHidden = !bSelectChatHidden;
+			Refresh();
+		})
+		->KeepLabelOnOneLine();
+	if (!bSelectChatHidden)
+	{
+		BuildChatPanel(VeyraChatModels::DescribeSelectChat(Snapshot, Client->CanIssue(EVeyraClientIntent::SendChatMessage)), *Column);
+	}
+	VeyraShellStyle::AddSpaced(Parent, *Width);
+}
+
 void UVeyraShellScreen::SubmitChat()
 {
 	const FString Draft = ChatDrafts.FindRef(ChatBoxKey);
-	if (Client && !Draft.TrimStartAndEnd().IsEmpty() && Client->SendChatMessage(ChatBoxKind, ChatBoxTarget, Draft))
+	FString Text = Draft;
+	VeyraBackendProtocol::EChatKind Kind = ChatBoxKind;
+	// Champion select's one composer addresses the team, or the party with /p (UX-33).
+	if (ChatBoxKind == EChatKind::Select)
 	{
+		Kind = VeyraChatModels::SelectRecipient(Draft, Text);
+	}
+	if (Client && !Text.TrimStartAndEnd().IsEmpty() && Client->SendChatMessage(Kind, ChatBoxTarget, Text))
+	{
+		// The recipient goes back to the team once sent (UX-34).
 		ChatDrafts.Remove(ChatBoxKey);
+		ShowChatRecipient(ChatRecipient, FString());
 		if (ChatBox)
 		{
 			ChatBox->SetText(FText::GetEmpty());
@@ -123,9 +172,15 @@ void UVeyraShellScreen::SubmitChat()
 	}
 }
 
+FText UVeyraShellScreen::GetChatRecipient() const
+{
+	return ChatRecipient ? ChatRecipient->GetText() : FText::GetEmpty();
+}
+
 void UVeyraShellScreen::SetChatDraft(const FString& Text)
 {
 	ChatDrafts.Add(ChatBoxKey, Text);
+	ShowChatRecipient(ChatRecipient, Text);
 	if (ChatBox)
 	{
 		ChatBox->SetText(FText::FromString(Text));
@@ -135,6 +190,7 @@ void UVeyraShellScreen::SetChatDraft(const FString& Text)
 void UVeyraShellScreen::HandleChatChanged(const FText& Text)
 {
 	ChatDrafts.Add(ChatBoxKey, Text.ToString());
+	ShowChatRecipient(ChatRecipient, Text.ToString());
 }
 
 void UVeyraShellScreen::HandleChatCommitted(const FText& Text, ETextCommit::Type Method)

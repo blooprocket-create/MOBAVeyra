@@ -39,6 +39,8 @@ struct FVeyraChatPanelModel
 	bool bCanSend = false;
 	/** A direct conversation closes back to Party Chat. */
 	bool bCanClose = false;
+	/** Champion select's composer names its recipient, Team or Party, as the draft stands (UX-34). */
+	bool bShowsRecipient = false;
 };
 
 /** The chat panels' models: pure, so the screens and their tests share them (ADR-046 §6). */
@@ -55,6 +57,21 @@ namespace VeyraChatModels
 	 * player has a party or its lines. Hidden otherwise.
 	 */
 	VEYRAUI_API FVeyraChatPanelModel DescribeSidebar(const FVeyraClientSnapshot& Snapshot, bool bCanSend);
+
+	/**
+	 * Champion select's one chat panel (UX-33–34): the team's lines and the party's, marked as the party's, in the
+	 * backend's order, with the player's unanswered lines last. It sends to the team unless the draft says /p.
+	 */
+	VEYRAUI_API FVeyraChatPanelModel DescribeSelectChat(const FVeyraClientSnapshot& Snapshot, bool bCanSend);
+
+	/**
+	 * Where a champion-select draft goes (UX-33): a leading "/p" sends what follows it to Party Chat, anything else
+	 * goes to the team as typed. Text is what is sent, with the command taken off.
+	 */
+	VEYRAUI_API VeyraBackendProtocol::EChatKind SelectRecipient(const FString& Draft, FString& OutText);
+
+	/** The composer's recipient as the player reads it: "Team" or "Party" (UX-34). */
+	VEYRAUI_API FText RecipientLabel(VeyraBackendProtocol::EChatKind Kind);
 
 	/** What the chat panels show, for the screen's rebuild signature. */
 	VEYRAUI_API FString Signature(const FVeyraChat& Chat);

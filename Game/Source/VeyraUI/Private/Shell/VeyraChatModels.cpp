@@ -2,6 +2,7 @@
 
 #include "Shell/VeyraChatModels.h"
 
+#include "Algo/StableSort.h"
 #include "Misc/StringBuilder.h"
 
 #define LOCTEXT_NAMESPACE "VeyraChatModels"
@@ -123,6 +124,53 @@ FVeyraChatPanelModel DescribeSidebar(const FVeyraClientSnapshot& Snapshot, bool 
 	}
 	Panel.bCanSend = Panel.bVisible && bCanSend;
 	return Panel;
+}
+
+FVeyraChatPanelModel DescribeSelectChat(const FVeyraClientSnapshot& Snapshot, bool bCanSend)
+{
+	FVeyraChatPanelModel Panel;
+	Panel.bVisible = true;
+	Panel.Kind = EChatKind::Select;
+	Panel.Title = LOCTEXT("SelectTitle", "Team Chat");
+	Panel.Hint = Snapshot.Party.IsSet() || !Snapshot.Chat.Party.Lines.IsEmpty() ? LOCTEXT("SelectHintParty", "Message your team, or /p your party")
+																				  : LOCTEXT("SelectHint", "Message your team");
+	Panel.Empty = LOCTEXT("SelectEmpty", "Say something to your team.");
+	Panel.bShowsRecipient = true;
+	Panel.bCanSend = bCanSend;
+	// One shared display: the team's lines and the party's, in the order the backend gave them (UX-33).
+	TArray<const FVeyraChatEntry*> Entries;
+	for (const FVeyraChatEntry& Entry : Snapshot.Chat.Select.Lines)
+	{
+		Entries.Add(&Entry);
+	}
+	for (const FVeyraChatEntry& Entry : Snapshot.Chat.Party.Lines)
+	{
+		Entries.Add(&Entry);
+	}
+	Algo::StableSortBy(Entries, [](const FVeyraChatEntry* Entry) { return Entry->Seq == 0 ? MAX_int64 : Entry->Seq; });
+	for (const FVeyraChatEntry* Entry : Entries)
+	{
+		Panel.Lines.Add(DescribeLine(*Entry, Snapshot.AccountId, /*bMarkParty*/ true));
+	}
+	return Panel;
+}
+
+EChatKind SelectRecipient(const FString& Draft, FString& OutText)
+{
+	const FString Line = Draft.TrimStart();
+	// "/p" alone, or before a space: the rest goes to the party.
+	if (Line.StartsWith(TEXT("/p"), ESearchCase::IgnoreCase) && (Line.Len() == 2 || FChar::IsWhitespace(Line[2])))
+	{
+		OutText = Line.Mid(2).TrimStartAndEnd();
+		return EChatKind::Party;
+	}
+	OutText = Draft;
+	return EChatKind::Select;
+}
+
+FText RecipientLabel(EChatKind Kind)
+{
+	return Kind == EChatKind::Party ? LOCTEXT("RecipientParty", "Party") : LOCTEXT("RecipientTeam", "Team");
 }
 
 FString Signature(const FVeyraChat& Chat)

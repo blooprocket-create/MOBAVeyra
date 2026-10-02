@@ -220,9 +220,9 @@ void UVeyraShellScreen::Refresh()
 			DrawTurnAttention();
 		}
 	}
-	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|"), static_cast<int32>(Page),
-								  OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex, *BotDifficulty, *OpenCardId,
-								  static_cast<int32>(Confirm), *ConfirmId) +
+	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|select chat %d|"),
+								  static_cast<int32>(Page), OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex,
+								  *BotDifficulty, *OpenCardId, static_cast<int32>(Confirm), *ConfirmId, bSelectChatHidden ? 1 : 0) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
@@ -287,6 +287,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	const bool bRefocusChat = ChatBox && ChatBox->HasKeyboardFocus();
 	ChatBox = nullptr;
 	ChatScroll = nullptr;
+	ChatRecipient = nullptr;
 	Content->ClearChildren();
 	Popup->ClearChildren();
 	Buttons.Reset();

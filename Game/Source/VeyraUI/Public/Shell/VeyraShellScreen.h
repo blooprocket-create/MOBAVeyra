@@ -121,6 +121,9 @@ public:
 	/** The chat composer that shows, or null. */
 	UEditableTextBox* GetChatBox() const { return ChatBox; }
 
+	/** Champion select's composer's recipient, "Team" or "Party"; empty where the composer names none. */
+	FText GetChatRecipient() const;
+
 	/**
 	 * The card whose actions show, empty while none is open (ADR-044 §2): a party member's card is its
 	 * MemberCardKey, a friend's its FriendCardKey, so one player's two cards open apart.
@@ -238,6 +241,8 @@ private:
 	void BuildChatPanel(const FVeyraChatPanelModel& Model, UPanelWidget& Parent);
 	/** Sends what the chat composer holds to its conversation. */
 	void SubmitChat();
+	/** Champion select's compact chat beside the ally column (UX-33), or its Show Chat once collapsed. */
+	void BuildSelectChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 
 	UFUNCTION()
 	void HandleChatChanged(const FText& Text);
@@ -401,6 +406,13 @@ private:
 	/** Each conversation's unsent text, so changing conversation, or a rebuild, keeps it. */
 	FString ChatBoxKey;
 	TMap<FString, FString> ChatDrafts;
+
+	/** Champion select's composer's recipient, Team or Party, which follows the draft as it is typed (UX-34). */
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> ChatRecipient;
+
+	/** The player collapsed champion select's chat panel (UX-33). */
+	bool bSelectChatHidden = false;
 
 	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-044 §2, §4). */
 	FString OpenCardId;
