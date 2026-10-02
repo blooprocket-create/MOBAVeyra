@@ -87,19 +87,27 @@ void UVeyraShellScreen::BuildChatPanel(const FVeyraChatPanelModel& Model, UPanel
 	Surface->SetContent(Scroll);
 	UVerticalBox* Lines = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Scroll->AddChild(Lines);
+	// Text in a scroll box wraps at a set width: measured against the box alone, a long line would overlap the next.
+	// The panel sits in the sidebar's width, less its own and its lines' padding on each side.
+	const float WrapAt = Style.FriendsPanelWidth - Style.Spacing * 4.0f;
+	const auto AddLine = [this, Lines, WrapAt](const FText& Text, EVeyraShellText Role) {
+		UTextBlock* Block = AddText(*Lines, Text, ChatRole(Role));
+		Block->SetAutoWrapText(false);
+		Block->SetWrapTextAt(WrapAt);
+	};
 	if (Model.Lines.IsEmpty())
 	{
-		AddText(*Lines, Model.Empty, ChatRole(EVeyraShellText::Muted));
+		AddLine(Model.Empty, EVeyraShellText::Muted);
 	}
 	for (const FVeyraChatLineModel& Line : Model.Lines)
 	{
 		// A party line in a panel that mixes conversations says so (UX-34).
 		const FText Said = Line.bParty ? FText::Format(LOCTEXT("ChatPartyLine", "[Party] {0}: {1}"), Line.Sender, Line.Text)
 									   : FText::Format(LOCTEXT("ChatLine", "{0}: {1}"), Line.Sender, Line.Text);
-		AddText(*Lines, Said, ChatRole(Line.bOwn ? EVeyraShellText::Muted : EVeyraShellText::Body));
+		AddLine(Said, Line.bOwn ? EVeyraShellText::Muted : EVeyraShellText::Body);
 		if (!Line.Status.IsEmpty())
 		{
-			AddText(*Lines, Line.Status, ChatRole(EVeyraShellText::Small));
+			AddLine(Line.Status, EVeyraShellText::Small);
 		}
 	}
 	// The newest lines show first: scrolled once the panel is laid out, on the next frame.
