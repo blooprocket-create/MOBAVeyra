@@ -159,6 +159,18 @@ func (m *MemStore) FriendOfAny(_ context.Context, account string, others []strin
 	return false, nil
 }
 
+func (m *MemStore) BlockedWith(_ context.Context, account string, others []string) (map[string]bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := map[string]bool{}
+	for _, o := range others {
+		if m.state.blocks[pair{account, o}] || m.state.blocks[pair{o, account}] {
+			out[o] = true
+		}
+	}
+	return out, nil
+}
+
 func (m *MemStore) BlockedWithAny(_ context.Context, account string, others []string) (bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

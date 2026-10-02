@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 )
@@ -56,6 +57,9 @@ type Store interface {
 	InTx(ctx context.Context, fn func(ctx context.Context, tx Tx) error) error
 	// PartyOf returns the account's current party, or ErrNotInParty.
 	PartyOf(ctx context.Context, accountID string) (Party, error)
+	// PartiesOf returns the current party of each of the accounts that has
+	// one, keyed by account, in a bounded number of reads whatever the count.
+	PartiesOf(ctx context.Context, accountIDs []string) (map[string]Party, error)
 	// InvitesFor lists unexpired invites addressed to the account.
 	InvitesFor(ctx context.Context, accountID string, now time.Time) ([]Invite, error)
 }
@@ -69,6 +73,9 @@ type SocialGraph interface {
 	// BlockedWithAny reports whether account and any of others block each
 	// other in either direction.
 	BlockedWithAny(ctx context.Context, account string, others []string) (bool, error)
+	// BlockedWith returns those of others that block, or are blocked by,
+	// account, in one read.
+	BlockedWith(ctx context.Context, account string, others []string) (map[string]bool, error)
 }
 
 // Activity answers whether any of accounts is in a match or a champion
@@ -397,26 +404,39 @@ func (s *Service) JoinPublic(ctx context.Context, actor, partyID string) (Party,
 // JoinableParties returns, for each of friends whose party the actor could
 // join directly, that party's ID: a Public party, idle so its membership is
 // not locked, with an open slot, and not the actor's own (Parties & Social
-// Bible §1-§2). It is what the friends list offers; JoinPublic still decides,
-// blocks included.
+// Bible §1-§2), none of whose members blocks or is blocked by the actor (§6).
+// It is what the friends list offers, by the rules JoinPublic applies;
+// JoinPublic still decides. The parties, and the blocks between the actor and
+// their members, are read in two bulk lookups however many friends the actor
+// has.
 func (s *Service) JoinableParties(ctx context.Context, actor string, friends []string) (map[string]string, error) {
-	own, err := s.store.PartyOf(ctx, actor)
-	if err != nil && !errors.Is(err, ErrNotInParty) {
+	parties, err := s.store.PartiesOf(ctx, append([]string{actor}, friends...))
+	if err != nil {
+		return nil, err
+	}
+	own := parties[actor]
+	open := map[string]Party{}
+	var members []string
+	for _, friend := range friends {
+		p, ok := parties[friend]
+		if !ok || (own.ID != "" && p.ID == own.ID) || p.Privacy != Public || p.Status != Idle || len(p.Members) >= s.settings.Rules.MaxSize {
+			continue
+		}
+		open[friend] = p
+		members = append(members, memberIDs(p)...)
+	}
+	if len(open) == 0 {
+		return map[string]string{}, nil
+	}
+	blocked, err := s.social.BlockedWith(ctx, actor, members)
+	if err != nil {
 		return nil, err
 	}
 	out := map[string]string{}
-	for _, friend := range friends {
-		p, err := s.store.PartyOf(ctx, friend)
-		if errors.Is(err, ErrNotInParty) {
-			continue
+	for friend, p := range open {
+		if !slices.ContainsFunc(memberIDs(p), func(id string) bool { return blocked[id] }) {
+			out[friend] = p.ID
 		}
-		if err != nil {
-			return nil, err
-		}
-		if (own.ID != "" && p.ID == own.ID) || p.Privacy != Public || p.Status != Idle || len(p.Members) >= s.settings.Rules.MaxSize {
-			continue
-		}
-		out[friend] = p.ID
 	}
 	return out, nil
 }

@@ -49,6 +49,9 @@ type Store interface {
 	AreFriends(ctx context.Context, a, b string) (bool, error)
 	FriendOfAny(ctx context.Context, account string, others []string) (bool, error)
 	BlockedWithAny(ctx context.Context, account string, others []string) (bool, error)
+	// BlockedWith returns those of others that block, or are blocked by,
+	// account, in one read.
+	BlockedWith(ctx context.Context, account string, others []string) (map[string]bool, error)
 }
 
 // Service applies social rules for an acting account.
@@ -224,6 +227,11 @@ func (s *Service) FriendOfAny(ctx context.Context, account string, others []stri
 
 func (s *Service) BlockedWithAny(ctx context.Context, account string, others []string) (bool, error) {
 	return s.store.BlockedWithAny(ctx, account, others)
+}
+
+// BlockedWith returns those of others that block, or are blocked by, account.
+func (s *Service) BlockedWith(ctx context.Context, account string, others []string) (map[string]bool, error) {
+	return s.store.BlockedWith(ctx, account, others)
 }
 
 // BlockedAmong reports whether any two of accounts block each other, for
