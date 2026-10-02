@@ -58,9 +58,85 @@ UVeyraShellButton* UVeyraShellButton::MakeWithContent(UWidgetTree& Tree, const F
 	return Button;
 }
 
+namespace
+{
+	/** Every live shell button, so the one under keyboard focus can be found from its Slate widget. */
+	TArray<TWeakObjectPtr<UVeyraShellButton>>& LiveButtons()
+	{
+		static TArray<TWeakObjectPtr<UVeyraShellButton>> Live;
+		return Live;
+	}
+}
+
+UVeyraShellButton* UVeyraShellButton::FindBySlate(const TSharedPtr<SWidget>& Widget)
+{
+	if (!Widget.IsValid())
+	{
+		return nullptr;
+	}
+	TArray<TWeakObjectPtr<UVeyraShellButton>>& Live = LiveButtons();
+	Live.RemoveAll([](const TWeakObjectPtr<UVeyraShellButton>& Each) { return !Each.IsValid(); });
+	for (const TWeakObjectPtr<UVeyraShellButton>& Each : Live)
+	{
+		if (Each->GetCachedWidget() == Widget)
+		{
+			return Each.Get();
+		}
+	}
+	return nullptr;
+}
+
+void UVeyraShellButton::ShowEnhancedFocus(bool bShow)
+{
+	if (bShow == bEnhancedFocus)
+	{
+		return;
+	}
+	bEnhancedFocus = bShow;
+	if (!bShow)
+	{
+		SetStyle(OwnStyle);
+		return;
+	}
+	OwnStyle = GetStyle();
+	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+	FButtonStyle Focused = OwnStyle;
+	for (FSlateBrush* Brush : { &Focused.Normal, &Focused.Hovered, &Focused.Pressed })
+	{
+		Brush->DrawAs = ESlateBrushDrawType::RoundedBox;
+		Brush->OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
+		Brush->OutlineSettings.CornerRadii = FVector4(Style.ButtonCornerRadius);
+		Brush->OutlineSettings.Color = Style.FocusOutlineColor;
+		Brush->OutlineSettings.Width = Style.FocusOutlineWidth;
+	}
+	SetStyle(Focused);
+}
+
+float UVeyraShellButton::GetOutlineWidth() const
+{
+	return GetStyle().Normal.OutlineSettings.Width;
+}
+
+FLinearColor UVeyraShellButton::GetOutlineColor() const
+{
+	return GetStyle().Normal.OutlineSettings.Color.GetSpecifiedColor();
+}
+
+FLinearColor UVeyraShellButton::GetFillColor() const
+{
+	return GetStyle().Normal.TintColor.GetSpecifiedColor();
+}
+
+void UVeyraShellButton::BeginDestroy()
+{
+	LiveButtons().RemoveAll([this](const TWeakObjectPtr<UVeyraShellButton>& Each) { return !Each.IsValid() || Each.Get() == this; });
+	Super::BeginDestroy();
+}
+
 UVeyraShellButton* UVeyraShellButton::Create(UWidgetTree& Tree, const FText& Label, TFunction<void()> Action, bool bEnabled)
 {
 	UVeyraShellButton* Button = Tree.ConstructWidget<UVeyraShellButton>(UVeyraShellButton::StaticClass());
+	LiveButtons().Add(Button);
 	Button->Label = Label;
 	Button->Action = MoveTemp(Action);
 	Button->SetIsEnabled(bEnabled);

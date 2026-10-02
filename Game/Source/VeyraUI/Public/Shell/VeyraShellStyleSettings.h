@@ -420,6 +420,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0", ClampMax = "1"))
 	float TurnCueVolume = 0.0f;
 
+	/** The enhanced keyboard focus outline (SET-74; ADR-055 §3): high-contrast against every surface, and its width in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Focus")
+	FLinearColor FocusOutlineColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Focus", meta = (ClampMin = "1"))
+	float FocusOutlineWidth = 0.0f;
+
 	/** Interface Text Size's factor on the menus' text, by option (SET-62; ADR-055 §2). */
 	UPROPERTY(Config, EditAnywhere, Category = "Text")
 	TMap<FString, float> TextSizeScales;

@@ -156,6 +156,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 	{
 		bEveryReminderPositive &= Option.Value > 0.0f;
 	}
+	Require(FocusOutlineColor.A > 0.0f && FocusOutlineWidth >= 2.0f, TEXT("FocusOutlineColor"), TEXT("the enhanced focus outline is visible, and at least 2 pixels wide."));
 	const float* StandardScale = TextSizeScales.Find(TEXT("Standard"));
 	bool bEveryScalePositive = true;
 	for (const TPair<FString, float>& Scale : TextSizeScales)
