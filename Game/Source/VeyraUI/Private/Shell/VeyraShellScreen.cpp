@@ -221,9 +221,10 @@ void UVeyraShellScreen::Refresh()
 			DrawTurnAttention();
 		}
 	}
-	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|select chat %d|"),
+	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|select chat %d|menu %s|form %s:%s|"),
 								  static_cast<int32>(Page), OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex,
-								  *BotDifficulty, *OpenCardId, static_cast<int32>(Confirm), *ConfirmId, bSelectChatHidden ? 1 : 0) +
+								  *BotDifficulty, *OpenCardId, static_cast<int32>(Confirm), *ConfirmId, bSelectChatHidden ? 1 : 0, *OpenPlayerMenu, *ReportFormName,
+								  *ReportReason) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
