@@ -499,6 +499,8 @@ if ($Handoff -or $Flow) {
     $isCoop = $Flow -eq 'Coop'
     # -Flow Party: two friends form a party by invitation, its leader hands leadership over after confirming,
     # and the new leader queues the pair for co-op; the first client sieges to victory for both (ADR-044).
+    # On the way they chat (ADR-046): /p from champion select, /msg from the match's composer, and the
+    # results screen's post-match chat.
     $isParty = $Flow -eq 'Party'
     $isVictory = $Flow -in 'CasualVictory', 'Custom', 'Coop', 'Party'
     # -Flow Settings: one player, two starts, no match.
@@ -851,9 +853,12 @@ if ($Handoff -or $Flow) {
                         $failed = $true
                     }
                 }
-                # Each friend sent Party Chat and a direct message through the client flow (ADR-046).
-                if ($isChat) {
-                    foreach ($chatLine in 'VeyraClientFlow: sending a party chat message.', 'VeyraClientFlow: sending a direct chat message.') {
+                # Each friend sent Party Chat and a direct message through the client flow (ADR-046); a party's members
+                # also chat from champion select, the match and the results' post-match chat.
+                if ($isChat -or $isParty) {
+                    $chatLines = @('VeyraClientFlow: sending a party chat message.', 'VeyraClientFlow: sending a direct chat message.')
+                    if ($isParty) { $chatLines += 'VeyraClientFlow: sending a postmatch chat message.' }
+                    foreach ($chatLine in $chatLines) {
                         if (-not (Select-String -LiteralPath $client.Log -SimpleMatch $chatLine -Quiet)) {
                             Write-Host "  It never logged '$chatLine'"
                             $failed = $true

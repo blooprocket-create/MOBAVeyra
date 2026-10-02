@@ -146,6 +146,17 @@ private:
 	 * the script, if it did not go.
 	 */
 	bool ChatLineSent(const FVeyraChatConversation& Conversation, const FString& Text, const FString& AccountId);
+	/** Whether Conversation holds SenderName's confirmed line Text. */
+	static bool ChatHasLine(const FVeyraChatConversation* Conversation, const FString& SenderName, const FString& Text);
+	/** The party scripts in champion select (ADR-046 §6): "/p" through the select's one chat panel, then the friend's line read. True while it waits. */
+	bool TickSelectChat(IVeyraClientIntents& Flow);
+	/** The party scripts in the match: a direct message to the friend with the composer's /msg, then theirs read. True while it waits. */
+	bool TickMatchDirect(IVeyraClientIntents& Flow);
+	/**
+	 * The party scripts on the results screen: the post-match chat joined by a first message, and answered once the
+	 * friend's line shows, so whichever joined last still reads the other (UX-59). True while it waits.
+	 */
+	bool TickPostMatchChat(IVeyraClientIntents& Flow);
 	/** The Collection's purchase, before the script practises with what it bought: opens the page, a card, its Buy and the confirmation. */
 	void TickCollection(IVeyraClientIntents& Flow);
 	/** Whether the script plays a practice match: Practice, and Collection after its purchase. */
@@ -340,6 +351,10 @@ private:
 	 */
 	int32 ChatStep = 0;
 	FString ChatRunTag;
+	/** The party scripts' chat in champion select, the match and the results: how far each has gone. */
+	int32 SelectChatStep = 0;
+	int32 MatchDirectStep = 0;
+	int32 PostMatchStep = 0;
 	/** The starting Gold the lobby set for its match, which the verified scoreboard must show; unset for the game's own. */
 	TOptional<double> LobbyStartingGold;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */
