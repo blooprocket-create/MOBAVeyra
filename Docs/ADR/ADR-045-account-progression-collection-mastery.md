@@ -121,7 +121,7 @@ One pure rule decides each participant's eligibility and gives a reason code for
 
 - The match roster carries each human's Mastery Level and emote tier for the Vanguard they play, read when the match is created.
 - The match server keeps them on the player's state.
-- An emote key (a rebindable control) shows a badge above the Vanguard with the level, coloured by tier, for `Match.json` `masteryEmote.seconds`, at most once per `masteryEmote.cooldownSeconds`. The server decides both, by its own clock.
+- An emote key (a rebindable control) shows a badge above the Vanguard with the level, coloured by tier, for `Match.json` `masteryEmote.seconds`, at most once per `masteryEmote.cooldownSeconds`. The server decides both, by its own clock. The cooldown is kept on the player's state, which a returning player takes back, so a reconnect does not reset it.
 - It has no gameplay effect, and a client draws it only while it can see that Vanguard.
 
 ### 10. Provisional answers

@@ -465,9 +465,6 @@ private:
 	void OnVoteYesPressed();
 	void OnVoteNoPressed();
 	void OnMasteryEmotePressed();
-
-	/** Server only: when, in world time, this player may next show the mastery emote. */
-	double NextMasteryEmoteAt = 0.0;
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void OnAbilityReleased(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
