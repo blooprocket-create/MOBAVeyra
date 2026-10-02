@@ -243,6 +243,8 @@ private:
 	void SubmitChat();
 	/** Champion select's compact chat beside the ally column (UX-33), or its Show Chat once collapsed. */
 	void BuildSelectChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** The results screen's optional post-match chat beside the report (UX-59–60). */
+	void BuildPostMatchChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 
 	UFUNCTION()
 	void HandleChatChanged(const FText& Text);
@@ -413,6 +415,9 @@ private:
 
 	/** The player collapsed champion select's chat panel (UX-33). */
 	bool bSelectChatHidden = false;
+
+	/** What came of the player's last command in the post-match chat, such as a mute; empty for none. */
+	FText ChatNotice;
 
 	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-044 §2, §4). */
 	FString OpenCardId;

@@ -3,6 +3,7 @@
 #include "Shell/VeyraChatModels.h"
 
 #include "Algo/StableSort.h"
+#include "Chat/VeyraChatCommands.h"
 #include "Misc/StringBuilder.h"
 
 #define LOCTEXT_NAMESPACE "VeyraChatModels"
@@ -171,6 +172,77 @@ EChatKind SelectRecipient(const FString& Draft, FString& OutText)
 FText RecipientLabel(EChatKind Kind)
 {
 	return Kind == EChatKind::Party ? LOCTEXT("RecipientParty", "Party") : LOCTEXT("RecipientTeam", "Team");
+}
+
+FVeyraChatPanelModel DescribePostMatch(const FVeyraClientSnapshot& Snapshot, bool bCanSend)
+{
+	FVeyraChatPanelModel Panel;
+	const FVeyraChat& Chat = Snapshot.Chat;
+	if (Chat.PostMatch.Key.IsEmpty())
+	{
+		return Panel;
+	}
+	Panel.bVisible = true;
+	Panel.Kind = EChatKind::PostMatch;
+	Panel.Title = LOCTEXT("PostMatchTitle", "Post-Match Chat");
+	Panel.Hint = LOCTEXT("PostMatchHint", "Message both teams");
+	Panel.bCanSend = bCanSend;
+	// Nothing shows until the player's first message, and then only what follows it (UX-59).
+	if (!Chat.bPostMatchJoined)
+	{
+		Panel.Empty = LOCTEXT("PostMatchInvite", "Say something to join the post-match chat. You will see what is said from then on.");
+		return Panel;
+	}
+	Panel.Empty = LOCTEXT("PostMatchEmpty", "No one else has said anything yet.");
+	for (const FVeyraChatEntry& Entry : Chat.PostMatch.Lines)
+	{
+		if (!Chat.PostMatchMuted.Contains(Entry.SenderId))
+		{
+			Panel.Lines.Add(DescribeLine(Entry, Snapshot.AccountId, /*bMarkParty*/ false));
+		}
+	}
+	return Panel;
+}
+
+FVeyraPostMatchCommand ParsePostMatch(const FString& Draft, const FVeyraChat& Chat, const FString& PlayerId)
+{
+	FVeyraPostMatchCommand Command;
+	const FVeyraChatCommand Typed = VeyraChatCommands::Parse(Draft, EVeyraChatChannel::All);
+	if (Typed.Kind != EVeyraChatCommandKind::Mute && Typed.Kind != EVeyraChatCommandKind::Unmute)
+	{
+		return Command;
+	}
+	Command.Name = Typed.Name;
+	// Only another player whose line the chat shows: the one the player can read and so would mute.
+	const FVeyraChatEntry* Speaker = Chat.PostMatch.Lines.FindByPredicate([&Typed, &PlayerId](const FVeyraChatEntry& Entry) {
+		return Entry.SenderId != PlayerId && Entry.SenderName.Equals(Typed.Name.TrimStartAndEnd(), ESearchCase::IgnoreCase);
+	});
+	if (!Speaker)
+	{
+		Command.Kind = EVeyraPostMatchCommandKind::NoSuchSpeaker;
+		return Command;
+	}
+	Command.Kind = Typed.Kind == EVeyraChatCommandKind::Mute ? EVeyraPostMatchCommandKind::Mute : EVeyraPostMatchCommandKind::Unmute;
+	Command.AccountId = Speaker->SenderId;
+	Command.Name = Speaker->SenderName;
+	return Command;
+}
+
+FText PostMatchNotice(const FVeyraPostMatchCommand& Command)
+{
+	const FText Name = FText::FromString(Command.Name);
+	switch (Command.Kind)
+	{
+	case EVeyraPostMatchCommandKind::Send:
+		break;
+	case EVeyraPostMatchCommandKind::Mute:
+		return FText::Format(LOCTEXT("PostMatchMuted", "You muted {0} in this chat."), Name);
+	case EVeyraPostMatchCommandKind::Unmute:
+		return FText::Format(LOCTEXT("PostMatchUnmuted", "You unmuted {0}."), Name);
+	case EVeyraPostMatchCommandKind::NoSuchSpeaker:
+		return FText::Format(LOCTEXT("PostMatchNoSpeaker", "No one called {0} has said anything here."), Name);
+	}
+	return FText::GetEmpty();
 }
 
 FString Signature(const FVeyraChat& Chat)

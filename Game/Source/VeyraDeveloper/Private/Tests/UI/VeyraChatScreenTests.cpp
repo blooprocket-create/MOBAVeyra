@@ -251,6 +251,78 @@ namespace VeyraChatScreenTests
 			ASSERT_THAT(IsNotNull(Screen->FindButton(FText::FromString(TEXT("Send to Team Chat")))));
 		}
 	};
+
+	// Veyra.UI.PostMatchChatScreen.*: the results screen's optional cross-team chat (UX-59–60): opt-in by the first
+	// message, what follows it only, mutes by name.
+	TEST_CLASS(PostMatchChatScreen, "Veyra.UI")
+	{
+		FActorTestSpawner Spawner;
+		FClientFlowTestRig Rig;
+		UVeyraShellScreen* Screen = nullptr;
+
+		AFTER_EACH()
+		{
+			if (Screen)
+			{
+				Screen->Unbind();
+			}
+		}
+
+		static FVeyraClientSnapshot ResultsSnapshot()
+		{
+			FVeyraClientSnapshot Snapshot = ChatSnapshot(/*bInParty*/ false);
+			Snapshot.State = EVeyraClientState::Results;
+			Snapshot.Chat.PostMatch.Key = MatchId;
+			return Snapshot;
+		}
+
+		TEST_METHOD(NothingShowsBeforeThePlayersFirstMessage)
+		{
+			FVeyraClientSnapshot Snapshot = ResultsSnapshot();
+			FVeyraChatPanelModel Panel = VeyraChatModels::DescribePostMatch(Snapshot, true);
+			ASSERT_THAT(IsTrue(Panel.bVisible && Panel.Kind == EChatKind::PostMatch && Panel.Lines.IsEmpty() && Panel.Empty.ToString().StartsWith(TEXT("Say something"))));
+			Snapshot.Chat.bPostMatchJoined = true;
+			Snapshot.Chat.PostMatch.Lines.Add(ChatEntry(EChatKind::PostMatch, AccountId, TEXT("DevOne"), TEXT("gg"), 8));
+			Snapshot.Chat.PostMatch.Lines.Add(ChatEntry(EChatKind::PostMatch, FriendId, TEXT("DevTwo"), TEXT("wp"), 9));
+			Snapshot.Chat.PostMatchMuted.Add(FriendId);
+			Panel = VeyraChatModels::DescribePostMatch(Snapshot, true);
+			ASSERT_THAT(IsTrue(Panel.Lines.Num() == 1 && Panel.Lines[0].bOwn, TEXT("a muted player's lines are hidden")));
+			Snapshot.Chat.PostMatch.Key.Reset();
+			ASSERT_THAT(IsFalse(VeyraChatModels::DescribePostMatch(Snapshot, true).bVisible, TEXT("no match, no chat")));
+		}
+
+		TEST_METHOD(MuteAndUnmuteNameAPlayerWhoseLineShows)
+		{
+			FVeyraClientSnapshot Snapshot = ResultsSnapshot();
+			Snapshot.Chat.PostMatch.Lines.Add(ChatEntry(EChatKind::PostMatch, FriendId, TEXT("DevTwo"), TEXT("wp"), 9));
+			FVeyraPostMatchCommand Command = VeyraChatModels::ParsePostMatch(TEXT("/mute devtwo"), Snapshot.Chat, AccountId);
+			ASSERT_THAT(IsTrue(Command.Kind == EVeyraPostMatchCommandKind::Mute && Command.AccountId == FriendId && Command.Name == TEXT("DevTwo")));
+			ASSERT_THAT(AreEqual(VeyraChatModels::PostMatchNotice(Command).ToString(), FString(TEXT("You muted DevTwo in this chat."))));
+			Command = VeyraChatModels::ParsePostMatch(TEXT("/unmute DevTwo"), Snapshot.Chat, AccountId);
+			ASSERT_THAT(IsTrue(Command.Kind == EVeyraPostMatchCommandKind::Unmute));
+			Command = VeyraChatModels::ParsePostMatch(TEXT("/mute Nobody"), Snapshot.Chat, AccountId);
+			ASSERT_THAT(IsTrue(Command.Kind == EVeyraPostMatchCommandKind::NoSuchSpeaker && Command.Name == TEXT("Nobody")));
+			ASSERT_THAT(IsTrue(VeyraChatModels::ParsePostMatch(TEXT("gg wp"), Snapshot.Chat, AccountId).Kind == EVeyraPostMatchCommandKind::Send));
+		}
+
+		TEST_METHOD(TheResultsOfferThePostMatchChatBesideTheReport)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachResults()));
+			Screen = CreateWidget<UVeyraShellScreen>(&Spawner.GetWorld());
+			Screen->Bind(*Rig.Flow);
+			Screen->SetChatDraft(TEXT("gg"));
+			UVeyraShellButton* Send = Screen->FindButton(FText::FromString(TEXT("Send to Post-Match Chat")));
+			ASSERT_THAT(IsTrue(Send && Send->GetIsEnabled()));
+			Send->Press();
+			const FFlowTestBackend::FRequest* Request = Rig.Backend.Find(TEXT("POST"), FString(TEXT("/v1/me/chat/matches/")) + MatchId);
+			ASSERT_THAT(IsTrue(Request && Request->Body.Contains(TEXT("\"text\":\"gg\""))));
+			// A name the chat does not show says so under the composer.
+			Screen->SetChatDraft(TEXT("/mute Nobody"));
+			Send = Screen->FindButton(FText::FromString(TEXT("Send to Post-Match Chat")));
+			Send->Press();
+			ASSERT_THAT(IsNull(Rig.Backend.Find(TEXT("PUT"), FString(TEXT("/v1/me/chat/matches/")) + MatchId + TEXT("/mutes/") + FriendId)));
+		}
+	};
 }
 
 #endif

@@ -127,6 +127,36 @@ void UVeyraShellScreen::BuildChatPanel(const FVeyraChatPanelModel& Model, UPanel
 	AddNamedButton(*Composer, EVeyraShellButtonKind::Secondary, FText::Format(LOCTEXT("SendChatLabel", "Send to {0}"), Model.Title),
 		LOCTEXT("SendChat", "Send"), [this] { SubmitChat(); }, Model.bCanSend);
 	VeyraShellStyle::AddSpaced(Parent, *Composer);
+	if (!Model.Notice.IsEmpty())
+	{
+		AddText(Parent, Model.Notice, ChatRole(EVeyraShellText::Small));
+	}
+}
+
+void UVeyraShellScreen::BuildPostMatchChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
+{
+	FVeyraChatPanelModel Model = VeyraChatModels::DescribePostMatch(Snapshot, Client->CanIssue(EVeyraClientIntent::SendChatMessage));
+	if (!Model.bVisible)
+	{
+		return;
+	}
+	Model.Notice = ChatNotice;
+	const UVeyraShellStyleSettings& Style = ChatStyle();
+	USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Width->SetWidthOverride(Style.FriendsPanelWidth);
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing));
+	Width->AddChild(Panel);
+	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Panel->SetContent(Column);
+	BuildChatPanel(Model, *Column);
+	if (UHorizontalBox* Row = Cast<UHorizontalBox>(&Parent))
+	{
+		Row->AddChildToHorizontalBox(Width)->SetVerticalAlignment(VAlign_Top);
+	}
+	else
+	{
+		VeyraShellStyle::AddSpaced(Parent, *Width);
+	}
 }
 
 void UVeyraShellScreen::BuildSelectChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
@@ -159,6 +189,23 @@ void UVeyraShellScreen::SubmitChat()
 	if (ChatBoxKind == EChatKind::Select)
 	{
 		Kind = VeyraChatModels::SelectRecipient(Draft, Text);
+	}
+	// The post-match chat takes /mute and /unmute, as a match does (ADR-046 §5).
+	if (ChatBoxKind == EChatKind::PostMatch && Client)
+	{
+		const FVeyraPostMatchCommand Command = VeyraChatModels::ParsePostMatch(Draft, Client->GetSnapshot().Chat, Client->GetSnapshot().AccountId);
+		if (Command.Kind != EVeyraPostMatchCommandKind::Send)
+		{
+			if (Command.Kind != EVeyraPostMatchCommandKind::NoSuchSpeaker)
+			{
+				Client->MutePostMatchChat(Command.AccountId, Command.Kind == EVeyraPostMatchCommandKind::Mute);
+			}
+			ChatNotice = VeyraChatModels::PostMatchNotice(Command);
+			ChatDrafts.Remove(ChatBoxKey);
+			ShownSignature.Reset();
+			Refresh();
+			return;
+		}
 	}
 	if (Client && !Text.TrimStartAndEnd().IsEmpty() && Client->SendChatMessage(Kind, ChatBoxTarget, Text))
 	{

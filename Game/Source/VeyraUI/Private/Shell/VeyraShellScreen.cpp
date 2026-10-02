@@ -320,6 +320,12 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		Confirm = EVeyraShellConfirm::None;
 		ConfirmId.Reset();
 	}
+	if (Shown != EVeyraShellScreen::Results)
+	{
+		// The post-match chat, its notice and its draft belong to one results screen (UX-60).
+		ChatNotice = FText::GetEmpty();
+		ChatDrafts.Remove(FString(VeyraBackendProtocol::ChatKindName(VeyraBackendProtocol::EChatKind::PostMatch)) + TEXT(":"));
+	}
 	ON_SCOPE_EXIT
 	{
 		if (bRefocusFriendName && FriendNameBox)
@@ -936,14 +942,21 @@ void UVeyraShellScreen::BuildResults(const FVeyraClientSnapshot& Snapshot)
 	Header->AddChildToHorizontalBox(Continue)->SetVerticalAlignment(VAlign_Bottom);
 	VeyraShellStyle::AddSpaced(*Content, *Header);
 	BuildRewards(Snapshot, *Content);
+	// The report, with the optional post-match chat beside it (UX-59–60).
+	UHorizontalBox* Below = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	UWidget* Report = WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass());
 	if (Model.bVerified)
 	{
 		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing * 2.0f));
 		UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Panel->SetContent(Body);
 		BuildReport(Model.Report, *Body);
-		AddFilling(*Content, *Panel);
+		Report = Panel;
 	}
+	UHorizontalBoxSlot* ReportSlot = Below->AddChildToHorizontalBox(Report);
+	ReportSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	BuildPostMatchChat(Snapshot, *Below);
+	AddFilling(*Content, *Below);
 }
 
 void UVeyraShellScreen::BuildReport(const FVeyraMatchReport& Report, UPanelWidget& Parent)
