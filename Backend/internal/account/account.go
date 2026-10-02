@@ -52,7 +52,7 @@ type Availability struct {
 	// Starters are what a new account may choose from.
 	Starters []string
 	// Released is every released Vanguard, in the catalog's order: what a
-	// draft's bans may name (ADR-041 §1).
+	// draft's bans may name (ADR-042 §1).
 	Released []string
 }
 
@@ -151,7 +151,7 @@ func (s *Service) Vanguards(ctx context.Context, accountID string) (Availability
 }
 
 // IsReleased reports whether a Vanguard is released: one a draft may ban
-// (ADR-041 §1).
+// (ADR-042 §1).
 func (s *Service) IsReleased(vanguardID string) bool { return s.catalog.IsReleased(vanguardID) }
 
 // MayPick reports whether the account may pick a Vanguard now: it has

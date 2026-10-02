@@ -539,7 +539,7 @@ namespace VeyraPlayerApiTests
 
 		TEST_METHOD(ReadsADraftsTurnBansAndTrades)
 		{
-			// A draft select with its phase, turn, bans and seats (ADR-041).
+			// A draft select with its phase, turn, bans and seats (ADR-042).
 			const auto Draft = [](const TCHAR* Phase, const TCHAR* Turn, const TCHAR* Bans, const TCHAR* Seats) {
 				return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"draft\",\"mode\":\"draft_pick\",\"state\":\"picking\",\"phase\":\"%s\",\"turn\":%s,")
 										   TEXT("\"bans\":%s,\"remainingSeconds\":20,\"pickSeconds\":30,\"seats\":[%s],\"matchId\":null,\"cancelReason\":null}}"),

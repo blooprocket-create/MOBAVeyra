@@ -37,12 +37,12 @@ type selectSeatJSON struct {
 	Hover  *string `json:"hover"`
 	Locked *string `json:"locked"`
 	// BanHover is the ban the seat is considering, shown only to its team
-	// (ADR-041 §1).
+	// (ADR-042 §1).
 	BanHover *string `json:"banHover"`
 	// Acting is whether the seat bans or picks in the draft's current turn.
 	Acting bool `json:"acting"`
 	// OffersYou is whether the seat offers the viewer a trade, and
-	// OfferedByYou whether the viewer offers it one (ADR-041 §2): an offer is
+	// OfferedByYou whether the viewer offers it one (ADR-042 §2): an offer is
 	// seen only by its two players.
 	OffersYou    bool `json:"offersYou"`
 	OfferedByYou bool `json:"offeredByYou"`
@@ -57,7 +57,7 @@ type selectJSON struct {
 	Mode  string `json:"mode"`
 	State string `json:"state"`
 	// Phase is a draft's ban or pick turn, any select's picking, or the final
-	// window after the last lock (ADR-041 §1–§2).
+	// window after the last lock (ADR-042 §1–§2).
 	Phase string `json:"phase"`
 	// Turn is a draft's current turn; null outside one.
 	Turn *selectTurnJSON `json:"turn"`
@@ -250,7 +250,7 @@ func (s *Server) lockVanguard(w http.ResponseWriter, r *http.Request, actor stri
 }
 
 // hoverBan records the ban the player considers in their draft's ban turn,
-// which only their team sees (ADR-041 §1).
+// which only their team sees (ADR-042 §1).
 func (s *Server) hoverBan(w http.ResponseWriter, r *http.Request, actor string) {
 	s.withVanguard(w, r, actor, s.Selection.HoverBan)
 }
@@ -303,7 +303,7 @@ func (s *Server) tradeWith(w http.ResponseWriter, r *http.Request, actor string,
 }
 
 // offerTrade offers a locked teammate the player's locked Vanguard for theirs
-// (ADR-041 §2); a new offer replaces the player's last.
+// (ADR-042 §2); a new offer replaces the player's last.
 func (s *Server) offerTrade(w http.ResponseWriter, r *http.Request, actor string) {
 	s.tradeWith(w, r, actor, s.Selection.OfferTrade)
 }

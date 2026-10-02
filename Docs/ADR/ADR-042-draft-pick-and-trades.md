@@ -1,4 +1,4 @@
-# ADR-041: Draft Pick, and trades between locked teammates
+# ADR-042: Draft Pick, and trades between locked teammates
 
 **Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §7 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the pull request that adds it.
 **Date:** 2026-10-01

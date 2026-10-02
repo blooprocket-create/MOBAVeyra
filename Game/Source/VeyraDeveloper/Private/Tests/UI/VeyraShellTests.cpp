@@ -186,7 +186,7 @@ namespace VeyraShellTests
 
 		TEST_METHOD(DraftSelectModel)
 		{
-			// The player's ban turn in a draft (ADR-041 §1): the cards are every released Vanguard, the ban hover is chosen,
+			// The player's ban turn in a draft (ADR-042 §1): the cards are every released Vanguard, the ban hover is chosen,
 			// and the tile bans.
 			FVeyraClientSnapshot Snapshot = SelectSnapshot(TEXT("oriel"), FString());
 			Snapshot.Select.Kind = TEXT("draft");

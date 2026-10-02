@@ -44,7 +44,7 @@ const (
 	// once, blind, beside the bots the host placed; each Vanguard once per
 	// side, bots included. It ends back in the lobby unless it starts a match.
 	KindCustom Kind = "custom"
-	// KindDraft is Draft Pick (Battleground Bible; ADR-041 §1): bans, then
+	// KindDraft is Draft Pick (Battleground Bible; ADR-042 §1): bans, then
 	// picks, in turns, each turn's side's next seats acting.
 	KindDraft Kind = "draft"
 )
@@ -143,7 +143,7 @@ type Seat struct {
 	Locked   string
 	LockedAt time.Time
 	// BanHover is the Vanguard a banning player is considering, which only
-	// their team sees (ADR-041 §1).
+	// their team sees (ADR-042 §1).
 	BanHover string
 	// FluxSpells are the starting Flux Spells the player takes into the
 	// match, in slot order, empty for an empty slot (ADR-015 §5). Free to
@@ -178,7 +178,7 @@ type Session struct {
 	Seats     []Seat
 	CreatedAt time.Time
 	// Phase is where a picking select is: a draft's ban or pick turn, or the
-	// final window (ADR-041 §1–§2).
+	// final window (ADR-042 §1–§2).
 	Phase Phase
 	// Turn is a draft's current turn, an index into Timing.Turns, and TurnDone
 	// the bans or picks it has had.
@@ -280,7 +280,7 @@ func (s *Session) Hover(accountID, vanguardID string, now time.Time) error {
 }
 
 // Lock locks a player's Vanguard, permanently. The caller has checked that
-// they may pick it. In a draft only the pick turn's players lock (ADR-041 §1).
+// they may pick it. In a draft only the pick turn's players lock (ADR-042 §1).
 // Once every seat has locked, the select's final window opens.
 func (s *Session) Lock(accountID, vanguardID string, now time.Time) error {
 	seat, err := s.checkPicking(accountID, now)
@@ -370,7 +370,7 @@ func (s *Session) AllLocked() bool {
 	return true
 }
 
-// Expire ends the current phase's time (provisional, ADR-010 §11; ADR-041
+// Expire ends the current phase's time (provisional, ADR-010 §11; ADR-042
 // §7.2). A draft's turn ends as its rules say and the next begins. A
 // single-phase select's seats with a hover lock it, unless someone locked it
 // first, and a seat with nothing to lock cancels the select. The final window

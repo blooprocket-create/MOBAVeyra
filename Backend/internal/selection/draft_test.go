@@ -241,7 +241,7 @@ func TestADraftPlayerWhoStopsPollingCancelsIt(t *testing.T) {
 }
 
 // A side with fewer seats than a turn's count acts again in seat order, and a
-// pick turn with nobody left to lock is skipped (ADR-041 §1), so the bible's
+// pick turn with nobody left to lock is skipped (ADR-042 §1), so the bible's
 // turns run a draft of any size.
 func TestDraftTurnsGoRoundTheSidesSeats(t *testing.T) {
 	bible := Timing{Turns: []Turn{
@@ -369,7 +369,7 @@ func TestLockedTeammatesTradeTheirVanguards(t *testing.T) {
 }
 
 // After the last lock a select waits out its final window, in which locked
-// teammates may still trade (ADR-041 §2).
+// teammates may still trade (ADR-042 §2).
 func TestTheFinalWindowLeavesTimeToTrade(t *testing.T) {
 	f := newFixture(t)
 	f.svc.settings.Casual.FinalDuration = 10 * time.Second

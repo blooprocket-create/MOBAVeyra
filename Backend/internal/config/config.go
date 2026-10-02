@@ -61,7 +61,7 @@ const (
 	// team, then Match Found and a Casual Select with the bots seated (ADR-039 §2).
 	MatchmakingCoop = "coop"
 	// MatchmakingDraftPick: a matchmaker, then Match Found and a Draft Pick
-	// select of bans and picks in turns (ADR-041 §3).
+	// select of bans and picks in turns (ADR-042 §3).
 	MatchmakingDraftPick = "draftPick"
 	// MatchmakingNotImplemented: the mode may be selected but not queued yet.
 	MatchmakingNotImplemented = "notImplemented"
@@ -221,7 +221,7 @@ type CasualSelect struct {
 	// for this long: a disconnect.
 	PresenceTimeout time.Duration
 	// FinalDuration is the window after the last lock, in which locked
-	// teammates may still trade (ADR-041 §2); zero starts the match at once.
+	// teammates may still trade (ADR-042 §2); zero starts the match at once.
 	FinalDuration time.Duration
 }
 
@@ -232,7 +232,7 @@ type DraftTurn struct {
 	Count int
 }
 
-// DraftPick configures Draft Pick (ADR-041 §1, §3; Battleground Bible).
+// DraftPick configures Draft Pick (ADR-042 §1, §3; Battleground Bible).
 type DraftPick struct {
 	// Turns are the bans, then the picks, in order.
 	Turns []DraftTurn
@@ -1068,7 +1068,7 @@ func Parse(raw []byte) (Config, error) {
 		c.CasualSelect.FinalDuration = notNegative("casualSelect.finalDuration", f.CasualSelect.FinalDuration)
 	}
 
-	// Draft Pick's turns, for its modes (ADR-041 §1, §3): each side's picks
+	// Draft Pick's turns, for its modes (ADR-042 §1, §3): each side's picks
 	// cover its whole team, so no seat waits for a turn that never comes.
 	draftTeam := 0
 	for _, m := range c.Modes {

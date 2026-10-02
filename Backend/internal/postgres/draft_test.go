@@ -16,7 +16,7 @@ import (
 )
 
 // A draft keeps its phase, turn, timing, bans, ban hovers and trade offers
-// across transactions, and its match takes the traded picks (ADR-041).
+// across transactions, and its match takes the traded picks (ADR-042).
 func TestADraftAndItsTradesInPostgres(t *testing.T) {
 	f := newMatchFixture(t, "DevOne", "DevTwo", "DevThree")
 	ctx := context.Background()

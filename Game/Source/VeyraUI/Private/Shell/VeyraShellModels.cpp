@@ -22,7 +22,7 @@ namespace
 	constexpr int32 SecondsPerMinute = 60;
 	/** The kind of champion select matchmaking opens, which a player may leave. */
 	const TCHAR* const MatchmadeSelectKind = TEXT("casual");
-	/** A matchmade Draft Pick select (ADR-041). */
+	/** A matchmade Draft Pick select (ADR-042). */
 	const TCHAR* const DraftSelectKind = TEXT("draft");
 	/** A custom lobby's champion select, which a player may leave too, back to the lobby. */
 	const TCHAR* const CustomSelectKind = TEXT("custom");
@@ -415,7 +415,7 @@ namespace
 namespace
 {
 	/**
-	 * What happens now, as the banner under the timer says it: whose turn it is in a draft (ADR-041 §1),
+	 * What happens now, as the banner under the timer says it: whose turn it is in a draft (ADR-042 §1),
 	 * the final window, or the single phase's picking.
 	 */
 	FText DescribeSelectPhase(const VeyraBackendProtocol::FSelect& Select, const FSelectSeat* You)
@@ -488,7 +488,7 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		{
 			SeatModel.BanHover = FText::Format(LOCTEXT("SeatBanHover", "Banning {0}"), VanguardNameOf(Seat.BanHover));
 		}
-		// Trades are between locked teammates, offered by seat (ADR-041 §2).
+		// Trades are between locked teammates, offered by seat (ADR-042 §2).
 		SeatModel.bOfferedByYou = Seat.bOfferedByYou;
 		SeatModel.bOffersYou = Seat.bOffersYou;
 		SeatModel.bCanOfferTrade = Draft.bCanOfferTrade && !Seat.bYou && SeatModel.bAlly && !Seat.Locked.IsEmpty() && !Seat.bOfferedByYou;
@@ -531,7 +531,7 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 	};
 	if (Model.bBanning)
 	{
-		// The player's ban turn: any released Vanguard may be banned, owned or not, once (ADR-041 §1).
+		// The player's ban turn: any released Vanguard may be banned, owned or not, once (ADR-042 §1).
 		const FString BanHover = You ? You->BanHover : FString();
 		for (const FString& Id : Snapshot.ReleasedVanguards)
 		{
@@ -1088,7 +1088,7 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	{
 		const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
 		Text << TEXT("|select:") << Select.Id << TEXT(":") << static_cast<int32>(Select.State) << TEXT(":") << static_cast<int32>(Select.Phase);
-		// A draft's turn and bans (ADR-041 §1): a turn passes without any seat's pick changing.
+		// A draft's turn and bans (ADR-042 §1): a turn passes without any seat's pick changing.
 		if (Select.Turn.IsSet())
 		{
 			Text << TEXT(":turn ") << (Select.Turn->bBan ? TEXT("ban ") : TEXT("pick ")) << Select.Turn->Side << Select.Turn->Count << TEXT("/") << Select.Turn->Done;
