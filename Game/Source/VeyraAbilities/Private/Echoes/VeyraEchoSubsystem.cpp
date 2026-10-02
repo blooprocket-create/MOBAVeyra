@@ -342,6 +342,11 @@ EVeyraCastRejection UVeyraEchoSubsystem::CastFrom(UAbilitySystemComponent& Holde
 	{
 		return EVeyraCastRejection::Projected;
 	}
+	// The order's point or unit must be one the ability may take, as for any cast, before its repeat is spent.
+	if (const EVeyraCastRejection Refusal = Instance->CheckRepeatTarget(*Echo, Held->Ability, Target); Refusal != EVeyraCastRejection::None)
+	{
+		return Refusal;
+	}
 	// Aimed from where the Echo stands, at the order's point or unit, within the ability's range.
 	const FVector At = Echo->GetActorLocation();
 	AActor* Aimed = Target.Actor.Get();

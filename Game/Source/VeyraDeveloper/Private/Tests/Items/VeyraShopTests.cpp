@@ -16,6 +16,7 @@
 #include "Progression/VeyraProgressionComponent.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
+#include "Statuses/VeyraStatusTypes.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Abilities/VeyraTestFluxborn.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
@@ -429,6 +430,24 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Health, Max - Restored, 1.0),
 				FString::Printf(TEXT("all of it, and no more: Health %.1f of %.1f, expected %.1f"), Health, Max, Max - Restored)));
 			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None, TEXT("the next may start")));
+		}
+
+		TEST_METHOD(NothingIsDrunkInStasis)
+		{
+			Subsystem->SetAtFountain(*Participant, true);
+			Subsystem->Buy(*Participant, ItemId(TEXT("test_tonic")));
+			UAbilitySystemComponent& Abilities = *Participant->GetAbilitySystemComponent();
+			FVeyraStatusSpec Stasis;
+			Stasis.Id = ItemId(TEXT("test_stasis"));
+			Stasis.Kind = EVeyraStatusKind::Stasis;
+			Stasis.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Abilities, Abilities, Stasis)));
+			// It takes no action, so it cannot start a restoration that would outlast the Stasis (ADR-050 §1), as
+			// when it holds still while commanding its Echo.
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::NotNow));
+			ASSERT_THAT(IsTrue(CountOf(TEXT("test_tonic")) == 1, TEXT("nothing is used up")));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(Abilities, Stasis.Id)));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None, TEXT("out of it, it drinks")));
 		}
 
 		/** Runs world time past Seconds, so a running restoration ends (see the tonic's test). */

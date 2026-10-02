@@ -35,6 +35,13 @@
 
 namespace VeyraCombat
 {
+bool IsInStasis(const UAbilitySystemComponent& AbilitySystem)
+{
+	const AActor* Owner = AbilitySystem.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->Has(EVeyraStatusKind::Stasis);
+}
+
 namespace
 {
 	// Veyra effects take every magnitude from SetByCaller data, never from Gameplay Ability System
@@ -49,14 +56,6 @@ namespace
 	bool IsNonNegativeFinite(double Value)
 	{
 		return FMath::IsFinite(Value) && Value >= 0.0;
-	}
-
-	/** Whether the unit is in Stasis (Combat Bible §10; ADR-050 §1). */
-	bool IsInStasis(const UAbilitySystemComponent& AbilitySystem)
-	{
-		const AActor* Owner = AbilitySystem.GetOwner();
-		const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
-		return Statuses && Statuses->Has(EVeyraStatusKind::Stasis);
 	}
 
 	/** Whether no heal or shield may reach the unit now: in Stasis, or its Health sealed (ADR-050 §1, §3). */
