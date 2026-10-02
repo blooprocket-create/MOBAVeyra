@@ -2551,7 +2551,40 @@ void FVeyraClientFlow::ShowResults(TOptional<VeyraBackendProtocol::FMatchOutcome
 		Log(FString::Printf(TEXT("match %s has no verified result yet."), *Snapshot.MatchId));
 	}
 	Snapshot.Result = MoveTemp(Outcome);
+	// A result can arrive before its rewards are recorded (ADR-045 §7). While the account has progression to
+	// grant into, the results screen says they are coming and the flow asks again, for as long as it waits
+	// for a result.
+	if (Snapshot.Result.IsSet() && Snapshot.Result->bHasResult && !Snapshot.Result->Rewards.IsSet() && Snapshot.Progression.IsSet())
+	{
+		Snapshot.RewardsWait = EVeyraRewardsWait::Pending;
+		RewardsDeadline = Host.Now() + Config.ResultWaitTimeoutSeconds;
+		After(Config.ResultPollIntervalSeconds, [this] { PollRewards(); });
+	}
 	Broadcast();
+}
+
+void FVeyraClientFlow::PollRewards()
+{
+	// A read that must never take the results screen away: any failure only asks again.
+	Probe(EVerb::Get, MatchOutcomePath(Snapshot.MatchId), [this](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FMatchOutcome Outcome;
+		FString Problem;
+		if (Snapshot.Result.IsSet() && Response.IsSuccess() && VeyraBackendProtocol::ParseMatchOutcome(Response.Body, Outcome, Problem) && Outcome.Rewards.IsSet())
+		{
+			Snapshot.Result->Rewards = MoveTemp(Outcome.Rewards);
+			Snapshot.RewardsWait = EVeyraRewardsWait::None;
+			Broadcast();
+			return;
+		}
+		if (Host.Now() >= RewardsDeadline)
+		{
+			Snapshot.RewardsWait = EVeyraRewardsWait::Late;
+			Log(FString::Printf(TEXT("match %s: its rewards did not arrive in time."), *Snapshot.MatchId));
+			Broadcast();
+			return;
+		}
+		After(Config.ResultPollIntervalSeconds, [this] { PollRewards(); });
+	});
 }
 
 bool FVeyraClientFlow::ContinueFromResults()
@@ -2698,6 +2731,7 @@ void FVeyraClientFlow::Enter(EVeyraClientState NewState, const FString& Notice)
 	Snapshot.bBusy = false;
 	Snapshot.Problem.Reset();
 	Snapshot.Notice = Notice;
+	Snapshot.RewardsWait = EVeyraRewardsWait::None;
 	Log(FString::Printf(TEXT("%s%s%s."), LexToString(NewState), Notice.IsEmpty() ? TEXT("") : TEXT(": "), *Notice));
 }
 

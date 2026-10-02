@@ -178,7 +178,7 @@ void UVeyraShellScreen::BuildCollectionDetail(const FVeyraClientSnapshot& Snapsh
 
 void UVeyraShellScreen::BuildRewards(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
 {
-	const FVeyraRewardsModel Model = VeyraProgressionModels::DescribeRewards(Snapshot.Result);
+	const FVeyraRewardsModel Model = VeyraProgressionModels::DescribeRewards(Snapshot.Result, Snapshot.RewardsWait);
 	if (!Model.bShown)
 	{
 		return;

@@ -138,6 +138,21 @@ namespace VeyraCollectionScreenTests
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Not enough to buy Bryn."))));
 		}
 
+		TEST_METHOD(BuyWaitsUntilTheBalanceIsKnown)
+		{
+			// The shell's read of the balance has not answered yet.
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			Screen = CreateWidget<UVeyraShellScreen>(&Spawner.GetWorld());
+			Screen->Bind(*Rig.Flow);
+			ASSERT_THAT(IsTrue(OpenCollection()));
+			ASSERT_THAT(IsTrue(Press(VeyraProgressionModels::CollectionCardLabel(TEXT("bryn")))));
+			const FText BuyFlux = VeyraProgressionModels::BuyLabel(TEXT("bryn"), ECurrency::Flux, 3000);
+			ASSERT_THAT(IsTrue(Screen->FindButton(BuyFlux) && !Screen->FindButton(BuyFlux)->GetIsEnabled(), TEXT("an unread balance covers nothing")));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Reading your balance"))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/progression"), 200, ProgressionOf(4000, 300))));
+			ASSERT_THAT(IsTrue(Screen->FindButton(BuyFlux) && Screen->FindButton(BuyFlux)->GetIsEnabled()));
+		}
+
 		TEST_METHOD(TheResultsSayWhatTheMatchGaveApartFromItsGold)
 		{
 			VeyraBackendProtocol::FMatchOutcome Outcome;
@@ -168,15 +183,25 @@ namespace VeyraCollectionScreenTests
 
 		TEST_METHOD(TheResultsScreenShowsTheRewardsPanel)
 		{
-			const FString Scored = ScoredOutcomeBody();
-			const FString WithRewards = Scored.LeftChop(2)
-				+ TEXT(",\"rewards\":{\"reason\":null,\"accountXp\":181,\"levelBefore\":6,\"levelAfter\":7,\"flux\":400,\"refinedFlux\":0,")
-				  TEXT("\"vanguardId\":\"cairn\",\"masteryPoints\":477,\"masteryBefore\":2,\"masteryAfter\":3}}}");
-			ASSERT_THAT(IsTrue(Rig.ReachResults(WithRewards)));
+			ASSERT_THAT(IsTrue(Rig.ReachResults(RewardedOutcomeBody())));
 			Screen = CreateWidget<UVeyraShellScreen>(&Spawner.GetWorld());
 			Screen->Bind(*Rig.Flow);
 			const FString Text = Screen->DescribeText();
 			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your rewards")) && Text.Contains(TEXT("+181 account XP")) && Text.Contains(TEXT("Level up: Level 6 to 7")), Text));
+		}
+
+		TEST_METHOD(TheResultsScreenSaysRewardsAreComingThenShowsThem)
+		{
+			Rig.ShellProgression = ProgressionOf(1200, 250);
+			ASSERT_THAT(IsTrue(Rig.ReachResults(ScoredOutcomeBody())));
+			Screen = CreateWidget<UVeyraShellScreen>(&Spawner.GetWorld());
+			Screen->Bind(*Rig.Flow);
+			FString Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your rewards")) && Text.Contains(TEXT("still being counted")), Text));
+			Rig.Advance(FClientFlowTestRig::ResultPollSeconds);
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, RewardedOutcomeBody())));
+			Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("+181 account XP")) && !Text.Contains(TEXT("still being counted")), Text));
 		}
 	};
 }

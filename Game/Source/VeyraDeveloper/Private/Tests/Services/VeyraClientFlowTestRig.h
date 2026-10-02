@@ -122,6 +122,14 @@ namespace VeyraClientFlowTests
 			MatchId, *Result);
 	}
 
+	/** The scored result, with what it gave the player. */
+	inline FString RewardedOutcomeBody()
+	{
+		return ScoredOutcomeBody().LeftChop(2)
+			+ TEXT(",\"rewards\":{\"reason\":null,\"accountXp\":181,\"levelBefore\":6,\"levelAfter\":7,\"flux\":400,\"refinedFlux\":0,")
+			  TEXT("\"vanguardId\":\"cairn\",\"masteryPoints\":477,\"masteryBefore\":2,\"masteryAfter\":3}}}");
+	}
+
 	/** Another completed match of the player's, for Match History. */
 	inline const TCHAR* const OlderMatchId = TEXT("66666666-7777-4888-8999-aaaaaaaaaaaa");
 
@@ -440,6 +448,9 @@ namespace VeyraClientFlowTests
 
 		/** Fixture value: how long a player watches its match end. */
 		static constexpr double EndingShowSeconds = 6.0;
+		/** Fixture values: how often, and for how long, the flow asks for a match's result. */
+		static constexpr double ResultPollSeconds = 1.0;
+		static constexpr double ResultWaitSeconds = 10.0;
 
 		FClientFlowTestRig()
 		{
@@ -452,8 +463,8 @@ namespace VeyraClientFlowTests
 			Config.SelectPollIntervalSeconds = 0.5;
 			Config.MatchPollIntervalSeconds = 1.0;
 			Config.MatchWaitTimeoutSeconds = 60.0;
-			Config.ResultPollIntervalSeconds = 1.0;
-			Config.ResultWaitTimeoutSeconds = 10.0;
+			Config.ResultPollIntervalSeconds = ResultPollSeconds;
+			Config.ResultWaitTimeoutSeconds = ResultWaitSeconds;
 			Config.ReconnectPollIntervalSeconds = 5.0;
 			Config.PartyPollIntervalSeconds = 1.0;
 			Config.MatchFoundPollIntervalSeconds = 0.5;
@@ -475,6 +486,9 @@ namespace VeyraClientFlowTests
 
 		/** With the flow syncing account settings, sign-in answers their read with this document. */
 		TOptional<FString> AccountSettingsAnswer;
+
+		/** When set, reaching the shell answers its read of the account's level and balances with this document. */
+		TOptional<FString> ShellProgression;
 
 		/**
 		 * Starts, reads a launch code and redeems it: the flow then asks for the player's match, or, when
@@ -502,7 +516,8 @@ namespace VeyraClientFlowTests
 		 */
 		bool ReachShell()
 		{
-			return ReachProfile(true) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && State() == EVeyraClientState::Shell;
+			return ReachProfile(true) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && State() == EVeyraClientState::Shell
+				&& (!ShellProgression.IsSet() || Backend.Answer(TEXT("GET"), TEXT("/v1/me/progression"), 200, *ShellProgression));
 		}
 
 		/** From the shell, the friends read: DevTwo a friend, and with DevTwo's lobby invitation or not. */

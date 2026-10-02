@@ -102,7 +102,7 @@ One pure rule decides each participant's eligibility and gives a reason code for
   - the Vanguard, its Mastery points, and its Mastery levels before and after;
   - the reason when nothing was earned.
 
-  Before the result is adjudicated, `rewards` is absent and the client shows it as pending (Client & Platform §2.7).
+  Before the result is adjudicated, `rewards` is null or absent and the client shows it as pending (Client & Platform §2.7).
 - **Visibility is not permission** (Bible §4). Champion select still offers owned and rotation Vanguards only, and the backend still checks each pick.
 
 ### 8. The client
@@ -111,8 +111,11 @@ One pure rule decides each participant's eligibility and gives a reason code for
 - **A Collection page** shows every released Vanguard:
   - owned, in rotation, or not playable;
   - its Mastery;
-  - a **Buy** action with a confirmation naming the price and the currency.
+  - a **Buy** action with a confirmation naming the price, the currency and the balance. Buy stays off until the balance has been read and covers the price; the backend still decides every purchase.
 - **The results screen** shows account rewards and Mastery apart from the match's Gold, XP and Team Flux (Client & Platform §3).
+  - A result that arrives without its rewards, for an account with progression, shows them as pending.
+  - The client reads the result again every `ResultPollIntervalSeconds`, for up to `ResultWaitTimeoutSeconds`.
+  - Once that wait ends, the screen says the rewards are late and reach the account once counted, rather than hiding the panel.
 
 ### 9. The mastery emote in a match
 
