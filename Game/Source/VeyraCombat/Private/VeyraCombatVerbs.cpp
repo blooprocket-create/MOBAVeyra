@@ -436,6 +436,7 @@ bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquip
 		{ UVeyraEquipmentEffect::AbilityHasteName, Stats.AbilityHaste },
 		{ UVeyraEquipmentEffect::MoveSpeedName, Stats.MoveSpeed },
 		{ UVeyraEquipmentEffect::MagicPenetrationFlatName, Stats.MagicPenetrationFlat },
+		{ UVeyraEquipmentEffect::PhysicalPenetrationFlatName, Stats.PhysicalPenetrationFlat },
 		{ UVeyraEquipmentEffect::CritChanceName, Stats.CritChance },
 		{ UVeyraEquipmentEffect::CritDamageBonusName, Stats.CritDamageBonus },
 	};

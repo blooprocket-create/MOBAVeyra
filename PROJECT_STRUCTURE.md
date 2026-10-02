@@ -202,6 +202,10 @@ M40b added ([ADR-050](Docs/ADR/ADR-050-stasis-and-the-echo-item-line.md)), The S
 - in the client, the grey-box tether circle and stream, and the HUD's Echo panel;
 - in Items, The Second Self.
 
+M41 added ([ADR-051](Docs/ADR/ADR-051-assassin-items-and-memoryglass-reliquary.md)), the Item Bible's last six items:
+- in Combat, flat Physical Penetration as an equipment stat, and shield shares that say whether a hit broke the shield (`FVeyraShieldShare::bBroken`);
+- in Items, `Attunements/VeyraBurstAttunements.cpp`: No Allegiance, Clean Break, Through the Guard, No One Coming and Reenactment on `UVeyraAttunementSubsystem`, which now also hears damage resolution and cast commits; Veil Needle, Blank Sigil, Cutline Mantle, Oathpiercer, Witnessless Edge and Memoryglass Reliquary.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

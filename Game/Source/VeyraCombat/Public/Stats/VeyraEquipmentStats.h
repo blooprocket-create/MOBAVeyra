@@ -25,6 +25,9 @@ struct FVeyraEquipmentStats
 	double MoveSpeed = 0.0;
 	double MagicPenetrationFlat = 0.0;
 
+	/** Flat Armor penetration (Combat Bible §3; ADR-051 §1). */
+	double PhysicalPenetrationFlat = 0.0;
+
 	/** Magic Power's percentage bonus, as a fraction: 0.3 is +30% (§41, step 3). */
 	double MagicPowerFraction = 0.0;
 

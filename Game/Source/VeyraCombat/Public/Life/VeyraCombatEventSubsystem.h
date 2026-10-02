@@ -73,6 +73,9 @@ struct FVeyraShieldShare
 
 	/** The shield's identity, so an ability can count what one grant of it absorbed (ADR-027 §5). */
 	FVeyraContentId Id;
+
+	/** Whether this share emptied the shield, breaking it (ADR-051 §2). */
+	bool bBroken = false;
 };
 
 /**

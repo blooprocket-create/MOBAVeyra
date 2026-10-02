@@ -190,7 +190,9 @@ FVeyraAbsorptionResult UVeyraDamageAbsorptionComponent::ApplyIncomingDamage(EVey
 		for (const FVeyraAbsorbedShare& Share : Result.ShieldShares)
 		{
 			const FServerEntry* Server = ServerEntries.Find(Share.Sequence);
-			OutShieldShares->Add(FVeyraShieldShare{ Server ? Server->Source : nullptr, Share.Amount, Server ? Server->Id : FVeyraContentId() });
+			// And whether the hit emptied it, which an Attunement that rewards breaking a shield reads (ADR-051 §2).
+			OutShieldShares->Add(FVeyraShieldShare{ Server ? Server->Source : nullptr, Share.Amount, Server ? Server->Id : FVeyraContentId(),
+				Result.DepletedShields.Contains(Share.Sequence) });
 		}
 	}
 

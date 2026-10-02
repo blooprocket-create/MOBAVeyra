@@ -35,6 +35,8 @@ void UVeyraAttunementSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		DamageDealtHandle = Events->OnDamageDealt.AddUObject(this, &UVeyraAttunementSubsystem::OnDamageDealt);
 		DeathHandle = Events->OnDeath.AddUObject(this, &UVeyraAttunementSubsystem::OnDeath);
 		SpellShieldBlockedHandle = Events->OnSpellShieldBlocked.AddUObject(this, &UVeyraAttunementSubsystem::OnSpellShieldBlocked);
+		ResolvedHandle = Events->OnDamageResolved.AddUObject(this, &UVeyraAttunementSubsystem::OnDamageResolved);
+		CastCommittedHandle = Events->OnCastCommitted.AddUObject(this, &UVeyraAttunementSubsystem::OnCastCommitted);
 	}
 }
 
@@ -44,6 +46,11 @@ void UVeyraAttunementSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	// Tempered by Conflict charges on the server, as often as its most frequent entry asks.
 	double CheckSeconds = 0.0;
 	for (const TPair<FVeyraContentId, FVeyraTemperedByConflictTuning>& Entry : UVeyraItemsTuningSubsystem::Get().TemperedByConflict)
+	{
+		CheckSeconds = CheckSeconds > 0.0 ? FMath::Min(CheckSeconds, Entry.Value.CheckSeconds) : Entry.Value.CheckSeconds;
+	}
+	// No One Coming watches for allies on the same timer (ADR-051 §3).
+	for (const TPair<FVeyraContentId, FVeyraNoOneComingTuning>& Entry : UVeyraItemsTuningSubsystem::Get().NoOneComing)
 	{
 		CheckSeconds = CheckSeconds > 0.0 ? FMath::Min(CheckSeconds, Entry.Value.CheckSeconds) : Entry.Value.CheckSeconds;
 	}
@@ -79,6 +86,8 @@ void UVeyraAttunementSubsystem::Deinitialize()
 			Events->OnDamageDealt.Remove(DamageDealtHandle);
 			Events->OnDeath.Remove(DeathHandle);
 			Events->OnSpellShieldBlocked.Remove(SpellShieldBlockedHandle);
+			Events->OnDamageResolved.Remove(ResolvedHandle);
+			Events->OnCastCommitted.Remove(CastCommittedHandle);
 		}
 	}
 	Super::Deinitialize();
@@ -121,6 +130,13 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 	const auto Over = [Now](const FTimed& Entry) { return Entry.Until <= Now || !Entry.Holder.IsValid(); };
 	Cooldowns.RemoveAllSwap(Over);
 	Primes.RemoveAllSwap(Over);
+	// When the holder last damaged an enemy Vanguard before this hit: quiet periods are measured from it (ADR-051 §3).
+	const double* DealtAt = VanguardDamageDealtAt.Find(Holder);
+	const TOptional<double> LastDealt = DealtAt ? TOptional<double>(*DealtAt) : TOptional<double>();
+	if (bVanguard && VeyraTargeting::AreHostile(Participant, Target->GetOwner()))
+	{
+		VanguardDamageDealtAt.Add(Holder, Now);
+	}
 	// Held is this hit's own copy: a proc one of these deals sends an event of its own through here.
 	for (const FVeyraContentId& Attunement : Held)
 	{
@@ -159,6 +175,22 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 		else if (Tuning.SafeHarbor.Contains(Attunement))
 		{
 			SafeHarbor(Attunement, Event, *Holder);
+		}
+		else if (Tuning.NoAllegiance.Contains(Attunement))
+		{
+			NoAllegiance(Attunement, Event, *Holder, *Target, Now, LastDealt);
+		}
+		else if (Tuning.CleanBreak.Contains(Attunement))
+		{
+			TallyForCleanBreak(Attunement, Event, *Holder, *Target, Now);
+		}
+		else if (Tuning.NoOneComing.Contains(Attunement))
+		{
+			NoOneComing(Attunement, Event, *Holder, *Target, Now);
+		}
+		else if (Tuning.Reenactment.Contains(Attunement))
+		{
+			Reenactment(Attunement, Event, *Holder, *Target, Now, LastDealt);
 		}
 	}
 }
@@ -314,6 +346,7 @@ void UVeyraAttunementSubsystem::OnSpellShieldBlocked(const FVeyraSpellShieldBloc
 
 void UVeyraAttunementSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 {
+	CleanBreak(Death);
 	AActor* Participant = VeyraQuests::LaneFluxbornLastHitter(Death);
 	const UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
 	UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
@@ -655,6 +688,8 @@ void UVeyraAttunementSubsystem::UpdateTempering()
 	{
 		return;
 	}
+	// The same timer watches No One Coming's marks for arriving allies.
+	UpdateAbandoned();
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
 	const double Now = World->GetTimeSeconds();
 	Tempering.RemoveAllSwap([](const FTempering& Entry) { return !Entry.Holder.IsValid() || !Entry.Target.IsValid(); });
