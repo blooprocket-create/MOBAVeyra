@@ -299,9 +299,11 @@ void UVeyraVisionSubsystem::RevealShape(EVeyraTeam Team, const FVeyraPlacedShape
 bool UVeyraVisionSubsystem::IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const
 {
 	const FVector2D Where(Unit.GetActorLocation());
-	return TrueSights.ContainsByPredicate([Side, &Where](const FTrueSight& Sight) {
+	// True Sight is sight: a map wall between it and the unit hides the unit from it (ADR-043 §3).
+	return TrueSights.ContainsByPredicate([this, Side, &Where](const FTrueSight& Sight) {
 		const AActor* Around = Sight.Follow.Get();
-		return Sight.Team == Side && Around && FVector2D::DistSquared(FVector2D(Around->GetActorLocation()), Where) <= FMath::Square(Sight.Radius);
+		const FVector2D From = Around ? FVector2D(Around->GetActorLocation()) : FVector2D::ZeroVector;
+		return Sight.Team == Side && Around && FVector2D::DistSquared(From, Where) <= FMath::Square(Sight.Radius) && !SightWalls.Blocks(From, Where);
 	});
 }
 
@@ -350,7 +352,8 @@ void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, do
 			{
 				if (VeyraUnits::IsWard(Unit) && VeyraTeams::TeamOf(Unit) == Side && VeyraTargeting::IsAlive(Unit)
 					&& VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Unit->GetActorLocation())) == Hidden.Value
-					&& FVector2D::DistSquared(FVector2D(Unit->GetActorLocation()), Where) <= FMath::Square(Tuning.PersistentWard.SensorRadius))
+					&& FVector2D::DistSquared(FVector2D(Unit->GetActorLocation()), Where) <= FMath::Square(Tuning.PersistentWard.SensorRadius)
+					&& !VeyraVisionRules::IsBlocked(SightWalls, FVector2D(Unit->GetActorLocation()), Where))
 				{
 					Ping(WardSensorKey(*Unit), *Enemy);
 				}
@@ -462,6 +465,13 @@ void UVeyraVisionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	UE_LOG(LogVeyraVision, Log, TEXT("%s is destroyed."), *Ward->GetName());
 	// After every other listener has heard of its death.
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(Ward, [Ward]() { Ward->Destroy(); }));
+}
+
+void UVeyraVisionSubsystem::SetSightWalls(TArray<FVeyraTerrainBox> Walls)
+{
+	SightWalls = FVeyraSightWalls(MoveTemp(Walls));
+	UE_LOG(LogVeyraVision, Log, TEXT("Sight: %d wall(s) block it."), SightWalls.Num());
+	UpdateNow();
 }
 
 void UVeyraVisionSubsystem::SetDenseFog(TArray<FVeyraFogCircle> Circles)
@@ -610,6 +620,7 @@ void UVeyraVisionSubsystem::UpdateNow()
 	{
 		FVeyraSightSource& Lit = Sources.Add_GetRef(FVeyraSightSource{ Area.Team, Area.Centre, Area.Radius });
 		Lit.Shape = Area.Shape;
+		Lit.bThroughWalls = true;
 	}
 	for (const TPair<EVeyraTeam, TWeakObjectPtr<AVeyraVisionTeamState>>& State : TeamStates)
 	{
@@ -643,7 +654,8 @@ void UVeyraVisionSubsystem::UpdateNow()
 			const double Apart = FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation()));
 			// Within its sight, and within the Camouflage's detection radius or its side's True Sight.
 			const bool bDetected = IsInTrueSight(LookoutSide, *Unit) || (!bInvisible && (!Detection.IsSet() || Apart <= FMath::Square(Detection.GetValue())));
-			if (bInside && bEnemy && Apart <= FMath::Square(Lookout.Value) && bDetected)
+			if (bInside && bEnemy && Apart <= FMath::Square(Lookout.Value) && bDetected
+				&& !VeyraVisionRules::IsBlocked(SightWalls, FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation())))
 			{
 				FogSightings.FindOrAdd(Lookout.Key).Add(Unit);
 			}
@@ -838,7 +850,7 @@ bool UVeyraVisionSubsystem::JudgeSight(EVeyraTeam Side, const AActor& Unit) cons
 	}
 	if (const TOptional<double> Detection = CamouflageRadiusOf(Unit))
 	{
-		return IsInTrueSight(Side, Unit) || VeyraVisionRules::IsDetectedBy(Side, Sources, Where, Detection.GetValue());
+		return IsInTrueSight(Side, Unit) || VeyraVisionRules::IsDetectedBy(Side, Sources, Where, Detection.GetValue(), SightWalls);
 	}
-	return VeyraVisionRules::IsSeenBy(Side, Sources, Where);
+	return VeyraVisionRules::IsSeenBy(Side, Sources, Where, SightWalls);
 }

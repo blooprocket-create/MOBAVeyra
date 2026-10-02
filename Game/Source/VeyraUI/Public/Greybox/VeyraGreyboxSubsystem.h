@@ -79,6 +79,9 @@ public:
 	/** The body drawn for Unit, once it has one. */
 	UStaticMeshComponent* FindBody(const AActor& Unit) const;
 
+	/** A structure's art, once drawn; null for any other unit. */
+	UStaticMeshComponent* FindArt(const AActor& Unit) const;
+
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
 
@@ -115,6 +118,12 @@ private:
 		TWeakObjectPtr<UStaticMeshComponent> Mesh;
 		TWeakObjectPtr<UMaterialInstanceDynamic> Material;
 		FLinearColor Shown = FLinearColor::Transparent;
+
+		/** A unit's art, which stands in for its body: the component, the mesh it shows, and its Flux's colour. */
+		TWeakObjectPtr<UStaticMeshComponent> Art;
+		TWeakObjectPtr<UStaticMesh> ArtMesh;
+		TWeakObjectPtr<UMaterialInstanceDynamic> ArtFlux;
+		FLinearColor ArtShown = FLinearColor::Transparent;
 	};
 
 	struct FProjectileVisual
@@ -127,6 +136,15 @@ private:
 	};
 
 	void RefreshBodies();
+
+	/** Dresses Structure in its kind's art, standing or wrecked as it is, its Flux in its side's colour; its body hides behind it. */
+	void RefreshStructureArt(const class AVeyraStructure& Structure, FBody& Body);
+
+	/**
+	 * Draws Mesh over Unit in place of its body, its pivot at the capsule's foot, and colours the art set's Flux
+	 * slot Color. Visual only, as a body is: it blocks nothing and shapes no navigation.
+	 */
+	void ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const class UVeyraUnitArtSet& Set, const FLinearColor& Color);
 
 	/**
 	 * Once the world shows the battleground (its structures have arrived), draws its ground from
@@ -184,6 +202,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> PadMesh;
+
+	/** The structure kit's art set, loaded with the settings. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UVeyraUnitArtSet> StructureArt;
 
 	/** The actor holding the battleground's ground markings, once drawn. */
 	TWeakObjectPtr<AActor> GroundMarkings;

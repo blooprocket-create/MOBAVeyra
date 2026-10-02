@@ -6,6 +6,7 @@
 #include "Math/Vector2D.h"
 #include "Targeting/VeyraVisibility.h"
 #include "Teams/VeyraTeam.h"
+#include "Terrain/VeyraTerrainBox.h"
 
 /** Something that gives its team vision around it (Vision Bible §1). */
 struct FVeyraSightSource
@@ -20,6 +21,9 @@ struct FVeyraSightSource
 
 	/** A lit shape, which sees exactly what lies inside it; unset for a circle of Radius (ADR-018 §5). */
 	TOptional<FVeyraPlacedShape> Shape;
+
+	/** A lit area lights what lies inside it directly, so walls hide nothing from it (ADR-043 §3). */
+	bool bThroughWalls = false;
 };
 
 /** A Dense Fog circle (Vision Bible §2): the battleground's bush, authored on the map or made by an ability. */
@@ -30,17 +34,52 @@ struct FVeyraFogCircle
 	double Radius = 0.0;
 };
 
+/**
+ * The map walls sight is tested against (ADR-043 §3), with a grid that offers each sight line only the
+ * walls near it. Built once from the layout. A cell is as large as the largest wall's bounds, so a wall
+ * lies in at most four cells and a line of sight crosses only a few.
+ */
+struct VEYRAVISION_API FVeyraSightWalls
+{
+	FVeyraSightWalls() = default;
+	explicit FVeyraSightWalls(TArray<FVeyraTerrainBox> InWalls);
+
+	/** Whether a wall stands between From and To. */
+	bool Blocks(const FVector2D& From, const FVector2D& To) const;
+
+	/** The walls the grid offers the line from From to To, each once: every wall that could cross it. */
+	TArray<int32> CandidatesFor(const FVector2D& From, const FVector2D& To) const;
+
+	int32 Num() const { return Walls.Num(); }
+
+private:
+	FIntPoint CellOf(const FVector2D& Point) const;
+
+	TArray<FVeyraTerrainBox> Walls;
+	double CellSize = 0.0;
+	/** Each cell the walls' bounds touch, with the walls touching it. */
+	TMap<FIntPoint, TArray<int32>> Cells;
+};
+
 /** Vision's rules, as plain functions of positions (ADR-016 §2). */
 namespace VeyraVisionRules
 {
-	/** Whether one of Team's Sources has Point within its sight: its circle, or its shape. */
-	VEYRAVISION_API bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point);
+	/** Whether one of Walls stands between From and To, so neither sees the other (ADR-043 §3). */
+	VEYRAVISION_API bool IsBlocked(const FVeyraSightWalls& Walls, const FVector2D& From, const FVector2D& To);
 
 	/**
-	 * Whether one of Team's detecting Sources has Point within both its sight and DetectionRadius: how
-	 * a Camouflaged unit is seen (Combat Bible §11; ADR-018 §4).
+	 * Whether one of Team's Sources has Point within its sight: its circle, or its shape, with none of
+	 * Walls between them unless it lights through them.
 	 */
-	VEYRAVISION_API bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius);
+	VEYRAVISION_API bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point,
+		const FVeyraSightWalls& Walls = FVeyraSightWalls());
+
+	/**
+	 * Whether one of Team's detecting Sources has Point within both its sight and DetectionRadius, with
+	 * none of Walls between them: how a Camouflaged unit is seen (Combat Bible §11; ADR-018 §4).
+	 */
+	VEYRAVISION_API bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius,
+		const FVeyraSightWalls& Walls = FVeyraSightWalls());
 
 	/**
 	 * The fog volumes: circles that overlap or touch are one volume while they do (Vision Bible §2).

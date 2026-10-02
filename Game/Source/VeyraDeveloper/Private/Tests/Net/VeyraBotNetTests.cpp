@@ -30,6 +30,8 @@ namespace VeyraNetTests
 		FVeyraGreyboxLayout Layout;
 
 		static constexpr double ShortPreparationSeconds = 0.1;
+		// Fixture: a preparation no test step outlasts.
+		static constexpr double LongPreparationSeconds = 60.0;
 
 		int32 BotId = INDEX_NONE;
 
@@ -97,7 +99,8 @@ namespace VeyraNetTests
 		{
 			// Each spawns as it is seated in preparation; its side still deals the places of all it seated before the
 			// match goes live (ADR-039 §5). Varkesh plays Top before Mid, Eudora Mid before Top: seated in that order
-			// in the Mid and Top seats, they swap.
+			// in the Mid and Top seats, they swap. Preparation lasts long enough that they are seated in it, not live.
+			Tuning->Tuning.Phases.PreparationSeconds = LongPreparationSeconds;
 			StartMatch(Network, Layout, EVeyraMatchPhase::Preparation)
 				.ThenServer(TEXT("Seat Varkesh, then Eudora, on one side"), [this](FState& State) {
 					const AVeyraPlayerState* First = GameModeOf(State.World)->AddPlayingBot(TEXT("First"), EVeyraTeam::B, FVeyraContentId::FromText(TEXT("varkesh")).GetValue(), EVeyraBotDifficulty::Beginner);

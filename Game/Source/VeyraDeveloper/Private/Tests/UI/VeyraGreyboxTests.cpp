@@ -1,6 +1,9 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+#include "AbilitySystemComponent.h"
+#include "Attributes/VeyraVitalsSet.h"
+#include "VeyraCombatVerbs.h"
 
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
@@ -16,6 +19,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
+#include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Layout/VeyraLayout.h"
 #include "Ledger/VeyraFluxLedger.h"
@@ -114,6 +118,12 @@ namespace VeyraAbilitiesTests
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
 		}
 
+		/** The structure kit's art set, as the settings name it. */
+		static const UVeyraUnitArtSet& StructureArt()
+		{
+			return *GetDefault<UVeyraGreyboxSettings>()->StructureArt.LoadSynchronous();
+		}
+
 		UVeyraGreyboxSubsystem& RefreshedGreybox()
 		{
 			UVeyraGreyboxSubsystem* Subsystem = Spawner.GetWorld().GetSubsystem<UVeyraGreyboxSubsystem>();
@@ -155,6 +165,18 @@ namespace VeyraAbilitiesTests
 			FLinearColor Unused;
 			ASSERT_THAT(IsTrue(Material->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.ColorParameter), Unused),
 				TEXT("the shape material has the colour parameter")));
+			// The structure kit's art set dresses every kind, standing and wrecked, by its stable ID (ADR-006 §6).
+			const UVeyraUnitArtSet* Structures = Settings.StructureArt.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Structures));
+			TArray<FName> Kinds;
+			for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+			{
+				Kinds.Add(UVeyraGreyboxSettings::StructureArtId(Kind));
+			}
+			const TArray<FString> ArtProblems = Structures->Validate(Kinds);
+			ASSERT_THAT(IsTrue(ArtProblems.IsEmpty(), FString::Join(ArtProblems, TEXT(" "))));
+			const FVeyraUnitArt* Spire = Structures->Find(TEXT("laneSpire"));
+			ASSERT_THAT(IsTrue(Spire->Intact->GetMaterialIndex(Structures->FluxSlot) != INDEX_NONE, TEXT("the meshes have the Flux slot")));
 		}
 
 		TEST_METHOD(OnlyClientsLoadThePresentation)
@@ -218,6 +240,16 @@ namespace VeyraAbilitiesTests
 			for (const AVeyraStructure* Structure : Battleground->GetStructures())
 			{
 				ASSERT_THAT(IsNotNull(Presentation.FindBody(*Structure), TEXT("every structure has a body")));
+				// Its kind's art stands in for its body, on the floor, deciding nothing.
+				const UStaticMeshComponent* Art = Presentation.FindArt(*Structure);
+				const FVeyraUnitArt* KindArt = StructureArt().Find(UVeyraGreyboxSettings::StructureArtId(Structure->GetStructureKind()));
+				ASSERT_THAT(IsTrue(Art && KindArt && Art->GetStaticMesh() == KindArt->Intact));
+				ASSERT_THAT(IsTrue(Art->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Art->CanEverAffectNavigation()));
+				float Radius = 0.0f;
+				float HalfHeight = 0.0f;
+				Structure->GetSimpleCollisionCylinder(Radius, HalfHeight);
+				ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Art->GetComponentLocation().Z, Structure->GetActorLocation().Z - HalfHeight, Tolerance), TEXT("standing on the floor")));
+				ASSERT_THAT(IsFalse(Presentation.FindBody(*Structure)->IsVisible(), TEXT("its body hides behind it")));
 			}
 
 			// Each structure's bar names it and says whether the structures before it protect it.
@@ -227,6 +259,16 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Outer.IsSet() && Outer->Kind == EVeyraStructureKind::LaneSpire && !Outer->bInvulnerable));
 			ASSERT_THAT(IsTrue(Middle.IsSet() && Middle->bInvulnerable, TEXT("the outer Spire still stands")));
 			ASSERT_THAT(IsFalse(VeyraHud::StructureOf(*Caster, Now).IsSet(), TEXT("a Vanguard is no structure")));
+
+			// A destroyed structure shows its wreck.
+			AVeyraStructure* Outermost = Battleground->FindStructure(EVeyraTeam::B, EVeyraStructureKind::LaneSpire, EVeyraLane::Mid, 0);
+			FVeyraRawDamageEvent Lethal;
+			Lethal.Components.Add({ EVeyraDamageType::TrueDamage, Outermost->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) });
+			Lethal.Delivery = EVeyraDamageDelivery::Developer;
+			VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Outermost->GetAbilitySystemComponent(), Lethal);
+			ASSERT_THAT(IsTrue(Outermost->IsDestroyed()));
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Presentation.FindArt(*Outermost)->GetStaticMesh() == StructureArt().Find(TEXT("laneSpire"))->Fallen));
 		}
 
 		TEST_METHOD(NeutralUnitsAreDrawnGreyAndNamedOnTheHud)
