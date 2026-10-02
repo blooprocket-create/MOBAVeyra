@@ -51,6 +51,10 @@ func (s *ChatStore) Messages(ctx context.Context, q chat.Query) ([]chat.Message,
 		d := arg(q.Direct)
 		clauses = append(clauses, fmt.Sprintf("(kind = 'direct' AND (sender_id = %s::uuid OR recipient_id = %s::uuid))", d, d))
 	}
+	before := ""
+	if q.Before > 0 {
+		before = " AND seq < " + arg(q.Before)
+	}
 	if len(clauses) == 0 || q.Limit <= 0 {
 		return nil, nil
 	}
@@ -59,7 +63,7 @@ func (s *ChatStore) Messages(ctx context.Context, q chat.Query) ([]chat.Message,
 		order = "DESC"
 	}
 	rows, err := querierFor(ctx, s.pool).Query(ctx, `SELECT `+messageColumns+` FROM chat.messages
-		WHERE seq > $1 AND sent_at >= $2 AND (`+strings.Join(clauses, " OR ")+`)
+		WHERE seq > $1 AND sent_at >= $2`+before+` AND (`+strings.Join(clauses, " OR ")+`)
 		ORDER BY seq `+order+` LIMIT `+arg(q.Limit), args...)
 	if err != nil {
 		return nil, err

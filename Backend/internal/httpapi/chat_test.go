@@ -67,7 +67,7 @@ func TestChatOverHTTP(t *testing.T) {
 	if status, _ := call(t, srv, "GET", "/v1/me/chat", "", nil); status != http.StatusUnauthorized {
 		t.Fatalf("without a session: %d", status)
 	}
-	status, got := call(t, srv, "POST", "/v1/me/chat/party", one, body("ready?"))
+	status, got := call(t, srv, "POST", "/v1/me/chat/party/party-1", one, body("ready?"))
 	sent, _ := got["message"].(map[string]any)
 	if status != http.StatusOK || sent["kind"] != "party" || sent["text"] != "ready?" || sent["recipientId"] != nil {
 		t.Fatalf("party send: %d %v", status, got)
@@ -94,10 +94,11 @@ func TestChatOverHTTP(t *testing.T) {
 		status      int
 		code        string
 	}{
-		{"/v1/me/chat/party", one, map[string]string{"clientId": "bad id", "text": "hi"}, http.StatusBadRequest, "invalid_message"},
-		{"/v1/me/chat/party", one, body("   "), http.StatusBadRequest, "empty_message"},
+		{"/v1/me/chat/party/party-1", one, map[string]string{"clientId": "bad id", "text": "hi"}, http.StatusBadRequest, "invalid_message"},
+		{"/v1/me/chat/party/party-1", one, body("   "), http.StatusBadRequest, "empty_message"},
 		{"/v1/me/chat/direct/" + twoID, one, body("psst"), http.StatusForbidden, "not_friends"},
-		{"/v1/me/chat/select", one, body("mid?"), http.StatusConflict, "no_select"},
+		{"/v1/me/chat/select/s1", one, body("mid?"), http.StatusConflict, "no_select"},
+		{"/v1/me/chat/party/party-0", one, body("old party"), http.StatusConflict, "conversation_changed"},
 		{"/v1/me/chat/matches/match-1", three, body("gg"), http.StatusNotFound, "not_participant"},
 	} {
 		if status, got := call(t, srv, "POST", c.path, c.token, c.body); status != c.status || got["error"] != c.code {
@@ -128,7 +129,7 @@ func TestChatOverHTTP(t *testing.T) {
 		t.Fatalf("after leaving: %d %v", status, got)
 	}
 	// The fourth message in the window is one too many.
-	if status, got = call(t, srv, "POST", "/v1/me/chat/party", one, body("again")); status != http.StatusTooManyRequests || got["error"] != "rate_limited" {
+	if status, got = call(t, srv, "POST", "/v1/me/chat/party/party-1", one, body("again")); status != http.StatusTooManyRequests || got["error"] != "rate_limited" {
 		t.Fatalf("over the limit: %d %v", status, got)
 	}
 }

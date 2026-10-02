@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"slices"
 	"time"
 )
@@ -59,6 +60,8 @@ type Query struct {
 	// Newest asks for the newest Limit messages instead of the oldest after
 	// After. Either way the answer is oldest first.
 	Newest bool
+	// Before, when set, is the sequence every message must precede: an older page of history.
+	Before int64
 }
 
 // Tx is one storage transaction.
@@ -204,6 +207,23 @@ func (s *Service) Send(ctx context.Context, actor string, req Send) (Message, er
 		return Message{}, err
 	}
 	now := s.now()
+	// A player who moved on to a select or a match left its post-match chats for good (UX-60): the departure is
+	// recorded, so the chat stays closed once that select or match is over.
+	if req.Kind == KindPostMatch {
+		if _, err := s.domains.Matches.Played(ctx, actor, req.Target); err != nil {
+			return Message{}, err
+		}
+		moved, err := s.movedOn(ctx, actor)
+		if err != nil {
+			return Message{}, err
+		}
+		if moved {
+			if err := s.leaveForGood(ctx, actor, req.Target); err != nil {
+				return Message{}, err
+			}
+			return Message{}, ErrPostMatchClosed
+		}
+	}
 	var out Message
 	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		if err := tx.LockSends(); err != nil {
@@ -230,9 +250,6 @@ func (s *Service) Send(ctx context.Context, actor string, req Send) (Message, er
 		}
 		if sent >= s.tuning.MaxPerWindow {
 			return ErrRateLimited
-		}
-		if err := tx.Prune(now.Add(-s.tuning.Retention)); err != nil {
-			return err
 		}
 		names, err := s.domains.Names.DisplayNames(ctx, []string{actor})
 		if err != nil {
@@ -271,6 +288,10 @@ func (s *Service) authorizeSend(ctx context.Context, tx Tx, actor string, req Se
 		if !ok {
 			return "", "", ErrNotInParty
 		}
+		// The party the player wrote to: a send that arrives after they changed party never reaches the new one.
+		if req.Target != m.PartyID {
+			return "", "", ErrConversationChanged
+		}
 		return m.PartyID, "", nil
 	case KindDirect:
 		if req.Target == "" || req.Target == actor {
@@ -287,6 +308,10 @@ func (s *Service) authorizeSend(ctx context.Context, tx Tx, actor string, req Se
 		}
 		if !ok {
 			return "", "", ErrNoSelect
+		}
+		// The select the player wrote in: a send that arrives in a later select never reaches that team.
+		if req.Target != t.SelectID {
+			return "", "", ErrConversationChanged
 		}
 		return SelectKey(t.SelectID, t.Side), "", nil
 	case KindPostMatch:
@@ -332,9 +357,8 @@ func (s *Service) checkFriend(ctx context.Context, actor, other string) error {
 	return nil
 }
 
-// postMatchOpen returns the match if its post-match chat is open to the
-// actor: it played the match, the match ended within the window, and the
-// actor has entered no select or match since (UX-60).
+// postMatchOpen returns the match if its post-match chat is open: the actor
+// played it, and it ended within the window. Moving on is the caller's check.
 func (s *Service) postMatchOpen(ctx context.Context, actor, matchID string, now time.Time) (PlayedMatch, error) {
 	played, err := s.domains.Matches.Played(ctx, actor, matchID)
 	if err != nil {
@@ -343,17 +367,71 @@ func (s *Service) postMatchOpen(ctx context.Context, actor, matchID string, now 
 	if !PostMatchOpen(s.tuning, played.EndedAt, now) {
 		return PlayedMatch{}, ErrPostMatchClosed
 	}
-	if _, inSelect, err := s.domains.Selects.TeamOf(ctx, actor); err != nil {
-		return PlayedMatch{}, err
-	} else if inSelect {
-		return PlayedMatch{}, ErrPostMatchClosed
-	}
-	if _, live, err := s.domains.Matches.Live(ctx, actor); err != nil {
-		return PlayedMatch{}, err
-	} else if live {
-		return PlayedMatch{}, ErrPostMatchClosed
-	}
 	return played, nil
+}
+
+// movedOn reports whether the actor is in a select or a match: either ends
+// every earlier post-match chat for it (UX-60).
+func (s *Service) movedOn(ctx context.Context, actor string) (bool, error) {
+	if _, inSelect, err := s.domains.Selects.TeamOf(ctx, actor); err != nil || inSelect {
+		return inSelect, err
+	}
+	_, live, err := s.domains.Matches.Live(ctx, actor)
+	return live, err
+}
+
+// leaveForGood records that the actor left every post-match chat it had
+// joined, and matchID's even if it never joined, so none reopens once the
+// select or match it moved on to is over.
+func (s *Service) leaveForGood(ctx context.Context, actor, matchID string) error {
+	members, err := s.store.OpenPostMatch(ctx, actor)
+	if err != nil {
+		return err
+	}
+	if len(members) == 0 && matchID == "" {
+		return nil
+	}
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		for _, member := range members {
+			member.Left = true
+			if err := tx.SavePostMatchMember(member); err != nil {
+				return err
+			}
+		}
+		if matchID == "" {
+			return nil
+		}
+		member, err := tx.PostMatchMember(matchID, actor)
+		if errors.Is(err, ErrNotJoined) {
+			member = PostMatchMember{MatchID: matchID, AccountID: actor}
+		} else if err != nil {
+			return err
+		}
+		member.Left = true
+		return tx.SavePostMatchMember(member)
+	})
+}
+
+// PruneExpired removes messages older than the retention, whether or not
+// anyone sends again (ADR-046 §4).
+func (s *Service) PruneExpired(ctx context.Context) error {
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error { return tx.Prune(s.now().Add(-s.tuning.Retention)) })
+}
+
+// RunPruner prunes expired messages every interval until ctx ends.
+func (s *Service) RunPruner(ctx context.Context, interval time.Duration, log *slog.Logger) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := s.PruneExpired(ctx); err != nil && ctx.Err() == nil {
+				log.Error("chat prune failed", "err", err)
+			}
+		}
+	}
 }
 
 // LeavePostMatch ends the actor's part in a match's post-match chat: it
@@ -412,32 +490,71 @@ func (s *Service) Poll(ctx context.Context, actor string, after int64, hasCursor
 	if err != nil {
 		return Page{}, err
 	}
-	q := Query{Rooms: rooms, Direct: actor, After: after, Since: since, Limit: s.tuning.PageSize}
-	if !hasCursor {
-		q.After, q.Limit, q.Newest = 0, s.tuning.HistoryMessages, true
+	readable := map[string]bool{}
+	filter := func(raw []Message) ([]Message, error) {
+		var out []Message
+		for _, m := range raw {
+			ok, err := s.deliverable(ctx, actor, m, mutes, readable)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				out = append(out, m)
+			}
+		}
+		return out, nil
 	}
+	if !hasCursor {
+		return s.history(ctx, Query{Rooms: rooms, Direct: actor, Since: since, Limit: s.tuning.HistoryMessages, Newest: true}, filter)
+	}
+	q := Query{Rooms: rooms, Direct: actor, After: after, Since: since, Limit: s.tuning.PageSize}
 	raw, err := s.store.Messages(ctx, q)
 	if err != nil {
 		return Page{}, err
 	}
-	page := Page{Next: q.After, More: hasCursor && len(raw) >= q.Limit}
+	page := Page{Next: after, More: len(raw) >= q.Limit}
 	for _, m := range raw {
 		page.Next = max(page.Next, m.Seq)
 	}
-	if !hasCursor && len(raw) == 0 {
-		if page.Next, err = s.store.LastSeq(ctx); err != nil {
-			return Page{}, err
-		}
-	}
-	readable := map[string]bool{}
-	for _, m := range raw {
-		ok, err := s.deliverable(ctx, actor, m, mutes, readable)
+	page.Messages, err = filter(raw)
+	return page, err
+}
+
+// history returns the newest HistoryMessages messages the actor may read.
+// Messages it may not read no longer count toward the limit: older pages are
+// read until the limit is filled or nothing older is left.
+func (s *Service) history(ctx context.Context, q Query, filter func([]Message) ([]Message, error)) (Page, error) {
+	var page Page
+	var kept []Message
+	for {
+		raw, err := s.store.Messages(ctx, q)
 		if err != nil {
 			return Page{}, err
 		}
-		if ok {
-			page.Messages = append(page.Messages, m)
+		if page.Next == 0 && len(raw) > 0 {
+			// The cursor starts after the newest message there is, readable or not.
+			page.Next = raw[len(raw)-1].Seq
 		}
+		readable, err := filter(raw)
+		if err != nil {
+			return Page{}, err
+		}
+		kept = append(readable, kept...)
+		if len(kept) >= s.tuning.HistoryMessages || len(raw) < q.Limit {
+			break
+		}
+		q.Before = raw[0].Seq
+	}
+	if len(kept) > s.tuning.HistoryMessages {
+		kept = kept[len(kept)-s.tuning.HistoryMessages:]
+	}
+	page.Messages = kept
+	if page.Next == 0 {
+		next, err := s.store.LastSeq(ctx)
+		if err != nil {
+			return Page{}, err
+		}
+		page.Next = next
 	}
 	return page, nil
 }
@@ -456,8 +573,13 @@ func (s *Service) rooms(ctx context.Context, actor string, now, since time.Time)
 	if t, ok, err := s.domains.Selects.TeamOf(ctx, actor); err != nil {
 		return nil, nil, err
 	} else if ok {
-		// In a select, every earlier post-match chat is over (UX-60).
-		return append(rooms, Room{Kind: KindSelect, Key: SelectKey(t.SelectID, t.Side), Since: since}), mutes, nil
+		rooms = append(rooms, Room{Kind: KindSelect, Key: SelectKey(t.SelectID, t.Side), Since: since})
+	}
+	// In a select or a match, every earlier post-match chat is over for good (UX-60).
+	if moved, err := s.movedOn(ctx, actor); err != nil {
+		return nil, nil, err
+	} else if moved {
+		return rooms, mutes, s.leaveForGood(ctx, actor, "")
 	}
 	members, err := s.store.OpenPostMatch(ctx, actor)
 	if err != nil || len(members) == 0 {

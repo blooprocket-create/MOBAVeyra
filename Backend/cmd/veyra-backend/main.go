@@ -211,6 +211,8 @@ func run(log *slog.Logger) error {
 	prefs := settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes)
 	// Chat asks the party, social, selection, match and settings domains who reads each conversation (ADR-046 §1).
 	talk := newChatService(store.Chat(), cfg.Chat, parties, soc, selects, matches, prefs, displayNames(svc))
+	// Expired messages go whether or not anyone sends again (ADR-046 §4).
+	go talk.RunPruner(ctx, cfg.Chat.PruneInterval, log)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,

@@ -26,11 +26,11 @@ namespace
 		switch (Kind)
 		{
 		case EChatKind::Party:
-			return TEXT("/v1/me/chat/party");
+			return FString(TEXT("/v1/me/chat/party/")) + Target;
 		case EChatKind::Direct:
 			return FString(TEXT("/v1/me/chat/direct/")) + Target;
 		case EChatKind::Select:
-			return TEXT("/v1/me/chat/select");
+			return FString(TEXT("/v1/me/chat/select/")) + Target;
 		case EChatKind::PostMatch:
 			return FString(ChatMatchesPath) + Target;
 		}
@@ -172,6 +172,11 @@ void FVeyraClientFlow::ApplyChatMessage(const VeyraBackendProtocol::FChatMessage
 	if (bOwn)
 	{
 		ChatSends.RemoveAll([&Message](const FChatSend& Pending) { return Pending.ClientId == Message.ClientId; });
+		// The player's own post-match line opted them in (UX-59), whether its answer or a read brought it first.
+		if (Message.Kind == EChatKind::PostMatch)
+		{
+			Snapshot.Chat.bPostMatchJoined = true;
+		}
 	}
 	if (Shown)
 	{
@@ -246,6 +251,12 @@ bool FVeyraClientFlow::SendChatMessage(VeyraBackendProtocol::EChatKind Kind, con
 	switch (Kind)
 	{
 	case EChatKind::Party:
+		// The party the player is writing to, so a send that arrives after they changed party is refused (ADR-046 §3).
+		SendTarget = Snapshot.Party.IsSet() ? Snapshot.Party->Id : Chat.Party.Key;
+		if (SendTarget.IsEmpty())
+		{
+			return false;
+		}
 		Conversation = &Chat.Party;
 		break;
 	case EChatKind::Direct:
@@ -258,11 +269,12 @@ bool FVeyraClientFlow::SendChatMessage(VeyraBackendProtocol::EChatKind Kind, con
 		SendTarget = Target;
 		break;
 	case EChatKind::Select:
-		if (Snapshot.State != EVeyraClientState::Selecting)
+		if (Snapshot.State != EVeyraClientState::Selecting || Snapshot.Select.Id.IsEmpty())
 		{
 			return false;
 		}
 		Conversation = &Chat.Select;
+		SendTarget = Snapshot.Select.Id;
 		break;
 	case EChatKind::PostMatch:
 		if (Snapshot.State != EVeyraClientState::Results || Chat.PostMatch.Key.IsEmpty())
@@ -350,11 +362,6 @@ void FVeyraClientFlow::SendPendingChat(const FString& ClientId)
 			{
 				FailChatLine(ClientId, ChatBadAnswer);
 				return;
-			}
-			// The first post-match message opts the player in (UX-59).
-			if (Message.Kind == EChatKind::PostMatch)
-			{
-				Snapshot.Chat.bPostMatchJoined = true;
 			}
 			ApplyChatMessage(Message, false);
 			Broadcast();

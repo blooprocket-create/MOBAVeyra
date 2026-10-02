@@ -138,14 +138,14 @@ func expectTexts(t *testing.T, who string, got []string, want ...string) {
 func TestPartyChatReachesTheCurrentMembersOnly(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a", "acc-b")
-	m := f.send(t, "acc-a", KindParty, "", "ready?")
+	m := f.send(t, "acc-a", KindParty, "p1", "ready?")
 	if m.Key != "p1" || m.SenderName != "Name of acc-a" || m.Seq == 0 {
 		t.Fatalf("stored %+v", m)
 	}
 	expectTexts(t, "acc-b", f.read(t, "acc-b"), "ready?")
 	expectTexts(t, "acc-a", f.read(t, "acc-a"), "ready?")
 	expectTexts(t, "acc-c", f.read(t, "acc-c"))
-	if _, err := f.trySend("acc-c", KindParty, "", "hi"); !errors.Is(err, ErrNotInParty) {
+	if _, err := f.trySend("acc-c", KindParty, "p1", "hi"); !errors.Is(err, ErrNotInParty) {
 		t.Fatalf("outside a party: %v", err)
 	}
 	// Leaving ends the conversation.
@@ -156,10 +156,10 @@ func TestPartyChatReachesTheCurrentMembersOnly(t *testing.T) {
 func TestAMemberReadsPartyChatOnlyFromWhenItJoined(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a")
-	f.send(t, "acc-a", KindParty, "", "before")
+	f.send(t, "acc-a", KindParty, "p1", "before")
 	f.now = f.now.Add(time.Second)
 	f.join("p1", "acc-b")
-	f.send(t, "acc-a", KindParty, "", "after")
+	f.send(t, "acc-a", KindParty, "p1", "after")
 	expectTexts(t, "the newcomer", f.read(t, "acc-b"), "after")
 	expectTexts(t, "the member", f.read(t, "acc-a"), "before", "after")
 }
@@ -198,10 +198,10 @@ func TestSelectChatReachesOneSideWhileTheSelectLasts(t *testing.T) {
 	f.d.selects["acc-a"] = SelectTeam{SelectID: "s1", Side: "A"}
 	f.d.selects["acc-b"] = SelectTeam{SelectID: "s1", Side: "A"}
 	f.d.selects["acc-c"] = SelectTeam{SelectID: "s1", Side: "B"}
-	f.send(t, "acc-a", KindSelect, "", "mid?")
+	f.send(t, "acc-a", KindSelect, "s1", "mid?")
 	expectTexts(t, "a teammate", f.read(t, "acc-b"), "mid?")
 	expectTexts(t, "an opponent", f.read(t, "acc-c"))
-	if _, err := f.trySend("acc-d", KindSelect, "", "hi"); !errors.Is(err, ErrNoSelect) {
+	if _, err := f.trySend("acc-d", KindSelect, "s1", "hi"); !errors.Is(err, ErrNoSelect) {
 		t.Fatalf("outside a select: %v", err)
 	}
 	delete(f.d.selects, "acc-b")
@@ -304,8 +304,8 @@ func TestAPostMatchMuteHidesTheMutedPlayerFromTheMuterOnly(t *testing.T) {
 func TestBlocksDropMessagesAtDeliveryInEveryKind(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a", "acc-b", "acc-c")
-	f.send(t, "acc-b", KindParty, "", "from b")
-	f.send(t, "acc-c", KindParty, "", "from c")
+	f.send(t, "acc-b", KindParty, "p1", "from b")
+	f.send(t, "acc-c", KindParty, "p1", "from c")
 	f.d.blocks[DirectKey("acc-a", "acc-b")] = true
 	expectTexts(t, "the blocker", f.read(t, "acc-a"), "from c")
 	expectTexts(t, "the blocked", f.read(t, "acc-b"), "from b", "from c")
@@ -319,11 +319,11 @@ func TestBlocksDropMessagesAtDeliveryInEveryKind(t *testing.T) {
 func TestAResendReturnsTheFirstMessage(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a", "acc-b")
-	first, err := f.svc.Send(ctx, "acc-a", Send{Kind: KindParty, ClientID: "retry-0001", Text: "once"})
+	first, err := f.svc.Send(ctx, "acc-a", Send{Kind: KindParty, Target: "p1", ClientID: "retry-0001", Text: "once"})
 	if err != nil {
 		t.Fatalf("Send: %v", err)
 	}
-	again, err := f.svc.Send(ctx, "acc-a", Send{Kind: KindParty, ClientID: "retry-0001", Text: "once"})
+	again, err := f.svc.Send(ctx, "acc-a", Send{Kind: KindParty, Target: "p1", ClientID: "retry-0001", Text: "once"})
 	if err != nil || again.Seq != first.Seq {
 		t.Fatalf("resend: %+v %v", again, err)
 	}
@@ -337,7 +337,7 @@ func TestTheRateWindowRefusesAFlood(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a")
 	send := func(id string) error {
-		_, err := f.svc.Send(ctx, "acc-a", Send{Kind: KindParty, ClientID: id, Text: "spam"})
+		_, err := f.svc.Send(ctx, "acc-a", Send{Kind: KindParty, Target: "p1", ClientID: id, Text: "spam"})
 		return err
 	}
 	for i := range fixtureTuning.MaxPerWindow {
@@ -361,7 +361,7 @@ func TestAPollWithoutACursorReturnsTheNewestHistory(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a")
 	for i := range 6 {
-		f.send(t, "acc-a", KindParty, "", fmt.Sprintf("m%d", i))
+		f.send(t, "acc-a", KindParty, "p1", fmt.Sprintf("m%d", i))
 	}
 	page, err := f.svc.Poll(ctx, "acc-a", 0, false)
 	if err != nil || len(page.Messages) != fixtureTuning.HistoryMessages || page.Messages[0].Text != "m2" || page.Next != 6 || page.More {
@@ -380,7 +380,7 @@ func TestAFullPageAsksForMore(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a")
 	for i := range 5 {
-		f.send(t, "acc-a", KindParty, "", fmt.Sprintf("m%d", i))
+		f.send(t, "acc-a", KindParty, "p1", fmt.Sprintf("m%d", i))
 	}
 	first, _ := f.svc.Poll(ctx, "acc-a", 0, true)
 	if len(first.Messages) != fixtureTuning.PageSize || !first.More || first.Next != 3 {
@@ -395,12 +395,76 @@ func TestAFullPageAsksForMore(t *testing.T) {
 func TestOldMessagesAreNeitherServedNorKept(t *testing.T) {
 	f := newFixture(t)
 	f.join("p1", "acc-a")
-	f.send(t, "acc-a", KindParty, "", "old")
+	f.send(t, "acc-a", KindParty, "p1", "old")
 	f.now = f.now.Add(fixtureTuning.Retention + time.Second)
 	expectTexts(t, "after the retention", f.read(t, "acc-a"))
-	f.send(t, "acc-a", KindParty, "", "new")
-	if kept, _ := f.store.Messages(ctx, Query{Rooms: []Room{{Kind: KindParty, Key: "p1"}}, Limit: 10}); len(kept) != 1 || kept[0].Text != "new" {
+	// The pruner removes it without anyone sending again.
+	if err := f.svc.PruneExpired(ctx); err != nil {
+		t.Fatalf("PruneExpired: %v", err)
+	}
+	if kept, _ := f.store.Messages(ctx, Query{Rooms: []Room{{Kind: KindParty, Key: "p1"}}, Limit: 10}); len(kept) != 0 {
 		t.Fatalf("kept %+v", kept)
+	}
+}
+
+func TestAPartyOrSelectSendGoesOnlyToTheConversationItWasWrittenIn(t *testing.T) {
+	f := newFixture(t)
+	f.join("p2", "acc-a")
+	// Written in an earlier party, it arrives after the sender joined another.
+	if _, err := f.trySend("acc-a", KindParty, "p1", "for the old party"); !errors.Is(err, ErrConversationChanged) {
+		t.Fatalf("an old party: %v", err)
+	}
+	f.d.selects["acc-a"] = SelectTeam{SelectID: "s2", Side: "A"}
+	if _, err := f.trySend("acc-a", KindSelect, "s1", "for the old select"); !errors.Is(err, ErrConversationChanged) {
+		t.Fatalf("an old select: %v", err)
+	}
+	if _, err := f.trySend("acc-a", KindParty, "p2", "for this party"); err != nil {
+		t.Fatalf("the current party: %v", err)
+	}
+}
+
+func TestMovingOnClosesThePostMatchChatForGood(t *testing.T) {
+	f := newFixture(t)
+	f.endMatch("m1", "acc-a", "acc-b", "acc-c")
+	f.send(t, "acc-a", KindPostMatch, "m1", "gg")
+	f.send(t, "acc-b", KindPostMatch, "m1", "wp")
+	// A enters a select, which a read notices, and the select is over within the window.
+	f.d.selects["acc-a"] = SelectTeam{SelectID: "s2", Side: "A"}
+	expectTexts(t, "in the select", f.read(t, "acc-a"))
+	delete(f.d.selects, "acc-a")
+	expectTexts(t, "after the select", f.read(t, "acc-a"))
+	if _, err := f.trySend("acc-a", KindPostMatch, "m1", "back"); !errors.Is(err, ErrPostMatchClosed) {
+		t.Fatalf("after the select: %v", err)
+	}
+	// C never joined; its send during a match is refused, and after that match too.
+	f.d.live["acc-c"] = "m2"
+	if _, err := f.trySend("acc-c", KindPostMatch, "m1", "hi"); !errors.Is(err, ErrPostMatchClosed) {
+		t.Fatalf("in a match: %v", err)
+	}
+	delete(f.d.live, "acc-c")
+	if _, err := f.trySend("acc-c", KindPostMatch, "m1", "hi"); !errors.Is(err, ErrPostMatchClosed) {
+		t.Fatalf("after that match: %v", err)
+	}
+	expectTexts(t, "B, who stayed", f.read(t, "acc-b"), "wp")
+}
+
+func TestHistoryFillsItsLimitPastLinesThePlayerMayNotRead(t *testing.T) {
+	f := newFixture(t)
+	f.join("p1", "acc-a", "acc-b", "acc-c")
+	for i := range fixtureTuning.HistoryMessages {
+		f.send(t, "acc-b", KindParty, "p1", fmt.Sprintf("b%d", i))
+	}
+	for i := range fixtureTuning.HistoryMessages + 1 {
+		f.send(t, "acc-c", KindParty, "p1", fmt.Sprintf("c%d", i))
+	}
+	// A blocks C, whose lines are the newest: B's older ones fill the history instead.
+	f.d.blocks[DirectKey("acc-a", "acc-c")] = true
+	page, err := f.svc.Poll(ctx, "acc-a", 0, false)
+	if err != nil || len(page.Messages) != fixtureTuning.HistoryMessages || page.Messages[0].Text != "b0" || page.Messages[len(page.Messages)-1].Text != "b3" {
+		t.Fatalf("history: %+v %v", page, err)
+	}
+	if last, _ := f.store.LastSeq(ctx); page.Next != last {
+		t.Fatalf("the cursor starts at %d, not after the newest message %d", page.Next, last)
 	}
 }
 
@@ -412,7 +476,7 @@ func TestInvalidSendsAreRefused(t *testing.T) {
 		want error
 	}{
 		{Send{Kind: KindParty, ClientID: "bad id", Text: "hi"}, ErrInvalidMessage},
-		{Send{Kind: KindParty, ClientID: "valid-0001", Text: " \n "}, ErrEmptyMessage},
+		{Send{Kind: KindParty, Target: "p1", ClientID: "valid-0001", Text: " \n "}, ErrEmptyMessage},
 		{Send{Kind: KindParty, ClientID: "valid-0002", Text: strings.Repeat("x", fixtureTuning.MaxCharacters+1)}, ErrMessageTooLong},
 		{Send{Kind: "shout", ClientID: "valid-0003", Text: "hi"}, ErrInvalidMessage},
 	} {

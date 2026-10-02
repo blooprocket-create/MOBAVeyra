@@ -62,6 +62,10 @@ FText DescribeFailure(const FString& Code)
 	{
 		return LOCTEXT("FailAllChat", "Not sent: All Chat is off in your settings.");
 	}
+	if (Code == TEXT("conversation_changed"))
+	{
+		return LOCTEXT("FailChanged", "Not sent: you are in another party or champion select now.");
+	}
 	if (Code == TEXT("not_sent"))
 	{
 		return LOCTEXT("FailUnanswered", "Not sent: no answer from the server.");
