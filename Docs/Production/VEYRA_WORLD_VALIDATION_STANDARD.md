@@ -1,9 +1,9 @@
 # Veyra World Validation Standard
 
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** Acceptance standard for Meridian Crucible world, asset, and VFX changes  
-**Engine target:** Unreal Engine 5.8  
-**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md)
+**Engine target:** Unreal Engine 5.8.3, Epic source build  
+**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md)
 
 ## 1. Purpose
 
@@ -103,6 +103,8 @@ Before evaluating visuals:
 [ ] generated output is not being hand-patched
 [ ] affected region/IDs listed
 [ ] rollback point exists
+[ ] Epic engine checkout remains unmodified unless a separately approved engine-fork ADR exists
+[ ] world-authoring/editor automation is project-owned under VeyraWorldTools
 ```
 
 If an art change requires changing `World.json` gameplay geometry, classify it as a gameplay-map change.
@@ -208,6 +210,8 @@ Validate:
 - Vanguard routes;
 - Fluxborn routes;
 - wildlife camp access/leash;
+- terrain-bound runtime actors spawn/stand on the real surface rather than at a Z=0 assumption;
+- lane, objective, fountain and camp pads do not float above or sink into the generated Landscape;
 - objective access;
 - inner jungle;
 - outer jungle;
@@ -217,6 +221,8 @@ Validate:
 
 Detect:
 - disconnected navigation;
+- unwalkable slope spikes or accidental terrain steps;
+- spawn points resolving beneath/above the intended playable surface;
 - blocked routes;
 - accidental shortcuts;
 - too-narrow corridors;
@@ -413,7 +419,9 @@ Validate separately:
 - surface type/interaction metadata correct.
 
 ### Visual result
-- river follows the authored layout;
+- river follows the authored spline/path rather than a straight diagonal placeholder;
+- bends, width changes and banks read as intentionally landscaped from gameplay and beauty cameras;
+- the water surface and carved river basin stay spatially aligned;
 - flow direction looks coherent;
 - bank blending works;
 - crossings remain visible;
@@ -422,7 +430,7 @@ Validate separately:
 - Flux-water visuals remain readable;
 - reflection/refraction/scalability behave correctly.
 
-If Epic Water is under evaluation, label the test explicitly as an Experimental-plugin prototype.
+Under ADR-040, Epic Water is the approved first production presentation implementation. Validate it explicitly as a replaceable dependency: packaging, performance, scalability and gameplay-module decoupling must all pass.
 
 ## 20. Niagara/dynamic VFX
 
@@ -650,7 +658,17 @@ Known risks/open decisions:
 
 If a check cannot be run in the agent environment, say exactly which machine/tool must run it next.
 
-## 30. Acceptance rule
+## 30. Crucible world-authoring acceptance additions
+
+For the ADR-040 production-world pass, Level D additionally requires:
+- `Game/Plugins/VeyraWorldTools/` or its documented successor can regenerate the affected terrain/river/PCG scope from repo-owned source;
+- no ordinary Veyra change modifies Epic's engine source tree;
+- the final map contains meaningful, readable real elevation rather than a flat floor with cosmetic dressing;
+- all terrain-bound runtime spawn categories audited by the change resolve onto the actual playable surface;
+- the river is intentionally curved/shaped and visually integrated with the terrain;
+- representative Unreal captures were visually reviewed and defects were corrected through source/tooling, not by undocumented hand-patching of the generated map.
+
+## 31. Acceptance rule
 
 A result can be beautiful and still fail.
 
