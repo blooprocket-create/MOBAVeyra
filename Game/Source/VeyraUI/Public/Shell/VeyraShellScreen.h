@@ -59,6 +59,8 @@ enum class EVeyraShellConfirm : uint8
 	Block,
 	/** Buy, on a Vanguard's Collection card: the price and currency named (Account, Collection & Mastery Bible §7). */
 	Purchase,
+	/** A display-name change, on the Profile page: the price named, and the old name free to anyone at once (ADR-049 §6). */
+	NameChange,
 };
 
 /**
@@ -129,6 +131,9 @@ public:
 
 	/** The Profile page's choices as the player is making them, before Save (ADR-048 §5). */
 	const VeyraBackendProtocol::FProfileSettings& GetProfileDraft() const { return ProfileDraft; }
+
+	/** Types Name into the new-name field that shows, as the player would. For tests and scripts. */
+	void SetNameDraft(const FString& Name);
 
 	/** The chat composer that shows, or null. */
 	UEditableTextBox* GetChatBox() const { return ChatBox; }
@@ -323,6 +328,13 @@ private:
 	void BuildProfileOverlay(const FVeyraClientSnapshot& Snapshot);
 	/** A profile's card: its icon, name, level and featured Vanguard over its background. */
 	void AddProfileCard(const FVeyraProfileCardModel& Card, UPanelWidget& Parent);
+	/** The Profile page's Display Name section: the name, the next change's price and cooldown, and the change behind a confirmation. */
+	void BuildDisplayName(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** In place of the shell, for an account whose name another player claimed: choose a new one, for free (ADR-049 §4). */
+	void BuildChooseName(const FVeyraClientSnapshot& Snapshot);
+
+	UFUNCTION()
+	void HandleNameChanged(const FText& Text);
 	void BuildDetails(const FVeyraMatchReport& Report, UPanelWidget& Parent);
 	/** A text in a column Width wide. */
 	UTextBlock* AddCell(UPanelWidget& Row, const FText& Text, float Width, uint8 Role);
@@ -463,6 +475,10 @@ private:
 
 	/** The Profile page's choices before Save, and the saved choices they began from (ADR-048 §5). */
 	VeyraBackendProtocol::FProfileSettings ProfileDraft;
+	/** The new-name field, rebuilt with the screen; what it holds outlives it. */
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> NameBox;
+	FString NameDraft;
 	VeyraBackendProtocol::FProfileSettings ProfileDraftBase;
 	bool bProfileDraftReady = false;
 	FString ReportFormName;

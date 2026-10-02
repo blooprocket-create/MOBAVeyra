@@ -155,6 +155,7 @@ void UVeyraShellScreen::BuildProfilePage(const FVeyraClientSnapshot& Snapshot, U
 	{
 		AddProfileCard(*Model.Preview, Parent);
 	}
+	BuildDisplayName(Snapshot, Parent);
 	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Scroll->AddChild(Rows);
@@ -269,6 +270,99 @@ void UVeyraShellScreen::BuildProfileOverlay(const FVeyraClientSnapshot& Snapshot
 	{
 		AddButton(*Rows, LOCTEXT("ProfileLoadMore", "Load More"), [this] { Client->LoadMoreProfileMatches(); });
 	}
+}
+
+void UVeyraShellScreen::BuildDisplayName(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
+{
+	const UVeyraShellStyleSettings& Style = ProfileStyle();
+	const FVeyraDisplayNameModel Model = VeyraProfileModels::DescribeName(Snapshot, FDateTime::UtcNow());
+	if (!Model.bLoaded)
+	{
+		return;
+	}
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing));
+	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Panel->SetContent(Rows);
+	AddText(*Rows, LOCTEXT("DisplayNameHeading", "Display name"), ProfileRole(EVeyraShellText::Heading));
+	AddText(*Rows, Model.Current, ProfileRole(EVeyraShellText::Title));
+	AddText(*Rows, Model.Cost, ProfileRole(EVeyraShellText::Muted));
+	if (!Model.Next.IsEmpty())
+	{
+		AddText(*Rows, Model.Next, ProfileRole(EVeyraShellText::Muted));
+	}
+	const FVeyraNameOffer* Asked = Model.Offers.FindByPredicate([this](const FVeyraNameOffer& Offer) {
+		return Confirm == EVeyraShellConfirm::NameChange && ConfirmId == (Offer.Currency.IsEmpty() ? FString(TEXT("free")) : Offer.Currency);
+	});
+	if (Asked && !NameDraft.TrimStartAndEnd().IsEmpty())
+	{
+		// The change's question, naming the price; the old name is anyone's once it commits (Profiles Bible §4).
+		AddText(*Rows, VeyraProfileModels::NameChangePrompt(NameDraft.TrimStartAndEnd(), Asked->Price), ProfileRole(EVeyraShellText::Body));
+		UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		const FString Currency = Asked->Currency;
+		AddKindButton(*Answers, EVeyraShellButtonKind::Primary, VeyraProfileModels::ConfirmNameChangeLabel(), [this, Currency] {
+			Client->ChangeDisplayName(NameDraft, Currency);
+			AskToConfirm(EVeyraShellConfirm::None, FString());
+		}, Client->CanIssue(EVeyraClientIntent::ChangeDisplayName))->KeepLabelOnOneLine();
+		AddKindButton(*Answers, EVeyraShellButtonKind::Quiet, VeyraProfileModels::CancelNameChangeLabel(),
+			[this] { AskToConfirm(EVeyraShellConfirm::None, FString()); })->KeepLabelOnOneLine();
+		VeyraShellStyle::AddSpaced(*Rows, *Answers);
+	}
+	else
+	{
+		NameBox = MakeTextField(LOCTEXT("NewNameHint", "New name"), NameDraft, Model.bCanChange);
+		NameBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleNameChanged);
+		VeyraShellStyle::AddSpaced(*Rows, *NameBox);
+		UHorizontalBox* Offers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		const bool bCanAsk = Model.bCanChange && Client->CanIssue(EVeyraClientIntent::ChangeDisplayName);
+		for (const FVeyraNameOffer& Offer : Model.Offers)
+		{
+			const FString Id = Offer.Currency.IsEmpty() ? FString(TEXT("free")) : Offer.Currency;
+			AddKindButton(*Offers, EVeyraShellButtonKind::Secondary, Offer.Label, [this, Id] { AskToConfirm(EVeyraShellConfirm::NameChange, Id); }, bCanAsk)
+				->KeepLabelOnOneLine();
+		}
+		VeyraShellStyle::AddSpaced(*Rows, *Offers);
+	}
+	if (!Model.Feedback.IsEmpty())
+	{
+		AddText(*Rows, Model.Feedback, ProfileRole(EVeyraShellText::Body));
+	}
+	VeyraShellStyle::AddSpaced(Parent, *Panel);
+}
+
+void UVeyraShellScreen::BuildChooseName(const FVeyraClientSnapshot& Snapshot)
+{
+	const UVeyraShellStyleSettings& Style = ProfileStyle();
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing * 2.0f));
+	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Panel->SetContent(Rows);
+	AddText(*Rows, LOCTEXT("ChooseNameEyebrow", "Welcome back"), ProfileRole(EVeyraShellText::Eyebrow));
+	AddText(*Rows, LOCTEXT("ChooseNameTitle", "Choose a new name"), ProfileRole(EVeyraShellText::Title));
+	AddText(*Rows, LOCTEXT("ChooseNameBody", "Another player took your name while you were away. Everything else on your account is as you left it, and choosing a new name is free."),
+		ProfileRole(EVeyraShellText::Body));
+	NameBox = MakeTextField(LOCTEXT("ChooseNameHint", "New name"), NameDraft, true);
+	NameBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleNameChanged);
+	VeyraShellStyle::AddSpaced(*Rows, *NameBox);
+	AddKindButton(*Rows, EVeyraShellButtonKind::Primary, VeyraProfileModels::ChooseNameLabel(), [this] { Client->ChangeDisplayName(NameDraft, FString()); },
+		Client->CanIssue(EVeyraClientIntent::ChangeDisplayName));
+	if (const FText Feedback = VeyraProfileModels::NameFeedbackText(Snapshot.DisplayNameChange.Feedback); !Feedback.IsEmpty())
+	{
+		AddText(*Rows, Feedback, ProfileRole(EVeyraShellText::Body));
+	}
+	AddCentred(*Panel);
+}
+
+void UVeyraShellScreen::HandleNameChanged(const FText& Text)
+{
+	NameDraft = Text.ToString();
+}
+
+void UVeyraShellScreen::SetNameDraft(const FString& Name)
+{
+	if (NameBox)
+	{
+		NameBox->SetText(FText::FromString(Name));
+	}
+	NameDraft = Name;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -292,6 +292,9 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	// The same for a player typing a chat message while lines arrive (ADR-046 §6).
 	const bool bRefocusChat = ChatBox && ChatBox->HasKeyboardFocus();
 	ChatBox = nullptr;
+	// And for a player typing a new name.
+	const bool bRefocusName = NameBox && NameBox->HasKeyboardFocus();
+	NameBox = nullptr;
 	// And for a player writing a report's details.
 	const bool bRefocusReport = ReportDetailsBox && ReportDetailsBox->HasKeyboardFocus();
 	ReportDetailsBox = nullptr;
@@ -349,6 +352,10 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		if (bRefocusReport && ReportDetailsBox)
 		{
 			ReportDetailsBox->SetKeyboardFocus();
+		}
+		if (bRefocusName && NameBox)
+		{
+			NameBox->SetKeyboardFocus();
 		}
 	};
 	// Player menus and a report form belong to one shown match (ADR-047 §5).
@@ -538,6 +545,7 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 			bProfileDraftReady = false;
 			ShowPage(EVeyraShellPage::Profile);
 			Client->LoadProfileSettings();
+			Client->LoadDisplayName();
 		}, true, Page == EVeyraShellPage::Profile)->KeepLabelOnOneLine();
 	}
 	AddStretch(*WidgetTree, *Bar);
@@ -554,6 +562,12 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 
 void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 {
+	// Another player claimed the name: a new one comes before anything else (ADR-049 §4).
+	if (Snapshot.bRenameRequired)
+	{
+		BuildChooseName(Snapshot);
+		return;
+	}
 	BuildTopBar(Snapshot, *Content);
 	if (const FText Notice = VeyraShellModels::DescribeNotice(Snapshot.Notice); !Notice.IsEmpty())
 	{
