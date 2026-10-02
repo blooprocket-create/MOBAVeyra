@@ -104,6 +104,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Camera")
 	FKey CameraDragKey;
 
+	/** Each press moves the camera nearer or farther, within the zoom's range (ADR-052 §3). */
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraZoomInKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraZoomOutKey;
+
 	/** Held on the minimap, moves the camera there (ADR-020 §2). */
 	UPROPERTY(Config, EditAnywhere, Category = "Camera")
 	FKey MinimapCameraKey;
@@ -141,6 +148,10 @@ public:
 	/** Held with an ability's key, shows its indicator without casting it (Settings Bible §1.7; ADR-041 §1). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey ShowCastRangeKey;
+
+	/** Held, shows how far the player's basic attacks reach now (ADR-052 §4). Unbound by default. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey ShowAttackRangeKey;
 
 	/** The click that casts an ability waiting for one, a Normal Cast's (Settings Bible §1.2, §1.8). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")

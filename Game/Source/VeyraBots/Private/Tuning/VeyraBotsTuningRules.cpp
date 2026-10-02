@@ -155,6 +155,17 @@ TArray<FString> Validate(const FVeyraBotsTuning& Tuning)
 			}
 		}
 	}
+	// Every item's Active says what it is for, so a bot that buys the item knows when to cast it (ADR-051 §6).
+	for (const TPair<FVeyraContentId, FVeyraItemDefinition>& Item : UVeyraItemsTuningSubsystem::Get().Items)
+	{
+		for (const FVeyraContentId& Active : Item.Value.Active)
+		{
+			if (!Tuning.ItemActives.Contains(Active))
+			{
+				Problems.Add(FString::Printf(TEXT("/itemActives: says nothing of %s, the Active of %s"), *Active.ToString(), *Item.Key.ToString()));
+			}
+		}
+	}
 	return Problems;
 }
 }

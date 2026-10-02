@@ -161,7 +161,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle", "/perfectCut",
                                                  "/reprisalGuard", "/drag", "/convergence", "/fracture", "/endlessCleave", "/temperedByConflict",
                                                  "/residualCurrent", "/dragTheTempo", "/quietingChime",
-                                                 "/markedForDoom", "/safeHarbor", "/reverberation", "/highTide")),
+                                                 "/markedForDoom", "/safeHarbor", "/reverberation", "/highTide",
+                                                 "/noAllegiance", "/cleanBreak", "/throughTheGuard", "/noOneComing", "/reenactment")),
     ("Items", "/items/*/active/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Items", "/consumables/#", "Items", ("/items",)),
     ("Items", "/quests/#", "Items", ("/items",)),
@@ -173,6 +174,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     # Bot seats take Flux Spells, and know what each is for (ADR-015 §8).
     ("Bots", "/seats/*/fluxSpells/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Bots", "/fluxSpells/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    # And what each item's Active is for (ADR-051 §6).
+    ("Bots", "/itemActives/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.

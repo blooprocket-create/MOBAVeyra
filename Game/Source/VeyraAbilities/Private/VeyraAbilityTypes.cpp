@@ -46,6 +46,8 @@ const TCHAR* LexToString(EVeyraCastRejection Rejection)
 		return TEXT("NoCompanion");
 	case EVeyraCastRejection::HeldBack:
 		return TEXT("HeldBack");
+	case EVeyraCastRejection::Projected:
+		return TEXT("Projected");
 	}
 	return TEXT("Unknown");
 }

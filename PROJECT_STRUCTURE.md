@@ -196,6 +196,16 @@ M40a added ([ADR-050](Docs/ADR/ADR-050-stasis-and-the-echo-item-line.md)), the E
 - in Abilities, `Echoes/`: `AVeyraEcho`, its holder's owned projection whose Integrity is its sealed Health; `UVeyraEchoSubsystem`, which forms one Echo per holder and hands a waiting Echo the repeat of its holder's next eligible cast; the pure `VeyraEchoRules`; and the echo archetype (`Abilities/UVeyraEchoAbility`), Abilities.json's `echo` map. `UVeyraGameplayAbility::CanReverberate` says which deliveries an Echo may repeat (areas from their caster or point without a channel, skillshots without a recoil);
 - in Items, the Reverberation Attunement and Echo Lens.
 
+M40b added ([ADR-050](Docs/ADR/ADR-050-stasis-and-the-echo-item-line.md)), The Second Self:
+- in Abilities, the echo archetype's projection: `UVeyraEchoSubsystem::Project` puts its holder in Stasis and keeps the Echo's Integrity (decay and each enemy hit's set loss after its immunity) and tether, passes control to it once formed (`OnEchoCommanded`) and ends it at 0 Integrity or beyond its tether, ending the Stasis; `CastFrom` casts one of its holder's eligible abilities from it, and `UVeyraGameplayAbility::DeliverRepeat` delivers a repeat;
+- in Match, `Echoes/FVeyraEchoLink`, owned by the game mode: a controller of its own for a commanded Echo, the participant's move and attack orders routed to it and its casts to the Echo, and `AVeyraPlayerController::GetCommandedBody`, replicated to its owner, which the camera follows;
+- in the client, the grey-box tether circle and stream, and the HUD's Echo panel;
+- in Items, The Second Self.
+
+M41 added ([ADR-051](Docs/ADR/ADR-051-assassin-items-and-memoryglass-reliquary.md)), the Item Bible's last six items:
+- in Combat, flat Physical Penetration as an equipment stat, and shield shares that say whether a hit broke the shield (`FVeyraShieldShare::bBroken`);
+- in Items, `Attunements/VeyraBurstAttunements.cpp`: No Allegiance, Clean Break, Through the Guard, No One Coming and Reenactment on `UVeyraAttunementSubsystem`, which now also hears damage resolution and cast commits; Veil Needle, Blank Sigil, Cutline Mantle, Oathpiercer, Witnessless Edge and Memoryglass Reliquary.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
@@ -332,6 +342,11 @@ Since M31 `Input/` decides how the player's keys cast ([ADR-041](Docs/ADR/ADR-04
 
 The controller publishes the waiting cast for VeyraUI's indicator (`GetCastIndicator`). Attack-move orders carry their target preference to the Vanguard controller.
 
+Since M42 ([ADR-052](Docs/ADR/ADR-052-combat-text-health-bars-zoom-and-attack-range.md)):
+- `Feedback/` holds floating combat text. `FVeyraCombatTextLink`, owned by the game mode, hears Combat's damage, healing and shields on the server; the pure `VeyraCombatTextRouting` says which numbers each outcome gives a player. Each number goes only to its player's controller (`ClientCombatText`, unreliable), and never one about a unit that player's side cannot see. The controller raises it as `OnCombatText` for the UI.
+- The camera zooms: the `camera_zoom` level persists, the zoom keys step it (`VeyraCameraPreferences::ZoomLevelAfter`), and the rig eases its arm to the length it gives within one game-wide range.
+- The controller publishes Show Attack Range's key (`IsShowingAttackRange`) and the units the player targets (`GetTargetedUnits`).
+
 Since M23 `Chat/` holds in-match Team and All Chat ([ADR-029](Docs/ADR/ADR-029-in-match-chat.md)). `UVeyraChatSubsystem` validates each message on the server (`VeyraChatRules`: cleaning, length, rate, who receives which channel) and hands it to each recipient's controller, keeping mutes and the All Chat preference at delivery. No replicated actor carries chat, so spectators and replays never see it. The player controller holds the client's chat log, its own notices included, capped by `chat.keepMessages`.
 
 It knows nothing about the backend; `VeyraServices` connects the two.
@@ -407,6 +422,11 @@ M8 added `Shop/` ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §11): the shop 
 M12 added `Shell/VeyraMatchReportModel`, a match's saved Scoreboard, team summary and Detailed Statistics (ADR-017 §6). The results screen shows it from the verified result, and so does Match History (`Shell/VeyraMatchHistoryModel`), a shell page that lists the player's completed matches newest first, filtered by Vanguard, mode and outcome, with Load More. It also added `Scoreboard/` ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §4): the in-match scoreboard, open while Tab is held. It has both teams, the viewer's first, and each player's Vanguard, level, K/D/A, creep score and items. Its model reads only what every client receives: each PlayerState's public score, level and inventory.
 
 M23 added `Chat/` ([ADR-029](Docs/ADR/ADR-029-in-match-chat.md) §5): `UVeyraChatComposer`, the line chat is typed into, which the chat key opens through `UVeyraMatchMenuSubsystem` and which keeps typed keys from the game, and `VeyraChatCommands`, which reads `/all`, `/mute` and `/unmute`. The HUD's chat log (`Hud/VeyraChatLogModel`) draws the newest lines above the composer, faded unless it is open, in the player's chat text size and background from the Communication settings.
+
+M42 added ([ADR-052](Docs/ADR/ADR-052-combat-text-health-bars-zoom-and-attack-range.md)):
+- `Hud/VeyraCombatTextModel`, which keeps the combat text the player receives, leaves out the kinds they turned off, merges quick numbers under Reduced density, and which the HUD draws rising and fading above their units, coloured by damage type or Uniform;
+- the Fluxborn and jungle bar settings (`VeyraInterfacePreferences::ShowsBar`);
+- the Show Attack Range ring, in the indicator's appearance, at `VeyraHud::AttackReachOf`.
 
 ### VeyraDeveloper
 

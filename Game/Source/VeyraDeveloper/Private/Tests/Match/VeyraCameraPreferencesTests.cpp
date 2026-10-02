@@ -103,6 +103,60 @@ namespace VeyraCameraPreferencesTests
 			ASSERT_THAT(IsTrue(VeyraCamera::DelayEdgePan(FVector2D::ZeroVector, 0.1, 0.3, Held).IsZero() && Held == 0.0, TEXT("leaving the zone cancels (SET-87)")));
 			ASSERT_THAT(IsTrue(VeyraCamera::DelayEdgePan(Left, 0.016, 0.0, Held) == Left, TEXT("Immediate pans at once")));
 		}
+
+		// ADR-052 §3: one game-wide range around the standard zoom; the level persists and resets to the standard zoom.
+		TEST_METHOD(TheZoomLevelSpansTheGameWideRangeAroundTheStandardZoom)
+		{
+			const UVeyraCameraSettings& View = ViewSettings();
+			ASSERT_THAT(IsTrue(View.MinDistance > 0.0f && View.MinDistance <= View.Distance && View.Distance <= View.MaxDistance, TEXT("the standard zoom lies within the range")));
+			const FVeyraSettingsStore Defaults(Registry);
+			const TOptional<FVeyraZoomScale> Scale = ZoomScaleOf(View, Defaults);
+			ASSERT_THAT(IsTrue(Scale.IsSet()));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Resolve(View, &Defaults).Distance, static_cast<double>(View.Distance)), TEXT("the default level is the standard zoom")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Resolve(View, nullptr).Distance, static_cast<double>(View.Distance)), TEXT("and so is no setting at all")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ZoomDistance(*Scale, Scale->Lowest), static_cast<double>(View.MinDistance))
+				&& FMath::IsNearlyEqual(ZoomDistance(*Scale, Scale->Highest), static_cast<double>(View.MaxDistance))));
+			for (const double Distance : { Scale->Nearest, (Scale->Nearest + Scale->Standard) / 2.0, Scale->Standard, (Scale->Standard + Scale->Farthest) / 2.0, Scale->Farthest })
+			{
+				ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ZoomDistance(*Scale, ZoomLevel(*Scale, Distance)), Distance), TEXT("ZoomLevel turns ZoomDistance round")));
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ZoomDistance(*Scale, Scale->Highest + 50.0), Scale->Farthest) && FMath::IsNearlyEqual(ZoomDistance(*Scale, Scale->Lowest - 50.0), Scale->Nearest),
+				TEXT("never beyond the range")));
+		}
+
+		TEST_METHOD(TheZoomPersistsAsALevelAndResetsToTheStandardZoom)
+		{
+			FVeyraSettingsStore Store(Registry);
+			ASSERT_THAT(IsTrue(Store.Set(Zoom(), TEXT("0"), /*bInLiveMatch*/ true) == EVeyraSettingChange::Changed, TEXT("the zoom changes in a live match")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Resolve(ViewSettings(), &Store).Distance, static_cast<double>(ViewSettings().MinDistance))));
+			Store.Reset(Zoom());
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Resolve(ViewSettings(), &Store).Distance, static_cast<double>(ViewSettings().Distance)), TEXT("its reset is the standard zoom")));
+		}
+
+		TEST_METHOD(TheZoomKeysStepWithinTheRangeAndTheArmEasesThere)
+		{
+			ASSERT_THAT(IsTrue(VeyraCamera::Zoom(1600.0, 2, 100.0, 1200.0, 2200.0) == 1400.0, TEXT("zooming in shortens the arm")));
+			ASSERT_THAT(IsTrue(VeyraCamera::Zoom(1600.0, -3, 100.0, 1200.0, 2200.0) == 1900.0));
+			ASSERT_THAT(IsTrue(VeyraCamera::Zoom(1250.0, 5, 100.0, 1200.0, 2200.0) == 1200.0 && VeyraCamera::Zoom(2150.0, -5, 100.0, 1200.0, 2200.0) == 2200.0, TEXT("never past the range")));
+
+			FVeyraZoomScale Scale;
+			Scale.Lowest = 0.0;
+			Scale.Default = 50.0;
+			Scale.Highest = 100.0;
+			Scale.Nearest = 1200.0;
+			Scale.Standard = 1600.0;
+			Scale.Farthest = 2200.0;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ZoomLevelAfter(Scale, 50.0, 2, 100.0), 25.0), TEXT("two presses in from the standard zoom")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ZoomLevelAfter(Scale, 50.0, -3, 100.0), 75.0), TEXT("three presses out")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ZoomLevelAfter(Scale, 0.0, 1, 100.0), 0.0), TEXT("no nearer than the nearest")));
+
+			const double Eased = VeyraCamera::EaseZoom(1600.0, 1200.0, 0.12, 0.12);
+			ASSERT_THAT(IsTrue(Eased < 1600.0 && Eased > 1200.0, TEXT("part of the way")));
+			// The same time in two frames or in one reaches the same place.
+			const double Twice = VeyraCamera::EaseZoom(VeyraCamera::EaseZoom(1600.0, 1200.0, 0.06, 0.12), 1200.0, 0.06, 0.12);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Twice, Eased, 1e-6)));
+			ASSERT_THAT(IsTrue(VeyraCamera::EaseZoom(1600.0, 1200.0, 0.016, 0.0) == 1200.0, TEXT("without smoothing it is there at once")));
+		}
 	};
 }
 

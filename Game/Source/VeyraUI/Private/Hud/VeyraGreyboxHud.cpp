@@ -12,12 +12,14 @@
 #include "GlobalRenderResources.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
+#include "Hud/VeyraCombatTextModel.h"
 #include "Hud/VeyraHudDeck.h"
 #include "Hud/VeyraHudModel.h"
 #include "Ending/VeyraMatchEnding.h"
 #include "Hud/VeyraMinimapModel.h"
 #include "Structures/VeyraStructure.h"
 #include "Input/VeyraInputSettings.h"
+#include "Teams/VeyraTeam.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Text/VeyraContentText.h"
@@ -63,11 +65,26 @@ namespace
 		Canvas.DrawItem(Item);
 	}
 
-	/** Health with shields after it, the resource under them, and the unit's statuses above. */
-	void DrawOverheadBars(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybox, const UVeyraGreyboxSettings& Settings, const APawn& Unit, double Now)
+	/**
+	 * Health with shields after it, the resource under them, and the unit's statuses above; a Fluxborn's or a
+	 * jungle creature's only when the player's bar settings show it (ADR-052 §2). Targeted are the units the
+	 * player targets now.
+	 */
+	void DrawOverheadBars(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybox, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences,
+		TConstArrayView<const AActor*> Targeted, const APawn& Unit, double Now)
 	{
 		const TOptional<FVeyraHudVitals> Vitals = VeyraHud::VitalsOf(Unit, Greybox.GetViewerTeam());
 		if (!Vitals || Vitals->MaxHealth <= 0.0 || Unit.IsHidden())
+		{
+			return;
+		}
+		FVeyraBarFacts Facts;
+		Facts.Kind = VeyraUnits::KindOf(&Unit).Get(EVeyraUnitKind::Vanguard);
+		Facts.bAllied = VeyraTeams::TeamOf(&Unit) == Greybox.GetViewerTeam();
+		Facts.bDamaged = Vitals->Health < Vitals->MaxHealth;
+		Facts.bTargeted = Targeted.Contains(&Unit);
+		Facts.bFighting = VeyraHud::IsFighting(Unit);
+		if (!VeyraInterfacePreferences::ShowsBar(Preferences, Facts))
 		{
 			return;
 		}
@@ -172,6 +189,65 @@ namespace
 			// A mark has no effect of its own, so its name says what it is, as Doom's or a Hex's.
 			const FString Name = Status.Kind == EVeyraStatusKind::Counter ? Status.Id.ToString() : HudEnumName(Status.Kind);
 			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s%s %.1f s"), *Name, *Count, Status.RemainingSeconds), Settings.TextColor);
+		}
+	}
+
+	/** A number's colour: damage coded by type, or Uniform's two (Proposal 52); healing and shielding their own. */
+	FLinearColor CombatTextColor(const UVeyraGreyboxSettings& Settings, bool bUniform, const FVeyraCombatTextShown& Number)
+	{
+		switch (Number.Kind)
+		{
+		case EVeyraCombatTextKind::Healing:
+			return Settings.CombatTextHealingColor;
+		case EVeyraCombatTextKind::Shielding:
+			return Settings.CombatTextShieldingColor;
+		case EVeyraCombatTextKind::DamageDealt:
+		case EVeyraCombatTextKind::DamageReceived:
+			break;
+		}
+		if (bUniform)
+		{
+			return Number.Kind == EVeyraCombatTextKind::DamageReceived ? Settings.CombatTextReceivedColor : Settings.CombatTextUniformColor;
+		}
+		switch (Number.DamageType)
+		{
+		case EVeyraDamageType::Magic:
+			return Settings.CombatTextMagicColor;
+		case EVeyraDamageType::TrueDamage:
+			return Settings.CombatTextTrueColor;
+		case EVeyraDamageType::Physical:
+			break;
+		}
+		return Settings.CombatTextPhysicalColor;
+	}
+
+	/** The player's combat text, each number rising from its unit's bars and fading as it goes (ADR-052 §1). */
+	void DrawCombatText(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, TConstArrayView<FVeyraCombatTextShown> Numbers)
+	{
+		for (const FVeyraCombatTextShown& Number : Numbers)
+		{
+			const AActor* Unit = Number.Unit.Get();
+			if (!Unit || Unit->IsHidden())
+			{
+				continue;
+			}
+			float Radius = 0.0f;
+			float HalfHeight = 0.0f;
+			Unit->GetSimpleCollisionCylinder(Radius, HalfHeight);
+			const double Lift = HalfHeight + Settings.BarLift + Settings.CombatTextRise * Number.Progress;
+			const FVector OnScreen = Canvas.Project(Unit->GetActorLocation() + FVector::UpVector * Lift);
+			if (OnScreen.Z <= 0.0)
+			{
+				continue;
+			}
+			const bool bGiven = Number.Kind == EVeyraCombatTextKind::Healing || Number.Kind == EVeyraCombatTextKind::Shielding;
+			const FString Text = FString::Printf(TEXT("%s%d"), bGiven ? TEXT("+") : TEXT(""), FMath::RoundToInt(Number.Amount));
+			FCanvasTextItem Item(FVector2D(OnScreen.X, OnScreen.Y), FText::FromString(Text), HudFont(),
+				CombatTextColor(Settings, Preferences.bUniformDamageColors, Number).CopyWithNewOpacity(static_cast<float>(1.0 - Number.Progress)));
+			Item.bCentreX = true;
+			Item.Scale = FVector2D(Settings.CombatTextScale * (Number.bCritical ? Settings.CombatTextCritScale : 1.0f));
+			Item.EnableShadow(FLinearColor::Black);
+			Canvas.DrawItem(Item);
 		}
 	}
 
@@ -332,13 +408,16 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(Greybox.GetWorld()));
 	const double Now = Greybox.GetServerNow();
+	const AVeyraPlayerController* Targeting = Cast<AVeyraPlayerController>(Viewer);
+	const TArray<const AActor*> Targeted = Targeting ? Targeting->GetTargetedUnits() : TArray<const AActor*>();
 	for (TActorIterator<APawn> It(Greybox.GetWorld()); It; ++It)
 	{
 		if (VeyraUnits::KindOf(*It).IsSet())
 		{
-			DrawOverheadBars(Canvas, Greybox, Settings, **It, Now);
+			DrawOverheadBars(Canvas, Greybox, Settings, Preferences, Targeted, **It, Now);
 		}
 	}
+	DrawCombatText(Canvas, Settings, Preferences, VeyraCombatTextView::Describe(Greybox.GetCombatText(), FPlatformTime::Seconds(), Preferences.CombatText));
 	if (const AVeyraGameState* GameState = Greybox.GetWorld()->GetGameState<AVeyraGameState>())
 	{
 		const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);

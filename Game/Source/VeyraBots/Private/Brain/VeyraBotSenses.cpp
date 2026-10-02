@@ -138,6 +138,25 @@ namespace
 			Seen.bReady = !Loadout->IsLocked(Slot) && !bBusy && Cooldowns->GetRemainingSeconds(Entry->Ability, View.Now) <= 0.0
 				&& VeyraCombat::CanAffordResource(*AbilitySystem, Seen.Cost);
 		}
+		// Its items' Actives: no ranks, cooling down under their own IDs, what each is for from the data (ADR-051 §6).
+		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
+		{
+			const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(Slot);
+			const EVeyraBotAbilityUse* Use = Entry ? Tuning.ItemActives.Find(Entry->Ability) : nullptr;
+			const TOptional<FVeyraBotAbilityProfile> Profile = Entry ? VeyraBotAbilities::ProfileOf(Entry->Ability, View.AttackRange) : TOptional<FVeyraBotAbilityProfile>();
+			if (!Use || *Use == EVeyraBotAbilityUse::Never || !Profile.IsSet())
+			{
+				continue;
+			}
+			FVeyraBotSlot& Seen = View.Slots.AddDefaulted_GetRef();
+			Seen.Slot = Slot;
+			Seen.Ability = Entry->Ability;
+			Seen.Use = *Use;
+			Seen.Profile = Profile.GetValue();
+			constexpr int32 ActiveRank = 1;
+			Seen.Cost = VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, ActiveRank);
+			Seen.bReady = !bBusy && Cooldowns->GetRemainingSeconds(Entry->Ability, View.Now) <= 0.0 && VeyraCombat::CanAffordResource(*AbilitySystem, Seen.Cost);
+		}
 	}
 }
 

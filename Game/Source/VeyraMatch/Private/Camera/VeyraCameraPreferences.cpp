@@ -82,6 +82,56 @@ const FVeyraContentId& FreeWhileDead()
 	return Id;
 }
 
+const FVeyraContentId& Zoom()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("camera_zoom"));
+	return Id;
+}
+
+TOptional<FVeyraZoomScale> ZoomScaleOf(const UVeyraCameraSettings& View, const FVeyraSettingsStore& Store)
+{
+	const TOptional<FVeyraSettingInfo> Setting = VeyraSettings::Find(Store.GetRegistry(), Zoom());
+	if (!Setting.IsSet() || !Setting->Range)
+	{
+		return {};
+	}
+	FVeyraZoomScale Scale;
+	Scale.Lowest = Setting->Range->Minimum;
+	Scale.Default = Setting->Range->Default;
+	Scale.Highest = Setting->Range->Maximum;
+	Scale.Nearest = View.MinDistance;
+	Scale.Standard = View.Distance;
+	Scale.Farthest = View.MaxDistance;
+	return Scale;
+}
+
+double ZoomDistance(const FVeyraZoomScale& Scale, double Level)
+{
+	if (Level >= Scale.Default)
+	{
+		const double Span = Scale.Highest - Scale.Default;
+		return Span > 0.0 ? FMath::Lerp(Scale.Standard, Scale.Farthest, FMath::Min(Level - Scale.Default, Span) / Span) : Scale.Standard;
+	}
+	const double Span = Scale.Default - Scale.Lowest;
+	return Span > 0.0 ? FMath::Lerp(Scale.Standard, Scale.Nearest, FMath::Min(Scale.Default - Level, Span) / Span) : Scale.Standard;
+}
+
+double ZoomLevel(const FVeyraZoomScale& Scale, double Distance)
+{
+	if (Distance >= Scale.Standard)
+	{
+		const double Span = Scale.Farthest - Scale.Standard;
+		return Span > 0.0 ? FMath::Lerp(Scale.Default, Scale.Highest, FMath::Min(Distance - Scale.Standard, Span) / Span) : Scale.Default;
+	}
+	const double Span = Scale.Standard - Scale.Nearest;
+	return Span > 0.0 ? FMath::Lerp(Scale.Default, Scale.Lowest, FMath::Min(Scale.Standard - Distance, Span) / Span) : Scale.Default;
+}
+
+double ZoomLevelAfter(const FVeyraZoomScale& Scale, double Level, int32 Notches, double ZoomStep)
+{
+	return ZoomLevel(Scale, VeyraCamera::Zoom(ZoomDistance(Scale, Level), Notches, ZoomStep, Scale.Nearest, Scale.Farthest));
+}
+
 double SpeedScale(double Value, double Minimum, double Default, double Maximum, double Slowest, double Fastest)
 {
 	// Evenly in ratio: each step up multiplies the speed by the same amount.
@@ -114,9 +164,14 @@ FVeyraCameraPreferences Resolve(const UVeyraCameraSettings& View, const FVeyraSe
 	Preferences.bEdgeScroll = View.bEdgeScroll;
 	Preferences.EdgeScrollPixels = View.EdgeScrollPixels;
 	Preferences.DragUnitsPerPixel = View.DragUnitsPerPixel;
+	Preferences.Distance = View.Distance;
 	if (!Store)
 	{
 		return Preferences;
+	}
+	if (const TOptional<FVeyraZoomScale> Scale = ZoomScaleOf(View, *Store))
+	{
+		Preferences.Distance = ZoomDistance(Scale.GetValue(), Store->GetNumber(Zoom()));
 	}
 	if (const TOptional<EVeyraCameraMode> Mode = ParseMode(Store->Get(DefaultMode())))
 	{

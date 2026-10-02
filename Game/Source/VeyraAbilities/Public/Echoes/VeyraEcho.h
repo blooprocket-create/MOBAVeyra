@@ -67,6 +67,19 @@ public:
 	/** Server: its Integrity, as its sealed Health, and the tether radius that Integrity allows. */
 	void SetIntegrity(double Integrity, double InRadius);
 
+	/** Server: a projected Echo's immunity ends at ImmuneUntil and control passes to it at ControlAt, in world time (ADR-050 §4). */
+	void SetProjection(double InImmuneUntil, double InControlAt);
+
+	/** Server: how many abilities it may still repeat, as every machine sees it. */
+	void SetRepeatsLeft(int32 InRepeatsLeft);
+
+	/** On every machine: how many abilities it may still repeat. */
+	int32 GetRepeatsLeft() const { return RepeatsLeft; }
+
+	/** On every machine: when a projected Echo's immunity ends and control passes to it, in the server's world time; 0 for one not projected. */
+	double GetImmuneUntil() const { return ImmuneUntil; }
+	double GetControlAt() const { return ControlAt; }
+
 	/** Server: it ends, withdrawn from the battleground without a death and out of sight (ADR-050 §2). */
 	void Withdraw();
 
@@ -138,6 +151,15 @@ private:
 
 	UPROPERTY(Replicated)
 	double Radius = 0.0;
+
+	UPROPERTY(Replicated)
+	double ImmuneUntil = 0.0;
+
+	UPROPERTY(Replicated)
+	double ControlAt = 0.0;
+
+	UPROPERTY(Replicated)
+	int32 RepeatsLeft = 0;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Withdrawn)
 	bool bWithdrawn = false;

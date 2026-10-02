@@ -35,6 +35,13 @@
 
 namespace VeyraCombat
 {
+bool IsInStasis(const UAbilitySystemComponent& AbilitySystem)
+{
+	const AActor* Owner = AbilitySystem.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->Has(EVeyraStatusKind::Stasis);
+}
+
 namespace
 {
 	// Veyra effects take every magnitude from SetByCaller data, never from Gameplay Ability System
@@ -49,14 +56,6 @@ namespace
 	bool IsNonNegativeFinite(double Value)
 	{
 		return FMath::IsFinite(Value) && Value >= 0.0;
-	}
-
-	/** Whether the unit is in Stasis (Combat Bible §10; ADR-050 §1). */
-	bool IsInStasis(const UAbilitySystemComponent& AbilitySystem)
-	{
-		const AActor* Owner = AbilitySystem.GetOwner();
-		const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
-		return Statuses && Statuses->Has(EVeyraStatusKind::Stasis);
 	}
 
 	/** Whether no heal or shield may reach the unit now: in Stasis, or its Health sealed (ADR-050 §1, §3). */
@@ -436,6 +435,7 @@ bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquip
 		{ UVeyraEquipmentEffect::AbilityHasteName, Stats.AbilityHaste },
 		{ UVeyraEquipmentEffect::MoveSpeedName, Stats.MoveSpeed },
 		{ UVeyraEquipmentEffect::MagicPenetrationFlatName, Stats.MagicPenetrationFlat },
+		{ UVeyraEquipmentEffect::PhysicalPenetrationFlatName, Stats.PhysicalPenetrationFlat },
 		{ UVeyraEquipmentEffect::CritChanceName, Stats.CritChance },
 		{ UVeyraEquipmentEffect::CritDamageBonusName, Stats.CritDamageBonus },
 	};
@@ -824,6 +824,10 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	if (!bApplied)
 	{
 		return false;
+	}
+	if (Events)
+	{
+		Events->OnDamageTaken.Broadcast(Dealt);
 	}
 	// Towers and Fluxborn react to who hurts whom (Battleground Bible §19; ADR-011 §6), and Attunements
 	// to what a hit dealt (ADR-023 §4).

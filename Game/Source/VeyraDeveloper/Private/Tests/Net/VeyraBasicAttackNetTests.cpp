@@ -140,11 +140,13 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(VeyraTargeting::EdgeToEdgeDistance(*Attacker, *Target) <= Range + UVeyraCombatTuningSubsystem::Get().Targeting.ServerRangeTolerance));
 					ASSERT_THAT(IsTrue(ParticipantOf(State, 0)->GetVanguardController()->GetAttackTarget() == Target, TEXT("the order keeps attacking")));
 				})
-				.UntilClients(TEXT("Every client sees the damage and the attack"), [this](FState& State) {
+				.UntilClients(TEXT("Every client sees the damage, the attack and its reach"), [this](FState& State) {
 					const APlayerState* Attacker = SeenParticipant(State, AttackerId);
 					const APlayerState* Target = SeenParticipant(State, TargetId);
+					// The reach replicates, so Show Attack Range rings it on the client (ADR-052 §4).
 					return Attacker && Target && HealthLost(Target) >= BaseDamage()
-						&& Attacker->FindComponentByClass<UVeyraBasicAttackComponent>()->GetState().Target != nullptr;
+						&& Attacker->FindComponentByClass<UVeyraBasicAttackComponent>()->GetState().Target != nullptr
+						&& FMath::IsNearlyEqual(Attacker->FindComponentByClass<UVeyraBasicAttackComponent>()->GetRange(nullptr), Range);
 				})
 				.UntilServer(TEXT("It attacks again after its interval"), [](FState& State) {
 					return HealthLost(ParticipantOf(State, 1)) >= 2.0 * BaseDamage();

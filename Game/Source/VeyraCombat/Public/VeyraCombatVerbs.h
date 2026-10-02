@@ -148,6 +148,9 @@ namespace VeyraCombat
 	/** Whether the unit is invulnerable now, by a grant, Stasis or a sealed Health (ADR-050 §1, §3). */
 	VEYRACOMBAT_API bool IsInvulnerable(const UAbilitySystemComponent& AbilitySystem);
 
+	/** Whether the unit is in Stasis (Combat Bible §10; ADR-050 §1): it takes no action, a consumable's included. */
+	VEYRACOMBAT_API bool IsInStasis(const UAbilitySystemComponent& AbilitySystem);
+
 	/**
 	 * Server: the unit's Health becomes a meter its owner sets with SetSealedHealth (ADR-050 §3), as an Echo's
 	 * Integrity: from now on damage reduces it by 0, as Invulnerability does, while every hit is still announced, and

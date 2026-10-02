@@ -381,6 +381,16 @@ int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, cons
 	return VeyraAbilities::RankOf(Caster, Ability);
 }
 
+bool UVeyraGameplayAbility::DeliverRepeat(const FVeyraCast& Repeat)
+{
+	if (!CanReverberate(Repeat.Ability) || !Repeat.Caster.IsValid())
+	{
+		return false;
+	}
+	Deliver(Repeat);
+	return true;
+}
+
 int32 UVeyraGameplayAbility::GetCasterLevel(const UAbilitySystemComponent& Caster)
 {
 	const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Caster);
@@ -497,6 +507,9 @@ void UVeyraGameplayAbility::OnWindupEnded()
 
 	NoteCastCommitted(*Caster, Run.Cast.Ability, Run.Cast.TargetActor.Get());
 
+	// Committed, it is past its windup: an interruption its own delivery brings about, as a caster's own Stasis, ends
+	// nothing that is delivering (ADR-050 §4).
+	Run.Phase = EVeyraCastPhase::None;
 	Run.Channel = Deliver(Run.Cast);
 	// Its caster's waiting Echo may repeat it (ADR-050 §5). The repeat is delivered, never cast, so nothing that
 	// answers casts sees it, and it repeats nothing itself.
@@ -506,7 +519,7 @@ void UVeyraGameplayAbility::OnWindupEnded()
 		{
 			if (const TOptional<FVeyraCast> Repeat = Echoes->TakeRepeat(*Caster, Run.Cast))
 			{
-				Deliver(Repeat.GetValue());
+				DeliverRepeat(Repeat.GetValue());
 			}
 		}
 	}

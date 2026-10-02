@@ -82,6 +82,27 @@ public:
 	 */
 	EVeyraCastRejection CheckCast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const;
 
+	/**
+	 * Whether Ability's delivery can be repeated by another caster from where it stands, as an Echo repeats it (ADR-050
+	 * §5): it starts from its caster's position or its point, does not channel, and neither moves nor carries its caster.
+	 */
+	virtual bool CanReverberate(const FVeyraContentId& Ability) const { return false; }
+
+	/**
+	 * Server: delivers Repeat, a cast of this ability by another caster, at once (ADR-050 §5): no windup, cost or
+	 * cooldown, and never announced as a cast. False, delivering nothing, unless the ability can be repeated.
+	 */
+	bool DeliverRepeat(const FVeyraCast& Repeat);
+
+	/**
+	 * Why Target may not aim a repeat of Ability by Caster, another caster standing in (ADR-050 §5); None if it may. The
+	 * archetype's own target rules, as for any cast: a projected order is checked before its repeat is spent.
+	 */
+	EVeyraCastRejection CheckRepeatTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
+	{
+		return CheckTarget(Caster, Ability, Target);
+	}
+
 protected:
 	/** Whether this archetype's tuning defines Ability. */
 	virtual bool Defines(const FVeyraContentId& Ability) const PURE_VIRTUAL(UVeyraGameplayAbility::Defines, return false;);
@@ -111,11 +132,7 @@ protected:
 	/** Whether Ability moves its caster, as a dash, leap or attach does: a Root refuses it (ADR-026 §3). */
 	virtual bool MovesCaster(const FVeyraContentId& Ability) const { return false; }
 
-	/**
-	 * Whether Ability's delivery can be repeated by another caster from where it stands, as an Echo repeats it (ADR-050
-	 * §5): it starts from its caster's position or its point, does not channel, and neither moves nor carries its caster.
-	 */
-	virtual bool CanReverberate(const FVeyraContentId& Ability) const { return false; }
+
 
 	/**
 	 * Whether Ability may be cast during one of its caster's own dashes, taking over from it (ADR-031 §7).

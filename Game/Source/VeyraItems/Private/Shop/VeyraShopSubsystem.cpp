@@ -540,6 +540,11 @@ EVeyraShopRefusal UVeyraShopSubsystem::UseConsumable(AActor& Participant, int32 
 	{
 		return EVeyraShopRefusal::NotNow;
 	}
+	// A Vanguard in Stasis takes no action, and drinking is one: its restoration would outlast the Stasis (ADR-050 §1).
+	if (const UAbilitySystemComponent* Drinker = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Participant); Drinker && VeyraCombat::IsInStasis(*Drinker))
+	{
+		return EVeyraShopRefusal::NotNow;
+	}
 	if (Restorations.ContainsByPredicate([&Participant](const FRestoration& Running) { return Running.Participant.Get() == &Participant; }))
 	{
 		return EVeyraShopRefusal::StillRestoring;

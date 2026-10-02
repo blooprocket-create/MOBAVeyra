@@ -12,6 +12,7 @@
 #include "Components/LineBatchComponent.h"
 #include "Companions/VeyraCompanion.h"
 #include "Echoes/VeyraEcho.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Components/StaticMeshComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
@@ -165,6 +166,12 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 	Bodies.Reset();
 	Projectiles.Reset();
 	Telegraphs.Reset();
+	if (AVeyraPlayerController* Source = CombatTextSource.Get())
+	{
+		Source->OnCombatText.Remove(CombatTextHandle);
+	}
+	CombatTextSource.Reset();
+	CombatText.Reset();
 	bReady = false;
 	Super::Deinitialize();
 }
@@ -193,7 +200,31 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawTelegraphs();
 	DrawVisionMarks();
 	DrawChains();
+	DrawEchoTethers();
+	RefreshCombatText();
 	AttachHudOverlay();
+}
+
+void UVeyraGreyboxSubsystem::RefreshCombatText()
+{
+	AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (Local != CombatTextSource.Get())
+	{
+		if (AVeyraPlayerController* Previous = CombatTextSource.Get())
+		{
+			Previous->OnCombatText.Remove(CombatTextHandle);
+		}
+		CombatTextSource = Local;
+		CombatTextHandle = Local ? Local->OnCombatText.AddUObject(this, &UVeyraGreyboxSubsystem::OnCombatText) : FDelegateHandle();
+	}
+	// Forgotten as they are drawn: a running total keeps all of its parts while it shows.
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(GetWorld()));
+	VeyraCombatTextView::Forget(CombatText, FPlatformTime::Seconds(), Preferences.CombatText);
+}
+
+void UVeyraGreyboxSubsystem::OnCombatText(const FVeyraCombatTextLine& Line)
+{
+	CombatText.Add(FVeyraCombatTextArrival{ Line, FPlatformTime::Seconds() });
 }
 
 void UVeyraGreyboxSubsystem::AttachHudOverlay()
@@ -703,6 +734,7 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 	if (const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
 	{
 		AddIndicator(*Local, Tuning);
+		AddAttackRange(*Local);
 	}
 }
 
@@ -728,6 +760,21 @@ void UVeyraGreyboxSubsystem::AddIndicator(const AVeyraPlayerController& Local, c
 	{
 		Telegraphs.Add(FVeyraTelegraph{ Placed, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
 	}
+}
+
+void UVeyraGreyboxSubsystem::AddAttackRange(const AVeyraPlayerController& Local)
+{
+	// A guide in the indicator's appearance: no target is acquired and no attack follows (ADR-052 §4).
+	const APawn* Body = Local.GetCommandedBody();
+	const TOptional<double> Reach = Body && Local.IsShowingAttackRange() ? VeyraHud::AttackReachOf(*Body) : TOptional<double>();
+	if (!Reach)
+	{
+		return;
+	}
+	FVeyraShape Ring;
+	Ring.Kind = EVeyraShapeKind::Circle;
+	Ring.Radius = Reach.GetValue();
+	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, Body->GetActorLocation(), FVector::ForwardVector }, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
 }
 
 FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const
@@ -794,6 +841,38 @@ void UVeyraGreyboxSubsystem::DrawChains()
 		}
 		TelegraphLines->DrawLine(GroundUnder(Companion.GetActorLocation()), GroundUnder(OwnerBody->GetActorLocation()), ColorOfSide(Companion.GetVeyraTeam()),
 			SDPG_World, Settings.TelegraphThickness, 0.0f);
+	}
+}
+
+void UVeyraGreyboxSubsystem::DrawEchoTethers()
+{
+	// A projected Echo's tether is gameplay information (Item Bible §11; ADR-050 §7): the circle it must stay within,
+	// around the Stasis body, and the stream from the body to it, strained as its Integrity runs low.
+	if (!TelegraphLines)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (TActorIterator<AVeyraEcho> It(GetWorld()); It; ++It)
+	{
+		const AVeyraEcho& Echo = **It;
+		const UAbilitySystemComponent* Abilities = Echo.GetAbilitySystemComponent();
+		if (Echo.IsWithdrawn() || Echo.IsHidden() || !(Echo.GetRadius() > 0.0) || !Abilities)
+		{
+			continue;
+		}
+		const double Max = Abilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+		const double Share = Max > 0.0 ? Abilities->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) / Max : 0.0;
+		const FLinearColor Color = Share < Settings.EchoStrainShare ? Settings.EchoStrainColor : ColorOfSide(Echo.GetVeyraTeam());
+		FVeyraShape Circle;
+		Circle.Kind = EVeyraShapeKind::Circle;
+		Circle.Radius = Echo.GetRadius();
+		const FVeyraPlacedShape OnGround{ Circle, GroundUnder(Echo.GetAnchor()), FVector::ForwardVector };
+		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
+		{
+			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+		}
+		TelegraphLines->DrawLine(GroundUnder(Echo.GetAnchor()), GroundUnder(Echo.GetActorLocation()), Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
 	}
 }
 
