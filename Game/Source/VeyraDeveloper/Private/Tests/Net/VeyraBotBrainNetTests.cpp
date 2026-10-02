@@ -12,6 +12,7 @@
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Recall/VeyraRecallComponent.h"
+#include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Tuning/VeyraBotsTuningSubsystem.h"
@@ -189,6 +190,32 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Human(State).GetAbilitySystemComponent(), *Bot->GetAbilitySystemComponent(), Wound)));
 				})
 				.UntilServer(TEXT("It drinks one"), [this, Carried](FState&) { return Bot.IsValid() && ConsumablesHeld(*Bot) == Carried - 1; });
+		}
+
+		TEST_METHOD(AnItemActiveCastThroughTheGameModeEndsItsPurchasesUndo)
+		{
+			// The bot buys nothing of its own, so the only purchase to undo is the test's.
+			Bots->Tuning.Vanguards[TestVanguardId()].Build.Reset();
+			for (FVeyraBotDifficultyTuning* Difficulty : { &Bots->Tuning.Difficulties.Beginner, &Bots->Tuning.Difficulties.Intermediate })
+			{
+				Difficulty->ConsumablesCarried = 0;
+			}
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Buy a bot a Razorwheel at its fountain, cast its Active as the bot's orders do, and try to undo"), [this](FState& State) {
+					SeatBot(State);
+					UVeyraShopSubsystem* Shop = State.World->GetSubsystem<UVeyraShopSubsystem>();
+					const FVeyraContentId Wheel = FVeyraContentId::FromText(TEXT("razorwheel")).GetValue();
+					Bot->FindComponentByClass<UVeyraGoldComponent>()->Grant(PlentyOfGold * 10.0, EVeyraGoldReason::Developer);
+					Shop->SetAtFountain(*Bot, true);
+					ASSERT_THAT(IsTrue(Shop->Buy(*Bot, Wheel) == EVeyraShopRefusal::None));
+					const int32 Index = Bot->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().IndexOfByPredicate(
+						[&Wheel](const FVeyraInventorySlot& Slot) { return Slot.Item == Wheel; });
+					ASSERT_THAT(IsTrue(Index != INDEX_NONE));
+					const EVeyraAbilitySlot Slot = static_cast<EVeyraAbilitySlot>(static_cast<int32>(EVeyraAbilitySlot::Item1) + Index);
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->HandleCastOrder(Bot.Get(), Slot, FVeyraCastTarget()) == EVeyraCastRejection::None));
+					// The Active gave benefit, so the purchase stays, for a bot as for a player (Item Bible §12; ADR-056 §5).
+					ASSERT_THAT(IsTrue(Shop->Undo(*Bot) == EVeyraShopRefusal::NothingToUndo));
+				});
 		}
 
 		TEST_METHOD(ABotBuysItsBuildAndRanksUpAtItsFountain)
