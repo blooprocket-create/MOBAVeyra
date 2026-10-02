@@ -21,7 +21,8 @@ namespace VeyraCastTelegraphs
 	 * - an area's zones, innermost first;
 	 * - a skillshot's path, as long as its range and as wide as its projectile;
 	 * - a dash's start zones, then its path, as wide as the caster;
-	 * - a buff's aura.
+	 * - a buff's aura;
+	 * - a volley's lane: a cone from the caster as long as a shot reaches, as wide as the lane's angle.
 	 * Empty when the ability shows nothing (a targeted spell, an empowered attack) or is unknown.
 	 */
 	VEYRAABILITIES_API TArray<FVeyraPlacedShape> ForCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraCastState& State, const FVector& CasterLocation,

@@ -42,23 +42,30 @@ namespace VeyraCursorPickTests
 			const TArray<FVeyraCursorUnit> Under = { { Tower, EVeyraUnitKind::Structure, true }, { Minion, EVeyraUnitKind::Fluxborn, true },
 				{ Foe, EVeyraUnitKind::Vanguard, true } };
 			ASSERT_THAT(IsTrue(VeyraCursorPicks::Enemy(Under, true) == Foe));
-			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, true) == Foe));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, true, false) == Foe));
 			const TArray<FVeyraCursorUnit> NoVanguard = { { Minion, EVeyraUnitKind::Fluxborn, true } };
 			ASSERT_THAT(IsNull(VeyraCursorPicks::Enemy(NoVanguard, true), TEXT("no attack on the minion instead")));
 		}
 
-		TEST_METHOD(ACastNamesTheFirstUnitOfEitherSide)
+		TEST_METHOD(ACastAtEnemiesLooksPastANearerAlly)
 		{
-			const TArray<FVeyraCursorUnit> Under = { { Friend, EVeyraUnitKind::Vanguard, false }, { Foe, EVeyraUnitKind::Vanguard, true } };
-			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, false) == Friend));
-			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, true) == Friend, TEXT("an ally stays a Vanguard to name")));
-			ASSERT_THAT(IsNull(VeyraCursorPicks::ForCast({}, false)));
+			// An allied Vanguard nearer the camera than the enemy: a cast at enemies names the enemy, with Target
+			// Vanguards Only or without (Settings Bible §1.4).
+			const TArray<FVeyraCursorUnit> Under = { { Friend, EVeyraUnitKind::Vanguard, false }, { Minion, EVeyraUnitKind::Fluxborn, true },
+				{ Foe, EVeyraUnitKind::Vanguard, true } };
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, true, false) == Foe));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, false, false) == Minion));
+			ASSERT_THAT(IsNull(VeyraCursorPicks::ForCast({}, false, false)));
 		}
 
-		TEST_METHOD(SmartSelfCastLeavesACastOnAnAllyToIt)
+		TEST_METHOD(ACastThatMayLandOnAnAllyNamesTheFirstAlliedVanguard)
 		{
-			ASSERT_THAT(IsTrue(VeyraCursorPicks::HasAlliedVanguard({ { Minion, EVeyraUnitKind::Fluxborn, true }, { Friend, EVeyraUnitKind::Vanguard, false } })));
-			ASSERT_THAT(IsFalse(VeyraCursorPicks::HasAlliedVanguard({ { Foe, EVeyraUnitKind::Vanguard, true } })));
+			const TArray<FVeyraCursorUnit> Under = { { Foe, EVeyraUnitKind::Vanguard, true }, { Minion, EVeyraUnitKind::Fluxborn, false },
+				{ Friend, EVeyraUnitKind::Vanguard, false } };
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, false, true) == Friend));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, true, true) == Friend, TEXT("Target Vanguards Only leaves it as it is")));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::Ally(Under) == Friend));
+			ASSERT_THAT(IsNull(VeyraCursorPicks::Ally({ { Foe, EVeyraUnitKind::Vanguard, true } })));
 		}
 	};
 
