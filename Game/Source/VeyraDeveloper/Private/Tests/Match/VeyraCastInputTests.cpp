@@ -87,6 +87,48 @@ namespace VeyraCastInputTests
 			ASSERT_THAT(IsTrue(Input.GetIndicator().IsSet()));
 		}
 
+		TEST_METHOD(AWaitingCastGivesUpOnceItsAbilityCannotBeCast)
+		{
+			// ADR-041 §1: the ability becoming unavailable cancels its waiting cast, so a later click casts nothing.
+			const FVeyraContentId Ability = FVeyraContentId::FromText(TEXT("test_bolt")).GetValue();
+			const FVeyraContentId Override = FVeyraContentId::FromText(TEXT("test_bolt_recast")).GetValue();
+			const FVeyraSlotNow Ready{ /*bCasterAlive*/ true, Ability, /*bLocked*/ false, /*CooldownSeconds*/ 0.0 };
+			const auto Changed = [&Ready](TFunctionRef<void(FVeyraSlotNow&)> Change) {
+				FVeyraSlotNow Now = Ready;
+				Change(Now);
+				return Now;
+			};
+			const TArray<FVeyraSlotNow> Unavailable = {
+				Changed([](FVeyraSlotNow& Now) { Now.bCasterAlive = false; }),
+				Changed([](FVeyraSlotNow& Now) { Now.CooldownSeconds = 4.0; }),
+				Changed([&Override](FVeyraSlotNow& Now) { Now.Ability = Override; }),
+				Changed([](FVeyraSlotNow& Now) { Now.Ability = FVeyraContentId(); }),
+				Changed([](FVeyraSlotNow& Now) { Now.bLocked = true; }),
+			};
+			for (const EVeyraCastMode Mode : { EVeyraCastMode::Normal, EVeyraCastMode::QuickWithIndicator })
+			{
+				for (const FVeyraSlotNow& Now : Unavailable)
+				{
+					FVeyraCastInput Input;
+					Input.Press(EVeyraAbilitySlot::E, Mode, false, Ability);
+					ASSERT_THAT(IsTrue(Input.Recheck(Ready).Step == EVeyraCastStep::Nothing, TEXT("still castable, still waiting")));
+					ASSERT_THAT(IsTrue(Is(Input.Recheck(Now), EVeyraCastStep::Hide, EVeyraAbilitySlot::E)));
+					ASSERT_THAT(IsTrue(Input.Confirm().Step == EVeyraCastStep::Nothing && Input.Release(EVeyraAbilitySlot::E).Step == EVeyraCastStep::Nothing,
+						TEXT("nothing casts after it")));
+				}
+			}
+		}
+
+		TEST_METHOD(APreviewIgnoresWhetherItsAbilityCanBeCast)
+		{
+			const FVeyraContentId Ability = FVeyraContentId::FromText(TEXT("test_bolt")).GetValue();
+			FVeyraCastInput Input;
+			Input.Press(EVeyraAbilitySlot::Q, EVeyraCastMode::Normal, /*bPreview*/ true, Ability);
+			ASSERT_THAT(IsTrue(Input.Recheck(FVeyraSlotNow{ true, Ability, false, 4.0 }).Step == EVeyraCastStep::Nothing, TEXT("Show Cast Range shows a cooling ability")));
+			ASSERT_THAT(IsTrue(Input.GetIndicator().IsSet()));
+			ASSERT_THAT(IsTrue(FVeyraCastInput().Recheck(FVeyraSlotNow()).Step == EVeyraCastStep::Nothing, TEXT("nothing waiting")));
+		}
+
 		TEST_METHOD(EveryModeHasItsName)
 		{
 			for (const EVeyraCastMode Mode : { EVeyraCastMode::Quick, EVeyraCastMode::QuickWithIndicator, EVeyraCastMode::Normal })

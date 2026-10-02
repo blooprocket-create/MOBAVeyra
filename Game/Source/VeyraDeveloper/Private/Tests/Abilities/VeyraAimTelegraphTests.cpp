@@ -66,6 +66,24 @@ namespace VeyraAimTelegraphTests
 			}
 		}
 
+		TEST_METHOD(AVolleyShowsTheLaneItsShotsFlyIn)
+		{
+			// Kade's Kill Corridor commits a lane; its indicator shows it, not only the range ring (ADR-041 §2).
+			const FVeyraAbilitiesTuning& Tuning = UVeyraAbilitiesTuningSubsystem::Get();
+			ASSERT_THAT(IsFalse(Tuning.Volley.IsEmpty()));
+			for (const TPair<FVeyraContentId, FVeyraVolleyAbilityTuning>& Volley : Tuning.Volley)
+			{
+				const TArray<FVeyraPlacedShape> Shapes = VeyraCastTelegraphs::ForAim(Tuning, Volley.Key, Caster, CasterRadius, Aim);
+				const FVeyraSkillshotAbilityTuning* Shot = Tuning.Skillshot.Find(Volley.Value.Shot);
+				ASSERT_THAT(IsNotNull(Shot, Volley.Key.ToString()));
+				ASSERT_THAT(IsTrue(Shapes.Num() >= 2, TEXT("its range, then its lane")));
+				const FVeyraPlacedShape& Lane = Shapes.Last();
+				ASSERT_THAT(IsTrue(Lane.Shape.Kind == EVeyraShapeKind::Sector && FMath::IsNearlyEqual(Lane.Shape.Radius, Shot->Projectile.Range)
+					&& FMath::IsNearlyEqual(Lane.Shape.ArcDegrees, 2.0 * Volley.Value.LaneHalfAngleDegrees), Volley.Key.ToString()));
+				ASSERT_THAT(IsTrue(Lane.Origin.Equals(Caster) && Lane.Direction.Equals(FVector::ForwardVector), TEXT("from the caster, toward the aim")));
+			}
+		}
+
 		TEST_METHOD(AnAimOnTheCasterStillFacesSomewhere)
 		{
 			const FVeyraAbilitiesTuning& Tuning = UVeyraAbilitiesTuningSubsystem::Get();
