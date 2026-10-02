@@ -102,6 +102,24 @@ func (m *MemStore) RequireRename(_ context.Context, accountID, placeholder strin
 	return nil
 }
 
+func (m *MemStore) DevResetName(_ context.Context, accountID, name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	a, ok := m.accounts[accountID]
+	if !ok {
+		return ErrNotFound
+	}
+	if !m.devSeeded[accountID] {
+		return ErrNotDevAccount
+	}
+	a.DisplayName = name
+	m.accounts[accountID] = a
+	state := m.names[accountID]
+	state.FreeChangeUsed, state.LastChangeAt, state.RenameRequired = false, time.Time{}, false
+	m.names[accountID] = state
+	return nil
+}
+
 func (m *MemStore) TouchLauncherLogin(_ context.Context, accountID string, at time.Time) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

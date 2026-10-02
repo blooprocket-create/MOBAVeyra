@@ -78,6 +78,18 @@ func (s *Store) RequireRename(ctx context.Context, accountID, placeholder string
 	return renameError(err)
 }
 
+func (s *Store) DevResetName(ctx context.Context, accountID, name string) error {
+	tag, err := querierFor(ctx, s.pool).Exec(ctx, `UPDATE identity.accounts SET display_name = $2, free_rename_used = false, last_rename_at = NULL,
+		rename_required = false WHERE id = $1::uuid AND dev_seeded`, accountID, name)
+	if err != nil {
+		return renameError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return identity.ErrNotDevAccount
+	}
+	return nil
+}
+
 func (s *Store) TouchLauncherLogin(ctx context.Context, accountID string, at time.Time) error {
 	_, err := querierFor(ctx, s.pool).Exec(ctx, `UPDATE identity.accounts SET last_launcher_login_at = $2 WHERE id = $1::uuid`, accountID, at)
 	return err

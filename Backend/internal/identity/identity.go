@@ -174,6 +174,9 @@ type Store interface {
 	RequireRename(ctx context.Context, accountID, placeholder string) error
 	// TouchLauncherLogin records a successful launcher login at at.
 	TouchLauncherLogin(ctx context.Context, accountID string, at time.Time) error
+	// DevResetName gives a development account name and forgets its name
+	// changes, or fails with ErrNotDevAccount for any other account.
+	DevResetName(ctx context.Context, accountID, name string) error
 }
 
 // Settings are the validated lifetimes the service needs.

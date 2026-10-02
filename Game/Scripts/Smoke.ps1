@@ -111,6 +111,13 @@
     - The second player opens the first player's profile from their card, again until it shows the
       shared history and the featured Vanguard.
 
+    -Flow Rename changes a display name with one packaged client (ADR-049), with no match:
+    - It plays DevNine, which no other flow uses. The script first gives DevNine its name back with its
+      free change unused.
+    - On the Profile page, the client types DevNineRenamed and chooses the free change. It confirms the
+      question that names the risk, and waits to be shown by the new name.
+    - The script then gives DevNine its name back.
+
     -Flow Coop plays Co-op vs AI to a win (ADR-039 §6) with one packaged client, against the local
     co-op mode of one human player: it queues, accepts, locks its Vanguard beside the enemy AI team
     the backend seated, and sieges with Veyra.Dev.Siege until the other side's Prime Well falls. The
@@ -252,7 +259,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Party', 'Settings', 'Collection', 'Chat', 'Profile')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Party', 'Settings', 'Collection', 'Chat', 'Profile', 'Rename')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -519,11 +526,16 @@ if ($Handoff -or $Flow) {
     # -Flow Profile: two friends; one features an owned Vanguard and shares its Match History on the Profile page,
     # the other opens that profile from their card until it shows them; no match (ADR-048).
     $isProfile = $Flow -eq 'Profile'
+    # -Flow Rename: one player changes its display name on the Profile page; no match (ADR-049). It plays a
+    # development account no other flow uses, and gives the account its name back afterwards.
+    $isRename = $Flow -eq 'Rename'
+    $RenameAccount = 'DevNine'
+    $RenameTo = 'DevNineRenamed'
     # Its bots, one on each side: side A's, then side B's. Neither is a Vanguard a player locks.
     $CustomBots = @('bryn', 'qazharr')
     # Every run but a declined match found plays a match.
-    $expectsMatch = $Flow -notin 'CasualDecline', 'Settings', 'Chat', 'Profile'
-    $playerCount = $(if ($isPractice -or $isSettings -or $isCoop) { 1 } else { 2 })
+    $expectsMatch = $Flow -notin 'CasualDecline', 'Settings', 'Chat', 'Profile', 'Rename'
+    $playerCount = $(if ($isPractice -or $isSettings -or $isCoop -or $isRename) { 1 } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
     # The committed config's queues hold five humans a side (Modes Bible §1, §4). A smoke has one client a
     # side, so its backend runs the committed config with the smoke's mode sized to it (ADR-039 §6).
@@ -558,6 +570,13 @@ if ($Handoff -or $Flow) {
         $mode = $backendConfig.customLobby.mode
     }
     $accounts = @($backendConfig.devLogin.accounts | Select-Object -First $playerCount)
+    if ($isRename) {
+        if ($backendConfig.devLogin.accounts -notcontains $RenameAccount) {
+            Write-Host "-Flow Rename needs $RenameAccount in Backend/config/local.json devLogin.accounts."
+            exit $ExitInfrastructure
+        }
+        $accounts = @($RenameAccount)
+    }
     # -Flow: the client logs the match its select created as it joins it.
     $JoiningLinePattern = 'VeyraClientFlow: joining match ([0-9a-f-]{36}) at '
     $MatchIdWaitPollMilliseconds = 250
@@ -578,6 +597,20 @@ if ($Handoff -or $Flow) {
     if ((Invoke-Compose -Arguments @('up', '--build', '--detach', '--wait', 'postgres', 'backend')) -ne 0) {
         Write-Host 'The backend did not start.'
         exit $ExitInfrastructure
+    }
+
+    # The rename flow's account takes its name back, its free change unused, whatever an earlier run left.
+    function Reset-RenameAccount {
+        $reset = Invoke-Backend -Method Post -Path "/v1/dev/accounts/$RenameAccount/name-reset" -Body @{ current = $RenameTo }
+        if ($reset.Status -ne 204) {
+            Write-Host "The backend did not give $RenameAccount its name back: HTTP $($reset.Status) ($(Get-ErrorCode $reset))."
+            return $false
+        }
+        return $true
+    }
+    if ($isRename) {
+        if (-not (Reset-RenameAccount)) { exit $ExitInfrastructure }
+        Write-Host "$RenameAccount changes its name to $RenameTo on the Profile page: no match."
     }
 
     $participants = foreach ($index in 0..($playerCount - 1)) {
@@ -727,6 +760,7 @@ if ($Handoff -or $Flow) {
                             "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory', "-VeyraSmokeFlowMode=$mode") + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($isChat) { @($(if ($index -eq 0) { '-VeyraSmokeFlow=chatleader' } else { '-VeyraSmokeFlow=chatmember' }), "-VeyraSmokeFlowFriend=$($participants[1 - $index].Name)") }
                     elseif ($isProfile) { @($(if ($index -eq 0) { '-VeyraSmokeFlow=profileowner' } else { '-VeyraSmokeFlow=profileviewer' }), "-VeyraSmokeFlowFriend=$($participants[1 - $index].Name)") }
+                    elseif ($isRename) { @('-VeyraSmokeFlow=rename', "-VeyraSmokeFlowName=$RenameTo") }
                     elseif ($isCoop) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory', '-VeyraSmokeFlowSieges', "-VeyraSmokeFlowMode=$mode") }
                     elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
@@ -842,6 +876,11 @@ if ($Handoff -or $Flow) {
         # The backend's development view of the match, which holds no credential.
         $match | ConvertTo-Json -Depth 6 | Out-File -LiteralPath (Join-Path $reportDir 'BackendMatch.json') -Encoding utf8
 
+        # The rename flow's account takes its name back for the next run and the other flows.
+        if ($isRename -and -not (Reset-RenameAccount)) {
+            $failed = $true
+        }
+
         # A party's leader commends the other member, and the member files a test report about the leader, from
         # the results screen (ADR-047 §5). The development view of the match's conduct shows both.
         if ($isParty -and $matchId) {
@@ -937,6 +976,7 @@ if ($Handoff -or $Flow) {
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
                 'Chat' { 'Home', 'PartyFormed', 'Chat' }
                 'Profile' { 'Profile', 'ProfileView' }
+                'Rename' { 'RenameConfirm', 'Renamed' }
             }
             foreach ($screen in $screens) {
                 $shot = Join-Path $reportDir "Flow-$screen.png"

@@ -216,6 +216,24 @@ func (s *Service) placeholder(ctx context.Context) (string, error) {
 	return "", ErrDisplayNameTaken
 }
 
+// DevResetName gives the development account now named current, or the one
+// named original if none is, its original name back, with its free change,
+// cooldown and required rename forgotten, so scripted runs can rename it
+// again. Development only.
+func (s *Service) DevResetName(ctx context.Context, current, original string) (Account, error) {
+	a, err := s.store.AccountByDisplayName(ctx, current)
+	if errors.Is(err, ErrNotFound) {
+		a, err = s.store.DevAccountByDisplayName(ctx, original)
+	}
+	if err != nil {
+		return Account{}, err
+	}
+	if err := s.store.DevResetName(ctx, a.ID, original); err != nil {
+		return Account{}, err
+	}
+	return s.store.AccountByID(ctx, a.ID)
+}
+
 // touchLauncherLogin records a successful launcher login, which keeps the
 // account's name from being claimed.
 func (s *Service) touchLauncherLogin(ctx context.Context, accountID string) error {

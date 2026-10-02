@@ -227,6 +227,8 @@ A player may change their display name ([ADR-049](../Docs/ADR/ADR-049-display-na
 | `GET /v1/me/display-name` | `Bearer <game token>` | — | `displayName` (`name`, `freeChangeAvailable`, `nextChangeAt` or `null`, `renameRequired`, `price` {`flux`, `refinedFlux`}) |
 | `PUT /v1/me/display-name` | `Bearer <game token>` | `{"name", "currency"}` (`flux` or `refinedFlux`, after the free change) | the same, after the change. Refusals: `invalid_display_name`, `same_display_name`, `display_name_taken`, `rename_cooldown`, `invalid_currency`, `insufficient_balance` |
 
+`POST /v1/dev/accounts/{name}/name-reset` with `{"current"}` (local only, with `devLogin`) gives a development account its name back, whatever it changed it to, with its name changes forgotten.
+
 `GET /v1/me/profile` also reports `renameRequired`. Requests refused with `rename_required` until the player chooses: `PUT /v1/party/mode`, `POST /v1/party/queue`, party invitations and joins, `POST /v1/practice`, and making or joining a lobby. The tuning is `names` in `config/local.json`: the 24-hour cooldown is canon, the one-year claim threshold is the bible's working value, and the prices are provisional.
 
 ### Player profiles

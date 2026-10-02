@@ -79,4 +79,15 @@ func TestDisplayNamesOverHTTP(t *testing.T) {
 	if _, got = call(t, srv, "POST", "/v1/party/queue", one, nil); got["error"] == "rename_required" {
 		t.Fatalf("after choosing, the name no longer holds anything up: %v", got)
 	}
+
+	// Scripted runs give a development account its name back, with its changes forgotten.
+	d.DevAccounts = testAccounts
+	srv = serve(t, d)
+	if status, got = call(t, srv, "POST", "/v1/dev/accounts/"+testAccounts[0]+"/name-reset", "", map[string]string{"current": "OneReturned"}); status != http.StatusNoContent {
+		t.Fatalf("name reset: %d %v", status, got)
+	}
+	if status, got = call(t, srv, "GET", "/v1/me/display-name", one, nil); got["displayName"].(map[string]any)["name"] != testAccounts[0] ||
+		got["displayName"].(map[string]any)["freeChangeAvailable"] != true {
+		t.Fatalf("after the reset: %d %v", status, got)
+	}
 }

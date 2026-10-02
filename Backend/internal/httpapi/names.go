@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
@@ -11,6 +12,31 @@ import (
 func (s *Server) routeNames(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/me/display-name", s.authed(s.myDisplayName))
 	mux.HandleFunc("PUT /v1/me/display-name", s.authed(s.changeDisplayName))
+	if s.DevLogin {
+		mux.HandleFunc("POST /v1/dev/accounts/{name}/name-reset", s.devNameReset)
+	}
+}
+
+// devNameReset gives a development account its name back, whatever it
+// changed it to, and forgets its name changes, so scripted runs can rename it
+// again. The body names the account's current name. Local only.
+func (s *Server) devNameReset(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	if !slices.Contains(s.DevAccounts, name) {
+		writeError(w, http.StatusNotFound, "account_not_found")
+		return
+	}
+	var req struct {
+		Current string `json:"current"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	if _, err := s.Identity.DevResetName(r.Context(), req.Current, name); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) writeNameStatus(w http.ResponseWriter, st identity.NameStatus) {
