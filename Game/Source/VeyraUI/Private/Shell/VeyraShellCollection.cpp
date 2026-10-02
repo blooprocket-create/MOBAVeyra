@@ -217,6 +217,13 @@ void UVeyraShellScreen::BuildCollectionDetail(const FVeyraClientSnapshot& Snapsh
 	{
 		AddText(*Rows, Line, CollectionRole(EVeyraShellText::Muted));
 	}
+	// Favorites are marked while browsing, never in champion select (UX-30; ADR-058 §3), owned or not.
+	const FString FavoriteId = Card.VanguardId;
+	const bool bFavorite = Card.bFavorite;
+	AddNamedButton(*Rows, EVeyraShellButtonKind::Quiet, VeyraProgressionModels::FavoriteLabel(Card.VanguardId, Card.bFavorite),
+		Card.bFavorite ? LOCTEXT("Unfavorite", "Remove from Favorites") : LOCTEXT("Favorite", "Add to Favorites"),
+		[this, FavoriteId, bFavorite] { Client->SetFavoriteVanguard(FavoriteId, !bFavorite); }, Client->CanIssue(EVeyraClientIntent::SetFavoriteVanguard))
+		->KeepLabelOnOneLine();
 	if (Card.bPurchasable)
 	{
 		const struct FOffer

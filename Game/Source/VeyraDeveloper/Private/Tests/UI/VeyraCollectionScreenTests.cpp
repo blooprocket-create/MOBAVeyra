@@ -98,7 +98,8 @@ namespace VeyraCollectionScreenTests
 			ASSERT_THAT(IsTrue(ShowShell(ProgressionOf(1200, 250))));
 			ASSERT_THAT(IsTrue(OpenCollection()));
 			const FString Text = Screen->DescribeText();
-			for (const TCHAR* Line : { TEXT("Cairn"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Your starter"), TEXT("Free this week"), TEXT("Not owned"), TEXT("Mastery 2") })
+			// Owned, Free Rotation or Locked (UX-19).
+			for (const TCHAR* Line : { TEXT("Cairn"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Owned"), TEXT("Free Rotation"), TEXT("Locked"), TEXT("Mastery 2") })
 			{
 				ASSERT_THAT(IsTrue(Text.Contains(Line), Line));
 			}
@@ -144,6 +145,36 @@ namespace VeyraCollectionScreenTests
 			ASSERT_THAT(IsTrue(Shown(TEXT("oriel")) && !Shown(TEXT("cairn")) && !Shown(TEXT("bryn"))));
 			ASSERT_THAT(IsTrue(Press(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::All)) && Shown(TEXT("bryn"))));
 			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Favorites)), TEXT("Favorites belongs to champion select")));
+		}
+
+		TEST_METHOD(AnOpenedCardMarksAndUnmarksAFavoriteOwnedOrNot)
+		{
+			ASSERT_THAT(IsTrue(ShowShell(ProgressionOf(1200, 250))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/favorites"), 200, TEXT("{\"favorites\":[]}"))));
+			ASSERT_THAT(IsTrue(OpenCollection()));
+			// A locked Vanguard may be a favorite too (UX-30; ADR-058 §3).
+			ASSERT_THAT(IsTrue(Press(VeyraProgressionModels::CollectionCardLabel(TEXT("bryn")))));
+			ASSERT_THAT(IsTrue(Press(VeyraProgressionModels::FavoriteLabel(TEXT("bryn"), false))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/favorites/bryn"), 200, TEXT("{\"favorites\":[\"bryn\"]}"))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Locked · Favorite")), Screen->DescribeText()));
+			// The card stays open, its toggle now taking the favorite back; a refusal shows in the Collection.
+			ASSERT_THAT(IsTrue(Press(VeyraProgressionModels::FavoriteLabel(TEXT("bryn"), true))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("DELETE"), TEXT("/v1/me/favorites/bryn"), 409, ErrorBody(TEXT("playing")))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Favorites change outside champion select and matches."))));
+			ASSERT_THAT(IsTrue(Press(VeyraProgressionModels::FavoriteLabel(TEXT("bryn"), true))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("DELETE"), TEXT("/v1/me/favorites/bryn"), 200, TEXT("{\"favorites\":[]}"))));
+			ASSERT_THAT(IsFalse(Screen->DescribeText().Contains(TEXT("Favorite ·")) || Screen->DescribeText().Contains(TEXT("· Favorite"))));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(VeyraProgressionModels::FavoriteLabel(TEXT("bryn"), false))));
+		}
+
+		TEST_METHOD(ACardWithNoMasteryPointsSaysSo)
+		{
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.Collection.bLoaded = true;
+			VeyraBackendProtocol::FCollectionEntry& Fresh = Snapshot.Collection.Vanguards.AddDefaulted_GetRef();
+			Fresh.VanguardId = TEXT("bryn");
+			const FVeyraCollectionModel Model = VeyraProgressionModels::DescribeCollection(Snapshot, false);
+			ASSERT_THAT(AreEqual(Model.Cards[0].MasteryShort.ToString(), FString(TEXT("No Mastery Progress"))));
 		}
 
 		TEST_METHOD(BuyAsksFirstNamingThePriceThenBuys)

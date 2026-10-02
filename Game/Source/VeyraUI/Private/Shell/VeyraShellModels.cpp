@@ -559,6 +559,12 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		}
 		Model.bCanChoose = bCanHover;
 	}
+	for (FVeyraSelectCardModel& Card : Model.Cards)
+	{
+		Card.bOwned = Snapshot.OwnedVanguards.Contains(Card.VanguardId);
+		Card.bRotation = Snapshot.RotationVanguards.Contains(Card.VanguardId);
+		Card.bFavorite = Snapshot.FavoriteVanguards.Contains(Card.VanguardId);
+	}
 	if (You && You->Locked.IsEmpty() && !You->Hover.IsEmpty())
 	{
 		Model.LockInVanguardId = You->Hover;
@@ -1281,7 +1287,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		Text << TEXT("|settings conflict");
 	}
 	Text << TEXT("|starters:") << FString::Join(Snapshot.Starters, TEXT(",")) << TEXT("|available:") << FString::Join(Snapshot.AvailableVanguards, TEXT(","))
-		 << TEXT("|released:") << FString::Join(Snapshot.ReleasedVanguards, TEXT(","));
+		 << TEXT("|released:") << FString::Join(Snapshot.ReleasedVanguards, TEXT(",")) << TEXT("|owned:") << FString::Join(Snapshot.OwnedVanguards, TEXT(","))
+		 << TEXT("|rotation:") << FString::Join(Snapshot.RotationVanguards, TEXT(",")) << TEXT("|favorites:") << FString::Join(Snapshot.FavoriteVanguards, TEXT(","));
 	if (Snapshot.State == EVeyraClientState::Selecting)
 	{
 		const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
