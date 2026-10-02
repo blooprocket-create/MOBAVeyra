@@ -204,7 +204,32 @@ struct FVeyraModeCardModel
 	bool bSelected = false;
 };
 
-/** The party panel: its mode, roster, readiness and queue (UX §3, UX-2, UX-6). */
+/** A member's card in the party panel (UX-10): who they are, and what the leader may do with it. */
+struct FVeyraPartyMemberModel
+{
+	FString AccountId;
+	/** The member's name, as the card's buttons name them. */
+	FString Name;
+	/** The card's line, as Members holds it. */
+	FText Line;
+	bool bYou = false;
+	bool bLeader = false;
+	/** The leader's contextual actions on another member's card: Make Party Leader and Remove (UX-10, UX-11). */
+	bool bOffersActions = false;
+	bool bCanMakeLeader = false;
+	bool bCanRemove = false;
+};
+
+/** Which of the party panel's member, privacy and leave intents the coordinator allows now (ADR-043 §2). */
+struct FVeyraPartyPermissions
+{
+	bool bCanKick = false;
+	bool bCanTransfer = false;
+	bool bCanSetPrivacy = false;
+	bool bCanLeave = false;
+};
+
+/** The party panel: its mode, roster, readiness and queue (UX §3, UX-2, UX-6), and its members' cards (ADR-043 §2). */
 struct FVeyraPartyModel
 {
 	/** False while the player has no party: there is no panel. */
@@ -212,6 +237,17 @@ struct FVeyraPartyModel
 	FText Mode;
 	/** One line per member: name, "(you)", "(leader)", and Ready or Not Ready. */
 	TArray<FText> Members;
+	/** The members' cards, in the party's order. */
+	TArray<FVeyraPartyMemberModel> Cards;
+	/** "Private: members invite friends." or "Public: friends may join." */
+	FText Privacy;
+	/** The leader's switch between Public and Private: what pressing it sets, its label, and whether it can be pressed. */
+	bool bOffersPrivacy = false;
+	VeyraBackendProtocol::EPartyPrivacy PrivacyTarget = VeyraBackendProtocol::EPartyPrivacy::Public;
+	FText PrivacyLabel;
+	bool bCanSetPrivacy = false;
+	/** Leave Party: any member's, while idle or queued (Parties & Social Bible §2). */
+	bool bCanLeave = false;
 	/** What happens next, such as who must ready up; empty while queued, when the queue timer shows instead. */
 	FText Status;
 	bool bQueued = false;
@@ -342,6 +378,28 @@ struct FVeyraFriendModel
 	/** In the lobby, the host may invite a friend who is not in it yet. */
 	bool bOffersInvite = false;
 	bool bCanInvite = false;
+	/** In the shell, Invite to Party for a friend not in the player's party (ADR-043 §1). */
+	bool bOffersPartyInvite = false;
+	bool bCanPartyInvite = false;
+	/** In the shell, Join Party while the friend's Public party has room (§3). */
+	bool bOffersJoinParty = false;
+	bool bCanJoinParty = false;
+	/** The friend's card's contextual actions: Remove Friend, and Block, which asks a confirmation first (§4). */
+	bool bCanRemove = false;
+	bool bCanBlock = false;
+};
+
+/** Which of the friends panel's party, block and request intents the coordinator allows now (ADR-043). */
+struct FVeyraSocialPermissions
+{
+	bool bCanInviteToParty = false;
+	bool bCanAcceptPartyInvite = false;
+	bool bCanDeclinePartyInvite = false;
+	bool bCanJoinFriendParty = false;
+	bool bCanRemoveFriend = false;
+	bool bCanBlock = false;
+	bool bCanUnblock = false;
+	bool bCanCancelRequest = false;
 };
 
 /** A friend request to the player, or an invitation into another player's lobby. */
@@ -365,9 +423,19 @@ struct FVeyraFriendsModel
 	bool bCanJoin = false;
 	TArray<FVeyraSocialRequestModel> Requests;
 	bool bCanAnswerRequests = false;
+	/** Block on each friend request (ADR-043 §4). */
+	bool bCanBlockRequests = false;
+	/** Invitations into other players' parties (ADR-043 §1): Join and Decline. */
+	TArray<FVeyraSocialRequestModel> PartyInvitations;
+	bool bCanJoinPartyInvitations = false;
+	bool bCanDeclinePartyInvitations = false;
 	TArray<FVeyraFriendModel> Friends;
-	/** The players the player asked, who have not answered. */
-	TArray<FText> Pending;
+	/** The players the player asked, who have not answered, each with Cancel. */
+	TArray<FVeyraSocialRequestModel> Pending;
+	bool bCanCancelRequests = false;
+	/** The players the player blocked, each with Unblock (ADR-043 §4). */
+	TArray<FVeyraSocialRequestModel> Blocked;
+	bool bCanUnblock = false;
 	bool bCanAdd = false;
 };
 
@@ -417,7 +485,8 @@ namespace VeyraShellModels
 	VEYRAUI_API TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot);
 
 	/** The party panel; the flags say which of its intents the coordinator allows now. */
-	VEYRAUI_API FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanReady, bool bCanFindMatch, bool bCanCancel);
+	VEYRAUI_API FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanReady, bool bCanFindMatch, bool bCanCancel,
+		const FVeyraPartyPermissions& Permissions = FVeyraPartyPermissions());
 
 	/** The queue's status: its elapsed time, and no estimate until one can be made honestly (UX-2). */
 	VEYRAUI_API FText FormatQueueStatus(double QueuedSeconds);
@@ -440,7 +509,7 @@ namespace VeyraShellModels
 
 	/** The friends panel; the flags say which of its intents the coordinator allows now. */
 	VEYRAUI_API FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bCanAdd, bool bCanAnswerRequests, bool bCanJoin,
-		bool bCanAnswerInvitations, bool bCanInvite);
+		bool bCanAnswerInvitations, bool bCanInvite, const FVeyraSocialPermissions& Social = FVeyraSocialPermissions());
 
 	/** What came of a social request, from the snapshot's feedback code and the name it was for; empty for none. */
 	VEYRAUI_API FText DescribeSocialFeedback(const FString& Code, const FString& Name);
@@ -466,6 +535,37 @@ namespace VeyraShellModels
 	VEYRAUI_API FText DeclineRequestLabel(const FString& Name);
 	VEYRAUI_API FText JoinLobbyLabel(const FString& Name);
 	VEYRAUI_API FText DeclineInviteLabel(const FString& Name);
+
+	// The party's and the social panel's (ADR-043).
+
+	/** "Invite DevTwo to Party". */
+	VEYRAUI_API FText PartyInviteLabel(const FString& Name);
+	/** An invitation's: "Accept DevOne's Party Invite", "Decline DevOne's Party Invite". */
+	VEYRAUI_API FText AcceptPartyInviteLabel(const FString& Name);
+	VEYRAUI_API FText DeclinePartyInviteLabel(const FString& Name);
+	/** A friend's Public party: "Join DevOne's Party". */
+	VEYRAUI_API FText JoinPartyLabel(const FString& Name);
+	/** The card that opens a friend's actions: "Friend DevTwo". */
+	VEYRAUI_API FText FriendCardLabel(const FString& Name);
+	VEYRAUI_API FText RemoveFriendLabel(const FString& Name);
+	VEYRAUI_API FText BlockLabel(const FString& Name);
+	/** The block's confirmation: "Confirm Block DevTwo", and the question it answers. */
+	VEYRAUI_API FText ConfirmBlockLabel(const FString& Name);
+	VEYRAUI_API FText ConfirmBlockPrompt(const FString& Name);
+	VEYRAUI_API FText UnblockLabel(const FString& Name);
+	/** "Cancel Request to DevTwo". */
+	VEYRAUI_API FText CancelRequestLabel(const FString& Name);
+	/** The card that opens a member's actions: "Party Member DevTwo". */
+	VEYRAUI_API FText PartyMemberLabel(const FString& Name);
+	/** "Make DevTwo Party Leader", its confirmation "Confirm DevTwo as Party Leader", and the question it answers (UX-11). */
+	VEYRAUI_API FText MakeLeaderLabel(const FString& Name);
+	VEYRAUI_API FText ConfirmLeaderLabel(const FString& Name);
+	VEYRAUI_API FText ConfirmLeaderPrompt(const FString& Name);
+	/** "Remove DevTwo from Party". */
+	VEYRAUI_API FText RemoveFromPartyLabel(const FString& Name);
+	/** Withdraws whichever confirmation shows. */
+	VEYRAUI_API FText CancelConfirmLabel();
+	VEYRAUI_API FText LeavePartyLabel();
 	/** "Default Gold", or "1,500 Gold". */
 	VEYRAUI_API FText StartingGoldLabel(TOptional<double> Gold);
 	/** The bot picker's choice of a Vanguard: "Bot: Cairn". */

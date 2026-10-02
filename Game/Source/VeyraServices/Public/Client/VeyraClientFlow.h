@@ -170,6 +170,17 @@ public:
 	virtual bool SendFriendRequest(const FString& DisplayName) override;
 	virtual bool AnswerFriendRequest(const FString& AccountId, bool bAccept) override;
 	virtual bool RemoveFriend(const FString& AccountId) override;
+	virtual bool InviteToParty(const FString& AccountId) override;
+	virtual bool AcceptPartyInvite(const FString& InviteId) override;
+	virtual bool DeclinePartyInvite(const FString& InviteId) override;
+	virtual bool JoinFriendParty(const FString& AccountId) override;
+	virtual bool LeaveParty() override;
+	virtual bool KickFromParty(const FString& AccountId) override;
+	virtual bool TransferPartyLeader(const FString& AccountId) override;
+	virtual bool SetPartyPrivacy(VeyraBackendProtocol::EPartyPrivacy Privacy) override;
+	virtual bool BlockPlayer(const FString& AccountId) override;
+	virtual bool UnblockPlayer(const FString& AccountId) override;
+	virtual bool CancelFriendRequest(const FString& AccountId) override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);
@@ -217,7 +228,16 @@ private:
 	void LoadModes();
 	void PollParty();
 	/** Sends a party request; its answer is the party, which is shown unless a later request's answer already was. */
-	void CallParty(EVerb Verb, const TCHAR* Path, const FString& Body, const TCHAR* What);
+	void CallParty(EVerb Verb, const FString& Path, const FString& Body, const TCHAR* What);
+	/** Reads the party once, now, as after a social request changed it; the party's poll goes on as before. */
+	void RefreshParty();
+	/**
+	 * Joins a party from the friends panel, by an invitation or a friend's Public party: a refusal shows in the
+	 * panel, the answer is the player's new party. Name is whose party it is.
+	 */
+	void JoinPartyFromPanel(const FString& Path, const FString& Name);
+	/** The member AccountId of the party the player leads before matchmaking, other than the player; null otherwise. */
+	const VeyraBackendProtocol::FPartyMember* FindOtherMember(const FString& AccountId) const;
 	/** Shows a party read by the request numbered Sequence. False if a later request's answer was already shown. */
 	bool ApplyParty(uint32 Sequence, TOptional<VeyraBackendProtocol::FParty> Party);
 	/** The party left the shell's hands: into a match found or a champion select. */
@@ -249,6 +269,8 @@ private:
 	void CallSocial(EVerb Verb, const FString& Path, const FString& Body, const FString& Name, TFunction<void(const FVeyraBackendResponse&)> OnSuccess);
 	/** Shows what came of a social request in the friends panel. */
 	void ShowSocialFeedback(const FString& Code, const FString& Name);
+	/** Shows lists read by the social read numbered Sequence, unless a later read's were shown already. */
+	void ApplySocial(uint32 Sequence, FVeyraSocial Read);
 
 	/**
 	 * Sends a request once, for reads that must never stop the flow: an answer that arrives after the

@@ -362,12 +362,23 @@ namespace VeyraBackendProtocol
 		bool bLeader = false;
 	};
 
+	/** Who may join a party without an invitation (Parties & Social Bible §1). The leader's to choose. */
+	enum class EPartyPrivacy : uint8
+	{
+		/** Joining needs an invitation from a member. */
+		Private,
+		/** A member's friends may join directly while it has room. */
+		Public,
+	};
+
 	/** The player's party, as the party routes report it. */
 	struct FParty
 	{
 		FString Id;
 		/** Empty until the leader chooses one. */
 		FString Mode;
+		/** Private unless the leader made it Public. An answer without it reads as Private. */
+		EPartyPrivacy Privacy = EPartyPrivacy::Private;
 		EPartyStatus Status = EPartyStatus::Idle;
 		/** How long it has been in matchmaking when the backend answered, by the backend's clock. */
 		double QueuedSeconds = 0.0;
@@ -421,6 +432,15 @@ namespace VeyraBackendProtocol
 	/** Reads the answer to GET /v1/accounts. False, with the problem, if it is not an account. */
 	VEYRASERVICES_API bool ParseAccount(const FString& Body, FAccount& Out, FString& OutProblem);
 
+	/** A friend whose Public party the player may join without an invitation (ADR-043 §3). */
+	struct FJoinableParty
+	{
+		FString AccountId;
+		FString PartyId;
+
+		bool operator==(const FJoinableParty&) const = default;
+	};
+
 	/** The player's friends and friend requests, as GET /v1/friends reports them (Parties & Social Bible §1), each by name. */
 	struct FFriends
 	{
@@ -429,6 +449,11 @@ namespace VeyraBackendProtocol
 		TArray<FAccount> Incoming;
 		/** The player's own requests, not answered yet. */
 		TArray<FAccount> Outgoing;
+		/** The friends whose party the player may join directly, sorted by account. Empty from a backend that does not report them. */
+		TArray<FJoinableParty> JoinableParties;
+
+		/** The party AccountId's line offers to join, or null. */
+		VEYRASERVICES_API const FString* JoinablePartyOf(const FString& AccountId) const;
 
 		bool operator==(const FFriends&) const = default;
 	};
@@ -441,7 +466,7 @@ namespace VeyraBackendProtocol
 	 */
 	VEYRASERVICES_API bool ParseFriendRequestOutcome(const FString& Body, FString& OutOutcome, FString& OutProblem);
 
-	/** The body of POST /v1/friends/requests and POST /v1/lobby/invites. */
+	/** The body of POST /v1/friends/requests, POST /v1/lobby/invites, POST /v1/party/invites and PUT /v1/party/leader. */
 	VEYRASERVICES_API FString BuildAccountBody(const FString& AccountId);
 
 	/** What sits in a custom lobby's seat. */
@@ -514,6 +539,22 @@ namespace VeyraBackendProtocol
 	/** Reads the answer to GET /v1/lobby/invites. False, with the problem, if it is not that. */
 	VEYRASERVICES_API bool ParseLobbyInvites(const FString& Body, TArray<FLobbyInvite>& Out, FString& OutProblem);
 
+	/** An invitation into another player's party (Parties & Social Bible §1). */
+	struct FPartyInvite
+	{
+		FString Id;
+		FString PartyId;
+		FAccount Inviter;
+
+		bool operator==(const FPartyInvite&) const = default;
+	};
+
+	/** Reads the answer to GET /v1/party/invites. False, with the problem, if it is not that. */
+	VEYRASERVICES_API bool ParsePartyInvites(const FString& Body, TArray<FPartyInvite>& Out, FString& OutProblem);
+
+	/** Reads the answer to GET /v1/blocks: the players the player blocked (§6). False, with the problem, if it is not that. */
+	VEYRASERVICES_API bool ParseBlocks(const FString& Body, TArray<FAccount>& Out, FString& OutProblem);
+
 	/** PUT and DELETE /v1/lobby/seats/{side}/{index}/bot. */
 	VEYRASERVICES_API FString LobbyBotPath(const FString& Side, int32 Index);
 
@@ -531,6 +572,9 @@ namespace VeyraBackendProtocol
 
 	/** The body of PUT /v1/party/ready. */
 	VEYRASERVICES_API FString BuildReadyBody(bool bReady);
+
+	/** The body of PUT /v1/party/privacy. */
+	VEYRASERVICES_API FString BuildPrivacyBody(EPartyPrivacy Privacy);
 
 	/** The body of POST /v1/me/starter, the select's hover and lock, and its ban hover and ban. */
 	VEYRASERVICES_API FString BuildVanguardBody(const FString& VanguardId);

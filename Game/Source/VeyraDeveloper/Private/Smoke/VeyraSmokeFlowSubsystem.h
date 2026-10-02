@@ -59,6 +59,17 @@ namespace VeyraBackendProtocol
  * Both then pick as the matchmade scripts do; with -VeyraSmokeFlowSieges the host wins by siege, and
  * each checks the verified custom result, its bots and the starting Gold the host chose.
  *
+ * The party's scripts (Smoke.ps1 -Flow Party, ADR-043) run in two games at once, each naming the other's
+ * player with -VeyraSmokeFlowFriend=, and queue for the co-op mode -VeyraSmokeFlowMode= names. First they
+ * become friends, the leader asking. Then:
+ * - partyleader leaves any party an earlier run left, invites its friend from the friends panel, and once
+ *   they are in, opens their member card, asks Make Party Leader and confirms it (UX-11); it readies up
+ *   once the new leader chose the mode.
+ * - partymember joins from the invitation, and once it leads, chooses the mode in Play, readies up and
+ *   finds the match.
+ * Both accept, pick and play; with -VeyraSmokeFlowSieges the first wins by siege, and each must see
+ * Victory, since a co-op party shares its side.
+ *
  * -VeyraSmokeFlow=opponent is not a test but a sparring partner for a person playing the matchmade
  * path (Game/Scripts/Play.ps1 -Opponent). It queues for the first matchmade mode and accepts every
  * match found; in champion select it locks a Vanguard nobody has locked once the other team has
@@ -95,6 +106,10 @@ private:
 		SettingsChange,
 		/** The next start: finds both kept, the device's and the account's, and puts them back. */
 		SettingsCheck,
+		/** A party (ADR-043): invites its friend, hands them leadership after confirming, and readies up. */
+		PartyLeader,
+		/** A party: joins its friend's party from the invitation, then leads it into the queue. */
+		PartyMember,
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -108,6 +123,9 @@ private:
 	void TickCustomLobby(IVeyraClientIntents& Flow);
 	/** Friends with the other client: the host asks by name, and either accepts the other's request. True once they are friends. */
 	bool TickFriendship(IVeyraClientIntents& Flow);
+	/** The party's scripts in the shell: friends, then the party formed and its leadership handed over, then the queue. */
+	void TickPartyShell(IVeyraClientIntents& Flow);
+	bool IsParty() const { return Script == EScript::PartyLeader || Script == EScript::PartyMember; }
 	/** The host's bots: removes a bot the script did not ask for, then seats the one each side lacks. True while it changes them. */
 	bool TickLobbyBots(const VeyraBackendProtocol::FLobby& Lobby);
 	/** Types Name into the friends panel's name field, as the player would. */
@@ -277,6 +295,12 @@ private:
 	bool bStartedLobby = false;
 	/** Real time before which the host does not invite its friend again. */
 	double NextInviteAt = 0.0;
+	/** Party: whether the leader left an earlier run's party, the member joined by this run's invitation, the
+	 * two are in one party, and how far the leader's handover has gone (card, Make Party Leader, Confirm). */
+	bool bLeftOldParty = false;
+	bool bJoinedByInvite = false;
+	bool bPartyFormed = false;
+	int32 HandoverStep = 0;
 	/** The starting Gold the lobby set for its match, which the verified scoreboard must show; unset for the game's own. */
 	TOptional<double> LobbyStartingGold;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */

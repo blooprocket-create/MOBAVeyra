@@ -113,6 +113,26 @@ enum class EVeyraClientIntent : uint8
 	/** Accepts or declines a friend request to the player. */
 	AnswerFriendRequest,
 	RemoveFriend,
+	/** Invites a friend into the player's party, making a mode-less one if they have none (ADR-043 §1; UX-9). Any member's. */
+	InviteToParty,
+	/** Joins the party an invitation is from, leaving the player's own, which must be idle. */
+	AcceptPartyInvite,
+	DeclinePartyInvite,
+	/** Joins a friend's Public party without an invitation (ADR-043 §3). */
+	JoinFriendParty,
+	/** Leaves the party. Leaving a queued party takes it out of the queue (Parties & Social Bible §2). */
+	LeaveParty,
+	/** The leader's, before matchmaking: removes another member (§1; UX-10). */
+	KickFromParty,
+	/** The leader's, before matchmaking: hands leadership to another member, once the player confirmed it (UX-11). */
+	TransferPartyLeader,
+	/** The leader's: makes the party Public or Private (§1). */
+	SetPartyPrivacy,
+	/** Blocks a friend, or a player who asked to be friends (§6). */
+	BlockPlayer,
+	UnblockPlayer,
+	/** Withdraws a friend request the player sent. */
+	CancelFriendRequest,
 	/** Keeps this device's settings or the account's, when both changed (ADR-024 §1). Whenever the choice shows. */
 	ResolveSettingsConflict,
 };
@@ -161,8 +181,8 @@ struct FVeyraMatchHistory
 };
 
 /**
- * The player's friends, friend requests and lobby invitations as last read (Parties & Social Bible §1),
- * in the shell and the lobby. Reading them never stops the flow: a failed read is tried again later.
+ * The player's friends, friend requests, invitations and blocks as last read (Parties & Social Bible §1,
+ * §6), in the shell and the lobby. Reading them never stops the flow: a failed read is tried again later.
  */
 struct FVeyraSocial
 {
@@ -170,10 +190,14 @@ struct FVeyraSocial
 	bool bLoaded = false;
 	VeyraBackendProtocol::FFriends Friends;
 	TArray<VeyraBackendProtocol::FLobbyInvite> LobbyInvites;
+	/** Invitations into another player's party (ADR-043 §1). */
+	TArray<VeyraBackendProtocol::FPartyInvite> PartyInvites;
+	/** The players the player blocked (ADR-043 §4). */
+	TArray<VeyraBackendProtocol::FAccount> Blocked;
 	/**
-	 * What came of the player's last friend request, for the friends panel rather than the screen's
-	 * problem: "friend_requested", "friend_added", or the backend's refusal, such as "account_not_found"
-	 * or "already_friends". Empty for none.
+	 * What came of the player's last social request, for the friends panel rather than the screen's
+	 * problem: "friend_requested", "friend_added", "party_invited", "player_blocked" and the like, or the
+	 * backend's refusal, such as "account_not_found" or "party_full". Empty for none.
 	 */
 	FString Feedback;
 	/** The name that request was for. */

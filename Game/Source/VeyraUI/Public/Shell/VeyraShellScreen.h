@@ -41,6 +41,16 @@ enum class EVeyraShellPage : uint8
 	History,
 };
 
+/** What a card's action asks the player to confirm before it is sent (UX-11; ADR-043 §4). */
+enum class EVeyraShellConfirm : uint8
+{
+	None,
+	/** Make Party Leader, on a member's card. */
+	PartyLeader,
+	/** Block, on a friend's card or a friend request. */
+	Block,
+};
+
 /**
  * The shell's screens (ADR-010 §4), built in C++ with no widget Blueprint: signing in, the starter
  * choice, Home and Play with their mode cards and the party panel, Match Found, champion select,
@@ -97,6 +107,9 @@ public:
 
 	/** Types Name into the friends panel's name field, as the player would. For tests and scripts. */
 	void SetFriendNameDraft(const FString& Name);
+
+	/** The member's or friend's card whose actions show, by account; empty while none is open (ADR-043 §2). */
+	const FString& GetOpenCard() const { return OpenCardId; }
 
 	/** The art behind the screen: the Vanguard champion select shows, or null. */
 	UTexture2D* GetBackdrop() const;
@@ -166,6 +179,16 @@ private:
 	void BuildFriends(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/** Sends the friend request the name field holds. */
 	void SubmitFriendName();
+	/** A friend's line: their card, which opens its actions, and the one action it always offers. */
+	void BuildFriend(const FVeyraFriendModel& Friend, UPanelWidget& Parent);
+	/** A block's question and its answers, in place of the actions that asked it. */
+	void AddBlockConfirmation(UPanelWidget& Parent, const FString& AccountId, const FString& Name);
+	/** Opens AccountId's card, a party member's or a friend's, or closes it when it is open; either forgets a confirmation. */
+	void OpenCard(const FString& AccountId);
+	/** Asks the player to confirm Kind for AccountId, or withdraws the question with None. */
+	void AskToConfirm(EVeyraShellConfirm Kind, const FString& AccountId);
+	/** Forgets the open card and its confirmation, as once its action is sent. */
+	void CloseCard();
 
 	UFUNCTION()
 	void HandleFriendNameChanged(const FText& Text);
@@ -315,4 +338,9 @@ private:
 	TObjectPtr<UEditableTextBox> FriendNameBox;
 
 	FString FriendNameDraft;
+
+	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-043 §2, §4). */
+	FString OpenCardId;
+	EVeyraShellConfirm Confirm = EVeyraShellConfirm::None;
+	FString ConfirmId;
 };

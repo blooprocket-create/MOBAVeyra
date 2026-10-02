@@ -231,7 +231,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Settings')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Party', 'Settings')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -480,7 +480,10 @@ if ($Handoff -or $Flow) {
     $isCustom = $Flow -eq 'Custom'
     # -Flow Coop: one player queues for co-op, accepts, picks and sieges to victory against the enemy AI team (ADR-039 §6).
     $isCoop = $Flow -eq 'Coop'
-    $isVictory = $Flow -in 'CasualVictory', 'Custom', 'Coop'
+    # -Flow Party: two friends form a party by invitation, its leader hands leadership over after confirming,
+    # and the new leader queues the pair for co-op; the first client sieges to victory for both (ADR-043).
+    $isParty = $Flow -eq 'Party'
+    $isVictory = $Flow -in 'CasualVictory', 'Custom', 'Coop', 'Party'
     # -Flow Settings: one player, two starts, no match.
     $isSettings = $Flow -eq 'Settings'
     # Its bots, one on each side: side A's, then side B's. Neither is a Vanguard a player locks.
@@ -504,15 +507,15 @@ if ($Handoff -or $Flow) {
         $mode = $casualMode.id
         $smokeModeSize = 1
     }
-    if ($isCoop) {
-        # Its one client fills the co-op queue, sized to it (ADR-039 §6).
+    if ($isCoop -or $isParty) {
+        # Its one client, or the party of two, fills the co-op queue, sized to it (ADR-039 §6).
         $coopMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'coop' } | Select-Object -First 1
         if (-not $coopMode) {
-            Write-Host '-Flow Coop needs an enabled coop mode in Backend/config/local.json.'
+            Write-Host "-Flow $Flow needs an enabled coop mode in Backend/config/local.json."
             exit $ExitInfrastructure
         }
         $mode = $coopMode.id
-        $smokeModeSize = 1
+        $smokeModeSize = $playerCount
     }
     if ($isCustom) {
         if (-not $backendConfig.customLobby.enabled) {
@@ -552,9 +555,9 @@ if ($Handoff -or $Flow) {
         }
         [pscustomobject]@{ Name = $accounts[$index]; AccountId = $login.Body.account.id; LauncherSession = $login.Body.token
             Side = $(if ($isPractice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
-            Vanguard = $(if ($isPractice) { $PracticeVanguard } elseif ($isMatchmade -or $isCustom -or $isCoop) { $CasualVanguards[$index] } else { $SmokeVanguard }) }
+            Vanguard = $(if ($isPractice) { $PracticeVanguard } elseif ($isMatchmade -or $isCustom -or $isCoop -or $isParty) { $CasualVanguards[$index] } else { $SmokeVanguard }) }
     }
-    if (($isMatchmade -or $isCustom) -and @($participants).Count -lt 2) {
+    if (($isMatchmade -or $isCustom -or $isParty) -and @($participants).Count -lt 2) {
         Write-Host "-Flow $Flow needs two dev accounts in Backend/config/local.json devLogin.accounts."
         exit $ExitInfrastructure
     }
@@ -660,6 +663,10 @@ if ($Handoff -or $Flow) {
                         $friend = $participants[1 - $index].Name
                         @($(if ($index -eq 0) { '-VeyraSmokeFlow=customhost' } else { '-VeyraSmokeFlow=customguest' }), "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)",
                             "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges', "-VeyraSmokeFlowBots=$($CustomBots -join ',')") } else { @() }) }
+                    elseif ($isParty) {
+                        $friend = $participants[1 - $index].Name
+                        @($(if ($index -eq 0) { '-VeyraSmokeFlow=partyleader' } else { '-VeyraSmokeFlow=partymember' }), "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)",
+                            "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory', "-VeyraSmokeFlowMode=$mode") + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($isCoop) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory', '-VeyraSmokeFlowSieges', "-VeyraSmokeFlowMode=$mode") }
                     elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
@@ -793,6 +800,14 @@ if ($Handoff -or $Flow) {
                     Write-Host "  Presentation error: $($uiError.Matches[0].Value)"
                     $failed = $true
                 }
+                # A party forms by invitation, and its leader hands leadership over once confirmed (ADR-043).
+                if ($isParty) {
+                    $partyLine = $(if ($client.Number -eq 1) { "VeyraClientFlow: making $($participants[1].Name) the party leader." } else { "VeyraClientFlow: joining $($participants[0].Name)'s party from the invitation." })
+                    if (-not (Select-String -LiteralPath $client.Log -SimpleMatch $partyLine -Quiet)) {
+                        Write-Host "  It never logged '$partyLine'"
+                        $failed = $true
+                    }
+                }
                 # In a draft each side bans in its turns (ADR-041 §1).
                 if ($isDraft -and -not (Select-String -LiteralPath $client.Log -SimpleMatch 'VeyraClientFlow: banning ' -Quiet)) {
                     Write-Host '  It never banned in its draft.'
@@ -818,6 +833,7 @@ if ($Handoff -or $Flow) {
                 'CasualVictory' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'CasualDecline' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Requeued' }
                 'Custom' { 'Home', 'Play', 'Lobby', 'LobbyReady', 'ChampionSelect', 'Results' }
+                'Party' { 'Home', 'PartyFormed', 'PartyConfirm', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
             }
             foreach ($screen in $screens) {
@@ -871,7 +887,7 @@ if ($Handoff -or $Flow) {
                 Write-Host 'The backend did not keep the requested rules, host or Vanguards.'
                 $failed = $true
             }
-            if (($isMatchmade -or $isCustom -or $isCoop) -and $match.mode -ne $mode) {
+            if (($isMatchmade -or $isCustom -or $isCoop -or $isParty) -and $match.mode -ne $mode) {
                 Write-Host "The match's mode is $($match.mode), not $mode."
                 $failed = $true
             }
@@ -905,7 +921,7 @@ if ($Handoff -or $Flow) {
         }
         # Each scripted player chooses the roster's first Flux Spells in champion select and takes them
         # into the match (ADR-015 §5).
-        if ($Flow -in @('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'Custom', 'Coop', 'Draft')) {
+        if ($Flow -in @('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'Custom', 'Coop', 'Draft', 'Party')) {
             $spellRoster = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Abilities.json') -Raw | ConvertFrom-Json).fluxSpells.roster)
             $expectedServerLines += @($participants | ForEach-Object { "$($_.Name) takes Flux Spells $($spellRoster[0]), $($spellRoster[1]) into the match." })
             # The practice player then swaps slot 1 at the fountain, for Gold, to the first spell neither slot holds (ADR-015 §7).
@@ -919,7 +935,7 @@ if ($Handoff -or $Flow) {
             $expectedServerLines += "Added $($practiceBots.Count) of the assignment's $($practiceBots.Count) bot(s)."
         }
         # A co-op match adds its whole enemy AI team (ADR-039 §4).
-        if ($isCoop) {
+        if ($isCoop -or $isParty) {
             $expectedServerLines += "Added $($coopMode.aiPerTeam) of the assignment's $($coopMode.aiPerTeam) bot(s)."
         }
         # A custom match adds the bots its host seated in the lobby (ADR-021 §3).

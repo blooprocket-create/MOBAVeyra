@@ -604,7 +604,7 @@ TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot)
 	return Cards;
 }
 
-FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanReady, bool bCanFindMatch, bool bCanCancel)
+FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanReady, bool bCanFindMatch, bool bCanCancel, const FVeyraPartyPermissions& Permissions)
 {
 	FVeyraPartyModel Model;
 	if (!Snapshot.Party.IsSet())
@@ -625,8 +625,27 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 			: bIsYou								? FText::Format(LOCTEXT("MemberYou", "{0} (you)"), Name)
 			: Member.bLeader						? FText::Format(LOCTEXT("MemberLeader", "{0} (leader)"), Name)
 													: Name;
-		Model.Members.Add(FText::Format(LOCTEXT("MemberLine", "{0}: {1}"), Who, Member.bReady ? LOCTEXT("MemberReady", "Ready") : LOCTEXT("MemberNotReady", "Not Ready")));
+		const FText Line = FText::Format(LOCTEXT("MemberLine", "{0}: {1}"), Who, Member.bReady ? LOCTEXT("MemberReady", "Ready") : LOCTEXT("MemberNotReady", "Not Ready"));
+		Model.Members.Add(Line);
+		// The leader's card actions are on the other members' cards (UX-10, UX-11).
+		FVeyraPartyMemberModel Card;
+		Card.AccountId = Member.AccountId;
+		Card.Name = Member.DisplayName;
+		Card.Line = Line;
+		Card.bYou = bIsYou;
+		Card.bLeader = Member.bLeader;
+		Card.bOffersActions = bLeader && !bIsYou;
+		Card.bCanMakeLeader = Card.bOffersActions && Permissions.bCanTransfer;
+		Card.bCanRemove = Card.bOffersActions && Permissions.bCanKick;
+		Model.Cards.Add(MoveTemp(Card));
 	}
+	const bool bPublic = Party.Privacy == VeyraBackendProtocol::EPartyPrivacy::Public;
+	Model.Privacy = bPublic ? LOCTEXT("PartyPublic", "Public: friends may join.") : LOCTEXT("PartyPrivate", "Private: members invite friends.");
+	Model.bOffersPrivacy = bLeader;
+	Model.PrivacyTarget = bPublic ? VeyraBackendProtocol::EPartyPrivacy::Private : VeyraBackendProtocol::EPartyPrivacy::Public;
+	Model.PrivacyLabel = bPublic ? LOCTEXT("MakePrivate", "Make Party Private") : LOCTEXT("MakePublic", "Make Party Public");
+	Model.bCanSetPrivacy = bLeader && Permissions.bCanSetPrivacy;
+	Model.bCanLeave = Permissions.bCanLeave;
 	Model.bQueued = Party.Status != EPartyStatus::Idle;
 	if (!Model.bQueued && !Party.Mode.IsEmpty())
 	{
@@ -829,6 +848,99 @@ FText DeclineInviteLabel(const FString& Name)
 	return FText::Format(LOCTEXT("DeclineInviteLabel", "Decline {0}'s Invite"), FText::FromString(Name));
 }
 
+FText PartyInviteLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("PartyInviteLabel", "Invite {0} to Party"), FText::FromString(Name));
+}
+
+FText AcceptPartyInviteLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("AcceptPartyInviteLabel", "Accept {0}'s Party Invite"), FText::FromString(Name));
+}
+
+FText DeclinePartyInviteLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("DeclinePartyInviteLabel", "Decline {0}'s Party Invite"), FText::FromString(Name));
+}
+
+FText JoinPartyLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("JoinPartyLabel", "Join {0}'s Party"), FText::FromString(Name));
+}
+
+FText FriendCardLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("FriendCardLabel", "Friend {0}"), FText::FromString(Name));
+}
+
+FText RemoveFriendLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("RemoveFriendLabel", "Remove Friend {0}"), FText::FromString(Name));
+}
+
+FText BlockLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("BlockLabel", "Block {0}"), FText::FromString(Name));
+}
+
+FText ConfirmBlockLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("ConfirmBlockLabel", "Confirm Block {0}"), FText::FromString(Name));
+}
+
+FText ConfirmBlockPrompt(const FString& Name)
+{
+	// What a block does, said before it is done (Parties & Social Bible §6).
+	return FText::Format(LOCTEXT("ConfirmBlockPrompt", "Block {0}? You stop being friends, and cannot invite or party with each other."),
+		FText::FromString(Name));
+}
+
+FText UnblockLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("UnblockLabel", "Unblock {0}"), FText::FromString(Name));
+}
+
+FText CancelRequestLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("CancelRequestLabel", "Cancel Request to {0}"), FText::FromString(Name));
+}
+
+FText PartyMemberLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("PartyMemberLabel", "Party Member {0}"), FText::FromString(Name));
+}
+
+FText MakeLeaderLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("MakeLeaderLabel", "Make {0} Party Leader"), FText::FromString(Name));
+}
+
+FText ConfirmLeaderLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("ConfirmLeaderLabel", "Confirm {0} as Party Leader"), FText::FromString(Name));
+}
+
+FText ConfirmLeaderPrompt(const FString& Name)
+{
+	// The confirmation names the recipient (UX-11).
+	return FText::Format(LOCTEXT("ConfirmLeaderPrompt", "Make {0} the party leader?"), FText::FromString(Name));
+}
+
+FText RemoveFromPartyLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("RemoveFromPartyLabel", "Remove {0} from Party"), FText::FromString(Name));
+}
+
+FText CancelConfirmLabel()
+{
+	return LOCTEXT("CancelConfirmLabel", "Cancel Confirmation");
+}
+
+FText LeavePartyLabel()
+{
+	return LOCTEXT("LeavePartyLabel", "Leave Party");
+}
+
 FText StartingGoldLabel(TOptional<double> Gold)
 {
 	return Gold.IsSet() ? FText::Format(LOCTEXT("GoldChoice", "{0} Gold"), FText::AsNumber(FMath::RoundToInt64(Gold.GetValue())))
@@ -1013,11 +1125,43 @@ FText DescribeSocialFeedback(const FString& Code, const FString& Name)
 	{
 		return FText::Format(LOCTEXT("SocialRequestGone", "{0}'s friend request is gone."), Who);
 	}
+	if (Code == TEXT("party_invited"))
+	{
+		return FText::Format(LOCTEXT("SocialPartyInvited", "Invited {0} to your party."), Who);
+	}
+	if (Code == TEXT("player_blocked"))
+	{
+		return FText::Format(LOCTEXT("SocialBlocked", "You blocked {0}."), Who);
+	}
+	if (Code == TEXT("player_unblocked"))
+	{
+		return FText::Format(LOCTEXT("SocialUnblocked", "You unblocked {0}."), Who);
+	}
+	if (Code == TEXT("friend_request_cancelled"))
+	{
+		return FText::Format(LOCTEXT("SocialRequestCancelled", "Withdrew your friend request to {0}."), Who);
+	}
+	if (Code == TEXT("party_full"))
+	{
+		return FText::Format(LOCTEXT("SocialPartyFull", "{0}'s party is full."), Who);
+	}
+	if (Code == TEXT("party_locked"))
+	{
+		return FText::Format(LOCTEXT("SocialPartyLocked", "{0}'s party is in matchmaking."), Who);
+	}
+	if (Code == TEXT("party_not_joinable") || Code == TEXT("party_not_found"))
+	{
+		return FText::Format(LOCTEXT("SocialPartyClosed", "{0}'s party is no longer open to join."), Who);
+	}
+	if (Code == TEXT("already_in_party"))
+	{
+		return FText::Format(LOCTEXT("SocialAlreadyInParty", "You and {0} are already in a party together."), Who);
+	}
 	return FText::Format(LOCTEXT("SocialOther", "That did not work ({0})."), FText::FromString(Code));
 }
 
 FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bCanAdd, bool bCanAnswerRequests, bool bCanJoin, bool bCanAnswerInvitations,
-	bool bCanInvite)
+	bool bCanInvite, const FVeyraSocialPermissions& Permissions)
 {
 	const FVeyraSocial& Social = Snapshot.Social;
 	FVeyraFriendsModel Model;
@@ -1037,8 +1181,19 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 		Model.Requests.Add(FVeyraSocialRequestModel{ From.Id, Name, FText::Format(LOCTEXT("RequestLine", "{0} wants to be friends."), Name) });
 	}
 	Model.bCanAnswerRequests = bCanAnswerRequests;
-	// In the lobby its host invites friends who are not in it yet (Custom Matches Bible §1).
+	Model.bCanBlockRequests = Permissions.bCanBlock;
+	for (const VeyraBackendProtocol::FPartyInvite& Invite : Social.PartyInvites)
+	{
+		const FText Name = FText::FromString(Invite.Inviter.DisplayName);
+		Model.PartyInvitations.Add(
+			FVeyraSocialRequestModel{ Invite.Id, Name, FText::Format(LOCTEXT("PartyInviteLine", "{0} invites you to their party."), Name) });
+	}
+	Model.bCanJoinPartyInvitations = Permissions.bCanAcceptPartyInvite;
+	Model.bCanDeclinePartyInvitations = Permissions.bCanDeclinePartyInvite;
+	// In the lobby its host invites friends who are not in it yet (Custom Matches Bible §1); in the shell any
+	// member invites friends into the party, or joins a friend's Public party (ADR-043 §1, §3).
 	const bool bInLobby = Snapshot.State == EVeyraClientState::Lobby && Snapshot.Lobby.IsSet();
+	const bool bInShell = Snapshot.State == EVeyraClientState::Shell;
 	for (const VeyraBackendProtocol::FAccount& Friend : Social.Friends.Friends)
 	{
 		FVeyraFriendModel FriendModel;
@@ -1046,12 +1201,26 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 		FriendModel.Name = FText::FromString(Friend.DisplayName);
 		FriendModel.bOffersInvite = bInLobby && Snapshot.Lobby->HostAccountId == Snapshot.AccountId;
 		FriendModel.bCanInvite = FriendModel.bOffersInvite && bCanInvite && !Snapshot.Lobby->FindMember(Friend.Id);
+		FriendModel.bOffersPartyInvite = bInShell && !(Snapshot.Party.IsSet() && Snapshot.Party->Find(Friend.Id));
+		FriendModel.bCanPartyInvite = FriendModel.bOffersPartyInvite && Permissions.bCanInviteToParty;
+		FriendModel.bOffersJoinParty = bInShell && Social.Friends.JoinablePartyOf(Friend.Id) != nullptr;
+		FriendModel.bCanJoinParty = FriendModel.bOffersJoinParty && Permissions.bCanJoinFriendParty;
+		FriendModel.bCanRemove = Permissions.bCanRemoveFriend;
+		FriendModel.bCanBlock = Permissions.bCanBlock;
 		Model.Friends.Add(MoveTemp(FriendModel));
 	}
 	for (const VeyraBackendProtocol::FAccount& To : Social.Friends.Outgoing)
 	{
-		Model.Pending.Add(FText::Format(LOCTEXT("PendingLine", "{0}: request sent"), FText::FromString(To.DisplayName)));
+		const FText Name = FText::FromString(To.DisplayName);
+		Model.Pending.Add(FVeyraSocialRequestModel{ To.Id, Name, FText::Format(LOCTEXT("PendingLine", "{0}: request sent"), Name) });
 	}
+	Model.bCanCancelRequests = Permissions.bCanCancelRequest;
+	for (const VeyraBackendProtocol::FAccount& Player : Social.Blocked)
+	{
+		const FText Name = FText::FromString(Player.DisplayName);
+		Model.Blocked.Add(FVeyraSocialRequestModel{ Player.Id, Name, Name });
+	}
+	Model.bCanUnblock = Permissions.bCanUnblock;
 	return Model;
 }
 
@@ -1099,7 +1268,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	if (Snapshot.Party.IsSet())
 	{
 		const VeyraBackendProtocol::FParty& Party = *Snapshot.Party;
-		Text << TEXT("|party:") << Party.Id << TEXT(":") << Party.Mode << TEXT(":") << static_cast<int32>(Party.Status);
+		Text << TEXT("|party:") << Party.Id << TEXT(":") << Party.Mode << TEXT(":") << static_cast<int32>(Party.Status) << TEXT(":")
+			 << static_cast<int32>(Party.Privacy);
 		for (const VeyraBackendProtocol::FPartyMember& Member : Party.Members)
 		{
 			Text << TEXT(";") << Member.AccountId << TEXT(":") << Member.DisplayName << TEXT(":") << (Member.bReady ? TEXT("ready") : TEXT("not ready"))
@@ -1149,6 +1319,18 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	for (const VeyraBackendProtocol::FLobbyInvite& Invite : Social.LobbyInvites)
 	{
 		Text << TEXT(";invite:") << Invite.Id;
+	}
+	for (const VeyraBackendProtocol::FPartyInvite& Invite : Social.PartyInvites)
+	{
+		Text << TEXT(";party invite:") << Invite.Id;
+	}
+	for (const VeyraBackendProtocol::FJoinableParty& Joinable : Social.Friends.JoinableParties)
+	{
+		Text << TEXT(";joinable:") << Joinable.AccountId << TEXT(":") << Joinable.PartyId;
+	}
+	for (const VeyraBackendProtocol::FAccount& Player : Social.Blocked)
+	{
+		Text << TEXT(";blocked:") << Player.Id;
 	}
 	return FString(Text.ToString());
 }

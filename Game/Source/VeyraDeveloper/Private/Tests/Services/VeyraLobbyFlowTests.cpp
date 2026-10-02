@@ -226,14 +226,12 @@ namespace VeyraClientFlowTests
 		TEST_METHOD(AnsweringARequestReadsTheFriendsAgain)
 		{
 			ASSERT_THAT(IsTrue(Rig.ReachShell()));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/friends"), 200, FriendsBody(TEXT("[]"), FriendList()))));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/lobby/invites"), 200, InvitesBody(false))));
+			ASSERT_THAT(IsTrue(Rig.ReadSocialAs(FriendsBody(TEXT("[]"), FriendList()))));
 			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::AnswerFriendRequest)));
 			ASSERT_THAT(IsTrue(Flow->AnswerFriendRequest(FriendId, /*bAccept*/ true)));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), FString::Printf(TEXT("/v1/friends/requests/%s/accept"), FriendId), 204)));
 			ASSERT_THAT(AreEqual(Snapshot().Social.Feedback, FString(TEXT("friend_added"))));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/friends"), 200, FriendsBody(FriendList()))));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/lobby/invites"), 200, InvitesBody(false))));
+			ASSERT_THAT(IsTrue(Rig.ReadSocialAs(FriendsBody(FriendList()))));
 			ASSERT_THAT(IsTrue(Snapshot().Social.Friends.Friends.Num() == 1 && Snapshot().Social.Friends.Incoming.IsEmpty()));
 		}
 

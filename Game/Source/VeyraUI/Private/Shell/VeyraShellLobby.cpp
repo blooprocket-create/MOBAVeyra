@@ -344,9 +344,18 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 {
 	const UVeyraShellStyleSettings& Style = LobbyStyle();
 	const bool bInLobby = Snapshot.State == EVeyraClientState::Lobby;
+	FVeyraSocialPermissions Permissions;
+	Permissions.bCanInviteToParty = Client->CanIssue(EVeyraClientIntent::InviteToParty);
+	Permissions.bCanAcceptPartyInvite = Client->CanIssue(EVeyraClientIntent::AcceptPartyInvite);
+	Permissions.bCanDeclinePartyInvite = Client->CanIssue(EVeyraClientIntent::DeclinePartyInvite);
+	Permissions.bCanJoinFriendParty = Client->CanIssue(EVeyraClientIntent::JoinFriendParty);
+	Permissions.bCanRemoveFriend = Client->CanIssue(EVeyraClientIntent::RemoveFriend);
+	Permissions.bCanBlock = Client->CanIssue(EVeyraClientIntent::BlockPlayer);
+	Permissions.bCanUnblock = Client->CanIssue(EVeyraClientIntent::UnblockPlayer);
+	Permissions.bCanCancelRequest = Client->CanIssue(EVeyraClientIntent::CancelFriendRequest);
 	const FVeyraFriendsModel Model = VeyraShellModels::DescribeFriends(Snapshot, Client->CanIssue(EVeyraClientIntent::SendFriendRequest),
 		Client->CanIssue(EVeyraClientIntent::AnswerFriendRequest), Client->CanIssue(EVeyraClientIntent::AcceptLobbyInvite),
-		Client->CanIssue(EVeyraClientIntent::DeclineLobbyInvite), Client->CanIssue(EVeyraClientIntent::InviteToLobby));
+		Client->CanIssue(EVeyraClientIntent::DeclineLobbyInvite), Client->CanIssue(EVeyraClientIntent::InviteToLobby), Permissions);
 
 	USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 	Width->SetWidthOverride(Style.FriendsPanelWidth);
@@ -413,6 +422,22 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 		Lines->AddChildToVerticalBox(Answers);
 		VeyraShellStyle::AddSpaced(*Lists, *Card);
 	}
+	// Invitations into a friend's party (ADR-043 §1).
+	for (const FVeyraSocialRequestModel& Invitation : Model.PartyInvitations)
+	{
+		UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing / 2.0f));
+		UVerticalBox* Lines = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Card->SetContent(Lines);
+		AddText(*Lines, Invitation.Line, LobbyRole(EVeyraShellText::Body));
+		UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		const FString Name = Invitation.Name.ToString();
+		AddNamedButton(*Answers, EVeyraShellButtonKind::Primary, VeyraShellModels::AcceptPartyInviteLabel(Name), LOCTEXT("JoinParty", "Join"),
+			[this, Id = Invitation.Id] { Client->AcceptPartyInvite(Id); }, Model.bCanJoinPartyInvitations);
+		AddNamedButton(*Answers, EVeyraShellButtonKind::Quiet, VeyraShellModels::DeclinePartyInviteLabel(Name), LOCTEXT("DeclinePartyInvite", "Decline"),
+			[this, Id = Invitation.Id] { Client->DeclinePartyInvite(Id); }, Model.bCanDeclinePartyInvitations);
+		Lines->AddChildToVerticalBox(Answers);
+		VeyraShellStyle::AddSpaced(*Lists, *Card);
+	}
 	for (const FVeyraSocialRequestModel& Request : Model.Requests)
 	{
 		UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing / 2.0f));
@@ -426,6 +451,16 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 		AddNamedButton(*Answers, EVeyraShellButtonKind::Quiet, VeyraShellModels::DeclineRequestLabel(Name), LOCTEXT("DeclineRequest", "Decline"),
 			[this, Id = Request.Id] { Client->AnswerFriendRequest(Id, /*bAccept*/ false); }, Model.bCanAnswerRequests);
 		Lines->AddChildToVerticalBox(Answers);
+		// Blocking a sender stops their requests (Parties & Social Bible §5); it asks first.
+		if (Confirm == EVeyraShellConfirm::Block && ConfirmId == Request.Id)
+		{
+			AddBlockConfirmation(*Lines, Request.Id, Name);
+		}
+		else
+		{
+			AddNamedButton(*Lines, EVeyraShellButtonKind::Quiet, VeyraShellModels::BlockLabel(Name), LOCTEXT("BlockRequester", "Block"),
+				[this, Id = Request.Id] { AskToConfirm(EVeyraShellConfirm::Block, Id); }, Model.bCanBlockRequests);
+		}
 		VeyraShellStyle::AddSpaced(*Lists, *Card);
 	}
 
@@ -435,26 +470,134 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	}
 	for (const FVeyraFriendModel& Friend : Model.Friends)
 	{
+		BuildFriend(Friend, *Lists);
+	}
+	// Requests the player sent, which they may withdraw.
+	for (const FVeyraSocialRequestModel& Pending : Model.Pending)
+	{
 		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		UTextBlock* Name = VeyraShellStyle::MakeText(*WidgetTree, Friend.Name, EVeyraShellText::Body);
-		Name->SetAutoWrapText(false);
-		AddLobbyFilling(*Line, *Name);
-		// In the lobby its host invites friends (Custom Matches Bible §1).
-		if (Friend.bOffersInvite)
-		{
-			AddNamedButton(*Line, EVeyraShellButtonKind::Secondary, VeyraShellModels::InviteLabel(Friend.Name.ToString()), LOCTEXT("InviteFriend", "Invite"),
-				[this, Id = Friend.AccountId] { Client->InviteToLobby(Id); }, Friend.bCanInvite);
-		}
+		UTextBlock* Text = VeyraShellStyle::MakeText(*WidgetTree, Pending.Line, EVeyraShellText::Muted);
+		Text->SetAutoWrapText(false);
+		AddLobbyFilling(*Line, *Text);
+		AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::CancelRequestLabel(Pending.Name.ToString()), LOCTEXT("CancelRequest", "Cancel"),
+			[this, Id = Pending.Id] { Client->CancelFriendRequest(Id); }, Model.bCanCancelRequests);
 		VeyraShellStyle::AddSpaced(*Lists, *Line);
 	}
-	for (const FText& Pending : Model.Pending)
+	// The players the player blocked (ADR-043 §4).
+	if (!Model.Blocked.IsEmpty())
 	{
-		AddText(*Lists, Pending, LobbyRole(EVeyraShellText::Muted));
+		AddText(*Lists, LOCTEXT("BlockedEyebrow", "Blocked"), LobbyRole(EVeyraShellText::Eyebrow));
 	}
-	if (!bInLobby && !Model.Friends.IsEmpty())
+	for (const FVeyraSocialRequestModel& Blocked : Model.Blocked)
 	{
-		AddText(*Lists, LOCTEXT("FriendsCustomHint", "Open a Custom Game from Play to invite them."), LobbyRole(EVeyraShellText::Small));
+		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		UTextBlock* Text = VeyraShellStyle::MakeText(*WidgetTree, Blocked.Name, EVeyraShellText::Muted);
+		Text->SetAutoWrapText(false);
+		AddLobbyFilling(*Line, *Text);
+		AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::UnblockLabel(Blocked.Name.ToString()), LOCTEXT("Unblock", "Unblock"),
+			[this, Id = Blocked.Id] { Client->UnblockPlayer(Id); }, Model.bCanUnblock);
+		VeyraShellStyle::AddSpaced(*Lists, *Line);
 	}
+	if (bInLobby && !Model.Friends.IsEmpty() && !Model.Friends[0].bOffersInvite)
+	{
+		AddText(*Lists, LOCTEXT("FriendsLobbyHint", "The lobby's host invites friends."), LobbyRole(EVeyraShellText::Small));
+	}
+}
+
+void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidget& Parent)
+{
+	const FString Id = Friend.AccountId;
+	const FString Name = Friend.Name.ToString();
+	const bool bOpen = OpenCardId == Id;
+	UVerticalBox* Card = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Card->AddChildToVerticalBox(Line);
+	// The friend's card opens its other actions (UX-10: contextual, not a row of buttons for each friend).
+	AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::FriendCardLabel(Name), Friend.Name, [this, Id] { OpenCard(Id); }, true, bOpen);
+	AddLobbyFilling(*Line, *WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()));
+	// The one action the line always offers: in the lobby its host's invitation (Custom Matches Bible §1); in the
+	// shell, joining the friend's Public party when it has room, or else inviting them into the player's (UX-9).
+	bool bInviteOnLine = false;
+	if (Friend.bOffersInvite)
+	{
+		AddNamedButton(*Line, EVeyraShellButtonKind::Secondary, VeyraShellModels::InviteLabel(Name), LOCTEXT("InviteFriend", "Invite"),
+			[this, Id] { Client->InviteToLobby(Id); }, Friend.bCanInvite);
+	}
+	else if (Friend.bOffersJoinParty)
+	{
+		AddNamedButton(*Line, EVeyraShellButtonKind::Primary, VeyraShellModels::JoinPartyLabel(Name), LOCTEXT("JoinFriendParty", "Join"),
+			[this, Id] { Client->JoinFriendParty(Id); }, Friend.bCanJoinParty);
+	}
+	else if (Friend.bOffersPartyInvite)
+	{
+		bInviteOnLine = true;
+		AddNamedButton(*Line, EVeyraShellButtonKind::Secondary, VeyraShellModels::PartyInviteLabel(Name), LOCTEXT("InviteToParty", "Invite"),
+			[this, Id] { Client->InviteToParty(Id); }, Friend.bCanPartyInvite);
+	}
+	if (bOpen)
+	{
+		UVerticalBox* Actions = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		if (Confirm == EVeyraShellConfirm::Block && ConfirmId == Id)
+		{
+			AddBlockConfirmation(*Actions, Id, Name);
+		}
+		else
+		{
+			if (Friend.bOffersPartyInvite && !bInviteOnLine)
+			{
+				AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraShellModels::PartyInviteLabel(Name), LOCTEXT("InviteToPartyCard", "Invite to Party"),
+					[this, Id] { Client->InviteToParty(Id); }, Friend.bCanPartyInvite);
+			}
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::RemoveFriendLabel(Name), LOCTEXT("RemoveFriend", "Remove Friend"),
+				[this, Id] {
+					Client->RemoveFriend(Id);
+					CloseCard();
+				},
+				Friend.bCanRemove);
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::BlockLabel(Name), LOCTEXT("BlockFriend", "Block"),
+				[this, Id] { AskToConfirm(EVeyraShellConfirm::Block, Id); }, Friend.bCanBlock);
+		}
+		Card->AddChildToVerticalBox(Actions);
+	}
+	VeyraShellStyle::AddSpaced(Parent, *Card);
+}
+
+void UVeyraShellScreen::AddBlockConfirmation(UPanelWidget& Parent, const FString& AccountId, const FString& Name)
+{
+	AddText(Parent, VeyraShellModels::ConfirmBlockPrompt(Name), LobbyRole(EVeyraShellText::Muted));
+	UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddNamedButton(*Answers, EVeyraShellButtonKind::Primary, VeyraShellModels::ConfirmBlockLabel(Name), LOCTEXT("ConfirmBlock", "Block"),
+		[this, AccountId] {
+			Client->BlockPlayer(AccountId);
+			CloseCard();
+		},
+		Client->CanIssue(EVeyraClientIntent::BlockPlayer));
+	AddNamedButton(*Answers, EVeyraShellButtonKind::Quiet, VeyraShellModels::CancelConfirmLabel(), LOCTEXT("CancelBlock", "Cancel"),
+		[this] { AskToConfirm(EVeyraShellConfirm::None, FString()); });
+	VeyraShellStyle::AddSpaced(Parent, *Answers);
+}
+
+void UVeyraShellScreen::OpenCard(const FString& AccountId)
+{
+	OpenCardId = OpenCardId == AccountId ? FString() : AccountId;
+	Confirm = EVeyraShellConfirm::None;
+	ConfirmId.Reset();
+	Refresh();
+}
+
+void UVeyraShellScreen::AskToConfirm(EVeyraShellConfirm Kind, const FString& AccountId)
+{
+	Confirm = Kind;
+	ConfirmId = Kind == EVeyraShellConfirm::None ? FString() : AccountId;
+	Refresh();
+}
+
+void UVeyraShellScreen::CloseCard()
+{
+	OpenCardId.Reset();
+	Confirm = EVeyraShellConfirm::None;
+	ConfirmId.Reset();
+	Refresh();
 }
 
 void UVeyraShellScreen::SetFriendNameDraft(const FString& Name)

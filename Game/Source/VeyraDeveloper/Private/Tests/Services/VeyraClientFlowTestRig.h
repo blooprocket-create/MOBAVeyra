@@ -237,6 +237,35 @@ namespace VeyraClientFlowTests
 		return FString::Printf(TEXT("{\"invites\":[%s]}"), bInvited ? *Invite : TEXT(""));
 	}
 
+	// The party and social client (ADR-043).
+	inline const TCHAR* const PartyInviteId = TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff");
+	/** DevTwo's own party, which the player may join. */
+	inline const TCHAR* const FriendPartyId = TEXT("cccccccc-dddd-4eee-8fff-000000000000");
+
+	/** GET /v1/party/invites, with DevTwo's invitation into their party or none. */
+	inline FString PartyInvitesBody(bool bInvited)
+	{
+		const FString Invite = FString::Printf(TEXT("{\"id\":\"%s\",\"partyId\":\"%s\",\"inviter\":%s,\"expiresAt\":\"2026-09-29T12:02:00Z\"}"), PartyInviteId,
+			FriendPartyId, *AccountJson(FriendId, TEXT("DevTwo")));
+		return FString::Printf(TEXT("{\"invites\":[%s]}"), bInvited ? *Invite : TEXT(""));
+	}
+
+	/** GET /v1/blocks: Blocked is a JSON list of accounts. */
+	inline FString BlocksBody(const FString& Blocked = TEXT("[]"))
+	{
+		return FString::Printf(TEXT("{\"blocked\":%s}"), *Blocked);
+	}
+
+	/** The player and DevTwo in party Id: the player leads it or DevTwo does; Mode is empty for none. */
+	inline FString PartyOfTwoBody(const TCHAR* Status, bool bYouLead, const TCHAR* Privacy = TEXT("private"), const TCHAR* Id = PartyId,
+		const TCHAR* Mode = TEXT("casual_select"))
+	{
+		return FString::Printf(TEXT("{\"party\":{\"id\":\"%s\",\"mode\":\"%s\",\"privacy\":\"%s\",\"status\":\"%s\",\"queuedSeconds\":0,\"members\":[")
+							   TEXT("{\"accountId\":\"%s\",\"displayName\":\"DevOne\",\"ready\":false,\"leader\":%s},")
+							   TEXT("{\"accountId\":\"%s\",\"displayName\":\"DevTwo\",\"ready\":false,\"leader\":%s}]}}"),
+			Id, Mode, Privacy, Status, AccountId, bYouLead ? TEXT("true") : TEXT("false"), FriendId, bYouLead ? TEXT("false") : TEXT("true"));
+	}
+
 	/**
 	 * A Draft Pick select (ADR-041): the player and DevThree on side A, DevTwo on side B, in Phase with
 	 * Turn (JSON, or null) and Bans (JSON). YouSeat and TeammateSeat are the two side A seats' details
@@ -479,8 +508,18 @@ namespace VeyraClientFlowTests
 		/** From the shell, the friends read: DevTwo a friend, and with DevTwo's lobby invitation or not. */
 		bool ReadSocial(bool bInvited = false)
 		{
-			return Backend.Answer(TEXT("GET"), TEXT("/v1/friends"), 200, FriendsBody(FriendList()))
-				&& Backend.Answer(TEXT("GET"), TEXT("/v1/lobby/invites"), 200, InvitesBody(bInvited)) && Flow->GetSnapshot().Social.bLoaded;
+			return ReadSocialAs(FriendsBody(FriendList()), bInvited);
+		}
+
+		/**
+		 * The social read's four lists (ADR-043 §6): the friends as Friends, DevTwo's lobby invitation and party
+		 * invitation or not, and the blocked players as Blocked.
+		 */
+		bool ReadSocialAs(const FString& Friends, bool bLobbyInvited = false, bool bPartyInvited = false, const FString& Blocked = TEXT("[]"))
+		{
+			return Backend.Answer(TEXT("GET"), TEXT("/v1/friends"), 200, Friends) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby/invites"), 200, InvitesBody(bLobbyInvited))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/party/invites"), 200, PartyInvitesBody(bPartyInvited))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/blocks"), 200, BlocksBody(Blocked)) && Flow->GetSnapshot().Social.bLoaded;
 		}
 
 		/**

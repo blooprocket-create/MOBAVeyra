@@ -90,4 +90,25 @@ public:
 	/** Accepts or declines the friend request from AccountId. */
 	virtual bool AnswerFriendRequest(const FString& AccountId, bool bAccept) = 0;
 	virtual bool RemoveFriend(const FString& AccountId) = 0;
+
+	// The party and the social panel (ADR-043).
+
+	/** Invites AccountId, one of the player's friends not in their party, into it. */
+	virtual bool InviteToParty(const FString& AccountId) = 0;
+	/** Joins the party of InviteId, one of the player's party invitations. */
+	virtual bool AcceptPartyInvite(const FString& InviteId) = 0;
+	virtual bool DeclinePartyInvite(const FString& InviteId) = 0;
+	/** Joins the Public party of AccountId, a friend whose party the friends list offers. */
+	virtual bool JoinFriendParty(const FString& AccountId) = 0;
+	virtual bool LeaveParty() = 0;
+	/** Removes AccountId, another member, from the party the player leads. */
+	virtual bool KickFromParty(const FString& AccountId) = 0;
+	/** Makes AccountId, another member, leader of the party the player leads. The screen asks the player to confirm first. */
+	virtual bool TransferPartyLeader(const FString& AccountId) = 0;
+	virtual bool SetPartyPrivacy(VeyraBackendProtocol::EPartyPrivacy Privacy) = 0;
+	/** Blocks AccountId: a friend, or a player whose friend request waits. */
+	virtual bool BlockPlayer(const FString& AccountId) = 0;
+	virtual bool UnblockPlayer(const FString& AccountId) = 0;
+	/** Withdraws the friend request the player sent AccountId. */
+	virtual bool CancelFriendRequest(const FString& AccountId) = 0;
 };

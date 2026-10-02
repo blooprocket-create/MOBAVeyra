@@ -157,13 +157,16 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("customguest"), EScript::CustomGuest },
 		{ TEXT("settingschange"), EScript::SettingsChange },
 		{ TEXT("settingscheck"), EScript::SettingsCheck },
+		{ TEXT("partyleader"), EScript::PartyLeader },
+		{ TEXT("partymember"), EScript::PartyMember },
 	};
 	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
 		return Mode.Equals(Candidate.Key, ESearchCase::CaseSensitive);
 	});
 	if (!Known)
 	{
-		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost, customguest, settingschange or settingscheck, not \"%s\""), *Mode));
+		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost, customguest, settingschange, settingscheck, ")
+										  TEXT("partyleader or partymember, not \"%s\""), *Mode));
 		return;
 	}
 	Script = Known->Value;
@@ -171,6 +174,11 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (IsCustom() && (FriendName.IsEmpty() || (Script == EScript::CustomHost && BotVanguards.Num() != 2)))
 	{
 		Finish(false, TEXT("the custom scripts need -VeyraSmokeFlowFriend=<the other player>, and the host -VeyraSmokeFlowBots=<side A's>,<side B's>"));
+		return;
+	}
+	if (IsParty() && (FriendName.IsEmpty() || WantedMode.IsEmpty()))
+	{
+		Finish(false, TEXT("the party scripts need -VeyraSmokeFlowFriend=<the other player> and -VeyraSmokeFlowMode=<the mode to queue for>"));
 		return;
 	}
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the %s flow script%s%s."), *Mode, bEndsMatch ? TEXT(", which ends the match") : TEXT(""),
@@ -290,6 +298,10 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		else if (IsCustom())
 		{
 			TickCustomShell(Flow);
+		}
+		else if (IsParty())
+		{
+			TickPartyShell(Flow);
 		}
 		else if (bSawResults && !TickHistory(Flow))
 		{
@@ -636,8 +648,8 @@ bool UVeyraSmokeFlowSubsystem::TickFriendship(IVeyraClientIntents& Flow)
 		}
 		return false;
 	}
-	// The host asks by name; the guest waits for the request.
-	if (Script == EScript::CustomHost && !bAskedFriend && !Social.Friends.Outgoing.ContainsByPredicate(IsFriend)
+	// The host or the party's leader asks by name; the other waits for the request.
+	if ((Script == EScript::CustomHost || Script == EScript::PartyLeader) && !bAskedFriend && !Social.Friends.Outgoing.ContainsByPredicate(IsFriend)
 		&& Flow.CanIssue(EVeyraClientIntent::SendFriendRequest) && TypeFriendName(FriendName) && Click(AddFriendLabel))
 	{
 		bAskedFriend = true;
@@ -645,6 +657,184 @@ bool UVeyraSmokeFlowSubsystem::TickFriendship(IVeyraClientIntents& Flow)
 	}
 #endif
 	return false;
+}
+
+void UVeyraSmokeFlowSubsystem::TickPartyShell(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	const bool bLeads = Script == EScript::PartyLeader;
+	if (bSawResults)
+	{
+		Finish(true, bLeads
+				? FString::Printf(TEXT("was friends with %s, invited them into a party, made them its leader after confirming, readied up, accepted the match found, locked %s and won it by siege beside them"),
+					  *FriendName, *LockedVanguard)
+				: FString::Printf(TEXT("was friends with %s, joined their party from its invitation, led it once they handed it over, chose the mode, found the match, locked %s and won beside them"),
+					  *FriendName, *LockedVanguard));
+		return;
+	}
+	if (bAnswered && !Snapshot.Notice.IsEmpty())
+	{
+		Finish(false, FString::Printf(TEXT("the match did not go ahead (%s)"), *Snapshot.Notice));
+		return;
+	}
+	if (Snapshot.bBusy || !TickFriendship(Flow) || Snapshot.Modes.IsEmpty())
+	{
+		return;
+	}
+	const VeyraBackendProtocol::FModeInfo* Mode = Snapshot.Modes.FindByPredicate([this](const VeyraBackendProtocol::FModeInfo& Candidate) {
+		return Candidate.bEnabled && Candidate.bMatchmade && Candidate.Id == WantedMode;
+	});
+	if (!Mode)
+	{
+		Finish(false, FString::Printf(TEXT("the backend offers no matchmade mode %s"), *WantedMode));
+		return;
+	}
+	bVersusAI = Mode->bVersusAI;
+	const TOptional<VeyraBackendProtocol::FParty>& Party = Snapshot.Party;
+	const VeyraBackendProtocol::FPartyMember* Friend =
+		Party.IsSet() ? Party->Members.FindByPredicate([this](const VeyraBackendProtocol::FPartyMember& Member) { return Member.DisplayName == FriendName; }) : nullptr;
+	const VeyraBackendProtocol::FPartyMember* You = Party.IsSet() ? Party->Find(Snapshot.AccountId) : nullptr;
+	if (bPartyFormed && Party.IsSet() && Party->Status != EPartyStatus::Idle)
+	{
+		// This run's party is in the queue.
+		Capture(TEXT("Queue"));
+		return;
+	}
+	if (!bPartyFormed && Party.IsSet() && Party->Status != EPartyStatus::Idle)
+	{
+		// An earlier run left its party queued: out of the queue first.
+		if (Flow.CanIssue(EVeyraClientIntent::CancelQueue))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving an earlier run's queue for %s."), *Party->Mode);
+			Flow.CancelQueue();
+		}
+		else if (Flow.CanIssue(EVeyraClientIntent::LeaveParty))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving an earlier run's queued party."));
+			Click(VeyraShellModels::LeavePartyLabel().ToString());
+		}
+		return;
+	}
+
+	if (bLeads)
+	{
+		// This run forms its own party: one an earlier run left goes first.
+		if (!bLeftOldParty)
+		{
+			if (!Party.IsSet())
+			{
+				bLeftOldParty = true;
+			}
+			else if (Flow.CanIssue(EVeyraClientIntent::LeaveParty) && Click(VeyraShellModels::LeavePartyLabel().ToString()))
+			{
+				bLeftOldParty = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: left an earlier run's party."));
+			}
+			return;
+		}
+		if (!Friend)
+		{
+			// Invited from the friends panel (UX-9), again if an invitation went unanswered.
+			if (Capture(TEXT("Home")))
+			{
+				return;
+			}
+			if (FPlatformTime::Seconds() >= NextInviteAt && Flow.CanIssue(EVeyraClientIntent::InviteToParty)
+				&& Click(VeyraShellModels::PartyInviteLabel(FriendName).ToString()))
+			{
+				NextInviteAt = FPlatformTime::Seconds() + InviteAgainRealSeconds;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: invited %s into the party."), *FriendName);
+			}
+			return;
+		}
+		if (!bPartyFormed)
+		{
+			bPartyFormed = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: in party %s with %s."), *Party->Id, *FriendName);
+		}
+		if (You && You->bLeader)
+		{
+			// Leadership goes to the friend through their member card, and only once confirmed (UX-10, UX-11).
+			if (Capture(TEXT("PartyFormed")))
+			{
+				return;
+			}
+			if (HandoverStep == 0 && Click(VeyraShellModels::PartyMemberLabel(FriendName).ToString()))
+			{
+				HandoverStep = 1;
+			}
+			else if (HandoverStep == 1 && Click(VeyraShellModels::MakeLeaderLabel(FriendName).ToString()))
+			{
+				HandoverStep = 2;
+			}
+			else if (HandoverStep == 2 && !Capture(TEXT("PartyConfirm")) && Click(VeyraShellModels::ConfirmLeaderLabel(FriendName).ToString()))
+			{
+				HandoverStep = 3;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: confirmed %s as the party leader."), *FriendName);
+			}
+			return;
+		}
+		// The friend leads: Ready once they chose the mode, which resets everyone's Ready (Parties & Social Bible §2).
+		if (Party->Mode == WantedMode && You && !You->bReady && Flow.CanIssue(EVeyraClientIntent::SetReady) && Click(ReadyLabel))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: Ready for %s's queue."), *FriendName);
+		}
+		return;
+	}
+
+	// The member joins by this run's invitation, never by a party an earlier run left.
+	if (!bJoinedByInvite || !Friend)
+	{
+		const bool bInvited = Snapshot.Social.PartyInvites.ContainsByPredicate(
+			[this](const VeyraBackendProtocol::FPartyInvite& Invite) { return Invite.Inviter.DisplayName == FriendName; });
+		if (bInvited && Flow.CanIssue(EVeyraClientIntent::AcceptPartyInvite) && Click(VeyraShellModels::AcceptPartyInviteLabel(FriendName).ToString()))
+		{
+			bJoinedByInvite = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: joining %s's party from the invitation."), *FriendName);
+		}
+		return;
+	}
+	if (!bPartyFormed)
+	{
+		bPartyFormed = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: in party %s with %s."), *Party->Id, *FriendName);
+	}
+	if (!You || !You->bLeader)
+	{
+		// The friend hands leadership over.
+		return;
+	}
+	// Leading now: the mode in Play, Ready, then Find Match once everyone is Ready.
+	if (Party->Mode != WantedMode)
+	{
+		if (!bOpenedPlay)
+		{
+			bOpenedPlay = Click(PlayLabel);
+		}
+		else if (Flow.CanIssue(EVeyraClientIntent::SelectMode) && Click(ModeLabel(WantedMode)))
+		{
+			ChosenMode = WantedMode;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leading the party; chose %s."), *WantedMode);
+		}
+		return;
+	}
+	if (!You->bReady)
+	{
+		if (Flow.CanIssue(EVeyraClientIntent::SetReady))
+		{
+			Click(ReadyLabel);
+		}
+		return;
+	}
+	if (Flow.CanIssue(EVeyraClientIntent::FindMatch) && !Capture(TEXT("Party")) && Click(FindMatchLabel))
+	{
+		bFoundMatch = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the party is Ready; finding a match."));
+	}
+#else
+	Finish(false, TEXT("this build has no shell to click"));
+#endif
 }
 
 void UVeyraSmokeFlowSubsystem::TickCustomLobby(IVeyraClientIntents& Flow)
@@ -957,7 +1147,7 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	}
 	// The practice host ends its match; of a standard or custom match's players, the one told to, or
 	// the one that sieges.
-	if ((Script == EScript::Casual || IsCustom()) && !bEndsMatch && !bSieges)
+	if ((Script == EScript::Casual || IsCustom() || IsParty()) && !bEndsMatch && !bSieges)
 	{
 		return;
 	}
@@ -1498,14 +1688,16 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	const bool bPractice = Script == EScript::Practice;
 	const TCHAR* const ExpectedEndReason = bPractice ? PracticeEndReason : bVictory ? VictoryEndReason : DeveloperEndReason;
 	const TCHAR* const ExpectedRules = bPractice ? PracticeRules : IsCustom() ? CustomRules : StandardRules;
-	// Only a won match has a winner: the sieging player's side, which the other lost to.
-	const bool bWinnerRight = bVictory ? !Result->Winner.IsEmpty() && (Result->Winner == Result->Side) == bSieges : Result->Winner.IsEmpty();
+	// Only a won match has a winner: the sieging player's side, which the other lost to. Against AI the
+	// humans share their side, so each of them won (ADR-039 §2).
+	const bool bOurSideWins = bSieges || bVersusAI;
+	const bool bWinnerRight = bVictory ? !Result->Winner.IsEmpty() && (Result->Winner == Result->Side) == bOurSideWins : Result->Winner.IsEmpty();
 	// A player back within the grace has no personal loss (Match Flow Bible §5.2).
 	if (Result->EndReason != ExpectedEndReason || Result->Rules != ExpectedRules || !bWinnerRight || Result->VanguardId != LockedVanguard
 		|| !Result->bJoined || !Result->bConnectedAtEnd || Result->bPersonalLoss || Result->MatchId != Snapshot.MatchId)
 	{
 		Finish(false, FString::Printf(TEXT("the verified result is not a %s match ended by %s, %s, of the locked Vanguard, joined and connected at the end"),
-			ExpectedRules, ExpectedEndReason, !bVictory ? TEXT("with no winner") : bSieges ? TEXT("won by this side") : TEXT("lost by this side")));
+			ExpectedRules, ExpectedEndReason, !bVictory ? TEXT("with no winner") : bOurSideWins ? TEXT("won by this side") : TEXT("lost by this side")));
 		return;
 	}
 	// The verified scoreboard (ADR-017 §5): the player's own line, with its Vanguard and its starting Gold
@@ -1532,7 +1724,7 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	if (bVictory)
 	{
 		const FString Headline = VeyraShellModels::DescribeResults(Snapshot).Headline.ToString();
-		const TCHAR* const ExpectedHeadline = bSieges ? TEXT("Victory") : TEXT("Defeat");
+		const TCHAR* const ExpectedHeadline = bOurSideWins ? TEXT("Victory") : TEXT("Defeat");
 		if (Headline != ExpectedHeadline)
 		{
 			Finish(false, FString::Printf(TEXT("the results screen says \"%s\", not \"%s\""), *Headline, ExpectedHeadline));

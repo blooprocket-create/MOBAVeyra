@@ -201,8 +201,9 @@ void UVeyraShellScreen::Refresh()
 		return;
 	}
 	const FVeyraClientSnapshot& Snapshot = Client->GetSnapshot();
-	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|"), static_cast<int32>(Page), OpenSpellSlot,
-								  bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex, *BotDifficulty) +
+	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|"), static_cast<int32>(Page),
+								  OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex, *BotDifficulty, *OpenCardId,
+								  static_cast<int32>(Confirm), *ConfirmId) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
@@ -241,6 +242,13 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	{
 		// The bot picker belongs to one lobby.
 		BotPickerIndex = INDEX_NONE;
+	}
+	if (Shown != EVeyraShellScreen::Shell && Shown != EVeyraShellScreen::Lobby)
+	{
+		// Cards and their confirmations belong to the party and friends panels, which only those show.
+		OpenCardId.Reset();
+		Confirm = EVeyraShellConfirm::None;
+		ConfirmId.Reset();
 	}
 	ON_SCOPE_EXIT
 	{
@@ -523,8 +531,13 @@ void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVey
 
 void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
 {
+	FVeyraPartyPermissions Permissions;
+	Permissions.bCanKick = Client->CanIssue(EVeyraClientIntent::KickFromParty);
+	Permissions.bCanTransfer = Client->CanIssue(EVeyraClientIntent::TransferPartyLeader);
+	Permissions.bCanSetPrivacy = Client->CanIssue(EVeyraClientIntent::SetPartyPrivacy);
+	Permissions.bCanLeave = Client->CanIssue(EVeyraClientIntent::LeaveParty);
 	const FVeyraPartyModel Model = VeyraShellModels::DescribeParty(Snapshot, Client->CanIssue(EVeyraClientIntent::SetReady),
-		Client->CanIssue(EVeyraClientIntent::FindMatch), Client->CanIssue(EVeyraClientIntent::CancelQueue));
+		Client->CanIssue(EVeyraClientIntent::FindMatch), Client->CanIssue(EVeyraClientIntent::CancelQueue), Permissions);
 	if (!Model.bShown)
 	{
 		return;
@@ -536,12 +549,51 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 	UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	AddText(*Who, LOCTEXT("PartyTitle", "Party"), RoleOf(EVeyraShellText::Eyebrow));
 	AddText(*Who, Model.Mode, RoleOf(EVeyraShellText::Heading))->SetAutoWrapText(false);
+	AddText(*Who, Model.Privacy, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
 	VeyraShellStyle::AddSpaced(*Row, *Who);
 	AddGap(*WidgetTree, *Row, Style.ScreenPadding / 2.0f);
+	// The member cards (UX-10). The leader selects another member's card for its actions, which open
+	// beneath it; Make Party Leader asks first, naming the recipient (UX-11).
 	UVerticalBox* Members = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	for (const FText& Member : Model.Members)
+	for (const FVeyraPartyMemberModel& Card : Model.Cards)
 	{
-		AddText(*Members, Member, RoleOf(EVeyraShellText::Body))->SetAutoWrapText(false);
+		if (!Card.bOffersActions)
+		{
+			AddText(*Members, Card.Line, RoleOf(EVeyraShellText::Body))->SetAutoWrapText(false);
+			continue;
+		}
+		const FString Id = Card.AccountId;
+		const bool bOpen = OpenCardId == Id;
+		AddNamedButton(*Members, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), Card.Line, [this, Id] { OpenCard(Id); }, true, bOpen);
+		if (!bOpen)
+		{
+			continue;
+		}
+		UHorizontalBox* Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		if (Confirm == EVeyraShellConfirm::PartyLeader && ConfirmId == Id)
+		{
+			AddText(*Actions, VeyraShellModels::ConfirmLeaderPrompt(Card.Name), RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Primary, VeyraShellModels::ConfirmLeaderLabel(Card.Name), LOCTEXT("ConfirmLeader", "Confirm"),
+				[this, Id] {
+					Client->TransferPartyLeader(Id);
+					CloseCard();
+				},
+				Card.bCanMakeLeader);
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::CancelConfirmLabel(), LOCTEXT("CancelLeader", "Cancel"),
+				[this] { AskToConfirm(EVeyraShellConfirm::None, FString()); });
+		}
+		else
+		{
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraShellModels::MakeLeaderLabel(Card.Name), LOCTEXT("MakeLeader", "Make Party Leader"),
+				[this, Id] { AskToConfirm(EVeyraShellConfirm::PartyLeader, Id); }, Card.bCanMakeLeader);
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::RemoveFromPartyLabel(Card.Name), LOCTEXT("RemoveMember", "Remove"),
+				[this, Id] {
+					Client->KickFromParty(Id);
+					CloseCard();
+				},
+				Card.bCanRemove);
+		}
+		VeyraShellStyle::AddSpaced(*Members, *Actions);
 	}
 	VeyraShellStyle::AddSpaced(*Row, *Members);
 	AddStretch(*WidgetTree, *Row);
@@ -555,6 +607,17 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 	{
 		AddText(*Row, Model.Status, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
 	}
+	// The leader's privacy (Parties & Social Bible §1), and anyone's Leave Party.
+	if (Model.bOffersPrivacy)
+	{
+		const VeyraBackendProtocol::EPartyPrivacy Target = Model.PrivacyTarget;
+		AddKindButton(*Row, EVeyraShellButtonKind::Quiet, Model.PrivacyLabel, [this, Target] { Client->SetPartyPrivacy(Target); }, Model.bCanSetPrivacy)
+			->KeepLabelOnOneLine();
+	}
+	AddKindButton(*Row, EVeyraShellButtonKind::Quiet, VeyraShellModels::LeavePartyLabel(), [this] {
+		Client->LeaveParty();
+		CloseCard();
+	}, Model.bCanLeave)->KeepLabelOnOneLine();
 	if (!Model.bQueued)
 	{
 		const bool bReady = Model.bReadyTarget;
