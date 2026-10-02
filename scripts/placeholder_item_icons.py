@@ -74,6 +74,9 @@ PLACEHOLDERS = {
     "flux_reclaimer": ("Quest_Items", 2, "vortex", ["heart", "droplet"]),
     "wayline_reservoir": ("Quest_Items", 3, "vessel", ["heart", "droplet"]),
     "the_last_harbor": ("Tier_4_Mythicals", 4, "harbor_crown", ["blade", "chevrons", "heart", "droplet"]),
+    # The Item Bible's 2026-10-02 Echo line (ADR-050).
+    "echo_lens": ("Tier_3_Masterworks", 3, "crystals", ["heart", "coil"]),
+    "the_second_self": ("Tier_4_Mythicals", 4, "vortex", ["crystal", "heart", "coil"]),
 }
 
 
