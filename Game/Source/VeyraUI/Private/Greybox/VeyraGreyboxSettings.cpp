@@ -2,6 +2,22 @@
 
 #include "Greybox/VeyraGreyboxSettings.h"
 
+const FVeyraStructureArt& UVeyraGreyboxSettings::ArtOf(EVeyraStructureKind Kind) const
+{
+	switch (Kind)
+	{
+	case EVeyraStructureKind::BaseTower:
+		return BaseTowerArt;
+	case EVeyraStructureKind::Inhibitor:
+		return InhibitorArt;
+	case EVeyraStructureKind::PrimeWell:
+		return PrimeWellArt;
+	case EVeyraStructureKind::LaneSpire:
+		break;
+	}
+	return LaneSpireArt;
+}
+
 TArray<FString> UVeyraGreyboxSettings::Validate() const
 {
 	TArray<FString> Problems;
@@ -47,6 +63,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("GoldColor"), GoldColor },
 		{ TEXT("ShadeColor"), ShadeColor },
 		{ TEXT("RiverColor"), RiverColor },
+		{ TEXT("MinimapWallColor"), MinimapWallColor },
 		{ TEXT("AllyBaseColor"), AllyBaseColor },
 		{ TEXT("EnemyBaseColor"), EnemyBaseColor },
 		{ TEXT("DenseFogColor"), DenseFogColor },
@@ -60,6 +77,12 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	{
 		Require(Named.Color.A > 0.0f, Named.Field, TEXT("the colour must not be fully transparent."));
 	}
+	for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+	{
+		const FVeyraStructureArt& Art = ArtOf(Kind);
+		Require(!Art.Standing.IsNull() && !Art.Destroyed.IsNull(), *(UEnum::GetValueAsName(Kind).ToString() + TEXT("Art")), TEXT("needs a standing and a destroyed mesh."));
+	}
+	Require(!StructureFluxSlot.IsNone() && !StructureFluxParameter.IsNone(), TEXT("StructureFluxSlot"), TEXT("the Flux slot and its parameter must be named."));
 	Require(StatusTintStrength > 0.0f && StatusTintStrength <= 1.0f, TEXT("StatusTintStrength"), TEXT("must be above 0 and at most 1."));
 	Require(BarWidth >= 1.0f, TEXT("BarWidth"), TEXT("must be at least 1 pixel."));
 	Require(BarHeight >= 1.0f, TEXT("BarHeight"), TEXT("must be at least 1 pixel."));

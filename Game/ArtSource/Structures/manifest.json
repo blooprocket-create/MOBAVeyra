@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "worldSha256": "aefbdc53d40d0dd1048aa445fecf02aaf69e54f98293bf9b544e2e57af4e996e",
+  "blenderVersion": "5.2.1 LTS",
+  "units": "centimetres in FBX",
+  "assets": [
+    {
+      "name": "SM_LaneSpire_Standing",
+      "kind": "laneSpire",
+      "state": "Standing",
+      "file": "FBX/SM_LaneSpire_Standing.fbx",
+      "sha256": "1a0444d7bea63e62241d084fdfd196f454e0281791ff6c5a98254ab6115a23be",
+      "triangles": 9572,
+      "dimensionsCm": [
+        235.2,
+        236.4,
+        500.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    },
+    {
+      "name": "SM_LaneSpire_Destroyed",
+      "kind": "laneSpire",
+      "state": "Destroyed",
+      "file": "FBX/SM_LaneSpire_Destroyed.fbx",
+      "sha256": "62c6419ead9aaf497ee5ec98df3568d233abaabb5ffba1e40c6faba4214f42db",
+      "triangles": 5600,
+      "dimensionsCm": [
+        235.2,
+        236.4,
+        250.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    },
+    {
+      "name": "SM_BaseTower_Standing",
+      "kind": "baseTower",
+      "state": "Standing",
+      "file": "FBX/SM_BaseTower_Standing.fbx",
+      "sha256": "809eb239b1afaba1c0b4aa4bf6f6da73cf9f94a6941428961f5c0d887341a5e3",
+      "triangles": 9864,
+      "dimensionsCm": [
+        235.2,
+        236.4,
+        500.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    },
+    {
+      "name": "SM_BaseTower_Destroyed",
+      "kind": "baseTower",
+      "state": "Destroyed",
+      "file": "FBX/SM_BaseTower_Destroyed.fbx",
+      "sha256": "acd1d7d9d5387e56aeae9d4ef3750fccd788d70e12c7b7721ce9f1c258a21193",
+      "triangles": 5532,
+      "dimensionsCm": [
+        235.2,
+        236.4,
+        215.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    },
+    {
+      "name": "SM_Inhibitor_Standing",
+      "kind": "inhibitor",
+      "state": "Standing",
+      "file": "FBX/SM_Inhibitor_Standing.fbx",
+      "sha256": "7e70d51afb51c1a61cc790cff7ff82c49b9a8d8a9fe9544c7cc9bc8346f5c7ea",
+      "triangles": 11116,
+      "dimensionsCm": [
+        294.0,
+        295.5,
+        158.4
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    },
+    {
+      "name": "SM_Inhibitor_Destroyed",
+      "kind": "inhibitor",
+      "state": "Destroyed",
+      "file": "FBX/SM_Inhibitor_Destroyed.fbx",
+      "sha256": "3298c74ae40b0656bca0dba862e7601e9df3f8143e121b24a415cc8b90a516dc",
+      "triangles": 7268,
+      "dimensionsCm": [
+        294.0,
+        295.5,
+        66.528
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    },
+    {
+      "name": "SM_PrimeWell_Standing",
+      "kind": "primeWell",
+      "state": "Standing",
+      "file": "FBX/SM_PrimeWell_Standing.fbx",
+      "sha256": "4bed0f19d6947513aa6c7b5078169f08ee81bfc81d5686f91ae84aea028bfd53",
+      "triangles": 21080,
+      "dimensionsCm": [
+        686.0,
+        689.5,
+        540.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    },
+    {
+      "name": "SM_PrimeWell_Destroyed",
+      "kind": "primeWell",
+      "state": "Destroyed",
+      "file": "FBX/SM_PrimeWell_Destroyed.fbx",
+      "sha256": "3c538f676d11ee178b750e7afa69816366f81461cdae3434d574baa613ac69d2",
+      "triangles": 10552,
+      "dimensionsCm": [
+        686.0,
+        689.5,
+        297.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "materialSlots": [
+        "M_CrucibleStone",
+        "M_CrucibleIron",
+        "M_CrucibleAlloy",
+        "M_CrucibleFlux"
+      ]
+    }
+  ]
+}

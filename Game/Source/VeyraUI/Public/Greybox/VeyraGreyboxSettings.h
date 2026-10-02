@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Battleground/VeyraBattlegroundTypes.h"
 #include "Engine/DeveloperSettings.h"
 #include "Tuning/VeyraVanguardsTuning.h"
 
@@ -9,6 +10,19 @@
 
 class UMaterialInterface;
 class UStaticMesh;
+
+/** A kind of structure's art: its mesh standing, and its wreck once destroyed. Ground-pivoted, in centimetres. */
+USTRUCT()
+struct FVeyraStructureArt
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UStaticMesh> Standing;
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UStaticMesh> Destroyed;
+};
 
 /**
  * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
@@ -124,6 +138,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
 
+	/** The battleground's walls on the minimap (ADR-042 §4); its river is drawn in RiverColor. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	FLinearColor MinimapWallColor = FLinearColor::Transparent;
+
 	/** Whether a left click or drag on the minimap moves the camera, and a right click there moves the Vanguard. */
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	bool bMinimapClickMovesCamera = true;
@@ -228,6 +246,32 @@ public:
 	/** Each base's pad around its Prime Well: a disc. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
 	TSoftObjectPtr<UStaticMesh> PadMesh;
+
+	/**
+	 * Each kind of structure's provisional art (Art Direction, Crucible structure greybox meshes), drawn
+	 * in place of its body. Visual only: its capsule stays its only collision and navigation.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FVeyraStructureArt LaneSpireArt;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FVeyraStructureArt BaseTowerArt;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FVeyraStructureArt InhibitorArt;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FVeyraStructureArt PrimeWellArt;
+
+	/** The art's material slot whose Flux glows in each structure's side colour, and the parameter that colours it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FName StructureFluxSlot;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FName StructureFluxParameter;
+
+	/** The art of a kind of structure. */
+	const FVeyraStructureArt& ArtOf(EVeyraStructureKind Kind) const;
 
 	/** The lanes' road, the river, and each side's base as the viewer sees it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")

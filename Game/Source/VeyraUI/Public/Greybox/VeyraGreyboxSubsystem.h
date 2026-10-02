@@ -79,6 +79,9 @@ public:
 	/** The body drawn for Unit, once it has one. */
 	UStaticMeshComponent* FindBody(const AActor& Unit) const;
 
+	/** A structure's art, once drawn; null for any other unit. */
+	UStaticMeshComponent* FindStructureArt(const AActor& Unit) const;
+
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
 
@@ -115,6 +118,12 @@ private:
 		TWeakObjectPtr<UStaticMeshComponent> Mesh;
 		TWeakObjectPtr<UMaterialInstanceDynamic> Material;
 		FLinearColor Shown = FLinearColor::Transparent;
+
+		/** A structure's art, which stands in for its body: the mesh, whether it shows the wreck, and its Flux's colour. */
+		TWeakObjectPtr<UStaticMeshComponent> Art;
+		TWeakObjectPtr<UMaterialInstanceDynamic> ArtFlux;
+		bool bArtDestroyed = false;
+		FLinearColor ArtShown = FLinearColor::Transparent;
 	};
 
 	struct FProjectileVisual
@@ -127,6 +136,9 @@ private:
 	};
 
 	void RefreshBodies();
+
+	/** Dresses Structure in its kind's art, standing or wrecked as it is, its Flux in its side's colour; its body hides behind it. */
+	void RefreshStructureArt(const class AVeyraStructure& Structure, FBody& Body);
 
 	/**
 	 * Once the world shows the battleground (its structures have arrived), draws its ground from
@@ -184,6 +196,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> PadMesh;
+
+	/** Each kind of structure's art, standing then destroyed, in EVeyraStructureKind's order. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMesh>> StructureMeshes;
 
 	/** The actor holding the battleground's ground markings, once drawn. */
 	TWeakObjectPtr<AActor> GroundMarkings;

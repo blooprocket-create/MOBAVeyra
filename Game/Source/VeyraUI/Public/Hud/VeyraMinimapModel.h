@@ -55,6 +55,12 @@ struct FVeyraMinimapLane
 	TArray<FVector2D> Points;
 };
 
+/** One of the battleground's walls (ADR-042 §4): its corners round its outline, in screen pixels. */
+struct FVeyraMinimapWall
+{
+	TArray<FVector2D> Corners;
+};
+
 /** A presence ping's circle, as the map draws it. */
 struct FVeyraMinimapPing
 {
@@ -77,6 +83,9 @@ struct FVeyraMinimapView
 {
 	FVeyraMinimapFrame Frame;
 	TArray<FVeyraMinimapLane> Lanes;
+	TArray<FVeyraMinimapWall> Walls;
+	/** The river: its band along the diagonal, cut to the map's square, as the outline of a convex polygon. */
+	TArray<FVector2D> River;
 	TArray<FVeyraMinimapDot> Dots;
 	TArray<FVeyraMinimapPing> Pings;
 	TArray<FVeyraMinimapTeamPing> TeamPings;
