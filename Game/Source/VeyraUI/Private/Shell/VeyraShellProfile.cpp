@@ -251,10 +251,28 @@ void UVeyraShellScreen::BuildProfileOverlay(const FVeyraClientSnapshot& Snapshot
 		return;
 	}
 	AddText(*Rows, LOCTEXT("ProfileHistoryHeading", "Match History"), ProfileRole(EVeyraShellText::Heading));
+	// The owner's own filters (ADR-048 §3).
+	if (Snapshot.ProfileView.Profile.bSharesMatchHistory)
+	{
+		const VeyraBackendProtocol::FHistoryFilter& Current = Snapshot.ProfileView.Filter;
+		const auto Load = [this](const VeyraBackendProtocol::FHistoryFilter& Filter) { Client->FilterProfileMatches(Filter); };
+		const bool bCanFilter = Client->CanIssue(EVeyraClientIntent::FilterProfileMatches);
+		AddHistoryFilter(*Rows, Model.Vanguards, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.VanguardId = Value; }, Load, bCanFilter);
+		AddHistoryFilter(*Rows, Model.Modes, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Mode = Value; }, Load, bCanFilter);
+		AddHistoryFilter(*Rows, Model.Outcomes, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Outcome = Value; }, Load, bCanFilter);
+	}
 	if (!Model.HistoryNote.IsEmpty())
 	{
 		AddText(*Rows, Model.HistoryNote, ProfileRole(EVeyraShellText::Muted));
 	}
+	// The records and Load More scroll within a bounded height, so a full page never pushes the popup past the screen.
+	USizeBox* ListBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	ListBox->SetMaxDesiredHeight(Style.ProfileHistoryMaxHeight);
+	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+	UVerticalBox* List = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Scroll->AddChild(List);
+	ListBox->AddChild(Scroll);
+	VeyraShellStyle::AddSpaced(*Rows, *ListBox);
 	const bool bCanOpen = Client->CanIssue(EVeyraClientIntent::OpenProfileMatch);
 	for (const FVeyraHistoryRow& Row : Model.Rows)
 	{
@@ -263,11 +281,11 @@ void UVeyraShellScreen::BuildProfileOverlay(const FVeyraClientSnapshot& Snapshot
 		AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, FText::Format(LOCTEXT("OpenProfileMatch", "Open {0}"), Row.Summary), LOCTEXT("OpenShort", "Open"),
 			[this, MatchId] { Client->OpenProfileMatch(MatchId); }, bCanOpen);
 		AddText(*Line, Row.Summary, ProfileRole(EVeyraShellText::Body))->SetAutoWrapText(false);
-		VeyraShellStyle::AddSpaced(*Rows, *Line);
+		VeyraShellStyle::AddSpaced(*List, *Line);
 	}
 	if (Model.bOffersLoadMore)
 	{
-		AddButton(*Rows, LOCTEXT("ProfileLoadMore", "Load More"), [this] { Client->LoadMoreProfileMatches(); });
+		AddButton(*List, LOCTEXT("ProfileLoadMore", "Load More"), [this] { Client->LoadMoreProfileMatches(); });
 	}
 }
 

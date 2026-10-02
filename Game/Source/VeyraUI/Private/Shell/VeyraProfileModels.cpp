@@ -99,13 +99,17 @@ FVeyraProfileViewModel DescribeView(const FVeyraClientSnapshot& Snapshot, bool b
 		Model.HistoryNote = FText::Format(LOCTEXT("Private", "{0}'s Match History is private."), FText::FromString(View.Profile.Name));
 		return Model;
 	}
+	VeyraMatchHistoryModel::DescribeFilters(Snapshot, View.Filter, View.Modes, Model.Vanguards, Model.Modes, Model.Outcomes);
 	for (const VeyraBackendProtocol::FHistoryEntry& Entry : View.Matches)
 	{
 		Model.Rows.Add(VeyraMatchHistoryModel::DescribeRow(Entry));
 	}
 	if (Model.Rows.IsEmpty())
 	{
-		Model.HistoryNote = View.bMatchesLoaded ? LOCTEXT("NoMatches", "No completed matches yet.") : LOCTEXT("ReadingMatches", "Reading the Match History...");
+		const bool bFiltered = !(View.Filter == VeyraBackendProtocol::FHistoryFilter());
+		Model.HistoryNote = !View.bMatchesLoaded ? LOCTEXT("ReadingMatches", "Reading the Match History...")
+			: bFiltered							  ? LOCTEXT("NoFilteredMatches", "No completed matches fit these filters.")
+												  : LOCTEXT("NoMatches", "No completed matches yet.");
 	}
 	Model.bOffersLoadMore = bCanLoadMore && !View.Next.IsEmpty();
 	return Model;
@@ -122,7 +126,11 @@ FVeyraProfilePageModel DescribePage(const FVeyraClientSnapshot& Snapshot, const 
 	}
 	if (Own.Preview.IsSet())
 	{
-		Model.Preview = DescribeCard(*Own.Preview);
+		// The card shows the icon and background as the player chooses them, over the confirmed level and Mastery (UX-70).
+		VeyraBackendProtocol::FPublicProfile Preview = *Own.Preview;
+		Preview.Icon = Draft.Icon.IsEmpty() ? Preview.Icon : Draft.Icon;
+		Preview.Background = Draft.Background.IsEmpty() ? Preview.Background : Draft.Background;
+		Model.Preview = DescribeCard(Preview);
 	}
 	for (const FString& Icon : Own.Catalog.Icons)
 	{
@@ -196,7 +204,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	const VeyraBackendProtocol::FPublicProfile& P = View.Profile;
 	Text << TEXT("|profile:") << View.Name << TEXT(":") << (View.bLoaded ? 1 : 0) << (View.bUnavailable ? 1 : 0) << TEXT(":") << P.Icon << TEXT(":") << P.Background
 		 << TEXT(":") << P.Level << TEXT(":") << (P.Featured.IsSet() ? *P.Featured->VanguardId : TEXT("")) << TEXT(":") << (P.bSharesMatchHistory ? 1 : 0) << TEXT(":")
-		 << (View.bMatchesLoaded ? 1 : 0) << TEXT(":") << View.Matches.Num() << TEXT(":") << View.Next << TEXT(":")
+		 << (View.bMatchesLoaded ? 1 : 0) << TEXT(":") << View.Matches.Num() << TEXT(":") << View.Next << TEXT(":") << (View.bReadingMatches ? 1 : 0) << TEXT(":")
+		 << View.Filter.VanguardId << TEXT(":") << View.Filter.Mode << TEXT(":") << View.Filter.Outcome << TEXT(":") << View.Modes.Num() << TEXT(":")
 		 << (View.OpenedMatch.IsSet() ? *View.OpenedMatch->MatchId : TEXT(""));
 	const FVeyraProfileSettings& Own = Snapshot.ProfileSettings;
 	Text << TEXT("|own:") << (Own.bLoaded ? 1 : 0) << TEXT(":") << Own.Saved.Icon << TEXT(":") << Own.Saved.Background << TEXT(":") << Own.Saved.FeaturedVanguardId
