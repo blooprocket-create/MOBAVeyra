@@ -52,6 +52,9 @@ struct FVeyraHudSlot
 	/** Invalid when the slot holds no ability. */
 	FVeyraContentId Ability;
 
+	/** The slot's own ability, which Ability overrides while a variant, follow-up or mounted action lasts. */
+	FVeyraContentId OwnAbility;
+
 	int32 Rank = 0;
 	int32 MaxRank = 0;
 

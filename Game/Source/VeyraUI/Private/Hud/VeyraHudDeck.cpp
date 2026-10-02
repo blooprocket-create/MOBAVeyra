@@ -590,7 +590,7 @@ namespace
 			const bool bLearned = Slot.Rank > 0;
 			const FString Name = Slot.Ability.IsValid() ? VeyraContentText::AbilityName(Slot.Ability).ToString() : FString();
 			Paint.Rect(At, FVector2D(Ability), Settings.BarBackgroundColor);
-			if (!DrawIcon(Paint, VeyraShellArt::AbilityIconOf(Slot.Ability.ToString()), At, Ability))
+			if (!DrawIcon(Paint, VeyraShellArt::SlotIconOf(Slot.Ability.ToString(), Slot.OwnAbility.ToString()), At, Ability))
 			{
 				// Until it has an icon, its name.
 				float LineY = At.Y + Ability / 2.0f;
