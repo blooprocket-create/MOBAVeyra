@@ -93,7 +93,8 @@
     -Flow Collection buys a Vanguard in the Collection (ADR-045 §8) with one packaged client. The script
     first takes back what the development account bought on earlier runs and grants it Flux through the
     backend's development routes. The client opens the Collection, picks a Vanguard it neither owns nor
-    borrows from the rotation, buys it with Flux through the confirmation, then practises with it, which a
+    borrows from the rotation, buys it with Flux through the confirmation, marks it a favorite from its card
+    (ADR-058 §3), and finds it under champion select's Favorites tab. It then practises with it, which a
     select allows only because it is owned now. Its verified result must carry rewards that say a practice
     match gives none.
 

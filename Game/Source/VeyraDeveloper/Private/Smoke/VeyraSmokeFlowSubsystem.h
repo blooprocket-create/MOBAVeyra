@@ -183,6 +183,8 @@ private:
 	bool TypeReportDetails(const FString& Text);
 	/** The Collection's purchase, before the script practises with what it bought: opens the page, a card, its Buy and the confirmation. */
 	void TickCollection(IVeyraClientIntents& Flow);
+	/** Collection, in champion select: shows the Favorites tab and checks it narrows the bench to the favorites, Pick among them. */
+	void TickFavoritesTab(const FVeyraClientSnapshot& Snapshot, const FString& Pick);
 	/** Whether the script plays a practice match: Practice, and Collection after its purchase. */
 	bool IsPracticeRules() const { return Script == EScript::Practice || Script == EScript::Collection; }
 	/** The host's bots: removes a bot the script did not ask for, then seats the one each side lacks. True while it changes them. */
@@ -329,6 +331,10 @@ private:
 	bool bPurchased = false;
 	FString BoughtVanguard;
 	int64 BoughtPrice = 0;
+	/** Collection: marking what it bought a favorite from its card, then finding it under champion select's Favorites tab (ADR-058). */
+	bool bAskedFavorite = false;
+	bool bMarkedFavorite = false;
+	bool bCheckedFavorites = false;
 	/** Matchmade: the mode chosen, then Ready, Find Match, the answer to the match found and Cancel. */
 	FString ChosenMode;
 	bool bReadied = false;

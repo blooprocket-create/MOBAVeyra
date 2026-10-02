@@ -340,8 +340,9 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		}
 		else if (Script == EScript::Collection && bSawResults)
 		{
-			Finish(true, FString::Printf(TEXT("opened the Collection, bought %s for %lld Flux through its confirmation, saw it owned, practised with it, ")
-										 TEXT("ended the match as its host and saw its verified result and rewards"), *BoughtVanguard, static_cast<long long>(BoughtPrice)));
+			Finish(true, FString::Printf(TEXT("opened the Collection, bought %s for %lld Flux through its confirmation, saw it owned, marked it a favorite, ")
+										 TEXT("found it under champion select's Favorites tab, practised with it, ended the match as its host and saw its verified result and rewards"),
+				*BoughtVanguard, static_cast<long long>(BoughtPrice)));
 		}
 		else if (bSawResults && !TickHistory(Flow))
 		{
@@ -407,7 +408,11 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 				Finish(false, TEXT("the wanted Vanguard is not available"));
 				break;
 			}
-			if (Snapshot.Select.FindYou()->Hover != Pick)
+			if (Script == EScript::Collection && !bCheckedFavorites)
+			{
+				TickFavoritesTab(Snapshot, Pick);
+			}
+			else if (Snapshot.Select.FindYou()->Hover != Pick)
 			{
 				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: hovering %s with %.0f s on the timer."), *Pick, Flow.GetRemainingPickSeconds());
 				Click(VanguardLabel(Pick));
@@ -2644,6 +2649,26 @@ void UVeyraSmokeFlowSubsystem::TickCollection(IVeyraClientIntents& Flow)
 			Finish(false, FString::Printf(TEXT("%s is owned, but not by this purchase (%s, %s)"), *BoughtVanguard, *Collection.Feedback, *Entry->Source));
 			return;
 		}
+		// Marks it a favorite from its open card (ADR-058 §3). An earlier run's mark is taken back first, so the route
+		// runs both ways whatever the account kept.
+		if (!bMarkedFavorite)
+		{
+			const bool bFavorite = Snapshot.FavoriteVanguards.Contains(BoughtVanguard);
+			if (bFavorite && bAskedFavorite)
+			{
+				bMarkedFavorite = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s is a favorite."), *BoughtVanguard);
+			}
+			else if (bFavorite)
+			{
+				Click(VeyraProgressionModels::FavoriteLabel(BoughtVanguard, true).ToString());
+			}
+			else
+			{
+				bAskedFavorite = Click(VeyraProgressionModels::FavoriteLabel(BoughtVanguard, false).ToString());
+			}
+			return;
+		}
 		if (!Capture(TEXT("Purchased")))
 		{
 			// The select that follows offers it only because it is owned now (Bible §4: visibility is not permission).
@@ -2675,6 +2700,38 @@ void UVeyraSmokeFlowSubsystem::TickCollection(IVeyraClientIntents& Flow)
 	}
 #else
 	Finish(false, TEXT("the Collection script needs the shell's UI"));
+#endif
+}
+
+void UVeyraSmokeFlowSubsystem::TickFavoritesTab(const FVeyraClientSnapshot& Snapshot, const FString& Pick)
+{
+#if WITH_VEYRA_UI
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	const UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	// The select reads the favorites as it opens; the tab waits for them.
+	if (!Screen || !Snapshot.FavoriteVanguards.Contains(Pick))
+	{
+		return;
+	}
+	if (Screen->GetRosterTab() != EVeyraRosterTab::Favorites)
+	{
+		Click(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Favorites).ToString());
+		return;
+	}
+	// The favorite shows and a Vanguard that is not one does not; narrowing changes nothing the player may pick.
+	const FString* NotFavorite = Snapshot.AvailableVanguards.FindByPredicate([&Snapshot](const FString& Id) { return !Snapshot.FavoriteVanguards.Contains(Id); });
+	if (!Screen->IsRosterCardShown(Pick) || (NotFavorite && Screen->IsRosterCardShown(*NotFavorite)))
+	{
+		Finish(false, FString::Printf(TEXT("champion select's Favorites tab does not narrow the bench to the favorites, %s among them"), *Pick));
+		return;
+	}
+	if (!Capture(TEXT("Favorites")))
+	{
+		bCheckedFavorites = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: champion select's Favorites tab shows %s."), *Pick);
+	}
+#else
+	bCheckedFavorites = true;
 #endif
 }
 
