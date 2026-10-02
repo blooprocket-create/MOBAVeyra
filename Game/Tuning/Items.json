@@ -268,6 +268,11 @@
       "stats": { "health": 200, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 70, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": ["project_echo"], "attunement": ["reverberation"]
     },
+    "the_second_self": {
+      "provenance": "Provisional", "tier": 4, "category": "Equipment", "components": ["echo_lens", "gravitic_seal"], "cost": 750, "stackLimit": 1,
+      "stats": { "health": 400, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 110, "attackSpeed": 0, "abilityHaste": 25, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": ["second_self"], "attunement": ["reverberation", "drag"]
+    },
     "gravitic_seal": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["spellguard_plate", "catalyst_coil"], "cost": 750, "stackLimit": 1,
       "stats": { "health": 250, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 60, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },

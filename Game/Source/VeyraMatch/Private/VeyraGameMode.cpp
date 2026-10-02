@@ -9,6 +9,8 @@
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundLink.h"
+#include "Echoes/VeyraEchoLink.h"
+#include "Echoes/VeyraEchoSubsystem.h"
 #include "Buyback/VeyraBuybackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Bots/VeyraMatchEvents.h"
@@ -229,6 +231,8 @@ void AVeyraGameMode::StartPlay()
 	}
 	Battleground = MakeShared<FVeyraBattlegroundLink>();
 	Battleground->Start(*GetWorld(), FVeyraBattlegroundLink::FOnPrimeWellDestroyed::CreateUObject(this, &AVeyraGameMode::OnPrimeWellDestroyed));
+	EchoLink = MakeShared<FVeyraEchoLink>();
+	EchoLink->Start(*GetWorld());
 	if (Roster)
 	{
 		NoteConnectedParticipants();
@@ -252,6 +256,7 @@ void AVeyraGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		Events->OnDeath.Remove(DeathHandle);
 	}
 	Battleground.Reset();
+	EchoLink.Reset();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -277,6 +282,11 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	if (Battleground)
 	{
 		Battleground->Stop();
+	}
+	// Every player commands its Vanguard again at the end.
+	if (EchoLink)
+	{
+		EchoLink->Stop();
 	}
 	if (UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>())
 	{
@@ -478,6 +488,11 @@ namespace
 	}
 }
 
+AVeyraVanguardController* AVeyraGameMode::OrderedControllerOf(const AVeyraPlayerState* Participant) const
+{
+	return EchoLink ? EchoLink->CommandedControllerOf(Participant) : VanguardControllerOf(Participant);
+}
+
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination)
 {
 	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
@@ -489,7 +504,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Particip
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
-	AVeyraVanguardController* Controller = VanguardControllerOf(Participant);
+	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard),
 		TOptional<FVector>(Destination));
 }
@@ -505,7 +520,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerState* Partic
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
-	AVeyraVanguardController* Controller = VanguardControllerOf(Participant);
+	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard));
 }
 
@@ -520,7 +535,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerState* Pa
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
-	AVeyraVanguardController* Controller = VanguardControllerOf(Participant);
+	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackMoveTo(Destination, Preference) : EVeyraOrderRejection::NoVanguard),
 		TOptional<FVector>(Destination));
 }
@@ -537,6 +552,12 @@ EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerState* Participa
 		return EVeyraCastRejection::WrongPhase;
 	}
 	UAbilitySystemComponent* AbilitySystem = Participant ? Participant->GetAbilitySystemComponent() : nullptr;
+	// Commanding its Echo, the participant casts through it: one eligible ability, never an item or a spell (ADR-050 §5).
+	UVeyraEchoSubsystem* Echoes = GetWorld()->GetSubsystem<UVeyraEchoSubsystem>();
+	if (AbilitySystem && Echoes && EchoLink && EchoLink->IsCommanding(Participant))
+	{
+		return NoteActivityIfTaken(Participant, Echoes->CastFrom(*AbilitySystem, Slot, Target));
+	}
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility));
 }
 
@@ -592,6 +613,11 @@ EVeyraOrderRejection AVeyraGameMode::HandleVisionToolOrder(AVeyraPlayerState* Pl
 	if (!Tool)
 	{
 		return EVeyraOrderRejection::NoVanguard;
+	}
+	// Its Vanguard waits in Stasis while it commands its Echo, which carries no tool (ADR-050 §5).
+	if (EchoLink && EchoLink->IsCommanding(PlayerState))
+	{
+		return EVeyraOrderRejection::CrowdControlled;
 	}
 	switch (Tool->Use(Point))
 	{

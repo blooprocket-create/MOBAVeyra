@@ -5,6 +5,23 @@
     "interruptedCooldownFraction": 0.2
   },
   "statuses": {
+    "second_self_stasis": {
+      "provenance": "Provisional",
+      "kind": "Stasis",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [], "landsOn": [],
+      "attackCharges": 0,
+      "cover": []
+    },
     "project_echo_veil": {
       "provenance": "Provisional",
       "kind": "Untargetable",
@@ -7337,6 +7354,45 @@
       "repeats": 1,
       "manifest": [{ "windowSeconds": 4, "statuses": ["project_echo_veil"] }],
       "projection": []
+    },
+    "second_self": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [90],
+        "resourceCostByRank": [0],
+        "castRange": 1100,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "damageCoefficient": 0.25,
+      "slots": ["Q", "W", "E"],
+      "repeats": 1,
+      "manifest": [],
+      "projection": [
+        {
+          "stasis": "second_self_stasis",
+          "formationSeconds": 0.5,
+          "immunitySeconds": 2.0,
+          "integrity": 100,
+          "decayPerSecond": 12.5,
+          "maxRadius": 1100,
+          "minRadius": 450,
+          "radiusExponent": 1,
+          "updateSeconds": 0.1,
+          "integrityLoss": { "vanguardBasicAttack": 20, "unitBasicAttack": 10, "ability": 25, "structureAttack": 50, "periodic": 5, "proc": 5 }
+        }
+      ]
     }
   },
   "fluxSpells": {

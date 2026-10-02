@@ -49,6 +49,10 @@ FVeyraChannelPlan UVeyraEchoAbility::Deliver(const FVeyraCast& Cast)
 	{
 		Echoes->Manifest(*Caster, Cast.Ability, Cast.Point);
 	}
+	else if (Echo && Caster && Echoes && !Echo->Projection.IsEmpty())
+	{
+		Echoes->Project(*Caster, Cast.Ability, Cast.Point);
+	}
 	return FVeyraChannelPlan();
 }
 

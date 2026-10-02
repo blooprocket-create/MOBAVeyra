@@ -377,7 +377,8 @@ bool AVeyraPlayerController::ShouldSelfCast(EVeyraAbilitySlot Slot, TConstArrayV
 	{
 		return false;
 	}
-	const APawn* Body = GetVanguard();
+	// From the body that casts it: the Vanguard, or the Echo it commands (ADR-050 §6).
+	const APawn* Body = GetCommandedBody();
 	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(Tuning, Ability);
 	return !Body || !Cast || VeyraCursorPicks::SmartSelfCasts(*Body, Under, Cast->CastRange);
 }
@@ -517,7 +518,7 @@ void AVeyraPlayerController::CastAtCursor(EVeyraAbilitySlot Slot)
 	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
 	const FVeyraContentId Ability = AbilityIn(Slot);
 	const bool bNamesAlly = Ability.IsValid() && VeyraAbilityRules::AcceptsAllyTarget(UVeyraAbilitiesTuningSubsystem::Get(), Ability);
-	Target.Actor = ShouldSelfCast(Slot, Under) ? GetVanguard() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly(), bNamesAlly);
+	Target.Actor = ShouldSelfCast(Slot, Under) ? GetCommandedBody() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly(), bNamesAlly);
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
@@ -640,6 +641,22 @@ void AVeyraPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerController, TeamVote, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerController, CommandedUnit, Params);
+}
+
+APawn* AVeyraPlayerController::GetCommandedBody() const
+{
+	return CommandedUnit ? CommandedUnit.Get() : GetVanguard();
+}
+
+void AVeyraPlayerController::SetCommandedUnit(APawn* Unit)
+{
+	if (CommandedUnit == Unit)
+	{
+		return;
+	}
+	CommandedUnit = Unit;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerController, CommandedUnit, this);
 }
 
 const FVeyraVoteState& AVeyraPlayerController::GetOpenVote() const
@@ -1096,7 +1113,7 @@ void AVeyraPlayerController::GetPlayerViewPoint(FVector& OutLocation, FRotator& 
 		return;
 	}
 
-	const AActor* ViewPoint = GetVanguard();
+	const AActor* ViewPoint = GetCommandedBody();
 	if (!ViewPoint)
 	{
 		ViewPoint = this;
@@ -1222,9 +1239,10 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 			return;
 		}
 	}
-	if (const AVeyraVanguardCharacter* Vanguard = GetVanguard())
+	// The camera follows the body the player's orders move: its Vanguard, or the Echo it commands (ADR-050 §6).
+	if (const APawn* Commanded = GetCommandedBody())
 	{
-		CameraInput.Vanguard = Vanguard->GetActorLocation();
+		CameraInput.Vanguard = Commanded->GetActorLocation();
 	}
 	else if (!View.bFreeWhileDead && CameraRig->GetMode() != EVeyraCameraMode::Free)
 	{

@@ -19,6 +19,8 @@ struct FVeyraAbsenceRecord;
 class AVeyraGameState;
 class AVeyraPlayerController;
 class FVeyraBattlegroundLink;
+class FVeyraEchoLink;
+class AVeyraVanguardController;
 class AVeyraPlayerState;
 class AVeyraVanguardCharacter;
 class UAbilitySystemComponent;
@@ -262,6 +264,12 @@ private:
 
 	/** Connects the battleground's World and Flux while the match runs (ADR-011 §3). */
 	TSharedPtr<FVeyraBattlegroundLink> Battleground;
+
+	/** Passes a participant's orders to the Echo it commands (ADR-050 §6). */
+	TSharedPtr<FVeyraEchoLink> EchoLink;
+
+	/** The controller Participant's move and attack orders reach: its commanded Echo's, else its Vanguard's. */
+	AVeyraVanguardController* OrderedControllerOf(const AVeyraPlayerState* Participant) const;
 
 	/** Set when this server hosts an assigned match. */
 	TUniquePtr<FVeyraMatchRoster> Roster;

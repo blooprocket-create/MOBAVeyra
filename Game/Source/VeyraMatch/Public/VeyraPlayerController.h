@@ -179,6 +179,18 @@ public:
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
+	/**
+	 * The body this player's orders move now, on the server and its own client (ADR-050 §6): the Echo it commands, while
+	 * it commands one, else its Vanguard. The camera follows it.
+	 */
+	APawn* GetCommandedBody() const;
+
+	/** Whether this player commands an Echo now, on the server and its own client. */
+	bool IsCommandingEcho() const { return CommandedUnit != nullptr; }
+
+	/** Server: the unit this player commands in its Vanguard's stead, or null when it commands its Vanguard again. */
+	void SetCommandedUnit(APawn* Unit);
+
 	/** Owning client: the reason the server gave for the last refused order, and how many it refused. */
 	EVeyraOrderRejection GetLastOrderRejection() const { return LastOrderRejection; }
 	int32 GetOrderRejectionCount() const { return OrderRejectionCount; }
@@ -560,6 +572,10 @@ private:
 	/** Its team's open vote; a controller replicates to its own player only. */
 	UPROPERTY(Replicated)
 	FVeyraVoteState TeamVote;
+
+	/** The Echo its orders move in its Vanguard's stead, if any (ADR-050 §6). */
+	UPROPERTY(Replicated)
+	TObjectPtr<APawn> CommandedUnit;
 
 	bool bWarnedAfk = false;
 
