@@ -75,7 +75,7 @@ namespace VeyraMatchTests
 
 		TEST_METHOD(AnAbilitysKeyReportsItsRelease)
 		{
-			// No press-only trigger, so the action completes when the key comes up (ADR-040 §1).
+			// No press-only trigger, so the action completes when the key comes up (ADR-041 §1).
 			const FVeyraInputObjects Objects = VeyraInput::Build(*GetDefault<UVeyraInputSettings>(), *GetTransientPackage());
 			for (const EVeyraAbilitySlot Slot : { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::R, EVeyraAbilitySlot::Item1, EVeyraAbilitySlot::Spell2, EVeyraAbilitySlot::VisionTool })
 			{

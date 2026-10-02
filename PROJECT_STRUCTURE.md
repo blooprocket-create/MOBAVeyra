@@ -319,7 +319,7 @@ Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-a
 
 Since M12 `Statistics/` holds the match's one statistics service ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §3). `UVeyraMatchStatisticsSubsystem` records every participant, bots too, from the events Combat, Economy, World and Vision report, and never computes what they decide. Pure rules (`VeyraStatisticsRules`) hold the crowd-control union and which Gold counts as earned. Each PlayerState's `UVeyraScoreComponent` carries the public part, K/D/A and last hits, to every client.
 
-Since M31 `Input/` decides how the player's keys cast ([ADR-040](Docs/ADR/ADR-040-casting-modes-and-targeting-aids.md)):
+Since M31 `Input/` decides how the player's keys cast ([ADR-041](Docs/ADR/ADR-041-casting-modes-and-targeting-aids.md)):
 - `FVeyraCastInput`, the casting modes (Quick, Quick with Indicator, Normal) and Show Cast Range as pure transitions;
 - `VeyraControlPreferences`, the control settings;
 - `VeyraCursorPicks`, which unit under the cursor an order or cast names, for Target Vanguards Only and Smart Self-Cast.

@@ -31,7 +31,7 @@ enum class EVeyraTelegraphSource : uint8
 	LingeringArea,
 	/** A lingering area whose end is near and hits (ADR-026 §4). */
 	LingeringAreaEnding,
-	/** The local player's indicator: where an ability would land, before it is cast (ADR-040 §2). */
+	/** The local player's indicator: where an ability would land, before it is cast (ADR-041 §2). */
 	Indicator,
 };
 

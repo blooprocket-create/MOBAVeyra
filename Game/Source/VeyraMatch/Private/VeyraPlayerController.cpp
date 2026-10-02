@@ -203,7 +203,7 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
 		Enhanced->BindAction(Input.VoteYes, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteYesPressed);
 		Enhanced->BindAction(Input.VoteNo, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteNoPressed);
-		// Each ability's key reports its press and its release, which its casting mode reads (ADR-040 §1).
+		// Each ability's key reports its press and its release, which its casting mode reads (ADR-041 §1).
 		const auto BindAbility = [this, Enhanced](EVeyraAbilitySlot Slot) {
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Started, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Completed, this, &AVeyraPlayerController::OnAbilityReleased, Slot);
@@ -226,7 +226,7 @@ void AVeyraPlayerController::SetupInputComponent()
 
 void AVeyraPlayerController::OnMoveOrderStarted()
 {
-	// It cancels a waiting cast or attack-move, and still gives its order (ADR-040 §1, §4).
+	// It cancels a waiting cast or attack-move, and still gives its order (ADR-041 §1, §4).
 	CastInput.Cancel();
 	bAttackMoveWaiting = false;
 	// On an enemy the button attacks it; anywhere else it moves (Settings Bible §1).
