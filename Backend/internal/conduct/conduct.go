@@ -268,10 +268,14 @@ func (s *Service) Commend(ctx context.Context, actor, matchID, name string) (Com
 }
 
 // Record is what the player did in a match: whom they reported and whom they
-// commended, by the names the match recorded (ADR-047 §4).
+// commended, by the names the match recorded (ADR-047 §4). It carries the
+// reasons a report may give and how long its details may be, so a client's
+// form offers what the backend accepts.
 type Record struct {
-	Reported  []string
-	Commended string
+	Reported             []string
+	Commended            string
+	Reasons              []string
+	DetailsMaxCharacters int
 }
 
 // Record returns the actor's own conduct records for a match it played.
@@ -283,7 +287,7 @@ func (s *Service) Record(ctx context.Context, actor, matchID string) (Record, er
 	if err != nil {
 		return Record{}, err
 	}
-	out := Record{Reported: []string{}}
+	out := Record{Reported: []string{}, Reasons: slices.Clone(s.tuning.Reasons), DetailsMaxCharacters: s.tuning.DetailsMaxCharacters}
 	for _, r := range reports {
 		out.Reported = append(out.Reported, r.ReportedName)
 	}

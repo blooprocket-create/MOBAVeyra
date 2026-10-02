@@ -4,6 +4,7 @@
 
 #include "Backend/VeyraBackendProtocol.h"
 #include "Backend/VeyraChatProtocol.h"
+#include "Backend/VeyraConductProtocol.h"
 #include "Containers/Array.h"
 #include "Containers/Map.h"
 #include "Containers/UnrealString.h"
@@ -151,6 +152,10 @@ enum class EVeyraClientIntent : uint8
 	CloseDirectChat,
 	/** Mutes or unmutes another participant in the results screen's post-match chat, for the player only. */
 	MutePostMatchChat,
+	/** Reports another human participant of the results' match, or of an opened Match History record (ADR-047 §2). */
+	ReportPlayer,
+	/** Commends a teammate of the results' match, once (ADR-047 §3). */
+	CommendTeammate,
 };
 
 /** Which kind of world the client just loaded. */
@@ -318,6 +323,26 @@ struct FVeyraChat
 };
 
 /** Everything the presentation shows about the flow. Only the flow changes it. */
+/**
+ * Results, or an opened Match History record: the player's own reports and commendation in that match, and
+ * what a report may give (ADR-047 §4). Reports and commendation wait until it is read.
+ */
+struct FVeyraConduct
+{
+	/** The match it is of; empty while none is open. */
+	FString MatchId;
+	/** Whether the record has been read; a backend without reports never reads one. */
+	bool bLoaded = false;
+	VeyraBackendProtocol::FConductRecord Record;
+	/**
+	 * What came of the player's last report or commendation: "report_sent", "commended", or the backend's
+	 * refusal, such as "commend_closed". Empty for none.
+	 */
+	FString Feedback;
+	/** Whom that was about. */
+	FString FeedbackName;
+};
+
 struct FVeyraClientSnapshot
 {
 	EVeyraClientState State = EVeyraClientState::SigningIn;
@@ -387,6 +412,8 @@ struct FVeyraClientSnapshot
 	TOptional<VeyraBackendProtocol::FProgression> Progression;
 	/** Shell: the Collection, once the player opens it. */
 	FVeyraCollection Collection;
+	/** Results, or an opened Match History record: the player's reports and commendation in that match. */
+	FVeyraConduct Conduct;
 	/** Party, direct, select and post-match chat, read in every signed-in state but Reconnect-only (ADR-046 §6). */
 	FVeyraChat Chat;
 

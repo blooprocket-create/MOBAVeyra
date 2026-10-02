@@ -126,4 +126,11 @@ public:
 	virtual bool CloseDirectChat() = 0;
 	/** Mutes or unmutes AccountId, another participant, in the post-match chat, for the player only. */
 	virtual bool MutePostMatchChat(const FString& AccountId, bool bMute) = 0;
+	/**
+	 * Reports Name, another human in the match whose conduct record is read, for Reason, one the record offers,
+	 * with optional Details (ADR-047 §2). The answer only says the report was received.
+	 */
+	virtual bool ReportPlayer(const FString& Name, const FString& Reason, const FString& Details) = 0;
+	/** Commends Name, a teammate in the results' match; one per match (ADR-047 §3). */
+	virtual bool CommendTeammate(const FString& Name) = 0;
 };

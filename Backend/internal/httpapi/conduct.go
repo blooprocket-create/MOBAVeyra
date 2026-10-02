@@ -64,7 +64,8 @@ func (s *Server) myConduct(w http.ResponseWriter, r *http.Request, actor string)
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"conduct": map[string]any{"reported": rec.Reported, "commended": textOrNil(rec.Commended)}})
+	writeJSON(w, http.StatusOK, map[string]any{"conduct": map[string]any{"reported": rec.Reported, "commended": textOrNil(rec.Commended),
+		"reasons": rec.Reasons, "detailsMaxCharacters": rec.DetailsMaxCharacters}})
 }
 
 // devConduct shows a match's case and commendations, for scripted runs.

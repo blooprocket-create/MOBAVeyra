@@ -194,6 +194,8 @@ public:
 	virtual bool CloseDirectChat() override;
 	/** Only another participant of the match is on offer. */
 	virtual bool MutePostMatchChat(const FString& AccountId, bool bMute) override;
+	virtual bool ReportPlayer(const FString& Name, const FString& Reason, const FString& Details) override;
+	virtual bool CommendTeammate(const FString& Name) override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);
@@ -290,6 +292,12 @@ private:
 	void ReadProgression();
 	/** Shows what came of a purchase in the Collection, not as the screen's problem. */
 	void ShowCollectionFeedback(const FString& Code, const FString& VanguardId);
+
+	// Reports and commendation (VeyraClientFlowConduct.cpp; ADR-047).
+	/** Opens MatchId's conduct record, empty for none, and reads it once; a failed read offers no report or commendation. */
+	void ReadConduct(const FString& MatchId);
+	/** Shows what came of a report or commendation beside the player it was about, not as the screen's problem. */
+	void ShowConductFeedback(const FString& Code, const FString& Name);
 
 	// Chat (VeyraClientFlowChat.cpp; ADR-046).
 	/** Whether chat is read now: signed in, and in any state but Reconnect-only. */
@@ -429,6 +437,15 @@ private:
 		VeyraBackendProtocol::ECurrency Currency = VeyraBackendProtocol::ECurrency::Flux;
 	};
 	TOptional<FPendingPurchase> PendingPurchase;
+
+	/** A report whose answer has not arrived; reporting the same player in the same match again reuses its ID. */
+	struct FPendingReport
+	{
+		FString Id;
+		FString MatchId;
+		FString Name;
+	};
+	TOptional<FPendingReport> PendingReport;
 
 	/** A chat message the player sent whose answer has not arrived; a lost answer is sent again with its ID. */
 	struct FChatSend

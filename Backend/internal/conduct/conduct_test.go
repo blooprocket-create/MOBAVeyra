@@ -70,6 +70,10 @@ func TestAParticipantReportsAnotherHumanIntoTheMatchsCase(t *testing.T) {
 	if err != nil || !slices.Equal(rec.Reported, []string{"DevThree", "DevTwo"}) || rec.Commended != "" {
 		t.Fatalf("record: %+v %v", rec, err)
 	}
+	// The record carries what a report may give, so the client's form offers what is accepted.
+	if !slices.Equal(rec.Reasons, fixtureTuning.Reasons) || rec.DetailsMaxCharacters != fixtureTuning.DetailsMaxCharacters {
+		t.Fatalf("record's reasons and details limit: %+v", rec)
+	}
 }
 
 func TestARepeatedReportReturnsTheFirst(t *testing.T) {
