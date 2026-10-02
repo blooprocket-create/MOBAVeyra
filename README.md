@@ -26,6 +26,15 @@ The project is currently in pre-production. The repository is being established 
 - [`Launcher/`](Launcher/README.md) - the Tauri launcher: it installs, updates and repairs the game, signs the player in, starts the game and hands it a launch code. Veyra Setup, which installs the launcher, is built from it (`Launcher/Package.ps1`).
 - [`Docs/Pull_Request_Record_v0.1.md`](Docs/Pull_Request_Record_v0.1.md) - the review findings from every pull request, kept in the repository rather than only on the forge.
 
+### World, asset & VFX production
+
+- [`Docs/Production/README.md`](Docs/Production/README.md) - production-guidance entrypoint and authority order.
+- [`Docs/Production/VEYRA_WORLD_PRODUCTION_BIBLE.md`](Docs/Production/VEYRA_WORLD_PRODUCTION_BIBLE.md) - how agents build the Meridian Crucible around the existing `World.json` gameplay layout: terrain, water, protected geometry, PCG, lighting, Flux presentation and screenshot-driven iteration.
+- [`Docs/Production/VEYRA_ASSET_AND_VFX_PIPELINE.md`](Docs/Production/VEYRA_ASSET_AND_VFX_PIPELINE.md) - Blender-to-Unreal asset generation, shared materials, Nanite, foliage, Niagara, dynamic effects and provenance.
+- [`Docs/Production/VEYRA_WORLD_VALIDATION_STANDARD.md`](Docs/Production/VEYRA_WORLD_VALIDATION_STANDARD.md) - deterministic regeneration, collision/navigation, competitive readability, screenshot regression, performance/scalability, cook/package and acceptance gates.
+
+The production workflow is agent-first but source-controlled: gameplay layout stays in reviewed Veyra data, reusable visual families are generated deterministically, Unreal is the final runtime/visual authority, and important changes are reviewed from repeatable gameplay cameras.
+
 ### Design bibles
 
 Repository-native Markdown exports of the current working design documents live in [`Docs/Design/`](Docs/Design/); see the [agent context map](Docs/CONTEXT_MAP.md) for owning documents and narrow section locators:

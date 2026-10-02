@@ -21,7 +21,11 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Engine/Texture2D.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Kismet/GameplayStatics.h"
 #include "Misc/ScopeExit.h"
+#include "Sound/SoundWaveProcedural.h"
+#include "Widgets/SWindow.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraMatchHistoryModel.h"
 #include "Shell/VeyraShellArt.h"
@@ -201,6 +205,15 @@ void UVeyraShellScreen::Refresh()
 		return;
 	}
 	const FVeyraClientSnapshot& Snapshot = Client->GetSnapshot();
+	// A draft turn of the player's own asks for their attention once, as it begins (UX-31, UX-32).
+	if (const FString Turn = VeyraShellModels::PlayersTurn(Snapshot); Turn != AttendedTurn)
+	{
+		AttendedTurn = Turn;
+		if (!Turn.IsEmpty())
+		{
+			DrawTurnAttention();
+		}
+	}
 	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|"), static_cast<int32>(Page), OpenSpellSlot,
 								  bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex, *BotDifficulty) +
 		VeyraShellModels::Signature(Snapshot);
@@ -210,6 +223,52 @@ void UVeyraShellScreen::Refresh()
 	}
 	ShownSignature = Signature;
 	Rebuild(Snapshot);
+}
+
+void UVeyraShellScreen::DrawTurnAttention()
+{
+	++TurnAttentions;
+	// Asked for once, never held: the window comes forward, and where the OS refuses it the taskbar
+	// draws attention until the player comes back (UX-31). The timer never waits for them.
+	const TSharedPtr<SWidget> Widget = GetCachedWidget();
+	if (FSlateApplication::IsInitialized() && Widget.IsValid())
+	{
+		if (const TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(Widget.ToSharedRef()))
+		{
+			Window->BringToFront(/*bForce*/ true);
+			if (!Window->IsActive())
+			{
+				Window->DrawAttention(FWindowDrawAttentionParameters(EWindowDrawAttentionRequestType::UntilActivated));
+			}
+		}
+	}
+	// One brief, distinct cue, made from the style's tones as it plays: each fades in and out over its
+	// length, so it neither clicks nor rings on (UX-32).
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	UWorld* World = GetWorld();
+	if (!World || !FApp::CanEverRenderAudio() || Style.TurnCueTonesHz.IsEmpty())
+	{
+		return;
+	}
+	constexpr int32 SampleRate = UVeyraShellStyleSettings::TurnCueSampleRate;
+	const int32 ToneSamples = FMath::Max(1, FMath::RoundToInt32(Style.TurnCueToneSeconds * SampleRate));
+	TArray<int16> Samples;
+	Samples.Reserve(ToneSamples * Style.TurnCueTonesHz.Num());
+	for (const float Hz : Style.TurnCueTonesHz)
+	{
+		for (int32 Index = 0; Index < ToneSamples; ++Index)
+		{
+			const float Envelope = FMath::Sin(UE_PI * Index / ToneSamples);
+			Samples.Add(static_cast<int16>(MAX_int16 * Envelope * FMath::Sin(UE_TWO_PI * Hz * Index / SampleRate)));
+		}
+	}
+	USoundWaveProcedural* Cue = NewObject<USoundWaveProcedural>(this, NAME_None, RF_Transient);
+	Cue->SetSampleRate(SampleRate);
+	Cue->NumChannels = 1;
+	Cue->Duration = static_cast<float>(Samples.Num()) / SampleRate;
+	Cue->bLooping = false;
+	Cue->QueueAudio(reinterpret_cast<const uint8*>(Samples.GetData()), Samples.Num() * sizeof(int16));
+	UGameplayStatics::PlaySound2D(World, Cue, Style.TurnCueVolume);
 }
 
 void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)

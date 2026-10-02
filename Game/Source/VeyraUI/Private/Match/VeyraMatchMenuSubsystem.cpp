@@ -184,7 +184,7 @@ void UVeyraMatchMenuSubsystem::ToggleMenu()
 	AVeyraPlayerController* Controller = BoundController.Get();
 	if (Controller && Controller->CancelPendingCast())
 	{
-		// The menu's key hides a waiting cast or a preview first (ADR-040 §1).
+		// The menu's key hides a waiting cast or a preview first (ADR-041 §1).
 		return;
 	}
 	if (Settings)

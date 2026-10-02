@@ -93,7 +93,7 @@ func TestParseAllocatorNone(t *testing.T) {
 }
 
 // A draft mode's turns must give each side picks for its whole team, or a
-// seat would wait for a turn that never comes (ADR-041 §1).
+// seat would wait for a turn that never comes (ADR-042 §1).
 func TestDraftPickTurnsCoverTheTeams(t *testing.T) {
 	draft := strings.Replace(validJSON, `"category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"`,
 		`"category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "draftPick"`, 1)

@@ -63,6 +63,20 @@ func (f *fixture) mayAlsoPlay(extra map[string][]string) {
 	f.svc.accounts = mayPlay{Accounts: f.accounts, extra: extra}
 }
 
+// savedLoadouts gives accounts saved Flux Spell loadouts for Vanguards, as the
+// matches they played would (Pre-Game Client UX Bible 37).
+type savedLoadouts struct {
+	Matches
+	saved map[[2]string][2]string
+}
+
+func (s savedLoadouts) LastFluxSpells(ctx context.Context, accountID, vanguardID string) ([2]string, error) {
+	if spells, ok := s.saved[[2]string{accountID, vanguardID}]; ok {
+		return spells, nil
+	}
+	return s.Matches.LastFluxSpells(ctx, accountID, vanguardID)
+}
+
 func (f *fixture) selectOf(t *testing.T, accountID, id string) Session {
 	t.Helper()
 	s, err := f.svc.ForParticipant(ctx, accountID, id)
@@ -189,6 +203,31 @@ func TestADraftTurnEndsWhenItsTimeRunsOut(t *testing.T) {
 	}
 }
 
+func TestATickWorkingFromAnOldReadLeavesANewTurnAlone(t *testing.T) {
+	f := newFixture(t)
+	s := f.draft(t)
+	// The ticker lists the select while side A's ban turn is running out...
+	listed, err := f.store.Active(ctx)
+	if err != nil || len(listed) != 1 {
+		t.Fatalf("Active: %+v %v", listed, err)
+	}
+	// ...side A bans just before its deadline, which begins side B's turn...
+	f.now = s.Deadline.Add(-time.Millisecond)
+	next, err := f.svc.Ban(ctx, "acc-1", "bryn")
+	if err != nil || next.Turn != 1 {
+		t.Fatalf("Ban: %+v %v", next, err)
+	}
+	// ...and the tick, working from its old read once the old deadline passed, ends nothing.
+	f.now = s.Deadline
+	if err := f.svc.tickOne(ctx, listed[0]); err != nil {
+		t.Fatalf("tickOne: %v", err)
+	}
+	after := f.selectOf(t, "acc-2", s.ID)
+	if after.State != Picking || after.Turn != 1 || len(after.Bans) != 1 || !after.Deadline.Equal(next.Deadline) {
+		t.Fatalf("side B's turn keeps its whole timer: %+v", after)
+	}
+}
+
 func TestADraftPlayerWhoStopsPollingCancelsIt(t *testing.T) {
 	f := newFixture(t)
 	s := f.draft(t)
@@ -202,7 +241,7 @@ func TestADraftPlayerWhoStopsPollingCancelsIt(t *testing.T) {
 }
 
 // A side with fewer seats than a turn's count acts again in seat order, and a
-// pick turn with nobody left to lock is skipped (ADR-041 §1), so the bible's
+// pick turn with nobody left to lock is skipped (ADR-042 §1), so the bible's
 // turns run a draft of any size.
 func TestDraftTurnsGoRoundTheSidesSeats(t *testing.T) {
 	bible := Timing{Turns: []Turn{
@@ -254,6 +293,8 @@ func (f *fixture) teammates(t *testing.T) Session {
 func TestLockedTeammatesTradeTheirVanguards(t *testing.T) {
 	f := newFixture(t)
 	f.mayAlsoPlay(map[string][]string{"acc-1": {"qazharr"}, "acc-3": {"qazharr"}, "acc-4": {"bryn"}, "acc-2": {"oriel"}})
+	// acc-3 once took Scorch into a match with Cairn; acc-1 never played Qazharr.
+	f.svc.matches = savedLoadouts{Matches: f.svc.matches, saved: map[[2]string][2]string{{"acc-3", "cairn"}: {"scorch", ""}}}
 	s := f.teammates(t)
 	if _, err := f.svc.OfferTrade(ctx, "acc-1", 1); !errors.Is(err, ErrCannotTrade) {
 		t.Fatalf("before either locks: %v", err)
@@ -287,8 +328,8 @@ func TestLockedTeammatesTradeTheirVanguards(t *testing.T) {
 		t.Fatalf("a declined offer: %v", err)
 	}
 
-	// A trade swaps the two Vanguards, not the Flux Spells, and every other
-	// offer to or from either player lapses.
+	// A trade swaps the two Vanguards, each player taking their new Vanguard's
+	// saved loadout (UX-37), and every other offer to or from either player lapses.
 	if _, err := f.svc.OfferTrade(ctx, "acc-1", 1); err != nil {
 		t.Fatalf("OfferTrade: %v", err)
 	}
@@ -297,8 +338,13 @@ func TestLockedTeammatesTradeTheirVanguards(t *testing.T) {
 	}
 	traded, err := f.svc.AcceptTrade(ctx, "acc-3", 0)
 	if err != nil || traded.Seats[0].Locked != "qazharr" || traded.Seats[1].Locked != "cairn" || traded.Seats[0].Hover != "qazharr" ||
-		traded.Seats[0].FluxSpells != [2]string{"blink", "mend"} || len(traded.Trades) != 0 {
+		traded.Seats[0].FluxSpells != ([2]string{}) || traded.Seats[1].FluxSpells != [2]string{"scorch", ""} || traded.Seats[0].FluxSpellsEdited ||
+		len(traded.Trades) != 0 {
 		t.Fatalf("the trade: %+v %v", traded, err)
+	}
+	// The player may still choose again for the Vanguard they received.
+	if _, err := f.svc.SetFluxSpells(ctx, "acc-1", [2]string{"blink", "mend"}); err != nil {
+		t.Fatalf("SetFluxSpells: %v", err)
 	}
 
 	// Each player must be allowed the Vanguard they receive; a refused trade
@@ -323,7 +369,7 @@ func TestLockedTeammatesTradeTheirVanguards(t *testing.T) {
 }
 
 // After the last lock a select waits out its final window, in which locked
-// teammates may still trade (ADR-041 §2).
+// teammates may still trade (ADR-042 §2).
 func TestTheFinalWindowLeavesTimeToTrade(t *testing.T) {
 	f := newFixture(t)
 	f.svc.settings.Casual.FinalDuration = 10 * time.Second

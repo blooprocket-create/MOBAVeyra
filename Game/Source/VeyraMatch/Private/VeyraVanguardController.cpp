@@ -236,7 +236,7 @@ void AVeyraVanguardController::UpdateAttackOrder()
 			AttackTarget = Target;
 			if (Target)
 			{
-				// Closest to Cursor chooses the order's first enemy only (ADR-040 §8.5).
+				// Closest to Cursor chooses the order's first enemy only (ADR-041 §8.5).
 				AttackMoveAim.Reset();
 			}
 		}

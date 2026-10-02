@@ -340,7 +340,7 @@ namespace
 		return false;
 	}
 
-	/** A draft's phase, turn and bans (ADR-041 §1). Older selects left them out: one picking phase, no turns, no bans. */
+	/** A draft's phase, turn and bans (ADR-042 §1). Older selects left them out: one picking phase, no turns, no bans. */
 	bool ParseDraft(const FJsonObject& Object, FSelect& Select, FString& OutProblem)
 	{
 		FString Phase;
@@ -664,7 +664,7 @@ bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& Ou
 			|| Seat.DisplayName.IsEmpty() || !StringField(**SeatObject, TEXT("side"), SidePattern, Seat.Side) || !BoolField(**SeatObject, TEXT("you"), Seat.bYou)
 			|| !NullableStringField(**SeatObject, TEXT("hover"), ContentIdPattern, Seat.Hover)
 			|| !NullableStringField(**SeatObject, TEXT("locked"), ContentIdPattern, Seat.Locked)
-			// A draft's and a trade's details (ADR-041), which older selects left out.
+			// A draft's and a trade's details (ADR-042), which older selects left out.
 			|| ((*SeatObject)->HasField(TEXT("banHover")) && !NullableStringField(**SeatObject, TEXT("banHover"), ContentIdPattern, Seat.BanHover))
 			|| !OptionalBoolField(**SeatObject, TEXT("acting"), Seat.bActing) || !OptionalBoolField(**SeatObject, TEXT("offersYou"), Seat.bOffersYou)
 			|| !OptionalBoolField(**SeatObject, TEXT("offeredByYou"), Seat.bOfferedByYou))

@@ -1,4 +1,4 @@
-# ADR-041: Draft Pick, and trades between locked teammates
+# ADR-042: Draft Pick, and trades between locked teammates
 
 **Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §7 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the pull request that adds it.
 **Date:** 2026-10-01
@@ -40,7 +40,7 @@ The sequence is data (`draftPick.turns`), so a test can run a shorter one; the c
   - One offers, the other accepts or declines.
   - An offer lapses when either player's assignment changes, another trade completes, or the select leaves its trading window.
 - **A trade must keep each assignment legal:** each player must own the other's Vanguard or have it in the week's rotation, as for a pick (Modes Bible §1). A trade the service refuses changes nothing.
-- **Flux Spells stay with their player.**
+- **Each player takes their new Vanguard's saved loadout** of starting Flux Spells, not the spells chosen for the one they gave up (Pre-Game Client UX Bible 37), and may choose again before the match.
 - **The trading window:** from a seat's lock until the select starts. After the last lock, the select waits `finalDuration` before it starts, so a team can still trade (§7.3).
 
 ### 3. Matchmaking and configuration

@@ -2446,7 +2446,7 @@ namespace VeyraAbilityRules
 
 	/**
 	 * Whether a cast of Ability may name an allied unit, its caster among them: a buff that may land on an ally,
-	 * or a companion command bound to one. The Self-Cast Modifier names the caster only for these (ADR-040 §3).
+	 * or a companion command bound to one. The Self-Cast Modifier names the caster only for these (ADR-041 §3).
 	 */
 	VEYRAABILITIES_API bool AcceptsAllyTarget(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 

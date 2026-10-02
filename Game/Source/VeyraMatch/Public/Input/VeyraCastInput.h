@@ -4,7 +4,7 @@
 
 #include "Slots/VeyraAbilitySlot.h"
 
-/** How an ability's key starts its cast (Settings Bible §1.2; ADR-040 §1). */
+/** How an ability's key starts its cast (Settings Bible §1.2; ADR-041 §1). */
 enum class EVeyraCastMode : uint8
 {
 	/** The press casts toward the cursor. */
@@ -43,7 +43,7 @@ struct FVeyraCastOutcome
 };
 
 /**
- * The player's cast input, apart from keys and cursors (ADR-040 §1): which indicator shows, and when a key,
+ * The player's cast input, apart from keys and cursors (ADR-041 §1): which indicator shows, and when a key,
  * its release, a click or a cancel casts. It decides nothing about the cast itself, which the server judges.
  */
 class VEYRAMATCH_API FVeyraCastInput

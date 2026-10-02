@@ -361,7 +361,7 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 			}
 			else if (!Flow.CanIssue(EVeyraClientIntent::LockVanguard))
 			{
-				// A draft's pick waits for the player's turn (ADR-041 §1).
+				// A draft's pick waits for the player's turn (ADR-042 §1).
 			}
 			else if (!Capture(TEXT("ChampionSelect")))
 			{

@@ -32,11 +32,11 @@ type CasualSettings struct {
 	// asked about it for this long: a disconnect (Match Flow Bible §2).
 	PresenceTimeout time.Duration
 	// FinalDuration is the window after the last lock, in which teammates may
-	// still trade (ADR-041 §2); zero starts the match at once.
+	// still trade (ADR-042 §2); zero starts the match at once.
 	FinalDuration time.Duration
 }
 
-// DraftSettings configures Draft Pick (ADR-041 §1): its turns, how long each
+// DraftSettings configures Draft Pick (ADR-042 §1): its turns, how long each
 // ban and pick turn and the final window last, and its presence timeout.
 type DraftSettings struct {
 	Timing          Timing
@@ -102,7 +102,7 @@ type Accounts interface {
 	Profile(ctx context.Context, accountID string) (account.Profile, error)
 	MayPick(ctx context.Context, accountID, vanguardID string) (bool, error)
 	// IsReleased reports whether a Vanguard is released, which is what a ban
-	// may name: a player bans what they do not own as well (ADR-041 §1).
+	// may name: a player bans what they do not own as well (ADR-042 §1).
 	IsReleased(vanguardID string) bool
 }
 
@@ -225,7 +225,7 @@ func (s *Service) OpenCasual(ctx context.Context, mode string, seats []CasualSea
 }
 
 // OpenDraft opens the Draft Pick select of a match everyone accepted
-// (ADR-041 §1): bans, then picks, in turns. Matchmaking calls it inside its
+// (ADR-042 §1): bans, then picks, in turns. Matchmaking calls it inside its
 // own transaction, which this joins.
 func (s *Service) OpenDraft(ctx context.Context, mode string, seats []CasualSeat) (string, error) {
 	return s.openMatchmade(ctx, KindDraft, mode, seats, nil)
@@ -267,7 +267,7 @@ func (s *Service) openMatchmade(ctx context.Context, kind Kind, mode string, sea
 		session.Seats = append(session.Seats, Seat{AccountID: seat.AccountID, DisplayName: names[seat.AccountID], Side: seat.Side, LastSeen: now})
 	}
 	if kind == KindDraft {
-		// Its first turn, with someone to act (ADR-041 §1).
+		// Its first turn, with someone to act (ADR-042 §1).
 		session.Timing = s.settings.Draft.Timing
 		session.Timing.Turns = append([]Turn(nil), s.settings.Draft.Timing.Turns...)
 		session.beginTurn(now)
@@ -458,7 +458,7 @@ func (s *Service) Hover(ctx context.Context, accountID, vanguardID string) (Sess
 }
 
 // HoverBan records the Vanguard the account is considering banning, while a
-// draft's ban turn names the player (ADR-041 §1). Any released Vanguard may be
+// draft's ban turn names the player (ADR-042 §1). Any released Vanguard may be
 // banned, owned or not.
 func (s *Service) HoverBan(ctx context.Context, accountID, vanguardID string) (Session, error) {
 	if !s.accounts.IsReleased(vanguardID) {
@@ -472,7 +472,7 @@ func (s *Service) HoverBan(ctx context.Context, accountID, vanguardID string) (S
 }
 
 // Ban bans a Vanguard for the account's side, while a draft's ban turn names
-// the player (ADR-041 §1).
+// the player (ADR-042 §1).
 func (s *Service) Ban(ctx context.Context, accountID, vanguardID string) (Session, error) {
 	if !s.accounts.IsReleased(vanguardID) {
 		return Session{}, ErrNotAvailable
@@ -557,7 +557,7 @@ func (s *Service) lockAndStart(ctx context.Context, accountID string, lock func(
 }
 
 // OfferTrade offers a locked teammate, by their seat, the account's locked
-// Vanguard for theirs (ADR-041 §2).
+// Vanguard for theirs (ADR-042 §2).
 func (s *Service) OfferTrade(ctx context.Context, accountID string, seat int) (Session, error) {
 	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
 		now := s.now()
@@ -589,6 +589,9 @@ func (s *Service) AcceptTrade(ctx context.Context, accountID string, seat int) (
 	if theirs == "" || mine == "" {
 		return Session{}, ErrCannotTrade
 	}
+	// Each player must be allowed the Vanguard they receive, and takes its saved
+	// loadout, not the spells chosen for the one they gave up (Pre-Game Client UX Bible 37).
+	saved := map[string][2]string{}
 	for _, check := range []struct{ account, vanguard string }{{accountID, theirs}, {from, mine}} {
 		may, err := s.accounts.MayPick(ctx, check.account, check.vanguard)
 		if err != nil {
@@ -597,11 +600,19 @@ func (s *Service) AcceptTrade(ctx context.Context, accountID string, seat int) (
 		if !may {
 			return Session{}, ErrNotAvailable
 		}
+		if saved[check.account], err = s.savedFluxSpells(ctx, check.account, check.vanguard); err != nil {
+			return Session{}, err
+		}
 	}
 	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
 		now := s.now()
 		session.Seen(accountID, now)
-		return session.AcceptTrade(accountID, from, theirs, mine, now)
+		if err := session.AcceptTrade(accountID, from, theirs, mine, now); err != nil {
+			return err
+		}
+		session.LoadSavedFluxSpells(accountID, saved[accountID])
+		session.LoadSavedFluxSpells(from, saved[from])
+		return nil
 	})
 }
 
@@ -757,7 +768,10 @@ func (s *Service) tickOne(ctx context.Context, listed Session) error {
 		var starting Session
 		err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 			session, err := tx.LockSession(listed.ID)
-			if err != nil || session.State != Picking {
+			// The listing may be older than the lock: a ban or pick just before the
+			// deadline can have begun a new turn with its own deadline, which this
+			// pass must leave alone.
+			if err != nil || session.State != Picking || now.Before(session.Deadline) {
 				return err
 			}
 			// In a draft only the pick turn's players owe a pick; whoever else has

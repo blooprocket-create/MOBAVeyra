@@ -207,7 +207,7 @@ public:
 	FLinearColor EndingColor = FLinearColor::Transparent;
 
 	/**
-	 * The local player's indicator, before a cast (ADR-040 §2): its colour, and its outline in units at
+	 * The local player's indicator, before a cast (ADR-041 §2): its colour, and its outline in units at
 	 * the Standard and Thick boundaries (Settings Bible §3.3).
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")

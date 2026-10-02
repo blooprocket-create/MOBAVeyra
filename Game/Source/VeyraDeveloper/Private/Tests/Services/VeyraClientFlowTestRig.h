@@ -238,7 +238,7 @@ namespace VeyraClientFlowTests
 	}
 
 	/**
-	 * A Draft Pick select (ADR-041): the player and DevThree on side A, DevTwo on side B, in Phase with
+	 * A Draft Pick select (ADR-042): the player and DevThree on side A, DevTwo on side B, in Phase with
 	 * Turn (JSON, or null) and Bans (JSON). YouSeat and TeammateSeat are the two side A seats' details
 	 * after their names and sides, such as "\"hover\":null,\"locked\":null,\"acting\":true".
 	 */

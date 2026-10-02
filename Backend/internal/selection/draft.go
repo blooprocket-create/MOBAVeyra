@@ -6,7 +6,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 )
 
-// Phase is where a select is within its picking (ADR-041 §1): a draft's ban
+// Phase is where a select is within its picking (ADR-042 §1): a draft's ban
 // and pick turns, then a final window before the match starts, in which locked
 // teammates may still trade.
 type Phase string
@@ -81,7 +81,7 @@ func (s *Session) sideSeats(side match.Side) []int {
 }
 
 // Acting returns the players who act in the current turn, in order, each once
-// per ban or pick still owed (ADR-041 §1). A ban turn's bans go round the
+// per ban or pick still owed (ADR-042 §1). A ban turn's bans go round the
 // side's seats in order, so a side with fewer players than bans bans again; a
 // pick turn's picks go to the side's next seats that have not locked.
 func (s *Session) Acting() []string {
@@ -233,7 +233,7 @@ func (s *Session) beginTurn(now time.Time) {
 	s.enterFinal(now)
 }
 
-// enterFinal opens the window after the last lock (ADR-041 §2).
+// enterFinal opens the window after the last lock (ADR-042 §2).
 func (s *Session) enterFinal(now time.Time) {
 	s.Phase, s.Deadline = PhaseFinal, now.Add(s.Timing.Final)
 }
@@ -244,7 +244,7 @@ func (s *Session) ReadyToStart(now time.Time) bool {
 	return s.State == Picking && s.Phase == PhaseFinal && !now.Before(s.Deadline)
 }
 
-// expireTurn ends a draft turn whose time ran out (ADR-041 §7.2): a banning
+// expireTurn ends a draft turn whose time ran out (ADR-042 §7.2): a banning
 // player who banned nothing bans their hover, or nothing; a picking player who
 // picked nothing locks their hover if they may, or the select is cancelled. It
 // reports whether the select goes on.
