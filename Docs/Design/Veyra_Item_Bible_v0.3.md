@@ -6,6 +6,8 @@
 
 **Revision 2026-09-30:** Added the Warforged Grip and Titansteel Grip Physical Power components, Killstring Assembly, and Doombringer Bow. Doombringer's exact stack counts, damage ratio, and stat values are prototype tuning; its no-cooldown Doom cycle is the intended mechanic.
 
+**Revision 2026-10-02:** Added the Echo Lens Mage Masterwork and The Second Self Tier 4 Mythical. This revision establishes the controllable Stasis-Echo item line, Echo Integrity, the Integrity-linked shrinking tether radius, the visible Flux feed/tether, and prototype Echo damage at 25% of the original Vanguard's output.
+
 ## 1. Core philosophy
 
 Build backward from useful finished items. Design the Tier 2 and Tier 3 outcomes players actually need, then let those recipes reveal the Tier 1 component pool.
@@ -483,6 +485,23 @@ Damaging enemy Vanguards with abilities grants stacking Ability Haste for a shor
 
 Repeated magic damage against the same enemy Vanguard progressively reduces that Vanguard's Magic Resistance, up to a cap.
 
+### Echo Lens
+
+**Recipe:** Grand Prism + Catalyst Coil + Spellguard Plate + Tier 3 recipe  
+**Stat identity:** High Magic Power + Health + Ability Haste.
+
+**Active — Project Echo**
+
+Manifest a short-lived Flux Echo. The Echo exists to carry the item's **Reverberation** Attunement and disappears after that Attunement resolves or its short activation window expires.
+
+**Attunement — Reverberation**
+
+After Project Echo is activated, the holder's next eligible ability is repeated by the Echo at reduced effectiveness.
+
+The Echo repeats the ability rather than creating a second independent full-strength cast. Its copied damage uses an Echo damage coefficient rather than the original ability's full final output. The exact Tier 3 coefficient, activation window, placement behavior, cooldown, and eligibility rules are prototype tuning values; the intended Tier 3 identity is one deliberate Echo-assisted ability, not a second controllable Vanguard.
+
+Echo-originated effects may not recursively create another Echo or recursively trigger Reverberation.
+
 ### Gravitic Seal
 
 **Recipe:** Spellguard Plate + Catalyst Coil + Tier 3 recipe  
@@ -540,6 +559,77 @@ Wayline Reservoir may be used as an ingredient in later item recipes.
 A player may purchase exactly **one** Tier 4 Mythical per match. Purchasing one permanently locks every other Tier 4 Mythical for that player for the remainder of the match.
 
 Tier 4 Mythicals may contain exactly **two Attunements**. They should represent an apex build commitment rather than a generic numerical upgrade and may preserve, combine, or evolve mechanics established by prerequisite items.
+
+### The Second Self
+
+**Recipe:** Echo Lens + Gravitic Seal + Tier 4 completion cost  
+**Stat identity:** Very high Magic Power + high Health + high Ability Haste.
+
+**Attunement I — Reverberation**
+
+The Second Self retains Echo Lens's **Reverberation** identity. Outside the Mythical Active, its Echo interaction remains the deliberate one-eligible-ability repeat established by Echo Lens. Echo-created effects cannot recursively create additional Echoes.
+
+**Attunement II — Drag**
+
+The Second Self retains Gravitic Seal's **Drag** Attunement: damaging abilities briefly slow enemy Vanguards.
+
+**Active — Second Self**
+
+Activate by selecting an Echo manifestation point within the current maximum tether radius around the holder.
+
+On confirmation, the real Vanguard **immediately enters Stasis at their current position**. The Stasis body remains the fixed anchor for the entire effect and follows the Combat Bible's ordinary Stasis rules.
+
+A Flux Echo begins forming at the selected point. Formation takes **0.5 seconds**. This formation time is part of, not additional to, the Echo's initial **2.0-second immunity window**, which begins when the Active is confirmed.
+
+During formation, Flux visibly streams from the Stasis body into the forming Echo as though the body is feeding and sustaining the projection. At the end of the 0.5-second formation, control transfers to the Echo, leaving 1.5 seconds of the initial immunity window available for controlled play.
+
+The Echo uses **Echo Integrity**, not ordinary Health.
+
+- Echo Integrity begins decaying naturally from activation and continues to decay throughout the effect, including during the initial 2.0-second immunity window.
+- During the first 2.0 seconds after activation, enemy attacks and abilities cannot reduce Echo Integrity. Natural decay continues.
+- After that immunity expires, enemy interaction can accelerate Integrity loss. Enemy basic attacks and eligible damaging abilities remove data-driven amounts of Integrity rather than interacting with the Echo as an ordinary Health pool.
+- The balance target is a small, readable number of enemy Vanguard basic attacks to break a healthy vulnerable Echo; exact Integrity loss per attack/ability is prototype tuning.
+- Echo Integrity cannot be healed, shielded, regenerated, or increased unless a future rule explicitly says otherwise.
+- Reaching 0 Integrity immediately destroys the Echo and ends the Stasis.
+
+While controlled, the Echo is a deliberately weakened projection, not a second full Vanguard.
+
+- The prototype starting **Echo damage coefficient is 25%** of the original Vanguard's corresponding outgoing damage. The intended tuning band is roughly 20–30%.
+- The coefficient applies to Echo-originated basic attacks, Reverberation-eligible ability damage, DoTs created by the Echo, and other damage explicitly permitted to originate from the Echo.
+- The Echo cannot use item Actives or Flux Spells.
+- Echo-originated damage cannot recursively create another Echo or recursively trigger the Echo item line.
+- The controlled Echo may use the one eligible ability interaction carried by Reverberation; it does not gain unrestricted independent access to a second full copy of the Vanguard's kit unless a later rule explicitly expands that permission.
+
+#### Integrity-linked tether radius
+
+The Stasis body is the center of a visible circular **tether radius**. The Flux particle stream between the Stasis body and the Echo is the physical visual representation of that tether.
+
+The Echo's current permitted radius is driven by its current Integrity:
+
+- at high Integrity, the Echo can operate out to the item's maximum tether radius;
+- as Integrity decays or is damaged away, the radius continuously contracts;
+- the radius bottoms out at a data-driven minimum tether radius while Integrity remains above 0;
+- exact maximum radius, minimum radius, and the Integrity-to-radius curve are prototype tuning values.
+
+The circle is a **break threshold, not an invisible movement wall**. The Echo is not hard-clamped at its boundary. If the Echo crosses outside the current radius, the Flux tether breaks immediately, the Echo disappears, the real Vanguard's Stasis ends, and control returns to the real Vanguard at the original Stasis position.
+
+The same rule applies when Integrity loss causes the radius to shrink past an Echo that was previously inside it. Players therefore have to retreat inward as the Echo destabilizes rather than being automatically pushed or teleported back into range.
+
+#### Competitive readability and VFX
+
+The tether state must be visually readable during combat.
+
+- A visible range boundary communicates the Echo's current safe operating radius.
+- A continuous Flux particle stream runs from the Stasis body to the Echo, visually reading as the Stasis body feeding the projection.
+- During the 0.5-second formation, the stream builds the Echo at the selected spawn point.
+- During the protected portion of the effect, the connection reads stable and strongly sustained.
+- As Integrity falls, the usable circle contracts and the stream becomes increasingly strained, fragmented, or unstable.
+- Near the boundary, presentation should clearly warn that the connection is under tension.
+- On tether break or 0 Integrity, the stream visibly snaps, the Echo collapses, and the Stasis body reactivates.
+
+The current tether boundary and connection state are gameplay information, not decorative VFX. Presentation must remain clear enough for competitive play and must not hide the Stasis body's fixed return position.
+
+There is no separate maximum-duration timer required for the core mechanic: natural Echo Integrity decay provides the hard lifetime. Exact decay rate, Integrity pool, damage-to-Integrity rules, radii, cooldown, stats, and other numeric values remain prototype tuning data.
 
 ### The Last Harbor
 
@@ -611,6 +701,7 @@ The initial shop still needs significant expansion. Likely future families inclu
 - optional ordinary-inventory vision interactions or counter-items; the actual Persistent Ward, Sweeper, and Quick Sight tools are already defined by the Vision & Reconnaissance Bible and occupy the dedicated vision-tool slot rather than ordinary inventory;
 - anti-Attack-Speed and anti-basic-attack defense;
 - additional crit/on-hit branches;
+- additional Echo/proxy interactions only where they add distinct counterplay rather than duplicating Echo Lens / The Second Self;
 - hybrid and niche counter-items.
 
 The current catalog is a prototype foundation, not a launch-complete shop.
