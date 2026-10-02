@@ -9,10 +9,15 @@
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Greybox/VeyraGreyboxSettings.h"
 #include "HAL/PlatformTime.h"
+#include "InputCoreTypes.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
+#include "Text/VeyraContentText.h"
+#include "VeyraSettingsStore.h"
 
 #define LOCTEXT_NAMESPACE "VeyraLoadingScreen"
 
@@ -64,7 +69,71 @@ bool UVeyraLoadingScreen::Initialize()
 	Width->AddChild(Column);
 	Backdrop->SetContent(Width);
 	WidgetTree->RootWidget = Backdrop;
+	// It takes the keyboard while loading, when no other screen has it (UVeyraMatchMenuSubsystem::UpdateInputMode).
+	SetIsFocusable(true);
 	return bFirst;
+}
+
+void UVeyraLoadingScreen::ShowFor(FVeyraSettingsStore* Store, int32 Seed, const FVeyraLoadingTiming& InTiming, double Now)
+{
+	UnbindSettings();
+	SettingsStore = Store;
+	ShownSeed = Seed;
+	Timing = InTiming;
+	if (SettingsStore)
+	{
+		SettingsHandle = SettingsStore->OnChanged.AddWeakLambda(this, [this](const FVeyraContentId& /*Id*/) { ApplyCategories(FPlatformTime::Seconds(), /*bAlways*/ false); });
+	}
+	ApplyCategories(Now, /*bAlways*/ true);
+}
+
+void UVeyraLoadingScreen::UnbindSettings()
+{
+	if (SettingsStore)
+	{
+		SettingsStore->OnChanged.Remove(SettingsHandle);
+	}
+	SettingsHandle.Reset();
+	SettingsStore = nullptr;
+}
+
+void UVeyraLoadingScreen::ApplyCategories(double Now, bool bAlways)
+{
+	const EVeyraLoadingContent Content = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), SettingsStore).LoadingContent;
+	if (!bAlways && ShownContent == Content)
+	{
+		return;
+	}
+	ShownContent = Content;
+	Show(VeyraLoadingModel::EntriesFor(Content, VeyraContentText::LoadingTips(), VeyraContentText::LoadingLore()), ShownSeed, Timing, Now);
+}
+
+bool UVeyraLoadingScreen::BrowseWithKey(const FKey& Key, double Now)
+{
+	if (Key != EKeys::Left && Key != EKeys::Right)
+	{
+		return false;
+	}
+	Browse(Key == EKeys::Left ? -1 : 1, Now);
+	return true;
+}
+
+TSharedPtr<SWidget> UVeyraLoadingScreen::GetFocusTarget()
+{
+	UVeyraShellButton* Next = Buttons.IsValidIndex(1) ? Buttons[1].Get() : nullptr;
+	return Next ? Next->TakeWidget().ToSharedPtr() : TakeWidget().ToSharedPtr();
+}
+
+FReply UVeyraLoadingScreen::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	// Left and Right arrive here from a focused button, which leaves them unhandled.
+	return BrowseWithKey(InKeyEvent.GetKey(), FPlatformTime::Seconds()) ? FReply::Handled() : Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+void UVeyraLoadingScreen::NativeDestruct()
+{
+	UnbindSettings();
+	Super::NativeDestruct();
 }
 
 FText UVeyraLoadingScreen::StageText(EVeyraLoadingStage InStage)

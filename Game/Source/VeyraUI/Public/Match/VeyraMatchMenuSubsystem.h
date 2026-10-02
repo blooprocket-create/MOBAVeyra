@@ -12,6 +12,7 @@ class AVeyraPlayerController;
 class UInputAction;
 class UInputComponent;
 class UInputMappingContext;
+class UVeyraLoadingScreen;
 class UVeyraMatchMenu;
 class UVeyraSettingsScreen;
 class UVeyraUIInputSettings;
@@ -44,6 +45,12 @@ public:
 	virtual void Deinitialize() override;
 
 	bool IsMenuOpen() const { return Menu != nullptr; }
+
+	/**
+	 * The match loading screen while it is up, or null once it closes. It takes the keyboard whenever none of this
+	 * subsystem's screens has it, so its Previous and Next are keyboard-accessible (SET-117; ADR-053 §3).
+	 */
+	void SetLoadingScreen(UVeyraLoadingScreen* Screen);
 
 	/** Opens the menu if it is closed, and closes it if it is open, as its key does. */
 	void ToggleMenu();
@@ -156,6 +163,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVeyraChatComposer> Chat;
+
+	/** The world's loading screen, which that world owns. */
+	TWeakObjectPtr<UVeyraLoadingScreen> LoadingScreen;
 
 	FTSTicker::FDelegateHandle TickHandle;
 	/** Whether the input settings are usable; the menu is off otherwise. */

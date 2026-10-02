@@ -7,6 +7,7 @@
 
 #include "VeyraLoadingScreen.generated.h"
 
+class FVeyraSettingsStore;
 class UPanelWidget;
 class UTextBlock;
 class UVeyraShellButton;
@@ -27,6 +28,21 @@ public:
 	/** Rotates through Entries in an order Seed shuffles, each timed by Timing, from Now; no entries shows none. */
 	void Show(TArray<FVeyraLoadingEntry> InEntries, int32 Seed, const FVeyraLoadingTiming& InTiming, double Now);
 
+	/**
+	 * Shows the tips and lore Store's player chose, as Show does, and follows Store while shown: a change of
+	 * categories applies at once (SET-118). Null shows the defaults. Store must outlive the binding (UnbindSettings).
+	 */
+	void ShowFor(FVeyraSettingsStore* Store, int32 Seed, const FVeyraLoadingTiming& InTiming, double Now);
+
+	/** Stops following the settings store. */
+	void UnbindSettings();
+
+	/** Left browses to the previous entry and Right to the next, as the buttons do (SET-117). True if Key browsed. */
+	bool BrowseWithKey(const FKey& Key, double Now);
+
+	/** What takes the keyboard while the screen is up: Next, so Enter shows the next entry and Tab reaches Previous. */
+	TSharedPtr<SWidget> GetFocusTarget();
+
 	/** Says Stage. */
 	void SetStage(EVeyraLoadingStage InStage);
 
@@ -39,6 +55,12 @@ public:
 	/** How the screen says Stage. */
 	static FText StageText(EVeyraLoadingStage Stage);
 
+protected:
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual void NativeDestruct() override;
+
+public:
+
 	/** What the screen shows now. For tests. */
 	EVeyraLoadingStage GetStage() const { return Stage; }
 	const FVeyraLoadingRotation& GetRotation() const { return Rotation; }
@@ -47,6 +69,14 @@ public:
 
 private:
 	void ShowEntry();
+
+	/** Shows the categories the followed store chooses now, if they changed; from the start when bAlways. */
+	void ApplyCategories(double Now, bool bAlways);
+
+	FVeyraSettingsStore* SettingsStore = nullptr;
+	FDelegateHandle SettingsHandle;
+	TOptional<EVeyraLoadingContent> ShownContent;
+	int32 ShownSeed = 0;
 
 	EVeyraLoadingStage Stage = EVeyraLoadingStage::LoadingMatch;
 	TArray<FVeyraLoadingEntry> Entries;
