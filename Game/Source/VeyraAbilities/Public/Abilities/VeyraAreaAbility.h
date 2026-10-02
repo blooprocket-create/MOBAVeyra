@@ -24,6 +24,7 @@ protected:
 	virtual EVeyraCastRejection CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const override;
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
+	virtual bool CanReverberate(const FVeyraContentId& Ability) const override;
 
 	/** Leaves the area lasting where it hit, for its linger data (ADR-018 §5). */
 	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick) override;

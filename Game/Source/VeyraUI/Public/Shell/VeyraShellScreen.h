@@ -12,6 +12,7 @@
 
 class IVeyraClientIntents;
 struct FVeyraHistoryOption;
+struct FVeyraProfileCardModel;
 class UEditableTextBox;
 class UImage;
 class UOverlay;
@@ -44,6 +45,8 @@ enum class EVeyraShellPage : uint8
 	History,
 	/** Every released Vanguard, with the player's ownership and Mastery, and Buy (ADR-045 §8). */
 	Collection,
+	/** The player's own profile as others see it, and its choices (ADR-048 §5). */
+	Profile,
 };
 
 /** What a card's action asks the player to confirm before it is sent (UX-11; ADR-044 §4). */
@@ -56,6 +59,8 @@ enum class EVeyraShellConfirm : uint8
 	Block,
 	/** Buy, on a Vanguard's Collection card: the price and currency named (Account, Collection & Mastery Bible §7). */
 	Purchase,
+	/** A display-name change, on the Profile page: the price named, and the old name free to anyone at once (ADR-049 §6). */
+	NameChange,
 };
 
 /**
@@ -118,6 +123,18 @@ public:
 	/** Types Text into the chat composer that shows, as the player would. For tests and scripts. */
 	void SetChatDraft(const FString& Text);
 
+	/** Types Text into the open report form's details, as the player would. For tests and scripts. */
+	void SetReportDetailsDraft(const FString& Text);
+
+	/** The player whose menu shows on the report, empty while none does (UX-57). */
+	const FString& GetOpenPlayerMenu() const { return OpenPlayerMenu; }
+
+	/** The Profile page's choices as the player is making them, before Save (ADR-048 §5). */
+	const VeyraBackendProtocol::FProfileSettings& GetProfileDraft() const { return ProfileDraft; }
+
+	/** Types Name into the new-name field that shows, as the player would. For tests and scripts. */
+	void SetNameDraft(const FString& Name);
+
 	/** The chat composer that shows, or null. */
 	UEditableTextBox* GetChatBox() const { return ChatBox; }
 
@@ -175,9 +192,12 @@ private:
 	void BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/** Match History: its filters and list, or an opened match's report (UX-51, UX-64, UX-67). */
 	void BuildHistory(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
-	/** A filter's choices as a row of buttons; choosing one reads the first page again with it. */
-	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
-		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply);
+	/**
+	 * A filter's choices as a row of buttons over Current; choosing one reads the first page again with it, through Load,
+	 * when bCanLoad.
+	 */
+	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options, const VeyraBackendProtocol::FHistoryFilter& Current,
+		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply, TFunction<void(const VeyraBackendProtocol::FHistoryFilter&)> Load, bool bCanLoad);
 	/**
 	 * The Collection (VeyraShellCollection.cpp; ADR-045 §8): every released Vanguard as a card, owned or not, with the
 	 * player's Mastery; an opened card's detail and Buy in either currency, each behind a confirmation naming its price.
@@ -286,8 +306,38 @@ private:
 	void BuildReconnectOnly(const FVeyraClientSnapshot& Snapshot);
 	void BuildResults(const FVeyraClientSnapshot& Snapshot);
 	/** A match's Scoreboard or Detailed Statistics, as the report view says, with the switch between them (UX-50). */
-	void BuildReport(const FVeyraMatchReport& Report, UPanelWidget& Parent);
-	void BuildScoreboard(const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	void BuildReport(const FVeyraClientSnapshot& Snapshot, const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	/** The scoreboard; another human's name opens their player menu beneath their line (UX-57). */
+	void BuildScoreboard(const FVeyraClientSnapshot& Snapshot, const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	/**
+	 * A player menu (VeyraShellConduct.cpp; ADR-047 §5): Add Friend, Invite to Party, Commend and Report, as the
+	 * screen and the player's record allow, or the report form once Report is pressed.
+	 */
+	void BuildPlayerMenu(const FVeyraClientSnapshot& Snapshot, const FString& Name, UPanelWidget& Parent);
+	/** The report form: the backend's reasons, optional details within their limit, Submit and Cancel. */
+	void BuildReportForm(const FVeyraClientSnapshot& Snapshot, const FString& Name, UPanelWidget& Parent);
+	/** Opens Name's player menu, or closes it when it is open; either closes a report form. */
+	void TogglePlayerMenu(const FString& Name);
+
+	UFUNCTION()
+	void HandleReportDetailsChanged(const FText& Text);
+
+	/**
+	 * The Profile page (VeyraShellProfile.cpp; ADR-048 §5): the player's profile as others see it, and pickers for
+	 * the icon, the background and the featured Vanguard, the Match History toggle and Save.
+	 */
+	void BuildProfilePage(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** Another player's profile over the screen, with its shared Match History, until Close. */
+	void BuildProfileOverlay(const FVeyraClientSnapshot& Snapshot);
+	/** A profile's card: its icon, name, level and featured Vanguard over its background. */
+	void AddProfileCard(const FVeyraProfileCardModel& Card, UPanelWidget& Parent);
+	/** The Profile page's Display Name section: the name, the next change's price and cooldown, and the change behind a confirmation. */
+	void BuildDisplayName(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** In place of the shell, for an account whose name another player claimed: choose a new one, for free (ADR-049 §4). */
+	void BuildChooseName(const FVeyraClientSnapshot& Snapshot);
+
+	UFUNCTION()
+	void HandleNameChanged(const FText& Text);
 	void BuildDetails(const FVeyraMatchReport& Report, UPanelWidget& Parent);
 	/** A text in a column Width wide. */
 	UTextBlock* AddCell(UPanelWidget& Row, const FText& Text, float Width, uint8 Role);
@@ -418,6 +468,32 @@ private:
 
 	/** What came of the player's last command in the post-match chat, such as a mute; empty for none. */
 	FText ChatNotice;
+
+	/**
+	 * The match the player menus are of, the player whose menu shows, and the report form's player, reason
+	 * and details: one report screen's, forgotten when it shows another match (ADR-047 §5).
+	 */
+	FString PlayerMenuMatch;
+	FString OpenPlayerMenu;
+
+	/** The Profile page's choices before Save, and the saved choices they began from (ADR-048 §5). */
+	VeyraBackendProtocol::FProfileSettings ProfileDraft;
+	/** The new-name field, rebuilt with the screen; what it holds outlives it. */
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> NameBox;
+	FString NameDraft;
+	VeyraBackendProtocol::FProfileSettings ProfileDraftBase;
+	bool bProfileDraftReady = false;
+	FString ReportFormName;
+	FString ReportReason;
+	FString ReportDetailsDraft;
+
+	/** The report form's details field and its count, rebuilt with the screen. */
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> ReportDetailsBox;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> ReportDetailsCount;
 
 	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-044 §2, §4). */
 	FString OpenCardId;

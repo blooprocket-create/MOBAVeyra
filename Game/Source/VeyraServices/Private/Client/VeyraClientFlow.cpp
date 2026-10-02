@@ -344,6 +344,30 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("CloseDirectChat");
 	case EVeyraClientIntent::MutePostMatchChat:
 		return TEXT("MutePostMatchChat");
+	case EVeyraClientIntent::ReportPlayer:
+		return TEXT("ReportPlayer");
+	case EVeyraClientIntent::CommendTeammate:
+		return TEXT("CommendTeammate");
+	case EVeyraClientIntent::OpenProfile:
+		return TEXT("OpenProfile");
+	case EVeyraClientIntent::CloseProfile:
+		return TEXT("CloseProfile");
+	case EVeyraClientIntent::LoadMoreProfileMatches:
+		return TEXT("LoadMoreProfileMatches");
+	case EVeyraClientIntent::FilterProfileMatches:
+		return TEXT("FilterProfileMatches");
+	case EVeyraClientIntent::OpenProfileMatch:
+		return TEXT("OpenProfileMatch");
+	case EVeyraClientIntent::CloseProfileMatch:
+		return TEXT("CloseProfileMatch");
+	case EVeyraClientIntent::LoadProfileSettings:
+		return TEXT("LoadProfileSettings");
+	case EVeyraClientIntent::SaveProfileSettings:
+		return TEXT("SaveProfileSettings");
+	case EVeyraClientIntent::LoadDisplayName:
+		return TEXT("LoadDisplayName");
+	case EVeyraClientIntent::ChangeDisplayName:
+		return TEXT("ChangeDisplayName");
 	}
 	return TEXT("Unknown");
 }
@@ -505,8 +529,10 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::SetLobbySettings:
 	case EVeyraClientIntent::LaunchLobby:
 		return State == EVeyraClientState::Lobby;
-	// The party is managed from the shell, never from a lobby, Match Found or a select (UX-77).
+	// The results screen's player menu invites a friend into the party too (UX-57).
 	case EVeyraClientIntent::InviteToParty:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Results;
+	// The party is managed from the shell, never from a lobby, Match Found or a select (UX-77).
 	case EVeyraClientIntent::AcceptPartyInvite:
 	case EVeyraClientIntent::JoinFriendParty:
 	case EVeyraClientIntent::LeaveParty:
@@ -514,9 +540,11 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::TransferPartyLeader:
 	case EVeyraClientIntent::SetPartyPrivacy:
 		return State == EVeyraClientState::Shell;
+	// A friend request goes from the friends panel, and from the results screen's player menu (UX-57).
+	case EVeyraClientIntent::SendFriendRequest:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;
 	// The friends panel shows in the shell and the lobby alike (Art Bible §7).
 	case EVeyraClientIntent::DeclineLobbyInvite:
-	case EVeyraClientIntent::SendFriendRequest:
 	case EVeyraClientIntent::AnswerFriendRequest:
 	case EVeyraClientIntent::RemoveFriend:
 	case EVeyraClientIntent::DeclinePartyInvite:
@@ -539,6 +567,27 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
 	case EVeyraClientIntent::MutePostMatchChat:
 		return State == EVeyraClientState::Results;
+	// A report from the results or a Match History record; a commendation from the results only (ADR-047 §5).
+	case EVeyraClientIntent::ReportPlayer:
+		return State == EVeyraClientState::Results || State == EVeyraClientState::Shell;
+	case EVeyraClientIntent::CommendTeammate:
+		return State == EVeyraClientState::Results;
+	// Profiles open where the friends panel and the player menu are: the shell, a lobby and the results; never
+	// through Match Found, a committed select or Reconnect-only (Profiles Bible §1).
+	case EVeyraClientIntent::OpenProfile:
+	case EVeyraClientIntent::CloseProfile:
+	case EVeyraClientIntent::LoadMoreProfileMatches:
+	case EVeyraClientIntent::FilterProfileMatches:
+	case EVeyraClientIntent::OpenProfileMatch:
+	case EVeyraClientIntent::CloseProfileMatch:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;
+	// The player's own choices are made on the shell's Profile page.
+	case EVeyraClientIntent::LoadProfileSettings:
+	case EVeyraClientIntent::SaveProfileSettings:
+	// The name changes on the Profile page, and a claimed account chooses its new one in the shell (ADR-049 §4).
+	case EVeyraClientIntent::LoadDisplayName:
+	case EVeyraClientIntent::ChangeDisplayName:
+		return State == EVeyraClientState::Shell;
 	}
 	return false;
 }
@@ -863,6 +912,14 @@ void FVeyraClientFlow::LoadProfile()
 		if (!VeyraBackendProtocol::ParseProfile(Response.Body, Profile, Problem))
 		{
 			ShowBadAnswer(TEXT("the player's profile"), Problem, [this] { Resume(); });
+			return;
+		}
+		// A claimed account chooses a new name before anything else: no starter, lobby or other step first; the
+		// shell asks it, and the account goes on once it has a name (ADR-049 §4).
+		Snapshot.bRenameRequired = Profile.bRenameRequired;
+		if (Profile.bRenameRequired)
+		{
+			EnterShell(Snapshot.Notice);
 			return;
 		}
 		if (Profile.bTutorialCompleted)
@@ -2593,6 +2650,8 @@ void FVeyraClientFlow::ShowResults(TOptional<VeyraBackendProtocol::FMatchOutcome
 	// The results screen offers the match's post-match chat, unjoined until the player's first message (UX-59).
 	StartPostMatchChat(Outcome.IsSet() && !Outcome->MatchId.IsEmpty() ? Outcome->MatchId : Snapshot.MatchId);
 	Snapshot.Result = MoveTemp(Outcome);
+	// The player menu reports and commends in the match whose result shows (ADR-047 §5).
+	ReadConduct(Snapshot.Result.IsSet() && Snapshot.Result->bHasResult ? Snapshot.Result->MatchId : FString());
 	// A result can arrive before its rewards are recorded (ADR-045 §7). While the account has progression to
 	// grant into, the results screen says they are coming and the flow asks again, for as long as it waits
 	// for a result.
@@ -2967,6 +3026,8 @@ bool FVeyraClientFlow::OpenHistoryMatch(const FString& MatchId)
 		else
 		{
 			Snapshot.History.Opened = MoveTemp(Outcome);
+			// A record's player menu may report, as the results screen's may (ADR-047 §5).
+			ReadConduct(Snapshot.History.Opened->MatchId);
 			Broadcast();
 		}
 	});
@@ -2980,6 +3041,7 @@ bool FVeyraClientFlow::CloseHistoryMatch()
 		return false;
 	}
 	Snapshot.History.Opened.Reset();
+	ReadConduct(FString());
 	Broadcast();
 	return true;
 }

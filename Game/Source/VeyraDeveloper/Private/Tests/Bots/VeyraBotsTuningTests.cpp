@@ -41,6 +41,12 @@ namespace VeyraBotsTests
 			Broken = Tuning;
 			Broken.FluxSpells.Remove(Tuning.Seats[0].FluxSpells[0]);
 			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/fluxSpells"))));
+			// Every item's Active says what it is for (ADR-051 §6): a bot that buys Razorwheel cleaves with it.
+			const EVeyraBotAbilityUse* Cleave = Tuning.ItemActives.Find(BotsId(TEXT("razorwheel_cleave")));
+			ASSERT_THAT(IsTrue(Cleave && *Cleave == EVeyraBotAbilityUse::Damage));
+			Broken = Tuning;
+			Broken.ItemActives.Remove(BotsId(TEXT("razorwheel_cleave")));
+			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/itemActives"))));
 			for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Pair : UVeyraVanguardsTuningSubsystem::Get().Vanguards)
 			{
 				if (Pair.Value.Availability == EVeyraVanguardAvailability::Playable)

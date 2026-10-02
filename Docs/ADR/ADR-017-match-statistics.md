@@ -91,5 +91,5 @@ Statistics are recorded facts, not tuning. The in-match scoreboard's key is inpu
 
 - Reveal events and duration, and Vision Score.
 - Account XP and Vanguard Mastery on the results page (no account progression yet).
-- Reporting, commendation and post-match chat on results.
+- Reporting, commendation and post-match chat on results: post-match chat is [ADR-046](ADR-046-party-direct-select-postmatch-chat.md), reporting and commendation [ADR-047](ADR-047-reports-commendation-player-menu.md).
 - The in-match scoreboard's Toggle mode.

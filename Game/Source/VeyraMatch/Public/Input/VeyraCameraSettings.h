@@ -26,6 +26,24 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "View", meta = (ClampMin = "-89", ClampMax = "0"))
 	float PitchDegrees = 0.0f;
 
+	/**
+	 * The manual zoom's range (ADR-052 §3): the arm's shortest and longest lengths, around Distance, the
+	 * standard zoom. The same for every player, and no zoom changes what a player may see or target.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "1"))
+	float MinDistance = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "1"))
+	float MaxDistance = 0.0f;
+
+	/** How far one press of a zoom key moves the arm, in units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0"))
+	float ZoomStep = 0.0f;
+
+	/** How the arm eases to a new zoom: in this many seconds it covers about two thirds of the way; 0 moves it at once. */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0"))
+	float ZoomSmoothingSeconds = 0.0f;
+
 	/** The mode a match starts in: Free, as the Settings Bible sets it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Movement")
 	EVeyraCameraMode DefaultMode = EVeyraCameraMode::Free;

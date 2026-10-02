@@ -73,6 +73,8 @@ namespace VeyraBackendProtocol
 		bool bTutorialCompleted = false;
 		/** Empty until chosen. */
 		FString StarterVanguardId;
+		/** Another player claimed the name: the player chooses a new one, for free, before anything else (ADR-049 §4). */
+		bool bRenameRequired = false;
 	};
 
 	/** Reads a profile. False, with the problem, if it is not one. */
@@ -319,6 +321,9 @@ namespace VeyraBackendProtocol
 
 	/** GET /v1/me/matches with Filter, from Cursor (empty for the first page). */
 	VEYRASERVICES_API FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor);
+
+	/** A Match History read's query, "?vanguard=...&cursor=...", or empty for none: the player's own and a profile's (ADR-048 §3). */
+	VEYRASERVICES_API FString HistoryQuery(const FHistoryFilter& Filter, const FString& Cursor);
 
 	/** Reads the answer to GET /v1/me/matches. False, with the problem, if it is not one. */
 	VEYRASERVICES_API bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem);

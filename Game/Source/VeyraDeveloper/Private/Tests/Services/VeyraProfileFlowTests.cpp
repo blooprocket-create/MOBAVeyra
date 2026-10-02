@@ -1,0 +1,284 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#include "CQTest.h"
+
+#if WITH_AUTOMATION_WORKER
+
+#include "Backend/VeyraBackendProtocol.h"
+#include "Backend/VeyraProfileProtocol.h"
+#include "Tests/Services/VeyraClientFlowTestRig.h"
+
+namespace VeyraClientFlowTests
+{
+	// Fixture answers, independent of the committed backend configuration.
+	inline FString ProfileAnswer(const TCHAR* Name, bool bShares, const TCHAR* FeaturedJson = TEXT("{\"vanguardId\":\"cairn\",\"masteryLevel\":4}"))
+	{
+		return FString::Printf(TEXT("{\"profile\":{\"name\":\"%s\",\"icon\":\"vanguard_cairn\",\"background\":\"default\",\"level\":12,\"featured\":%s,")
+								   TEXT("\"sharesMatchHistory\":%s}}"),
+			Name, FeaturedJson, bShares ? TEXT("true") : TEXT("false"));
+	}
+
+	inline FString ProfileSettingsAnswer(const TCHAR* Icon = TEXT("default"), const TCHAR* FeaturedJson = TEXT("null"), bool bShows = false)
+	{
+		return FString::Printf(TEXT("{\"settings\":{\"icon\":\"%s\",\"background\":\"default\",\"featuredVanguardId\":%s,\"showMatchHistory\":%s},")
+								   TEXT("\"catalog\":{\"icons\":[\"default\",\"vanguard_cairn\"],\"backgrounds\":[\"default\",\"vanguard_cairn\"],")
+								   TEXT("\"defaultIcon\":\"default\",\"defaultBackground\":\"default\",\"featuredChoices\":[\"cairn\"]}}"),
+			Icon, FeaturedJson, bShows ? TEXT("true") : TEXT("false"));
+	}
+
+	inline const TCHAR* const ProfileOfDevTwo = TEXT("/v1/profiles/DevTwo");
+
+	// Veyra.Services.ProfileFlow.*: profiles opened by name, their shared Match History, and the player's own
+	// choices (ADR-048), driven through the fake backend as the screens drive them.
+	TEST_CLASS(ProfileFlow, "Veyra.Services")
+	{
+		FClientFlowTestRig Rig;
+		FFlowTestBackend& Backend = Rig.Backend;
+
+		const FVeyraClientSnapshot& Snapshot() const { return Rig.Flow->GetSnapshot(); }
+
+		TEST_METHOD(AProfileOpensByNameWithItsFeaturedVanguard)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Flow->OpenProfile(TEXT("  DevTwo "))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), ProfileOfDevTwo, 200, ProfileAnswer(TEXT("DevTwo"), false))));
+			const FVeyraProfileView& View = Snapshot().ProfileView;
+			ASSERT_THAT(IsTrue(View.bLoaded && !View.bUnavailable && View.Name == TEXT("DevTwo") && View.Profile.Level == 12 && View.Profile.Icon == TEXT("vanguard_cairn")));
+			ASSERT_THAT(IsTrue(View.Profile.Featured.IsSet() && View.Profile.Featured->VanguardId == TEXT("cairn") && View.Profile.Featured->MasteryLevel == 4));
+			// Private history is never asked for.
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches"))));
+			ASSERT_THAT(IsTrue(Rig.Flow->CloseProfile() && Snapshot().ProfileView.Name.IsEmpty()));
+		}
+
+		TEST_METHOD(AnUnavailableProfileSaysOnlyThat)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Flow->OpenProfile(TEXT("DevTwo"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), ProfileOfDevTwo, 404, ErrorBody(TEXT("profile_unavailable")))));
+			ASSERT_THAT(IsTrue(Snapshot().ProfileView.bLoaded && Snapshot().ProfileView.bUnavailable && !Snapshot().Problem.IsSet()));
+		}
+
+		TEST_METHOD(ASharedHistoryPagesAndOpensItsMatches)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Flow->OpenProfile(TEXT("DevTwo"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), ProfileOfDevTwo, 200, ProfileAnswer(TEXT("DevTwo"), true, TEXT("null")))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches"), 200,
+				HistoryBody({ HistoryEntry(MatchId, TEXT("win")) }, TEXT("\"cursor_1\"")))));
+			const FVeyraProfileView& View = Snapshot().ProfileView;
+			ASSERT_THAT(IsTrue(View.bMatchesLoaded && View.Matches.Num() == 1 && View.Next == TEXT("cursor_1") && !View.Profile.Featured.IsSet()));
+			ASSERT_THAT(IsTrue(Rig.Flow->LoadMoreProfileMatches()));
+			ASSERT_THAT(IsFalse(Rig.Flow->LoadMoreProfileMatches(), TEXT("one page at a time: the next is on its way")));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches?cursor=cursor_1"), 200,
+				HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
+			ASSERT_THAT(IsTrue(View.Matches.Num() == 2 && View.Next.IsEmpty()));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches?cursor=cursor_1")), TEXT("asked for once")));
+
+			// The owner's own filters: the first page again, with them (ADR-048 §3).
+			VeyraBackendProtocol::FHistoryFilter Filter;
+			Filter.VanguardId = TEXT("cairn");
+			Filter.Outcome = TEXT("loss");
+			ASSERT_THAT(IsTrue(Rig.Flow->FilterProfileMatches(Filter)));
+			ASSERT_THAT(IsTrue(View.Matches.IsEmpty() && !View.bMatchesLoaded));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches?vanguard=cairn&outcome=loss"), 200,
+				HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
+			ASSERT_THAT(IsTrue(View.Matches.Num() == 1 && View.Filter == Filter));
+			ASSERT_THAT(IsFalse(Rig.Flow->OpenProfileMatch(TEXT("not-listed"))));
+			ASSERT_THAT(IsTrue(Rig.Flow->OpenProfileMatch(OlderMatchId)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches/") + OlderMatchId, 200, ScoredOutcomeBody())));
+			ASSERT_THAT(IsTrue(View.OpenedMatch.IsSet() && View.OpenedMatch->bHasScoreboard));
+			ASSERT_THAT(IsTrue(Rig.Flow->CloseProfileMatch() && !View.OpenedMatch.IsSet()));
+		}
+
+		TEST_METHOD(AnOwnerWhoStopsSharingShowsNoHistory)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Flow->OpenProfile(TEXT("DevTwo"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), ProfileOfDevTwo, 200, ProfileAnswer(TEXT("DevTwo"), true))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches"), 403, ErrorBody(TEXT("history_private")))));
+			const FVeyraProfileView& View = Snapshot().ProfileView;
+			ASSERT_THAT(IsTrue(View.bMatchesLoaded && View.Matches.IsEmpty() && !View.Profile.bSharesMatchHistory && !Snapshot().Problem.IsSet()));
+		}
+
+		TEST_METHOD(TheProfilePageReadsAndSavesTheChoices)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsFalse(Rig.Flow->SaveProfileSettings({}), TEXT("nothing to save before the choices are read")));
+			ASSERT_THAT(IsTrue(Rig.Flow->LoadProfileSettings()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile-settings"), 200, ProfileSettingsAnswer())));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/profiles/DevOne"), 200, ProfileAnswer(TEXT("DevOne"), false, TEXT("null")))));
+			const FVeyraProfileSettings& Own = Snapshot().ProfileSettings;
+			ASSERT_THAT(IsTrue(Own.bLoaded && Own.Saved.Icon == TEXT("default") && Own.Saved.FeaturedVanguardId.IsEmpty() && !Own.Saved.bShowMatchHistory));
+			ASSERT_THAT(IsTrue(Own.Catalog.Icons.Num() == 2 && Own.Catalog.FeaturedChoices == TArray<FString>{ TEXT("cairn") } && Own.Preview.IsSet()));
+
+			VeyraBackendProtocol::FProfileSettings Choice;
+			Choice.Icon = TEXT("vanguard_cairn");
+			Choice.Background = TEXT("default");
+			Choice.FeaturedVanguardId = TEXT("cairn");
+			Choice.bShowMatchHistory = true;
+			ASSERT_THAT(IsTrue(Rig.Flow->SaveProfileSettings(Choice)));
+			const FFlowTestBackend::FRequest* Request = Backend.Find(TEXT("PUT"), TEXT("/v1/me/profile-settings"));
+			ASSERT_THAT(IsTrue(Request && Request->Body.Contains(TEXT("\"featuredVanguardId\":\"cairn\"")) && Request->Body.Contains(TEXT("\"showMatchHistory\":true"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/profile-settings"), 200, ProfileSettingsAnswer(TEXT("vanguard_cairn"), TEXT("\"cairn\""), true))));
+			ASSERT_THAT(IsTrue(Own.Feedback == TEXT("profile_saved") && Own.Saved == Choice));
+			ASSERT_THAT(IsNotNull(Backend.Find(TEXT("GET"), TEXT("/v1/profiles/DevOne")), TEXT("the preview is read again")));
+
+			// A refusal shows on the page, never as the screen's problem.
+			ASSERT_THAT(IsTrue(Rig.Flow->SaveProfileSettings(Choice)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/profile-settings"), 409, ErrorBody(TEXT("not_owned")))));
+			ASSERT_THAT(IsTrue(Own.Feedback == TEXT("not_owned") && !Snapshot().Problem.IsSet()));
+		}
+
+		TEST_METHOD(ProfilesOpenFromTheShellALobbyAndTheResults)
+		{
+			for (const EVeyraClientIntent Intent : { EVeyraClientIntent::OpenProfile, EVeyraClientIntent::OpenProfileMatch, EVeyraClientIntent::LoadMoreProfileMatches,
+					 EVeyraClientIntent::FilterProfileMatches })
+			{
+				for (const EVeyraClientState Where : { EVeyraClientState::Shell, EVeyraClientState::Lobby, EVeyraClientState::Results })
+				{
+					ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(Where, Intent), LexToString(Intent)));
+				}
+				for (const EVeyraClientState Elsewhere : { EVeyraClientState::MatchFound, EVeyraClientState::Selecting, EVeyraClientState::InMatch,
+						 EVeyraClientState::ReconnectOnly })
+				{
+					ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(Elsewhere, Intent), LexToString(Intent)));
+				}
+			}
+			ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Results, EVeyraClientIntent::SaveProfileSettings), TEXT("choices on the Profile page only")));
+		}
+	};
+
+	// Veyra.Services.ProfileProtocol.*: profiles and the player's choices as the client reads them, and a save as the
+	// backend reads it (ADR-048 §3–§4).
+	TEST_CLASS(ProfileProtocol, "Veyra.Services")
+	{
+		TEST_METHOD(AProfileAndTheChoicesAreReadAndMalformedOnesRefused)
+		{
+			VeyraBackendProtocol::FPublicProfile Profile;
+			VeyraBackendProtocol::FProfileSettings Settings;
+			VeyraBackendProtocol::FProfileCatalog Catalog;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParsePublicProfile(ProfileAnswer(TEXT("Dev Two"), true), Profile, Problem), Problem));
+			ASSERT_THAT(IsTrue(Profile.Name == TEXT("Dev Two") && Profile.bSharesMatchHistory && Profile.Featured.IsSet()));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseProfileSettings(ProfileSettingsAnswer(), Settings, Catalog, Problem), Problem));
+			for (const TCHAR* Bad : {
+					 TEXT("{\"profile\":{\"name\":\"X\",\"icon\":\"Not An Icon\",\"background\":\"default\",\"level\":1,\"featured\":null,\"sharesMatchHistory\":false}}"),
+					 TEXT("{\"profile\":{\"name\":\"X\",\"icon\":\"default\",\"background\":\"default\",\"level\":0,\"featured\":null,\"sharesMatchHistory\":false}}"),
+					 TEXT("{\"profile\":{\"name\":\"X\",\"icon\":\"default\",\"background\":\"default\",\"level\":1,\"featured\":{\"vanguardId\":\"cairn\"},\"sharesMatchHistory\":false}}"),
+					 TEXT("{\"profile\":{\"name\":\"\",\"icon\":\"default\",\"background\":\"default\",\"level\":1,\"featured\":null,\"sharesMatchHistory\":false}}"),
+					 TEXT("{}") })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParsePublicProfile(Bad, Profile, Problem), Bad));
+			}
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseProfileSettings(TEXT("{\"settings\":{\"icon\":\"default\"}}"), Settings, Catalog, Problem)));
+		}
+
+		TEST_METHOD(PathsEscapeTheNameAndASaveWritesNoneAsNull)
+		{
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::ProfilePath(TEXT("Dev Two")), FString(TEXT("/v1/profiles/Dev%20Two"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::ProfileMatchesPath(TEXT("DevTwo"), {}, TEXT("c 1")), FString(TEXT("/v1/profiles/DevTwo/matches?cursor=c%201"))));
+			VeyraBackendProtocol::FHistoryFilter Filter;
+			Filter.Mode = TEXT("casual");
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::ProfileMatchesPath(TEXT("DevTwo"), Filter, FString()), FString(TEXT("/v1/profiles/DevTwo/matches?mode=casual"))));
+			VeyraBackendProtocol::FProfileSettings Settings;
+			Settings.Icon = TEXT("default");
+			Settings.Background = TEXT("default");
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::BuildProfileSettingsBody(Settings).Contains(TEXT("\"featuredVanguardId\":null"))));
+		}
+	};
+}
+
+#endif
+
+#if WITH_AUTOMATION_WORKER
+
+namespace VeyraClientFlowTests
+{
+	// Fixture answers, independent of the committed backend configuration.
+	inline FString NameStatusAnswer(const TCHAR* Name, bool bFree, const TCHAR* NextJson = TEXT("null"), bool bRequired = false)
+	{
+		return FString::Printf(TEXT("{\"displayName\":{\"name\":\"%s\",\"freeChangeAvailable\":%s,\"nextChangeAt\":%s,\"renameRequired\":%s,")
+								   TEXT("\"price\":{\"flux\":6000,\"refinedFlux\":600}}}"),
+			Name, bFree ? TEXT("true") : TEXT("false"), NextJson, bRequired ? TEXT("true") : TEXT("false"));
+	}
+
+	// Veyra.Services.NameFlow.*: the player's display name, its change, and a claimed account's required rename
+	// (ADR-049), driven through the fake backend as the screens drive them.
+	TEST_CLASS(NameFlow, "Veyra.Services")
+	{
+		FClientFlowTestRig Rig;
+		FFlowTestBackend& Backend = Rig.Backend;
+
+		const FVeyraClientSnapshot& Snapshot() const { return Rig.Flow->GetSnapshot(); }
+
+		TEST_METHOD(ANameChangeShowsTheNewNameEverywhere)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell() && !Snapshot().bRenameRequired));
+			ASSERT_THAT(IsTrue(Rig.Flow->LoadDisplayName()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("DevOne"), true))));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayNameChange.bLoaded && Snapshot().DisplayNameChange.Status.bFreeChangeAvailable
+				&& Snapshot().DisplayNameChange.Status.PriceFlux == 6000 && !Snapshot().DisplayNameChange.Status.NextChangeAt.IsSet()));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT(" Oneiric "), FString())));
+			const FFlowTestBackend::FRequest* Request = Backend.Find(TEXT("PUT"), TEXT("/v1/me/display-name"));
+			ASSERT_THAT(IsTrue(Request && Request->Body.Contains(TEXT("\"name\":\"Oneiric\""))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200,
+				NameStatusAnswer(TEXT("Oneiric"), false, TEXT("\"2026-10-03T12:00:00Z\"")))));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayName == TEXT("Oneiric") && Snapshot().DisplayNameChange.Feedback == TEXT("name_changed")));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayNameChange.Status.NextChangeAt.IsSet()));
+			ASSERT_THAT(IsNotNull(Backend.Find(TEXT("GET"), TEXT("/v1/profiles/Oneiric")), TEXT("the preview is read under the new name")));
+		}
+
+		TEST_METHOD(ARefusedChangeShowsBesideTheName)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("DevTwo"), TEXT("flux"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 409, ErrorBody(TEXT("display_name_taken")))));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayNameChange.Feedback == TEXT("display_name_taken") && Snapshot().DisplayName == TEXT("DevOne")
+				&& !Snapshot().Problem.IsSet()));
+		}
+
+		/** Answers the reads that find where the player is, ending with Profile's answer. */
+		bool AnswerResume(const FString& Profile)
+		{
+			return Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, Profile);
+		}
+
+		TEST_METHOD(AClaimedAccountChoosesANewNameFirst)
+		{
+			// ADR-049 §4: before its lobby, or anything else.
+			Rig.bRenameRequired = true;
+			ASSERT_THAT(IsTrue(Rig.ReachProfile(true) && Rig.State() == EVeyraClientState::Shell && Snapshot().bRenameRequired));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), TEXT("/v1/lobby")), TEXT("no lobby before a name")));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("Returned"), FString())));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("Returned"), true))));
+			ASSERT_THAT(IsTrue(!Snapshot().bRenameRequired && Snapshot().DisplayName == TEXT("Returned")));
+			// Named, it goes on where it was bound.
+			ASSERT_THAT(IsTrue(AnswerResume(ProfileBody(true)) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && Rig.State() == EVeyraClientState::Shell));
+		}
+
+		TEST_METHOD(AClaimedAccountWithoutAStarterNamesItselfBeforeItsStarter)
+		{
+			Rig.bRenameRequired = true;
+			ASSERT_THAT(IsTrue(Rig.ReachProfile(false) && Rig.State() == EVeyraClientState::Shell && Snapshot().bRenameRequired));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), TEXT("/v1/me/vanguards")), TEXT("no starter before a name")));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("Returned"), FString())));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("Returned"), true))));
+			ASSERT_THAT(IsTrue(AnswerResume(ProfileBody(false)) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody)));
+			ASSERT_THAT(IsTrue(Rig.State() == EVeyraClientState::StarterChoice));
+		}
+
+		TEST_METHOD(TheStatusIsReadAndAMalformedOneRefused)
+		{
+			VeyraBackendProtocol::FDisplayNameStatus Status;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseDisplayNameStatus(NameStatusAnswer(TEXT("DevOne"), false, TEXT("\"2026-10-03T12:00:00Z\""), true), Status, Problem), Problem));
+			ASSERT_THAT(IsTrue(Status.bRenameRequired && Status.NextChangeAt.IsSet() && Status.PriceRefinedFlux == 600));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseDisplayNameStatus(NameStatusAnswer(TEXT("DevOne"), false, TEXT("\"soon\"")), Status, Problem)));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseDisplayNameStatus(TEXT("{\"displayName\":{\"name\":\"\"}}"), Status, Problem)));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::BuildDisplayNameBody(TEXT("DevOne"), TEXT("refinedFlux")).Contains(TEXT("\"currency\":\"refinedFlux\""))));
+		}
+	};
+}
+
+#endif

@@ -4,7 +4,7 @@
   "description": "How AI Vanguards play, owned by the Bots domain (ADR-013 §5). Canon leaves AI logic open (Modes & Access Bible §4) and names two behaviours, Beginner and Intermediate (Custom Matches Bible §3); every value here is a provisional answer for playtests. VeyraBots binds it to FVeyraBotsTuning and checks what the schema cannot express.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "senses", "positioning", "difficulties", "seats", "fluxSpells", "jungle", "warding", "vanguards"],
+  "required": ["schemaVersion", "senses", "positioning", "difficulties", "seats", "fluxSpells", "itemActives", "jungle", "warding", "vanguards"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -84,7 +84,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [6]
+      "enum": [7]
     },
     "senses": {
       "description": "What a bot notices (ADR-013 §4).",
@@ -141,6 +141,16 @@
           }
         }
       }
+    },
+    "itemActives": {
+      "description": "What each item's Active is for (ADR-051 §6): every Active an item carries has an entry; Never for one bots leave alone.",
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "$ref": "#/definitions/abilityUse"
+        }
+      },
+      "additionalProperties": false
     },
     "fluxSpells": {
       "description": "What each Flux Spell a seat takes is for.",

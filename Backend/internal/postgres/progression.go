@@ -113,6 +113,12 @@ func (t progressionTx) DeletePurchases(accountID string) error {
 	return err
 }
 
+func (t progressionTx) AddSpend(sp progression.Spend) error {
+	_, err := t.q.Exec(t.ctx, `INSERT INTO progression.spends (account_id, reason, currency, amount, spent_at) VALUES ($1::uuid, $2, $3, $4, $5)`,
+		sp.AccountID, sp.Reason, string(sp.Currency), sp.Amount, sp.SpentAt)
+	return err
+}
+
 func (t progressionTx) AddDevAdjustment(a progression.DevAdjustment) error {
 	_, err := t.q.Exec(t.ctx, `INSERT INTO progression.dev_adjustments (account_id, flux, refined_flux, granted_at) VALUES ($1::uuid, $2, $3, $4)`,
 		a.AccountID, a.Flux, a.RefinedFlux, a.GrantedAt)

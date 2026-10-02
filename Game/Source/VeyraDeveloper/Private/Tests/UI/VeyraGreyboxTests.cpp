@@ -7,12 +7,14 @@
 
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
+#include "Echoes/VeyraEchoSubsystem.h"
 #include "EngineUtils.h"
 #include "Entities/VeyraPlacedMarker.h"
 #include "Fluxborn/VeyraFluxborn.h"
@@ -591,6 +593,48 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, StartedAt + Passed).bRecalling, TEXT("an interrupted channel leaves the HUD")));
 		}
 
+		TEST_METHOD(TheHudShowsACommandedEchosIntegrityAndWhatItMayCast)
+		{
+			// Fixture projection: forming for a second, immune for two, its Integrity decaying from 100 at 10 a second.
+			constexpr double Forming = 1.0;
+			constexpr double Immune = 2.0;
+			constexpr double Integrity = 100.0;
+			constexpr double Reach = 800.0;
+			const FVeyraContentId Stasis = ArchetypeTestId(TEXT("test_hud_stasis"));
+			const FVeyraContentId Project = ArchetypeTestId(TEXT("test_hud_echo"));
+			Tuning.Statuses.Add(Stasis, StatusOf(EVeyraStatusKind::Stasis, 0.0, Integrity));
+			FVeyraEchoAbilityTuning& Echo = Tuning.Echo.Add(Project);
+			Echo.Cast = InstantCast(Reach, 0.0, 0.0);
+			Echo.DamageCoefficient = 0.25;
+			Echo.Slots = { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::E };
+			Echo.Repeats = 1;
+			FVeyraEchoProjectionTuning& Projection = Echo.Projection.AddDefaulted_GetRef();
+			Projection.Stasis = Stasis;
+			Projection.FormationSeconds = Forming;
+			Projection.ImmunitySeconds = Immune;
+			Projection.Integrity = Integrity;
+			Projection.DecayPerSecond = Integrity / 10.0;
+			Projection.MaxRadius = Reach;
+			Projection.MinRadius = Reach / 2.0;
+			Projection.RadiusExponent = 1.0;
+			Projection.UpdateSeconds = 0.1;
+
+			AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			// The Echo's times are the server's world time, as the HUD's clock is.
+			const double Now = Spawner.GetWorld().GetTimeSeconds();
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, Now).Echo.IsSet()));
+			UVeyraEchoSubsystem* Echoes = Spawner.GetWorld().GetSubsystem<UVeyraEchoSubsystem>();
+			ASSERT_THAT(IsNotNull(Echoes->Project(*Participant.GetAbilitySystemComponent(), Project, Caster->GetActorLocation() + FVector(Reach / 2.0, 0.0, 0.0))));
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
+			ASSERT_THAT(IsTrue(Player.Echo.IsSet()));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.Echo->IntegrityShare, 1.0), TEXT("whole as it forms")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.Echo->FormingSeconds, Forming) && FMath::IsNearlyEqual(Player.Echo->ImmuneSeconds, Immune)));
+			ASSERT_THAT(IsTrue(Player.Echo->RepeatsLeft == 1 && Player.Echo->Slots == Echo.Slots, TEXT("what it may cast, and how often")));
+
+			Echoes->End(*Participant.GetAbilitySystemComponent(), EVeyraEchoEnd::Faded);
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, Now).Echo.IsSet(), TEXT("an ended Echo leaves the HUD")));
+		}
+
 		TEST_METHOD(TheHudShowsAnEmpowermentWaitingForTheNextAttack)
 		{
 			FArchetypeTestWorld World{ Spawner };
@@ -606,6 +650,35 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Player.Slots[0].EmpoweredSeconds == 0.0, TEXT("only the slot that cast it")));
 			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now + LongSeconds + StepSeconds).Slots[1].EmpoweredSeconds == 0.0,
 				TEXT("a lapsed empowerment shows nothing")));
+		}
+
+		// ADR-052 §4: the ring follows the reach as it is now, statuses included, out to a target's edge.
+		TEST_METHOD(ShowAttackRangeRingsTheBasicAttacksReachAsItIsNow)
+		{
+			constexpr double Reach = 525.0;
+			constexpr double Extra = 75.0;
+			// A Vanguard's attack is its participant's.
+			UVeyraBasicAttackComponent* Attacks = Caster->GetPlayerState()->FindComponentByClass<UVeyraBasicAttackComponent>();
+			ASSERT_THAT(IsNotNull(Attacks));
+			FVeyraBasicAttackProfile Profile;
+			Profile.Range = Reach;
+			Profile.DamageType = EVeyraDamageType::Physical;
+			Profile.PhysicalPowerRatio = 1.0;
+			Profile.WindupFraction = 0.25;
+			Profile.AcquisitionRadius = Reach;
+			ASSERT_THAT(IsTrue(Attacks->SetProfile(Profile)));
+			const double Body = Caster->GetSimpleCollisionRadius();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraHud::AttackReachOf(*Caster).Get(0.0), Reach + Body), TEXT("the reach, out from the body's edge")));
+
+			FVeyraStatusSpec Longer;
+			Longer.Id = ArchetypeTestId(TEXT("test_reach"));
+			Longer.Kind = EVeyraStatusKind::AttackRange;
+			Longer.Magnitude = Extra;
+			Longer.DurationSeconds = LongSeconds;
+			UAbilitySystemComponent& Self = *Caster->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, Longer)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraHud::AttackReachOf(*Caster).Get(0.0), Reach + Extra + Body), TEXT("a longer reach rings further at once")));
+			ASSERT_THAT(IsFalse(VeyraHud::AttackReachOf(Spawner.SpawnActor<AActor>()).IsSet(), TEXT("nothing for a unit with no basic attack")));
 		}
 
 		TEST_METHOD(OutlinesTraceTheirShapes)

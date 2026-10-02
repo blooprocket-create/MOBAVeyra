@@ -97,4 +97,16 @@ namespace VeyraCamera
 	 * then on. The end-of-match pan to the fallen Prime Well (ADR-020 §1).
 	 */
 	VEYRAMATCH_API FVector PanToward(const FVector& From, const FVector& To, double Elapsed, double Seconds);
+
+	/**
+	 * The arm's length after Notches presses of the zoom keys from From, ZoomStep each: positive zooms in,
+	 * shortening the arm, negative zooms out. It stays within Nearest and Farthest (ADR-052 §3).
+	 */
+	VEYRAMATCH_API double Zoom(double From, int32 Notches, double ZoomStep, double Nearest, double Farthest);
+
+	/**
+	 * The arm's length DeltaSeconds on from Current as it eases toward Target, covering about two thirds of
+	 * the way each SmoothingSeconds; Target at once without smoothing.
+	 */
+	VEYRAMATCH_API double EaseZoom(double Current, double Target, double DeltaSeconds, double SmoothingSeconds);
 }

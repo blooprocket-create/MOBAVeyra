@@ -124,6 +124,11 @@ const FVeyraDismountAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindDismount(
 	return Get().Dismount.Find(Ability);
 }
 
+const FVeyraEchoAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindEcho(const FVeyraContentId& Ability)
+{
+	return Get().Echo.Find(Ability);
+}
+
 const FVeyraCompanionTuning* UVeyraAbilitiesTuningSubsystem::FindCompanion(const FVeyraContentId& Id)
 {
 	return Get().Companions.Find(Id);

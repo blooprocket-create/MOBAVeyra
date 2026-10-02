@@ -20,6 +20,7 @@ namespace
 	struct FDamageCaptures
 	{
 		FGameplayEffectAttributeCaptureDefinition OutgoingDamageMultiplier;
+		FGameplayEffectAttributeCaptureDefinition DamageShare;
 		FGameplayEffectAttributeCaptureDefinition PhysicalPenetrationFlat;
 		FGameplayEffectAttributeCaptureDefinition PhysicalPenetrationRetained;
 		FGameplayEffectAttributeCaptureDefinition MagicPenetrationFlat;
@@ -43,6 +44,7 @@ namespace
 				return FGameplayEffectAttributeCaptureDefinition(Attribute, EGameplayEffectAttributeCaptureSource::Target, /*bSnapshot*/ false);
 			};
 			OutgoingDamageMultiplier = FromAttacker(UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute());
+			DamageShare = FromAttacker(UVeyraOffenceSet::GetDamageShareAttribute());
 			PhysicalPenetrationFlat = FromAttacker(UVeyraOffenceSet::GetPhysicalPenetrationFlatAttribute());
 			PhysicalPenetrationRetained = FromAttacker(UVeyraOffenceSet::GetPhysicalPenetrationRetainedAttribute());
 			MagicPenetrationFlat = FromAttacker(UVeyraOffenceSet::GetMagicPenetrationFlatAttribute());
@@ -58,7 +60,7 @@ namespace
 
 		TArray<const FGameplayEffectAttributeCaptureDefinition*> All() const
 		{
-			return { &OutgoingDamageMultiplier, &PhysicalPenetrationFlat, &PhysicalPenetrationRetained, &MagicPenetrationFlat,
+			return { &OutgoingDamageMultiplier, &DamageShare, &PhysicalPenetrationFlat, &PhysicalPenetrationRetained, &MagicPenetrationFlat,
 				&MagicPenetrationRetained, &Armor, &MagicResist, &ArmorReductionFlat, &ArmorReductionRetained,
 				&MagicResistReductionFlat, &MagicResistReductionRetained, &IncomingDamageMultiplier };
 		}
@@ -148,6 +150,7 @@ void UVeyraDamageExecution::Execute_Implementation(const FGameplayEffectCustomEx
 	const FDamageCaptures& Capture = Captures();
 	FVeyraAttackerOffence Offence;
 	Offence.OutgoingDamageMultiplier = Read(Capture.OutgoingDamageMultiplier);
+	Offence.DamageShare = Read(Capture.DamageShare);
 	Offence.PhysicalPenetration = { Read(Capture.PhysicalPenetrationFlat) + EventValue(UVeyraDamageEffect::PhysicalPenetrationFlatName, Identity.Flat),
 		Read(Capture.PhysicalPenetrationRetained) * EventValue(UVeyraDamageEffect::PhysicalPenetrationRetainedName, Identity.Retained) };
 	Offence.MagicPenetration = { Read(Capture.MagicPenetrationFlat) + EventValue(UVeyraDamageEffect::MagicPenetrationFlatName, Identity.Flat),

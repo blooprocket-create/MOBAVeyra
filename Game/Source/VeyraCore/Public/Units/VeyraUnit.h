@@ -43,6 +43,11 @@ enum class EVeyraUnitKind : uint8
 	 * own Health and behaviour, on its owner's side. What it causes is its owner's (Combat Bible §32).
 	 */
 	Companion,
+	/**
+	 * A Vanguard's Echo (Item Bible §9, §11; ADR-050 §2): a projection of its holder, on its holder's side, whose
+	 * sealed Health is its Integrity. What it causes is its holder's (Combat Bible §32).
+	 */
+	Echo,
 };
 
 UINTERFACE(MinimalAPI, NotBlueprintable)
