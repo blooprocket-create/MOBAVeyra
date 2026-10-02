@@ -68,9 +68,11 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("ShadeColor"), ShadeColor },
 		{ TEXT("RiverColor"), RiverColor },
 		{ TEXT("MinimapWallColor"), MinimapWallColor },
+		{ TEXT("MinimapFogColor"), MinimapFogColor },
 		{ TEXT("AllyBaseColor"), AllyBaseColor },
 		{ TEXT("EnemyBaseColor"), EnemyBaseColor },
 		{ TEXT("DenseFogColor"), DenseFogColor },
+		{ TEXT("FogOfWarColor"), FogOfWarColor },
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
@@ -98,6 +100,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(BarHeight >= 1.0f, TEXT("BarHeight"), TEXT("must be at least 1 pixel."));
 	Require(ResourceBarHeight >= 1.0f, TEXT("ResourceBarHeight"), TEXT("must be at least 1 pixel."));
 	Require(BarLift >= 0.0f, TEXT("BarLift"), TEXT("must not be negative."));
+	// Over the ground's markings and under the telegraphs.
+	Require(FogOfWarLift >= 0.0f && FogOfWarLift <= TelegraphLift, TEXT("FogOfWarLift"), TEXT("must not be negative, nor above TelegraphLift."));
+	Require(FogOfWarColor.A < 1.0f && MinimapFogColor.A < 1.0f, TEXT("FogOfWarColor"), TEXT("the fog of war is translucent: the ground shows through it."));
 	Require(ChannelBarWidth >= 1.0f, TEXT("ChannelBarWidth"), TEXT("must be at least 1 pixel."));
 	Require(ChannelBarHeight >= 1.0f, TEXT("ChannelBarHeight"), TEXT("must be at least 1 pixel."));
 	Require(ChannelBarLift >= 0.0f, TEXT("ChannelBarLift"), TEXT("must not be negative."));

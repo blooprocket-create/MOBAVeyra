@@ -141,6 +141,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
 
+	/** The fog of war on the minimap (ADR-054 §3), translucent over its ground. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	FLinearColor MinimapFogColor = FLinearColor::Transparent;
+
 	/** The battleground's walls on the minimap (ADR-043 §4); its river is drawn in RiverColor. */
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapWallColor = FLinearColor::Transparent;
@@ -285,6 +289,14 @@ public:
 	/** The battleground's Dense Fog, its bush (Battleground Bible §11): a dark patch on the floor. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
 	FLinearColor DenseFogColor = FLinearColor::Transparent;
+
+	/** The fog of war over the ground the viewer's side does not see (ADR-054 §3): dark and translucent. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vision")
+	FLinearColor FogOfWarColor = FLinearColor::Transparent;
+
+	/** How far above the floor the fog of war lies, in units: over the ground's markings, under the telegraphs. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vision", meta = (ClampMin = "0"))
+	float FogOfWarLift = 0.0f;
 
 	/** A presence ping: a ring over the fog an enemy is present in, fading until the next (ADR-016 §8). */
 	UPROPERTY(Config, EditAnywhere, Category = "Vision")

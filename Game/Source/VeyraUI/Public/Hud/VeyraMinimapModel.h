@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Math/Box2D.h"
 #include "Math/Vector.h"
 #include "Math/Vector2D.h"
 #include "Misc/Optional.h"
@@ -9,6 +10,7 @@
 #include "Teams/VeyraTeam.h"
 
 class UWorld;
+struct FVeyraSeenGround;
 
 /** Where the minimap sits on the screen and what it shows of the world (Settings Bible §3.2; ADR-020 §2). */
 struct FVeyraMinimapFrame
@@ -89,6 +91,8 @@ struct FVeyraMinimapView
 	TArray<FVeyraMinimapDot> Dots;
 	TArray<FVeyraMinimapPing> Pings;
 	TArray<FVeyraMinimapTeamPing> TeamPings;
+	/** The ground the viewer's side does not see, on the screen (ADR-054 §3). */
+	TArray<FBox2D> Fog;
 	/** The camera's focus, where the player is looking. */
 	TOptional<FVector2D> Focus;
 };
@@ -119,6 +123,9 @@ namespace VeyraMinimap
 	VEYRAUI_API TArray<FVeyraMinimapTeamPing> DescribeTeamPings(const FVeyraMinimapFrame& Frame, TConstArrayView<FVeyraReceivedPing> Pings, double Now, double Seconds);
 
 	/** Gathers what World's client has for the minimap, for a viewer on Viewer's side whose Vanguard is Own. */
+	/** The unseen ground of Ground on the minimap: a screen box for each unseen run (ADR-054 §3). */
+	VEYRAUI_API TArray<FBox2D> DescribeFog(const FVeyraMinimapFrame& Frame, const FVeyraSeenGround& Ground);
+
 	VEYRAUI_API FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame, EVeyraTeam Viewer, const AActor* Own,
 		const TOptional<FVector>& Focus, double ServerNow);
 }

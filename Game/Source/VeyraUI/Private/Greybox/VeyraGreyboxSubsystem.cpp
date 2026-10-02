@@ -32,6 +32,8 @@
 #include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
+#include "Hud/VeyraFogOfWarModel.h"
+#include "State/VeyraVisionTeamState.h"
 #include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -202,7 +204,48 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawChains();
 	DrawEchoTethers();
 	RefreshCombatText();
+	RefreshFogOfWar();
 	AttachHudOverlay();
+}
+
+void UVeyraGreyboxSubsystem::RefreshFogOfWar()
+{
+	const FVeyraSeenGround* Ground = VeyraFogOfWar::OwnGround(*GetWorld(), GetViewerTeam());
+	const uint32 Signature = VeyraFogOfWar::SignatureOf(Ground);
+	if (Signature == FogOfWarDrawn && FogOfWarSheet)
+	{
+		return;
+	}
+	FogOfWarDrawn = Signature;
+	if (!FogOfWarSheet)
+	{
+		FogOfWarSheet = NewObject<ULineBatchComponent>(this, NAME_None, RF_Transient);
+		FogOfWarSheet->bCalculateAccurateBounds = false;
+		FogOfWarSheet->RegisterComponentWithWorld(GetWorld());
+	}
+	FogOfWarSheet->Flush();
+	if (!Ground)
+	{
+		return;
+	}
+	// One translucent sheet for every unseen run, above the ground's markings and under the telegraphs. Each quad is
+	// wound both ways, so it shows from any camera.
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	TArray<FVector> Vertices;
+	TArray<int32> Indices;
+	for (const FVeyraUnseenRun& Run : VeyraFogOfWar::UnseenRuns(*Ground))
+	{
+		const FBox2D Box = VeyraFogOfWar::BoundsOf(*Ground, Run);
+		const double Z = GroundUnder(FVector(Box.GetCenter(), 0.0)).Z - Settings.TelegraphLift + Settings.FogOfWarLift;
+		const int32 Base = Vertices.Num();
+		Vertices.Append({ FVector(Box.Min.X, Box.Min.Y, Z), FVector(Box.Max.X, Box.Min.Y, Z), FVector(Box.Max.X, Box.Max.Y, Z), FVector(Box.Min.X, Box.Max.Y, Z) });
+		Indices.Append({ Base, Base + 1, Base + 2, Base, Base + 2, Base + 3, Base, Base + 2, Base + 1, Base, Base + 3, Base + 2 });
+	}
+	if (!Vertices.IsEmpty())
+	{
+		// A lifetime of 0 keeps it until the next change flushes it.
+		FogOfWarSheet->DrawMesh(Vertices, Indices, Settings.FogOfWarColor.ToFColor(/*bSRGB*/ true), SDPG_World, 0.0f);
+	}
 }
 
 void UVeyraGreyboxSubsystem::RefreshCombatText()
