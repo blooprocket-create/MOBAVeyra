@@ -1,0 +1,7 @@
+// The Cloudflare Worker that the repository's Workers Builds deploy (see Website/README.md). Its name must stay
+// the connected Worker's, "veyra".
+{
+  "name": "veyra",
+  "main": "Website/worker.js",
+  "compatibility_date": "2025-09-01"
+}
