@@ -4,10 +4,12 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Scoreboard/VeyraScoreboardModel.h"
+#include "Settings/VeyraInterfacePreferences.h"
 
 #include "VeyraScoreboard.generated.h"
 
 class APlayerController;
+class FVeyraSettingsStore;
 class UHorizontalBox;
 
 /**
@@ -37,6 +39,12 @@ public:
 	/** What it shows now. */
 	const FVeyraScoreboardView& GetView() const { return View; }
 
+	/** The side colours its headings and faces wear: the player's colour vision (SET-8; ADR-055 §1). */
+	const FVeyraSideColors& GetSides() const { return Sides; }
+
+	/** Reads the player's settings from Store rather than the game instance's. For tests. */
+	void BindSettings(const FVeyraSettingsStore& Store) { SettingsStore = &Store; }
+
 	/** Every line of text it shows, in the order built. For tests and scripts. */
 	TArray<FString> GetLines() const;
 
@@ -57,6 +65,8 @@ private:
 
 	TWeakObjectPtr<const APlayerController> Controller;
 	FVeyraScoreboardView View;
+	FVeyraSideColors Sides;
+	const FVeyraSettingsStore* SettingsStore = nullptr;
 	bool bBuilt = false;
 
 	UPROPERTY(Transient)

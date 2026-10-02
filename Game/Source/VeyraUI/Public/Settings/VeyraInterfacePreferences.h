@@ -43,6 +43,8 @@ struct FVeyraSideColors
 	FLinearColor Ally = FLinearColor::Transparent;
 	FLinearColor Enemy = FLinearColor::Transparent;
 	FLinearColor Neutral = FLinearColor::Transparent;
+
+	bool operator==(const FVeyraSideColors& Other) const = default;
 };
 
 /** The HUD, the minimap and the in-match controls as the player set them (Settings Bible §3; ADR-024 §6). */

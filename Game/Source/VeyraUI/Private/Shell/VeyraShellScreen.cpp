@@ -255,7 +255,8 @@ void UVeyraShellScreen::Refresh()
 	}
 	const FVeyraClientSnapshot& Snapshot = Client->GetSnapshot();
 	// Built in the player's look, and rebuilt when it changes (ADR-055 §2–§3).
-	const bool bNewLook = VeyraShellLook::Use(VeyraShellLook::For(InterfacePreferences()));
+	const FVeyraInterfacePreferences Preferences = InterfacePreferences();
+	const bool bNewLook = VeyraShellLook::Use(VeyraShellLook::For(Preferences));
 	if (bNewLook)
 	{
 		ShownSignature.Reset();
@@ -287,6 +288,8 @@ void UVeyraShellScreen::Refresh()
 			*ProfileDraft.FeaturedVanguardId, ProfileDraft.bShowMatchHistory ? 1 : 0) +
 		// The break reminder comes and goes with the player's setting as well as the snapshot (ADR-053 §4).
 		FString::Printf(TEXT("reminder %d|"), ShowsPlayReminder(Snapshot) ? 1 : 0) +
+		// The seats' side colours follow the player's colour vision (ADR-055 §1).
+		FString::Printf(TEXT("sides %s:%s|"), *Preferences.SideColors.Ally.ToString(), *Preferences.SideColors.Enemy.ToString()) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
