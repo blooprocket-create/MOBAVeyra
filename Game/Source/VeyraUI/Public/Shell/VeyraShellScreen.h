@@ -84,6 +84,8 @@ struct FVeyraMatchFoundAlert
 	bool bAttentionAllowed = false;
 	/** The match-ready sound played. */
 	bool bSound = false;
+	/** Under Reduce Flashing the attention is a steady highlight, not repeated flashes (SET-18; ADR-055 §4). */
+	bool bSteadyAttention = false;
 };
 
 UCLASS()
@@ -100,7 +102,8 @@ public:
 
 	/**
 	 * Follows Store, the player's settings, so a change to one the screen shows (the break reminder, the Match Found
-	 * alert) shows at once. Bind follows the game instance's; tests give their own. Store must outlive the binding.
+	 * alert) shows at once. Bind follows the game instance's unless the screen already follows one; tests give their
+	 * own, before Bind so the first refresh reads it. Store must outlive the binding.
 	 */
 	void BindSettings(FVeyraSettingsStore& Store);
 

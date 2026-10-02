@@ -441,7 +441,17 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 			DrawMinimap(Canvas, Settings, Preferences, View);
 		}
 		// The deck, the top strip and Team Flux (VeyraHudDeck).
-		VeyraHudDeck::Draw(Canvas, Settings, Preferences, Greybox.GetHudFont(), *Greybox.GetWorld(), *GameState, Viewer, Own, Now);
+		// The warnings the player allows, while they show (ADR-055 §5).
+		TArray<FString> Warnings;
+		if (Greybox.IsShowingConnectionWarning())
+		{
+			Warnings.Add(TEXT("Connection unstable"));
+		}
+		if (Greybox.IsShowingPerformanceWarning())
+		{
+			Warnings.Add(TEXT("Low frame rate: Graphics settings can help"));
+		}
+		VeyraHudDeck::Draw(Canvas, Settings, Preferences, Greybox.GetHudFont(), *Greybox.GetWorld(), *GameState, Viewer, Own, Now, Warnings);
 		// How the match ended, while its players watch the end (ADR-020 §1).
 		if (GameState->GetPhase() == EVeyraMatchPhase::Ended)
 		{

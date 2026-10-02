@@ -257,21 +257,31 @@ namespace
 		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.86f, Middle), FString::FromInt(EnemyKills), KillFont, Sides.Enemy);
 	}
 
-	/** The frame rate and ping the player asked to see, top right (Settings Bible §3.6). */
-	void DrawReadouts(const FPainter& Paint, const FVeyraInterfacePreferences& Preferences, const APlayerController* Viewer)
+	/**
+	 * The frame rate and ping the player asked to see, top right (Settings Bible §3.6), and under them the warnings that
+	 * show: steady and silent, never flashing (SET-21, Proposal 110; ADR-055 §5).
+	 */
+	void DrawReadouts(const FPainter& Paint, const FVeyraInterfacePreferences& Preferences, const APlayerController* Viewer, TConstArrayView<FString> Warnings)
 	{
 		const APlayerState* Participant = Viewer ? Viewer->PlayerState.Get() : nullptr;
 		// A server's own player has no ping to show.
 		const float Ping = Participant ? Participant->GetPingInMilliseconds() : 0.0f;
 		const FString Text = VeyraInterfacePreferences::DescribeReadouts(Preferences, GAverageFPS, Ping > 0.0f ? TOptional<float>(Ping) : TOptional<float>());
-		if (Text.IsEmpty())
-		{
-			return;
-		}
 		const FSlateFontInfo Font = Paint.Font(TEXT("Bold"), Paint.Settings.HudSmallFontSize);
-		const FVector2D Size = Paint.Measure(Text, Font);
 		const float Gap = Paint.S(Paint.Settings.DeckGap);
-		Paint.Text(FVector2D(Paint.Canvas.ClipX - Gap - Size.X, Gap), Text, Font, Paint.Settings.TextColor, true);
+		float Y = Gap;
+		if (!Text.IsEmpty())
+		{
+			const FVector2D Size = Paint.Measure(Text, Font);
+			Paint.Text(FVector2D(Paint.Canvas.ClipX - Gap - Size.X, Y), Text, Font, Paint.Settings.TextColor, true);
+			Y += Size.Y + Gap / 2.0f;
+		}
+		for (const FString& Warning : Warnings)
+		{
+			const FVector2D Size = Paint.Measure(Warning, Font);
+			Paint.Text(FVector2D(Paint.Canvas.ClipX - Gap - Size.X, Y), Warning, Font, Paint.Settings.WarningColor, true);
+			Y += Size.Y + Gap / 2.0f;
+		}
 	}
 
 	/** Each side's Team Flux, the viewer's first, top left (ADR-011 §10). */
@@ -812,13 +822,13 @@ namespace
 namespace VeyraHudDeck
 {
 void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font, const UWorld& World,
-	const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow)
+	const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow, TConstArrayView<FString> Warnings)
 {
 	const FPainter Paint(Canvas, Settings, Font, Preferences.HudScale);
 	const EVeyraTeam Side = Own ? Own->GetVeyraTeam() : EVeyraTeam::None;
 	// Sides in the player's colour vision (ADR-055 §1).
 	DrawTopStrip(Paint, GameState, Side, Preferences.SideColors);
-	DrawReadouts(Paint, Preferences, Viewer);
+	DrawReadouts(Paint, Preferences, Viewer, Warnings);
 	DrawNotices(Paint, GameState, Viewer);
 	DrawTeamFlux(Paint, World, Side, ServerNow, Preferences.SideColors);
 	if (!Own)

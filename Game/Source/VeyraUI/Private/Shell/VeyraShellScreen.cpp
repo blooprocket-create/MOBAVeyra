@@ -3,6 +3,12 @@
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellLook.h"
 
+#if PLATFORM_WINDOWS
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <Windows.h>
+#include "Windows/HideWindowsPlatformTypes.h"
+#endif
+
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Client/VeyraClientIntents.h"
@@ -157,11 +163,16 @@ bool UVeyraShellScreen::Initialize()
 
 void UVeyraShellScreen::Bind(IVeyraClientIntents& InClient)
 {
-	Unbind();
+	if (Client)
+	{
+		Client->OnChanged().Remove(ChangedHandle);
+	}
 	Client = &InClient;
 	ChangedHandle = Client->OnChanged().AddUObject(this, &UVeyraShellScreen::Refresh);
 	ShownSignature.Reset();
-	if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+	// The game instance's settings, unless the screen already follows a store of its own.
+	UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	if (Settings && !SettingsStore)
 	{
 		BindSettings(Settings->GetStore());
 	}
@@ -329,7 +340,7 @@ void UVeyraShellScreen::AnnounceMatchFound()
 {
 	++MatchFoundAlerts;
 	const FVeyraInterfacePreferences Preferences = InterfacePreferences();
-	LastMatchFoundAlert = FVeyraMatchFoundAlert{ Preferences.bBackgroundMatchNotification, Preferences.bMatchReadySound };
+	LastMatchFoundAlert = FVeyraMatchFoundAlert{ Preferences.bBackgroundMatchNotification, Preferences.bMatchReadySound, Preferences.bReduceFlashing };
 	// Taskbar attention only: the client never takes focus for itself, accepts, or tells anything of the party (SET-50).
 	if (Preferences.bBackgroundMatchNotification)
 	{
@@ -356,10 +367,23 @@ void UVeyraShellScreen::DrawWindowAttention(bool bBringToFront)
 		{
 			Window->BringToFront(/*bForce*/ true);
 		}
-		if (!Window->IsActive())
+		if (Window->IsActive())
 		{
-			Window->DrawAttention(FWindowDrawAttentionParameters(EWindowDrawAttentionRequestType::UntilActivated));
+			return;
 		}
+		// Under Reduce Flashing the taskbar button lights once and stays lit, rather than flashing until activated (SET-18).
+		if (InterfacePreferences().bReduceFlashing)
+		{
+#if PLATFORM_WINDOWS
+			if (const TSharedPtr<FGenericWindow> Native = Window->GetNativeWindow(); Native.IsValid() && Native->GetOSWindowHandle())
+			{
+				FLASHWINFO Light = { sizeof(FLASHWINFO), static_cast<HWND>(Native->GetOSWindowHandle()), FLASHW_TRAY, 1, 0 };
+				::FlashWindowEx(&Light);
+			}
+#endif
+			return;
+		}
+		Window->DrawAttention(FWindowDrawAttentionParameters(EWindowDrawAttentionRequestType::UntilActivated));
 	}
 }
 

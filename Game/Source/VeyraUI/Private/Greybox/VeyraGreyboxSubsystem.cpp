@@ -32,7 +32,10 @@
 #include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
+#include "Engine/NetConnection.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Hud/VeyraFogOfWarModel.h"
+#include "Settings/VeyraDisplayRules.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -205,7 +208,35 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawEchoTethers();
 	RefreshCombatText();
 	RefreshFogOfWar();
+	RefreshWarnings();
 	AttachHudOverlay();
+}
+
+// The engine's running average frame rate, which it declares in no public header.
+extern ENGINE_API float GAverageFPS;
+
+void UVeyraGreyboxSubsystem::RefreshWarnings()
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraSettingsStore* Store = VeyraInterfacePreferences::StoreOf(this);
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, Store);
+	const double Now = FPlatformTime::Seconds();
+	// The connection: a client's link to its match server, losing packets or lagging (SET-21).
+	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
+	const UNetConnection* Connection = Viewer && GetWorld()->GetNetMode() == NM_Client ? Viewer->GetNetConnection() : nullptr;
+	bool bConnectionTrouble = false;
+	if (Connection && Preferences.bConnectionWarning)
+	{
+		const double Loss = FMath::Max(Connection->GetInLossPercentage().GetAvgLossPercentage(), Connection->GetOutLossPercentage().GetAvgLossPercentage());
+		bConnectionTrouble = VeyraHudWarnings::IsConnectionTroubled(Loss, Connection->AvgLag * 1000.0, Settings.ConnectionWarningLossFraction, Settings.ConnectionWarningRoundTripMs);
+	}
+	VeyraHudWarnings::Update(ConnectionWarning, bConnectionTrouble, Now, Settings.WarningStartSeconds, Settings.WarningClearSeconds);
+	// The frame rate, against the cap the player chose; in the background its own cap rules, so never then (Proposal 110).
+	const bool bForeground = FPlatformApplicationMisc::IsThisApplicationForeground();
+	const double Cap = Store ? VeyraDisplayRules::Resolve(*Store, /*bForeground*/ true).FrameCap : 0.0;
+	const bool bPerformanceTrouble = Preferences.bPerformanceWarning
+		&& VeyraHudWarnings::IsPerformanceTroubled(bForeground, GAverageFPS, Cap, Settings.UncappedReferenceFps, Settings.PerformanceWarningFraction);
+	VeyraHudWarnings::Update(PerformanceWarning, bPerformanceTrouble, Now, Settings.WarningStartSeconds, Settings.WarningClearSeconds);
 }
 
 void UVeyraGreyboxSubsystem::RefreshFogOfWar()

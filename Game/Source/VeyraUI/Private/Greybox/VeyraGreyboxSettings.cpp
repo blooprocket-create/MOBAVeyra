@@ -75,6 +75,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("EnemyBaseColor"), EnemyBaseColor },
 		{ TEXT("DenseFogColor"), DenseFogColor },
 		{ TEXT("FogOfWarColor"), FogOfWarColor },
+		{ TEXT("WarningColor"), WarningColor },
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
@@ -103,6 +104,12 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(!SideColorPalette.IsEmpty() && !Algo::AnyOf(SideColorPalette, [](const TPair<FString, FLinearColor>& Named) { return !(Named.Value.A > 0.0f); }),
 		TEXT("SideColorPalette"), TEXT("at least one named colour is required, none fully transparent."));
 	Require(CustomOwnLightening >= 0.0f && CustomOwnLightening <= 1.0f, TEXT("CustomOwnLightening"), TEXT("must be from 0 to 1."));
+	// The warnings (ADR-055 §5).
+	Require(ConnectionWarningLossFraction > 0.0f && ConnectionWarningLossFraction < 1.0f, TEXT("ConnectionWarningLossFraction"), TEXT("must be above 0 and below 1."));
+	Require(ConnectionWarningRoundTripMs > 0.0f, TEXT("ConnectionWarningRoundTripMs"), TEXT("must be above 0."));
+	Require(PerformanceWarningFraction > 0.0f && PerformanceWarningFraction < 1.0f, TEXT("PerformanceWarningFraction"), TEXT("must be above 0 and below 1."));
+	Require(UncappedReferenceFps >= 1.0f, TEXT("UncappedReferenceFps"), TEXT("must be at least 1."));
+	Require(WarningStartSeconds > 0.0f && WarningClearSeconds > 0.0f, TEXT("WarningStartSeconds"), TEXT("both a warning's start and its clearing take some time."));
 	Require(!MasteryEmoteTierColors.IsEmpty() && !MasteryEmoteTierColors.ContainsByPredicate([](const FLinearColor& Color) { return !(Color.A > 0.0f); }),
 		TEXT("MasteryEmoteTierColors"), TEXT("at least one colour is required, and none may be fully transparent."));
 	Require(!StructureArt.IsNull(), TEXT("StructureArt"), TEXT("the structure kit's art set is required."));

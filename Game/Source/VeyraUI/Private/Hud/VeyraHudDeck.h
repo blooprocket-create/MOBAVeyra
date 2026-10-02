@@ -32,7 +32,7 @@ namespace VeyraHudDeck
 	 * Viewer, whose participant is Own, at the player's HUD scale.
 	 */
 	void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font, const UWorld& World,
-		const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow);
+		const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow, TConstArrayView<FString> Warnings);
 
 	/** Draws Text large and centred a third of the way down, in Color: the match's end, for one. */
 	void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const FString& Text, const FLinearColor& Color);

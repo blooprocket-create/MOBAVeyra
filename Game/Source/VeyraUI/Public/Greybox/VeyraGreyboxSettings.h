@@ -172,6 +172,28 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
 
+	/** The connection warning's trouble: more than this fraction of packets lost, or a round trip above RoundTripMs (SET-21; ADR-055 §5). */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float ConnectionWarningLossFraction = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float ConnectionWarningRoundTripMs = 0.0f;
+
+	/** The low-performance warning's trouble: foreground frames below this fraction of the cap (Proposal 110). */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0", ClampMax = "1"))
+	float PerformanceWarningFraction = 0.0f;
+
+	/** The frame rate an uncapped player is measured against. */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "1"))
+	float UncappedReferenceFps = 0.0f;
+
+	/** How long trouble lasts before a warning starts, and calm before it clears, in seconds. */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float WarningStartSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float WarningClearSeconds = 0.0f;
+
 	/** The fog of war on the minimap (ADR-054 §3), translucent over its ground. */
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapFogColor = FLinearColor::Transparent;
