@@ -91,12 +91,13 @@ namespace VeyraSettingsScreenTests
 			const FVeyraSettingsStore Store(Registry);
 			const FVeyraSettingsModel Camera = VeyraSettingsModels::Describe(Store, EVeyraSettingCategory::Camera, FString(), false);
 			ASSERT_THAT(IsTrue(Camera.Categories == (TArray<EVeyraSettingCategory>{ EVeyraSettingCategory::Controls, EVeyraSettingCategory::Camera,
-				EVeyraSettingCategory::Interface, EVeyraSettingCategory::Audio, EVeyraSettingCategory::GraphicsDisplay, EVeyraSettingCategory::Communication })));
+				EVeyraSettingCategory::Interface, EVeyraSettingCategory::Accessibility, EVeyraSettingCategory::Audio, EVeyraSettingCategory::GraphicsDisplay,
+				EVeyraSettingCategory::Communication })));
 			ASSERT_THAT(IsTrue(!Camera.Rows.IsEmpty() && Camera.Rows[0].Id == Setting(TEXT("camera_default_mode")), TEXT("the layout's order")));
 			ASSERT_THAT(IsTrue(Camera.Rows.ContainsByPredicate([](const FVeyraSettingRowModel& Row) { return Row.Category != EVeyraSettingCategory::Camera; }) == false));
 
-			const FVeyraSettingsModel Accessibility = VeyraSettingsModels::Describe(Store, EVeyraSettingCategory::Accessibility, FString(), false);
-			ASSERT_THAT(IsTrue(Accessibility.Category == EVeyraSettingCategory::Controls, TEXT("a category with nothing in it falls back to the first")));
+			const FVeyraSettingsModel Account = VeyraSettingsModels::Describe(Store, EVeyraSettingCategory::LanguageAccount, FString(), false);
+			ASSERT_THAT(IsTrue(Account.Category == EVeyraSettingCategory::Controls, TEXT("a category with nothing in it falls back to the first")));
 			ASSERT_THAT(AreEqual(FString(TEXT("Graphics & Display")), VeyraSettingsModels::CategoryName(EVeyraSettingCategory::GraphicsDisplay).ToString()));
 		}
 

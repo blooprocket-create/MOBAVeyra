@@ -237,7 +237,7 @@ namespace
 	}
 
 	/** The top strip: each side's kills around the match clock. */
-	void DrawTopStrip(const FPainter& Paint, const AVeyraGameState& GameState, EVeyraTeam Viewer)
+	void DrawTopStrip(const FPainter& Paint, const AVeyraGameState& GameState, EVeyraTeam Viewer, const FVeyraSideColors& Sides)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const int32 Clock = FMath::FloorToInt32(GameState.GetMatchClockSeconds());
@@ -253,8 +253,8 @@ namespace
 		Paint.Surface(TopLeft, FVector2D(Width, Height));
 		const float Middle = TopLeft.Y + Height / 2.0f;
 		Paint.TextCentred(FVector2D(Paint.Canvas.ClipX / 2.0f, Middle), ClockText, ClockFont, Settings.TextColor);
-		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.14f, Middle), FString::FromInt(OwnKills), KillFont, Settings.AllyColor);
-		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.86f, Middle), FString::FromInt(EnemyKills), KillFont, Settings.EnemyColor);
+		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.14f, Middle), FString::FromInt(OwnKills), KillFont, Sides.Ally);
+		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.86f, Middle), FString::FromInt(EnemyKills), KillFont, Sides.Enemy);
 	}
 
 	/** The frame rate and ping the player asked to see, top right (Settings Bible §3.6). */
@@ -275,7 +275,7 @@ namespace
 	}
 
 	/** Each side's Team Flux, the viewer's first, top left (ADR-011 §10). */
-	void DrawTeamFlux(const FPainter& Paint, const UWorld& World, EVeyraTeam Viewer, double Now)
+	void DrawTeamFlux(const FPainter& Paint, const UWorld& World, EVeyraTeam Viewer, double Now, const FVeyraSideColors& Sides)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		TArray<FVeyraHudTeamFlux> Teams = VeyraHud::DescribeTeamFlux(&World, Now);
@@ -296,7 +296,7 @@ namespace
 		float Y = TopLeft.Y + Paint.S(22.0f);
 		for (const FVeyraHudTeamFlux& Team : Teams)
 		{
-			const FLinearColor Side = Team.Team == Viewer ? Settings.AllyColor : Settings.EnemyColor;
+			const FLinearColor Side = Team.Team == Viewer ? Sides.Ally : Sides.Enemy;
 			const float X = TopLeft.X + Paint.S(Settings.DeckPadding);
 			Paint.Rect(FVector2D(X, Y + Paint.S(4.0f)), FVector2D(Paint.S(3.0f), Row - Paint.S(8.0f)), Side);
 			Paint.Text(FVector2D(X + Paint.S(10.0f), Y), FString::Printf(TEXT("%.0f"), Team.Active), Value, Settings.TextColor);
@@ -430,8 +430,8 @@ namespace
 		TArray<FRow> Rows;
 		for (const FVeyraChatLine& Line : Lines)
 		{
-			const FLinearColor SideColor = Line.Side == EVeyraChatLineSide::Ally ? Settings.AllyColor
-				: Line.Side == EVeyraChatLineSide::Enemy						 ? Settings.EnemyColor
+			const FLinearColor SideColor = Line.Side == EVeyraChatLineSide::Ally ? Preferences.SideColors.Ally
+				: Line.Side == EVeyraChatLineSide::Enemy						 ? Preferences.SideColors.Enemy
 				: Line.Side == EVeyraChatLineSide::Party						 ? Settings.PartyChatColor
 				: Line.Side == EVeyraChatLineSide::Direct						 ? Settings.DirectChatColor
 																				 : Settings.DescriptionColor;
@@ -816,10 +816,11 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 {
 	const FPainter Paint(Canvas, Settings, Font, Preferences.HudScale);
 	const EVeyraTeam Side = Own ? Own->GetVeyraTeam() : EVeyraTeam::None;
-	DrawTopStrip(Paint, GameState, Side);
+	// Sides in the player's colour vision (ADR-055 §1).
+	DrawTopStrip(Paint, GameState, Side, Preferences.SideColors);
 	DrawReadouts(Paint, Preferences, Viewer);
 	DrawNotices(Paint, GameState, Viewer);
-	DrawTeamFlux(Paint, World, Side, ServerNow);
+	DrawTeamFlux(Paint, World, Side, ServerNow, Preferences.SideColors);
 	if (!Own)
 	{
 		return;

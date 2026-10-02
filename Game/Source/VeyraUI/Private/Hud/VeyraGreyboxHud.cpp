@@ -257,20 +257,21 @@ namespace
 		return VeyraMinimap::FrameFor(Viewport, Preferences.MinimapSize, Settings.HudMargin, UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent);
 	}
 
-	FLinearColor MinimapColor(const UVeyraGreyboxSettings& Settings, EVeyraMinimapSide Side)
+	/** A minimap side's colour, as the player's colour vision gives it (ADR-055 §1). */
+	FLinearColor MinimapColor(const FVeyraInterfacePreferences& Preferences, EVeyraMinimapSide Side)
 	{
 		switch (Side)
 		{
 		case EVeyraMinimapSide::Own:
-			return Settings.OwnColor;
+			return Preferences.SideColors.Own;
 		case EVeyraMinimapSide::Ally:
-			return Settings.AllyColor;
+			return Preferences.SideColors.Ally;
 		case EVeyraMinimapSide::Enemy:
-			return Settings.EnemyColor;
+			return Preferences.SideColors.Enemy;
 		case EVeyraMinimapSide::Neutral:
 			break;
 		}
-		return Settings.NeutralColor;
+		return Preferences.SideColors.Neutral;
 	}
 
 	/** A square outline of Side pixels around Centre. */
@@ -337,7 +338,7 @@ namespace
 			const double Side = Dot.Kind == EVeyraMinimapDot::Vanguard ? Preferences.MinimapVanguardIcon
 				: Dot.Kind == EVeyraMinimapDot::Structure					  ? Preferences.MinimapStructureIcon
 																			  : Preferences.MinimapUnitIcon;
-			DrawHudRect(Canvas, Dot.Position - FVector2D(Side / 2.0), FVector2D(Side), MinimapColor(Settings, Dot.Side));
+			DrawHudRect(Canvas, Dot.Position - FVector2D(Side / 2.0), FVector2D(Side), MinimapColor(Preferences, Dot.Side));
 		}
 		for (const FVeyraMinimapTeamPing& Ping : View.TeamPings)
 		{

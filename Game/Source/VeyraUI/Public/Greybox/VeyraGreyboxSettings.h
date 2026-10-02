@@ -12,6 +12,25 @@ class UMaterialInterface;
 class UStaticMesh;
 class UVeyraUnitArtSet;
 
+/** One colour-vision palette's side colours (Settings Bible §4.1; ADR-055 §1). */
+USTRUCT()
+struct FVeyraSideColorSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Own = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Ally = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Enemy = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Neutral = FLinearColor::Transparent;
+};
+
 /**
  * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
  * not tuning, stored in Config/DefaultGame.ini. Every value is required: the grey-box draws nothing
@@ -56,6 +75,18 @@ public:
 	/** Units on no side. */
 	UPROPERTY(Config, EditAnywhere, Category = "Sides")
 	FLinearColor NeutralColor = FLinearColor::Transparent;
+
+	/** The colour-vision presets' side colours, by the Color Vision option that names them (SET-8; ADR-055 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	TMap<FString, FVeyraSideColorSet> ColorVisionPresets;
+
+	/** The named colours Custom colour vision offers each side, by option. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	TMap<FString, FLinearColor> SideColorPalette;
+
+	/** Under Custom, how far the player's own colour lightens their ally colour toward white, from 0 to 1. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides", meta = (ClampMin = "0", ClampMax = "1"))
+	float CustomOwnLightening = 0.0f;
 
 	/** The tint of a stunned unit. */
 	UPROPERTY(Config, EditAnywhere, Category = "Statuses")

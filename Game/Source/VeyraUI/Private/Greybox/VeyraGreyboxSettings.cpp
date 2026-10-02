@@ -2,6 +2,8 @@
 
 #include "Greybox/VeyraGreyboxSettings.h"
 
+#include "Algo/AnyOf.h"
+
 #include "Greybox/VeyraUnitArtSet.h"
 
 FName UVeyraGreyboxSettings::StructureArtId(EVeyraStructureKind Kind)
@@ -91,6 +93,16 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	{
 		Require(Named.Color.A > 0.0f, Named.Field, TEXT("the colour must not be fully transparent."));
 	}
+	// Colour vision: each preset's four colours and each named colour drawn (ADR-055 §1).
+	for (const TCHAR* Preset : { TEXT("Protanopia"), TEXT("Deuteranopia"), TEXT("Tritanopia") })
+	{
+		const FVeyraSideColorSet* Set = ColorVisionPresets.Find(Preset);
+		Require(Set && Set->Own.A > 0.0f && Set->Ally.A > 0.0f && Set->Enemy.A > 0.0f && Set->Neutral.A > 0.0f, TEXT("ColorVisionPresets"),
+			*FString::Printf(TEXT("%s needs all four side colours, none fully transparent."), Preset));
+	}
+	Require(!SideColorPalette.IsEmpty() && !Algo::AnyOf(SideColorPalette, [](const TPair<FString, FLinearColor>& Named) { return !(Named.Value.A > 0.0f); }),
+		TEXT("SideColorPalette"), TEXT("at least one named colour is required, none fully transparent."));
+	Require(CustomOwnLightening >= 0.0f && CustomOwnLightening <= 1.0f, TEXT("CustomOwnLightening"), TEXT("must be from 0 to 1."));
 	Require(!MasteryEmoteTierColors.IsEmpty() && !MasteryEmoteTierColors.ContainsByPredicate([](const FLinearColor& Color) { return !(Color.A > 0.0f); }),
 		TEXT("MasteryEmoteTierColors"), TEXT("at least one colour is required, and none may be fully transparent."));
 	Require(!StructureArt.IsNull(), TEXT("StructureArt"), TEXT("the structure kit's art set is required."));

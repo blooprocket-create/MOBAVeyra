@@ -331,16 +331,26 @@ EVeyraTeam UVeyraGreyboxSubsystem::GetViewerTeam() const
 	return Viewer ? VeyraTeams::TeamOf(Viewer->PlayerState) : EVeyraTeam::None;
 }
 
+const FVeyraSideColors& UVeyraGreyboxSubsystem::GetSideColors() const
+{
+	if (SideColorsFrame != GFrameCounter)
+	{
+		SideColors = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).SideColors;
+		SideColorsFrame = GFrameCounter;
+	}
+	return SideColors;
+}
+
 FLinearColor UVeyraGreyboxSubsystem::ColorOfSide(EVeyraTeam Team) const
 {
-	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraSideColors& Colors = GetSideColors();
 	if (Team == EVeyraTeam::None)
 	{
-		return Settings.NeutralColor;
+		return Colors.Neutral;
 	}
 	const EVeyraTeam ViewerTeam = GetViewerTeam();
 	const EVeyraTeam Allies = ViewerTeam == EVeyraTeam::None ? EVeyraTeam::A : ViewerTeam;
-	return Team == Allies ? Settings.AllyColor : Settings.EnemyColor;
+	return Team == Allies ? Colors.Ally : Colors.Enemy;
 }
 
 FLinearColor UVeyraGreyboxSubsystem::SideColorOf(const AActor& Unit) const
@@ -354,7 +364,7 @@ FLinearColor UVeyraGreyboxSubsystem::SideColorOf(const AActor& Unit) const
 	const APlayerState* Whose = Companion ? Companion->GetOwnerState() : Echo ? Echo->GetHolderState() : (Pawn ? Pawn->GetPlayerState() : nullptr);
 	if (Viewer && Viewer->PlayerState && Whose == Viewer->PlayerState)
 	{
-		return GetDefault<UVeyraGreyboxSettings>()->OwnColor;
+		return GetSideColors().Own;
 	}
 	return ColorOfSide(VeyraTeams::TeamOf(&Unit));
 }
@@ -649,7 +659,8 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 FLinearColor UVeyraGreyboxSubsystem::BaseColorOf(EVeyraTeam Team) const
 {
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	return ColorOfSide(Team) == Settings.AllyColor ? Settings.AllyBaseColor : Settings.EnemyBaseColor;
+	const EVeyraTeam ViewerTeam = GetViewerTeam();
+	return Team == (ViewerTeam == EVeyraTeam::None ? EVeyraTeam::A : ViewerTeam) ? Settings.AllyBaseColor : Settings.EnemyBaseColor;
 }
 
 UMaterialInstanceDynamic* UVeyraGreyboxSubsystem::AddGroundMarking(AActor& Owner, UStaticMesh& Mesh, const FLinearColor& Color, const FVector2D& Centre,

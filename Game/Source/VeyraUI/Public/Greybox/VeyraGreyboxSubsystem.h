@@ -7,6 +7,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
 
+#include "Settings/VeyraInterfacePreferences.h"
 #include "VeyraGreyboxSubsystem.generated.h"
 
 class AHUD;
@@ -109,6 +110,9 @@ public:
 
 	/** The colour of Team as the viewer sees it: ally, enemy or neutral. */
 	FLinearColor ColorOfSide(EVeyraTeam Team) const;
+
+	/** The player's side colours this frame, from their colour vision (ADR-055 §1). */
+	const FVeyraSideColors& GetSideColors() const;
 
 	/** The colour of Unit as the viewer sees it: the viewer's own Vanguard, or its side's. */
 	FLinearColor SideColorOf(const AActor& Unit) const;
@@ -251,6 +255,10 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ULineBatchComponent> FogOfWarSheet;
 	uint32 FogOfWarDrawn = 0;
+
+	/** The side colours, resolved once a frame. */
+	mutable FVeyraSideColors SideColors;
+	mutable uint64 SideColorsFrame = MAX_uint64;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFont> HudFont;

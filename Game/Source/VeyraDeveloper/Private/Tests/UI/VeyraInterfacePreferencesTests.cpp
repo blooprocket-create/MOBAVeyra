@@ -148,6 +148,83 @@ namespace VeyraInterfacePreferencesTests
 				ASSERT_THAT(IsTrue(ShowsBar(Preferences, Other), TEXT("no setting hides a Vanguard's or a structure's bar")));
 			}
 		}
+		TEST_METHOD(ColorVisionGivesEverySideItsColours)
+		{
+			const UVeyraGreyboxSettings& Hud = HudSettings();
+			FVeyraSettingsStore Store(Registry);
+			const FVeyraSideColors Standard = Resolve(Hud, &Store).SideColors;
+			ASSERT_THAT(IsTrue(Standard.Own.Equals(Hud.OwnColor) && Standard.Ally.Equals(Hud.AllyColor) && Standard.Enemy.Equals(Hud.EnemyColor)
+				&& Standard.Neutral.Equals(Hud.NeutralColor), TEXT("Standard by default")));
+			// A preset gives all four (SET-8).
+			Store.Set(ColorVision(), TEXT("Deuteranopia"));
+			const FVeyraSideColors Preset = Resolve(Hud, &Store).SideColors;
+			const FVeyraSideColorSet& Expected = Hud.ColorVisionPresets.FindChecked(TEXT("Deuteranopia"));
+			ASSERT_THAT(IsTrue(Preset.Ally.Equals(Expected.Ally) && Preset.Enemy.Equals(Expected.Enemy) && Preset.Own.Equals(Expected.Own) && Preset.Neutral.Equals(Expected.Neutral)));
+			// Custom: each side its named colour, the player a lighter shade of their allies'.
+			Store.Set(ColorVision(), TEXT("Custom"));
+			Store.Set(AllyColor(), TEXT("Teal"));
+			Store.Set(EnemyColor(), TEXT("Orange"));
+			Store.Set(NeutralColor(), TEXT("White"));
+			const FVeyraSideColors Custom = Resolve(Hud, &Store).SideColors;
+			ASSERT_THAT(IsTrue(Custom.Ally.Equals(Hud.SideColorPalette.FindChecked(TEXT("Teal"))) && Custom.Enemy.Equals(Hud.SideColorPalette.FindChecked(TEXT("Orange")))
+				&& Custom.Neutral.Equals(Hud.SideColorPalette.FindChecked(TEXT("White")))));
+			FLinearColor Lighter = FMath::Lerp(Custom.Ally, FLinearColor::White, Hud.CustomOwnLightening);
+			Lighter.A = Custom.Ally.A;
+			ASSERT_THAT(IsTrue(Custom.Own.Equals(Lighter), TEXT("own follows its allies' family")));
+			// Anything it does not know is Standard.
+			const FVeyraSideColors Unknown = SideColorsFor(Hud, TEXT("NoSuchPalette"), TEXT("Teal"), TEXT("Orange"), TEXT("White"));
+			ASSERT_THAT(IsTrue(Unknown.Ally.Equals(Hud.AllyColor) && Unknown.Enemy.Equals(Hud.EnemyColor)));
+		}
+
+		TEST_METHOD(EveryColourOptionHasItsColoursAndEachPaletteKeepsTheSidesApart)
+		{
+			const UVeyraGreyboxSettings& Hud = HudSettings();
+			const TOptional<FVeyraSettingInfo> Vision = VeyraSettings::Find(Registry, ColorVision());
+			ASSERT_THAT(IsTrue(Vision.IsSet() && Vision->Choice));
+			for (const FString& Option : Vision->Choice->Options)
+			{
+				ASSERT_THAT(IsTrue(Option == TEXT("Standard") || Option == TEXT("Custom") || Hud.ColorVisionPresets.Contains(Option), Option));
+			}
+			for (const FVeyraContentId& Side : { AllyColor(), EnemyColor(), NeutralColor() })
+			{
+				const TOptional<FVeyraSettingInfo> Setting = VeyraSettings::Find(Registry, Side);
+				ASSERT_THAT(IsTrue(Setting.IsSet() && Setting->Choice));
+				for (const FString& Option : Setting->Choice->Options)
+				{
+					ASSERT_THAT(IsTrue(Hud.SideColorPalette.Contains(Option), Option));
+				}
+			}
+			for (const TPair<FString, FVeyraSideColorSet>& Preset : Hud.ColorVisionPresets)
+			{
+				const FLinearColor Sides[] = { Preset.Value.Own, Preset.Value.Ally, Preset.Value.Enemy, Preset.Value.Neutral };
+				for (int32 First = 0; First < UE_ARRAY_COUNT(Sides); ++First)
+				{
+					for (int32 Second = First + 1; Second < UE_ARRAY_COUNT(Sides); ++Second)
+					{
+						ASSERT_THAT(IsFalse(Sides[First].Equals(Sides[Second]), Preset.Key));
+					}
+				}
+			}
+		}
+
+		TEST_METHOD(TheAccessibilityOptionsAndWarningsResolve)
+		{
+			FVeyraSettingsStore Store(Registry);
+			const FVeyraInterfacePreferences Defaults = Resolve(HudSettings(), &Store);
+			ASSERT_THAT(IsTrue(Defaults.bConnectionWarning && Defaults.bPerformanceWarning, TEXT("both warnings On by default (SET-21, SET-110)")));
+			ASSERT_THAT(IsTrue(!Defaults.bEnhancedFocus && !Defaults.bReduceTransparency && !Defaults.bReduceUiAnimation && !Defaults.bReduceFlashing
+				&& Defaults.TextSize == TEXT("Standard")));
+			Store.Set(ConnectionWarning(), VeyraSettings::Off());
+			Store.Set(PerformanceWarning(), VeyraSettings::Off());
+			Store.Set(FocusIndicator(), TEXT("Enhanced"));
+			Store.Set(ReduceTransparency(), VeyraSettings::On());
+			Store.Set(ReduceUiAnimation(), VeyraSettings::On());
+			Store.Set(ReduceFlashing(), VeyraSettings::On());
+			Store.Set(TextSize(), TEXT("ExtraLarge"));
+			const FVeyraInterfacePreferences Changed = Resolve(HudSettings(), &Store);
+			ASSERT_THAT(IsTrue(!Changed.bConnectionWarning && !Changed.bPerformanceWarning && Changed.bEnhancedFocus && Changed.bReduceTransparency
+				&& Changed.bReduceUiAnimation && Changed.bReduceFlashing && Changed.TextSize == TEXT("ExtraLarge")));
+		}
 	};
 }
 
