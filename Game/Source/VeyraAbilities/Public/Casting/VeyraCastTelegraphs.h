@@ -29,7 +29,7 @@ namespace VeyraCastTelegraphs
 
 	/**
 	 * Where Ability would land if cast now toward AimPoint, for the indicator its caster sees before
-	 * casting (ADR-040 §2): first the ring of its cast range around the caster, when it has one, then
+	 * casting (ADR-041 §2): first the ring of its cast range around the caster, when it has one, then
 	 * the shapes ForCast gives a cast aimed there. Empty for an ability the tuning does not have. It
 	 * shows geometry only and never says whether the cast would be valid.
 	 */

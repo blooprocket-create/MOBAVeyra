@@ -16,7 +16,7 @@ namespace VeyraCastInputTests
 		return Outcome.Step == Step && Outcome.Slot == Slot;
 	}
 
-	// Veyra.Match.CastInput.*: when a key, its release, a click or a cancel casts (Settings Bible §1.2, §1.7; ADR-040 §1).
+	// Veyra.Match.CastInput.*: when a key, its release, a click or a cancel casts (Settings Bible §1.2, §1.7; ADR-041 §1).
 	TEST_CLASS(CastInput, "Veyra.Match")
 	{
 		TEST_METHOD(AQuickCastCastsOnThePress)
@@ -97,7 +97,7 @@ namespace VeyraCastInputTests
 		}
 	};
 
-	// Veyra.Match.ControlPreferences.*: each slot's casting mode, as the player set it (ADR-040 §5).
+	// Veyra.Match.ControlPreferences.*: each slot's casting mode, as the player set it (ADR-041 §5).
 	TEST_CLASS(ControlPreferences, "Veyra.Match")
 	{
 		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */

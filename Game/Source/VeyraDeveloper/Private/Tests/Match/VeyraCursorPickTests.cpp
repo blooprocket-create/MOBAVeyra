@@ -13,7 +13,7 @@
 namespace VeyraCursorPickTests
 {
 	// Veyra.Match.CursorPicks.*: which unit under the cursor an order or a cast names, with Target Vanguards Only and
-	// for Smart Self-Cast (Settings Bible §1.4, §1.5; ADR-040 §3).
+	// for Smart Self-Cast (Settings Bible §1.4, §1.5; ADR-041 §3).
 	TEST_CLASS(CursorPicks, "Veyra.Match")
 	{
 		/** Four distinct stand-ins for the units under the cursor; the picks only pass them on, so no world is needed. */
@@ -62,7 +62,7 @@ namespace VeyraCursorPickTests
 		}
 	};
 
-	// Veyra.Abilities.AllyTargets.*: which abilities may name an allied unit, and so take the Self-Cast Modifier (ADR-040 §3).
+	// Veyra.Abilities.AllyTargets.*: which abilities may name an allied unit, and so take the Self-Cast Modifier (ADR-041 §3).
 	TEST_CLASS(AllyTargets, "Veyra.Abilities")
 	{
 		static bool Accepts(const TCHAR* Ability)

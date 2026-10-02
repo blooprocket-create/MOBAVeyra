@@ -8,7 +8,7 @@
 
 class FVeyraSettingsStore;
 
-/** The player's controls as they set them (Settings Bible §1.2; ADR-040 §5). */
+/** The player's controls as they set them (Settings Bible §1.2; ADR-041 §5). */
 struct FVeyraControlPreferences
 {
 	/** Each casting-mode setting's mode; one missing casts Quick. */

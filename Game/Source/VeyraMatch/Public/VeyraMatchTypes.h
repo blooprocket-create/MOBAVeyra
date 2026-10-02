@@ -68,7 +68,7 @@ enum class EVeyraBotDifficulty : uint8
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraBotDifficulty Difficulty);
 
-/** Which enemy an attack-move takes first (Settings Bible §1.3; ADR-040 §4). */
+/** Which enemy an attack-move takes first (Settings Bible §1.3; ADR-041 §4). */
 UENUM()
 enum class EVeyraAttackMoveTarget : uint8
 {

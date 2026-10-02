@@ -16,7 +16,7 @@ struct FVeyraCursorUnit
 };
 
 /**
- * Which unit under the cursor an order or a cast names (Settings Bible §1.4, §1.5; ADR-040 §3). Units are
+ * Which unit under the cursor an order or a cast names (Settings Bible §1.4, §1.5; ADR-041 §3). Units are
  * nearest the camera first. Each pick only names a unit; the server judges whether it may be targeted.
  */
 namespace VeyraCursorPicks
