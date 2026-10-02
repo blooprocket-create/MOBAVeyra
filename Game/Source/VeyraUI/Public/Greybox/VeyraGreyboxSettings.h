@@ -10,19 +10,7 @@
 
 class UMaterialInterface;
 class UStaticMesh;
-
-/** A kind of structure's art: its mesh standing, and its wreck once destroyed. Ground-pivoted, in centimetres. */
-USTRUCT()
-struct FVeyraStructureArt
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Standing;
-
-	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Destroyed;
-};
+class UVeyraUnitArtSet;
 
 /**
  * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
@@ -248,30 +236,15 @@ public:
 	TSoftObjectPtr<UStaticMesh> PadMesh;
 
 	/**
-	 * Each kind of structure's provisional art (Art Direction, Crucible structure greybox meshes), drawn
-	 * in place of its body. Visual only: its capsule stays its only collision and navigation.
+	 * The structure kit's provisional art (Art Direction, Crucible structure greybox meshes), keyed by each
+	 * kind's stable ID (StructureArtId), drawn in place of each structure's body: standing, then its wreck.
+	 * Visual only: its capsule stays its only collision and navigation.
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt LaneSpireArt;
+	TSoftObjectPtr<UVeyraUnitArtSet> StructureArt;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt BaseTowerArt;
-
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt InhibitorArt;
-
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FVeyraStructureArt PrimeWellArt;
-
-	/** The art's material slot whose Flux glows in each structure's side colour, and the parameter that colours it. */
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FName StructureFluxSlot;
-
-	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
-	FName StructureFluxParameter;
-
-	/** The art of a kind of structure. */
-	const FVeyraStructureArt& ArtOf(EVeyraStructureKind Kind) const;
+	/** A kind of structure's stable ID in its art kit, as the kit's manifest names it: "laneSpire" and the like. */
+	static FName StructureArtId(EVeyraStructureKind Kind);
 
 	/** The lanes' road, the river, and each side's base as the viewer sees it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")

@@ -61,12 +61,16 @@ configured to use the empty simple shape. It must not change pathing or targetin
 
 The current battleground's gameplay structures are spawned by `VeyraWorld` while
 the match loads. **Do not place duplicate gameplay structures into a generated
-map.** These meshes are not yet bound to the runtime presentation. That later
-change belongs in presentation, with asset references in a Data Asset keyed by
-structure kind, as required by Architecture section 1.3 and ADR-006 section 6.
-It must observe the existing replicated structure state and keep the original
-capsule as the sole collision/navigation owner. Attach the visual at the actor's
-ground offset; do not assume the capsule-centred actor origin is the floor.
+map.** The grey-box presentation draws these meshes in play. Their asset
+references live in the Data Asset `DA_StructureArt` (a `UVeyraUnitArtSet`), keyed
+by each kind's manifest ID (`laneSpire`, `baseTower`, `inhibitor`, `primeWell`), as
+Architecture section 1.3 and ADR-006 section 6 require; `UVeyraGreyboxSettings`
+names the set. `Game/Scripts/BuildUnitArtSets.ps1` writes the set from this
+manifest after an import. The presentation observes the replicated structure
+state (standing, or its wreck once destroyed), keeps the capsule as the sole
+collision/navigation owner, and attaches the visual at the capsule's foot rather
+than its centre. `M_CrucibleFlux`'s `FluxTint` takes the viewer-relative side
+colour (provisional, for legibility).
 
 Both sides share geometry and physical materials. `M_CrucibleFlux` exposes
 `FluxTint` and `FluxStrength` for material instances; blue is a review default,
@@ -84,5 +88,5 @@ UV0 is a unique smart-projected atlas; UV1 duplicates it for a separate lightmap
 channel. No texture maps are required by the four greybox materials.
 
 This pass has one LOD per mesh, no destruction animation, no VFX and no final
-surface textures. It needs gameplay-camera review after runtime binding. No
-gameplay C++, tuning, replication, map layout or authoritative state is changed.
+surface textures. It still needs gameplay-camera review. No gameplay C++,
+tuning, replication, map layout or authoritative state is changed.

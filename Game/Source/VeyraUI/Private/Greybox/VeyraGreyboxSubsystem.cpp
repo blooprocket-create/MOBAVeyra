@@ -26,6 +26,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
 #include "Layout/VeyraLayout.h"
@@ -88,17 +89,22 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ShapeMaterial = Settings.ShapeMaterial.LoadSynchronous();
 		GroundMesh = Settings.GroundMesh.LoadSynchronous();
 		PadMesh = Settings.PadMesh.LoadSynchronous();
-		for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+		// The structure kit's art set must dress every kind (ADR-006 §6: asset references by stable ID).
+		StructureArt = Settings.StructureArt.LoadSynchronous();
+		if (!StructureArt)
 		{
-			const FVeyraStructureArt& Art = Settings.ArtOf(Kind);
-			for (const TSoftObjectPtr<UStaticMesh>* State : { &Art.Standing, &Art.Destroyed })
+			Problems.Add(FString::Printf(TEXT("StructureArt: %s does not load."), *Settings.StructureArt.ToString()));
+		}
+		else
+		{
+			TArray<FName> Kinds;
+			for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
 			{
-				UStaticMesh* Loaded = State->LoadSynchronous();
-				if (!Loaded)
-				{
-					Problems.Add(FString::Printf(TEXT("%sArt: %s does not load."), *UEnum::GetValueAsName(Kind).ToString(), *State->ToString()));
-				}
-				StructureMeshes.Add(Loaded);
+				Kinds.Add(UVeyraGreyboxSettings::StructureArtId(Kind));
+			}
+			for (const FString& Problem : StructureArt->Validate(Kinds))
+			{
+				Problems.Add(TEXT("StructureArt ") + Problem);
 			}
 		}
 		if (!GroundMesh)
@@ -207,7 +213,7 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::FindBody(const AActor& Unit) const
 	return Body ? Body->Mesh.Get() : nullptr;
 }
 
-UStaticMeshComponent* UVeyraGreyboxSubsystem::FindStructureArt(const AActor& Unit) const
+UStaticMeshComponent* UVeyraGreyboxSubsystem::FindArt(const AActor& Unit) const
 {
 	const FBody* Body = Bodies.Find(&Unit);
 	return Body ? Body->Art.Get() : nullptr;
@@ -309,51 +315,56 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMes
 
 void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structure, FBody& Body)
 {
-	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	const bool bDestroyed = Structure.IsDestroyed();
-	const int32 Index = static_cast<int32>(Structure.GetStructureKind()) * 2 + (bDestroyed ? 1 : 0);
-	UStaticMesh* Mesh = StructureMeshes.IsValidIndex(Index) ? StructureMeshes[Index].Get() : nullptr;
-	USceneComponent* Root = Structure.GetRootComponent();
-	if (!Mesh || !Root)
+	// Standing, or the wreck it leaves (Battleground Bible §5); an inhibitor rebuilt stands again.
+	const FVeyraUnitArt* Art = StructureArt ? StructureArt->Find(UVeyraGreyboxSettings::StructureArtId(Structure.GetStructureKind())) : nullptr;
+	if (UStaticMesh* Mesh = Art ? (Structure.IsDestroyed() ? Art->Fallen : Art->Intact).Get() : nullptr)
+	{
+		ShowArt(Structure, Body, *Mesh, *StructureArt, SideColorOf(Structure));
+	}
+}
+
+void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
+{
+	USceneComponent* Root = Unit.GetRootComponent();
+	if (!Root)
 	{
 		return;
 	}
 	if (!Body.Art.IsValid())
 	{
-		// Presentation only, as a body is; it stands on the floor, its pivot at the capsule's foot.
-		UStaticMeshComponent* Art = NewObject<UStaticMeshComponent>(const_cast<AVeyraStructure*>(&Structure), NAME_None, RF_Transient);
+		// Presentation only, as a body is.
+		UStaticMeshComponent* Art = NewObject<UStaticMeshComponent>(const_cast<APawn*>(&Unit), NAME_None, RF_Transient);
 		Art->SetMobility(EComponentMobility::Movable);
 		Art->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Art->SetGenerateOverlapEvents(false);
 		Art->SetCanEverAffectNavigation(false);
 		Art->SetupAttachment(Root);
 		Art->RegisterComponent();
-		float Radius = 0.0f;
-		float HalfHeight = 0.0f;
-		Structure.GetSimpleCollisionCylinder(Radius, HalfHeight);
-		Art->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
 		Body.Art = Art;
-		Body.bArtDestroyed = !bDestroyed;
+		Body.ArtMesh = nullptr;
 	}
 	UStaticMeshComponent* Art = Body.Art.Get();
-	if (Body.bArtDestroyed != bDestroyed)
+	// It stands on the floor, its pivot at the capsule's foot.
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+	Art->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
+	if (Body.ArtMesh.Get() != &Mesh)
 	{
-		// Standing, or the wreck it leaves (Battleground Bible §5); an inhibitor rebuilt stands again.
-		Art->SetStaticMesh(Mesh);
-		const int32 FluxSlot = Art->GetMaterialIndex(Settings.StructureFluxSlot);
-		Body.ArtFlux = FluxSlot != INDEX_NONE ? Art->CreateDynamicMaterialInstance(FluxSlot) : nullptr;
-		Body.bArtDestroyed = bDestroyed;
+		Art->SetStaticMesh(&Mesh);
+		const int32 Slot = Art->GetMaterialIndex(Set.FluxSlot);
+		Body.ArtFlux = Slot != INDEX_NONE ? Art->CreateDynamicMaterialInstance(Slot) : nullptr;
+		Body.ArtMesh = &Mesh;
 		Body.ArtShown = FLinearColor::Transparent;
 	}
 	if (UStaticMeshComponent* Shape = Body.Mesh.Get())
 	{
 		Shape->SetVisibility(false);
 	}
-	const FLinearColor Side = SideColorOf(Structure);
-	if (UMaterialInstanceDynamic* Flux = Body.ArtFlux.Get(); Flux && !Side.Equals(Body.ArtShown))
+	if (UMaterialInstanceDynamic* Flux = Body.ArtFlux.Get(); Flux && !Color.Equals(Body.ArtShown))
 	{
-		Flux->SetVectorParameterValue(Settings.StructureFluxParameter, Side);
-		Body.ArtShown = Side;
+		Flux->SetVectorParameterValue(Set.FluxParameter, Color);
+		Body.ArtShown = Color;
 	}
 }
 

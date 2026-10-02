@@ -19,6 +19,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
+#include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Layout/VeyraLayout.h"
 #include "Ledger/VeyraFluxLedger.h"
@@ -117,6 +118,12 @@ namespace VeyraAbilitiesTests
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
 		}
 
+		/** The structure kit's art set, as the settings name it. */
+		static const UVeyraUnitArtSet& StructureArt()
+		{
+			return *GetDefault<UVeyraGreyboxSettings>()->StructureArt.LoadSynchronous();
+		}
+
 		UVeyraGreyboxSubsystem& RefreshedGreybox()
 		{
 			UVeyraGreyboxSubsystem* Subsystem = Spawner.GetWorld().GetSubsystem<UVeyraGreyboxSubsystem>();
@@ -158,6 +165,18 @@ namespace VeyraAbilitiesTests
 			FLinearColor Unused;
 			ASSERT_THAT(IsTrue(Material->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.ColorParameter), Unused),
 				TEXT("the shape material has the colour parameter")));
+			// The structure kit's art set dresses every kind, standing and wrecked, by its stable ID (ADR-006 §6).
+			const UVeyraUnitArtSet* Structures = Settings.StructureArt.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Structures));
+			TArray<FName> Kinds;
+			for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+			{
+				Kinds.Add(UVeyraGreyboxSettings::StructureArtId(Kind));
+			}
+			const TArray<FString> ArtProblems = Structures->Validate(Kinds);
+			ASSERT_THAT(IsTrue(ArtProblems.IsEmpty(), FString::Join(ArtProblems, TEXT(" "))));
+			const FVeyraUnitArt* Spire = Structures->Find(TEXT("laneSpire"));
+			ASSERT_THAT(IsTrue(Spire->Intact->GetMaterialIndex(Structures->FluxSlot) != INDEX_NONE, TEXT("the meshes have the Flux slot")));
 		}
 
 		TEST_METHOD(OnlyClientsLoadThePresentation)
@@ -222,8 +241,9 @@ namespace VeyraAbilitiesTests
 			{
 				ASSERT_THAT(IsNotNull(Presentation.FindBody(*Structure), TEXT("every structure has a body")));
 				// Its kind's art stands in for its body, on the floor, deciding nothing.
-				const UStaticMeshComponent* Art = Presentation.FindStructureArt(*Structure);
-				ASSERT_THAT(IsTrue(Art && Art->GetStaticMesh() == GetDefault<UVeyraGreyboxSettings>()->ArtOf(Structure->GetStructureKind()).Standing.Get()));
+				const UStaticMeshComponent* Art = Presentation.FindArt(*Structure);
+				const FVeyraUnitArt* KindArt = StructureArt().Find(UVeyraGreyboxSettings::StructureArtId(Structure->GetStructureKind()));
+				ASSERT_THAT(IsTrue(Art && KindArt && Art->GetStaticMesh() == KindArt->Intact));
 				ASSERT_THAT(IsTrue(Art->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Art->CanEverAffectNavigation()));
 				float Radius = 0.0f;
 				float HalfHeight = 0.0f;
@@ -248,7 +268,7 @@ namespace VeyraAbilitiesTests
 			VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Outermost->GetAbilitySystemComponent(), Lethal);
 			ASSERT_THAT(IsTrue(Outermost->IsDestroyed()));
 			RefreshedGreybox();
-			ASSERT_THAT(IsTrue(Presentation.FindStructureArt(*Outermost)->GetStaticMesh() == GetDefault<UVeyraGreyboxSettings>()->LaneSpireArt.Destroyed.Get()));
+			ASSERT_THAT(IsTrue(Presentation.FindArt(*Outermost)->GetStaticMesh() == StructureArt().Find(TEXT("laneSpire"))->Fallen));
 		}
 
 		TEST_METHOD(NeutralUnitsAreDrawnGreyAndNamedOnTheHud)
