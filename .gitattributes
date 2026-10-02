@@ -57,3 +57,5 @@ Backend/** text eol=lf
 Game/Settings/*.json text eol=lf
 Game/Tuning/*.json text eol=lf
 Game/Tuning/Schemas/*.json text eol=lf
+# The art kits' settings and manifests, which their importers hash byte for byte (Game/ArtSource/*/README.md).
+Game/ArtSource/**/*.json text eol=lf
