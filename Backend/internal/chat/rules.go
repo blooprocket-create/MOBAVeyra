@@ -30,6 +30,9 @@ var (
 	// ErrClientIDConflict is a resend whose client message ID the sender
 	// already used for a message to another conversation.
 	ErrClientIDConflict = errors.New("the client message ID was already used for another conversation")
+	// ErrConversationChanged is a party or select send whose conversation is no longer the sender's: it left
+	// that party or select before the message arrived.
+	ErrConversationChanged = errors.New("the sender is no longer in that conversation")
 	// ErrMessageNotFound is a store's answer for an unknown client message ID.
 	ErrMessageNotFound = errors.New("message not found")
 	// ErrNotJoined is a store's answer for an account with no post-match

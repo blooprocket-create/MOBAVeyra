@@ -20,6 +20,9 @@ type Chat struct {
 	// PostMatchWindow is how long after a match ends its post-match chat
 	// stays open.
 	PostMatchWindow time.Duration
+	// PruneInterval is how often expired messages are removed, whether or not
+	// anyone sends.
+	PruneInterval time.Duration
 }
 
 type fileChat struct {
@@ -30,6 +33,7 @@ type fileChat struct {
 	PageSize        *int      `json:"pageSize"`
 	Retention       *Duration `json:"retention"`
 	PostMatchWindow *Duration `json:"postMatchWindow"`
+	PruneInterval   *Duration `json:"pruneInterval"`
 }
 
 // parseChat validates the chat section, reporting through missing, problem
@@ -58,6 +62,7 @@ func parseChat(f *fileChat, missing, problem func(string), positive func(string,
 	c.PageSize = atLeastOne("chat.pageSize", f.PageSize)
 	c.Retention = positive("chat.retention", f.Retention)
 	c.PostMatchWindow = positive("chat.postMatchWindow", f.PostMatchWindow)
+	c.PruneInterval = positive("chat.pruneInterval", f.PruneInterval)
 	if c.Retention > 0 && c.Window > c.Retention {
 		problem("chat.window must not exceed chat.retention")
 	}

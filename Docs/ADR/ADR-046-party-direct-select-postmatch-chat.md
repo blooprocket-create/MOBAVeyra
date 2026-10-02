@@ -58,21 +58,22 @@ Each message belongs to one conversation. Who may read it is decided when it is 
 - **Rate:** a sender may send at most `chat.maxPerWindow` messages in any `chat.windowSeconds`. This is counted from stored messages, so it holds across backend instances.
 - **The client's message ID:** each send carries one, unique per sender. A resend after a lost answer returns the first message instead of storing a second.
 - **The sender's name:** each message carries the sender's account and display name as they were at sending.
+- **The conversation written in:** a party or select send names the party or select the player wrote in. If the sender is no longer in it when the send arrives, it is refused, so text never reaches a party or team it was not written for.
 - **Refusals:**
-  - `not_in_party`, `not_friends`, `blocked`, `no_select`;
+  - `not_in_party`, `not_friends`, `blocked`, `no_select`, `conversation_changed`;
   - `not_participant`, `postmatch_closed`, `all_chat_off`;
   - `empty_message`, `message_too_long`, `rate_limited`.
 
 ### 4. Delivery
 
 - **One poll:** `GET /v1/me/chat?after=<sequence>` returns up to `chat.pageSize` messages the account may read now, oldest first, and the cursor for the next poll. The server's sequence orders everything; clients never sort by their own clock.
-- **No cursor:** the poll returns the newest `chat.historyMessages` the account may read. A restarted client therefore recovers its party and direct conversations (Bible §3, §10).
-- **Retention:** messages older than `chat.retentionHours` are neither served nor kept.
+- **No cursor:** the poll returns the newest `chat.historyMessages` the account may read. A restarted client therefore recovers its party and direct conversations (Bible §3, §10). Messages it may no longer read do not count toward the limit; older ones fill it.
+- **Retention:** messages older than `chat.retentionHours` are neither served nor kept. A pruner removes them every `chat.pruneInterval`, whether or not anyone sends.
 
 ### 5. Post-match chat
 
 - **Opt-in by first message:** a player joins by sending their first message (UX-59). They read only what is sent after it; nothing earlier.
-- **When it ends:** a player's participation ends when they leave the results screen or enter another select or match (UX-60). It also closes `chat.postMatchMinutes` after the match ends.
+- **When it ends:** a player's participation ends when they leave the results screen or enter another select or match (UX-60). Moving on is recorded, so the chat stays closed even once that select or match is over. It also closes `chat.postMatchMinutes` after the match ends.
 - **All Chat off:**
   - A player with All Chat off cannot send, so cannot opt in.
   - An opted-in player who turns All Chat off receives nothing.
@@ -104,7 +105,7 @@ Each message belongs to one conversation. Who may read it is decided when it is 
 Backend `chat` (`Backend/config/*.json`), validated at startup:
 - `maxCharacters`, `maxPerWindow`, `windowSeconds`;
 - `historyMessages`, `pageSize`;
-- `retentionHours`, `postMatchMinutes`.
+- `retentionHours`, `postMatchMinutes`, `pruneInterval`.
 
 Client: `ChatPollIntervalSeconds` and `ChatKeepMessages` (`DefaultGame.ini`, `UVeyraServicesSettings`).
 

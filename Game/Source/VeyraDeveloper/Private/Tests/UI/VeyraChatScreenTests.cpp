@@ -128,7 +128,7 @@ namespace VeyraChatScreenTests
 			ASSERT_THAT(IsNotNull(Screen->GetChatBox(), TEXT("the party's chat shows below the friends")));
 			Screen->SetChatDraft(TEXT("hello party"));
 			ASSERT_THAT(IsTrue(Press(FText::FromString(TEXT("Send to Party Chat")))));
-			const FFlowTestBackend::FRequest* Request = Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/party"));
+			const FFlowTestBackend::FRequest* Request = Rig.Backend.Find(TEXT("POST"), FString(TEXT("/v1/me/chat/party/")) + PartyId);
 			ASSERT_THAT(IsTrue(Request && Request->Body.Contains(TEXT("\"text\":\"hello party\""))));
 			ASSERT_THAT(IsTrue(Screen->GetChatBox() && Screen->GetChatBox()->GetText().IsEmpty(), TEXT("the composer empties once sent")));
 			ASSERT_THAT(IsTrue(Rig.Flow->GetSnapshot().Chat.Party.Lines.Num() == 1 && Rig.Flow->GetSnapshot().Chat.Party.Lines[0].bPending));

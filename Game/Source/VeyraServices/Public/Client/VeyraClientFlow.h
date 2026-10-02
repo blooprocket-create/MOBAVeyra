@@ -348,6 +348,8 @@ private:
 	void EnterAwaitingResults();
 	void PollResult();
 	void ShowResults(TOptional<VeyraBackendProtocol::FMatchOutcome> Outcome);
+	/** Results: asks for the result again until its rewards arrive or RewardsDeadline passes. */
+	void PollRewards();
 	void EnterReconnectOnly(const FString& MatchId);
 	void PollReconnect();
 	void EndSession();
@@ -411,6 +413,7 @@ private:
 	bool bExplainQueue = false;
 	double MatchDeadline = 0.0;
 	double ResultDeadline = 0.0;
+	double RewardsDeadline = 0.0;
 	/** The player left their match because it ended, not because the connection failed. */
 	bool bMatchEnded = false;
 	/** The match ended; the player watches the end before it leaves for the results. */

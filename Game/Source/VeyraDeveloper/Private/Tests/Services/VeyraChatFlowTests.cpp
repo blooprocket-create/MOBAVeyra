@@ -178,17 +178,21 @@ namespace VeyraClientFlowTests
 		TEST_METHOD(ALostSendTriesAgainWithItsIdAndARefusalMarksTheLine)
 		{
 			ASSERT_THAT(IsTrue(ReachChat()));
+			ASSERT_THAT(IsFalse(Flow->SendChatMessage(EChatKind::Party, FString(), TEXT("hello")), TEXT("no party known to write to")));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyOfTwoBody(TEXT("idle"), /*bYouLead*/ true))));
+			// The send names the party the player writes to, so it never reaches a party they joined since (ADR-046 §3).
+			const FString PartyPath = FString(TEXT("/v1/me/chat/party/")) + PartyId;
 			ASSERT_THAT(IsTrue(Flow->SendChatMessage(EChatKind::Party, FString(), TEXT("hello"))));
-			const FString ClientId = ClientIdOf(Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/party"))->Body);
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/chat/party"), 0)));
+			const FString ClientId = ClientIdOf(Backend.Find(TEXT("POST"), PartyPath)->Body);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), PartyPath, 0)));
 			Rig.Advance(1.0);
-			ASSERT_THAT(AreEqual(ClientIdOf(Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/party"))->Body), ClientId, TEXT("the same ID again")));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/chat/party"), 0)));
+			ASSERT_THAT(AreEqual(ClientIdOf(Backend.Find(TEXT("POST"), PartyPath)->Body), ClientId, TEXT("the same ID again")));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), PartyPath, 0)));
 			ASSERT_THAT(IsTrue(Chat().Party.Lines.Last().Failure == TEXT("not_sent") && !Chat().Party.Lines.Last().bPending));
 			// A refusal marks the line, never the screen.
 			ASSERT_THAT(IsTrue(Flow->SendChatMessage(EChatKind::Party, FString(), TEXT("anyone?"))));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/chat/party"), 409, ErrorBody(TEXT("not_in_party")))));
-			ASSERT_THAT(IsTrue(Chat().Party.Lines.Last().Failure == TEXT("not_in_party") && !Snapshot().Problem.IsSet()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), PartyPath, 409, ErrorBody(TEXT("conversation_changed")))));
+			ASSERT_THAT(IsTrue(Chat().Party.Lines.Last().Failure == TEXT("conversation_changed") && !Snapshot().Problem.IsSet()));
 			// A request in flight elsewhere never holds chat up.
 			ASSERT_THAT(IsTrue(Flow->LoadCollection() && Snapshot().bBusy));
 			ASSERT_THAT(IsTrue(Flow->SendChatMessage(EChatKind::Party, FString(), TEXT("still here"))));
@@ -261,13 +265,32 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Chat().PostMatch.Key.IsEmpty() && Chat().PostMatch.Lines.IsEmpty() && !Chat().bPostMatchJoined));
 		}
 
+		TEST_METHOD(AReadThatBringsThePlayersFirstPostMatchLineOptsThemIn)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachResults()));
+			const FString PostMatchPath = FString(TEXT("/v1/me/chat/matches/")) + MatchId;
+			ASSERT_THAT(IsTrue(Flow->SendChatMessage(EChatKind::PostMatch, FString(), TEXT("gg"))));
+			const FString ClientId = ClientIdOf(Backend.Find(TEXT("POST"), PostMatchPath)->Body);
+			const FString Stored = ChatMessageJson(8, TEXT("postmatch"), MatchId, AccountId, TEXT("DevOne"), TEXT(""), TEXT("gg"), ClientId);
+			// The read delivers the stored line before the send's answer arrives.
+			Rig.Advance(1.0);
+			const FFlowTestBackend::FRequest* Read = Backend.Pending.FindByPredicate([](const FFlowTestBackend::FRequest& Request) { return Request.Path.StartsWith(TEXT("/v1/me/chat")) && Request.Verb == TEXT("GET"); });
+			ASSERT_THAT(IsNotNull(Read));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), Read->Path, 200, ChatPage({ Stored }, 8))));
+			ASSERT_THAT(IsTrue(Chat().bPostMatchJoined && Chat().PostMatch.Lines.Num() == 1 && !Chat().PostMatch.Lines[0].bPending));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), PostMatchPath, 200, ChatSentAnswer(Stored))));
+			ASSERT_THAT(IsTrue(Chat().bPostMatchJoined && Chat().PostMatch.Lines.Num() == 1));
+		}
+
 		TEST_METHOD(TheSelectChatIsTheSelectsOwn)
 		{
 			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
 			ASSERT_THAT(IsTrue(Flow->SendChatMessage(EChatKind::Select, FString(), TEXT("mid?"))));
-			const FString ClientId = ClientIdOf(Backend.Find(TEXT("POST"), TEXT("/v1/me/chat/select"))->Body);
+			// The send names the select it was written in.
+			const FString SelectChatPath = FString(TEXT("/v1/me/chat/select/")) + SelectId;
+			const FString ClientId = ClientIdOf(Backend.Find(TEXT("POST"), SelectChatPath)->Body);
 			const FString Key = FString(SelectId) + TEXT("|A");
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/chat/select"), 200,
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), SelectChatPath, 200,
 				ChatSentAnswer(ChatMessageJson(4, TEXT("select"), Key, AccountId, TEXT("DevOne"), TEXT(""), TEXT("mid?"), ClientId)))));
 			ASSERT_THAT(IsTrue(Chat().Select.Key == Key && Chat().Select.Lines.Num() == 1 && !Chat().Select.Lines[0].bPending));
 			ASSERT_THAT(IsFalse(Flow->SendChatMessage(EChatKind::PostMatch, FString(), TEXT("gg")), TEXT("no results yet")));

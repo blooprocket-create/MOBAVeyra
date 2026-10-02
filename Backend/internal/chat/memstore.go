@@ -50,7 +50,7 @@ func (s *MemStore) Messages(_ context.Context, q Query) ([]Message, error) {
 	defer s.mu.Unlock()
 	var out []Message
 	for _, m := range s.state.messages {
-		if m.Seq > q.After && !m.SentAt.Before(q.Since) && InQuery(q, m) {
+		if m.Seq > q.After && (q.Before == 0 || m.Seq < q.Before) && !m.SentAt.Before(q.Since) && InQuery(q, m) {
 			out = append(out, m)
 		}
 	}

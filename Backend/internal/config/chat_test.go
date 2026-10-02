@@ -12,7 +12,7 @@ func TestParseChat(t *testing.T) {
 		t.Fatalf("Parse: %v", err)
 	}
 	want := Chat{MaxCharacters: 250, MaxPerWindow: 5, Window: 5 * time.Second, HistoryMessages: 100, PageSize: 200,
-		Retention: 168 * time.Hour, PostMatchWindow: 10 * time.Minute}
+		Retention: 168 * time.Hour, PostMatchWindow: 10 * time.Minute, PruneInterval: 10 * time.Minute}
 	if c.Chat != want {
 		t.Fatalf("chat: %+v", c.Chat)
 	}
@@ -26,7 +26,7 @@ func TestChatRejectsBadTuning(t *testing.T) {
 		{"a missing limit", `"maxPerWindow": 5, `, ``, "chat.maxPerWindow is required"},
 		{"an empty window", `"window": "5s"`, `"window": "0s"`, "chat.window must be positive"},
 		{"a window longer than retention", `"retention": "168h"`, `"retention": "1s"`, "chat.window must not exceed chat.retention"},
-		{"no post-match time", `"postMatchWindow": "10m"`, `"postMatchWindow": "-1m"`, "chat.postMatchWindow must be positive"},
+		{"no post-match time", `"postMatchWindow": "10m", "pruneInterval": "10m"`, `"postMatchWindow": "-1m"`, "chat.postMatchWindow must be positive"},
 		{"an unknown field", `"pageSize": 200`, `"pageSize": 200, "loudness": 11`, "unknown field"},
 	}
 	for _, c := range cases {

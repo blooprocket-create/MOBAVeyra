@@ -29,6 +29,7 @@ class UVeyraInventoryComponent;
 class UVeyraProgressionComponent;
 class UVeyraRecallComponent;
 class UVeyraRegenerationComponent;
+struct FVeyraMasteryEmoteTuning;
 class UVeyraResourceSet;
 class UVeyraScoreComponent;
 class UVeyraPassive;
@@ -131,8 +132,12 @@ public:
 	/** Until when, in the server's world time, the mastery emote shows above the Vanguard, on every machine. */
 	double GetMasteryEmoteUntil() const { return MasteryEmoteUntil; }
 
-	/** Server only: shows the mastery emote until Until. It has no gameplay effect. */
-	void ShowMasteryEmote(double Until);
+	/**
+	 * Server only: shows the mastery emote at Now, the server's world time, if its rule allows (ADR-045 §9); true
+	 * when it shows. Its cooldown is kept here, on the PlayerState a returning player takes back, so leaving
+	 * and coming back does not reset it. It has no gameplay effect.
+	 */
+	bool TryShowMasteryEmote(double Now, const FVeyraMasteryEmoteTuning& Emote);
 
 protected:
 	/**
@@ -252,6 +257,9 @@ private:
 
 	UPROPERTY(Replicated)
 	double MasteryEmoteUntil = 0.0;
+
+	/** Server only: when, in world time, the mastery emote may next show. */
+	double NextMasteryEmoteAt = 0.0;
 
 	/** Server only. */
 	UPROPERTY(Transient)

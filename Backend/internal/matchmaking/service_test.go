@@ -40,6 +40,16 @@ func (g socialGraph) BlockedWithAny(_ context.Context, a string, others []string
 	return false, nil
 }
 
+func (g socialGraph) BlockedWith(_ context.Context, a string, others []string) (map[string]bool, error) {
+	out := map[string]bool{}
+	for _, b := range others {
+		if g.blocks[[2]string{a, b}] || g.blocks[[2]string{b, a}] {
+			out[b] = true
+		}
+	}
+	return out, nil
+}
+
 func (g socialGraph) BlockedAmong(ctx context.Context, accounts []string) (bool, error) {
 	for _, a := range accounts {
 		if blocked, _ := g.BlockedWithAny(ctx, a, accounts); blocked {
