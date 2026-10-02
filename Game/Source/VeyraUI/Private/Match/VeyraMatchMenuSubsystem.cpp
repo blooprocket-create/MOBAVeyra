@@ -17,6 +17,7 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "Loading/VeyraLoadingScreen.h"
+#include "Shell/VeyraShellLook.h"
 #include "Match/VeyraMatchMenu.h"
 #include "Scoreboard/VeyraScoreboard.h"
 #include "Engine/GameViewportClient.h"
@@ -236,6 +237,8 @@ void UVeyraMatchMenuSubsystem::OpenShop()
 	{
 		return;
 	}
+	// In the player's look (ADR-055 §2–§3).
+	VeyraShellLook::FollowPlayer(Controller);
 	Shop = CreateWidget<UVeyraShopScreen>(Controller);
 	if (!Shop)
 	{
@@ -270,6 +273,8 @@ void UVeyraMatchMenuSubsystem::ShowScoreboard()
 	{
 		return;
 	}
+	// In the player's look (ADR-055 §2–§3).
+	VeyraShellLook::FollowPlayer(Controller);
 	Scoreboard = CreateWidget<UVeyraScoreboard>(Controller);
 	if (!Scoreboard)
 	{
@@ -296,6 +301,8 @@ void UVeyraMatchMenuSubsystem::OpenMenu()
 	{
 		return;
 	}
+	// In the player's look (ADR-055 §2–§3).
+	VeyraShellLook::FollowPlayer(Controller);
 	Menu = CreateWidget<UVeyraMatchMenu>(Controller);
 	if (!Menu)
 	{
@@ -340,6 +347,8 @@ void UVeyraMatchMenuSubsystem::OpenSettings()
 		return;
 	}
 	CloseMenu();
+	// In the player's look (ADR-055 §2–§3).
+	VeyraShellLook::FollowPlayer(Controller);
 	Settings = CreateWidget<UVeyraSettingsScreen>(Controller);
 	if (!Settings)
 	{
@@ -399,6 +408,8 @@ void UVeyraMatchMenuSubsystem::OpenChat(EVeyraChatChannel Channel)
 	{
 		return;
 	}
+	// In the player's look (ADR-055 §2–§3).
+	VeyraShellLook::FollowPlayer(Controller);
 	Chat = CreateWidget<UVeyraChatComposer>(Controller);
 	if (!Chat)
 	{

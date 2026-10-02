@@ -7,14 +7,18 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/ActorTestSpawner.h"
 #include "GameFramework/GameStateBase.h"
+#include "Greybox/VeyraGreyboxSettings.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Scoreboard/VeyraScoreboard.h"
 #include "Scoreboard/VeyraScoreboardModel.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Statistics/VeyraScoreComponent.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
+#include "VeyraSettingsStore.h"
+#include "VeyraSettingsSubsystem.h"
 
 namespace VeyraScoreboardTests
 {
@@ -139,6 +143,42 @@ namespace VeyraScoreboardTests
 			Screen->Refresh();
 			ASSERT_THAT(IsTrue(Screen->GetView().Sides[1].Kills == 1));
 			ASSERT_THAT(IsTrue(Screen->GetLines().Contains(UVeyraScoreboard::RowLine(Screen->GetView().Sides[1].Rows[0]).ToString())));
+		}
+
+		TEST_METHOD(ItsSidesWearThePlayersColourVisionAndFollowAChange)
+		{
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			FVeyraSettingsStore Store(Registry);
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Viewer;
+			UVeyraScoreboard* Screen = CreateWidget<UVeyraScoreboard>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->BindSettings(Store);
+			Screen->Show(Controller);
+			const UVeyraGreyboxSettings& Hud = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Screen->GetSides() == VeyraInterfacePreferences::Resolve(Hud, &Store).SideColors, TEXT("Standard's sides")));
+			// A change while it is open shows at the next refresh, with nothing else changed (SET-8; ADR-055 §1).
+			Store.Set(VeyraInterfacePreferences::ColorVision(), TEXT("Protanopia"));
+			Screen->Refresh();
+			const FVeyraSideColorSet& Preset = Hud.ColorVisionPresets.FindChecked(TEXT("Protanopia"));
+			ASSERT_THAT(IsTrue(Screen->GetSides().Ally.Equals(Preset.Ally) && Screen->GetSides().Enemy.Equals(Preset.Enemy)));
+		}
+
+		TEST_METHOD(ItKeepsTheHudsTextAndPanelsWhateverTheMenusLook)
+		{
+			// The menus in Extra Large and opaque (ADR-055 §2–§3); the scoreboard, part of the HUD, is not.
+			FVeyraShellLook Menus;
+			Menus.TextScale = 1.3f;
+			Menus.bOpaquePanels = true;
+			const FVeyraScopedShellLook Restore{ Menus };
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Viewer;
+			UVeyraScoreboard* Screen = CreateWidget<UVeyraScoreboard>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller);
+			ASSERT_THAT(IsTrue(Screen->GetBuiltLook() == FVeyraShellLook(), TEXT("built in the standard look")));
+			ASSERT_THAT(IsTrue(VeyraShellLook::Current() == Menus, TEXT("and the menus keep theirs")));
 		}
 
 		TEST_METHOD(ItHasItsOwnKeyTabByDefault)

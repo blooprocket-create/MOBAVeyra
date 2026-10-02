@@ -237,6 +237,111 @@ const FVeyraContentId& DamageNumberColors()
 	return Id;
 }
 
+const FVeyraContentId& ConnectionWarning()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_connection_warning"));
+	return Id;
+}
+
+const FVeyraContentId& PerformanceWarning()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_performance_warning"));
+	return Id;
+}
+
+const FVeyraContentId& ColorVision()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_color_vision"));
+	return Id;
+}
+
+const FVeyraContentId& AllyColor()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_ally_color"));
+	return Id;
+}
+
+const FVeyraContentId& EnemyColor()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_enemy_color"));
+	return Id;
+}
+
+const FVeyraContentId& NeutralColor()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_neutral_color"));
+	return Id;
+}
+
+const FVeyraContentId& TextSize()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_text_size"));
+	return Id;
+}
+
+const FVeyraContentId& FocusIndicator()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_focus_indicator"));
+	return Id;
+}
+
+const FVeyraContentId& ReduceTransparency()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_reduce_transparency"));
+	return Id;
+}
+
+const FVeyraContentId& ReduceUiAnimation()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_reduce_ui_animation"));
+	return Id;
+}
+
+const FVeyraContentId& ReduceFlashing()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_reduce_flashing"));
+	return Id;
+}
+
+FVeyraSideColors SideColorsFor(const UVeyraGreyboxSettings& Hud, const FString& Vision, const FString& Ally, const FString& Enemy, const FString& Neutral)
+{
+	FVeyraSideColors Colors{ Hud.OwnColor, Hud.AllyColor, Hud.EnemyColor, Hud.NeutralColor };
+	if (const FVeyraSideColorSet* Preset = Hud.ColorVisionPresets.Find(Vision))
+	{
+		return FVeyraSideColors{ Preset->Own, Preset->Ally, Preset->Enemy, Preset->Neutral };
+	}
+	if (Vision == TEXT("Custom"))
+	{
+		const FLinearColor* Allied = Hud.SideColorPalette.Find(Ally);
+		const FLinearColor* Hostile = Hud.SideColorPalette.Find(Enemy);
+		const FLinearColor* Neither = Hud.SideColorPalette.Find(Neutral);
+		Colors.Ally = Allied ? *Allied : Colors.Ally;
+		Colors.Enemy = Hostile ? *Hostile : Colors.Enemy;
+		Colors.Neutral = Neither ? *Neither : Colors.Neutral;
+		// The player stands apart from their allies in the same family of colour.
+		Colors.Own = FMath::Lerp(Colors.Ally, FLinearColor::White, Hud.CustomOwnLightening);
+		Colors.Own.A = Colors.Ally.A;
+	}
+	return Colors;
+}
+
+TArray<FLinearColor> SwatchesFor(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore& Store, const FVeyraContentId& Id)
+{
+	if (Id == ColorVision())
+	{
+		const FVeyraSideColors Sides = SideColorsFor(Hud, Store.Get(ColorVision()), Store.Get(AllyColor()), Store.Get(EnemyColor()), Store.Get(NeutralColor()));
+		return { Sides.Own, Sides.Ally, Sides.Enemy, Sides.Neutral };
+	}
+	if (Id == AllyColor() || Id == EnemyColor() || Id == NeutralColor())
+	{
+		if (const FLinearColor* Held = Hud.SideColorPalette.Find(Store.Get(Id)))
+		{
+			return { *Held };
+		}
+	}
+	return {};
+}
+
 EVeyraBarVisibility ParseBars(const FString& Option)
 {
 	return Option == TEXT("WhenDamaged") ? EVeyraBarVisibility::WhenDamaged
@@ -261,6 +366,8 @@ bool ShowsBar(const FVeyraInterfacePreferences& Preferences, const FVeyraBarFact
 FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore* Store)
 {
 	FVeyraInterfacePreferences Preferences;
+	Preferences.SideColors = FVeyraSideColors{ Hud.OwnColor, Hud.AllyColor, Hud.EnemyColor, Hud.NeutralColor };
+	Preferences.TextSize = TEXT("Standard");
 	Preferences.MinimapSize = Hud.MinimapSize;
 	Preferences.MinimapVanguardIcon = Hud.MinimapVanguardIcon;
 	Preferences.MinimapStructureIcon = Hud.MinimapStructureIcon;
@@ -314,6 +421,14 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.CombatText.bCritEmphasis = Store->IsOn(CombatTextCrits());
 	Preferences.CombatText.bReduced = Store->Get(CombatTextDensity()) == Reduced;
 	Preferences.bUniformDamageColors = Store->Get(DamageNumberColors()) == Uniform;
+	Preferences.SideColors = SideColorsFor(Hud, Store->Get(ColorVision()), Store->Get(AllyColor()), Store->Get(EnemyColor()), Store->Get(NeutralColor()));
+	Preferences.TextSize = Store->Get(TextSize());
+	Preferences.bEnhancedFocus = Store->Get(FocusIndicator()) == TEXT("Enhanced");
+	Preferences.bReduceTransparency = Store->IsOn(ReduceTransparency());
+	Preferences.bReduceUiAnimation = Store->IsOn(ReduceUiAnimation());
+	Preferences.bReduceFlashing = Store->IsOn(ReduceFlashing());
+	Preferences.bConnectionWarning = Store->IsOn(ConnectionWarning());
+	Preferences.bPerformanceWarning = Store->IsOn(PerformanceWarning());
 	return Preferences;
 }
 

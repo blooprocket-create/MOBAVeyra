@@ -5,6 +5,7 @@
 #include "Content/VeyraContentId.h"
 #include "InputCoreTypes.h"
 #include "Internationalization/Text.h"
+#include "Math/Color.h"
 #include "Misc/Optional.h"
 #include "VeyraSettingsRegistry.h"
 
@@ -43,6 +44,8 @@ struct FVeyraSettingRowModel
 	FKey Key;
 	/** A binding the game needs to be played (SET-133). */
 	bool bEssential = false;
+	/** The colours a colour setting previews beside it, as the player would see them (SET-8); none for other settings. */
+	TArray<FLinearColor> Swatches;
 };
 
 /** The Settings screen: its categories, the settings it shows, and what it offers. */

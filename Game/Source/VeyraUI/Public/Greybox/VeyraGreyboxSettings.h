@@ -12,6 +12,25 @@ class UMaterialInterface;
 class UStaticMesh;
 class UVeyraUnitArtSet;
 
+/** One colour-vision palette's side colours (Settings Bible §4.1; ADR-055 §1). */
+USTRUCT()
+struct FVeyraSideColorSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Own = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Ally = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Enemy = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor Neutral = FLinearColor::Transparent;
+};
+
 /**
  * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
  * not tuning, stored in Config/DefaultGame.ini. Every value is required: the grey-box draws nothing
@@ -56,6 +75,18 @@ public:
 	/** Units on no side. */
 	UPROPERTY(Config, EditAnywhere, Category = "Sides")
 	FLinearColor NeutralColor = FLinearColor::Transparent;
+
+	/** The colour-vision presets' side colours, by the Color Vision option that names them (SET-8; ADR-055 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	TMap<FString, FVeyraSideColorSet> ColorVisionPresets;
+
+	/** The named colours Custom colour vision offers each side, by option. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	TMap<FString, FLinearColor> SideColorPalette;
+
+	/** Under Custom, how far the player's own colour lightens their ally colour toward white, from 0 to 1. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides", meta = (ClampMin = "0", ClampMax = "1"))
+	float CustomOwnLightening = 0.0f;
 
 	/** The tint of a stunned unit. */
 	UPROPERTY(Config, EditAnywhere, Category = "Statuses")
@@ -140,6 +171,28 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
+
+	/** The connection warning's trouble: more than this fraction of packets lost, or a round trip above RoundTripMs (SET-21; ADR-055 §5). */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float ConnectionWarningLossFraction = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float ConnectionWarningRoundTripMs = 0.0f;
+
+	/** The low-performance warning's trouble: foreground frames below this fraction of the cap (Proposal 110). */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0", ClampMax = "1"))
+	float PerformanceWarningFraction = 0.0f;
+
+	/** The frame rate an uncapped player is measured against. */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "1"))
+	float UncappedReferenceFps = 0.0f;
+
+	/** How long trouble lasts before a warning starts, and calm before it clears, in seconds. */
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float WarningStartSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Warnings", meta = (ClampMin = "0"))
+	float WarningClearSeconds = 0.0f;
 
 	/** The fog of war on the minimap (ADR-054 §3), translucent over its ground. */
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")

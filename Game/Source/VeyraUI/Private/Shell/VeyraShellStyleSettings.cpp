@@ -104,6 +104,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SettingsNavWidth"), SettingsNavWidth },
 		{ TEXT("SettingsSearchWidth"), SettingsSearchWidth },
 		{ TEXT("SettingsControlWidth"), SettingsControlWidth },
+		{ TEXT("SettingsSwatchSize"), SettingsSwatchSize },
 		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
 		{ TEXT("ChatLinesHeight"), ChatLinesHeight },
 		{ TEXT("ProfileIconSize"), ProfileIconSize },
@@ -156,6 +157,14 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 	{
 		bEveryReminderPositive &= Option.Value > 0.0f;
 	}
+	Require(FocusOutlineColor.A > 0.0f && FocusOutlineWidth >= 2.0f, TEXT("FocusOutlineColor"), TEXT("the enhanced focus outline is visible, and at least 2 pixels wide."));
+	const float* StandardScale = TextSizeScales.Find(TEXT("Standard"));
+	bool bEveryScalePositive = true;
+	for (const TPair<FString, float>& Scale : TextSizeScales)
+	{
+		bEveryScalePositive &= Scale.Value > 0.0f;
+	}
+	Require(StandardScale && *StandardScale == 1.0f && bEveryScalePositive, TEXT("TextSizeScales"), TEXT("Standard is 1, and every size above 0."));
 	Require(!PlayReminderSeconds.IsEmpty() && bEveryReminderPositive, TEXT("PlayReminderSeconds"), TEXT("lists the reminder's options, each above 0 seconds."));
 	// SET-120: at least 8 seconds for every automatically shown entry.
 	constexpr float LeastEntrySeconds = 8.0f;

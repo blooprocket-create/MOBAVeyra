@@ -5,10 +5,12 @@
 #include "Blueprint/UserWidget.h"
 #include "Settings/VeyraSettingsModels.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 
 #include "VeyraSettingsScreen.generated.h"
 
 class FVeyraSettingsStore;
+class UBorder;
 class UEditableTextBox;
 class UHorizontalBox;
 class UVerticalBox;
@@ -64,6 +66,10 @@ public:
 	/** Every text on screen, joined by new lines, for tests. */
 	FString DescribeText() const;
 
+	/** The frame as last styled (ADR-055 §2–§3): the title's type size and the window's fill. For tests. */
+	int32 GetTitleTextSize() const;
+	FLinearColor GetWindowFill() const;
+
 	/** How the screen names a setting's buttons, for tests and scripts: one of its values, a step down or up, and its reset. */
 	static FText OptionLabel(const FVeyraSettingRowModel& Row, const FVeyraSettingOptionModel& Option);
 	static FText StepLabel(const FVeyraSettingRowModel& Row, bool bHigher);
@@ -102,6 +108,8 @@ private:
 	FVeyraSettingsStore* GetStore() const;
 	void StopListening();
 	void Rebuild();
+	/** Styles the frame built once, the window, title and search, in the current look, which it remembers. */
+	void StyleFrame();
 	void BuildRow(const FVeyraSettingRowModel& Row);
 	void BuildFooter();
 	void Change(const FVeyraContentId& Id, const FString& Value);
@@ -157,6 +165,15 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UEditableTextBox> SearchBox;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> WindowPanel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> Title;
+
+	/** The look the frame was last styled in: a change restyles it (ADR-055 §2–§3). */
+	FVeyraShellLook FrameLook;
 
 	/** The countdown to a disruptive display change's revert, while one waits. */
 	UPROPERTY(Transient)

@@ -1,6 +1,13 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Shell/VeyraShellScreen.h"
+#include "Shell/VeyraShellLook.h"
+
+#if PLATFORM_WINDOWS
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <Windows.h>
+#include "Windows/HideWindowsPlatformTypes.h"
+#endif
 
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
@@ -156,11 +163,16 @@ bool UVeyraShellScreen::Initialize()
 
 void UVeyraShellScreen::Bind(IVeyraClientIntents& InClient)
 {
-	Unbind();
+	if (Client)
+	{
+		Client->OnChanged().Remove(ChangedHandle);
+	}
 	Client = &InClient;
 	ChangedHandle = Client->OnChanged().AddUObject(this, &UVeyraShellScreen::Refresh);
 	ShownSignature.Reset();
-	if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+	// The game instance's settings, unless the screen already follows a store of its own.
+	UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	if (Settings && !SettingsStore)
 	{
 		BindSettings(Settings->GetStore());
 	}
@@ -242,6 +254,13 @@ void UVeyraShellScreen::Refresh()
 		return;
 	}
 	const FVeyraClientSnapshot& Snapshot = Client->GetSnapshot();
+	// Built in the player's look, and rebuilt when it changes (ADR-055 §2–§3).
+	const FVeyraInterfacePreferences Preferences = InterfacePreferences();
+	const bool bNewLook = VeyraShellLook::Use(VeyraShellLook::For(Preferences));
+	if (bNewLook)
+	{
+		ShownSignature.Reset();
+	}
 	// A draft turn of the player's own asks for their attention once, as it begins (UX-31, UX-32).
 	if (const FString Turn = VeyraShellModels::PlayersTurn(Snapshot); Turn != AttendedTurn)
 	{
@@ -269,6 +288,8 @@ void UVeyraShellScreen::Refresh()
 			*ProfileDraft.FeaturedVanguardId, ProfileDraft.bShowMatchHistory ? 1 : 0) +
 		// The break reminder comes and goes with the player's setting as well as the snapshot (ADR-053 §4).
 		FString::Printf(TEXT("reminder %d|"), ShowsPlayReminder(Snapshot) ? 1 : 0) +
+		// The seats' side colours follow the player's colour vision (ADR-055 §1).
+		FString::Printf(TEXT("sides %s:%s|"), *Preferences.SideColors.Ally.ToString(), *Preferences.SideColors.Enemy.ToString()) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
@@ -322,7 +343,7 @@ void UVeyraShellScreen::AnnounceMatchFound()
 {
 	++MatchFoundAlerts;
 	const FVeyraInterfacePreferences Preferences = InterfacePreferences();
-	LastMatchFoundAlert = FVeyraMatchFoundAlert{ Preferences.bBackgroundMatchNotification, Preferences.bMatchReadySound };
+	LastMatchFoundAlert = FVeyraMatchFoundAlert{ Preferences.bBackgroundMatchNotification, Preferences.bMatchReadySound, Preferences.bReduceFlashing };
 	// Taskbar attention only: the client never takes focus for itself, accepts, or tells anything of the party (SET-50).
 	if (Preferences.bBackgroundMatchNotification)
 	{
@@ -349,10 +370,23 @@ void UVeyraShellScreen::DrawWindowAttention(bool bBringToFront)
 		{
 			Window->BringToFront(/*bForce*/ true);
 		}
-		if (!Window->IsActive())
+		if (Window->IsActive())
 		{
-			Window->DrawAttention(FWindowDrawAttentionParameters(EWindowDrawAttentionRequestType::UntilActivated));
+			return;
 		}
+		// Under Reduce Flashing the taskbar button lights once and stays lit, rather than flashing until activated (SET-18).
+		if (InterfacePreferences().bReduceFlashing)
+		{
+#if PLATFORM_WINDOWS
+			if (const TSharedPtr<FGenericWindow> Native = Window->GetNativeWindow(); Native.IsValid() && Native->GetOSWindowHandle())
+			{
+				FLASHWINFO Light = { sizeof(FLASHWINFO), static_cast<HWND>(Native->GetOSWindowHandle()), FLASHW_TRAY, 1, 0 };
+				::FlashWindowEx(&Light);
+			}
+#endif
+			return;
+		}
+		Window->DrawAttention(FWindowDrawAttentionParameters(EWindowDrawAttentionRequestType::UntilActivated));
 	}
 }
 

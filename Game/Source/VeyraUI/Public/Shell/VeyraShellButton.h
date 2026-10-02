@@ -64,6 +64,23 @@ public:
 	 */
 	UVeyraShellButton& KeepLabelOnOneLine();
 
+	/**
+	 * Draws the enhanced keyboard focus outline, or its own style again (SET-74; ADR-055 §3): a thicker, high-contrast
+	 * outline over its usual fill, so focus stays distinct from hover, selection and a disabled look.
+	 */
+	void ShowEnhancedFocus(bool bShow);
+	bool IsShowingEnhancedFocus() const { return bEnhancedFocus; }
+
+	/** Its normal look now: the outline's width and colour, and the fill. For tests. */
+	float GetOutlineWidth() const;
+	FLinearColor GetOutlineColor() const;
+	FLinearColor GetFillColor() const;
+
+	/** The live shell button whose Slate widget is Widget, if any: the one keyboard focus is on. */
+	static UVeyraShellButton* FindBySlate(const TSharedPtr<SWidget>& Widget);
+
+	virtual void BeginDestroy() override;
+
 private:
 	/** A button labelled Label that runs Action, before its style and content are set. */
 	static UVeyraShellButton* Create(UWidgetTree& Tree, const FText& Label, TFunction<void()> Action, bool bEnabled);
@@ -73,4 +90,7 @@ private:
 
 	TFunction<void()> Action;
 	FText Label;
+	/** Its own style while the enhanced focus outline shows. */
+	FButtonStyle OwnStyle;
+	bool bEnhancedFocus = false;
 };

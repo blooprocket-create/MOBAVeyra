@@ -28,6 +28,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Engine/Texture2D.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
@@ -340,8 +341,9 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 	}
 
 	const FVector2D PortraitSize(Settings.PortraitSize, Settings.PortraitSize);
-	UImage* Portrait = MakeArt(*WidgetTree, Seat.VanguardId, PortraitSize, /*a circle*/ -1.0f, /*bPortrait*/ true,
-		Seat.bAlly ? Settings.AllyColor : Settings.EnemyColor);
+	// Ringed in the side's colour as the player sees it (SET-8; ADR-055 §1).
+	const FVeyraSideColors Sides = InterfacePreferences().SideColors;
+	UImage* Portrait = MakeArt(*WidgetTree, Seat.VanguardId, PortraitSize, /*a circle*/ -1.0f, /*bPortrait*/ true, Seat.bAlly ? Sides.Ally : Sides.Enemy);
 	if (Seat.bAlly)
 	{
 		// The player's own starting spells beside the portrait, by

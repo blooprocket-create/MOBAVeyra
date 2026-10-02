@@ -20,6 +20,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
+#include "Greybox/VeyraGreyboxSettings.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
@@ -31,7 +33,9 @@ bool UVeyraScoreboard::Initialize()
 	const bool bFirst = Super::Initialize();
 	if (bFirst && WidgetTree && !WidgetTree->RootWidget)
 	{
-		// Centred over the match, which stays in play: clicks pass through to it.
+		// Centred over the match, which stays in play: clicks pass through to it. Part of the match's HUD, it keeps
+		// the HUD's own text and panels, whatever look the menus take (ADR-055 §2).
+		const FVeyraScopedShellLook Hud{ FVeyraShellLook() };
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 		const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 		UOverlay* Screen = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
@@ -88,11 +92,14 @@ void UVeyraScoreboard::Refresh()
 		}
 	}
 	FVeyraScoreboardView Latest = VeyraScoreboardModel::Describe(Participants, Viewer->PlayerState);
-	if (bBuilt && Latest == View)
+	const FVeyraSideColors LatestSides =
+		VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), SettingsStore ? SettingsStore : VeyraInterfacePreferences::StoreOf(Viewer)).SideColors;
+	if (bBuilt && Latest == View && LatestSides == Sides)
 	{
 		return;
 	}
 	View = MoveTemp(Latest);
+	Sides = LatestSides;
 	Rebuild();
 }
 
@@ -104,12 +111,14 @@ void UVeyraScoreboard::Rebuild()
 		return;
 	}
 	Columns->ClearChildren();
+	const FVeyraScopedShellLook Hud{ FVeyraShellLook() };
+	BuiltLook = VeyraShellLook::Current();
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	for (const FVeyraScoreboardSide& Side : View.Sides)
 	{
 		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		UTextBlock* Heading = VeyraShellStyle::MakeText(*WidgetTree, SideHeading(Side), VeyraShellStyle::EVeyraShellText::Heading);
-		Heading->SetColorAndOpacity(Side.bAllies ? Style.AllyColor : Style.EnemyColor);
+		Heading->SetColorAndOpacity(Side.bAllies ? Sides.Ally : Sides.Enemy);
 		VeyraShellStyle::AddSpaced(*Column, *Heading);
 		for (const FVeyraScoreboardRow& Row : Side.Rows)
 		{
@@ -127,7 +136,7 @@ void UVeyraScoreboard::Rebuild()
 			const FVector2D FaceSize(Style.PortraitSize, Style.PortraitSize);
 			UImage* Face = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
 			const FBox2f Crop = Hero ? VeyraShellArt::Crop(VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, true) : FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector);
-			Face->SetBrush(VeyraShellArt::Brush(Hero, Crop, FaceSize, Style.ButtonCornerRadius, Style.SurfaceColor, Side.bAllies ? Style.AllyColor : Style.EnemyColor, 1.0f));
+			Face->SetBrush(VeyraShellArt::Brush(Hero, Crop, FaceSize, Style.ButtonCornerRadius, Style.SurfaceColor, Side.bAllies ? Sides.Ally : Sides.Enemy, 1.0f));
 			if (Row.bAway)
 			{
 				Face->SetColorAndOpacity(Style.MutedTextColor);
