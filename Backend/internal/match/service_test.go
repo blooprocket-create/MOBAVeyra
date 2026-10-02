@@ -139,6 +139,22 @@ func TestTheAssignmentCarriesEachPlayersMastery(t *testing.T) {
 	}
 }
 
+// failingMasteries stands in for progression that cannot be read.
+type failingMasteries struct{ err error }
+
+func (m failingMasteries) MasteryOf(context.Context, string, string) (ParticipantMastery, error) {
+	return ParticipantMastery{}, m.err
+}
+
+func TestAMasteryThatCannotBeReadFailsTheCreate(t *testing.T) {
+	f := newFixture(t)
+	unreadable := errors.New("progression unreachable")
+	f.svc.SetMasteries(failingMasteries{err: unreadable})
+	if _, err := f.svc.Create(ctx, standard(twoSeats...)); !errors.Is(err, unreadable) {
+		t.Fatalf("Create: %v, want the read's error", err)
+	}
+}
+
 func TestCreateStartsAServerWithTheRoster(t *testing.T) {
 	f := newFixture(t)
 	m := f.create(t, twoSeats...)
