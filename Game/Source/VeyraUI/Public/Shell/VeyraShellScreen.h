@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Shell/VeyraChatModels.h"
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellModels.h"
 #include "Types/SlateEnums.h"
@@ -17,6 +18,7 @@ class UOverlay;
 class UPanelWidget;
 class UProgressBar;
 class UScaleBox;
+class UScrollBox;
 class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
@@ -112,6 +114,12 @@ public:
 
 	/** Types Name into the friends panel's name field, as the player would. For tests and scripts. */
 	void SetFriendNameDraft(const FString& Name);
+
+	/** Types Text into the chat composer that shows, as the player would. For tests and scripts. */
+	void SetChatDraft(const FString& Text);
+
+	/** The chat composer that shows, or null. */
+	UEditableTextBox* GetChatBox() const { return ChatBox; }
 
 	/**
 	 * The card whose actions show, empty while none is open (ADR-044 §2): a party member's card is its
@@ -221,6 +229,21 @@ private:
 
 	UFUNCTION()
 	void HandleFriendNameCommitted(const FText& Text, ETextCommit::Type Method);
+
+	/** A text field in the shell's style, holding Draft; dimmed when it cannot be used. */
+	UEditableTextBox* MakeTextField(const FText& Hint, const FString& Draft, bool bEnabled);
+	/** The sidebar's chat under the friends (VeyraShellChat.cpp; ADR-046 §6): the direct conversation the player opened, else Party Chat. */
+	void BuildSidebarChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** One chat panel: its title, its lines and its composer, which sends to the model's conversation. */
+	void BuildChatPanel(const FVeyraChatPanelModel& Model, UPanelWidget& Parent);
+	/** Sends what the chat composer holds to its conversation. */
+	void SubmitChat();
+
+	UFUNCTION()
+	void HandleChatChanged(const FText& Text);
+
+	UFUNCTION()
+	void HandleChatCommitted(const FText& Text, ETextCommit::Type Method);
 
 	/**
 	 * A card showing VanguardId's illustration with a plate of text along its bottom, as a button named
@@ -364,6 +387,20 @@ private:
 	TObjectPtr<UEditableTextBox> FriendNameBox;
 
 	FString FriendNameDraft;
+
+	/** The chat composer, rebuilt with the screen, and the conversation it sends to (ADR-046 §6). */
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> ChatBox;
+
+	/** A chat panel's lines built since the last frame, which the next frame scrolls to the newest. */
+	UPROPERTY(Transient)
+	TObjectPtr<UScrollBox> ChatScroll;
+
+	VeyraBackendProtocol::EChatKind ChatBoxKind = VeyraBackendProtocol::EChatKind::Party;
+	FString ChatBoxTarget;
+	/** Each conversation's unsent text, so changing conversation, or a rebuild, keeps it. */
+	FString ChatBoxKey;
+	TMap<FString, FString> ChatDrafts;
 
 	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-044 §2, §4). */
 	FString OpenCardId;

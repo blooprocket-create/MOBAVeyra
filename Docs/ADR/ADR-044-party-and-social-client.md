@@ -71,7 +71,7 @@ Each pending request the player sent offers **Cancel** (`DELETE /v1/friends/requ
 
 - **Appear Offline and presence** (Bible §5): they need a presence service. Friends show no online state yet.
 - **Recent Players** (Bible §5) and blocks from the post-match player list (Bible §6; UX-57).
-- **Party Chat** (Chat & Communication Bible): its own record.
+- **Party Chat** (Chat & Communication Bible): its own record, [ADR-046](ADR-046-party-direct-select-postmatch-chat.md).
 - **Ready-up requests and invitation notifications** (UX-24).
 - **Going offline in a party, and the post-match grace period** (Bible §4): they need presence.
 - **Profile icons on member cards, and an empty slot's invite entry point** (UX-10): there are no profile icons yet. Invite to Party is offered from the friends panel instead.

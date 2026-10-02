@@ -387,6 +387,10 @@ struct FVeyraFriendModel
 	/** The friend's card's contextual actions: Remove Friend, and Block, which asks a confirmation first (§4). */
 	bool bCanRemove = false;
 	bool bCanBlock = false;
+	/** The card's Message, which opens the friend's direct conversation in the sidebar (ADR-046 §6). */
+	bool bCanMessage = false;
+	/** The friend's messages that arrived while their conversation was not open. */
+	int32 Unread = 0;
 };
 
 /** Which of the friends panel's party, block and request intents the coordinator allows now (ADR-044). */
@@ -400,6 +404,8 @@ struct FVeyraSocialPermissions
 	bool bCanBlock = false;
 	bool bCanUnblock = false;
 	bool bCanCancelRequest = false;
+	/** Opening a friend's direct conversation (ADR-046 §6). */
+	bool bCanMessage = false;
 };
 
 /** A friend request to the player, or an invitation into another player's lobby. */

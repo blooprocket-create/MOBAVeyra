@@ -115,4 +115,15 @@ public:
 	virtual bool LoadCollection() = 0;
 	/** Buys VanguardId with Currency. The screen asks the player to confirm the price first. */
 	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) = 0;
+	/**
+	 * Sends Text to a conversation of Kind (ADR-046): the party, the friend Target, the player's side in
+	 * champion select, or the results screen's post-match chat, whose first message opts the player in.
+	 * The backend decides; a refusal marks the line, never the screen.
+	 */
+	virtual bool SendChatMessage(VeyraBackendProtocol::EChatKind Kind, const FString& Target, const FString& Text) = 0;
+	/** Shows the direct conversation with AccountId, a friend, in the sidebar; its unread count clears. */
+	virtual bool OpenDirectChat(const FString& AccountId) = 0;
+	virtual bool CloseDirectChat() = 0;
+	/** Mutes or unmutes AccountId, another participant, in the post-match chat, for the player only. */
+	virtual bool MutePostMatchChat(const FString& AccountId, bool bMute) = 0;
 };
