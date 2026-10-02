@@ -111,4 +111,8 @@ public:
 	virtual bool UnblockPlayer(const FString& AccountId) = 0;
 	/** Withdraws the friend request the player sent AccountId. */
 	virtual bool CancelFriendRequest(const FString& AccountId) = 0;
+	/** Reads the Collection: every released Vanguard, with the player's ownership and Mastery of each. */
+	virtual bool LoadCollection() = 0;
+	/** Buys VanguardId with Currency. The screen asks the player to confirm the price first. */
+	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) = 0;
 };

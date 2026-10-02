@@ -6,6 +6,7 @@
 #include "Containers/StringView.h"
 #include "Containers/UnrealString.h"
 #include "Misc/DateTime.h"
+#include "Backend/VeyraProgressionProtocol.h"
 #include "Join/VeyraMatchAssignment.h"
 #include "Misc/Optional.h"
 
@@ -267,6 +268,8 @@ namespace VeyraBackendProtocol
 		TArray<FPlayerOutcome> Players;
 		/** Every Flux Well secured, in order; empty when none was, or the server sent none. */
 		TArray<FWellOutcome> Wells;
+		/** What the match gave the player (ADR-045 §7); unset until it is adjudicated, or from a backend without progression. */
+		TOptional<FMatchRewards> Rewards;
 
 		/** Whether the match still holds its players: allocating or ready. */
 		VEYRASERVICES_API bool IsActive() const;

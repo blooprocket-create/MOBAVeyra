@@ -332,6 +332,10 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("CancelFriendRequest");
 	case EVeyraClientIntent::ResolveSettingsConflict:
 		return TEXT("ResolveSettingsConflict");
+	case EVeyraClientIntent::LoadCollection:
+		return TEXT("LoadCollection");
+	case EVeyraClientIntent::PurchaseVanguard:
+		return TEXT("PurchaseVanguard");
 	}
 	return TEXT("Unknown");
 }
@@ -509,6 +513,10 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::UnblockPlayer:
 	case EVeyraClientIntent::CancelFriendRequest:
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
+	// The Collection is the ordinary client's, as Match History is: not through Match Found, a select or Reconnect-only.
+	case EVeyraClientIntent::LoadCollection:
+	case EVeyraClientIntent::PurchaseVanguard:
+		return State == EVeyraClientState::Shell;
 	}
 	return false;
 }
@@ -641,6 +649,9 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 		return !Snapshot.Social.Blocked.IsEmpty();
 	case EVeyraClientIntent::CancelFriendRequest:
 		return !Snapshot.Social.Friends.Outgoing.IsEmpty();
+	case EVeyraClientIntent::PurchaseVanguard:
+		// From the Collection as read, so the player saw the price they confirm.
+		return Snapshot.Collection.bLoaded;
 	default:
 		return true;
 	}
@@ -926,6 +937,8 @@ void FVeyraClientFlow::EnterShell(const FString& Notice)
 	// There is no push channel yet: a queue's progress, and a match found, arrive through the party (ADR-010 §10).
 	PollParty();
 	PollSocial();
+	// The level and balances, which a match just played may have changed (ADR-045 §7).
+	ReadProgression();
 }
 
 void FVeyraClientFlow::LoadModes()

@@ -181,6 +181,8 @@ public:
 	virtual bool BlockPlayer(const FString& AccountId) override;
 	virtual bool UnblockPlayer(const FString& AccountId) override;
 	virtual bool CancelFriendRequest(const FString& AccountId) override;
+	virtual bool LoadCollection() override;
+	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);
@@ -272,6 +274,11 @@ private:
 	/** Shows lists read by the social read numbered Sequence, unless a later read's were shown already. */
 	void ApplySocial(uint32 Sequence, FVeyraSocial Read);
 
+	// Account progression, the Collection and purchases (VeyraClientFlowProgression.cpp; ADR-045 §7).
+	/** Reads the account's level and balances once; a failed read keeps the last, and never stops the flow. */
+	void ReadProgression();
+	/** Shows what came of a purchase in the Collection, not as the screen's problem. */
+	void ShowCollectionFeedback(const FString& Code, const FString& VanguardId);
 	/**
 	 * Sends a request once, for reads that must never stop the flow: an answer that arrives after the
 	 * state changed is ignored and a refused session ends it, but anything else, even no answer at all,
@@ -374,4 +381,15 @@ private:
 	bool bMatchEnded = false;
 	/** The match ended; the player watches the end before it leaves for the results. */
 	bool bWatchingEnd = false;
+	/**
+	 * A purchase the player asked for whose answer has not arrived. Asking again for the same Vanguard and
+	 * currency reuses its ID, so a lost answer never spends twice (Account, Collection & Mastery Bible §6).
+	 */
+	struct FPendingPurchase
+	{
+		FString Id;
+		FString VanguardId;
+		VeyraBackendProtocol::ECurrency Currency = VeyraBackendProtocol::ECurrency::Flux;
+	};
+	TOptional<FPendingPurchase> PendingPurchase;
 };

@@ -135,6 +135,10 @@ enum class EVeyraClientIntent : uint8
 	CancelFriendRequest,
 	/** Keeps this device's settings or the account's, when both changed (ADR-024 §1). Whenever the choice shows. */
 	ResolveSettingsConflict,
+	/** Reads the Collection: every released Vanguard, with the player's ownership and Mastery (ADR-045 §7). */
+	LoadCollection,
+	/** Buys a Vanguard with one account currency, once the player confirmed its price (ADR-045 §6). */
+	PurchaseVanguard,
 };
 
 /** Which kind of world the client just loaded. */
@@ -204,6 +208,26 @@ struct FVeyraSocial
 	FString FeedbackName;
 };
 
+/**
+ * The player's Collection as last read (Account, Collection & Mastery Bible §4): every released Vanguard,
+ * owned or not, with the player's Mastery. Seeing one is never permission to pick it.
+ */
+struct FVeyraCollection
+{
+	/** Whether it has been read at all. */
+	bool bLoaded = false;
+	/** In the catalog's order. */
+	TArray<VeyraBackendProtocol::FCollectionEntry> Vanguards;
+	/**
+	 * What came of the player's last purchase, for the Collection rather than the screen's problem:
+	 * "vanguard_purchased", or the backend's refusal, such as "insufficient_balance" or "already_owned".
+	 * Empty for none.
+	 */
+	FString Feedback;
+	/** The Vanguard that purchase was for. */
+	FString FeedbackVanguard;
+};
+
 /** Everything the presentation shows about the flow. Only the flow changes it. */
 struct FVeyraClientSnapshot
 {
@@ -265,6 +289,13 @@ struct FVeyraClientSnapshot
 	TOptional<VeyraBackendProtocol::FLobby> Lobby;
 	/** Shell and Lobby: friends, requests and invitations. */
 	FVeyraSocial Social;
+	/**
+	 * The account's level and balances as last read (ADR-045 §7): read on entering the shell and after a
+	 * purchase; unset before the first read, or from a backend without progression. A failed read keeps it.
+	 */
+	TOptional<VeyraBackendProtocol::FProgression> Progression;
+	/** Shell: the Collection, once the player opens it. */
+	FVeyraCollection Collection;
 
 	/**
 	 * Whether the backend serves custom lobbies: the lobby route's 404 says it does not (ADR-021 §1),

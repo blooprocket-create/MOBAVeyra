@@ -807,6 +807,20 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 		OutProblem = TEXT("the match's result is neither null nor a result");
 		return false;
 	}
+	// What the match gave the player (ADR-045 §7): null until adjudicated, and absent from an older backend.
+	if (const FJsonObject* Rewards = ObjectField(*Object, TEXT("rewards")))
+	{
+		if (!ParseMatchRewards(*Rewards, Outcome.Rewards.Emplace()))
+		{
+			OutProblem = TEXT("the match's rewards are not in the expected format");
+			return false;
+		}
+	}
+	else if (Object->HasField(TEXT("rewards")) && !Object->HasTypedField<EJson::Null>(TEXT("rewards")))
+	{
+		OutProblem = TEXT("the match's rewards are neither null nor rewards");
+		return false;
+	}
 	Out = MoveTemp(Outcome);
 	return true;
 }
