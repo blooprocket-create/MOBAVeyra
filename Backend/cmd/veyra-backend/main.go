@@ -132,6 +132,8 @@ func run(log *slog.Logger) error {
 	// Each verified result grants account progression in its own transaction (ADR-045 §1).
 	progress := progression.NewService(store.Progression(), accounts, progressionTuning(cfg.Progression), modeCategories(cfg.Modes), time.Now)
 	matches.SetRewards(progress)
+	// Each assignment carries its players' Mastery, for the mastery emote (ADR-045 §9).
+	matches.SetMasteries(progress)
 	if cfg.Progression.DevGrant {
 		log.Warn("the development currency grant is enabled; never expose this backend publicly")
 	}

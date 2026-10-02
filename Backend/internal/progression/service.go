@@ -403,6 +403,21 @@ func (s *Service) DevResetPurchases(ctx context.Context, accountID string) error
 	})
 }
 
+// MasteryOf returns the account's Mastery Level and emote tier for a
+// Vanguard, for its match's assignment (ADR-045 §9); one never played is at
+// Level 1. It implements match.Masteries.
+func (s *Service) MasteryOf(ctx context.Context, accountID, vanguardID string) (match.ParticipantMastery, error) {
+	masteries, err := s.store.Masteries(ctx, accountID)
+	if err != nil {
+		return match.ParticipantMastery{}, err
+	}
+	level := 1
+	if i := slices.IndexFunc(masteries, func(m Mastery) bool { return m.VanguardID == vanguardID }); i >= 0 {
+		level = masteries[i].Level
+	}
+	return match.ParticipantMastery{Level: level, EmoteTier: EmoteTier(s.tuning.Mastery, level)}, nil
+}
+
 // MatchRewards returns what a match gave the account, or ErrNoGrant while
 // its result is not adjudicated.
 func (s *Service) MatchRewards(ctx context.Context, matchID, accountID string) (Grant, error) {

@@ -221,6 +221,31 @@ func TestBuyingAVanguardSpendsOnceAndGrantsIt(t *testing.T) {
 	}
 }
 
+func TestTheAssignmentLearnsEachPlayersMastery(t *testing.T) {
+	f := newFixture(t)
+	if err := f.svc.Grant(ctx, endedMatch("casual_select", match.EndPrimeWellDestroyed, match.SideA)); err != nil {
+		t.Fatalf("Grant: %v", err)
+	}
+	// 480 points short of 500 keep Cairn at Level 1, emote tier 1; Bryn, never played, is the same.
+	for _, c := range []struct {
+		vanguard string
+		want     match.ParticipantMastery
+	}{{"cairn", match.ParticipantMastery{Level: 1, EmoteTier: 1}}, {"bryn", match.ParticipantMastery{Level: 1, EmoteTier: 1}}} {
+		if got, err := f.svc.MasteryOf(ctx, "acc-a", c.vanguard); err != nil || got != c.want {
+			t.Errorf("%s: %+v %v", c.vanguard, got, err)
+		}
+	}
+	// Another win takes Cairn past 500 points: Level 2, the second emote tier.
+	m := endedMatch("casual_select", match.EndPrimeWellDestroyed, match.SideA)
+	m.ID = "m-2"
+	if err := f.svc.Grant(ctx, m); err != nil {
+		t.Fatalf("Grant: %v", err)
+	}
+	if got, _ := f.svc.MasteryOf(ctx, "acc-a", "cairn"); got != (match.ParticipantMastery{Level: 2, EmoteTier: 2}) {
+		t.Fatalf("after two wins: %+v", got)
+	}
+}
+
 func TestTheCollectionShowsEveryReleasedVanguard(t *testing.T) {
 	f := newFixture(t)
 	if _, err := f.accounts.ChooseStarter(ctx, "acc-a", "cairn"); err != nil {
