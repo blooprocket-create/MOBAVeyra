@@ -37,4 +37,10 @@ func TestProfileAppearancesInPostgres(t *testing.T) {
 	if got, err := profiles.Appearance(ctx, account.ID); err != nil || got != cleared {
 		t.Fatalf("replaced: %+v %v", got, err)
 	}
+	if err := profiles.DeleteAppearance(ctx, account.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := profiles.Appearance(ctx, account.ID); !errors.Is(err, profile.ErrNoAppearance) {
+		t.Fatalf("deleted: %v", err)
+	}
 }

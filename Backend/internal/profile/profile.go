@@ -68,6 +68,8 @@ type Store interface {
 	// Appearance returns the account's choices, or ErrNoAppearance.
 	Appearance(ctx context.Context, accountID string) (Appearance, error)
 	SaveAppearance(ctx context.Context, accountID string, a Appearance) error
+	// DeleteAppearance forgets the account's choices; it then shows the defaults.
+	DeleteAppearance(ctx context.Context, accountID string) error
 }
 
 // Accounts resolves a display name to its account.
@@ -166,6 +168,12 @@ func (s *Service) SaveSettings(ctx context.Context, accountID string, a Appearan
 		return Appearance{}, err
 	}
 	return a, nil
+}
+
+// DevReset forgets an account's choices, so a scripted run starts from the
+// defaults with its history private. Development only.
+func (s *Service) DevReset(ctx context.Context, accountID string) error {
+	return s.store.DeleteAppearance(ctx, accountID)
 }
 
 // View returns the profile named name as viewer sees it, or ErrUnavailable

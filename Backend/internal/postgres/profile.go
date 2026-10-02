@@ -36,6 +36,14 @@ func (s *ProfileStore) Appearance(ctx context.Context, accountID string) (profil
 	return a, nil
 }
 
+func (s *ProfileStore) DeleteAppearance(ctx context.Context, accountID string) error {
+	if !uuidPattern.MatchString(accountID) {
+		return nil
+	}
+	_, err := querierFor(ctx, s.pool).Exec(ctx, `DELETE FROM profile.appearances WHERE account_id = $1::uuid`, accountID)
+	return err
+}
+
 func (s *ProfileStore) SaveAppearance(ctx context.Context, accountID string, a profile.Appearance) error {
 	var featured *string
 	if a.FeaturedVanguard != "" {

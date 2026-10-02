@@ -117,6 +117,10 @@ private:
 		ChatLeader,
 		/** Chat: joins its friend's party from the invitation, then exchanges Party Chat and direct messages with them. */
 		ChatMember,
+		/** Profiles (ADR-048): features an owned Vanguard, picks an icon and shares its Match History on the Profile page. */
+		ProfileOwner,
+		/** Profiles: opens its friend's profile from their card until it shows their shared Match History. */
+		ProfileViewer,
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -139,6 +143,12 @@ private:
 	 */
 	void TickChatShell(IVeyraClientIntents& Flow);
 	bool IsChat() const { return Script == EScript::ChatLeader || Script == EScript::ChatMember; }
+	bool IsProfile() const { return Script == EScript::ProfileOwner || Script == EScript::ProfileViewer; }
+	/** The profile scripts in the shell, once friends: the owner's Profile page, or the viewer's look at it. */
+	void TickProfileShell(IVeyraClientIntents& Flow);
+	/** How far a profile script has come, and when the viewer next opens the profile again. */
+	int32 ProfileStep = 0;
+	double NextProfileTryAt = 0.0;
 	/** Types Text into the chat composer that shows, as the player would. */
 	bool TypeChat(const FString& Text);
 	/**

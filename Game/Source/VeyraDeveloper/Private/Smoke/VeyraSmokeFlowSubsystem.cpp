@@ -33,6 +33,7 @@
 #include "Match/VeyraMatchMenuSubsystem.h"
 #include "Scoreboard/VeyraScoreboard.h"
 #include "Shell/VeyraConductModels.h"
+#include "Shell/VeyraProfileModels.h"
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellModels.h"
@@ -80,6 +81,8 @@ namespace
 	// -VeyraSmokeFlowReconnects: how long, in real seconds, it stays away before pressing Reconnect, so
 	// the other player sees its PlayerState go inactive, as it would after a real drop.
 	constexpr double AwayRealSeconds = 5.0;
+	// How long the profile viewer waits before opening its friend's profile again, until it is saved (ADR-048 §5).
+	constexpr double ProfileRetrySeconds = 2.0;
 	// -VeyraSmokeFlowReconnects: how long, in match seconds, it plays before leaving, so the other
 	// player has seen it in the match first.
 	constexpr double LeaveAfterMatchSeconds = 10.0;
@@ -165,6 +168,8 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("partymember"), EScript::PartyMember },
 		{ TEXT("chatleader"), EScript::ChatLeader },
 		{ TEXT("chatmember"), EScript::ChatMember },
+		{ TEXT("profileowner"), EScript::ProfileOwner },
+		{ TEXT("profileviewer"), EScript::ProfileViewer },
 	};
 	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
 		return Mode.Equals(Candidate.Key, ESearchCase::CaseSensitive);
@@ -172,7 +177,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (!Known)
 	{
 		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost, customguest, settingschange, settingscheck, ")
-										  TEXT("partyleader, partymember, collection, chatleader or chatmember, not \"%s\""), *Mode));
+										  TEXT("partyleader, partymember, collection, chatleader, chatmember, profileowner or profileviewer, not \"%s\""), *Mode));
 		return;
 	}
 	Script = Known->Value;
@@ -317,6 +322,10 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		else if (IsChat())
 		{
 			TickChatShell(Flow);
+		}
+		else if (IsProfile())
+		{
+			TickProfileShell(Flow);
 		}
 		else if (Script == EScript::Collection && !bPurchased)
 		{
@@ -689,7 +698,7 @@ bool UVeyraSmokeFlowSubsystem::TickFriendship(IVeyraClientIntents& Flow)
 		return false;
 	}
 	// The host or the party's leader asks by name; the other waits for the request.
-	if ((Script == EScript::CustomHost || Script == EScript::PartyLeader || Script == EScript::ChatLeader) && !bAskedFriend && !Social.Friends.Outgoing.ContainsByPredicate(IsFriend)
+	if ((Script == EScript::CustomHost || Script == EScript::PartyLeader || Script == EScript::ChatLeader || Script == EScript::ProfileOwner) && !bAskedFriend && !Social.Friends.Outgoing.ContainsByPredicate(IsFriend)
 		&& Flow.CanIssue(EVeyraClientIntent::SendFriendRequest) && TypeFriendName(FriendName) && Click(AddFriendLabel))
 	{
 		bAskedFriend = true;
@@ -1027,6 +1036,106 @@ bool UVeyraSmokeFlowSubsystem::TickLobbyBots(const VeyraBackendProtocol::FLobby&
 	}
 #endif
 	return false;
+}
+
+void UVeyraSmokeFlowSubsystem::TickProfileShell(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	if (Snapshot.bBusy || !TickFriendship(Flow))
+	{
+		return;
+	}
+	if (Script == EScript::ProfileOwner)
+	{
+		const FVeyraProfileSettings& Own = Snapshot.ProfileSettings;
+		switch (ProfileStep)
+		{
+		case 0:
+			if (Click(VeyraProfileModels::PageLabel().ToString()))
+			{
+				ProfileStep = 1;
+			}
+			return;
+		case 1:
+		{
+			if (!Own.bLoaded)
+			{
+				return;
+			}
+			if (Own.Catalog.FeaturedChoices.IsEmpty() || Own.Catalog.Icons.Num() < 2)
+			{
+				Finish(false, TEXT("the Profile page offers no owned Vanguard to feature, or no icon besides the default"));
+				return;
+			}
+			// A portrait for the icon, an owned Vanguard to feature, and the history shared (ADR-048 §5).
+			const FString Featured = Own.Catalog.FeaturedChoices[0];
+			const FString Icon = Own.Catalog.Icons.Last();
+			if (Click(VeyraProfileModels::IconLabel(Icon).ToString()) && Click(VeyraProfileModels::FeatureLabel(Featured).ToString())
+				&& Click(VeyraProfileModels::ShareHistoryLabel().ToString()) && Click(VeyraProfileModels::SaveLabel().ToString()))
+			{
+				ProfileStep = 2;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: saving the profile: icon %s, featuring %s, Match History shared."), *Icon, *Featured);
+			}
+			return;
+		}
+		default:
+			if (Own.Feedback == TEXT("profile_saved") && Own.Saved.bShowMatchHistory && !Capture(TEXT("Profile")))
+			{
+				Finish(true, FString::Printf(TEXT("was friends with %s, featured %s on its Profile page with a portrait icon, and shared its Match History"), *FriendName,
+								 *Own.Saved.FeaturedVanguardId));
+			}
+			else if (!Own.Feedback.IsEmpty() && Own.Feedback != TEXT("profile_saved"))
+			{
+				Finish(false, FString::Printf(TEXT("the profile was not saved: %s"), *Own.Feedback));
+			}
+			return;
+		}
+	}
+	// The viewer: the friend's profile from their card, opened again until it shows the history they share,
+	// which this run's owner turns on after the script reset it.
+	const FVeyraProfileView& View = Snapshot.ProfileView;
+	const double Now = FPlatformTime::Seconds();
+	switch (ProfileStep)
+	{
+	case 0:
+		if (Now >= NextProfileTryAt && Click(VeyraShellModels::FriendCardLabel(FriendName).ToString())
+			&& Click(VeyraProfileModels::ViewProfileLabel(FriendName).ToString()))
+		{
+			ProfileStep = 1;
+		}
+		return;
+	case 1:
+		if (!View.bLoaded)
+		{
+			return;
+		}
+		if (View.bUnavailable)
+		{
+			Finish(false, FString::Printf(TEXT("%s's profile is unavailable"), *FriendName));
+			return;
+		}
+		if (!View.Profile.bSharesMatchHistory || !View.Profile.Featured.IsSet())
+		{
+			// Not saved yet: close it and look again shortly.
+			if (Click(VeyraProfileModels::CloseLabel().ToString()))
+			{
+				ProfileStep = 0;
+				NextProfileTryAt = Now + ProfileRetrySeconds;
+			}
+			return;
+		}
+		ProfileStep = 2;
+		return;
+	default:
+		if (View.bMatchesLoaded && !Capture(TEXT("ProfileView")))
+		{
+			Finish(true, FString::Printf(TEXT("opened %s's profile from their card: level %d, featuring %s at Mastery Level %d, with %d shared match(es) listed"), *FriendName,
+							 View.Profile.Level, *View.Profile.Featured->VanguardId, View.Profile.Featured->MasteryLevel, View.Matches.Num()));
+		}
+		return;
+	}
+#endif
 }
 
 void UVeyraSmokeFlowSubsystem::TickChatShell(IVeyraClientIntents& Flow)

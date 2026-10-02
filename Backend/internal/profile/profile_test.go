@@ -160,6 +160,16 @@ func TestSharedHistoryOpensUntilTheOwnerStopsSharing(t *testing.T) {
 	if owner, err := f.svc.HistoryOwner(ctx, "acc-2", "DevTwo"); err != nil || owner != "acc-2" {
 		t.Fatalf("the owner always reads their own: %q %v", owner, err)
 	}
+	// A development reset forgets every choice: the history is private again.
+	if _, err := f.svc.SaveSettings(ctx, "acc-2", Appearance{Icon: "default", Background: "default", ShowMatchHistory: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.svc.DevReset(ctx, "acc-2"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.HistoryOwner(ctx, "acc-1", "DevTwo"); !errors.Is(err, ErrHistoryPrivate) {
+		t.Fatalf("after a reset: %v", err)
+	}
 }
 
 func TestABlockEitherWayMakesAProfileUnavailableAsAnUnknownNameIs(t *testing.T) {

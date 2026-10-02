@@ -25,6 +25,13 @@ func (m *MemStore) Appearance(_ context.Context, accountID string) (Appearance, 
 	return a, nil
 }
 
+func (m *MemStore) DeleteAppearance(_ context.Context, accountID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.appearances, accountID)
+	return nil
+}
+
 func (m *MemStore) SaveAppearance(_ context.Context, accountID string, a Appearance) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

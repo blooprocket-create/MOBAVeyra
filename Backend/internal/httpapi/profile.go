@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/profile"
 )
@@ -17,6 +18,29 @@ func (s *Server) routeProfile(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/profiles/{name}/matches/{matchId}", s.authed(s.profileMatchResult))
 	mux.HandleFunc("GET /v1/me/profile-settings", s.authed(s.myProfileSettings))
 	mux.HandleFunc("PUT /v1/me/profile-settings", s.authed(s.saveProfileSettings))
+	if s.DevLogin {
+		mux.HandleFunc("POST /v1/dev/accounts/{name}/profile-reset", s.devProfileReset)
+	}
+}
+
+// devProfileReset forgets a development account's profile choices, so a
+// scripted run starts from the defaults with its history private. Local only.
+func (s *Server) devProfileReset(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	if !slices.Contains(s.DevAccounts, name) {
+		writeError(w, http.StatusNotFound, "account_not_found")
+		return
+	}
+	acct, err := s.Identity.LookupAccount(r.Context(), name)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if err := s.Profile.DevReset(r.Context(), acct.ID); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type featuredJSON struct {
