@@ -444,6 +444,12 @@ M43 added ([ADR-053](Docs/ADR/ADR-053-leave-match-match-found-alert-loading-scre
 
 M44 added `Hud/VeyraFogOfWarModel` ([ADR-054](Docs/ADR/ADR-054-fountain-preparation-and-fog-of-war-on-screen.md) §3): the ground the viewer's side does not see, as runs of unseen cells from its seen ground. The grey box lays one translucent dark sheet over them, redrawn only when the seen ground changes, and the minimap darkens the same ground (`VeyraMinimap::DescribeFog`).
 
+M45 added ([ADR-055](Docs/ADR/ADR-055-accessibility-settings-and-hud-warnings.md)):
+- the Accessibility settings. `VeyraInterfacePreferences` resolves the player's side colours once, from a colour-vision preset or the Custom palette in `VeyraGreyboxSettings`, and every side-coloured cue reads them;
+- `Shell/VeyraShellLook`, the player's text size, opaque panels and still animation, which every menu, the shop and the loading screen are built in;
+- `Shell/VeyraShellFocusSubsystem`, which draws the Enhanced focus outline on the shell button keyboard focus is on;
+- `Hud/VeyraHudWarnings`, the pure rules that start and clear the connection and low-performance warnings, which the HUD draws by its readouts.
+
 ### VeyraDeveloper
 
 Non-shipping or development-facing utilities.

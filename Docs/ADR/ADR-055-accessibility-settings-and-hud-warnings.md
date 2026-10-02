@@ -63,7 +63,7 @@ The Settings Bible approves visual-accessibility options and two HUD warnings th
 1. **Presets:** a Protanopia, a Deuteranopia and a Tritanopia palette (blue/orange, blue/yellow and teal/red families), each keeping own, ally, enemy and neutral apart.
 2. **Custom colours** come from a named palette of ten (blue, teal, green, yellow, orange, red, magenta, purple, white and grey), not a free picker. The player's own colour is their ally colour lightened by a set amount.
 3. **Text sizes:** Large is 1.15× and Extra Large is 1.3×.
-4. **Warnings:** connection when over 5% of packets are lost or the round trip passes 200 ms for 3 s; performance when frames stay under 70% of the cap for 5 s. Each clears after 3 s back within its threshold.
+4. **Warnings:** connection when over 5% of packets are lost or the round trip passes 200 ms; performance when frames stay under 70% of the cap, or of 60 frames a second when uncapped. Each starts after 3 s past its threshold and clears after 3 s back within it.
 5. **Screen shake and particle options** (SET-9) wait until the game has shake or decorative particles to reduce.
 
 ## Out of scope

@@ -388,6 +388,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float SettingsControlWidth = 0.0f;
 
+	/** The side of each colour swatch a colour setting previews beside its name (SET-8; ADR-055 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsSwatchSize = 0.0f;
+
 	/** The friends panel down the right of the shell and the lobby (Art Bible §7), in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;

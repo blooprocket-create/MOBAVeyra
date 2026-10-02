@@ -2,7 +2,9 @@
 
 #include "Settings/VeyraSettingsModels.h"
 
+#include "Greybox/VeyraGreyboxSettings.h"
 #include "Input/VeyraInputSettings.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Text/VeyraContentText.h"
 #include "VeyraSettingsStore.h"
@@ -70,6 +72,7 @@ namespace
 		{
 			Row.ValueText = Selected->Label;
 		}
+		Row.Swatches = VeyraInterfacePreferences::SwatchesFor(*GetDefault<UVeyraGreyboxSettings>(), Store, Setting.Id);
 		return Row;
 	}
 }

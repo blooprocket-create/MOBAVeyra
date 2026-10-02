@@ -158,6 +158,12 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API FVeyraSideColors SideColorsFor(const UVeyraGreyboxSettings& Hud, const FString& Vision, const FString& Ally, const FString& Enemy,
 		const FString& Neutral);
 
+	/**
+	 * The colours setting Id shows beside it in Settings (SET-8; ADR-055 §1): for Color Vision, the player's own, ally, enemy
+	 * and neutral colours as Store now resolves them; for a custom side colour, the palette colour it holds; none otherwise.
+	 */
+	VEYRAUI_API TArray<FLinearColor> SwatchesFor(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore& Store, const FVeyraContentId& Id);
+
 	/** A bar setting's option as the HUD reads it; Always for anything else. */
 	VEYRAUI_API EVeyraBarVisibility ParseBars(const FString& Option);
 

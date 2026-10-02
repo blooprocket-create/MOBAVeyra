@@ -325,6 +325,23 @@ FVeyraSideColors SideColorsFor(const UVeyraGreyboxSettings& Hud, const FString& 
 	return Colors;
 }
 
+TArray<FLinearColor> SwatchesFor(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore& Store, const FVeyraContentId& Id)
+{
+	if (Id == ColorVision())
+	{
+		const FVeyraSideColors Sides = SideColorsFor(Hud, Store.Get(ColorVision()), Store.Get(AllyColor()), Store.Get(EnemyColor()), Store.Get(NeutralColor()));
+		return { Sides.Own, Sides.Ally, Sides.Enemy, Sides.Neutral };
+	}
+	if (Id == AllyColor() || Id == EnemyColor() || Id == NeutralColor())
+	{
+		if (const FLinearColor* Held = Hud.SideColorPalette.Find(Store.Get(Id)))
+		{
+			return { *Held };
+		}
+	}
+	return {};
+}
+
 EVeyraBarVisibility ParseBars(const FString& Option)
 {
 	return Option == TEXT("WhenDamaged") ? EVeyraBarVisibility::WhenDamaged

@@ -6,6 +6,7 @@
 
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Settings/VeyraInterfacePreferences.h"
+#include "Settings/VeyraSettingsModels.h"
 #include "VeyraSettingsStore.h"
 #include "VeyraSettingsSubsystem.h"
 
@@ -174,6 +175,27 @@ namespace VeyraInterfacePreferencesTests
 			// Anything it does not know is Standard.
 			const FVeyraSideColors Unknown = SideColorsFor(Hud, TEXT("NoSuchPalette"), TEXT("Teal"), TEXT("Orange"), TEXT("White"));
 			ASSERT_THAT(IsTrue(Unknown.Ally.Equals(Hud.AllyColor) && Unknown.Enemy.Equals(Hud.EnemyColor)));
+		}
+
+		TEST_METHOD(TheColourSettingsPreviewTheColoursThePlayerWouldSee)
+		{
+			const UVeyraGreyboxSettings& Hud = HudSettings();
+			FVeyraSettingsStore Store(Registry);
+			Store.Set(ColorVision(), TEXT("Tritanopia"));
+			Store.Set(EnemyColor(), TEXT("Magenta"));
+			const FVeyraSettingsModel Model = VeyraSettingsModels::Describe(Store, EVeyraSettingCategory::Accessibility, FString(), /*bInLiveMatch*/ false);
+			const auto RowOf = [&Model](const FVeyraContentId& Id) { return Model.Rows.FindByPredicate([&Id](const FVeyraSettingRowModel& Row) { return Row.Id == Id; }); };
+			// Color Vision previews all four sides as they now resolve (SET-8).
+			const FVeyraSettingRowModel* Vision = RowOf(ColorVision());
+			ASSERT_THAT(IsNotNull(Vision));
+			const FVeyraSideColorSet& Preset = Hud.ColorVisionPresets.FindChecked(TEXT("Tritanopia"));
+			ASSERT_THAT(IsTrue(Vision->Swatches.Num() == 4 && Vision->Swatches[0].Equals(Preset.Own) && Vision->Swatches[1].Equals(Preset.Ally)
+				&& Vision->Swatches[2].Equals(Preset.Enemy) && Vision->Swatches[3].Equals(Preset.Neutral), TEXT("own, ally, enemy and neutral")));
+			// A custom side colour previews the colour it holds.
+			const FVeyraSettingRowModel* Enemy = RowOf(EnemyColor());
+			ASSERT_THAT(IsTrue(Enemy && Enemy->Swatches.Num() == 1 && Enemy->Swatches[0].Equals(Hud.SideColorPalette.FindChecked(TEXT("Magenta")))));
+			const FVeyraSettingRowModel* Flashing = RowOf(ReduceFlashing());
+			ASSERT_THAT(IsTrue(Flashing && Flashing->Swatches.IsEmpty(), TEXT("other settings preview nothing")));
 		}
 
 		TEST_METHOD(EveryColourOptionHasItsColoursAndEachPaletteKeepsTheSidesApart)

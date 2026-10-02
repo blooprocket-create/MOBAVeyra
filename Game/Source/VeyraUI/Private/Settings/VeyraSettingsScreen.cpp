@@ -75,6 +75,23 @@ namespace VeyraSettingsLayout
 		Box->AddChild(&Child);
 		return Box;
 	}
+
+	/** A line of small squares in Colors, each edged so a dark colour still shows on the panel (SET-8). */
+	void AddSwatches(UWidgetTree& Tree, UPanelWidget& Parent, TConstArrayView<FLinearColor> Colors)
+	{
+		UHorizontalBox* Line = Tree.ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		for (const FLinearColor& Color : Colors)
+		{
+			UBorder* Swatch = Tree.ConstructWidget<UBorder>(UBorder::StaticClass());
+			Swatch->SetBrush(FSlateRoundedBoxBrush(Color, Style().ButtonCornerRadius, Style().HairlineColor, 1.0f));
+			USizeBox* Square = Tree.ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			Square->SetWidthOverride(Style().SettingsSwatchSize);
+			Square->SetHeightOverride(Style().SettingsSwatchSize);
+			Square->AddChild(Swatch);
+			Line->AddChildToHorizontalBox(Square)->SetPadding(FMargin(0.0f, 0.0f, Style().Spacing, 0.0f));
+		}
+		VeyraShellStyle::AddSpaced(Parent, *Line);
+	}
 }
 
 bool UVeyraSettingsScreen::Initialize()
@@ -408,6 +425,10 @@ void UVeyraSettingsScreen::BuildRow(const FVeyraSettingRowModel& Row)
 	if (!Row.Description.IsEmpty())
 	{
 		VeyraSettingsLayout::AddText(*WidgetTree, *About, Row.Description, VeyraShellStyle::EVeyraShellText::Muted);
+	}
+	if (!Row.Swatches.IsEmpty())
+	{
+		VeyraSettingsLayout::AddSwatches(*WidgetTree, *About, Row.Swatches);
 	}
 	if (Row.bAfterRestart)
 	{
