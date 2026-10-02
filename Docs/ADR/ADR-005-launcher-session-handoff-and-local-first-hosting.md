@@ -54,6 +54,7 @@ Code-signing certificate, anti-cheat installation, the production identity provi
     - The handoff to the game is unchanged.
 - Endpoints, timeouts, code lifetimes and retry policies are validated configuration, never literals.
 - Hosted vendors (identity, database host, match-server fleet, website host, CDN), anti-cheat and Perforce remain open decisions for a later ADR.
+  - **Amendment (2026-10-02):** for public tests, [ADR-057](ADR-057-public-test-hosting-from-the-authors-pc.md) hosts the backend, database and match servers on the author's PC behind the `veyra` Worker and temporary Cloudflare tunnels, with Firebase for identity (ADR-038). Hosted vendors and signing stay open.
 - Tuning authored as binary Data Assets cannot be edited by agents; how tuning is authored (for example text imported into DataTables) is a scaffolding decision still to be made.
 
 ## Alternatives considered
