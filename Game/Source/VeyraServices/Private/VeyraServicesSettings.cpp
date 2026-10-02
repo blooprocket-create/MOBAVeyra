@@ -25,6 +25,7 @@ TArray<FString> UVeyraServicesSettings::Validate() const
 		{ TEXT("MatchFoundPollIntervalSeconds"), MatchFoundPollIntervalSeconds },
 		{ TEXT("LobbyPollIntervalSeconds"), LobbyPollIntervalSeconds },
 		{ TEXT("SocialPollIntervalSeconds"), SocialPollIntervalSeconds },
+		{ TEXT("ChatPollIntervalSeconds"), ChatPollIntervalSeconds },
 		{ TEXT("AccountSettingsSendDelaySeconds"), AccountSettingsSendDelaySeconds },
 		{ TEXT("AccountSettingsRetrySeconds"), AccountSettingsRetrySeconds },
 		{ TEXT("AssignmentReadTimeoutSeconds"), AssignmentReadTimeoutSeconds },
@@ -41,6 +42,7 @@ TArray<FString> UVeyraServicesSettings::Validate() const
 	const TPair<const TCHAR*, int32> Attempts[] = {
 		{ TEXT("ClientRequestAttempts"), ClientRequestAttempts },
 		{ TEXT("ReportAttempts"), ReportAttempts },
+		{ TEXT("ChatKeepMessages"), ChatKeepMessages },
 	};
 	for (const TPair<const TCHAR*, int32>& Attempt : Attempts)
 	{

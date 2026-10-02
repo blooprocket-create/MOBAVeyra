@@ -13,6 +13,7 @@ GAME = Path(__file__).resolve().parents[1]
 # Each kit: its source folder, its settings file, where its meshes import to, and its art set's name there.
 KITS = [
     {"source": "Structures", "settings": "StructureKit.json", "content": "/Game/Veyra/World/Structures/Greybox", "asset": "DA_StructureArt"},
+    {"source": "Fluxborn", "settings": "FluxbornKit.json", "content": "/Game/Veyra/Flux/Fluxborn/Greybox", "asset": "DA_FluxbornArt"},
 ]
 # A manifest's states: what stands intact, and what is left once a unit falls.
 INTACT = {"Standing", "Active"}

@@ -407,6 +407,26 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildModeBody(TEXT("casual_select")), FString(TEXT("{\"mode\":\"casual_select\"}"))));
 			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildReadyBody(true), FString(TEXT("{\"ready\":true}"))));
 			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildReadyBody(false), FString(TEXT("{\"ready\":false}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildPrivacyBody(VeyraBackendProtocol::EPartyPrivacy::Public), FString(TEXT("{\"privacy\":\"public\"}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildPrivacyBody(VeyraBackendProtocol::EPartyPrivacy::Private), FString(TEXT("{\"privacy\":\"private\"}"))));
+		}
+
+		TEST_METHOD(ReadsAPartysPrivacy)
+		{
+			TOptional<VeyraBackendProtocol::FParty> Read;
+			FString Problem;
+			const FString Leader = Member(AccountId, TEXT("DevOne"), false, true);
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT(""), TEXT("idle"), Leader), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Privacy == VeyraBackendProtocol::EPartyPrivacy::Private));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT(""), TEXT("idle"), Leader).Replace(TEXT("\"private\""), TEXT("\"public\"")), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Privacy == VeyraBackendProtocol::EPartyPrivacy::Public));
+			// Absent, it reads as Private; present, it must be one the game knows.
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT(""), TEXT("idle"), Leader).Replace(TEXT("\"privacy\":\"private\","), TEXT("")), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Privacy == VeyraBackendProtocol::EPartyPrivacy::Private));
+			for (const TCHAR* Bad : { TEXT("\"secret\""), TEXT("true"), TEXT("null") })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseParty(Party(TEXT(""), TEXT("idle"), Leader).Replace(TEXT("\"private\""), Bad), Read, Problem), Bad));
+			}
 		}
 	};
 
@@ -507,6 +527,40 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriendRequestOutcome(TEXT("{\"outcome\":\"friends\"}"), Outcome, Problem), Problem));
 			ASSERT_THAT(AreEqual(Outcome, FString(TEXT("friends"))));
 			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFriendRequestOutcome(TEXT("{\"outcome\":\"maybe\"}"), Outcome, Problem)));
+		}
+
+		TEST_METHOD(ReadsJoinablePartiesPartyInvitationsAndBlocks)
+		{
+			const FString Friend = FString::Printf(TEXT("{\"id\":\"%s\",\"displayName\":\"DevTwo\"}"), OtherAccountId);
+			const FString Lists = FString::Printf(TEXT("\"friends\":[%s],\"incomingRequests\":[],\"outgoingRequests\":[]"), *Friend);
+			VeyraBackendProtocol::FFriends Friends;
+			FString Problem;
+			// Each friend whose Public party has room, with that party (ADR-044 §3); absent from an older backend.
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriends(FString::Printf(TEXT("{%s,\"joinableParties\":{\"%s\":\"%s\"}}"), *Lists, OtherAccountId, PartyId),
+				Friends, Problem), Problem));
+			ASSERT_THAT(IsTrue(Friends.JoinableParties.Num() == 1 && Friends.JoinablePartyOf(OtherAccountId) && *Friends.JoinablePartyOf(OtherAccountId) == PartyId));
+			ASSERT_THAT(IsNull(Friends.JoinablePartyOf(AccountId)));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriends(FString::Printf(TEXT("{%s}"), *Lists), Friends, Problem), Problem));
+			ASSERT_THAT(IsTrue(Friends.JoinableParties.IsEmpty()));
+			for (const FString& Bad : { FString::Printf(TEXT("{%s,\"joinableParties\":[]}"), *Lists),
+					 FString::Printf(TEXT("{%s,\"joinableParties\":{\"%s\":\"x\"}}"), *Lists, OtherAccountId),
+					 FString::Printf(TEXT("{%s,\"joinableParties\":{\"x\":\"%s\"}}"), *Lists, PartyId) })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFriends(Bad, Friends, Problem), Bad));
+			}
+
+			TArray<VeyraBackendProtocol::FPartyInvite> Invites;
+			const FString Invite = FString::Printf(TEXT("{\"invites\":[{\"id\":\"%s\",\"partyId\":\"%s\",\"inviter\":%s,\"expiresAt\":\"2026-09-29T12:02:00Z\"}]}"), FoundId,
+				PartyId, *Friend);
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParsePartyInvites(Invite, Invites, Problem), Problem));
+			ASSERT_THAT(IsTrue(Invites.Num() == 1 && Invites[0].PartyId == PartyId && Invites[0].Inviter.DisplayName == TEXT("DevTwo")));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParsePartyInvites(Invite.Replace(TEXT("partyId"), TEXT("lobbyId")), Invites, Problem), TEXT("a lobby's invitation is not a party's")));
+
+			TArray<VeyraBackendProtocol::FAccount> Blocked;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseBlocks(FString::Printf(TEXT("{\"blocked\":[%s]}"), *Friend), Blocked, Problem), Problem));
+			ASSERT_THAT(IsTrue(Blocked.Num() == 1 && Blocked[0].Id == OtherAccountId));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseBlocks(TEXT("{\"blocked\":[]}"), Blocked, Problem) && Blocked.IsEmpty()));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseBlocks(TEXT("{\"blocked\":null}"), Blocked, Problem)));
 		}
 
 		TEST_METHOD(WritesLobbyRequests)

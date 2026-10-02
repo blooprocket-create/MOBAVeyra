@@ -931,6 +931,8 @@ void AVeyraGameMode::AssignVanguard(AVeyraPlayerState& PlayerState)
 			*PlayerState.GetRequestedVanguardId().ToString());
 		PlayerState.SetVanguardId(Participant->VanguardId);
 		PlayerState.SetStartingFluxSpells(Participant->FluxSpells);
+		// What the mastery emote shows (ADR-045 §9).
+		PlayerState.SetMastery(Participant->MasteryLevel, Participant->EmoteTier);
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s plays %s."), *PlayerState.GetPlayerName(), *Participant->VanguardId.ToString());
 		return;
 	}

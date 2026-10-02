@@ -13,11 +13,13 @@ import (
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/chat"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/progression"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/settings"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
@@ -51,6 +53,9 @@ type Deps struct {
 	Match *match.Service
 	// Account is optional; without it no onboarding routes are registered.
 	Account *account.Service
+	// Progression is optional; without it no progression, Collection or purchase
+	// routes are registered, and match results carry no rewards (ADR-045 §7).
+	Progression *progression.Service
 	// Selection is optional; without it no practice or champion-select routes
 	// are registered.
 	Selection *selection.Service
@@ -59,8 +64,10 @@ type Deps struct {
 	// Settings is optional; without it no account settings routes are
 	// registered (ADR-024 §1).
 	Settings *settings.Service
-	Modes    []ModeInfo
-	Ready    Pinger
+	// Chat is optional; without it no chat routes are registered (ADR-046).
+	Chat  *chat.Service
+	Modes []ModeInfo
+	Ready Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -103,9 +110,11 @@ func New(d Deps) http.Handler {
 	}
 	s.routeMatch(mux)
 	s.routeOnboarding(mux)
+	s.routeProgression(mux)
 	s.routeSelection(mux)
 	s.routeMatchFound(mux)
 	s.routeSettings(mux)
+	s.routeChat(mux)
 	return mux
 }
 
@@ -340,6 +349,11 @@ var errorStatus = []struct {
 
 	{account.ErrNotAStarter, http.StatusBadRequest, "not_a_starter"},
 	{account.ErrAlreadyChosen, http.StatusConflict, "already_completed"},
+	{progression.ErrNotForSale, http.StatusBadRequest, "not_for_sale"},
+	{progression.ErrAlreadyOwned, http.StatusConflict, "already_owned"},
+	{progression.ErrInsufficient, http.StatusConflict, "insufficient_balance"},
+	{progression.ErrInvalidPurchase, http.StatusBadRequest, "invalid_purchase"},
+	{progression.ErrPurchaseConflict, http.StatusConflict, "purchase_conflict"},
 
 	{selection.ErrTutorialRequired, http.StatusConflict, "tutorial_required"},
 	{selection.ErrBusy, http.StatusConflict, "busy"},
@@ -371,6 +385,20 @@ var errorStatus = []struct {
 	{match.ErrResultConflict, http.StatusConflict, "result_conflict"},
 	{match.ErrInvalidFilter, http.StatusBadRequest, "invalid_filter"},
 	{match.ErrInvalidCursor, http.StatusBadRequest, "invalid_cursor"},
+
+	{chat.ErrNotInParty, http.StatusConflict, "not_in_party"},
+	{chat.ErrNotFriends, http.StatusForbidden, "not_friends"},
+	{chat.ErrBlocked, http.StatusForbidden, "blocked"},
+	{chat.ErrNoSelect, http.StatusConflict, "no_select"},
+	{chat.ErrNotParticipant, http.StatusNotFound, "not_participant"},
+	{chat.ErrPostMatchClosed, http.StatusConflict, "postmatch_closed"},
+	{chat.ErrAllChatOff, http.StatusConflict, "all_chat_off"},
+	{chat.ErrEmptyMessage, http.StatusBadRequest, "empty_message"},
+	{chat.ErrMessageTooLong, http.StatusBadRequest, "message_too_long"},
+	{chat.ErrRateLimited, http.StatusTooManyRequests, "rate_limited"},
+	{chat.ErrInvalidMessage, http.StatusBadRequest, "invalid_message"},
+	{chat.ErrClientIDConflict, http.StatusConflict, "client_id_conflict"},
+	{chat.ErrConversationChanged, http.StatusConflict, "conversation_changed"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {

@@ -63,6 +63,37 @@ of structure footprints; scripts read it rather than adding balance values.
 The [reproduction and placement notes](../../Game/ArtSource/Structures/README.md)
 record the source files, import validation and remaining production limits.
 
+## Fluxborn greybox meshes
+
+**2026-10-01 production pass: provisional geometry, awaiting author review.**
+The [Fluxborn kit](../../Game/ArtSource/Fluxborn/README.md) continues the
+structure kit's placeable mesh workflow. The Battleground Bible sections 4, 17,
+18 and 19 own the three current archetypes and their rules. The World Bible
+sections 3 and 13 identify them as temporary constructs of the ancient network.
+
+| Current variety | Provisional silhouette |
+|---|---|
+| Strider, frontline melee | Biped with broad shoulder shells and striking gauntlets. |
+| Spark, ranged | Light tripod with a narrow chamber, high resonator vanes and focused emitter. |
+| Breaker, siege | Broad four-legged carriage, heavy carapace and forward siege bore. |
+
+Active and collapsed static meshes are supplied for each. The collapsed poses
+are dismantled bodies with darkened conduits, supporting section 4's collapse
+language. Energy returning to the network still requires VFX. Their appearance
+adds no new unit role, attack rule, corpse lifetime or setting fact. Team Flux
+strengthening and inhibitor reinforcements use the existing types and tuning;
+this pass introduces no additional strength tiers or reinforcement species.
+
+The palette matches the structure study's stone, iron, alloy and geometric Flux.
+Blue is a review default, not a team-color rule. Geometry stays inside the current
+data-owned radial footprint, with a ground pivot and +X facing. Material slots
+keep the glow separately adjustable. The grey-box presentation draws them in
+place of each Fluxborn's capsule body, collapsed once it dies, with the glow in
+the viewer-relative side colour as the structures' is (provisional, for
+legibility). These are static greybox assets: skeletal rigs, animation and
+gameplay-camera verification remain later work. The [source kit notes](../../Game/ArtSource/Fluxborn/README.md)
+record reproduction, mesh budgets, import validation and production limits.
+
 ## Approved art is canon
 
 **Artwork approved by the author outranks any text that disagrees with it.** Where a

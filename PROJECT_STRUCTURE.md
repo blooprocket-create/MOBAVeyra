@@ -490,6 +490,10 @@ Around it:
 - **`publish/`:** `veyra-publish`, which turns a packaged client into a release (`Game/Scripts/Publish.ps1`).
 - **`setup/`:** Veyra Setup, the NSIS installer for the launcher, built by `Launcher/Package.ps1`.
 
+### Website (outside Unreal)
+
+[`Website/`](Website/README.md) holds a placeholder Cloudflare Worker, which `wrangler.jsonc` at the repository root names. The repository is connected to Cloudflare's Workers Builds, and the placeholder gives that build something to deploy. The account-facing website (Profiles & Identity Bible) will replace it, after its own architecture decision.
+
 ## 3. Content directory
 
 A likely content organization:

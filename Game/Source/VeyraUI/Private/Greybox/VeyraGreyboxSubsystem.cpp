@@ -16,6 +16,7 @@
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Entities/VeyraPlacedMarker.h"
+#include "Fluxborn/VeyraFluxborn.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -105,6 +106,19 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			for (const FString& Problem : StructureArt->Validate(Kinds))
 			{
 				Problems.Add(TEXT("StructureArt ") + Problem);
+			}
+		}
+		// The Fluxborn kit's set need not dress every kind: one without art keeps its body.
+		FluxbornArt = Settings.FluxbornArt.LoadSynchronous();
+		if (!FluxbornArt)
+		{
+			Problems.Add(FString::Printf(TEXT("FluxbornArt: %s does not load."), *Settings.FluxbornArt.ToString()));
+		}
+		else
+		{
+			for (const FString& Problem : FluxbornArt->Validate(TConstArrayView<FName>()))
+			{
+				Problems.Add(TEXT("FluxbornArt ") + Problem);
 			}
 		}
 		if (!GroundMesh)
@@ -323,6 +337,18 @@ void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structur
 	}
 }
 
+void UVeyraGreyboxSubsystem::RefreshFluxbornArt(const AVeyraFluxborn& Unit, FBody& Body)
+{
+	// Its kind arrives with it; until then, and for a kind without art, its body shows.
+	const FVeyraUnitArt* Art = FluxbornArt && Unit.GetKind().IsValid() ? FluxbornArt->Find(FName(Unit.GetKind().ToString())) : nullptr;
+	// Active, or collapsed where it fell, for its corpse's moment (Battleground Bible §4).
+	if (UStaticMesh* Mesh = Art ? (Unit.IsAlive() ? Art->Intact : Art->Fallen).Get() : nullptr)
+	{
+		// Its Flux shows what its body would: its side, tinted while it is crowd controlled.
+		ShowArt(Unit, Body, *Mesh, *FluxbornArt, BodyColorOf(Unit));
+	}
+}
+
 void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
 {
 	USceneComponent* Root = Unit.GetRootComponent();
@@ -344,7 +370,7 @@ void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh
 		Body.ArtMesh = nullptr;
 	}
 	UStaticMeshComponent* Art = Body.Art.Get();
-	// It stands on the floor, its pivot at the capsule's foot.
+	// It stands on the floor, its pivot at the capsule's foot; a Fluxborn's capsule takes its kind's shape once that arrives.
 	float Radius = 0.0f;
 	float HalfHeight = 0.0f;
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
@@ -410,6 +436,10 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		if (const AVeyraStructure* Structure = Cast<AVeyraStructure>(&Unit))
 		{
 			RefreshStructureArt(*Structure, *Body);
+		}
+		else if (const AVeyraFluxborn* Fluxborn = Cast<AVeyraFluxborn>(&Unit))
+		{
+			RefreshFluxbornArt(*Fluxborn, *Body);
 		}
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).

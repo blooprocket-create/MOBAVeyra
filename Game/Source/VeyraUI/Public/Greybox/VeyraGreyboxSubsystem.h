@@ -140,6 +140,9 @@ private:
 	/** Dresses Structure in its kind's art, standing or wrecked as it is, its Flux in its side's colour; its body hides behind it. */
 	void RefreshStructureArt(const class AVeyraStructure& Structure, FBody& Body);
 
+	/** Dresses Unit in its kind's art, active or collapsed as it is, its Flux in its body's colour, once its kind is known and has art. */
+	void RefreshFluxbornArt(const class AVeyraFluxborn& Unit, FBody& Body);
+
 	/**
 	 * Draws Mesh over Unit in place of its body, its pivot at the capsule's foot, and colours the art set's Flux
 	 * slot Color. Visual only, as a body is: it blocks nothing and shapes no navigation.
@@ -203,9 +206,12 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> PadMesh;
 
-	/** The structure kit's art set, loaded with the settings. */
+	/** The structure kit's and the Fluxborn kit's art sets, loaded with the settings. */
 	UPROPERTY(Transient)
 	TObjectPtr<class UVeyraUnitArtSet> StructureArt;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UVeyraUnitArtSet> FluxbornArt;
 
 	/** The actor holding the battleground's ground markings, once drawn. */
 	TWeakObjectPtr<AActor> GroundMarkings;

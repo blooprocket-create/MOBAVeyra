@@ -29,6 +29,7 @@ class UVeyraInventoryComponent;
 class UVeyraProgressionComponent;
 class UVeyraRecallComponent;
 class UVeyraRegenerationComponent;
+struct FVeyraMasteryEmoteTuning;
 class UVeyraResourceSet;
 class UVeyraScoreComponent;
 class UVeyraPassive;
@@ -117,6 +118,26 @@ public:
 
 	/** Server only: set as the Vanguard dies. */
 	void SetRespawnAt(double InRespawnAt);
+
+	/**
+	 * The account's Mastery Level of the Vanguard it plays and its mastery emote's tier, from the assignment
+	 * (ADR-045 §9), on every machine; 0 for a bot, or a match the backend gave no progression.
+	 */
+	int32 GetMasteryLevel() const { return MasteryLevel; }
+	int32 GetEmoteTier() const { return EmoteTier; }
+
+	/** Server only: from the assignment, as the participant joins. */
+	void SetMastery(int32 InLevel, int32 InEmoteTier);
+
+	/** Until when, in the server's world time, the mastery emote shows above the Vanguard, on every machine. */
+	double GetMasteryEmoteUntil() const { return MasteryEmoteUntil; }
+
+	/**
+	 * Server only: shows the mastery emote at Now, the server's world time, if its rule allows (ADR-045 §9); true
+	 * when it shows. Its cooldown is kept here, on the PlayerState a returning player takes back, so leaving
+	 * and coming back does not reset it. It has no gameplay effect.
+	 */
+	bool TryShowMasteryEmote(double Now, const FVeyraMasteryEmoteTuning& Emote);
 
 protected:
 	/**
@@ -227,6 +248,18 @@ private:
 
 	UPROPERTY(Replicated)
 	double RespawnAt = 0.0;
+
+	UPROPERTY(Replicated)
+	int32 MasteryLevel = 0;
+
+	UPROPERTY(Replicated)
+	int32 EmoteTier = 0;
+
+	UPROPERTY(Replicated)
+	double MasteryEmoteUntil = 0.0;
+
+	/** Server only: when, in world time, the mastery emote may next show. */
+	double NextMasteryEmoteAt = 0.0;
 
 	/** Server only. */
 	UPROPERTY(Transient)

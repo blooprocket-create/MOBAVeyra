@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "teams": {
     "maxTeamSize": 5
   },
@@ -57,6 +57,11 @@
     "maxPerWindow": 6,
     "windowSeconds": 5,
     "keepSeconds": 8
+  },
+  "masteryEmote": {
+    "provenance": "Provisional",
+    "seconds": 3,
+    "cooldownSeconds": 10
   },
   "chat": {
     "provenance": "Provisional",

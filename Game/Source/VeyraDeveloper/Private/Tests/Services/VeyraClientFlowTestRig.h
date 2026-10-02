@@ -122,6 +122,14 @@ namespace VeyraClientFlowTests
 			MatchId, *Result);
 	}
 
+	/** The scored result, with what it gave the player. */
+	inline FString RewardedOutcomeBody()
+	{
+		return ScoredOutcomeBody().LeftChop(2)
+			+ TEXT(",\"rewards\":{\"reason\":null,\"accountXp\":181,\"levelBefore\":6,\"levelAfter\":7,\"flux\":400,\"refinedFlux\":0,")
+			  TEXT("\"vanguardId\":\"cairn\",\"masteryPoints\":477,\"masteryBefore\":2,\"masteryAfter\":3}}}");
+	}
+
 	/** Another completed match of the player's, for Match History. */
 	inline const TCHAR* const OlderMatchId = TEXT("66666666-7777-4888-8999-aaaaaaaaaaaa");
 
@@ -235,6 +243,35 @@ namespace VeyraClientFlowTests
 		const FString Invite = FString::Printf(TEXT("{\"id\":\"%s\",\"lobbyId\":\"%s\",\"inviter\":%s,\"expiresAt\":\"2026-09-29T12:02:00Z\"}"), InviteId, LobbyId,
 			*AccountJson(FriendId, TEXT("DevTwo")));
 		return FString::Printf(TEXT("{\"invites\":[%s]}"), bInvited ? *Invite : TEXT(""));
+	}
+
+	// The party and social client (ADR-044).
+	inline const TCHAR* const PartyInviteId = TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff");
+	/** DevTwo's own party, which the player may join. */
+	inline const TCHAR* const FriendPartyId = TEXT("cccccccc-dddd-4eee-8fff-000000000000");
+
+	/** GET /v1/party/invites, with DevTwo's invitation into their party or none. */
+	inline FString PartyInvitesBody(bool bInvited)
+	{
+		const FString Invite = FString::Printf(TEXT("{\"id\":\"%s\",\"partyId\":\"%s\",\"inviter\":%s,\"expiresAt\":\"2026-09-29T12:02:00Z\"}"), PartyInviteId,
+			FriendPartyId, *AccountJson(FriendId, TEXT("DevTwo")));
+		return FString::Printf(TEXT("{\"invites\":[%s]}"), bInvited ? *Invite : TEXT(""));
+	}
+
+	/** GET /v1/blocks: Blocked is a JSON list of accounts. */
+	inline FString BlocksBody(const FString& Blocked = TEXT("[]"))
+	{
+		return FString::Printf(TEXT("{\"blocked\":%s}"), *Blocked);
+	}
+
+	/** The player and DevTwo in party Id: the player leads it or DevTwo does; Mode is empty for none. */
+	inline FString PartyOfTwoBody(const TCHAR* Status, bool bYouLead, const TCHAR* Privacy = TEXT("private"), const TCHAR* Id = PartyId,
+		const TCHAR* Mode = TEXT("casual_select"))
+	{
+		return FString::Printf(TEXT("{\"party\":{\"id\":\"%s\",\"mode\":\"%s\",\"privacy\":\"%s\",\"status\":\"%s\",\"queuedSeconds\":0,\"members\":[")
+							   TEXT("{\"accountId\":\"%s\",\"displayName\":\"DevOne\",\"ready\":false,\"leader\":%s},")
+							   TEXT("{\"accountId\":\"%s\",\"displayName\":\"DevTwo\",\"ready\":false,\"leader\":%s}]}}"),
+			Id, Mode, Privacy, Status, AccountId, bYouLead ? TEXT("true") : TEXT("false"), FriendId, bYouLead ? TEXT("false") : TEXT("true"));
 	}
 
 	/**
@@ -411,6 +448,11 @@ namespace VeyraClientFlowTests
 
 		/** Fixture value: how long a player watches its match end. */
 		static constexpr double EndingShowSeconds = 6.0;
+		/** Fixture value: how many lines a chat conversation keeps. */
+		static constexpr int32 ChatKeepMessages = 4;
+		/** Fixture values: how often, and for how long, the flow asks for a match's result. */
+		static constexpr double ResultPollSeconds = 1.0;
+		static constexpr double ResultWaitSeconds = 10.0;
 
 		FClientFlowTestRig()
 		{
@@ -423,13 +465,15 @@ namespace VeyraClientFlowTests
 			Config.SelectPollIntervalSeconds = 0.5;
 			Config.MatchPollIntervalSeconds = 1.0;
 			Config.MatchWaitTimeoutSeconds = 60.0;
-			Config.ResultPollIntervalSeconds = 1.0;
-			Config.ResultWaitTimeoutSeconds = 10.0;
+			Config.ResultPollIntervalSeconds = ResultPollSeconds;
+			Config.ResultWaitTimeoutSeconds = ResultWaitSeconds;
 			Config.ReconnectPollIntervalSeconds = 5.0;
 			Config.PartyPollIntervalSeconds = 1.0;
 			Config.MatchFoundPollIntervalSeconds = 0.5;
 			Config.LobbyPollIntervalSeconds = 1.0;
 			Config.SocialPollIntervalSeconds = 3.0;
+			Config.ChatPollIntervalSeconds = 1.0;
+			Config.ChatKeepMessages = ChatKeepMessages;
 			Config.EndingShowSeconds = EndingShowSeconds;
 			Config.AccountSettings.SendDelaySeconds = 1.5;
 			Config.AccountSettings.RetrySeconds = 15.0;
@@ -446,6 +490,9 @@ namespace VeyraClientFlowTests
 
 		/** With the flow syncing account settings, sign-in answers their read with this document. */
 		TOptional<FString> AccountSettingsAnswer;
+
+		/** When set, reaching the shell answers its read of the account's level and balances with this document. */
+		TOptional<FString> ShellProgression;
 
 		/**
 		 * Starts, reads a launch code and redeems it: the flow then asks for the player's match, or, when
@@ -473,14 +520,25 @@ namespace VeyraClientFlowTests
 		 */
 		bool ReachShell()
 		{
-			return ReachProfile(true) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && State() == EVeyraClientState::Shell;
+			return ReachProfile(true) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && State() == EVeyraClientState::Shell
+				&& (!ShellProgression.IsSet() || Backend.Answer(TEXT("GET"), TEXT("/v1/me/progression"), 200, *ShellProgression));
 		}
 
 		/** From the shell, the friends read: DevTwo a friend, and with DevTwo's lobby invitation or not. */
 		bool ReadSocial(bool bInvited = false)
 		{
-			return Backend.Answer(TEXT("GET"), TEXT("/v1/friends"), 200, FriendsBody(FriendList()))
-				&& Backend.Answer(TEXT("GET"), TEXT("/v1/lobby/invites"), 200, InvitesBody(bInvited)) && Flow->GetSnapshot().Social.bLoaded;
+			return ReadSocialAs(FriendsBody(FriendList()), bInvited);
+		}
+
+		/**
+		 * The social read's four lists (ADR-044 §6): the friends as Friends, DevTwo's lobby invitation and party
+		 * invitation or not, and the blocked players as Blocked.
+		 */
+		bool ReadSocialAs(const FString& Friends, bool bLobbyInvited = false, bool bPartyInvited = false, const FString& Blocked = TEXT("[]"))
+		{
+			return Backend.Answer(TEXT("GET"), TEXT("/v1/friends"), 200, Friends) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby/invites"), 200, InvitesBody(bLobbyInvited))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/party/invites"), 200, PartyInvitesBody(bPartyInvited))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/blocks"), 200, BlocksBody(Blocked)) && Flow->GetSnapshot().Social.bLoaded;
 		}
 
 		/**

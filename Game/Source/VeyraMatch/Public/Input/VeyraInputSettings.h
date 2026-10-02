@@ -126,6 +126,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey VoteNoKey;
 
+	/** Shows the mastery emote above the player's Vanguard, with its Mastery Level (ADR-045 §9). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey MasteryEmoteKey;
+
 	/** Held with an ability slot's key, spends a skill point on that slot instead of casting. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RankUpModifierKey;
@@ -207,6 +211,9 @@ struct VEYRAMATCH_API FVeyraInputObjects
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> VoteNo;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> MasteryEmote;
 
 	/** The action that casts Slot. */
 	UInputAction* GetAbilityAction(EVeyraAbilitySlot Slot) const;

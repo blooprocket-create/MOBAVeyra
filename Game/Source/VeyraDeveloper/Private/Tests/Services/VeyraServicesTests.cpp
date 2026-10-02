@@ -608,6 +608,8 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsTrue(First.FluxSpells.Num() == 2 && First.FluxSpells[0].ToString() == TEXT("blink") && First.FluxSpells[1].ToString() == TEXT("scorch")));
 			const TArray<FVeyraContentId>& SecondSpells = Parsed.Match.Participants[1].FluxSpells;
 			ASSERT_THAT(IsTrue(SecondSpells.Num() == 2 && SecondSpells[0].ToString() == TEXT("mend") && !SecondSpells[1].IsValid()));
+			// Each participant's Mastery of its Vanguard, for its mastery emote (ADR-045 §9).
+			ASSERT_THAT(IsTrue(First.MasteryLevel == 3 && First.EmoteTier == 1 && Parsed.Match.Participants[1].MasteryLevel == 1));
 			// The backend's ticket vector (Backend/internal/match/ticket_test.go): the game hashes the
 			// ticket the backend derived for this participant to the hash the backend sent.
 			ASSERT_THAT(AreEqual(First.TicketHash, VeyraHash::Sha256Hex(TEXT("vjt_xdMWyGQJg9xC_-yn9b-5ZYoh8_KKDRs9Bfjlh7WgwKQ"))));
@@ -667,8 +669,10 @@ namespace VeyraServicesTests
 		TEST_METHOD(RefusesABrokenAssignment)
 		{
 			const TArray<TPair<const TCHAR*, const TCHAR*>> Breaks = {
-				// A version 4 assignment carries no custom settings; this build reads version 5 only.
-				{ TEXT("\"schemaVersion\":5"), TEXT("\"schemaVersion\":4") },
+				// A version 5 assignment carries no Mastery; this build reads version 6 only.
+				{ TEXT("\"schemaVersion\":6"), TEXT("\"schemaVersion\":5") },
+				{ TEXT(",\"masteryLevel\":3"), TEXT("") },
+				{ TEXT("\"masteryLevel\":3"), TEXT("\"masteryLevel\":-1") },
 				{ TEXT(",\"settings\":[]"), TEXT("") },
 				{ TEXT("\"settings\":[]"), TEXT("\"settings\":[{\"victory\":\"Enabled\"}]") },
 				{ TEXT("\"settings\":[]"), TEXT("\"settings\":[{\"victory\":\"Enabled\",\"startingGold\":[-1]}]") },

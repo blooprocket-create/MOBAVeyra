@@ -121,6 +121,64 @@
       "development": "/Game/Veyra/Developer/Maps/L_Greybox"
     }
   },
+  "progression": {
+    "accountXp": {"perMinute": 6, "winBonus": 30, "coopBelowLevel": 10},
+    "accountLevels": {"firstLevel": 150, "growthPerLevel": 20, "growthUntilLevel": 100},
+    "flux": {"perLevelUp": 400},
+    "refinedFlux": {
+      "milestones": [{"level": 30, "amount": 250}, {"level": 50, "amount": 400}, {"level": 75, "amount": 500}, {"level": 100, "amount": 750}],
+      "everyLevels": 25,
+      "amountAfterMilestones": 500
+    },
+    "mastery": {
+      "perMinute": 10,
+      "winBonus": 100,
+      "performanceCap": 300,
+      "weights": {
+        "kills": 15, "assists": 10, "vanguardDamage": 0.005, "damageShielded": 0.005, "teammateHealing": 0.005,
+        "crowdControlSeconds": 2, "towerDamage": 0.005, "wellsSecured": 20, "wardsPlaced": 3, "wardsDestroyed": 5
+      },
+      "levels": {"firstLevel": 1000, "growthPerLevel": 500, "growthUntilLevel": 5},
+      "emoteTierLevels": [1, 5, 10, 25, 50, 100]
+    },
+    "prices": {
+      "cairn": {"flux": 1500, "refinedFlux": 300},
+      "qazharr": {"flux": 1500, "refinedFlux": 300},
+      "oriel": {"flux": 1500, "refinedFlux": 300},
+      "bryn": {"flux": 1500, "refinedFlux": 300},
+      "korruk": {"flux": 1500, "refinedFlux": 300},
+      "moro": {"flux": 1500, "refinedFlux": 300},
+      "kade": {"flux": 3000, "refinedFlux": 550},
+      "vera": {"flux": 3000, "refinedFlux": 550},
+      "mimzi": {"flux": 3000, "refinedFlux": 550},
+      "patch": {"flux": 3000, "refinedFlux": 550},
+      "gorraveth": {"flux": 3000, "refinedFlux": 550},
+      "mavra": {"flux": 3000, "refinedFlux": 550},
+      "celandrine": {"flux": 3000, "refinedFlux": 550},
+      "aurelisse": {"flux": 3000, "refinedFlux": 550},
+      "silt": {"flux": 3000, "refinedFlux": 550},
+      "torr": {"flux": 3000, "refinedFlux": 550},
+      "raska": {"flux": 4500, "refinedFlux": 800},
+      "tavi": {"flux": 4500, "refinedFlux": 800},
+      "angeru": {"flux": 4500, "refinedFlux": 800},
+      "varkesh": {"flux": 4500, "refinedFlux": 800},
+      "relay": {"flux": 4500, "refinedFlux": 800},
+      "marek": {"flux": 4500, "refinedFlux": 800},
+      "neris": {"flux": 4500, "refinedFlux": 800},
+      "sylra": {"flux": 4500, "refinedFlux": 800},
+      "eudora": {"flux": 4500, "refinedFlux": 800}
+    },
+    "devGrant": {"enabled": true}
+  },
+  "chat": {
+    "maxCharacters": 250,
+    "maxPerWindow": 5,
+    "window": "5s",
+    "historyMessages": 100,
+    "pageSize": 200,
+    "retention": "168h",
+    "postMatchWindow": "10m", "pruneInterval": "10m"
+  },
   "allocator": {
     "kind": "docker",
     "docker": {

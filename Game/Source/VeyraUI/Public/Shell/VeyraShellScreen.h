@@ -3,6 +3,8 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Shell/VeyraChatModels.h"
+#include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellModels.h"
 #include "Types/SlateEnums.h"
 
@@ -16,6 +18,7 @@ class UOverlay;
 class UPanelWidget;
 class UProgressBar;
 class UScaleBox;
+class UScrollBox;
 class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
@@ -39,6 +42,20 @@ enum class EVeyraShellPage : uint8
 	Play,
 	/** The player's completed matches (UX-51). */
 	History,
+	/** Every released Vanguard, with the player's ownership and Mastery, and Buy (ADR-045 §8). */
+	Collection,
+};
+
+/** What a card's action asks the player to confirm before it is sent (UX-11; ADR-044 §4). */
+enum class EVeyraShellConfirm : uint8
+{
+	None,
+	/** Make Party Leader, on a member's card. */
+	PartyLeader,
+	/** Block, on a friend's card or a friend request. */
+	Block,
+	/** Buy, on a Vanguard's Collection card: the price and currency named (Account, Collection & Mastery Bible §7). */
+	Purchase,
 };
 
 /**
@@ -98,6 +115,22 @@ public:
 	/** Types Name into the friends panel's name field, as the player would. For tests and scripts. */
 	void SetFriendNameDraft(const FString& Name);
 
+	/** Types Text into the chat composer that shows, as the player would. For tests and scripts. */
+	void SetChatDraft(const FString& Text);
+
+	/** The chat composer that shows, or null. */
+	UEditableTextBox* GetChatBox() const { return ChatBox; }
+
+	/**
+	 * The card whose actions show, empty while none is open (ADR-044 §2): a party member's card is its
+	 * MemberCardKey, a friend's its FriendCardKey, so one player's two cards open apart.
+	 */
+	const FString& GetOpenCard() const { return OpenCardId; }
+	static FString MemberCardKey(const FString& AccountId) { return TEXT("member:") + AccountId; }
+	static FString FriendCardKey(const FString& AccountId) { return TEXT("friend:") + AccountId; }
+	/** A Vanguard's card on the Collection page. */
+	static FString CollectionCardKey(const FString& VanguardId) { return TEXT("collection:") + VanguardId; }
+
 	/** How many times a draft turn of the player's own asked for their attention (UX-31, UX-32). For tests. */
 	int32 GetTurnAttentionCount() const { return TurnAttentions; }
 
@@ -143,6 +176,17 @@ private:
 	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
 		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply);
 	/**
+	 * The Collection (VeyraShellCollection.cpp; ADR-045 §8): every released Vanguard as a card, owned or not, with the
+	 * player's Mastery; an opened card's detail and Buy in either currency, each behind a confirmation naming its price.
+	 */
+	void BuildCollection(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** The opened card's detail and its Buy actions, or the purchase's question in their place. */
+	void BuildCollectionDetail(const FVeyraClientSnapshot& Snapshot, const FVeyraCollectionCard& Card, UPanelWidget& Parent);
+	/** The top bar's account readout: the Account Level, its XP and the account currencies. */
+	void AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar);
+	/** What the match gave the player, on the results screen, apart from its own Gold and XP. */
+	void BuildRewards(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/**
 	 * The party bar along the bottom of every page of the shell while the player has a party (UX §3;
 	 * Art Bible §7.1): its mode and members, and Ready, Find Match and the queue's time.
 	 */
@@ -169,12 +213,37 @@ private:
 	void BuildFriends(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/** Sends the friend request the name field holds. */
 	void SubmitFriendName();
+	/** A friend's line: their card, which opens its actions, and the one action it always offers. */
+	void BuildFriend(const FVeyraFriendModel& Friend, UPanelWidget& Parent);
+	/** A block's question and its answers, in place of the actions that asked it. */
+	void AddBlockConfirmation(UPanelWidget& Parent, const FString& AccountId, const FString& Name);
+	/** Opens the card Key names (MemberCardKey, FriendCardKey), or closes it when it is open; either forgets a confirmation. */
+	void OpenCard(const FString& Key);
+	/** Asks the player to confirm Kind for AccountId, or withdraws the question with None. */
+	void AskToConfirm(EVeyraShellConfirm Kind, const FString& AccountId);
+	/** Forgets the open card and its confirmation, as once its action is sent. */
+	void CloseCard();
 
 	UFUNCTION()
 	void HandleFriendNameChanged(const FText& Text);
 
 	UFUNCTION()
 	void HandleFriendNameCommitted(const FText& Text, ETextCommit::Type Method);
+
+	/** A text field in the shell's style, holding Draft; dimmed when it cannot be used. */
+	UEditableTextBox* MakeTextField(const FText& Hint, const FString& Draft, bool bEnabled);
+	/** The sidebar's chat under the friends (VeyraShellChat.cpp; ADR-046 §6): the direct conversation the player opened, else Party Chat. */
+	void BuildSidebarChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** One chat panel: its title, its lines and its composer, which sends to the model's conversation. */
+	void BuildChatPanel(const FVeyraChatPanelModel& Model, UPanelWidget& Parent);
+	/** Sends what the chat composer holds to its conversation. */
+	void SubmitChat();
+
+	UFUNCTION()
+	void HandleChatChanged(const FText& Text);
+
+	UFUNCTION()
+	void HandleChatCommitted(const FText& Text, ETextCommit::Type Method);
 
 	/**
 	 * A card showing VanguardId's illustration with a plate of text along its bottom, as a button named
@@ -318,6 +387,25 @@ private:
 	TObjectPtr<UEditableTextBox> FriendNameBox;
 
 	FString FriendNameDraft;
+
+	/** The chat composer, rebuilt with the screen, and the conversation it sends to (ADR-046 §6). */
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> ChatBox;
+
+	/** A chat panel's lines built since the last frame, which the next frame scrolls to the newest. */
+	UPROPERTY(Transient)
+	TObjectPtr<UScrollBox> ChatScroll;
+
+	VeyraBackendProtocol::EChatKind ChatBoxKind = VeyraBackendProtocol::EChatKind::Party;
+	FString ChatBoxTarget;
+	/** Each conversation's unsent text, so changing conversation, or a rebuild, keeps it. */
+	FString ChatBoxKey;
+	TMap<FString, FString> ChatDrafts;
+
+	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-044 §2, §4). */
+	FString OpenCardId;
+	EVeyraShellConfirm Confirm = EVeyraShellConfirm::None;
+	FString ConfirmId;
 
 	/** The player's draft turn that last asked for attention, and how many have (VeyraShellModels::PlayersTurn). */
 	FString AttendedTurn;

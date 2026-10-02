@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "kitSha256": "6ed39ab4e83031d3d156a2442caa144b4bef49223ee358812964127b23b02ee7",
+  "blenderVersion": "5.2.1 LTS",
+  "units": "centimetres in FBX",
+  "footprintsCm": {
+    "strider": {
+      "capsuleRadius": 35,
+      "capsuleHalfHeight": 60
+    },
+    "spark": {
+      "capsuleRadius": 30,
+      "capsuleHalfHeight": 55
+    },
+    "breaker": {
+      "capsuleRadius": 45,
+      "capsuleHalfHeight": 70
+    }
+  },
+  "assets": [
+    {
+      "name": "SM_Fluxborn_Strider_Active",
+      "kind": "strider",
+      "role": "Frontline",
+      "state": "Active",
+      "file": "FBX/SM_Fluxborn_Strider_Active.fbx",
+      "sha256": "e830f26d0cb772f091ec4e0528670558c244bd7a663a03aa36d1cf0fdb1d740f",
+      "triangles": 2660,
+      "triangleBudget": 6500,
+      "dimensionsCm": [
+        35.649,
+        53.76,
+        120.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "forwardSocket": "Facing",
+      "materialSlots": [
+        "M_FluxbornStone",
+        "M_FluxbornIron",
+        "M_FluxbornAlloy",
+        "M_FluxbornFlux"
+      ]
+    },
+    {
+      "name": "SM_Fluxborn_Strider_Collapsed",
+      "kind": "strider",
+      "role": "Frontline",
+      "state": "Collapsed",
+      "file": "FBX/SM_Fluxborn_Strider_Collapsed.fbx",
+      "sha256": "1641f9d10bf67abb13183efd9907469ecc4031510e158edc79ea6f3e5b738dfc",
+      "triangles": 2680,
+      "triangleBudget": 6500,
+      "dimensionsCm": [
+        48.908,
+        57.301,
+        40.184
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "forwardSocket": "Facing",
+      "materialSlots": [
+        "M_FluxbornStone",
+        "M_FluxbornIron",
+        "M_FluxbornAlloy",
+        "M_FluxbornFlux"
+      ]
+    },
+    {
+      "name": "SM_Fluxborn_Spark_Active",
+      "kind": "spark",
+      "role": "Ranged",
+      "state": "Active",
+      "file": "FBX/SM_Fluxborn_Spark_Active.fbx",
+      "sha256": "2414ae797ba3d63fda0da65e41c81503164ff2a38422cb18b853f0d5484a1561",
+      "triangles": 3096,
+      "triangleBudget": 6500,
+      "dimensionsCm": [
+        42.3,
+        48.437,
+        110.0
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "forwardSocket": "Facing",
+      "materialSlots": [
+        "M_FluxbornStone",
+        "M_FluxbornIron",
+        "M_FluxbornAlloy",
+        "M_FluxbornFlux"
+      ]
+    },
+    {
+      "name": "SM_Fluxborn_Spark_Collapsed",
+      "kind": "spark",
+      "role": "Ranged",
+      "state": "Collapsed",
+      "file": "FBX/SM_Fluxborn_Spark_Collapsed.fbx",
+      "sha256": "d830f9115d99fcbb315196f23e3d58e15885511b69936793f8d0a643eb2baace",
+      "triangles": 3192,
+      "triangleBudget": 6500,
+      "dimensionsCm": [
+        47.397,
+        47.419,
+        42.525
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "forwardSocket": "Facing",
+      "materialSlots": [
+        "M_FluxbornStone",
+        "M_FluxbornIron",
+        "M_FluxbornAlloy",
+        "M_FluxbornFlux"
+      ]
+    },
+    {
+      "name": "SM_Fluxborn_Breaker_Active",
+      "kind": "breaker",
+      "role": "Siege",
+      "state": "Active",
+      "file": "FBX/SM_Fluxborn_Breaker_Active.fbx",
+      "sha256": "57baf77100c9ed71b67b30cd9470543ce13d8b925929d39ffa28233b0f36215b",
+      "triangles": 4312,
+      "triangleBudget": 8000,
+      "dimensionsCm": [
+        58.547,
+        60.716,
+        114.895
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "forwardSocket": "Facing",
+      "materialSlots": [
+        "M_FluxbornStone",
+        "M_FluxbornIron",
+        "M_FluxbornAlloy",
+        "M_FluxbornFlux"
+      ]
+    },
+    {
+      "name": "SM_Fluxborn_Breaker_Collapsed",
+      "kind": "breaker",
+      "role": "Siege",
+      "state": "Collapsed",
+      "file": "FBX/SM_Fluxborn_Breaker_Collapsed.fbx",
+      "sha256": "56e07c75d8ad548d18c367582a540a1a297acd27027808f309513654a804c320",
+      "triangles": 4308,
+      "triangleBudget": 8000,
+      "dimensionsCm": [
+        76.482,
+        79.973,
+        76.187
+      ],
+      "groundPivot": true,
+      "uvChannels": 2,
+      "forwardSocket": "Facing",
+      "materialSlots": [
+        "M_FluxbornStone",
+        "M_FluxbornIron",
+        "M_FluxbornAlloy",
+        "M_FluxbornFlux"
+      ]
+    }
+  ]
+}

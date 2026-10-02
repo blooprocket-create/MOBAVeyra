@@ -47,6 +47,20 @@ type Accounts interface {
 	DisplayNames(ctx context.Context, ids []string) (map[string]string, error)
 }
 
+// Rewards grants what an ended match earned its players (ADR-045 §1). The
+// progression domain implements it; match knows none of its rules. Grant
+// runs in the transaction that stores the result, which ctx carries.
+type Rewards interface {
+	Grant(ctx context.Context, m *Match) error
+}
+
+// Masteries answers each participant's Mastery of the Vanguard it plays, for
+// the assignment's mastery emote (ADR-045 §9). The progression domain
+// implements it.
+type Masteries interface {
+	MasteryOf(ctx context.Context, accountID, vanguardID string) (ParticipantMastery, error)
+}
+
 // AccountsFunc adapts a function to Accounts.
 type AccountsFunc func(ctx context.Context, ids []string) (map[string]string, error)
 
@@ -121,12 +135,22 @@ type Service struct {
 	allocator Allocator
 	settings  Settings
 	now       func() time.Time
+	// rewards is nil where nothing grants rewards, as in most tests.
+	rewards Rewards
+	// masteries is nil where no progression exists; the assignment then says 0.
+	masteries Masteries
 }
 
 // NewService builds a Service. now is injectable for tests.
 func NewService(store Store, accounts Accounts, allocator Allocator, settings Settings, now func() time.Time) *Service {
 	return &Service{store: store, accounts: accounts, allocator: allocator, settings: settings, now: now}
 }
+
+// SetRewards makes each verified result grant its players' rewards.
+func (s *Service) SetRewards(r Rewards) { s.rewards = r }
+
+// SetMasteries makes each assignment carry its participants' Mastery.
+func (s *Service) SetMasteries(m Masteries) { s.masteries = m }
 
 // Create creates a match from a specification and starts its server. Champion
 // select creates matches through it, and the development route stands in for
@@ -196,6 +220,21 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		participants[i].DisplayName = name
 	}
 
+	// Each participant's Mastery of its Vanguard, for its mastery emote (ADR-045 §9).
+	masteries := map[string]ParticipantMastery{}
+	if s.masteries != nil {
+		for _, p := range participants {
+			if p.VanguardID == "" {
+				continue
+			}
+			mastery, err := s.masteries.MasteryOf(ctx, p.AccountID, p.VanguardID)
+			if err != nil {
+				return Match{}, err
+			}
+			masteries[p.AccountID] = mastery
+		}
+	}
+
 	key, err := NewJoinKey()
 	if err != nil {
 		return Match{}, err
@@ -232,7 +271,7 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 
 	// The match is stored before its server starts, so a crash in between
 	// leaves a record the reaper fails at its ready timeout.
-	assignment, err := BuildAssignment(m, credential, s.settings.BackendURL)
+	assignment, err := BuildAssignment(m, credential, s.settings.BackendURL, masteries)
 	if err == nil {
 		err = s.allocator.Start(ctx, ServerSpec{MatchID: m.ID, HostPort: m.Server.HostPort, Map: mapPath, Assignment: assignment})
 	}
@@ -353,7 +392,15 @@ func (s *Service) ServerResult(ctx context.Context, credential, matchID string, 
 		if err := m.End(r, s.now()); err != nil {
 			return err
 		}
-		return tx.SaveMatch(m)
+		if err := tx.SaveMatch(m); err != nil {
+			return err
+		}
+		// Rewards commit with the result or not at all; a replayed result
+		// grants nothing twice (ADR-045 §1–§2).
+		if s.rewards == nil {
+			return nil
+		}
+		return s.rewards.Grant(ctx, &m)
 	})
 }
 

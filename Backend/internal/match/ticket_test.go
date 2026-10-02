@@ -67,7 +67,7 @@ func TestAssignmentIsOneLineWithTicketHashesOnly(t *testing.T) {
 			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB, VanguardID: "cairn"},
 		},
 	}
-	line, err := BuildAssignment(m, "vms_credential", "http://backend:8080")
+	line, err := BuildAssignment(m, "vms_credential", "http://backend:8080", nil)
 	if err != nil {
 		t.Fatalf("BuildAssignment: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestAssignmentIsOneLineWithTicketHashesOnly(t *testing.T) {
 }
 
 func TestAssignmentNeedsAJoinKey(t *testing.T) {
-	if _, err := BuildAssignment(Match{ID: "m"}, "vms_x", "http://b"); err == nil {
+	if _, err := BuildAssignment(Match{ID: "m"}, "vms_x", "http://b", nil); err == nil {
 		t.Fatal("a match without a key must not produce an assignment")
 	}
 }

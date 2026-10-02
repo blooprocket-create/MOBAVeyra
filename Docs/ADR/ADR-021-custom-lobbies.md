@@ -127,7 +127,7 @@ Custom results are recorded, with `rules=custom`, and appear in Match History wi
 - Presence and Appear Offline.
 - Chat, and the push channel it and the lobby need.
 - Merging solo practice into lobbies.
-- Party invites in the client: the backend has them, but the one matchmade mode (`casual_select`) seats one human a side, so a party has nothing to queue for yet. They come with the first matchmade mode for several humans (Co-op vs AI, Draft).
+- Party invites in the client: the backend has them, but the one matchmade mode (`casual_select`) seats one human a side, so a party has nothing to queue for yet. They come with the first matchmade mode for several humans (Co-op vs AI, Draft). *Closed by [ADR-044](ADR-044-party-and-social-client.md).*
 - Returning to the lobby after its match.
 
 ### 8. Provisional answers where canon is silent (for the author to overturn)

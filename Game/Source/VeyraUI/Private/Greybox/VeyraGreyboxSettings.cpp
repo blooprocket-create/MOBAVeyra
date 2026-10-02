@@ -79,7 +79,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	{
 		Require(Named.Color.A > 0.0f, Named.Field, TEXT("the colour must not be fully transparent."));
 	}
+	Require(!MasteryEmoteTierColors.IsEmpty() && !MasteryEmoteTierColors.ContainsByPredicate([](const FLinearColor& Color) { return !(Color.A > 0.0f); }),
+		TEXT("MasteryEmoteTierColors"), TEXT("at least one colour is required, and none may be fully transparent."));
 	Require(!StructureArt.IsNull(), TEXT("StructureArt"), TEXT("the structure kit's art set is required."));
+	Require(!FluxbornArt.IsNull(), TEXT("FluxbornArt"), TEXT("the Fluxborn kit's art set is required."));
 	Require(StatusTintStrength > 0.0f && StatusTintStrength <= 1.0f, TEXT("StatusTintStrength"), TEXT("must be above 0 and at most 1."));
 	Require(BarWidth >= 1.0f, TEXT("BarWidth"), TEXT("must be at least 1 pixel."));
 	Require(BarHeight >= 1.0f, TEXT("BarHeight"), TEXT("must be at least 1 pixel."));

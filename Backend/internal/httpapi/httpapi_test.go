@@ -202,6 +202,19 @@ func TestSocialAndPartyOverHTTP(t *testing.T) {
 		t.Fatalf("accept friend: %d", status)
 	}
 
+	// One's party is private: nothing to join directly. Public, it is offered to its friends.
+	if _, friends := call(t, srv, "GET", "/v1/friends", two, nil); len(friends["joinableParties"].(map[string]any)) != 0 {
+		t.Fatalf("no public party yet: %v", friends)
+	}
+	call(t, srv, "PUT", "/v1/party/mode", one, map[string]string{"mode": "casual_select"})
+	call(t, srv, "PUT", "/v1/party/privacy", one, map[string]string{"privacy": "public"})
+	_, friends := call(t, srv, "GET", "/v1/friends", two, nil)
+	_, oneParty := call(t, srv, "GET", "/v1/party", one, nil)
+	if friends["joinableParties"].(map[string]any)[oneID] != oneParty["party"].(map[string]any)["id"] {
+		t.Fatalf("one's public party: %v", friends)
+	}
+	call(t, srv, "PUT", "/v1/party/privacy", one, map[string]string{"privacy": "private"})
+
 	if status, body := call(t, srv, "POST", "/v1/party/invites", one, map[string]string{"accountId": twoID}); status != http.StatusOK {
 		t.Fatalf("invite: %d %v", status, body)
 	}
@@ -241,7 +254,7 @@ func TestSocialAndPartyOverHTTP(t *testing.T) {
 	if twoParty["party"] != nil {
 		t.Fatalf("blocked member should have been removed: %v", twoParty)
 	}
-	_, friends := call(t, srv, "GET", "/v1/friends", one, nil)
+	_, friends = call(t, srv, "GET", "/v1/friends", one, nil)
 	if len(friends["friends"].([]any)) != 0 {
 		t.Fatalf("block should end the friendship: %v", friends)
 	}

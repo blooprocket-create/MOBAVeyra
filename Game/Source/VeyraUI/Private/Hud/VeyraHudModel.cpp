@@ -142,6 +142,17 @@ TOptional<FVeyraContentId> VeyraHud::SpeciesOf(const AActor& Unit)
 	return Creature && Creature->GetSpecies().IsValid() ? TOptional<FVeyraContentId>(Creature->GetSpecies()) : TOptional<FVeyraContentId>();
 }
 
+TOptional<FVeyraHudMasteryEmote> VeyraHud::MasteryEmoteOf(const AActor& Unit, double ServerNow)
+{
+	const APawn* Pawn = Cast<APawn>(&Unit);
+	const AVeyraPlayerState* Participant = Pawn ? Pawn->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	if (!Participant || Participant->GetMasteryLevel() <= 0 || !(ServerNow < Participant->GetMasteryEmoteUntil()))
+	{
+		return {};
+	}
+	return FVeyraHudMasteryEmote{ Participant->GetMasteryLevel(), Participant->GetEmoteTier() };
+}
+
 FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, double ServerNow)
 {
 	FVeyraHudPlayer Player;

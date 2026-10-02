@@ -44,6 +44,10 @@ namespace
 	/** The highest TCP or UDP port. */
 	constexpr int32 MaxPort = 65535;
 
+	/** A party's privacy as the party routes name it. */
+	const TCHAR* const PublicPrivacy = TEXT("public");
+	const TCHAR* const PrivatePrivacy = TEXT("private");
+
 	/** True if the whole of Text matches Pattern. ICU lets "$" match before a final newline, so the match must end at the text's end. */
 	bool MatchesWhole(const TCHAR* Pattern, FStringView Text)
 	{
@@ -803,6 +807,20 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 		OutProblem = TEXT("the match's result is neither null nor a result");
 		return false;
 	}
+	// What the match gave the player (ADR-045 §7): null until adjudicated, and absent from an older backend.
+	if (const FJsonObject* Rewards = ObjectField(*Object, TEXT("rewards")))
+	{
+		if (!ParseMatchRewards(*Rewards, Outcome.Rewards.Emplace()))
+		{
+			OutProblem = TEXT("the match's rewards are not in the expected format");
+			return false;
+		}
+	}
+	else if (Object->HasField(TEXT("rewards")) && !Object->HasTypedField<EJson::Null>(TEXT("rewards")))
+	{
+		OutProblem = TEXT("the match's rewards are neither null nor rewards");
+		return false;
+	}
 	Out = MoveTemp(Outcome);
 	return true;
 }
@@ -976,6 +994,18 @@ bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutPr
 		return false;
 	}
 	Party.Status = Known->Value;
+	// Privacy may be absent, which reads as Private; present, it must be one the game knows.
+	if (Object->HasField(TEXT("privacy")))
+	{
+		FString Privacy;
+		const bool bPublic = StringField(*Object, TEXT("privacy"), Privacy) && Privacy.Equals(PublicPrivacy, ESearchCase::CaseSensitive);
+		if (!bPublic && !Privacy.Equals(PrivatePrivacy, ESearchCase::CaseSensitive))
+		{
+			OutProblem = TEXT("the party's privacy is not one the game knows");
+			return false;
+		}
+		Party.Privacy = bPublic ? EPartyPrivacy::Public : EPartyPrivacy::Private;
+	}
 	for (const TSharedPtr<FJsonValue>& Value : *Members)
 	{
 		const TSharedPtr<FJsonObject>* MemberObject = nullptr;
@@ -1047,6 +1077,17 @@ FString BuildReadyBody(bool bReady)
 	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
 	Writer->WriteObjectStart();
 	Writer->WriteValue(TEXT("ready"), bReady);
+	Writer->WriteObjectEnd();
+	Writer->Close();
+	return Body;
+}
+
+FString BuildPrivacyBody(EPartyPrivacy Privacy)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+	Writer->WriteObjectStart();
+	Writer->WriteValue(TEXT("privacy"), FString(Privacy == EPartyPrivacy::Public ? PublicPrivacy : PrivatePrivacy));
 	Writer->WriteObjectEnd();
 	Writer->Close();
 	return Body;
@@ -1191,6 +1232,12 @@ bool ParseAccount(const FString& Body, FAccount& Out, FString& OutProblem)
 	return true;
 }
 
+const FString* FFriends::JoinablePartyOf(const FString& AccountId) const
+{
+	const FJoinableParty* Found = JoinableParties.FindByPredicate([&AccountId](const FJoinableParty& Joinable) { return Joinable.AccountId == AccountId; });
+	return Found ? &Found->PartyId : nullptr;
+}
+
 bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem)
 {
 	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
@@ -1200,6 +1247,31 @@ bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem)
 	{
 		OutProblem = TEXT("the friends, or the requests to or from the player, are missing or not in the expected format");
 		return false;
+	}
+	// The joinable parties may be absent, as from an older backend; present, each is a friend's account and a party (ADR-044 §3).
+	if (Root->HasField(TEXT("joinableParties")))
+	{
+		const FJsonObject* Joinable = ObjectField(*Root, TEXT("joinableParties"));
+		if (!Joinable)
+		{
+			OutProblem = TEXT("the joinable parties are not an object");
+			return false;
+		}
+		// The map's key type is the JSON library's own string, which converts to FString.
+		for (const auto& Entry : Joinable->Values)
+		{
+			const FString AccountId(Entry.Key);
+			FString PartyId;
+			if (!MatchesWhole(IdPattern, AccountId) || !Entry.Value.IsValid() || Entry.Value->Type != EJson::String || !Entry.Value->TryGetString(PartyId)
+				|| !MatchesWhole(IdPattern, PartyId))
+			{
+				OutProblem = TEXT("a joinable party is not an account and a party");
+				return false;
+			}
+			Friends.JoinableParties.Add(FJoinableParty{ AccountId, MoveTemp(PartyId) });
+		}
+		// A map's order means nothing, and an unchanged list must compare equal.
+		Friends.JoinableParties.Sort([](const FJoinableParty& A, const FJoinableParty& B) { return A.AccountId < B.AccountId; });
 	}
 	Out = MoveTemp(Friends);
 	return true;
@@ -1301,31 +1373,62 @@ bool ParseLobby(const FString& Body, TOptional<FLobby>& OutLobby, FString& OutPr
 	return true;
 }
 
-bool ParseLobbyInvites(const FString& Body, TArray<FLobbyInvite>& Out, FString& OutProblem)
+namespace
 {
-	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
-	const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
-	if (!Root.IsValid() || !Root->HasTypedField<EJson::Array>(TEXT("invites")) || !Root->TryGetArrayField(TEXT("invites"), Values))
+	/**
+	 * {"invites": [{"id", TargetField, "inviter"}]}, the list a social route gives of invitations into a lobby or a party:
+	 * each invitation's ID, what it invites into (read into Target), and who sent it.
+	 */
+	template <typename TInvite>
+	bool ParseInviteList(const FString& Body, const TCHAR* TargetField, FString TInvite::*Target, TArray<TInvite>& Out, FString& OutProblem)
 	{
-		OutProblem = TEXT("the answer has no list of invitations");
-		return false;
-	}
-	TArray<FLobbyInvite> Invites;
-	for (const TSharedPtr<FJsonValue>& Value : *Values)
-	{
-		const TSharedPtr<FJsonObject>* Entry = nullptr;
-		FLobbyInvite Invite;
-		const FJsonObject* Inviter = nullptr;
-		if (!Value.IsValid() || !Value->TryGetObject(Entry) || !Entry->IsValid() || !StringField(**Entry, TEXT("id"), IdPattern, Invite.Id)
-			|| !StringField(**Entry, TEXT("lobbyId"), IdPattern, Invite.LobbyId) || (Inviter = ObjectField(**Entry, TEXT("inviter"))) == nullptr
-			|| !ParseAccountObject(*Inviter, Invite.Inviter))
+		const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (!Root.IsValid() || !Root->HasTypedField<EJson::Array>(TEXT("invites")) || !Root->TryGetArrayField(TEXT("invites"), Values))
 		{
-			OutProblem = TEXT("an invitation is not in the expected format");
+			OutProblem = TEXT("the answer has no list of invitations");
 			return false;
 		}
-		Invites.Add(MoveTemp(Invite));
+		TArray<TInvite> Invites;
+		for (const TSharedPtr<FJsonValue>& Value : *Values)
+		{
+			const TSharedPtr<FJsonObject>* Entry = nullptr;
+			TInvite Invite;
+			const FJsonObject* Inviter = nullptr;
+			if (!Value.IsValid() || !Value->TryGetObject(Entry) || !Entry->IsValid() || !StringField(**Entry, TEXT("id"), IdPattern, Invite.Id)
+				|| !StringField(**Entry, TargetField, IdPattern, Invite.*Target) || (Inviter = ObjectField(**Entry, TEXT("inviter"))) == nullptr
+				|| !ParseAccountObject(*Inviter, Invite.Inviter))
+			{
+				OutProblem = TEXT("an invitation is not in the expected format");
+				return false;
+			}
+			Invites.Add(MoveTemp(Invite));
+		}
+		Out = MoveTemp(Invites);
+		return true;
 	}
-	Out = MoveTemp(Invites);
+}
+
+bool ParseLobbyInvites(const FString& Body, TArray<FLobbyInvite>& Out, FString& OutProblem)
+{
+	return ParseInviteList(Body, TEXT("lobbyId"), &FLobbyInvite::LobbyId, Out, OutProblem);
+}
+
+bool ParsePartyInvites(const FString& Body, TArray<FPartyInvite>& Out, FString& OutProblem)
+{
+	return ParseInviteList(Body, TEXT("partyId"), &FPartyInvite::PartyId, Out, OutProblem);
+}
+
+bool ParseBlocks(const FString& Body, TArray<FAccount>& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	TArray<FAccount> Blocked;
+	if (!Root.IsValid() || !AccountArrayField(*Root, TEXT("blocked"), Blocked))
+	{
+		OutProblem = TEXT("the answer has no list of blocked players, or one is not in the expected format");
+		return false;
+	}
+	Out = MoveTemp(Blocked);
 	return true;
 }
 

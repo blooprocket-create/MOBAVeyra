@@ -68,6 +68,18 @@ func (m *MemStore) PartyOf(_ context.Context, accountID string) (Party, error) {
 	return copyParty(m.state.parties[id]), nil
 }
 
+func (m *MemStore) PartiesOf(_ context.Context, accountIDs []string) (map[string]Party, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := map[string]Party{}
+	for _, accountID := range accountIDs {
+		if id, err := m.partyIDOf(accountID); err == nil {
+			out[accountID] = copyParty(m.state.parties[id])
+		}
+	}
+	return out, nil
+}
+
 func (m *MemStore) InvitesFor(_ context.Context, accountID string, now time.Time) ([]Invite, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

@@ -105,6 +105,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SettingsSearchWidth"), SettingsSearchWidth },
 		{ TEXT("SettingsControlWidth"), SettingsControlWidth },
 		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
+		{ TEXT("ChatLinesHeight"), ChatLinesHeight },
 		{ TEXT("LobbySeatWidth"), LobbySeatWidth },
 		{ TEXT("ShopTileSize"), ShopTileSize },
 		{ TEXT("ShopMarkSize"), ShopMarkSize },

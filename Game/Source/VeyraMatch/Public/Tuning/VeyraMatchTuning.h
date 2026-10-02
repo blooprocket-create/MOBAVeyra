@@ -288,6 +288,25 @@ struct FVeyraPingsTuning
 	double KeepSeconds = 0.0;
 };
 
+/**
+ * The mastery emote (ADR-045 §9; Account, Collection & Mastery Bible §5.2): how long it shows above its Vanguard,
+ * and how often a player may show it. It has no gameplay effect. World seconds.
+ */
+USTRUCT()
+struct FVeyraMasteryEmoteTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double Seconds = 0.0;
+
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+};
+
 /** In-match chat's limits (Chat & Communication Bible §2; ADR-029 §2). */
 USTRUCT()
 struct FVeyraChatTuning
@@ -377,7 +396,7 @@ struct FVeyraMatchTuning
 	GENERATED_BODY()
 
 	/** The Match.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 9;
+	static constexpr int32 SchemaVersion = 10;
 
 	UPROPERTY()
 	FVeyraTeamsTuning Teams;
@@ -411,6 +430,9 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraPingsTuning Pings;
+
+	UPROPERTY()
+	FVeyraMasteryEmoteTuning MasteryEmote;
 
 	UPROPERTY()
 	FVeyraChatTuning Chat;

@@ -182,6 +182,13 @@ struct FVeyraHudStructure
 	double RebuildSeconds = 0.0;
 };
 
+/** The mastery emote showing above a Vanguard (ADR-045 §9): its player's Mastery Level and the emote's tier. */
+struct FVeyraHudMasteryEmote
+{
+	int32 Level = 0;
+	int32 Tier = 0;
+};
+
 /** What a Flux Well's bar says about it (Battleground Bible §6; ADR-014 §4). */
 struct FVeyraHudFluxWell
 {
@@ -258,6 +265,9 @@ namespace VeyraHud
 
 	/** Unit's species as a jungle creature; nothing when it is not one (ADR-014 §2). */
 	VEYRAUI_API TOptional<FVeyraContentId> SpeciesOf(const AActor& Unit);
+
+	/** The mastery emote Unit's player shows at ServerNow, in server gameplay time; nothing when none shows. */
+	VEYRAUI_API TOptional<FVeyraHudMasteryEmote> MasteryEmoteOf(const AActor& Unit, double ServerNow);
 
 	/** Participant's panel at ServerNow, in server gameplay time. */
 	VEYRAUI_API FVeyraHudPlayer DescribePlayer(const AVeyraPlayerState& Participant, double ServerNow);

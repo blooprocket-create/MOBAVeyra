@@ -101,6 +101,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor TextColor = FLinearColor::Transparent;
 
+	/**
+	 * The mastery emote's colour for each of its tiers, the first for tier 1 (ADR-045 §9); a tier past the last
+	 * keeps the last. Presentation only.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	TArray<FLinearColor> MasteryEmoteTierColors;
+
 	/** The line under each ability on the player's panel that says what it does. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor DescriptionColor = FLinearColor::Transparent;
@@ -245,6 +252,14 @@ public:
 
 	/** A kind of structure's stable ID in its art kit, as the kit's manifest names it: "laneSpire" and the like. */
 	static FName StructureArtId(EVeyraStructureKind Kind);
+
+	/**
+	 * The Fluxborn kit's provisional art (Art Direction, Fluxborn greybox meshes), keyed by each kind's content ID,
+	 * drawn in place of each Fluxborn's body: active, then collapsed where it fell for its corpse's moment. A kind
+	 * without art keeps its body. Visual only: its capsule stays its only collision and movement.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	TSoftObjectPtr<UVeyraUnitArtSet> FluxbornArt;
 
 	/** The lanes' road, the river, and each side's base as the viewer sees it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
