@@ -26,16 +26,21 @@
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
 #include "Layout/VeyraLayout.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Structures/VeyraStructure.h"
 #include "Terrain/VeyraTerrainWall.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "VeyraGameState.h"
+#include "VeyraPlayerController.h"
+#include "VeyraVanguardCharacter.h"
 #include "VeyraUILog.h"
 
 namespace
@@ -84,6 +89,24 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ShapeMaterial = Settings.ShapeMaterial.LoadSynchronous();
 		GroundMesh = Settings.GroundMesh.LoadSynchronous();
 		PadMesh = Settings.PadMesh.LoadSynchronous();
+		// The structure kit's art set must dress every kind (ADR-006 §6: asset references by stable ID).
+		StructureArt = Settings.StructureArt.LoadSynchronous();
+		if (!StructureArt)
+		{
+			Problems.Add(FString::Printf(TEXT("StructureArt: %s does not load."), *Settings.StructureArt.ToString()));
+		}
+		else
+		{
+			TArray<FName> Kinds;
+			for (const EVeyraStructureKind Kind : { EVeyraStructureKind::LaneSpire, EVeyraStructureKind::BaseTower, EVeyraStructureKind::Inhibitor, EVeyraStructureKind::PrimeWell })
+			{
+				Kinds.Add(UVeyraGreyboxSettings::StructureArtId(Kind));
+			}
+			for (const FString& Problem : StructureArt->Validate(Kinds))
+			{
+				Problems.Add(TEXT("StructureArt ") + Problem);
+			}
+		}
 		if (!GroundMesh)
 		{
 			Problems.Add(FString::Printf(TEXT("GroundMesh: %s does not load."), *Settings.GroundMesh.ToString()));
@@ -190,6 +213,12 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::FindBody(const AActor& Unit) const
 	return Body ? Body->Mesh.Get() : nullptr;
 }
 
+UStaticMeshComponent* UVeyraGreyboxSubsystem::FindArt(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	return Body ? Body->Art.Get() : nullptr;
+}
+
 UStaticMeshComponent* UVeyraGreyboxSubsystem::FindProjectileVisual(const AVeyraProjectile& Projectile) const
 {
 	const FProjectileVisual* Visual = Projectiles.Find(&Projectile);
@@ -284,6 +313,61 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMes
 	return Shape;
 }
 
+void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structure, FBody& Body)
+{
+	// Standing, or the wreck it leaves (Battleground Bible §5); an inhibitor rebuilt stands again.
+	const FVeyraUnitArt* Art = StructureArt ? StructureArt->Find(UVeyraGreyboxSettings::StructureArtId(Structure.GetStructureKind())) : nullptr;
+	if (UStaticMesh* Mesh = Art ? (Structure.IsDestroyed() ? Art->Fallen : Art->Intact).Get() : nullptr)
+	{
+		ShowArt(Structure, Body, *Mesh, *StructureArt, SideColorOf(Structure));
+	}
+}
+
+void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
+{
+	USceneComponent* Root = Unit.GetRootComponent();
+	if (!Root)
+	{
+		return;
+	}
+	if (!Body.Art.IsValid())
+	{
+		// Presentation only, as a body is.
+		UStaticMeshComponent* Art = NewObject<UStaticMeshComponent>(const_cast<APawn*>(&Unit), NAME_None, RF_Transient);
+		Art->SetMobility(EComponentMobility::Movable);
+		Art->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Art->SetGenerateOverlapEvents(false);
+		Art->SetCanEverAffectNavigation(false);
+		Art->SetupAttachment(Root);
+		Art->RegisterComponent();
+		Body.Art = Art;
+		Body.ArtMesh = nullptr;
+	}
+	UStaticMeshComponent* Art = Body.Art.Get();
+	// It stands on the floor, its pivot at the capsule's foot.
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+	Art->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
+	if (Body.ArtMesh.Get() != &Mesh)
+	{
+		Art->SetStaticMesh(&Mesh);
+		const int32 Slot = Art->GetMaterialIndex(Set.FluxSlot);
+		Body.ArtFlux = Slot != INDEX_NONE ? Art->CreateDynamicMaterialInstance(Slot) : nullptr;
+		Body.ArtMesh = &Mesh;
+		Body.ArtShown = FLinearColor::Transparent;
+	}
+	if (UStaticMeshComponent* Shape = Body.Mesh.Get())
+	{
+		Shape->SetVisibility(false);
+	}
+	if (UMaterialInstanceDynamic* Flux = Body.ArtFlux.Get(); Flux && !Color.Equals(Body.ArtShown))
+	{
+		Flux->SetVectorParameterValue(Set.FluxParameter, Color);
+		Body.ArtShown = Color;
+	}
+}
+
 void UVeyraGreyboxSubsystem::RefreshBodies()
 {
 	const FName ColorParameter = GetDefault<UVeyraGreyboxSettings>()->ColorParameter;
@@ -322,6 +406,10 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			Material->SetVectorParameterValue(ColorParameter, Color);
 			Body->Shown = Color;
+		}
+		if (const AVeyraStructure* Structure = Cast<AVeyraStructure>(&Unit))
+		{
+			RefreshStructureArt(*Structure, *Body);
 		}
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).
@@ -580,6 +668,34 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), Area.IsEndNear(Now) ? EVeyraTelegraphSource::LingeringAreaEnding : EVeyraTelegraphSource::LingeringArea,
 			Area.GetVeyraTeam(), FMath::Max(0.0, Area.GetEndsAt() - Now) });
 	}
+	if (const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
+	{
+		AddIndicator(*Local, Tuning);
+	}
+}
+
+void UVeyraGreyboxSubsystem::AddIndicator(const AVeyraPlayerController& Local, const FVeyraAbilitiesTuning& Tuning)
+{
+	const TOptional<FVeyraCastIndicator>& Shown = Local.GetCastIndicator();
+	const AVeyraVanguardCharacter* Body = Local.GetVanguard();
+	if (!Shown || !Body || !Local.PlayerState)
+	{
+		return;
+	}
+	const UVeyraAbilityLoadoutComponent* Loadout = Local.PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown->Slot) : nullptr;
+	FHitResult Ground;
+	if (!Entry || !Local.GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
+	{
+		return;
+	}
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Body->GetSimpleCollisionCylinder(Radius, HalfHeight);
+	for (const FVeyraPlacedShape& Placed : VeyraCastTelegraphs::ForAim(Tuning, Entry->Ability, Body->GetActorLocation(), Radius, Ground.Location))
+	{
+		Telegraphs.Add(FVeyraTelegraph{ Placed, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
+	}
 }
 
 FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const
@@ -659,16 +775,21 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 	}
 	TelegraphLines->Flush();
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const float IndicatorThickness = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this)).IndicatorThickness;
 	for (const FVeyraTelegraph& Telegraph : Telegraphs)
 	{
 		FVeyraPlacedShape OnGround = Telegraph.Placed;
 		OnGround.Origin = GroundUnder(Telegraph.Placed.Origin);
-		// An end about to land is marked in one colour for every side, so it reads as a warning (ADR-026 §4).
-		const FLinearColor Color = Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
+		// An end about to land is marked in one colour for every side, so it reads as a warning (ADR-026 §4);
+		// the player's own indicator in its own.
+		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator;
+		const FLinearColor Color = bIndicator ? Settings.IndicatorColor
+			: Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
+		const float Thickness = bIndicator ? IndicatorThickness : Settings.TelegraphThickness;
 		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
 		{
 			// A lifetime of 0 keeps the line until the next refresh flushes it.
-			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Thickness, 0.0f);
 		}
 	}
 }

@@ -5,6 +5,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Buyback/VeyraBuybackRules.h"
 #include "Content/VeyraContentId.h"
+#include "Input/VeyraCastInput.h"
+#include "Input/VeyraCursorPicks.h"
 #include "Input/VeyraInputSettings.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Progression/VeyraProgressionTypes.h"
@@ -47,7 +49,7 @@ public:
 	/** Owning client: asks the server to attack Target with this player's Vanguard (ADR-009 §5). */
 	void IssueAttackOrder(AActor* Target);
 
-	/** Owning client: asks the server to attack-move this player's Vanguard to Destination. */
+	/** Owning client: asks the server to attack-move this player's Vanguard to Destination, with the player's target preference. */
 	void IssueAttackMoveOrder(const FVector& Destination);
 
 	/** Owning client: asks the server to cast the ability in Slot at Target. */
@@ -247,6 +249,15 @@ public:
 	void SetMinimapHitTest(FMinimapHitTest InHitTest) { MinimapHitTest = MoveTemp(InHitTest); }
 	bool HasMinimapHitTest() const { return static_cast<bool>(MinimapHitTest); }
 
+	/** Owning client: the indicator the player sees, while a cast waits or Show Cast Range previews one (ADR-041 §1). */
+	const TOptional<FVeyraCastIndicator>& GetCastIndicator() const { return CastInput.GetIndicator(); }
+
+	/** Owning client: hides a waiting cast or a preview, and whether one showed. Escape asks this before the menu opens. */
+	bool CancelPendingCast();
+
+	/** Owning client: Attack Move's key was pressed and its click is awaited (ADR-041 §4). */
+	bool IsAttackMoveWaiting() const { return bAttackMoveWaiting; }
+
 	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
 	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
 
@@ -273,7 +284,7 @@ private:
 	void ServerIssueAttackOrder(AActor* Target);
 
 	UFUNCTION(Server, Reliable)
-	void ServerIssueAttackMoveOrder(FVector Destination);
+	void ServerIssueAttackMoveOrder(FVector Destination, EVeyraAttackMoveTarget Preference);
 
 	UFUNCTION(Client, Unreliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
@@ -419,6 +430,9 @@ private:
 	/** The player's camera settings over the developer's (ADR-024 §6). */
 	FVeyraCameraPreferences CameraPreferences() const;
 
+	/** The player's control settings (ADR-041 §5). */
+	struct FVeyraControlPreferences ControlPreferences() const;
+
 	/** Makes PlayerKeys the developer's keys with the player's bindings, and maps the actions to them anew. */
 	void RefreshKeys();
 	void OnPlayerSettingChanged(const FVeyraContentId& Id);
@@ -436,8 +450,8 @@ private:
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 
-	// Local input (Settings Bible §1): right-click to move or attack, attack-move, and Quick Cast on
-	// each ability slot.
+	// Local input (Settings Bible §1): right-click to move or attack, attack-move, and each ability
+	// slot cast in the player's casting mode.
 	void OnMoveOrderStarted();
 	void OnMoveOrderHeld();
 	void OnAttackMovePressed();
@@ -445,10 +459,50 @@ private:
 	void OnVoteYesPressed();
 	void OnVoteNoPressed();
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
+	void OnAbilityReleased(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
 
-	/** Owning client: the enemy unit under the cursor, if any. */
+	/** Owning client: the select click casts a waiting cast; letting go of Show Cast Range hides its preview. */
+	void TickCastInput();
+
+	/** Attack-moves toward the ground, or the minimap's point, under the cursor. */
+	void AttackMoveToCursor();
+
+	/** Attack Move's key was pressed: its click, the Select Click, gives the order. */
+	bool bAttackMoveWaiting = false;
+
+	/** Does what the cast input decided: a cast goes toward the cursor; an indicator is the UI's to draw. */
+	void ApplyCastStep(const FVeyraCastOutcome& Outcome);
+
+	/** Casts Slot now, at the unit and the ground under the cursor. */
+	void CastAtCursor(EVeyraAbilitySlot Slot);
+
+	/** Owning client: the ability Slot holds now, an override included; invalid for none. */
+	FVeyraContentId AbilityIn(EVeyraAbilitySlot Slot) const;
+
+	/** Owning client: what Slot holds now, for a waiting cast to check it can still be cast. */
+	FVeyraSlotNow SlotNow(EVeyraAbilitySlot Slot) const;
+
+	/** Which indicator shows, and when a key, its release or a click casts (ADR-041 §1). */
+	FVeyraCastInput CastInput;
+
+	/** Owning client: the enemy unit under the cursor, if any; only a Vanguard while Target Vanguards Only holds. */
 	AActor* FindEnemyUnderCursor() const;
+
+	/** Owning client: the units under the cursor, nearest the camera first, until something else blocks the view. */
+	TArray<FVeyraCursorUnit> UnitsUnderCursor() const;
+
+	/** Owning client: whether attacks and casts name only Vanguards now (Settings Bible §1.4). */
+	bool IsTargetingVanguardsOnly() const;
+
+	/**
+	 * Owning client: whether Slot's cast names the player's own Vanguard: its ability may name an ally, and the
+	 * Self-Cast Modifier is held or Smart Self-Cast finds no allied Vanguard under the cursor (Settings Bible §1.5).
+	 */
+	bool ShouldSelfCast(EVeyraAbilitySlot Slot, TConstArrayView<FVeyraCursorUnit> Under) const;
+
+	/** Target Vanguards Only, switched by its key while its mode is Toggle. */
+	bool bTargetVanguardsToggled = false;
 
 	/** Whether the move button's current press ordered an attack, which holding it does not steer. */
 	bool bMoveOrderPressAttacked = false;

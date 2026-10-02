@@ -60,6 +60,9 @@ const (
 	// MatchmakingCoop: a matchmaker for one side of humans against an enemy AI
 	// team, then Match Found and a Casual Select with the bots seated (ADR-039 §2).
 	MatchmakingCoop = "coop"
+	// MatchmakingDraftPick: a matchmaker, then Match Found and a Draft Pick
+	// select of bans and picks in turns (ADR-042 §3).
+	MatchmakingDraftPick = "draftPick"
 	// MatchmakingNotImplemented: the mode may be selected but not queued yet.
 	MatchmakingNotImplemented = "notImplemented"
 )
@@ -100,9 +103,11 @@ type Config struct {
 	Matchmaking           Matchmaking
 	MatchFound            MatchFound
 	CasualSelect          CasualSelect
-	Selection             Selection
-	Matches               Matches
-	Allocator             Allocator
+	// DraftPick is set when a mode uses draftPick matchmaking.
+	DraftPick DraftPick
+	Selection Selection
+	Matches   Matches
+	Allocator Allocator
 }
 
 // Vanguards configures the catalog of Vanguards players may own and pick
@@ -214,6 +219,28 @@ type CasualSelect struct {
 	PickDuration time.Duration
 	// PresenceTimeout cancels a select a player's client has stopped polling
 	// for this long: a disconnect.
+	PresenceTimeout time.Duration
+	// FinalDuration is the window after the last lock, in which locked
+	// teammates may still trade (ADR-042 §2); zero starts the match at once.
+	FinalDuration time.Duration
+}
+
+// DraftTurn is one turn of Draft Pick: Count bans or picks by Side.
+type DraftTurn struct {
+	Ban   bool
+	Side  string
+	Count int
+}
+
+// DraftPick configures Draft Pick (ADR-042 §1, §3; Battleground Bible).
+type DraftPick struct {
+	// Turns are the bans, then the picks, in order.
+	Turns []DraftTurn
+	// BanDuration and PickDuration are how long each ban or pick turn lasts;
+	// FinalDuration is the window after the last pick.
+	BanDuration     time.Duration
+	PickDuration    time.Duration
+	FinalDuration   time.Duration
 	PresenceTimeout time.Duration
 }
 
@@ -470,7 +497,19 @@ type fileConfig struct {
 	CasualSelect *struct {
 		PickDuration    *Duration `json:"pickDuration"`
 		PresenceTimeout *Duration `json:"presenceTimeout"`
+		FinalDuration   *Duration `json:"finalDuration"`
 	} `json:"casualSelect"`
+	DraftPick *struct {
+		Turns []struct {
+			Phase *string `json:"phase"`
+			Side  *string `json:"side"`
+			Count *int    `json:"count"`
+		} `json:"turns"`
+		BanDuration     *Duration `json:"banDuration"`
+		PickDuration    *Duration `json:"pickDuration"`
+		FinalDuration   *Duration `json:"finalDuration"`
+		PresenceTimeout *Duration `json:"presenceTimeout"`
+	} `json:"draftPick"`
 	Selection *struct {
 		TickInterval    *Duration `json:"tickInterval"`
 		StartingTimeout *Duration `json:"startingTimeout"`
@@ -561,6 +600,16 @@ func Parse(raw []byte) (Config, error) {
 		}
 		if *d <= 0 {
 			problems = append(problems, field+" must be positive")
+		}
+		return time.Duration(*d)
+	}
+	notNegative := func(field string, d *Duration) time.Duration {
+		if d == nil {
+			missing(field)
+			return 0
+		}
+		if *d < 0 {
+			problems = append(problems, field+" must not be negative")
 		}
 		return time.Duration(*d)
 	}
@@ -729,8 +778,10 @@ func Parse(raw []byte) (Config, error) {
 			missing(field + ".matchmaking")
 			continue
 		}
-		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingCoop && *m.Matchmaking != MatchmakingNotImplemented {
-			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\", \""+MatchmakingCoop+"\" or \""+MatchmakingNotImplemented+"\"")
+		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingCoop && *m.Matchmaking != MatchmakingDraftPick &&
+			*m.Matchmaking != MatchmakingNotImplemented {
+			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\", \""+MatchmakingCoop+"\", \""+MatchmakingDraftPick+
+				"\" or \""+MatchmakingNotImplemented+"\"")
 		}
 		switch {
 		case m.Category == nil:
@@ -1014,6 +1065,53 @@ func Parse(raw []byte) (Config, error) {
 	} else {
 		c.CasualSelect.PickDuration = positive("casualSelect.pickDuration", f.CasualSelect.PickDuration)
 		c.CasualSelect.PresenceTimeout = positive("casualSelect.presenceTimeout", f.CasualSelect.PresenceTimeout)
+		c.CasualSelect.FinalDuration = notNegative("casualSelect.finalDuration", f.CasualSelect.FinalDuration)
+	}
+
+	// Draft Pick's turns, for its modes (ADR-042 §1, §3): each side's picks
+	// cover its whole team, so no seat waits for a turn that never comes.
+	draftTeam := 0
+	for _, m := range c.Modes {
+		if m.Matchmaking == MatchmakingDraftPick {
+			draftTeam = max(draftTeam, m.HumanPlayersPerTeam)
+		}
+	}
+	switch {
+	case f.DraftPick == nil && draftTeam > 0:
+		missing("draftPick")
+	case f.DraftPick != nil:
+		d := f.DraftPick
+		c.DraftPick.BanDuration = positive("draftPick.banDuration", d.BanDuration)
+		c.DraftPick.PickDuration = positive("draftPick.pickDuration", d.PickDuration)
+		c.DraftPick.FinalDuration = notNegative("draftPick.finalDuration", d.FinalDuration)
+		c.DraftPick.PresenceTimeout = positive("draftPick.presenceTimeout", d.PresenceTimeout)
+		if len(d.Turns) == 0 {
+			missing("draftPick.turns")
+		}
+		picks := map[string]int{}
+		for i, turn := range d.Turns {
+			field := fmt.Sprintf("draftPick.turns[%d]", i)
+			switch {
+			case turn.Phase == nil || turn.Side == nil || turn.Count == nil:
+				missing(field + ".phase, .side and .count")
+				continue
+			case *turn.Phase != "ban" && *turn.Phase != "pick":
+				problems = append(problems, field+".phase must be \"ban\" or \"pick\"")
+			case *turn.Side != "A" && *turn.Side != "B":
+				problems = append(problems, field+".side must be \"A\" or \"B\"")
+			case *turn.Count < 1:
+				problems = append(problems, field+".count must be at least 1")
+			}
+			if *turn.Phase == "pick" {
+				picks[*turn.Side] += *turn.Count
+			}
+			c.DraftPick.Turns = append(c.DraftPick.Turns, DraftTurn{Ban: *turn.Phase == "ban", Side: *turn.Side, Count: *turn.Count})
+		}
+		for _, side := range []string{"A", "B"} {
+			if picks[side] < max(draftTeam, 1) {
+				problems = append(problems, fmt.Sprintf("draftPick.turns give side %s %d pick(s), fewer than its team of %d", side, picks[side], max(draftTeam, 1)))
+			}
+		}
 	}
 
 	if f.Selection == nil {

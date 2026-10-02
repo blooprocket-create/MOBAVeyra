@@ -177,7 +177,7 @@ M28a added ([ADR-036](Docs/ADR/ADR-036-runtime-dense-fog-sounded-waymarks-and-th
 M28b added Sylra, The Mistwarden: Harbor Bell, Lay the Mist, Waymark, Through the White and Follow the Bell, all data.
 
 M29a added ([ADR-037](Docs/ADR/ADR-037-deployables-postures-cover-and-designation.md)), for Eudora:
-- in Combat, the Cover status kind and the cover rule in `VeyraCombat::DealPreparedDamage` (an ally's frontal cover takes a share of a projectile's damage out of its capacity, passing some to its holder; damage carries `bProjectile` from where it is prepared), and the Designated status kind, read through `VeyraCombat::HasStatusKindFrom`;
+- in Combat, the Cover status kind and the cover rule in `VeyraCombat::DealPreparedDamage` (an ally's frontal cover takes a share of a projectile's damage out of its capacity, passing some to its holder; damage carries `ProjectileFrom`, where its projectile was launched, which cover judges the shot from), and the Designated status kind, read through `VeyraCombat::HasStatusKindFrom`;
 - in Abilities, the command orders Deploy, ChangePosture and Unanchor; the Anchored mode (`AVeyraCompanion::Anchor`), which never walks and stands through its owner's death; companions' postures, moving statuses and moving aura (`UVeyraCompanionSubsystem::Deploy` and `Move`); and companions' preference for their owner's Designated enemy;
 - in Vanguards, the All Hands passive (`UVeyraAllHandsPassive`).
 
@@ -187,7 +187,8 @@ M30 added ([ADR-039](Docs/ADR/ADR-039-weekly-rotation-and-co-op-vs-ai.md)), Co-o
 - in the backend, the catalog's seeded weekly rotation; the `coop` matchmaking kind, which fills one side with humans; a co-op select that seats its enemy AI team; and Standard matches that carry it;
 - in Bots, role preferences per Vanguard, by which a team deals its seats' places (`VeyraBotRoles::Deal`);
 - in Match, the host's acceptance of a co-op match's enemy team;
-- in the client, co-op cards and queues, and `Smoke.ps1 -Flow Coop`.
+- in the client, co-op cards and queues, the Play page's four categories (Ranked, Casual, AI, Customs) from each mode's `category`, and `Smoke.ps1 -Flow Coop`;
+- in the scripts, `Set-VeyraBackendConfig`, which sizes a script's queue to its clients in `Backend/config/scripted.json`.
 
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
@@ -317,6 +318,13 @@ Since M6 it adds an assigned practice match's bots (ADR-010 §7). Since M9 it se
 Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §7–§8): the fountain check tells `UVeyraShopSubsystem` who stands at their fountain, deaths deliver the queue, and the player controller forwards buy, sell, undo, cancel and item-slot requests. `Recall/` holds the channel on each PlayerState; the game mode starts it (B), ends it on every order the Vanguard takes, and brings the Vanguard home.
 
 Since M12 `Statistics/` holds the match's one statistics service ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §3). `UVeyraMatchStatisticsSubsystem` records every participant, bots too, from the events Combat, Economy, World and Vision report, and never computes what they decide. Pure rules (`VeyraStatisticsRules`) hold the crowd-control union and which Gold counts as earned. Each PlayerState's `UVeyraScoreComponent` carries the public part, K/D/A and last hits, to every client.
+
+Since M31 `Input/` decides how the player's keys cast ([ADR-041](Docs/ADR/ADR-041-casting-modes-and-targeting-aids.md)):
+- `FVeyraCastInput`, the casting modes (Quick, Quick with Indicator, Normal) and Show Cast Range as pure transitions;
+- `VeyraControlPreferences`, the control settings;
+- `VeyraCursorPicks`, which unit under the cursor an order or cast names, for Target Vanguards Only and Smart Self-Cast.
+
+The controller publishes the waiting cast for VeyraUI's indicator (`GetCastIndicator`). Attack-move orders carry their target preference to the Vanguard controller.
 
 Since M23 `Chat/` holds in-match Team and All Chat ([ADR-029](Docs/ADR/ADR-029-in-match-chat.md)). `UVeyraChatSubsystem` validates each message on the server (`VeyraChatRules`: cleaning, length, rate, who receives which channel) and hands it to each recipient's controller, keeping mutes and the All Chat preference at delivery. No replicated actor carries chat, so spectators and replays never see it. The player controller holds the client's chat log, its own notices included, capped by `chat.keepMessages`.
 

@@ -130,6 +130,26 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RankUpModifierKey;
 
+	/** One press attack-moves toward the cursor: Attack Move Click (Settings Bible §1.3; ADR-041 §4). Unbound by default. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey AttackMoveClickKey;
+
+	/** Held with an ability's key, shows its indicator without casting it (Settings Bible §1.7; ADR-041 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey ShowCastRangeKey;
+
+	/** The click that casts an ability waiting for one, a Normal Cast's (Settings Bible §1.2, §1.8). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey SelectKey;
+
+	/** Held with an ability's key, names the player's own Vanguard when the ability may name an ally (Settings Bible §1.5). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey SelfCastKey;
+
+	/** Held, or pressed to switch, so attacks and casts name only Vanguards under the cursor (Settings Bible §1.4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey TargetVanguardsOnlyKey;
+
 	/** The key bound to Slot. */
 	const FKey& GetAbilityKey(EVeyraAbilitySlot Slot) const;
 

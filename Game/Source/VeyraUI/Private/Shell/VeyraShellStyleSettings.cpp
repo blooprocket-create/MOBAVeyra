@@ -80,6 +80,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("TileCornerRadius"), TileCornerRadius },
 		{ TEXT("FrameWidth"), FrameWidth },
 		{ TEXT("RosterTileSize"), RosterTileSize },
+		{ TEXT("RosterBenchWidth"), RosterBenchWidth },
 		{ TEXT("PickBarWidth"), PickBarWidth },
 		{ TEXT("PickBarHeight"), PickBarHeight },
 		{ TEXT("SeatColumnWidth"), SeatColumnWidth },
@@ -138,6 +139,11 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		Require(!Portrait.Vanguard.IsEmpty() && !bAlreadySeen, TEXT("VanguardPortraits"), TEXT("each entry names a different Vanguard."));
 	}
 	Require(!HomeVanguard.IsEmpty(), TEXT("HomeVanguard"), TEXT("names the Vanguard whose art fills Home."));
+	// The turn cue's tones must be audible ones its sample rate can carry.
+	Require(!TurnCueTonesHz.IsEmpty() && !TurnCueTonesHz.ContainsByPredicate([](float Hz) { return !(Hz > 0.0f && Hz < TurnCueSampleRate / 2.0f); }),
+		TEXT("TurnCueTonesHz"), TEXT("lists at least one tone, each above 0 and below half the cue's sample rate."));
+	Require(TurnCueToneSeconds > 0.0f, TEXT("TurnCueToneSeconds"), TEXT("must be above 0."));
+	Require(TurnCueVolume > 0.0f && TurnCueVolume <= 1.0f, TEXT("TurnCueVolume"), TEXT("must be above 0 and at most 1."));
 	Require(!LobbyStartingGoldChoices.IsEmpty() && !LobbyStartingGoldChoices.ContainsByPredicate([](float Gold) { return !(Gold >= 0.0f); }),
 		TEXT("LobbyStartingGoldChoices"), TEXT("lists at least one amount, none of them negative."));
 	TSet<FString> Modes;

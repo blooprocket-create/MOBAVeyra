@@ -36,7 +36,9 @@ namespace VeyraBackendProtocol
  * Each chooses a starter if asked, chooses the first matchmade mode in Play, readies up and finds a
  * match. Then:
  * - casual accepts, hovers and locks its Vanguard, plays the standard match and checks its verified
- *   result. With -VeyraSmokeFlowEndsMatch it walks and ends the match from the in-match menu's
+ *   result. In a draft (-VeyraSmokeFlowMode= a Draft Pick mode, Smoke.ps1 -Flow Draft, ADR-042) it
+ *   bans in its ban turns, from the roster's end so that neither player's Vanguard is banned, and
+ *   locks in its pick turn. With -VeyraSmokeFlowEndsMatch it walks and ends the match from the in-match menu's
  *   developer end; otherwise it waits for the end. With -VeyraSmokeFlowVictory the match must end in
  *   a win (Smoke.ps1 -Flow CasualVictory, ADR-011 §13): -VeyraSmokeFlowSieges wins it with
  *   Veyra.Dev.Siege and must see Victory; the other must see Defeat. With -VeyraSmokeFlowReconnects
@@ -204,6 +206,9 @@ private:
 
 	/** Which Vanguard to take from those on offer; empty if none fits. */
 	FString ChooseFrom(const TArray<FString>& Offered) const;
+
+	/** In the player's ban turn, hovers a ban, then bans it. */
+	void TickBan(const FVeyraClientSnapshot& Snapshot);
 	void Finish(bool bPassed, const FString& Reason);
 
 	EScript Script = EScript::Join;

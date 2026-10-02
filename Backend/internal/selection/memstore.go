@@ -21,6 +21,9 @@ func NewMemStore() *MemStore { return &MemStore{sessions: map[string]Session{}} 
 func copySession(s Session) Session {
 	s.Seats = append([]Seat(nil), s.Seats...)
 	s.Bots = append([]match.Bot(nil), s.Bots...)
+	s.Bans = append([]Ban(nil), s.Bans...)
+	s.Trades = append([]Trade(nil), s.Trades...)
+	s.Timing.Turns = append([]Turn(nil), s.Timing.Turns...)
 	if s.Custom != nil {
 		custom := *s.Custom
 		s.Custom = &custom

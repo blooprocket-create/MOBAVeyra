@@ -31,6 +31,9 @@ namespace
 	const TCHAR* const ExtraLarge = TEXT("ExtraLarge");
 	const TCHAR* const Transparent = TEXT("Transparent");
 	const TCHAR* const HighContrast = TEXT("HighContrast");
+
+	/** The indicator boundary's option that draws it thick (Settings Bible §3.3). */
+	const TCHAR* const Thick = TEXT("Thick");
 }
 
 const FVeyraContentId& HudScale()
@@ -93,6 +96,12 @@ const FVeyraContentId& ConfineCursor()
 	return Id;
 }
 
+const FVeyraContentId& IndicatorBoundary()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_indicator_boundary"));
+	return Id;
+}
+
 const FVeyraContentId& ChatTextSize()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("communication_chat_text_size"));
@@ -130,6 +139,7 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.ChatFontSize = Hud.ChatFontSize;
 	Preferences.ChatBackdrop = Hud.ChatBackdropColor;
 	Preferences.ChatFadeSeconds = Hud.ChatFadeSeconds;
+	Preferences.IndicatorThickness = Hud.IndicatorThickness;
 	if (!Store)
 	{
 		return Preferences;
@@ -148,6 +158,7 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.bShowPing = Store->IsOn(ShowPing());
 	Preferences.bScoreboardToggles = Store->Get(ScoreboardMode()) == Toggle;
 	Preferences.bConfineCursor = Store->IsOn(ConfineCursor());
+	Preferences.IndicatorThickness = Store->Get(IndicatorBoundary()) == Thick ? Hud.IndicatorThickThickness : Hud.IndicatorThickness;
 	const FString Size = Store->Get(ChatTextSize());
 	Preferences.ChatFontSize = Size == Large ? Hud.ChatLargeFontSize : Size == ExtraLarge ? Hud.ChatExtraLargeFontSize : Hud.ChatFontSize;
 	const FString Backdrop = Store->Get(ChatBackdrop());

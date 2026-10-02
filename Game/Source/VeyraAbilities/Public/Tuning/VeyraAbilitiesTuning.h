@@ -2445,6 +2445,12 @@ namespace VeyraAbilityRules
 	VEYRAABILITIES_API const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 
 	/**
+	 * Whether a cast of Ability may name an allied unit, its caster among them: a buff that may land on an ally,
+	 * or a companion command bound to one. The Self-Cast Modifier names the caster only for these (ADR-041 §3).
+	 */
+	VEYRAABILITIES_API bool AcceptsAllyTarget(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/**
 	 * Problems with Ability as the ability of a slot with RankCount ranks: each of its rank lists must
 	 * hold one value, or exactly RankCount (ADR-008 §3).
 	 */

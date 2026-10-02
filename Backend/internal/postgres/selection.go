@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -31,11 +32,11 @@ type selectionTx struct {
 func (t selectionTx) CreateSession(s selection.Session) error {
 	if _, err := t.q.Exec(t.ctx, `
 		INSERT INTO selection.sessions (id, kind, mode, host_account_id, state, created_at, deadline, starting_at, ended_at, match_id, cancel_reason, left_by,
-			lobby_id, custom_victory_enabled, custom_starting_gold)
-		VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10::uuid, $11, $12::uuid, $13::uuid, $14, $15)`,
+			lobby_id, custom_victory_enabled, custom_starting_gold, phase, turn, turn_done, timing)
+		VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10::uuid, $11, $12::uuid, $13::uuid, $14, $15, $16, $17, $18, $19)`,
 		s.ID, string(s.Kind), s.Mode, nullableText(s.HostAccountID), string(s.State), s.CreatedAt, s.Deadline, nullableTime(s.StartingAt),
 		nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason)), nullableText(s.LeftBy),
-		nullableText(s.LobbyID), customVictory(s.Custom), customGold(s.Custom)); err != nil {
+		nullableText(s.LobbyID), customVictory(s.Custom), customGold(s.Custom), phaseOf(s), s.Turn, s.TurnDone, timingJSON(s.Timing)); err != nil {
 		return err
 	}
 	for i, b := range s.Bots {
@@ -46,12 +47,15 @@ func (t selectionTx) CreateSession(s selection.Session) error {
 	}
 	for i, seat := range s.Seats {
 		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.seats (session_id, account_id, display_name, side, seat_order, hover, locked, locked_at, last_seen,
-			flux_spells, flux_spells_edited)
-			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+			flux_spells, flux_spells_edited, ban_hover)
+			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 			s.ID, seat.AccountID, seat.DisplayName, string(seat.Side), i, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt),
-			nullableTime(seat.LastSeen), seat.FluxSpells[:], seat.FluxSpellsEdited); err != nil {
+			nullableTime(seat.LastSeen), seat.FluxSpells[:], seat.FluxSpellsEdited, nullableText(seat.BanHover)); err != nil {
 			return err
 		}
+	}
+	if err := t.saveBansAndTrades(s); err != nil {
+		return err
 	}
 	if !s.State.Active() {
 		return nil
@@ -74,12 +78,13 @@ func (t selectionTx) LockSession(id string) (selection.Session, error) {
 }
 
 // SaveSession stores a session's changes. Seats never join or leave a session,
-// so only their picks change.
+// so only their picks change; a draft's phase, turn, deadline and bans move on,
+// and trade offers come and go.
 func (t selectionTx) SaveSession(s selection.Session) error {
 	tag, err := t.q.Exec(t.ctx, `UPDATE selection.sessions SET state = $2, starting_at = $3, ended_at = $4, match_id = $5::uuid, cancel_reason = $6,
-		left_by = $7::uuid WHERE id = $1::uuid`,
+		left_by = $7::uuid, phase = $8, turn = $9, turn_done = $10, deadline = $11 WHERE id = $1::uuid`,
 		s.ID, string(s.State), nullableTime(s.StartingAt), nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason)),
-		nullableText(s.LeftBy))
+		nullableText(s.LeftBy), phaseOf(s), s.Turn, s.TurnDone, s.Deadline)
 	if err != nil {
 		return err
 	}
@@ -88,18 +93,61 @@ func (t selectionTx) SaveSession(s selection.Session) error {
 	}
 	for _, seat := range s.Seats {
 		if _, err := t.q.Exec(t.ctx, `UPDATE selection.seats SET hover = $3, locked = $4, locked_at = $5, last_seen = $6, flux_spells = $7,
-			flux_spells_edited = $8
+			flux_spells_edited = $8, ban_hover = $9
 			WHERE session_id = $1::uuid AND account_id = $2::uuid`,
 			s.ID, seat.AccountID, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt), nullableTime(seat.LastSeen),
-			seat.FluxSpells[:], seat.FluxSpellsEdited); err != nil {
+			seat.FluxSpells[:], seat.FluxSpellsEdited, nullableText(seat.BanHover)); err != nil {
 			return err
 		}
+	}
+	if err := t.saveBansAndTrades(s); err != nil {
+		return err
 	}
 	if !s.State.Active() {
 		_, err := t.q.Exec(t.ctx, `DELETE FROM selection.active_seats WHERE session_id = $1::uuid`, s.ID)
 		return err
 	}
 	return nil
+}
+
+// saveBansAndTrades replaces a session's bans and trade offers with its own.
+func (t selectionTx) saveBansAndTrades(s selection.Session) error {
+	if _, err := t.q.Exec(t.ctx, `DELETE FROM selection.bans WHERE session_id = $1::uuid`, s.ID); err != nil {
+		return err
+	}
+	for i, b := range s.Bans {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.bans (session_id, ban_order, side, account_id, vanguard_id) VALUES ($1::uuid, $2, $3, $4::uuid, $5)`,
+			s.ID, i, string(b.Side), b.AccountID, b.VanguardID); err != nil {
+			return err
+		}
+	}
+	if _, err := t.q.Exec(t.ctx, `DELETE FROM selection.trades WHERE session_id = $1::uuid`, s.ID); err != nil {
+		return err
+	}
+	for _, trade := range s.Trades {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.trades (session_id, from_account, to_account) VALUES ($1::uuid, $2::uuid, $3::uuid)`,
+			s.ID, trade.From, trade.To); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// phaseOf is the session's phase, picking for one that never set it.
+func phaseOf(s selection.Session) string {
+	if s.Phase == "" {
+		return string(selection.PhasePicking)
+	}
+	return string(s.Phase)
+}
+
+func timingJSON(t selection.Timing) []byte {
+	raw, err := json.Marshal(t)
+	if err != nil {
+		// A Timing of plain fields always marshals.
+		panic(err)
+	}
+	return raw
 }
 
 func (s *SelectionStore) ActiveFor(ctx context.Context, accountID string) (selection.Session, error) {
@@ -149,24 +197,28 @@ func (s *SelectionStore) Active(ctx context.Context) ([]selection.Session, error
 func loadSession(ctx context.Context, q querier, id string, lock bool) (selection.Session, error) {
 	sql := `SELECT id::text, kind, mode, coalesce(host_account_id::text, ''), state, created_at, deadline, starting_at, ended_at,
 		coalesce(match_id::text, ''), coalesce(cancel_reason, ''), coalesce(left_by::text, ''), coalesce(lobby_id::text, ''),
-		custom_victory_enabled, custom_starting_gold FROM selection.sessions WHERE id = $1::uuid`
+		custom_victory_enabled, custom_starting_gold, phase, turn, turn_done, timing FROM selection.sessions WHERE id = $1::uuid`
 	if lock {
 		sql += ` FOR UPDATE`
 	}
 	var s selection.Session
-	var kind, state, reason string
+	var kind, state, reason, phase string
 	var startingAt, endedAt *time.Time
 	var victory *bool
 	var gold *float64
+	var timing []byte
 	err := q.QueryRow(ctx, sql, id).Scan(&s.ID, &kind, &s.Mode, &s.HostAccountID, &state, &s.CreatedAt, &s.Deadline, &startingAt, &endedAt,
-		&s.MatchID, &reason, &s.LeftBy, &s.LobbyID, &victory, &gold)
+		&s.MatchID, &reason, &s.LeftBy, &s.LobbyID, &victory, &gold, &phase, &s.Turn, &s.TurnDone, &timing)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return selection.Session{}, selection.ErrSelectNotFound
 	}
 	if err != nil {
 		return selection.Session{}, err
 	}
-	s.Kind, s.State, s.CancelReason = selection.Kind(kind), selection.State(state), selection.CancelReason(reason)
+	s.Kind, s.State, s.CancelReason, s.Phase = selection.Kind(kind), selection.State(state), selection.CancelReason(reason), selection.Phase(phase)
+	if err := json.Unmarshal(timing, &s.Timing); err != nil {
+		return selection.Session{}, err
+	}
 	s.StartingAt, s.EndedAt = timeOrZero(startingAt), timeOrZero(endedAt)
 	if victory != nil {
 		s.Custom = &match.CustomSettings{VictoryEnabled: *victory, StartingGold: gold}
@@ -186,7 +238,7 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 		return selection.Session{}, err
 	}
 	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(hover, ''), coalesce(locked, ''), locked_at, last_seen,
-		flux_spells, flux_spells_edited
+		flux_spells, flux_spells_edited, coalesce(ban_hover, '')
 		FROM selection.seats WHERE session_id = $1::uuid ORDER BY seat_order`, id)
 	if err != nil {
 		return selection.Session{}, err
@@ -196,10 +248,35 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 		var side string
 		var lockedAt, lastSeen *time.Time
 		var spells []string
-		err := r.Scan(&seat.AccountID, &seat.DisplayName, &side, &seat.Hover, &seat.Locked, &lockedAt, &lastSeen, &spells, &seat.FluxSpellsEdited)
+		err := r.Scan(&seat.AccountID, &seat.DisplayName, &side, &seat.Hover, &seat.Locked, &lockedAt, &lastSeen, &spells, &seat.FluxSpellsEdited, &seat.BanHover)
 		seat.Side, seat.LockedAt, seat.LastSeen = match.Side(side), timeOrZero(lockedAt), timeOrZero(lastSeen)
 		copy(seat.FluxSpells[:], spells)
 		return seat, err
+	})
+	if err != nil {
+		return selection.Session{}, err
+	}
+	banRows, err := q.Query(ctx, `SELECT side, account_id::text, vanguard_id FROM selection.bans WHERE session_id = $1::uuid ORDER BY ban_order`, id)
+	if err != nil {
+		return selection.Session{}, err
+	}
+	s.Bans, err = pgx.CollectRows(banRows, func(r pgx.CollectableRow) (selection.Ban, error) {
+		var b selection.Ban
+		var side string
+		err := r.Scan(&side, &b.AccountID, &b.VanguardID)
+		b.Side = match.Side(side)
+		return b, err
+	})
+	if err != nil {
+		return selection.Session{}, err
+	}
+	tradeRows, err := q.Query(ctx, `SELECT from_account::text, to_account::text FROM selection.trades WHERE session_id = $1::uuid ORDER BY from_account`, id)
+	if err != nil {
+		return selection.Session{}, err
+	}
+	s.Trades, err = pgx.CollectRows(tradeRows, func(r pgx.CollectableRow) (selection.Trade, error) {
+		var trade selection.Trade
+		return trade, r.Scan(&trade.From, &trade.To)
 	})
 	if err != nil {
 		return selection.Session{}, err

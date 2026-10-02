@@ -3,6 +3,10 @@
 #include "VeyraPlayerController.h"
 
 #include "Camera/VeyraCameraPreferences.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
+#include "Input/VeyraControlPreferences.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Developer/VeyraDeveloperCommandRoute.h"
 #include "Engine/Console.h"
@@ -60,7 +64,14 @@ void AVeyraPlayerController::IssueAttackOrder(AActor* Target)
 
 void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
 {
-	ServerIssueAttackMoveOrder(Destination);
+	ServerIssueAttackMoveOrder(Destination, ControlPreferences().AttackMoveTarget);
+}
+
+bool AVeyraPlayerController::CancelPendingCast()
+{
+	const bool bWasWaiting = bAttackMoveWaiting;
+	bAttackMoveWaiting = false;
+	return CastInput.Cancel().Step != EVeyraCastStep::Nothing || bWasWaiting;
 }
 
 void AVeyraPlayerController::RequestRecall()
@@ -193,24 +204,32 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
 		Enhanced->BindAction(Input.VoteYes, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteYesPressed);
 		Enhanced->BindAction(Input.VoteNo, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteNoPressed);
+		// Each ability's key reports its press and its release, which its casting mode reads (ADR-041 §1).
+		const auto BindAbility = [this, Enhanced](EVeyraAbilitySlot Slot) {
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Started, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Completed, this, &AVeyraPlayerController::OnAbilityReleased, Slot);
+		};
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 		{
-			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			BindAbility(Slot);
 		}
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
 		{
-			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			BindAbility(Slot);
 		}
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
 		{
-			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			BindAbility(Slot);
 		}
-		Enhanced->BindAction(Input.VisionTool, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, EVeyraAbilitySlot::VisionTool);
+		BindAbility(EVeyraAbilitySlot::VisionTool);
 	}
 }
 
 void AVeyraPlayerController::OnMoveOrderStarted()
 {
+	// It cancels a waiting cast or attack-move, and still gives its order (ADR-041 §1, §4).
+	CastInput.Cancel();
+	bAttackMoveWaiting = false;
 	// On an enemy the button attacks it; anywhere else it moves (Settings Bible §1).
 	AActor* Enemy = FindEnemyUnderCursor();
 	bMoveOrderPressAttacked = Enemy != nullptr;
@@ -234,6 +253,19 @@ void AVeyraPlayerController::OnMoveOrderHeld()
 
 void AVeyraPlayerController::OnAttackMovePressed()
 {
+	// Attack Move: its key, then a click (Settings Bible §1.3). Whatever cast waited gives way.
+	CastInput.Cancel();
+	bAttackMoveWaiting = true;
+}
+
+void AVeyraPlayerController::AttackMoveToCursor()
+{
+	// A point on the minimap is where the order goes (Settings Bible §3.2), as a right click there moves.
+	if (const TOptional<FVector> OnMap = MinimapPointUnderCursor(EMinimapClick::Ping))
+	{
+		IssueAttackMoveOrder(OnMap.GetValue());
+		return;
+	}
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
@@ -264,13 +296,84 @@ void AVeyraPlayerController::ClientAbsenceWarning_Implementation(bool bAfk)
 
 AActor* AVeyraPlayerController::FindEnemyUnderCursor() const
 {
-	FHitResult Unit;
-	if (!GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit))
+	return VeyraCursorPicks::Enemy(UnitsUnderCursor(), IsTargetingVanguardsOnly());
+}
+
+TArray<FVeyraCursorUnit> AVeyraPlayerController::UnitsUnderCursor() const
+{
+	TArray<FVeyraCursorUnit> Under;
+	FVector Origin;
+	FVector Direction;
+	if (!DeprojectMousePositionToWorld(Origin, Direction))
 	{
-		return nullptr;
+		return Under;
 	}
-	AActor* Candidate = Unit.GetActor();
-	return VeyraUnits::KindOf(Candidate).IsSet() && VeyraTargeting::AreHostile(PlayerState, Candidate) ? Candidate : nullptr;
+	// As the cursor's own trace would, but past each unit it meets, until the ground or a wall stops it.
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(VeyraCursorUnits), /*bTraceComplex*/ false);
+	const FVector End = Origin + Direction * HitResultTraceDistance;
+	FHitResult Hit;
+	while (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_Pawn, Query))
+	{
+		AActor* Actor = Hit.GetActor();
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Actor);
+		if (!Kind)
+		{
+			break;
+		}
+		Under.Add(FVeyraCursorUnit{ Actor, Kind.GetValue(), VeyraTargeting::AreHostile(PlayerState, Actor) });
+		Query.AddIgnoredActor(Actor);
+	}
+	return Under;
+}
+
+bool AVeyraPlayerController::IsTargetingVanguardsOnly() const
+{
+	return ControlPreferences().bTargetVanguardsToggles ? bTargetVanguardsToggled : IsInputKeyDown(GetKeys().TargetVanguardsOnlyKey);
+}
+
+bool AVeyraPlayerController::ShouldSelfCast(EVeyraAbilitySlot Slot, TConstArrayView<FVeyraCursorUnit> Under) const
+{
+	const FVeyraAbilitiesTuning& Tuning = UVeyraAbilitiesTuningSubsystem::Get();
+	const FVeyraContentId Ability = AbilityIn(Slot);
+	if (!Ability.IsValid() || !VeyraAbilityRules::AcceptsAllyTarget(Tuning, Ability))
+	{
+		return false;
+	}
+	if (IsInputKeyDown(GetKeys().SelfCastKey))
+	{
+		return true;
+	}
+	if (!ControlPreferences().SmartSelfCast.Contains(Slot))
+	{
+		return false;
+	}
+	const APawn* Body = GetVanguard();
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(Tuning, Ability);
+	return !Body || !Cast || VeyraCursorPicks::SmartSelfCasts(*Body, Under, Cast->CastRange);
+}
+
+FVeyraContentId AVeyraPlayerController::AbilityIn(EVeyraAbilitySlot Slot) const
+{
+	const UVeyraAbilityLoadoutComponent* Loadout = PlayerState ? PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr;
+	return Entry ? Entry->Ability : FVeyraContentId();
+}
+
+FVeyraSlotNow AVeyraPlayerController::SlotNow(EVeyraAbilitySlot Slot) const
+{
+	FVeyraSlotNow Now;
+	const APawn* Body = GetVanguard();
+	Now.bCasterAlive = Body && VeyraTargeting::IsAlive(Body);
+	Now.Ability = AbilityIn(Slot);
+	const UVeyraAbilityLoadoutComponent* Loadout = PlayerState ? PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const UVeyraCooldownComponent* Cooldowns = PlayerState ? PlayerState->FindComponentByClass<UVeyraCooldownComponent>() : nullptr;
+	Now.bLocked = Loadout && Loadout->IsLocked(Slot);
+	if (Loadout && Cooldowns && Now.Ability.IsValid())
+	{
+		// A shared cooldown counts under the ability it is shared with, as the HUD shows it.
+		Now.CooldownSeconds = Cooldowns->GetRemainingSecondsNow(Loadout->CooldownIdOf(Now.Ability));
+	}
+	return Now;
 }
 
 TOptional<FVector> AVeyraPlayerController::MinimapPointUnderCursor(EMinimapClick Purpose) const
@@ -312,13 +415,79 @@ void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 		RequestRankUp(Slot);
 		return;
 	}
+	const bool bPreview = IsInputKeyDown(GetKeys().ShowCastRangeKey);
+	bAttackMoveWaiting = false;
+	ApplyCastStep(CastInput.Press(Slot, ControlPreferences().CastModeOf(Slot), bPreview, AbilityIn(Slot)));
+}
 
-	// Quick Cast (Settings Bible §1.2): cast now, at the unit and the ground under the cursor. Each
-	// ability uses what it needs, and the server decides whether it is valid.
+void AVeyraPlayerController::OnAbilityReleased(EVeyraAbilitySlot Slot)
+{
+	ApplyCastStep(CastInput.Release(Slot));
+}
+
+void AVeyraPlayerController::TickCastInput()
+{
+	if (WasInputKeyJustPressed(GetKeys().TargetVanguardsOnlyKey))
+	{
+		// Read only while its mode is Toggle.
+		bTargetVanguardsToggled = !bTargetVanguardsToggled;
+	}
+	// Attack Move Click: one press toward the cursor (Settings Bible §1.3).
+	if (WasInputKeyJustPressed(GetKeys().AttackMoveClickKey))
+	{
+		bAttackMoveWaiting = false;
+		AttackMoveToCursor();
+	}
+	// A waiting Attack Move takes the Select Click; a ping's click stays the ping's.
+	if (bAttackMoveWaiting && WasInputKeyJustPressed(GetKeys().SelectKey) && !IsPinging())
+	{
+		bAttackMoveWaiting = false;
+		AttackMoveToCursor();
+		return;
+	}
+	const TOptional<FVeyraCastIndicator>& Shown = CastInput.GetIndicator();
+	if (!Shown)
+	{
+		return;
+	}
+	const UVeyraInputSettings& Keys = GetKeys();
+	if (Shown->bPreviewOnly)
+	{
+		if (!IsInputKeyDown(Keys.ShowCastRangeKey))
+		{
+			ApplyCastStep(CastInput.EndPreview());
+		}
+		return;
+	}
+	// An ability that can no longer be cast gives up its waiting cast (ADR-041 §1).
+	if (CastInput.Recheck(SlotNow(Shown->Slot)).Step != EVeyraCastStep::Nothing)
+	{
+		return;
+	}
+	// A click that pings, or lands on the minimap, is theirs and leaves the cast waiting.
+	if (WasInputKeyJustPressed(Keys.SelectKey) && !IsPinging() && !MinimapPointUnderCursor(EMinimapClick::Ping))
+	{
+		ApplyCastStep(CastInput.Confirm());
+	}
+}
+
+void AVeyraPlayerController::ApplyCastStep(const FVeyraCastOutcome& Outcome)
+{
+	if (Outcome.Step == EVeyraCastStep::CastNow)
+	{
+		CastAtCursor(Outcome.Slot);
+	}
+}
+
+void AVeyraPlayerController::CastAtCursor(EVeyraAbilitySlot Slot)
+{
+	// Each ability uses what it needs of the unit and the ground under the cursor, and the server decides
+	// whether it is valid.
 	FVeyraCastTarget Target;
-	FHitResult Unit;
-	GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit);
-	Target.Actor = Unit.GetActor();
+	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
+	const FVeyraContentId Ability = AbilityIn(Slot);
+	const bool bNamesAlly = Ability.IsValid() && VeyraAbilityRules::AcceptsAllyTarget(UVeyraAbilitiesTuningSubsystem::Get(), Ability);
+	Target.Actor = ShouldSelfCast(Slot, Under) ? GetVanguard() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly(), bNamesAlly);
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
@@ -948,12 +1117,19 @@ FVeyraCameraPreferences AVeyraPlayerController::CameraPreferences() const
 	return VeyraCameraPreferences::Resolve(*GetDefault<UVeyraCameraSettings>(), Settings ? &Settings->GetStore() : nullptr);
 }
 
+FVeyraControlPreferences AVeyraPlayerController::ControlPreferences() const
+{
+	const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	return VeyraControlPreferences::Resolve(Settings ? &Settings->GetStore() : nullptr);
+}
+
 void AVeyraPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 	if (IsLocalController())
 	{
 		TickPings();
+		TickCastInput();
 	}
 	if (IsLocalController() && CameraRig)
 	{
@@ -1050,7 +1226,7 @@ void AVeyraPlayerController::ServerIssueAttackOrder_Implementation(AActor* Targe
 	}
 }
 
-void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination)
+void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination, EVeyraAttackMoveTarget Preference)
 {
 	if (!TakeOrderAllowance())
 	{
@@ -1058,7 +1234,7 @@ void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector D
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination) : EVeyraOrderRejection::WrongPhase;
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination, Preference) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);

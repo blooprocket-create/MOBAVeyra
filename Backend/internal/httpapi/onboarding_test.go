@@ -34,7 +34,8 @@ func TestOnboardingOverHTTP(t *testing.T) {
 	}
 
 	status, vanguards := call(t, srv, "GET", "/v1/me/vanguards", one, nil)
-	if status != http.StatusOK || len(vanguards["owned"].([]any)) != 0 || len(vanguards["starters"].([]any)) != 3 || len(vanguards["available"].([]any)) != 4 {
+	if status != http.StatusOK || len(vanguards["owned"].([]any)) != 0 || len(vanguards["starters"].([]any)) != 3 || len(vanguards["available"].([]any)) != 4 ||
+		len(vanguards["released"].([]any)) != 4 {
 		t.Fatalf("a new account's Vanguards: %d %v", status, vanguards)
 	}
 

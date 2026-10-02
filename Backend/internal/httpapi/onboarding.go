@@ -56,14 +56,15 @@ func (s *Server) myProfile(w http.ResponseWriter, r *http.Request, actor string)
 }
 
 // myVanguards lists what the player owns, what the rotation offers, what
-// they may therefore pick, and the starters a new player chooses from.
+// they may therefore pick, the starters a new player chooses from, and every
+// released Vanguard, which a draft's bans may name.
 func (s *Server) myVanguards(w http.ResponseWriter, r *http.Request, actor string) {
 	a, err := s.Account.Vanguards(r.Context(), actor)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"owned": a.Owned, "rotation": a.Rotation, "available": a.Available, "starters": a.Starters})
+	writeJSON(w, http.StatusOK, map[string]any{"owned": a.Owned, "rotation": a.Rotation, "available": a.Available, "starters": a.Starters, "released": a.Released})
 }
 
 // chooseStarter completes the stubbed tutorial with a starter the player then

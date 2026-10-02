@@ -77,12 +77,23 @@ namespace
 		return NewObject<ObjectType>(&Outer, MakeUniqueObjectName(&Outer, ObjectType::StaticClass(), BaseName), RF_Transient);
 	}
 
-	/** A cast action, which fires once per press. */
+	/** An order's action, which fires once per press. */
 	UInputAction* NewCastAction(UObject& Outer, const TCHAR* BaseName)
 	{
 		UInputAction* Action = NewInputObject<UInputAction>(Outer, BaseName);
 		Action->ValueType = EInputActionValueType::Boolean;
 		Action->Triggers.Add(NewObject<UInputTriggerPressed>(Action));
+		return Action;
+	}
+
+	/**
+	 * An ability's action: no trigger, so it starts when its key goes down and completes when it comes up,
+	 * which a Quick Cast with Indicator casts on (ADR-041 §1).
+	 */
+	UInputAction* NewAbilityAction(UObject& Outer, const TCHAR* BaseName)
+	{
+		UInputAction* Action = NewInputObject<UInputAction>(Outer, BaseName);
+		Action->ValueType = EInputActionValueType::Boolean;
 		return Action;
 	}
 }
@@ -94,19 +105,19 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	Objects.MoveOrder = NewInputObject<UInputAction>(Outer, TEXT("VeyraMoveOrder"));
 	Objects.MoveOrder->ValueType = EInputActionValueType::Boolean;
 	Objects.AttackMove = NewCastAction(Outer, TEXT("VeyraAttackMove"));
-	Objects.AbilityQ = NewCastAction(Outer, TEXT("VeyraAbilityQ"));
-	Objects.AbilityW = NewCastAction(Outer, TEXT("VeyraAbilityW"));
-	Objects.AbilityE = NewCastAction(Outer, TEXT("VeyraAbilityE"));
-	Objects.AbilityR = NewCastAction(Outer, TEXT("VeyraAbilityR"));
+	Objects.AbilityQ = NewAbilityAction(Outer, TEXT("VeyraAbilityQ"));
+	Objects.AbilityW = NewAbilityAction(Outer, TEXT("VeyraAbilityW"));
+	Objects.AbilityE = NewAbilityAction(Outer, TEXT("VeyraAbilityE"));
+	Objects.AbilityR = NewAbilityAction(Outer, TEXT("VeyraAbilityR"));
 	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Items)); ++Index)
 	{
-		Objects.ItemSlots.Add(NewCastAction(Outer, TEXT("VeyraItemSlot")));
+		Objects.ItemSlots.Add(NewAbilityAction(Outer, TEXT("VeyraItemSlot")));
 	}
 	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++Index)
 	{
-		Objects.SpellSlots.Add(NewCastAction(Outer, TEXT("VeyraSpellSlot")));
+		Objects.SpellSlots.Add(NewAbilityAction(Outer, TEXT("VeyraSpellSlot")));
 	}
-	Objects.VisionTool = NewCastAction(Outer, TEXT("VeyraVisionTool"));
+	Objects.VisionTool = NewAbilityAction(Outer, TEXT("VeyraVisionTool"));
 	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
 	Objects.VoteYes = NewCastAction(Outer, TEXT("VeyraVoteYes"));
 	Objects.VoteNo = NewCastAction(Outer, TEXT("VeyraVoteNo"));

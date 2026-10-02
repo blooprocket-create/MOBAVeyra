@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Battleground/VeyraBattlegroundTypes.h"
 #include "Engine/DeveloperSettings.h"
 #include "Tuning/VeyraVanguardsTuning.h"
 
@@ -9,6 +10,7 @@
 
 class UMaterialInterface;
 class UStaticMesh;
+class UVeyraUnitArtSet;
 
 /**
  * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
@@ -124,6 +126,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
 
+	/** The battleground's walls on the minimap (ADR-043 §4); its river is drawn in RiverColor. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	FLinearColor MinimapWallColor = FLinearColor::Transparent;
+
 	/** Whether a left click or drag on the minimap moves the camera, and a right click there moves the Vanguard. */
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	bool bMinimapClickMovesCamera = true;
@@ -200,6 +206,19 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
 	FLinearColor EndingColor = FLinearColor::Transparent;
 
+	/**
+	 * The local player's indicator, before a cast (ADR-041 §2): its colour, and its outline in units at
+	 * the Standard and Thick boundaries (Settings Bible §3.3).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
+	FLinearColor IndicatorColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
+	float IndicatorThickness = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
+	float IndicatorThickThickness = 0.0f;
+
 	/** How far above the ground telegraphs are drawn, in units, so the floor does not hide them. */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
 	float TelegraphLift = 0.0f;
@@ -215,6 +234,17 @@ public:
 	/** Each base's pad around its Prime Well: a disc. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
 	TSoftObjectPtr<UStaticMesh> PadMesh;
+
+	/**
+	 * The structure kit's provisional art (Art Direction, Crucible structure greybox meshes), keyed by each
+	 * kind's stable ID (StructureArtId), drawn in place of each structure's body: standing, then its wreck.
+	 * Visual only: its capsule stays its only collision and navigation.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	TSoftObjectPtr<UVeyraUnitArtSet> StructureArt;
+
+	/** A kind of structure's stable ID in its art kit, as the kit's manifest names it: "laneSpire" and the like. */
+	static FName StructureArtId(EVeyraStructureKind Kind);
 
 	/** The lanes' road, the river, and each side's base as the viewer sees it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")

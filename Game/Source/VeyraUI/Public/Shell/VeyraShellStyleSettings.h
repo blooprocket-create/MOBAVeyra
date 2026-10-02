@@ -54,6 +54,9 @@ public:
 	/** Every problem with these settings, as "Field: message"; empty when the shell can use them. */
 	TArray<FString> Validate() const;
 
+	/** The turn cue's sample rate: the audio format it is made in, not presentation to tune. */
+	static constexpr int32 TurnCueSampleRate = 48000;
+
 	/** Behind every screen. */
 	UPROPERTY(Config, EditAnywhere, Category = "Colours")
 	FLinearColor BackgroundColor = FLinearColor::Transparent;
@@ -180,6 +183,10 @@ public:
 	/** A roster portrait across champion select's top, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
 	float RosterTileSize = 0.0f;
+
+	/** The widest champion select's row of portraits grows before it scrolls, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
+	float RosterBenchWidth = 0.0f;
 
 	/** Each of the countdown's two draining bars, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
@@ -384,6 +391,19 @@ public:
 	/** The friends panel down the right of the shell and the lobby (Art Bible §7), in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;
+
+	/**
+	 * The one brief, distinct cue as the player's draft turn begins (Pre-Game Client UX Bible 32): its tones
+	 * in turn, in hertz, each tone's length in seconds, and its volume. Presentation, made as it plays.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Sound")
+	TArray<float> TurnCueTonesHz;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0.01"))
+	float TurnCueToneSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0", ClampMax = "1"))
+	float TurnCueVolume = 0.0f;
 
 	/** A seat of a custom lobby's two columns, in slate units (ADR-021). */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))

@@ -33,6 +33,15 @@ namespace
 		Shape.Radius = Radius;
 		return Shape;
 	}
+
+	FVeyraShape TelegraphSector(double Radius, double ArcDegrees)
+	{
+		FVeyraShape Shape;
+		Shape.Kind = EVeyraShapeKind::Sector;
+		Shape.Radius = Radius;
+		Shape.ArcDegrees = ArcDegrees;
+		return Shape;
+	}
 }
 
 TArray<FVeyraPlacedShape> VeyraCastTelegraphs::ForCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraCastState& State, const FVector& CasterLocation,
@@ -62,5 +71,43 @@ TArray<FVeyraPlacedShape> VeyraCastTelegraphs::ForCast(const FVeyraAbilitiesTuni
 			Shapes.Add(FVeyraPlacedShape{ TelegraphCircle(Aura.Radius), CasterLocation, State.Direction });
 		}
 	}
+	else if (const FVeyraVolleyAbilityTuning* Volley = Tuning.Volley.Find(State.Ability))
+	{
+		// The lane its shots fly in (UVeyraVolleySubsystem): from the caster, as far as a shot reaches, the lane's
+		// half angle either side of the cast's direction; a lane with none is one shot's path.
+		if (const FVeyraSkillshotAbilityTuning* Shot = Tuning.Skillshot.Find(Volley->Shot))
+		{
+			const FVeyraProjectileTuning& Projectile = Shot->Projectile;
+			const FVeyraShape Lane = Volley->LaneHalfAngleDegrees > 0.0 ? TelegraphSector(Projectile.Range, 2.0 * Volley->LaneHalfAngleDegrees)
+				: TelegraphPath(Projectile.Range, 2.0 * Projectile.Radius);
+			Shapes.Add(FVeyraPlacedShape{ Lane, CasterLocation, State.Direction });
+		}
+	}
+	return Shapes;
+}
+
+TArray<FVeyraPlacedShape> VeyraCastTelegraphs::ForAim(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, const FVector& CasterLocation,
+	double CasterRadius, const FVector& AimPoint)
+{
+	TArray<FVeyraPlacedShape> Shapes;
+	// A targeted-damage ability keeps its range apart from the cast tuning the others share.
+	const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability);
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(Tuning, Ability);
+	if (!Targeted && !Cast)
+	{
+		return Shapes;
+	}
+	const FVector Toward = (AimPoint - CasterLocation).GetSafeNormal2D();
+	const FVector Direction = Toward.IsNearlyZero() ? FVector::ForwardVector : Toward;
+	const double Range = Targeted ? Targeted->CastRange : Cast->CastRange;
+	if (Range > 0.0)
+	{
+		Shapes.Add(FVeyraPlacedShape{ TelegraphCircle(Range), CasterLocation, Direction });
+	}
+	FVeyraCastState Aimed;
+	Aimed.Ability = Ability;
+	Aimed.Location = AimPoint;
+	Aimed.Direction = Direction;
+	Shapes.Append(ForCast(Tuning, Aimed, CasterLocation, CasterRadius));
 	return Shapes;
 }

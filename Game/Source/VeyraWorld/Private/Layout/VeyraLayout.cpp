@@ -107,6 +107,27 @@ TArray<FVeyraFogPlacement> DenseFog(const FVeyraBattlegroundLayout& Layout)
 	return Fog;
 }
 
+FVeyraTerrainBox Wall(const FVeyraWallLayout& Wall, EVeyraTeam Team)
+{
+	const double Radians = FMath::DegreesToRadians(Wall.Facing);
+	const FVector2D Facing(FMath::Cos(Radians), FMath::Sin(Radians));
+	// A direction mirrors as a point does: the reflection across Y = -X is linear.
+	return { ForTeam(ToVector(Wall.Center), Team), Team == EVeyraTeam::B ? Mirror(Facing) : Facing, Wall.Length, Wall.Thickness };
+}
+
+TArray<FVeyraTerrainBox> Walls(const FVeyraBattlegroundLayout& Layout)
+{
+	TArray<FVeyraTerrainBox> Out;
+	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+	{
+		for (const FVeyraWallLayout& Entry : Layout.Walls)
+		{
+			Out.Add(Wall(Entry, Team));
+		}
+	}
+	return Out;
+}
+
 TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layout)
 {
 	TArray<FVeyraStructurePlacement> Placements;

@@ -7,6 +7,7 @@
 
 struct FVeyraAbilitiesTuning;
 struct FVeyraCastState;
+struct FVeyraContentId;
 
 /**
  * Where a cast will land, for telegraphs on any machine (ADR-009 §4). The shapes come from the
@@ -20,9 +21,19 @@ namespace VeyraCastTelegraphs
 	 * - an area's zones, innermost first;
 	 * - a skillshot's path, as long as its range and as wide as its projectile;
 	 * - a dash's start zones, then its path, as wide as the caster;
-	 * - a buff's aura.
+	 * - a buff's aura;
+	 * - a volley's lane: a cone from the caster as long as a shot reaches, as wide as the lane's angle.
 	 * Empty when the ability shows nothing (a targeted spell, an empowered attack) or is unknown.
 	 */
 	VEYRAABILITIES_API TArray<FVeyraPlacedShape> ForCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraCastState& State, const FVector& CasterLocation,
 		double CasterRadius);
+
+	/**
+	 * Where Ability would land if cast now toward AimPoint, for the indicator its caster sees before
+	 * casting (ADR-041 §2): first the ring of its cast range around the caster, when it has one, then
+	 * the shapes ForCast gives a cast aimed there. Empty for an ability the tuning does not have. It
+	 * shows geometry only and never says whether the cast would be valid.
+	 */
+	VEYRAABILITIES_API TArray<FVeyraPlacedShape> ForAim(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, const FVector& CasterLocation,
+		double CasterRadius, const FVector& AimPoint);
 }
