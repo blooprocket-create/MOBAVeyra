@@ -18,6 +18,7 @@ type MemStore struct {
 	sessions    map[string]Session // by hex token hash
 	launchCodes map[string]*memLaunchCode
 	links       map[ProviderIdentity]string // account ID by provider identity
+	names       map[string]NameState        // by account ID
 }
 
 type memLaunchCode struct {
@@ -33,7 +34,81 @@ func NewMemStore() *MemStore {
 		sessions:    map[string]Session{},
 		launchCodes: map[string]*memLaunchCode{},
 		links:       map[ProviderIdentity]string{},
+		names:       map[string]NameState{},
 	}
+}
+
+func (m *MemStore) NameState(_ context.Context, accountID string) (NameState, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.accounts[accountID]; !ok {
+		return NameState{}, ErrNotFound
+	}
+	return m.names[accountID], nil
+}
+
+// LockNameState is NameState: the MemStore runs one call at a time.
+func (m *MemStore) LockNameState(ctx context.Context, accountID string) (NameState, error) {
+	return m.NameState(ctx, accountID)
+}
+
+func (m *MemStore) HolderOfName(_ context.Context, name string) (Account, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, a := range m.accounts {
+		if strings.EqualFold(a.DisplayName, name) {
+			return a, nil
+		}
+	}
+	return Account{}, ErrNotFound
+}
+
+func (m *MemStore) SetDisplayName(_ context.Context, accountID, name string, voluntary bool, at time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	a, ok := m.accounts[accountID]
+	if !ok {
+		return ErrNotFound
+	}
+	for _, other := range m.accounts {
+		if other.ID != accountID && strings.EqualFold(other.DisplayName, name) {
+			return ErrDisplayNameTaken
+		}
+	}
+	a.DisplayName = name
+	m.accounts[accountID] = a
+	state := m.names[accountID]
+	if voluntary {
+		state.FreeChangeUsed, state.LastChangeAt = true, at
+	} else {
+		state.RenameRequired = false
+	}
+	m.names[accountID] = state
+	return nil
+}
+
+func (m *MemStore) RequireRename(_ context.Context, accountID, placeholder string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	a, ok := m.accounts[accountID]
+	if !ok {
+		return ErrNotFound
+	}
+	a.DisplayName = placeholder
+	m.accounts[accountID] = a
+	state := m.names[accountID]
+	state.RenameRequired = true
+	m.names[accountID] = state
+	return nil
+}
+
+func (m *MemStore) TouchLauncherLogin(_ context.Context, accountID string, at time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	state := m.names[accountID]
+	state.LastLauncherLogin = at
+	m.names[accountID] = state
+	return nil
 }
 
 func (m *MemStore) EnsureDevAccount(_ context.Context, displayName string) (Account, error) {

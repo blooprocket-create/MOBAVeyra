@@ -19,11 +19,13 @@ type memState struct {
 	grants      map[[2]string]Grant
 	purchases   map[string]Purchase
 	adjustments []DevAdjustment
+	spends      []Spend
 }
 
 func (s memState) clone() memState {
 	return memState{accounts: maps.Clone(s.accounts), masteries: maps.Clone(s.masteries), grants: maps.Clone(s.grants),
-		purchases: maps.Clone(s.purchases), adjustments: append([]DevAdjustment(nil), s.adjustments...)}
+		purchases: maps.Clone(s.purchases), adjustments: append([]DevAdjustment(nil), s.adjustments...),
+		spends: append([]Spend(nil), s.spends...)}
 }
 
 // NewMemStore returns an empty MemStore.
@@ -73,6 +75,13 @@ func (s *MemStore) Grant(_ context.Context, matchID, accountID string) (Grant, e
 		return g, nil
 	}
 	return Grant{}, ErrNoGrant
+}
+
+// Spends returns the spends recorded, for tests.
+func (s *MemStore) Spends() []Spend {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]Spend(nil), s.state.spends...)
 }
 
 // Adjustments returns the development adjustments recorded, for tests.
@@ -140,5 +149,10 @@ func (t *memTx) DeletePurchases(accountID string) error {
 
 func (t *memTx) AddDevAdjustment(a DevAdjustment) error {
 	t.state.adjustments = append(t.state.adjustments, a)
+	return nil
+}
+
+func (t *memTx) AddSpend(sp Spend) error {
+	t.state.spends = append(t.state.spends, sp)
 	return nil
 }

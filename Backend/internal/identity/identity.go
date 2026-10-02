@@ -154,6 +154,26 @@ type Store interface {
 	// holds the name in any letter case, and with ErrAlreadyRegistered if who
 	// is already linked; either way nothing is created.
 	CreateProviderAccount(ctx context.Context, who ProviderIdentity, displayName string) (Account, error)
+
+	// Name changes (ADR-049). Each call joins the caller's unit of work.
+	// NameState returns what identity keeps about the account's name.
+	NameState(ctx context.Context, accountID string) (NameState, error)
+	// LockNameState returns it locked until the unit of work ends, so one
+	// account's changes run one at a time.
+	LockNameState(ctx context.Context, accountID string) (NameState, error)
+	// HolderOfName returns the account holding name in any letter case,
+	// locked until the unit of work ends, or ErrNotFound.
+	HolderOfName(ctx context.Context, name string) (Account, error)
+	// SetDisplayName gives the account name, or fails with
+	// ErrDisplayNameTaken if another account holds it in any case. A
+	// voluntary change uses the free change and starts the cooldown at at; a
+	// required one clears RenameRequired and touches neither.
+	SetDisplayName(ctx context.Context, accountID, name string, voluntary bool, at time.Time) error
+	// RequireRename gives a claimed account placeholder and marks it to
+	// choose a new name.
+	RequireRename(ctx context.Context, accountID, placeholder string) error
+	// TouchLauncherLogin records a successful launcher login at at.
+	TouchLauncherLogin(ctx context.Context, accountID string, at time.Time) error
 }
 
 // Settings are the validated lifetimes the service needs.
@@ -172,6 +192,10 @@ type Service struct {
 	store    Store
 	settings Settings
 	now      func() time.Time
+	// Name changes, once SetNames enables them (ADR-049).
+	names  *NameSettings
+	payer  Payer
+	atomic func(ctx context.Context, fn func(context.Context) error) error
 }
 
 // NewService builds a Service. now is injectable for tests.
@@ -199,6 +223,9 @@ func (s *Service) DevLogin(ctx context.Context, displayName string) (IssuedToken
 	if err != nil {
 		return IssuedToken{}, Account{}, err
 	}
+	if err := s.touchLauncherLogin(ctx, acct.ID); err != nil {
+		return IssuedToken{}, Account{}, err
+	}
 	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
 	return tok, acct, err
 }
@@ -216,6 +243,10 @@ func (s *Service) PlayerLogin(ctx context.Context, credential string) (IssuedTok
 		return IssuedToken{}, Account{}, ErrNotRegistered
 	}
 	if err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	// A launcher login keeps the account's name from being claimed (ADR-049 §1).
+	if err := s.touchLauncherLogin(ctx, acct.ID); err != nil {
 		return IssuedToken{}, Account{}, err
 	}
 	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
@@ -236,6 +267,9 @@ func (s *Service) Register(ctx context.Context, credential, displayName string) 
 	}
 	acct, err := s.store.CreateProviderAccount(ctx, who, displayName)
 	if err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	if err := s.touchLauncherLogin(ctx, acct.ID); err != nil {
 		return IssuedToken{}, Account{}, err
 	}
 	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
