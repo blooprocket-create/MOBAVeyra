@@ -353,6 +353,7 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	Permissions.bCanBlock = Client->CanIssue(EVeyraClientIntent::BlockPlayer);
 	Permissions.bCanUnblock = Client->CanIssue(EVeyraClientIntent::UnblockPlayer);
 	Permissions.bCanCancelRequest = Client->CanIssue(EVeyraClientIntent::CancelFriendRequest);
+	Permissions.bCanMessage = Client->CanIssue(EVeyraClientIntent::OpenDirectChat);
 	const FVeyraFriendsModel Model = VeyraShellModels::DescribeFriends(Snapshot, Client->CanIssue(EVeyraClientIntent::SendFriendRequest),
 		Client->CanIssue(EVeyraClientIntent::AnswerFriendRequest), Client->CanIssue(EVeyraClientIntent::AcceptLobbyInvite),
 		Client->CanIssue(EVeyraClientIntent::DeclineLobbyInvite), Client->CanIssue(EVeyraClientIntent::InviteToLobby), Permissions);
@@ -374,22 +375,7 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	AddText(*Rows, LOCTEXT("FriendsEyebrow", "Friends"), LobbyRole(EVeyraShellText::Eyebrow));
 
 	// Add a friend by name (Parties & Social Bible §1). The field keeps what was typed across rebuilds.
-	FriendNameBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-	FEditableTextBoxStyle FieldStyle = FriendNameBox->GetWidgetStyle();
-	const FSlateRoundedBoxBrush Field(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.HairlineColor, 1.0f);
-	const FSlateRoundedBoxBrush Focused(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.AccentColor, 1.0f);
-	FieldStyle.SetBackgroundImageNormal(Field);
-	FieldStyle.SetBackgroundImageHovered(Field);
-	FieldStyle.SetBackgroundImageFocused(Focused);
-	FieldStyle.SetBackgroundImageReadOnly(Field);
-	FieldStyle.SetForegroundColor(FSlateColor(Style.TextColor));
-	FieldStyle.SetFocusedForegroundColor(FSlateColor(Style.TextColor));
-	FieldStyle.SetPadding(FMargin(Style.ButtonPadding));
-	FieldStyle.SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Body));
-	FriendNameBox->SetWidgetStyle(FieldStyle);
-	FriendNameBox->SetHintText(LOCTEXT("FriendNameHint", "A player's name"));
-	FriendNameBox->SetText(FText::FromString(FriendNameDraft));
-	FriendNameBox->SetIsEnabled(Model.bCanAdd);
+	FriendNameBox = MakeTextField(LOCTEXT("FriendNameHint", "A player's name"), FriendNameDraft, Model.bCanAdd);
 	FriendNameBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleFriendNameChanged);
 	FriendNameBox->OnTextCommitted.AddUniqueDynamic(this, &UVeyraShellScreen::HandleFriendNameCommitted);
 	VeyraShellStyle::AddSpaced(*Rows, *FriendNameBox);
@@ -502,6 +488,30 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	{
 		AddText(*Lists, LOCTEXT("FriendsLobbyHint", "The lobby's host invites friends."), LobbyRole(EVeyraShellText::Small));
 	}
+	// Party Chat and direct messages below the friends (UX-3).
+	BuildSidebarChat(Snapshot, *Rows);
+}
+
+UEditableTextBox* UVeyraShellScreen::MakeTextField(const FText& Hint, const FString& Draft, bool bEnabled)
+{
+	const UVeyraShellStyleSettings& Style = LobbyStyle();
+	UEditableTextBox* Box = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
+	FEditableTextBoxStyle FieldStyle = Box->GetWidgetStyle();
+	const FSlateRoundedBoxBrush Field(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.HairlineColor, 1.0f);
+	const FSlateRoundedBoxBrush Focused(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.AccentColor, 1.0f);
+	FieldStyle.SetBackgroundImageNormal(Field);
+	FieldStyle.SetBackgroundImageHovered(Field);
+	FieldStyle.SetBackgroundImageFocused(Focused);
+	FieldStyle.SetBackgroundImageReadOnly(Field);
+	FieldStyle.SetForegroundColor(FSlateColor(Style.TextColor));
+	FieldStyle.SetFocusedForegroundColor(FSlateColor(Style.TextColor));
+	FieldStyle.SetPadding(FMargin(Style.ButtonPadding));
+	FieldStyle.SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Body));
+	Box->SetWidgetStyle(FieldStyle);
+	Box->SetHintText(Hint);
+	Box->SetText(FText::FromString(Draft));
+	Box->SetIsEnabled(bEnabled);
+	return Box;
 }
 
 void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidget& Parent)
@@ -515,6 +525,13 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 	Card->AddChildToVerticalBox(Line);
 	// The friend's card opens its other actions (UX-10: contextual, not a row of buttons for each friend).
 	AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::FriendCardLabel(Name), Friend.Name, [this, Key] { OpenCard(Key); }, true, bOpen);
+	// Their messages that arrived while their conversation was closed (UX-3: unread states).
+	if (Friend.Unread > 0)
+	{
+		UTextBlock* Unread = VeyraShellStyle::MakeText(*WidgetTree, FText::Format(LOCTEXT("FriendUnread", "{0} new"), FText::AsNumber(Friend.Unread)), EVeyraShellText::Small);
+		Unread->SetAutoWrapText(false);
+		Line->AddChildToHorizontalBox(Unread)->SetVerticalAlignment(VAlign_Center);
+	}
 	AddLobbyFilling(*Line, *WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()));
 	// The one action the line always offers: in the lobby its host's invitation (Custom Matches Bible §1); in the
 	// shell, joining the friend's Public party when it has room, or else inviting them into the player's (UX-9).
@@ -544,6 +561,14 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 		}
 		else
 		{
+			// Their direct conversation, in the sidebar's chat (ADR-046 §6).
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, FText::Format(LOCTEXT("MessageFriendLabel", "Message {0}"), Friend.Name),
+				LOCTEXT("MessageFriend", "Message"),
+				[this, Id] {
+					Client->OpenDirectChat(Id);
+					CloseCard();
+				},
+				Friend.bCanMessage);
 			if (Friend.bOffersPartyInvite && !bInviteOnLine)
 			{
 				AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraShellModels::PartyInviteLabel(Name), LOCTEXT("InviteToPartyCard", "Invite to Party"),
