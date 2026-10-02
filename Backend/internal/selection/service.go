@@ -589,6 +589,9 @@ func (s *Service) AcceptTrade(ctx context.Context, accountID string, seat int) (
 	if theirs == "" || mine == "" {
 		return Session{}, ErrCannotTrade
 	}
+	// Each player must be allowed the Vanguard they receive, and takes its saved
+	// loadout, not the spells chosen for the one they gave up (Pre-Game Client UX Bible 37).
+	saved := map[string][2]string{}
 	for _, check := range []struct{ account, vanguard string }{{accountID, theirs}, {from, mine}} {
 		may, err := s.accounts.MayPick(ctx, check.account, check.vanguard)
 		if err != nil {
@@ -597,11 +600,19 @@ func (s *Service) AcceptTrade(ctx context.Context, accountID string, seat int) (
 		if !may {
 			return Session{}, ErrNotAvailable
 		}
+		if saved[check.account], err = s.savedFluxSpells(ctx, check.account, check.vanguard); err != nil {
+			return Session{}, err
+		}
 	}
 	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
 		now := s.now()
 		session.Seen(accountID, now)
-		return session.AcceptTrade(accountID, from, theirs, mine, now)
+		if err := session.AcceptTrade(accountID, from, theirs, mine, now); err != nil {
+			return err
+		}
+		session.LoadSavedFluxSpells(accountID, saved[accountID])
+		session.LoadSavedFluxSpells(from, saved[from])
+		return nil
 	})
 }
 
@@ -757,7 +768,10 @@ func (s *Service) tickOne(ctx context.Context, listed Session) error {
 		var starting Session
 		err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 			session, err := tx.LockSession(listed.ID)
-			if err != nil || session.State != Picking {
+			// The listing may be older than the lock: a ban or pick just before the
+			// deadline can have begun a new turn with its own deadline, which this
+			// pass must leave alone.
+			if err != nil || session.State != Picking || now.Before(session.Deadline) {
 				return err
 			}
 			// In a draft only the pick turn's players owe a pick; whoever else has

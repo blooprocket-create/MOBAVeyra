@@ -62,8 +62,9 @@ func (s *Session) Offered(fromID, toID string) bool {
 
 // AcceptTrade swaps two teammates' locked Vanguards on an offer between them.
 // The caller has checked that each may play the other's Vanguard, which must
-// still be the ones expected. The team's locked roster stays the same; Flux
-// Spells stay with their players. Every offer either player had lapses.
+// still be the ones expected, and loads each player's saved Flux Spells for the
+// Vanguard they receive (LoadSavedFluxSpells). The team's locked roster stays
+// the same. Every offer either player had lapses.
 func (s *Session) AcceptTrade(toID, fromID, fromVanguard, toVanguard string, now time.Time) error {
 	from, to, err := s.checkTrading(fromID, toID, now)
 	if err != nil {

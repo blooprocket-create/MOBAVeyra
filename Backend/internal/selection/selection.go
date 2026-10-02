@@ -121,6 +121,15 @@ func (s *Session) FollowSavedFluxSpells(accountID string, saved [2]string) {
 	}
 }
 
+// LoadSavedFluxSpells gives a seat the saved loadout of a Vanguard it was just
+// handed by a trade, whatever its player chose for the one it gave up
+// (Pre-Game Client UX Bible 37). The player may still choose again.
+func (s *Session) LoadSavedFluxSpells(accountID string, saved [2]string) {
+	if seat, ok := s.seat(accountID); ok {
+		seat.FluxSpells, seat.FluxSpellsEdited = saved, false
+	}
+}
+
 // Seat is one player's place in a select.
 type Seat struct {
 	AccountID   string
