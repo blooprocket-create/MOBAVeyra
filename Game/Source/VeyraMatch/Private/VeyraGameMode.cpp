@@ -1399,6 +1399,21 @@ void AVeyraGameMode::RecoverAtFountains()
 		const APawn* Body = PlayerState ? PlayerState->GetPawn() : nullptr;
 		const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
 		UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+		// In preparation no Vanguard leaves its fountain, whatever route navigation found near the rim: one found outside
+		// is brought back to the edge and stops (Match Flow Bible §1; ADR-054 §1).
+		if (Start && GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Preparation
+			&& FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) > Fountain.Radius)
+		{
+			if (APawn* Straying = PlayerState->GetPawn())
+			{
+				Straying->SetActorLocation(VeyraMatchRules::ClampToFountain(Straying->GetActorLocation(), Start->GetActorLocation(), Fountain.Radius),
+					/*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+			}
+			if (AVeyraVanguardController* Controller = PlayerState->GetVanguardController())
+			{
+				Controller->StopOrders();
+			}
+		}
 		// A rider uses the fountain only once it leaves the ride (Combat Bible §56).
 		const bool bRiding = AbilitySystem && VeyraCombat::IsRiding(*AbilitySystem);
 		const bool bAtFountain = Start && !bRiding && FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) <= Fountain.Radius;

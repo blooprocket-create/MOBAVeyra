@@ -119,6 +119,19 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(GameMode->HandleRecallOrder(&Participant) == EVeyraOrderRejection::WrongPhase, TEXT("no Recall")));
 				});
 		}
+
+		TEST_METHOD(AVanguardFoundOutsideItsFountainIsBroughtBack)
+		{
+			// A route navigation found around something near the rim might take it out; the fountain tick brings it back.
+			StartMatch(Network, Layout, EVeyraMatchPhase::Preparation)
+				.ThenServer(TEXT("Find its fountain, and put the Vanguard outside it"), [](FState& State) {
+					State.Home = HomeOf(State.World, ServerParticipant(State).GetVeyraTeam());
+					APawn* Vanguard = ServerParticipant(State).GetPawn();
+					const FVector Out = State.Home + (FVector::ZeroVector - State.Home).GetSafeNormal2D() * FountainRadius * 2.0;
+					Vanguard->SetActorLocation(FVector(Out.X, Out.Y, Vanguard->GetActorLocation().Z), /*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+				})
+				.UntilServer(TEXT("It is back at its fountain's edge"), [](FState& State) { return FromHome(State) <= FountainRadius + 1.0; });
+		}
 	};
 }
 
