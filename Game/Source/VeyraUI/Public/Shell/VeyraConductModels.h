@@ -12,6 +12,7 @@ struct FVeyraPlayerMenuPermissions
 	bool bCanInvite = false;
 	bool bCanCommend = false;
 	bool bCanReport = false;
+	bool bCanViewProfile = false;
 };
 
 /**
@@ -30,6 +31,8 @@ struct FVeyraPlayerMenuModel
 	/** For a teammate, once per match, on the results screen. */
 	bool bOffersCommend = false;
 	bool bOffersReport = false;
+	/** Their profile, over the screen (ADR-048 §5). */
+	bool bOffersProfile = false;
 	/** Report sent, Commended, and what came of the player's last request about them. */
 	TArray<FText> Notes;
 };

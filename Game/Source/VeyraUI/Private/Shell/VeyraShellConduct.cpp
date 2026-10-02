@@ -12,6 +12,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/WrapBox.h"
 #include "Shell/VeyraConductModels.h"
+#include "Shell/VeyraProfileModels.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellStyle.h"
@@ -52,6 +53,7 @@ void UVeyraShellScreen::BuildPlayerMenu(const FVeyraClientSnapshot& Snapshot, co
 	Can.bCanInvite = Client->CanIssue(EVeyraClientIntent::InviteToParty);
 	Can.bCanCommend = Client->CanIssue(EVeyraClientIntent::CommendTeammate);
 	Can.bCanReport = Client->CanIssue(EVeyraClientIntent::ReportPlayer);
+	Can.bCanViewProfile = Client->CanIssue(EVeyraClientIntent::OpenProfile);
 	const FVeyraPlayerMenuModel Model = VeyraConductModels::DescribeMenu(Snapshot, Name, Can);
 	UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing));
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
@@ -83,6 +85,12 @@ void UVeyraShellScreen::BuildPlayerMenu(const FVeyraClientSnapshot& Snapshot, co
 	{
 		AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraConductModels::CommendLabel(Name), LOCTEXT("MenuCommend", "Commend"),
 			[this, Name] { Client->CommendTeammate(Name); });
+	}
+	// Their profile, over the screen (ADR-048 §5).
+	if (Model.bOffersProfile)
+	{
+		AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraProfileModels::MenuProfileLabel(Name), LOCTEXT("MenuProfile", "Profile"),
+			[this, Name] { Client->OpenProfile(Name); });
 	}
 	if (Model.bOffersReport)
 	{

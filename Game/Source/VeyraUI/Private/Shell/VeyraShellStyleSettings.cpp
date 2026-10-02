@@ -106,6 +106,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SettingsControlWidth"), SettingsControlWidth },
 		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
 		{ TEXT("ChatLinesHeight"), ChatLinesHeight },
+		{ TEXT("ProfileIconSize"), ProfileIconSize },
+		{ TEXT("ProfileFeaturedHeight"), ProfileFeaturedHeight },
 		{ TEXT("LobbySeatWidth"), LobbySeatWidth },
 		{ TEXT("ShopTileSize"), ShopTileSize },
 		{ TEXT("ShopMarkSize"), ShopMarkSize },

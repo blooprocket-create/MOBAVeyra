@@ -42,4 +42,7 @@ namespace VeyraMatchHistoryModel
 	VEYRAUI_API FText OutcomeText(const FString& Outcome, bool bPersonalLoss = false);
 
 	VEYRAUI_API FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadMore);
+
+	/** One listed match: its date, mode, duration, Vanguard and outcome, on one line (UX-51). A profile's shared history lists the same. */
+	VEYRAUI_API FVeyraHistoryRow DescribeRow(const VeyraBackendProtocol::FHistoryEntry& Entry);
 }

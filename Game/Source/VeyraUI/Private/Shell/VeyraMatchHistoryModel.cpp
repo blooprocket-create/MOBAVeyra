@@ -80,12 +80,7 @@ FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadM
 
 	for (const VeyraBackendProtocol::FHistoryEntry& Entry : History.Entries)
 	{
-		FVeyraHistoryRow& Row = Model.Rows.AddDefaulted_GetRef();
-		Row.MatchId = Entry.MatchId;
-		Row.Summary = FText::Format(LOCTEXT("Row", "{0}   {1}   {2}   {3}   {4}"), FText::AsDateTime(Entry.EndedAt, EDateTimeStyle::Medium, EDateTimeStyle::Short),
-			VeyraShellModels::ModeNameOf(Entry.Mode), VeyraShellModels::FormatCountdown(Entry.DurationSeconds),
-			Entry.VanguardId.IsEmpty() ? LOCTEXT("UnknownVanguard", "Unknown Vanguard") : VeyraShellModels::VanguardNameOf(Entry.VanguardId),
-			OutcomeText(Entry.Outcome, Entry.bPersonalLoss));
+		Model.Rows.Add(DescribeRow(Entry));
 	}
 	if (Model.Rows.IsEmpty())
 	{
@@ -93,6 +88,17 @@ FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadM
 	}
 	Model.bOffersLoadMore = bCanLoadMore;
 	return Model;
+}
+
+FVeyraHistoryRow DescribeRow(const VeyraBackendProtocol::FHistoryEntry& Entry)
+{
+	FVeyraHistoryRow Row;
+	Row.MatchId = Entry.MatchId;
+	Row.Summary = FText::Format(LOCTEXT("Row", "{0}   {1}   {2}   {3}   {4}"), FText::AsDateTime(Entry.EndedAt, EDateTimeStyle::Medium, EDateTimeStyle::Short),
+		VeyraShellModels::ModeNameOf(Entry.Mode), VeyraShellModels::FormatCountdown(Entry.DurationSeconds),
+		Entry.VanguardId.IsEmpty() ? LOCTEXT("UnknownVanguard", "Unknown Vanguard") : VeyraShellModels::VanguardNameOf(Entry.VanguardId),
+		OutcomeText(Entry.Outcome, Entry.bPersonalLoss));
+	return Row;
 }
 }
 

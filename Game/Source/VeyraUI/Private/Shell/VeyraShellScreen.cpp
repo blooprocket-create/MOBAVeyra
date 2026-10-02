@@ -29,6 +29,7 @@
 #include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraConductModels.h"
 #include "Shell/VeyraMatchHistoryModel.h"
+#include "Shell/VeyraProfileModels.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
@@ -393,6 +394,11 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		BuildResults(Snapshot);
 		break;
 	}
+	// Another player's profile opens over the shell, a lobby or the results (ADR-048 §5).
+	if (Shown == EVeyraShellScreen::Shell || Shown == EVeyraShellScreen::Lobby || Shown == EVeyraShellScreen::Results)
+	{
+		BuildProfileOverlay(Snapshot);
+	}
 	BuildProblem(Snapshot);
 	BuildSettingsConflict(Snapshot);
 }
@@ -523,6 +529,12 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 			ShowPage(EVeyraShellPage::Collection);
 			Client->LoadCollection();
 		}, true, Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
+		// Opening the Profile page reads the choices afresh, and starts the draft from them (ADR-048 §5).
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, VeyraProfileModels::PageLabel(), [this] {
+			bProfileDraftReady = false;
+			ShowPage(EVeyraShellPage::Profile);
+			Client->LoadProfileSettings();
+		}, true, Page == EVeyraShellPage::Profile)->KeepLabelOnOneLine();
 	}
 	AddStretch(*WidgetTree, *Bar);
 	AddProgressionReadout(Snapshot, *Bar);
@@ -563,6 +575,10 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	else if (Page == EVeyraShellPage::Collection)
 	{
 		BuildCollection(Snapshot, *Body);
+	}
+	else if (Page == EVeyraShellPage::Profile)
+	{
+		BuildProfilePage(Snapshot, *Body);
 	}
 	else
 	{

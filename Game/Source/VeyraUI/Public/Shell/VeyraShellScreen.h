@@ -12,6 +12,7 @@
 
 class IVeyraClientIntents;
 struct FVeyraHistoryOption;
+struct FVeyraProfileCardModel;
 class UEditableTextBox;
 class UImage;
 class UOverlay;
@@ -44,6 +45,8 @@ enum class EVeyraShellPage : uint8
 	History,
 	/** Every released Vanguard, with the player's ownership and Mastery, and Buy (ADR-045 §8). */
 	Collection,
+	/** The player's own profile as others see it, and its choices (ADR-048 §5). */
+	Profile,
 };
 
 /** What a card's action asks the player to confirm before it is sent (UX-11; ADR-044 §4). */
@@ -123,6 +126,9 @@ public:
 
 	/** The player whose menu shows on the report, empty while none does (UX-57). */
 	const FString& GetOpenPlayerMenu() const { return OpenPlayerMenu; }
+
+	/** The Profile page's choices as the player is making them, before Save (ADR-048 §5). */
+	const VeyraBackendProtocol::FProfileSettings& GetProfileDraft() const { return ProfileDraft; }
 
 	/** The chat composer that shows, or null. */
 	UEditableTextBox* GetChatBox() const { return ChatBox; }
@@ -307,6 +313,16 @@ private:
 
 	UFUNCTION()
 	void HandleReportDetailsChanged(const FText& Text);
+
+	/**
+	 * The Profile page (VeyraShellProfile.cpp; ADR-048 §5): the player's profile as others see it, and pickers for
+	 * the icon, the background and the featured Vanguard, the Match History toggle and Save.
+	 */
+	void BuildProfilePage(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** Another player's profile over the screen, with its shared Match History, until Close. */
+	void BuildProfileOverlay(const FVeyraClientSnapshot& Snapshot);
+	/** A profile's card: its icon, name, level and featured Vanguard over its background. */
+	void AddProfileCard(const FVeyraProfileCardModel& Card, UPanelWidget& Parent);
 	void BuildDetails(const FVeyraMatchReport& Report, UPanelWidget& Parent);
 	/** A text in a column Width wide. */
 	UTextBlock* AddCell(UPanelWidget& Row, const FText& Text, float Width, uint8 Role);
@@ -444,6 +460,11 @@ private:
 	 */
 	FString PlayerMenuMatch;
 	FString OpenPlayerMenu;
+
+	/** The Profile page's choices before Save, and the saved choices they began from (ADR-048 §5). */
+	VeyraBackendProtocol::FProfileSettings ProfileDraft;
+	VeyraBackendProtocol::FProfileSettings ProfileDraftBase;
+	bool bProfileDraftReady = false;
 	FString ReportFormName;
 	FString ReportReason;
 	FString ReportDetailsDraft;
