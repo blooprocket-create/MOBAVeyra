@@ -2,12 +2,12 @@
 
 #include "Input/VeyraCastInput.h"
 
-FVeyraCastOutcome FVeyraCastInput::Press(EVeyraAbilitySlot Slot, EVeyraCastMode Mode, bool bPreview)
+FVeyraCastOutcome FVeyraCastInput::Press(EVeyraAbilitySlot Slot, EVeyraCastMode Mode, bool bPreview, const FVeyraContentId& Ability)
 {
 	if (bPreview)
 	{
 		// Show Cast Range shows the ability's indicator and never casts (Settings Bible §1.7).
-		Indicator = FVeyraCastIndicator{ Slot, Mode, /*bPreviewOnly*/ true };
+		Indicator = FVeyraCastIndicator{ Slot, Mode, /*bPreviewOnly*/ true, Ability };
 		return { EVeyraCastStep::Show, Slot };
 	}
 	if (Mode == EVeyraCastMode::Quick)
@@ -22,7 +22,7 @@ FVeyraCastOutcome FVeyraCastInput::Press(EVeyraAbilitySlot Slot, EVeyraCastMode 
 		return {};
 	}
 	// Another ability's key moves the indicator to it, casting nothing.
-	Indicator = FVeyraCastIndicator{ Slot, Mode, /*bPreviewOnly*/ false };
+	Indicator = FVeyraCastIndicator{ Slot, Mode, /*bPreviewOnly*/ false, Ability };
 	return { EVeyraCastStep::Show, Slot };
 }
 
@@ -48,6 +48,16 @@ FVeyraCastOutcome FVeyraCastInput::Cancel()
 FVeyraCastOutcome FVeyraCastInput::EndPreview()
 {
 	return Indicator && Indicator->bPreviewOnly ? Take(EVeyraCastStep::Hide) : FVeyraCastOutcome();
+}
+
+FVeyraCastOutcome FVeyraCastInput::Recheck(const FVeyraSlotNow& Now)
+{
+	if (!Indicator || Indicator->bPreviewOnly)
+	{
+		return {};
+	}
+	const bool bCastable = Now.bCasterAlive && !Now.bLocked && Now.Ability == Indicator->Ability && !(Now.CooldownSeconds > 0.0);
+	return bCastable ? FVeyraCastOutcome() : Take(EVeyraCastStep::Hide);
 }
 
 FVeyraCastOutcome FVeyraCastInput::Take(EVeyraCastStep Step)

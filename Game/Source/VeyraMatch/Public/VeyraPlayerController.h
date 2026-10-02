@@ -477,6 +477,12 @@ private:
 	/** Casts Slot now, at the unit and the ground under the cursor. */
 	void CastAtCursor(EVeyraAbilitySlot Slot);
 
+	/** Owning client: the ability Slot holds now, an override included; invalid for none. */
+	FVeyraContentId AbilityIn(EVeyraAbilitySlot Slot) const;
+
+	/** Owning client: what Slot holds now, for a waiting cast to check it can still be cast. */
+	FVeyraSlotNow SlotNow(EVeyraAbilitySlot Slot) const;
+
 	/** Which indicator shows, and when a key, its release or a click casts (ADR-041 §1). */
 	FVeyraCastInput CastInput;
 
