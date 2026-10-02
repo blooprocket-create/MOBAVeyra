@@ -75,6 +75,10 @@ namespace VeyraConductModels
 	VEYRAUI_API FText CancelReportLabel(const FString& Name);
 	/** How much of the details' limit a draft uses. */
 	VEYRAUI_API FText DetailsCount(int32 Used, int32 MaxCharacters);
+	/** How many characters Text holds as the backend counts them, by code point: a surrogate pair is one (ADR-047 §2). */
+	VEYRAUI_API int32 CharacterCount(const FString& Text);
+	/** Text's first MaxCharacters characters, never splitting a surrogate pair. */
+	VEYRAUI_API FString LeftCharacters(const FString& Text, int32 MaxCharacters);
 	/** The results screen's Play Again (UX-62). */
 	VEYRAUI_API FText PlayAgainLabel();
 

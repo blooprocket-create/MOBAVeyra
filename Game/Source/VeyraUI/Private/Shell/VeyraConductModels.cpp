@@ -2,6 +2,8 @@
 
 #include "Shell/VeyraConductModels.h"
 
+#include "Containers/StringConv.h"
+
 #include "Misc/StringBuilder.h"
 #include "Shell/VeyraShellModels.h"
 
@@ -191,6 +193,42 @@ FText SubmitReportLabel(const FString& Name)
 FText CancelReportLabel(const FString& Name)
 {
 	return FText::Format(LOCTEXT("CancelReportLabel", "Cancel Report {0}"), FText::FromString(Name));
+}
+
+namespace
+{
+	/** Whether Text[Index] is the low half of a surrogate pair its previous character began. */
+	bool ContinuesCharacter(const FString& Text, int32 Index)
+	{
+		return Index > 0 && StringConv::IsLowSurrogate(Text[Index]) && StringConv::IsHighSurrogate(Text[Index - 1]);
+	}
+}
+
+int32 CharacterCount(const FString& Text)
+{
+	int32 Count = 0;
+	for (int32 Index = 0; Index < Text.Len(); ++Index)
+	{
+		Count += ContinuesCharacter(Text, Index) ? 0 : 1;
+	}
+	return Count;
+}
+
+FString LeftCharacters(const FString& Text, int32 MaxCharacters)
+{
+	int32 Count = 0;
+	for (int32 Index = 0; Index < Text.Len(); ++Index)
+	{
+		if (!ContinuesCharacter(Text, Index))
+		{
+			if (Count == MaxCharacters)
+			{
+				return Text.Left(Index);
+			}
+			++Count;
+		}
+	}
+	return Text;
 }
 
 FText DetailsCount(int32 Used, int32 MaxCharacters)
