@@ -29,7 +29,7 @@ namespace VeyraPartyScreenTests
 	}
 
 	// Veyra.UI.PartyPanelScreen.*: the party panel's member cards and the friends panel's party, block and
-	// request actions (ADR-043), from the coordinator's snapshot, and clicked as the player would click them.
+	// request actions (ADR-044), from the coordinator's snapshot, and clicked as the player would click them.
 	TEST_CLASS(PartyPanelScreen, "Veyra.UI")
 	{
 		FActorTestSpawner Spawner;
@@ -108,7 +108,7 @@ namespace VeyraPartyScreenTests
 			ASSERT_THAT(IsTrue(Model.Pending.Num() == 1 && Model.Pending[0].Id == InviteId && Model.bCanCancelRequests));
 			ASSERT_THAT(IsTrue(Model.Blocked.Num() == 1 && Model.Blocked[0].Name.ToString() == TEXT("DevFour") && Model.bCanUnblock));
 
-			// A friend in the party is not invited again; a friend's Public party with room is joined (ADR-043 §3).
+			// A friend in the party is not invited again; a friend's Public party with room is joined (ADR-044 §3).
 			Snapshot = ShellSnapshot(PartyOfTwoBody(TEXT("idle"), true));
 			Snapshot.Social.Friends.JoinableParties.Add({ FriendId, FriendPartyId });
 			Model = VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions);

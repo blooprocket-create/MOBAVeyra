@@ -41,7 +41,7 @@ enum class EVeyraShellPage : uint8
 	History,
 };
 
-/** What a card's action asks the player to confirm before it is sent (UX-11; ADR-043 §4). */
+/** What a card's action asks the player to confirm before it is sent (UX-11; ADR-044 §4). */
 enum class EVeyraShellConfirm : uint8
 {
 	None,
@@ -109,7 +109,7 @@ public:
 	void SetFriendNameDraft(const FString& Name);
 
 	/**
-	 * The card whose actions show, empty while none is open (ADR-043 §2): a party member's card is its
+	 * The card whose actions show, empty while none is open (ADR-044 §2): a party member's card is its
 	 * MemberCardKey, a friend's its FriendCardKey, so one player's two cards open apart.
 	 */
 	const FString& GetOpenCard() const { return OpenCardId; }
@@ -344,7 +344,7 @@ private:
 
 	FString FriendNameDraft;
 
-	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-043 §2, §4). */
+	/** The card whose actions show, and the confirmation one of them asked, by account (ADR-044 §2, §4). */
 	FString OpenCardId;
 	EVeyraShellConfirm Confirm = EVeyraShellConfirm::None;
 	FString ConfirmId;

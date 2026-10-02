@@ -481,7 +481,7 @@ if ($Handoff -or $Flow) {
     # -Flow Coop: one player queues for co-op, accepts, picks and sieges to victory against the enemy AI team (ADR-039 §6).
     $isCoop = $Flow -eq 'Coop'
     # -Flow Party: two friends form a party by invitation, its leader hands leadership over after confirming,
-    # and the new leader queues the pair for co-op; the first client sieges to victory for both (ADR-043).
+    # and the new leader queues the pair for co-op; the first client sieges to victory for both (ADR-044).
     $isParty = $Flow -eq 'Party'
     $isVictory = $Flow -in 'CasualVictory', 'Custom', 'Coop', 'Party'
     # -Flow Settings: one player, two starts, no match.
@@ -800,7 +800,7 @@ if ($Handoff -or $Flow) {
                     Write-Host "  Presentation error: $($uiError.Matches[0].Value)"
                     $failed = $true
                 }
-                # A party forms by invitation, and its leader hands leadership over once confirmed (ADR-043).
+                # A party forms by invitation, and its leader hands leadership over once confirmed (ADR-044).
                 if ($isParty) {
                     $partyLine = $(if ($client.Number -eq 1) { "VeyraClientFlow: making $($participants[1].Name) the party leader." } else { "VeyraClientFlow: joining $($participants[0].Name)'s party from the invitation." })
                     if (-not (Select-String -LiteralPath $client.Log -SimpleMatch $partyLine -Quiet)) {

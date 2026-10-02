@@ -535,7 +535,7 @@ namespace VeyraPlayerApiTests
 			const FString Lists = FString::Printf(TEXT("\"friends\":[%s],\"incomingRequests\":[],\"outgoingRequests\":[]"), *Friend);
 			VeyraBackendProtocol::FFriends Friends;
 			FString Problem;
-			// Each friend whose Public party has room, with that party (ADR-043 §3); absent from an older backend.
+			// Each friend whose Public party has room, with that party (ADR-044 §3); absent from an older backend.
 			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriends(FString::Printf(TEXT("{%s,\"joinableParties\":{\"%s\":\"%s\"}}"), *Lists, OtherAccountId, PartyId),
 				Friends, Problem), Problem));
 			ASSERT_THAT(IsTrue(Friends.JoinableParties.Num() == 1 && Friends.JoinablePartyOf(OtherAccountId) && *Friends.JoinablePartyOf(OtherAccountId) == PartyId));

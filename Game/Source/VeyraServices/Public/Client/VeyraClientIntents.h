@@ -91,7 +91,7 @@ public:
 	virtual bool AnswerFriendRequest(const FString& AccountId, bool bAccept) = 0;
 	virtual bool RemoveFriend(const FString& AccountId) = 0;
 
-	// The party and the social panel (ADR-043).
+	// The party and the social panel (ADR-044).
 
 	/** Invites AccountId, one of the player's friends not in their party, into it. */
 	virtual bool InviteToParty(const FString& AccountId) = 0;

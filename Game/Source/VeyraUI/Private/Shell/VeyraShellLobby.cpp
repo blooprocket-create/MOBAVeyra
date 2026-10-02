@@ -422,7 +422,7 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 		Lines->AddChildToVerticalBox(Answers);
 		VeyraShellStyle::AddSpaced(*Lists, *Card);
 	}
-	// Invitations into a friend's party (ADR-043 §1).
+	// Invitations into a friend's party (ADR-044 §1).
 	for (const FVeyraSocialRequestModel& Invitation : Model.PartyInvitations)
 	{
 		UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing / 2.0f));
@@ -483,7 +483,7 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 			[this, Id = Pending.Id] { Client->CancelFriendRequest(Id); }, Model.bCanCancelRequests);
 		VeyraShellStyle::AddSpaced(*Lists, *Line);
 	}
-	// The players the player blocked (ADR-043 §4).
+	// The players the player blocked (ADR-044 §4).
 	if (!Model.Blocked.IsEmpty())
 	{
 		AddText(*Lists, LOCTEXT("BlockedEyebrow", "Blocked"), LobbyRole(EVeyraShellText::Eyebrow));

@@ -1234,7 +1234,7 @@ bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem)
 		OutProblem = TEXT("the friends, or the requests to or from the player, are missing or not in the expected format");
 		return false;
 	}
-	// The joinable parties may be absent, as from an older backend; present, each is a friend's account and a party (ADR-043 §3).
+	// The joinable parties may be absent, as from an older backend; present, each is a friend's account and a party (ADR-044 §3).
 	if (Root->HasField(TEXT("joinableParties")))
 	{
 		const FJsonObject* Joinable = ObjectField(*Root, TEXT("joinableParties"));

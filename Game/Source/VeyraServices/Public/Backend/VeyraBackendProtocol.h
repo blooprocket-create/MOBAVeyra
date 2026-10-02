@@ -432,7 +432,7 @@ namespace VeyraBackendProtocol
 	/** Reads the answer to GET /v1/accounts. False, with the problem, if it is not an account. */
 	VEYRASERVICES_API bool ParseAccount(const FString& Body, FAccount& Out, FString& OutProblem);
 
-	/** A friend whose Public party the player may join without an invitation (ADR-043 §3). */
+	/** A friend whose Public party the player may join without an invitation (ADR-044 §3). */
 	struct FJoinableParty
 	{
 		FString AccountId;

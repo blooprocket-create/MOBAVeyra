@@ -113,12 +113,12 @@ enum class EVeyraClientIntent : uint8
 	/** Accepts or declines a friend request to the player. */
 	AnswerFriendRequest,
 	RemoveFriend,
-	/** Invites a friend into the player's party, making a mode-less one if they have none (ADR-043 §1; UX-9). Any member's. */
+	/** Invites a friend into the player's party, making a mode-less one if they have none (ADR-044 §1; UX-9). Any member's. */
 	InviteToParty,
 	/** Joins the party an invitation is from, leaving the player's own, which must be idle. */
 	AcceptPartyInvite,
 	DeclinePartyInvite,
-	/** Joins a friend's Public party without an invitation (ADR-043 §3). */
+	/** Joins a friend's Public party without an invitation (ADR-044 §3). */
 	JoinFriendParty,
 	/** Leaves the party. Leaving a queued party takes it out of the queue (Parties & Social Bible §2). */
 	LeaveParty,
@@ -190,9 +190,9 @@ struct FVeyraSocial
 	bool bLoaded = false;
 	VeyraBackendProtocol::FFriends Friends;
 	TArray<VeyraBackendProtocol::FLobbyInvite> LobbyInvites;
-	/** Invitations into another player's party (ADR-043 §1). */
+	/** Invitations into another player's party (ADR-044 §1). */
 	TArray<VeyraBackendProtocol::FPartyInvite> PartyInvites;
-	/** The players the player blocked (ADR-043 §4). */
+	/** The players the player blocked (ADR-044 §4). */
 	TArray<VeyraBackendProtocol::FAccount> Blocked;
 	/**
 	 * What came of the player's last social request, for the friends panel rather than the screen's

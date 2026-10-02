@@ -220,7 +220,7 @@ struct FVeyraPartyMemberModel
 	bool bCanRemove = false;
 };
 
-/** Which of the party panel's member, privacy and leave intents the coordinator allows now (ADR-043 §2). */
+/** Which of the party panel's member, privacy and leave intents the coordinator allows now (ADR-044 §2). */
 struct FVeyraPartyPermissions
 {
 	bool bCanKick = false;
@@ -229,7 +229,7 @@ struct FVeyraPartyPermissions
 	bool bCanLeave = false;
 };
 
-/** The party panel: its mode, roster, readiness and queue (UX §3, UX-2, UX-6), and its members' cards (ADR-043 §2). */
+/** The party panel: its mode, roster, readiness and queue (UX §3, UX-2, UX-6), and its members' cards (ADR-044 §2). */
 struct FVeyraPartyModel
 {
 	/** False while the player has no party: there is no panel. */
@@ -378,7 +378,7 @@ struct FVeyraFriendModel
 	/** In the lobby, the host may invite a friend who is not in it yet. */
 	bool bOffersInvite = false;
 	bool bCanInvite = false;
-	/** In the shell, Invite to Party for a friend not in the player's party (ADR-043 §1). */
+	/** In the shell, Invite to Party for a friend not in the player's party (ADR-044 §1). */
 	bool bOffersPartyInvite = false;
 	bool bCanPartyInvite = false;
 	/** In the shell, Join Party while the friend's Public party has room (§3). */
@@ -389,7 +389,7 @@ struct FVeyraFriendModel
 	bool bCanBlock = false;
 };
 
-/** Which of the friends panel's party, block and request intents the coordinator allows now (ADR-043). */
+/** Which of the friends panel's party, block and request intents the coordinator allows now (ADR-044). */
 struct FVeyraSocialPermissions
 {
 	bool bCanInviteToParty = false;
@@ -423,9 +423,9 @@ struct FVeyraFriendsModel
 	bool bCanJoin = false;
 	TArray<FVeyraSocialRequestModel> Requests;
 	bool bCanAnswerRequests = false;
-	/** Block on each friend request (ADR-043 §4). */
+	/** Block on each friend request (ADR-044 §4). */
 	bool bCanBlockRequests = false;
-	/** Invitations into other players' parties (ADR-043 §1): Join and Decline. */
+	/** Invitations into other players' parties (ADR-044 §1): Join and Decline. */
 	TArray<FVeyraSocialRequestModel> PartyInvitations;
 	bool bCanJoinPartyInvitations = false;
 	bool bCanDeclinePartyInvitations = false;
@@ -433,7 +433,7 @@ struct FVeyraFriendsModel
 	/** The players the player asked, who have not answered, each with Cancel. */
 	TArray<FVeyraSocialRequestModel> Pending;
 	bool bCanCancelRequests = false;
-	/** The players the player blocked, each with Unblock (ADR-043 §4). */
+	/** The players the player blocked, each with Unblock (ADR-044 §4). */
 	TArray<FVeyraSocialRequestModel> Blocked;
 	bool bCanUnblock = false;
 	bool bCanAdd = false;
@@ -536,7 +536,7 @@ namespace VeyraShellModels
 	VEYRAUI_API FText JoinLobbyLabel(const FString& Name);
 	VEYRAUI_API FText DeclineInviteLabel(const FString& Name);
 
-	// The party's and the social panel's (ADR-043).
+	// The party's and the social panel's (ADR-044).
 
 	/** "Invite DevTwo to Party". */
 	VEYRAUI_API FText PartyInviteLabel(const FString& Name);

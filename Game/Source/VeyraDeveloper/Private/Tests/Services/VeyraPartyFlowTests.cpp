@@ -8,7 +8,7 @@
 
 namespace VeyraClientFlowTests
 {
-	// Veyra.Services.PartySocialFlow.*: the coordinator's party and social intents (ADR-043), driven
+	// Veyra.Services.PartySocialFlow.*: the coordinator's party and social intents (ADR-044), driven
 	// through the fake backend as the shell's party and friends panels drive them.
 	TEST_CLASS(PartySocialFlow, "Veyra.Services")
 	{

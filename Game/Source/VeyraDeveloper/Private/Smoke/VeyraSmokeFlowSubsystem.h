@@ -59,7 +59,7 @@ namespace VeyraBackendProtocol
  * Both then pick as the matchmade scripts do; with -VeyraSmokeFlowSieges the host wins by siege, and
  * each checks the verified custom result, its bots and the starting Gold the host chose.
  *
- * The party's scripts (Smoke.ps1 -Flow Party, ADR-043) run in two games at once, each naming the other's
+ * The party's scripts (Smoke.ps1 -Flow Party, ADR-044) run in two games at once, each naming the other's
  * player with -VeyraSmokeFlowFriend=, and queue for the co-op mode -VeyraSmokeFlowMode= names. First they
  * become friends, the leader asking. Then:
  * - partyleader leaves any party an earlier run left, invites its friend from the friends panel, and once
@@ -106,7 +106,7 @@ private:
 		SettingsChange,
 		/** The next start: finds both kept, the device's and the account's, and puts them back. */
 		SettingsCheck,
-		/** A party (ADR-043): invites its friend, hands them leadership after confirming, and readies up. */
+		/** A party (ADR-044): invites its friend, hands them leadership after confirming, and readies up. */
 		PartyLeader,
 		/** A party: joins its friend's party from the invitation, then leads it into the queue. */
 		PartyMember,

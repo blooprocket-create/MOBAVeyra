@@ -237,7 +237,7 @@ namespace VeyraClientFlowTests
 		return FString::Printf(TEXT("{\"invites\":[%s]}"), bInvited ? *Invite : TEXT(""));
 	}
 
-	// The party and social client (ADR-043).
+	// The party and social client (ADR-044).
 	inline const TCHAR* const PartyInviteId = TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff");
 	/** DevTwo's own party, which the player may join. */
 	inline const TCHAR* const FriendPartyId = TEXT("cccccccc-dddd-4eee-8fff-000000000000");
@@ -512,7 +512,7 @@ namespace VeyraClientFlowTests
 		}
 
 		/**
-		 * The social read's four lists (ADR-043 §6): the friends as Friends, DevTwo's lobby invitation and party
+		 * The social read's four lists (ADR-044 §6): the friends as Friends, DevTwo's lobby invitation and party
 		 * invitation or not, and the blocked players as Blocked.
 		 */
 		bool ReadSocialAs(const FString& Friends, bool bLobbyInvited = false, bool bPartyInvited = false, const FString& Blocked = TEXT("[]"))

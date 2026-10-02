@@ -1191,7 +1191,7 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 	Model.bCanJoinPartyInvitations = Permissions.bCanAcceptPartyInvite;
 	Model.bCanDeclinePartyInvitations = Permissions.bCanDeclinePartyInvite;
 	// In the lobby its host invites friends who are not in it yet (Custom Matches Bible §1); in the shell any
-	// member invites friends into the party, or joins a friend's Public party (ADR-043 §1, §3).
+	// member invites friends into the party, or joins a friend's Public party (ADR-044 §1, §3).
 	const bool bInLobby = Snapshot.State == EVeyraClientState::Lobby && Snapshot.Lobby.IsSet();
 	const bool bInShell = Snapshot.State == EVeyraClientState::Shell;
 	for (const VeyraBackendProtocol::FAccount& Friend : Social.Friends.Friends)

@@ -48,7 +48,7 @@ namespace
 	const TCHAR* const LobbyInvitesPath = TEXT("/v1/lobby/invites");
 	const TCHAR* const FriendsPath = TEXT("/v1/friends");
 	const TCHAR* const FriendRequestsPath = TEXT("/v1/friends/requests");
-	// The party's own members and settings, its invitations, and blocks (ADR-043).
+	// The party's own members and settings, its invitations, and blocks (ADR-044).
 	const TCHAR* const PartyPrivacyPath = TEXT("/v1/party/privacy");
 	const TCHAR* const PartyLeaderPath = TEXT("/v1/party/leader");
 	const TCHAR* const LeavePartyPath = TEXT("/v1/party/leave");
