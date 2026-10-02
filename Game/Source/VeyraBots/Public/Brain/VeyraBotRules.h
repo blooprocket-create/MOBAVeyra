@@ -30,6 +30,23 @@ namespace VeyraBotRules
 		TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, double Gold);
 
 	/**
+	 * The consumable to buy next (ADR-056 §1): Consumables' item while the bot holds and awaits fewer than Carried, the
+	 * match is younger than its last buying time, and the shop would sell one that Gold affords; nothing otherwise. A new
+	 * stack never takes the last free slot, which a recipe's part may need. The caller asks only once NextPurchase has
+	 * nothing, so the build is never starved.
+	 */
+	VEYRABOTS_API TOptional<FVeyraContentId> NextConsumable(const FVeyraItemsTuning& Items, const FVeyraBotConsumablesTuning& Consumables, int32 Carried,
+		TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, double Gold,
+		double MatchSeconds);
+
+	/**
+	 * The inventory slot, from 0, to drink from now (ADR-056 §1): the one holding the consumable, while the bot is alive,
+	 * below its drinking line, away from its fountain and not recalling; nothing otherwise. The shop refuses a drink while
+	 * one still restores.
+	 */
+	VEYRABOTS_API TOptional<int32> NextDrink(const FVeyraBotView& View, const FVeyraBotConsumablesTuning& Consumables);
+
+	/**
 	 * Which slot to rank next: R whenever it may, then the first of Priority that may. CanRank says
 	 * whether a slot may take a rank now. Nothing when none may.
 	 */
@@ -45,10 +62,10 @@ namespace VeyraBotRules
 	VEYRABOTS_API double EdgeDistance(const FVeyraBotUnit& A, const FVeyraBotUnit& B);
 
 	/**
-	 * The decision, in priority order: stay dead, recalling or healing; retreat and recall
-	 * when hurt; step out of a tower shooting it; fight the weakest enemy Vanguard it has watched long
-	 * enough when the trade favours it and no enemy tower covers it; last-hit a Fluxborn; siege with
-	 * its wave; else hold its place in lane.
+	 * The decision, in priority order (ADR-013 §4): stay dead, recalling or healing; retreat and recall when hurt; step
+	 * out of a tower shooting it; secure a creature or Well; guard a chased ally; fight the weakest enemy Vanguard it has
+	 * watched long enough when the trade favours it; recall to shop; ward; take a Flux Well; a jungler's own steps;
+	 * last-hit, keep at its Fluxborn, siege with its wave and push; else hold its place in lane.
 	 */
 	VEYRABOTS_API FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTuning& Difficulty, const FVeyraBotsTuning& Tuning,
 		FVeyraBotMemory& Memory, FRandomStream& Random);

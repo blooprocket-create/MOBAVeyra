@@ -81,6 +81,26 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(HasProblem(Problems, *FString::Printf(TEXT("/vanguards/cairn/build/%d"), Unknown + 1))));
 		}
 
+		TEST_METHOD(TheConsumableIsOneTheShopSellsAndEveryLaneIsInTheGroupingOrder)
+		{
+			// The committed bots carry Field Tonics, Intermediate more than Beginner, and only Intermediate buys back (ADR-056 §7).
+			const FVeyraBotsTuning& Tuning = UVeyraBotsTuningSubsystem::Get();
+			ASSERT_THAT(IsTrue(Tuning.Consumables.Item == BotsId(TEXT("field_tonic"))));
+			const FVeyraBotDifficultyTuning& Beginner = UVeyraBotsTuningSubsystem::GetDifficulty(EVeyraBotDifficulty::Beginner);
+			const FVeyraBotDifficultyTuning& Intermediate = UVeyraBotsTuningSubsystem::GetDifficulty(EVeyraBotDifficulty::Intermediate);
+			ASSERT_THAT(IsTrue(Beginner.ConsumablesCarried > 0 && Intermediate.ConsumablesCarried >= Beginner.ConsumablesCarried));
+			ASSERT_THAT(IsTrue(Beginner.Buyback == EVeyraBotBuyback::Never && Intermediate.Buyback == EVeyraBotBuyback::WhenBaseThreatened));
+			FVeyraBotsTuning Broken = Tuning;
+			Broken.Consumables.Item = BotsId(TEXT("vital_plate"));
+			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/consumables/item")), TEXT("equipment is no consumable")));
+			Broken = Tuning;
+			Broken.Difficulties.Intermediate.ConsumablesCarried = 99;
+			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/difficulties/intermediate/consumablesCarried")), TEXT("more than a slot holds")));
+			Broken = Tuning;
+			Broken.Grouping.LaneOrder = { EVeyraLane::Mid, EVeyraLane::Mid, EVeyraLane::Top };
+			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/grouping/laneOrder"))));
+		}
+
 		TEST_METHOD(SkillPriorityNamesEachKitSlotOnce)
 		{
 			FVeyraBotsTuning Broken = UVeyraBotsTuningSubsystem::Get();

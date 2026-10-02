@@ -646,6 +646,64 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_grip"))));
 		}
 
+		TEST_METHOD(ItCarriesItsConsumablesUntilTheirTimeWithoutTakingTheLastFreeSlot)
+		{
+			const FVeyraItemsTuning Items = TestCatalog();
+			FVeyraBotConsumablesTuning Consumables;
+			Consumables.Item = ItemId(TEXT("test_tonic"));
+			Consumables.BuyUntilSeconds = 1200.0;
+			const int32 Carried = 2;
+			TArray<FVeyraInventorySlot> Slots;
+			Slots.SetNum(Items.Shop.InventorySlots);
+			const auto Next = [&](double Gold, double MatchSeconds) {
+				return VeyraBotRules::NextConsumable(Items, Consumables, Carried, Slots, {}, FVeyraContentId(), Gold, MatchSeconds);
+			};
+			// It buys one while it carries fewer than its number and Gold affords one (ADR-056 §1).
+			ASSERT_THAT(IsTrue(Next(100.0, 0.0) == Consumables.Item));
+			ASSERT_THAT(IsFalse(Next(10.0, 0.0).IsSet(), TEXT("too poor")));
+			ASSERT_THAT(IsFalse(Next(100.0, Consumables.BuyUntilSeconds).IsSet(), TEXT("too late in the match")));
+			Slots[0].Item = Consumables.Item;
+			Slots[0].Count = 1;
+			ASSERT_THAT(IsTrue(Next(100.0, 0.0) == Consumables.Item, TEXT("one short")));
+			Slots[0].Count = Carried;
+			ASSERT_THAT(IsFalse(Next(100.0, 0.0).IsSet(), TEXT("carrying its number")));
+			// A new stack never takes the last free slot; topping up a held stack may.
+			Slots.Reset();
+			Slots.SetNum(Items.Shop.InventorySlots);
+			for (int32 Index = 0; Index < Slots.Num() - 1; ++Index)
+			{
+				Slots[Index].Item = ItemId(TEXT("test_grip"));
+				Slots[Index].Count = 1;
+			}
+			ASSERT_THAT(IsFalse(Next(100.0, 0.0).IsSet(), TEXT("one slot free")));
+			Slots[0].Item = Consumables.Item;
+			ASSERT_THAT(IsTrue(Next(100.0, 0.0) == Consumables.Item, TEXT("a held stack grows")));
+		}
+
+		TEST_METHOD(AHurtBotAwayFromItsFountainDrinks)
+		{
+			FVeyraBotConsumablesTuning Consumables;
+			Consumables.DrinkHealthFraction = 0.55;
+			const int32 Held = 3;
+			FVeyraBotView View = AliveAt(0.0, 0.5);
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(View, Consumables).IsSet(), TEXT("nothing to drink")));
+			View.ConsumableSlot = Held;
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextDrink(View, Consumables) == Held));
+			// Not at full enough Health to need it, at its fountain, recalling or dead.
+			FVeyraBotView Healthy = AliveAt(0.0, 0.6);
+			Healthy.ConsumableSlot = Held;
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(Healthy, Consumables).IsSet()));
+			for (bool FVeyraBotView::*Flag : { &FVeyraBotView::bAtFountain, &FVeyraBotView::bRecalling })
+			{
+				FVeyraBotView Busy = View;
+				Busy.*Flag = true;
+				ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(Busy, Consumables).IsSet()));
+			}
+			FVeyraBotView Dead = View;
+			Dead.bAlive = false;
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(Dead, Consumables).IsSet()));
+		}
+
 		TEST_METHOD(TheLaneMeasuresDistanceAlongItsPath)
 		{
 			const TArray<FVector2D> Path = { FVector2D(0.0, 0.0), FVector2D(1000.0, 0.0), FVector2D(1000.0, 1000.0) };

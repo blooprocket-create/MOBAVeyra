@@ -2,6 +2,7 @@
 
 #include "Brain/VeyraBotRules.h"
 
+#include "Algo/Count.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Tuning/VeyraItemsTuning.h"
 
@@ -328,6 +329,38 @@ TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstAr
 		return Part;
 	}
 	return {};
+}
+
+TOptional<FVeyraContentId> NextConsumable(const FVeyraItemsTuning& Items, const FVeyraBotConsumablesTuning& Consumables, int32 Carried,
+	TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, double Gold,
+	double MatchSeconds)
+{
+	if (MatchSeconds >= Consumables.BuyUntilSeconds || HeldCounts(Slots, Queue).FindRef(Consumables.Item) >= Carried)
+	{
+		return {};
+	}
+	// A new stack takes a slot: never the last free one, which a recipe's part may need.
+	const bool bNewStack = !Holds(Items, Slots, Queue, Consumables.Item);
+	const int32 Free = Algo::CountIf(Slots, [](const FVeyraInventorySlot& Slot) { return Slot.IsEmpty(); }) - Queue.Num();
+	if (bNewStack && Free < 2)
+	{
+		return {};
+	}
+	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Items, Slots, Queue, Mythical, Consumables.Item);
+	if (Quote.Refusal != EVeyraShopRefusal::None || Quote.Price > Gold)
+	{
+		return {};
+	}
+	return Consumables.Item;
+}
+
+TOptional<int32> NextDrink(const FVeyraBotView& View, const FVeyraBotConsumablesTuning& Consumables)
+{
+	if (!View.bAlive || View.bAtFountain || View.bRecalling || !View.ConsumableSlot.IsSet() || View.Self.HealthFraction() >= Consumables.DrinkHealthFraction)
+	{
+		return {};
+	}
+	return View.ConsumableSlot;
 }
 
 TOptional<EVeyraAbilitySlot> NextRank(TConstArrayView<EVeyraBotSkill> Priority, TFunctionRef<bool(EVeyraAbilitySlot)> CanRank)

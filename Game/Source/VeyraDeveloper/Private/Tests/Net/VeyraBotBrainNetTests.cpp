@@ -8,6 +8,7 @@
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Brain/VeyraBotBrainComponent.h"
+#include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Recall/VeyraRecallComponent.h"
@@ -66,6 +67,7 @@ namespace VeyraNetTests
 		static constexpr double Beside = 200.0;
 		static constexpr double TowardTheMiddle = 1200.0;
 		static constexpr double HurtFraction = 0.2;
+		static constexpr double PlentyOfGold = 1000.0;
 
 		TWeakObjectPtr<AVeyraPlayerState> Bot;
 		double HumanHealthBefore = 0.0;
@@ -150,6 +152,43 @@ namespace VeyraNetTests
 				.UntilServer(TEXT("It recalls"), [this](FState&) {
 					return Bot.IsValid() && Bot->FindComponentByClass<UVeyraRecallComponent>()->IsRecalling();
 				});
+		}
+
+		/** How many of the bots' consumable Participant holds. */
+		static int32 ConsumablesHeld(const AVeyraPlayerState& Participant)
+		{
+			const FVeyraContentId& Item = UVeyraBotsTuningSubsystem::Get().Consumables.Item;
+			int32 Held = 0;
+			for (const FVeyraInventorySlot& Slot : Participant.FindComponentByClass<UVeyraInventoryComponent>()->GetSlots())
+			{
+				Held += !Slot.IsEmpty() && Slot.Item == Item ? Slot.Count : 0;
+			}
+			return Held;
+		}
+
+		TEST_METHOD(ABotBuysConsumablesAndDrinksOneWhenHurtAwayFromItsFountain)
+		{
+			// Nothing to build, so its Gold goes on its consumables (ADR-056 §1).
+			Bots->Tuning.Vanguards[TestVanguardId()].Build.Reset();
+			const int32 Carried = UVeyraBotsTuningSubsystem::GetDifficulty(EVeyraBotDifficulty::Intermediate).ConsumablesCarried;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Seat a bot at its fountain with the Gold for its consumables"), [this](FState& State) {
+					SeatBot(State);
+					Bot->FindComponentByClass<UVeyraGoldComponent>()->Grant(PlentyOfGold, EVeyraGoldReason::Developer);
+				})
+				.UntilServer(TEXT("It buys as many as it carries"), [this, Carried](FState&) { return Bot.IsValid() && ConsumablesHeld(*Bot) == Carried; })
+				.ThenServer(TEXT("Send it out of its fountain, and hurt it below its drinking line but above its retreat line"), [this](FState& State) {
+					APawn* Body = Bot->GetPawn();
+					const FVector Home = Body->GetActorLocation();
+					Body->TeleportTo(Home + FVector(Home.X > 0.0 ? -TowardTheMiddle : TowardTheMiddle, 0.0, 0.0), Body->GetActorRotation());
+					const double Line = UVeyraBotsTuningSubsystem::Get().Consumables.DrinkHealthFraction;
+					const double Retreat = UVeyraBotsTuningSubsystem::GetDifficulty(EVeyraBotDifficulty::Intermediate).RetreatHealthFraction;
+					const double MaxHealth = Bot->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+					FVeyraRawDamageEvent Wound;
+					Wound.Components.Add({ EVeyraDamageType::TrueDamage, HealthOf(*Bot) - MaxHealth * (Line + Retreat) / 2.0 });
+					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Human(State).GetAbilitySystemComponent(), *Bot->GetAbilitySystemComponent(), Wound)));
+				})
+				.UntilServer(TEXT("It drinks one"), [this, Carried](FState&) { return Bot.IsValid() && ConsumablesHeld(*Bot) == Carried - 1; });
 		}
 
 		TEST_METHOD(ABotBuysItsBuildAndRanksUpAtItsFountain)

@@ -34,6 +34,7 @@
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraBattlegroundSubsystem.h"
 #include "VeyraCombatVerbs.h"
+#include "VeyraGameState.h"
 #include "VeyraPlayerState.h"
 #include "VeyraTeamStart.h"
 #include "Wells/VeyraFluxWell.h"
@@ -181,9 +182,16 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 	const UVeyraInventoryComponent* Inventory = Bot.FindComponentByClass<UVeyraInventoryComponent>();
 	const UVeyraGoldComponent* Gold = Bot.FindComponentByClass<UVeyraGoldComponent>();
 	const FVeyraBotVanguardTuning* Behaviour = Tuning.Vanguards.Find(Bot.GetVanguardId());
+	if (const AVeyraGameState* State = World->GetGameState<AVeyraGameState>())
+	{
+		View.MatchSeconds = State->GetMatchClockSeconds();
+	}
 	if (Inventory)
 	{
 		View.bAtFountain = Inventory->IsAtFountain();
+		const TArray<FVeyraInventorySlot>& Slots = Inventory->GetSlots();
+		const int32 Held = Slots.IndexOfByPredicate([&Tuning](const FVeyraInventorySlot& Slot) { return !Slot.IsEmpty() && Slot.Item == Tuning.Consumables.Item; });
+		View.ConsumableSlot = Held != INDEX_NONE ? TOptional<int32>(Held) : TOptional<int32>();
 	}
 	if (Inventory && Gold && Behaviour)
 	{

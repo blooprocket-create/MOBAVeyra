@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -27,7 +27,9 @@
       "retreatHealthFraction": 0.35,
       "fightHealthMargin": -0.1,
       "shopRecallGold": 900,
-      "fluxbornTolerance": 1
+      "fluxbornTolerance": 1,
+      "consumablesCarried": 2,
+      "buyback": "Never"
     },
     "intermediate": {
       "provenance": "Provisional",
@@ -41,7 +43,9 @@
       "retreatHealthFraction": 0.25,
       "fightHealthMargin": -0.2,
       "shopRecallGold": 800,
-      "fluxbornTolerance": 2
+      "fluxbornTolerance": 2,
+      "consumablesCarried": 3,
+      "buyback": "WhenBaseThreatened"
     }
   },
   "seats": [
@@ -66,7 +70,27 @@
     "spotReach": 500,
     "spotSpacing": 900
   },
-  "vanguards": {
+  "consumables": {
+    "provenance": "Provisional",
+    "item": "field_tonic",
+    "drinkHealthFraction": 0.55,
+    "buyUntilSeconds": 1200
+  },
+  "defence": {
+    "provenance": "Provisional",
+    "threatRadius": 1500,
+    "recallDistance": 4000
+  },
+  "buyback": {
+    "provenance": "Provisional",
+    "minWaitSeconds": 20,
+    "reserveGold": 300
+  },
+  "grouping": {
+    "provenance": "Provisional",
+    "startSeconds": 1500,
+    "laneOrder": ["Mid", "Bottom", "Top"]
+  },  "vanguards": {
     "cairn": {
       "provenance": "Provisional",
       "build": ["swift_boots", "siegeheart_core", "riverhold_bastion", "blackreef_bell", "colossus_temper"],

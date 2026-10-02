@@ -70,6 +70,7 @@ FVeyraBotIntent UVeyraBotBrainComponent::Think()
 	{
 		return {};
 	}
+	Drink(View);
 	const FVeyraBotIntent Intent = VeyraBotRules::Decide(View, UVeyraBotsTuningSubsystem::GetDifficulty(Difficulty), Tuning, Memory, Random);
 	Act(Intent, *GameMode);
 	LastIntent = Intent;
@@ -88,8 +89,14 @@ void UVeyraBotBrainComponent::Shop(const FVeyraBotView& View, AVeyraGameMode& Ga
 	{
 		return;
 	}
-	const TOptional<FVeyraContentId> Next =
-		VeyraBotRules::NextPurchase(UVeyraItemsTuningSubsystem::Get(), Behaviour->Build, Inventory->GetSlots(), Inventory->GetQueue(), Inventory->GetMythical(), Gold->GetGold());
+	const FVeyraItemsTuning& Items = UVeyraItemsTuningSubsystem::Get();
+	TOptional<FVeyraContentId> Next = VeyraBotRules::NextPurchase(Items, Behaviour->Build, Inventory->GetSlots(), Inventory->GetQueue(), Inventory->GetMythical(), Gold->GetGold());
+	// With nothing toward its build to buy, it tops up the consumables it carries (ADR-056 §1).
+	if (!Next.IsSet())
+	{
+		Next = VeyraBotRules::NextConsumable(Items, UVeyraBotsTuningSubsystem::Get().Consumables, UVeyraBotsTuningSubsystem::GetDifficulty(Difficulty).ConsumablesCarried,
+			Inventory->GetSlots(), Inventory->GetQueue(), Inventory->GetMythical(), Gold->GetGold(), View.MatchSeconds);
+	}
 	if (Next.IsSet())
 	{
 		const EVeyraShopRefusal Refusal = ShopSubsystem->Buy(*Participant, Next.GetValue());
@@ -116,6 +123,19 @@ void UVeyraBotBrainComponent::RankUp(AVeyraGameMode& GameMode)
 		{
 			return;
 		}
+	}
+}
+
+void UVeyraBotBrainComponent::Drink(const FVeyraBotView& View)
+{
+	AVeyraPlayerState* Participant = Bot.Get();
+	UVeyraShopSubsystem* ShopSubsystem = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
+	const TOptional<int32> Slot = VeyraBotRules::NextDrink(View, UVeyraBotsTuningSubsystem::Get().Consumables);
+	if (Participant && ShopSubsystem && Slot.IsSet())
+	{
+		// The rule a player's drink goes through, which refuses one while another still restores.
+		const EVeyraShopRefusal Refusal = ShopSubsystem->UseConsumable(*Participant, Slot.GetValue());
+		UE_LOG(LogVeyraBots, Verbose, TEXT("%s drinks: %s."), *Participant->GetPlayerName(), LexToString(Refusal));
 	}
 }
 

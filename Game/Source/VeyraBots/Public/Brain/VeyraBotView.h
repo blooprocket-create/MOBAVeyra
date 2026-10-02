@@ -144,8 +144,11 @@ struct FVeyraBotCamp
  */
 struct FVeyraBotView
 {
-	/** Match time, in seconds. */
+	/** World time, in seconds: the clock reaction times and memories run on. */
 	double Now = 0.0;
+
+	/** How long the match has run, in seconds, as its clock shows it: what buying windows and grouping go by (ADR-056). */
+	double MatchSeconds = 0.0;
 
 	bool bAlive = false;
 	bool bRecalling = false;
@@ -156,6 +159,9 @@ struct FVeyraBotView
 	/** Its Gold, and whether its build has a purchase that Gold affords now. */
 	double Gold = 0.0;
 	bool bPurchaseWaiting = false;
+
+	/** The inventory slot, from 0, that holds the consumable it carries (ADR-056 §1); unset while it holds none. */
+	TOptional<int32> ConsumableSlot;
 
 	FVeyraBotUnit Self;
 

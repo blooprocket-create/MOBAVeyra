@@ -155,6 +155,34 @@ TArray<FString> Validate(const FVeyraBotsTuning& Tuning)
 			}
 		}
 	}
+	// The consumable is one the catalog sells and restores with, and no difficulty carries more than one slot holds (ADR-056 §1).
+	const FVeyraItemDefinition* Consumable = Items.Items.Find(Tuning.Consumables.Item);
+	if (!Consumable || !Items.Consumables.Contains(Tuning.Consumables.Item))
+	{
+		Problems.Add(FString::Printf(TEXT("/consumables/item: \"%s\" is not a consumable Items.json sells"), *Tuning.Consumables.Item.ToString()));
+	}
+	else
+	{
+		for (const TPair<const TCHAR*, const FVeyraBotDifficultyTuning*> Difficulty : { TPair<const TCHAR*, const FVeyraBotDifficultyTuning*>(TEXT("beginner"), &Tuning.Difficulties.Beginner),
+				 TPair<const TCHAR*, const FVeyraBotDifficultyTuning*>(TEXT("intermediate"), &Tuning.Difficulties.Intermediate) })
+		{
+			if (Difficulty.Value->ConsumablesCarried > Consumable->StackLimit)
+			{
+				Problems.Add(FString::Printf(TEXT("/difficulties/%s/consumablesCarried: %d is more than one slot of %s holds (%d)"), Difficulty.Key,
+					Difficulty.Value->ConsumablesCarried, *Tuning.Consumables.Item.ToString(), Consumable->StackLimit));
+			}
+		}
+	}
+	// The lane order names every lane once (ADR-056 §4).
+	for (const EVeyraLane Lane : { EVeyraLane::Top, EVeyraLane::Mid, EVeyraLane::Bottom })
+	{
+		if (Algo::Count(Tuning.Grouping.LaneOrder, Lane) != 1)
+		{
+			Problems.Add(TEXT("/grouping/laneOrder: must name Top, Mid and Bottom once each"));
+			break;
+		}
+	}
+
 	// Every item's Active says what it is for, so a bot that buys the item knows when to cast it (ADR-051 §6).
 	for (const TPair<FVeyraContentId, FVeyraItemDefinition>& Item : UVeyraItemsTuningSubsystem::Get().Items)
 	{
