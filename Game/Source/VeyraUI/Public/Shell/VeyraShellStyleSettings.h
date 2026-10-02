@@ -396,6 +396,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ChatLinesHeight = 0.0f;
 
+	/** A profile's icon on its card, and the featured Vanguard's art beside it (ADR-048 §5), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProfileIconSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProfileFeaturedHeight = 0.0f;
+
+	/** The tallest an opened profile's shared Match History grows before it scrolls, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProfileHistoryMaxHeight = 0.0f;
+
 	/**
 	 * The one brief, distinct cue as the player's draft turn begins (Pre-Game Client UX Bible 32): its tones
 	 * in turn, in hertz, each tone's length in seconds, and its volume. Presentation, made as it plays.

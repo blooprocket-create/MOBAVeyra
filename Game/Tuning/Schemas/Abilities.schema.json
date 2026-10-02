@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "command", "dismount", "fluxSpells", "companions"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "command", "dismount", "echo", "fluxSpells", "companions"],
   "definitions": {
     "statBlock": {
       "description": "Base stats or their growth (FVeyraStatBlock), each at least 0.",
@@ -239,7 +239,7 @@
             }
           }
         },
-        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] }, "multiplier": { "type": "number", "minimum": 1 } } } },
+        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] }, "multiplier": { "type": "number", "minimum": 1 } } } },
         "displacementUnlessStatuses": { "description": "Statuses that spare a unit this displacement: one displacement per target per cast (Roster Bible §1).", "$ref": "#/definitions/statusIds" },
         "reactions": {
           "description": "What the hit adds when its target holds a status, read as the hit lands (ADR-026 §1): Rupture's burst on Splinters, Flash Cure's stun on an Unstable target.",
@@ -384,7 +384,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [24]
+      "enum": [25]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -414,7 +414,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction", "AttackShortensCooldown", "MaxHealth", "Sounded", "Cover", "Designated"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction", "AttackShortensCooldown", "MaxHealth", "Sounded", "Cover", "Designated", "Stasis"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -458,9 +458,9 @@
               "type": "array",
               "minItems": 0,
               "maxItems": 6,
-              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] }
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] }
             },
-            "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
+            "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] } },
             "attackCharges": { "description": "How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend.", "type": "integer", "minimum": 0 },
             "cover": {
               "description": "Cover (ADR-037 §4): one entry for that kind, none for any other. Its holder shelters the allies behind it, within its reach, from projectiles whose source lies within its arc, preventing its magnitude's share of their damage before mitigation out of its capacity, which refills each time it is given; its holder takes transferShare of what it prevents.",
@@ -525,7 +525,7 @@
               "type": "array",
               "minItems": 0,
               "maxItems": 6,
-              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] }
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] }
             }
           }
         }
@@ -619,7 +619,7 @@
             "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" },
             "channelMovement": { "description": "Locked holds the caster in place while it channels; Free lets it move, each tick placed where it stands (ADR-018 §6).", "type": "string", "enum": ["Free", "Locked"] },
             "casterStatuses": { "description": "Put on the caster as it commits.", "$ref": "#/definitions/statusIds" },
-            "healOnHit": { "description": "At most one: Health the caster restores from the units it hits, capped for the cast (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["unitKinds", "maxHealthRatioPerHit", "capMaxHealthRatio"], "properties": { "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } }, "maxHealthRatioPerHit": { "type": "number", "minimum": 0, "exclusiveMinimum": true }, "capMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } },
+            "healOnHit": { "description": "At most one: Health the caster restores from the units it hits, capped for the cast (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["unitKinds", "maxHealthRatioPerHit", "capMaxHealthRatio"], "properties": { "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] } }, "maxHealthRatioPerHit": { "type": "number", "minimum": 0, "exclusiveMinimum": true }, "capMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } },
             "delayWithin": { "description": "For a delayed area: the first entry whose lingering area, its caster's own of the named ability, holds the area's point sets its delay instead (ADR-026 §4), as Flash Cure's inside CODE BLACK.", "type": "array", "minItems": 0, "items": { "type": "object", "additionalProperties": false, "required": ["ability", "delaySeconds"], "properties": { "ability": { "description": "An area ability that lingers.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }, "delaySeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } }
           }
         }
@@ -950,7 +950,7 @@
             "endZones": {"description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.", "type": "array", "minItems": 0, "items": {"$ref": "#/definitions/zone"}},
             "rideExit": { "description": "Stay: it rides on, if it rides. Leave: it separates rider and vehicle first, as Bail Out and Last Exit do (Combat Bible §56).", "type": "string", "enum": ["Stay", "Leave"] },
             "duringDash": { "description": "Cast during one of its caster's own dashes: Refused until that dash ends, or TakesOver, ending it where the caster is and dashing from there (ADR-031 §7).", "type": "string", "enum": ["Refused", "TakesOver"] },
-            "targetKinds": { "description": "ThroughTarget: the kinds of unit it may pass through (EVeyraUnitKind); empty for any enemy unit, and empty for any other dash. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } }
+            "targetKinds": { "description": "ThroughTarget: the kinds of unit it may pass through (EVeyraUnitKind); empty for any enemy unit, and empty for any other dash. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] } }
           }
         }
       }
@@ -1063,7 +1063,7 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
+            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] } },
             "maxRange": { "description": "Edge to edge, in units; beyond it the tether stretches. At least the cast's range.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "snapDistance": { "description": "Stretched, the pull toward the caster, in units before Displacement Resistance; 0 for none.", "type": "number", "minimum": 0 },
@@ -1085,7 +1085,7 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
+            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] } },
             "leapSpeed": { "description": "The leap's units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "reachOnArrival": { "description": "Edge to edge, in units, how near the target must be as the leap ends for the caster to take hold.", "type": "number", "minimum": 0 },
             "attachSeconds": { "description": "How long it holds on.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -1129,7 +1129,7 @@
                   "reach": { "description": "How far past the rider's edge it meets a unit's edge.", "type": "number", "minimum": 0 },
                   "pulseSeconds": { "description": "Seconds between its looks for what it meets.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "enemyEffects": { "description": "On each enemy it meets, as its rider's hit; a knock aside is AsideFromPath, off the ride's line.", "$ref": "#/definitions/effects" },
-                  "enemyKinds": { "description": "The kinds of enemy unit it strikes; any when empty.", "type": "array", "minItems": 0, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
+                  "enemyKinds": { "description": "The kinds of enemy unit it strikes; any when empty.", "type": "array", "minItems": 0, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] } },
                   "allyEffects": { "description": "At most one: what it does for each allied Vanguard it meets.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/allyEffects" } }
                 }
               }
@@ -1250,7 +1250,7 @@
               "type": "array",
               "minItems": 0,
               "maxItems": 6,
-              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] }
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] }
             },
             "besideDistance": { "description": "How far from an enemy's edge it lands, on the caster's side.", "type": "number", "minimum": 0 },
             "swap": { "description": "None: its marker stays. Swap: its marker takes the caster's old place.", "type": "string", "enum": ["None", "Swap"] },
@@ -1296,6 +1296,68 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" }
+          }
+        }
+      }
+    },
+    "echo": {
+      "description": "Abilities that form their caster's Echo (ADR-050 §4, §5), as item Actives: a projection of its holder that repeats one of its eligible abilities at a share of its damage. Exactly one of manifest and projection says which kind it forms.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "damageCoefficient", "slots", "repeats", "manifest", "projection"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "damageCoefficient": { "description": "The share of its holder's outgoing damage the Echo deals (Item Bible §11: 0.25 for The Second Self).", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "slots": { "description": "The kit slots whose abilities it may repeat, each once: Q, W, E or R (the Abilities domain refuses item, spell and tool slots).", "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] } },
+            "repeats": { "description": "How many abilities it may repeat.", "type": "integer", "minimum": 1 },
+            "manifest": {
+              "description": "At most one: a short-lived Echo at the cast's point that waits for its holder's next eligible cast and repeats it.",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["windowSeconds", "statuses"],
+                "properties": {
+                  "windowSeconds": { "description": "How long it waits for the cast it repeats.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "statuses": { "$ref": "#/definitions/statusIds", "description": "Status IDs it holds while it waits, such as being Untargetable; each lasts at least the window." }
+                }
+              }
+            },
+            "projection": {
+              "description": "At most one: a controllable Echo formed at a point within its tether radius while its holder waits in Stasis.",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["stasis", "formationSeconds", "immunitySeconds", "integrity", "decayPerSecond", "maxRadius", "minRadius", "radiusExponent", "updateSeconds", "integrityLoss"],
+                "properties": {
+                  "stasis": { "description": "The Stasis status its holder takes as it is cast; only the Echo's end removes it, so it lasts at least integrity / decayPerSecond.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "formationSeconds": { "description": "How long it takes to form before control passes to it, within its immunity (Item Bible §11: 0.5).", "type": "number", "minimum": 0 },
+                  "immunitySeconds": { "description": "How long after the cast enemy hits cannot reduce its Integrity (Item Bible §11: 2.0).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "integrity": { "description": "The Integrity it forms with.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "decayPerSecond": { "description": "The Integrity it loses each second from the cast: its hard lifetime.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "maxRadius": { "description": "Its tether radius at full Integrity; the cast's range.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "minRadius": { "description": "The least its tether radius shrinks to while any Integrity remains.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "radiusExponent": { "description": "How the radius follows its share of Integrity: min + (max - min) x share ^ exponent; 1 for a straight line.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "updateSeconds": { "description": "Seconds between its Integrity updates.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "integrityLoss": {
+                    "description": "The Integrity each enemy hit removes once its immunity ends.",
+                    "type": "object", "additionalProperties": false,
+                    "required": ["vanguardBasicAttack", "unitBasicAttack", "ability", "structureAttack", "periodic", "proc"],
+                    "properties": {
+                      "vanguardBasicAttack": { "description": "An enemy Vanguard's basic attack.", "type": "number", "minimum": 0 },
+                      "unitBasicAttack": { "description": "Any other unit's basic attack.", "type": "number", "minimum": 0 },
+                      "ability": { "description": "An ability's hit.", "type": "number", "minimum": 0 },
+                      "structureAttack": { "description": "A structure's attack.", "type": "number", "minimum": 0 },
+                      "periodic": { "description": "One tick of an effect over time.", "type": "number", "minimum": 0 },
+                      "proc": { "description": "An item's or a passive's proc.", "type": "number", "minimum": 0 }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1382,7 +1444,7 @@
                 "properties": {
                   "radius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "pulseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
-                  "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
+                  "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion", "Echo"] } },
                   "statuses": { "$ref": "#/definitions/statusIds" },
                   "shield": { "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/shield" } }
                 }

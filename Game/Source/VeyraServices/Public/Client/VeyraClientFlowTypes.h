@@ -5,6 +5,7 @@
 #include "Backend/VeyraBackendProtocol.h"
 #include "Backend/VeyraChatProtocol.h"
 #include "Backend/VeyraConductProtocol.h"
+#include "Backend/VeyraProfileProtocol.h"
 #include "Containers/Array.h"
 #include "Containers/Map.h"
 #include "Containers/UnrealString.h"
@@ -156,6 +157,24 @@ enum class EVeyraClientIntent : uint8
 	ReportPlayer,
 	/** Commends a teammate of the results' match, once (ADR-047 §3). */
 	CommendTeammate,
+	/** Opens a player's profile by name: from the friends card, the player menu or the Profile page (ADR-048 §5). */
+	OpenProfile,
+	CloseProfile,
+	/** Reads the opened profile's next page of shared Match History. */
+	LoadMoreProfileMatches,
+	/** Reads the opened profile's shared Match History again with other filters (ADR-048 §3). */
+	FilterProfileMatches,
+	/** Opens one of the opened profile's shared matches into its report. */
+	OpenProfileMatch,
+	CloseProfileMatch,
+	/** Reads the player's own profile choices, the catalog and their profile as others see it. */
+	LoadProfileSettings,
+	/** Saves the player's profile choices (ADR-048 §4). */
+	SaveProfileSettings,
+	/** Reads the player's display name and what changing it takes (ADR-049). */
+	LoadDisplayName,
+	/** Changes the player's display name; free first and when another player claimed it, paid later. */
+	ChangeDisplayName,
 };
 
 /** Which kind of world the client just loaded. */
@@ -343,6 +362,52 @@ struct FVeyraConduct
 	FString FeedbackName;
 };
 
+/**
+ * A player's profile the client shows (ADR-048 §5), opened by name; the name is empty while none is open. A
+ * profile shares its Match History only while its owner chooses to (UX-72).
+ */
+struct FVeyraProfileView
+{
+	FString Name;
+	/** Whether it has been read. */
+	bool bLoaded = false;
+	/** An unknown name, or a block either way: the screen says only that the profile is unavailable. */
+	bool bUnavailable = false;
+	VeyraBackendProtocol::FPublicProfile Profile;
+	/** Its shared Match History as read, newest first, with the next page's cursor; read once the profile is. */
+	bool bMatchesLoaded = false;
+	TArray<VeyraBackendProtocol::FHistoryEntry> Matches;
+	FString Next;
+	/** Its filters, the owner's own (ADR-048 §3), and every mode the owner has a shared match in: the mode filter's choices. */
+	VeyraBackendProtocol::FHistoryFilter Filter;
+	TArray<FString> Modes;
+	/** A page is being read: Load More waits for it, so no page is asked for twice. */
+	bool bReadingMatches = false;
+	/** One shared match opened into its report; unset while none is. */
+	TOptional<VeyraBackendProtocol::FMatchOutcome> OpenedMatch;
+};
+
+/** The player's own profile choices, the catalog, and their profile as others see it (ADR-048 §4); read on the Profile page. */
+struct FVeyraProfileSettings
+{
+	bool bLoaded = false;
+	VeyraBackendProtocol::FProfileSettings Saved;
+	VeyraBackendProtocol::FProfileCatalog Catalog;
+	/** The player's profile as another player sees it, read with the choices and again after a save. */
+	TOptional<VeyraBackendProtocol::FPublicProfile> Preview;
+	/** What came of the last save: "profile_saved", or the backend's refusal, such as "not_owned". Empty for none. */
+	FString Feedback;
+};
+
+/** The player's display name and what changing it takes (ADR-049), read on the Profile page. */
+struct FVeyraDisplayName
+{
+	bool bLoaded = false;
+	VeyraBackendProtocol::FDisplayNameStatus Status;
+	/** What came of the last change: "name_changed", or the backend's refusal, such as "display_name_taken". Empty for none. */
+	FString Feedback;
+};
+
 struct FVeyraClientSnapshot
 {
 	EVeyraClientState State = EVeyraClientState::SigningIn;
@@ -414,6 +479,17 @@ struct FVeyraClientSnapshot
 	FVeyraCollection Collection;
 	/** Results, or an opened Match History record: the player's reports and commendation in that match. */
 	FVeyraConduct Conduct;
+	/** A player's profile opened from the friends card, the player menu or the Profile page. */
+	FVeyraProfileView ProfileView;
+	/** Shell: the player's own profile choices, once the Profile page opens. */
+	FVeyraProfileSettings ProfileSettings;
+	/** Shell: the player's display name and what changing it takes, once the Profile page opens. */
+	FVeyraDisplayName DisplayNameChange;
+	/**
+	 * Another player claimed this player's name while they were away: they choose a new one, for free, before
+	 * anything else (ADR-049 §4). Read with the profile on sign-in.
+	 */
+	bool bRenameRequired = false;
 	/** Party, direct, select and post-match chat, read in every signed-in state but Reconnect-only (ADR-046 §6). */
 	FVeyraChat Chat;
 

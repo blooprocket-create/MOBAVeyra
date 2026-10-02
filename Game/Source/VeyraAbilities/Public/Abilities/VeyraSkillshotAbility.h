@@ -28,6 +28,7 @@ protected:
 	/** One that recoils its caster moves it, as Kade's Reposition does. */
 	virtual bool MovesCaster(const FVeyraContentId& Ability) const override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
+	virtual bool CanReverberate(const FVeyraContentId& Ability) const override;
 
 private:
 	/** What the shot does as it strikes a unit: fly back, if the unit held the caster's mark (ADR-030 §8). */

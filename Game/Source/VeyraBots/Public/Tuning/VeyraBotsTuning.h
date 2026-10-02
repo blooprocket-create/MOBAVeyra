@@ -286,7 +286,7 @@ struct FVeyraBotsTuning
 	GENERATED_BODY()
 
 	/** The Bots.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 6;
+	static constexpr int32 SchemaVersion = 7;
 
 	UPROPERTY()
 	FVeyraBotSensesTuning Senses;
@@ -304,6 +304,10 @@ struct FVeyraBotsTuning
 	/** What each Flux Spell is for, which tells a bot when to cast it. */
 	UPROPERTY()
 	TMap<FVeyraContentId, EVeyraBotAbilityUse> FluxSpells;
+
+	/** What each item's Active is for, which tells a bot when to cast it from its item slot (ADR-051 §6). */
+	UPROPERTY()
+	TMap<FVeyraContentId, EVeyraBotAbilityUse> ItemActives;
 
 	UPROPERTY()
 	FVeyraBotJungleTuning Jungle;

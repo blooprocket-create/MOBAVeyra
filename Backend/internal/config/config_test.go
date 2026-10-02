@@ -40,6 +40,8 @@ const validJSON = `{
     "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}},
   "chat": {"maxCharacters": 250, "maxPerWindow": 5, "window": "5s", "historyMessages": 100, "pageSize": 200, "retention": "168h", "postMatchWindow": "10m", "pruneInterval": "10m"},
   "conduct": {"reasons": ["afk", "other"], "detailsMaxCharacters": 500, "reportWindow": "336h", "commendWindow": "10m"},
+  "profile": {"icons": ["default", "vanguard_cairn"], "backgrounds": ["default", "vanguard_oriel"], "defaultIcon": "default", "defaultBackground": "default"},
+  "names": {"renameCooldown": "24h", "claimAfter": "8760h", "renamePrice": {"flux": 6000, "refinedFlux": 600}},
   "progression": {
     "accountXp": {"perMinute": 6, "winBonus": 30, "coopBelowLevel": 10},
     "accountLevels": {"firstLevel": 150, "growthPerLevel": 20, "growthUntilLevel": 100},

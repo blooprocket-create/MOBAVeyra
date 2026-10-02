@@ -109,6 +109,13 @@ TFunction<void(AActor&)> UVeyraSkillshotAbility::ReturnIfHeld(UAbilitySystemComp
 	};
 }
 
+bool UVeyraSkillshotAbility::CanReverberate(const FVeyraContentId& Ability) const
+{
+	// Thrown from where its caster stands, it can be thrown again from an Echo; a recoil would move the Echo (ADR-050 §5).
+	const FVeyraSkillshotAbilityTuning* Skillshot = UVeyraAbilitiesTuningSubsystem::FindSkillshot(Ability);
+	return Skillshot && Skillshot->CasterDash.IsEmpty();
+}
+
 FVeyraChannelPlan UVeyraSkillshotAbility::Deliver(const FVeyraCast& Cast)
 {
 	const FVeyraSkillshotAbilityTuning* Skillshot = UVeyraAbilitiesTuningSubsystem::FindSkillshot(Cast.Ability);

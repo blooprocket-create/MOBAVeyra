@@ -8,14 +8,17 @@
 #include "VeyraAttunementSubsystem.generated.h"
 
 class UAbilitySystemComponent;
+struct FVeyraCastEvent;
 struct FVeyraDamageDealtEvent;
+struct FVeyraDamageResolution;
 struct FVeyraDeathEvent;
 struct FVeyraMarkedForDoomTuning;
 struct FVeyraSpellShieldBlocked;
 
 /**
- * The Attunements a hit sets off (Item Bible §8–§9; ADR-023 §3–§4): Reprisal Guard, Drag, Convergence,
- * Fracture, Endless Cleave and Tempered by Conflict. It listens to Combat's dealt-damage event and acts
+ * The Attunements a hit sets off (Item Bible §8–§9; ADR-023 §3–§4; ADR-051 §3): Reprisal Guard, Drag, Convergence,
+ * Fracture, Endless Cleave, Tempered by Conflict, No Allegiance, Clean Break, Through the Guard, No One Coming and
+ * Reenactment. It listens to Combat's dealt-damage event and acts
  * through Combat's verbs, with every number from Items.json. Static Attunements fold into the holder's
  * stats (VeyraEquipment::StatsFor), and stacking buffs into the shop's; this owns only what a hit, or
  * standing near an enemy, sets off. Server only.
@@ -70,6 +73,18 @@ public:
 	/** When Holder last took damage from an enemy Vanguard, in world time; unset if it never has. */
 	TOptional<double> GetVanguardDamageTakenAt(const UAbilitySystemComponent& Holder) const;
 
+	/** Through the Guard reads whose shields each damage component broke (ADR-051 §3). */
+	void OnDamageResolved(const FVeyraDamageResolution& Resolution);
+
+	/** The holder's latest committed cast names its ability hits as actions (ADR-051 §9.1). */
+	void OnCastCommitted(const FVeyraCastEvent& Cast);
+
+	/** No One Coming: an ally arriving within the radius breaks an unlocked Abandoned mark (ADR-051 §3). Tests call it. */
+	void UpdateAbandoned();
+
+	/** Whether Holder's No One Coming marks Target Abandoned now, and whether the mark has locked in. */
+	bool IsAbandoned(const UAbilitySystemComponent& Holder, const UAbilitySystemComponent& Target, bool* bOutLocked = nullptr) const;
+
 private:
 	/** A holder's Attunement that waits, or a target it primed, until a world time. */
 	struct FTimed
@@ -107,6 +122,104 @@ private:
 	void MarkedForDoom(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
 		double Now);
 	void SafeHarbor(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder);
+
+	/** ADR-051 §3's Attunements, in VeyraBurstAttunements.cpp. LastDealt is when Holder last damaged an enemy Vanguard before this hit. */
+	void NoAllegiance(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
+		double Now, TOptional<double> LastDealt);
+	/**
+	 * Counts Amount the holder's own damage cost Target toward Clean Break. It reads damage as it resolves, so a killing blow
+	 * is counted before the death it causes is announced.
+	 */
+	void TallyForCleanBreak(const FVeyraContentId& Attunement, double Amount, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target, double Now);
+	void CleanBreak(const FVeyraDeathEvent& Death);
+	void NoOneComing(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
+		double Now);
+	void Reenactment(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
+		double Now, TOptional<double> LastDealt);
+
+	/** The Attunements the items Holder carries hold, each once. */
+	TArray<FVeyraContentId, TInlineAllocator<6>> HeldBy(const UAbilitySystemComponent& Holder) const;
+
+	/** One action of a holder's, as No Allegiance tells them apart: a basic attack, or an ability by its ID. */
+	struct FAction
+	{
+		bool bBasicAttack = false;
+		FVeyraContentId Ability;
+		bool operator==(const FAction& Other) const { return bBasicAttack == Other.bBasicAttack && Ability == Other.Ability; }
+	};
+
+	/** The action Event was, if it was one: a basic attack, or an ability hit named by Holder's latest committed cast. */
+	TOptional<FAction> ActionOf(const FVeyraDamageDealtEvent& Event, const UAbilitySystemComponent& Holder) const;
+
+	/** No Allegiance's Openings, by holder and target. */
+	struct FOpening
+	{
+		TWeakObjectPtr<const UAbilitySystemComponent> Holder;
+		TWeakObjectPtr<const UAbilitySystemComponent> Target;
+		FVeyraContentId Attunement;
+		FAction Opener;
+		double Until = 0.0;
+	};
+	TArray<FOpening> Openings;
+
+	/** Clean Break's record of what each holder dealt each enemy Vanguard, and when. */
+	struct FTally
+	{
+		TWeakObjectPtr<const UAbilitySystemComponent> Holder;
+		TWeakObjectPtr<const UAbilitySystemComponent> Target;
+		FVeyraContentId Attunement;
+		TArray<TPair<double, double>> Hits;
+	};
+	TArray<FTally> Tallies;
+
+	/** Through the Guard's brands, by holder, target and shield. */
+	struct FBrand
+	{
+		TWeakObjectPtr<const UAbilitySystemComponent> Holder;
+		TWeakObjectPtr<const UAbilitySystemComponent> Target;
+		TWeakObjectPtr<const UAbilitySystemComponent> Provider;
+		FVeyraContentId Shield;
+		FVeyraContentId Attunement;
+		double Until = 0.0;
+		double Breach = 0.0;
+	};
+	TArray<FBrand> Brands;
+
+	/** No One Coming's Abandoned marks, by holder and target. */
+	struct FAbandoned
+	{
+		TWeakObjectPtr<const UAbilitySystemComponent> Holder;
+		TWeakObjectPtr<const UAbilitySystemComponent> Target;
+		FVeyraContentId Attunement;
+		double Until = 0.0;
+		double Dealt = 0.0;
+		/** When its lock ends; 0 until it locks in. Once locked, the lock's window is all the mark has left. */
+		double LockedUntil = 0.0;
+
+		bool IsOver(double Now) const { return LockedUntil > 0.0 ? LockedUntil <= Now : Until <= Now; }
+	};
+	TArray<FAbandoned> Abandons;
+
+	/** Ends Holder's chase speed from Attunement unless one of its marks still lasts (ADR-051 §9.3). */
+	void EndChaseUnlessMarked(UAbilitySystemComponent& Holder, const FVeyraContentId& Attunement, double Now);
+
+	/** Reenactment's memories, by holder and target. */
+	struct FMemory
+	{
+		TWeakObjectPtr<const UAbilitySystemComponent> Holder;
+		TWeakObjectPtr<const UAbilitySystemComponent> Target;
+		FVeyraContentId Attunement;
+		double Until = 0.0;
+		double Wound = 0.0;
+		FVector Where = FVector::ZeroVector;
+	};
+	TArray<FMemory> Memories;
+
+	/** When each holder last damaged an enemy Vanguard, and the ability of its latest committed cast. */
+	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, double> VanguardDamageDealtAt;
+	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, FVeyraContentId> LastCast;
+	FDelegateHandle ResolvedHandle;
+	FDelegateHandle CastCommittedHandle;
 
 	/** Marks Target with the most Doom any holder has on it, from Source, lasting while any Doom does. */
 	void ShowDoom(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraContentId& Attunement, const FVeyraMarkedForDoomTuning& Tuning, double Now);

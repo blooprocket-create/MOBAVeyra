@@ -214,6 +214,39 @@ A match's participants report other humans in it, and commend one teammate ([ADR
 
 The tuning is `conduct` in `config/local.json`, all of it provisional (ADR-047 §6): the reasons, the details' length and the two windows.
 
+### Display names
+
+A player may change their display name ([ADR-049](../Docs/ADR/ADR-049-display-name-changes-and-claims.md); `internal/identity`). Names stay unique ignoring case.
+- The first voluntary change is free. Later ones cost Flux or Refined Flux, charged through progression in the same unit of work as the change.
+- A cooldown applies between voluntary changes, paid or not.
+- The old name is anyone's as soon as the change commits.
+- A name whose holder has not logged into the launcher for `names.claimAfter` is claimed by whoever changes to it. The holder gets a unique placeholder and must choose a new name, for free, before they can queue, practise, or join or make a party or lobby.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/me/display-name` | `Bearer <game token>` | — | `displayName` (`name`, `freeChangeAvailable`, `nextChangeAt` or `null`, `renameRequired`, `price` {`flux`, `refinedFlux`}) |
+| `PUT /v1/me/display-name` | `Bearer <game token>` | `{"name", "currency"}` (`flux` or `refinedFlux`, after the free change) | the same, after the change. Refusals: `invalid_display_name`, `same_display_name`, `display_name_taken`, `rename_cooldown`, `invalid_currency`, `insufficient_balance` |
+
+`POST /v1/dev/accounts/{name}/name-reset` with `{"current"}` (local only, with `devLogin`) gives a development account its name back, whatever it changed it to, with its name changes forgotten.
+
+`GET /v1/me/profile` also reports `renameRequired`. Requests refused with `rename_required` until the player chooses: `PUT /v1/party/mode`, `POST /v1/party/queue`, party invitations and joins, `POST /v1/practice`, and making or joining a lobby. The tuning is `names` in `config/local.json`: the 24-hour cooldown is canon, the one-year claim threshold is the bible's working value, and the prices are provisional.
+
+### Player profiles
+
+Each account has a public profile ([ADR-048](../Docs/ADR/ADR-048-player-profiles.md); `internal/profile`). It shows the display name, an official icon and background, the account level, and one permanently owned Vanguard the player chose to feature, with its Mastery level. Match History is private until the owner shares it. A block in either direction makes a profile read as unknown. Profiles never carry account IDs.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/profiles/{name}` | `Bearer <game token>` | — | `profile` (`name`, `icon`, `background`, `level`, `featured` {`vanguardId`, `masteryLevel`} or `null`, `sharesMatchHistory`). Refusal: `profile_unavailable` (an unknown name, or a block either way) |
+| `GET /v1/profiles/{name}/matches` | `Bearer <game token>` | — | the owner's Match History page, as `GET /v1/me/matches`, while they share it. Refusals: `history_private`, `profile_unavailable` |
+| `GET /v1/profiles/{name}/matches/{matchId}` | `Bearer <game token>` | — | one of those matches as the owner sees it, without the owner's rewards. Refusals as above, and `match_not_found` |
+| `GET /v1/me/profile-settings` | `Bearer <game token>` | — | `settings` (`icon`, `background`, `featuredVanguardId` or `null`, `showMatchHistory`) and the `catalog`, with `featuredChoices`: the Vanguards the player permanently owns |
+| `PUT /v1/me/profile-settings` | `Bearer <game token>` | `settings`' fields | the saved `settings` and the `catalog`. Refusals: `invalid_icon`, `invalid_background`, `not_owned` (only a permanently owned Vanguard may be featured, never one lent by the rotation) |
+
+`POST /v1/dev/accounts/{name}/profile-reset` (local only, with `devLogin`) forgets a development account's choices, so scripted runs start from the defaults with the history private.
+
+The catalog is `profile` in `config/local.json` (ADR-048 §2, provisional): a neutral default, plus each released Vanguard's portrait as an icon and its hero art as a background.
+
 ### Custom practice and champion select
 
 Solo Custom practice opens a champion select with no lobby; an accepted match found opens a Casual Select. The select creates the match ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–8, §10).

@@ -21,6 +21,7 @@ public:
 	UVeyraOffenceSet();
 
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, OutgoingDamageMultiplier)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, DamageShare)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, PhysicalPenetrationFlat)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, PhysicalPenetrationRetained)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, MagicPenetrationFlat)
@@ -38,6 +39,9 @@ public:
 protected:
 	UFUNCTION()
 	void OnRep_OutgoingDamageMultiplier(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_DamageShare(const FGameplayAttributeData& OldValue);
 
 	UFUNCTION()
 	void OnRep_PhysicalPenetrationFlat(const FGameplayAttributeData& OldValue);
@@ -73,6 +77,13 @@ private:
 	/** Generic Damage Amplification (§15): the product of every source's 1 + x. */
 	UPROPERTY(ReplicatedUsing = OnRep_OutgoingDamageMultiplier)
 	FGameplayAttributeData OutgoingDamageMultiplier;
+
+	/**
+	 * The share of its damage a unit deals, every type, True Damage included (ADR-050 §2): 1 for any unit, and an
+	 * Echo's its holder's times its coefficient. Unlike generic amplification it is a projection's, not a bonus.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_DamageShare)
+	FGameplayAttributeData DamageShare;
 
 	/** Flat Armor penetration. */
 	UPROPERTY(ReplicatedUsing = OnRep_PhysicalPenetrationFlat)

@@ -42,4 +42,14 @@ namespace VeyraMatchHistoryModel
 	VEYRAUI_API FText OutcomeText(const FString& Outcome, bool bPersonalLoss = false);
 
 	VEYRAUI_API FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadMore);
+
+	/**
+	 * The filters' choices under Filter (UX-67): every released Vanguard, the Play screen's modes and SavedModes, and the
+	 * outcomes. The player's own Match History and a shared one alike (ADR-048 §3).
+	 */
+	VEYRAUI_API void DescribeFilters(const FVeyraClientSnapshot& Snapshot, const VeyraBackendProtocol::FHistoryFilter& Filter, TConstArrayView<FString> SavedModes,
+		TArray<FVeyraHistoryOption>& OutVanguards, TArray<FVeyraHistoryOption>& OutModes, TArray<FVeyraHistoryOption>& OutOutcomes);
+
+	/** One listed match: its date, mode, duration, Vanguard and outcome, on one line (UX-51). A profile's shared history lists the same. */
+	VEYRAUI_API FVeyraHistoryRow DescribeRow(const VeyraBackendProtocol::FHistoryEntry& Entry);
 }

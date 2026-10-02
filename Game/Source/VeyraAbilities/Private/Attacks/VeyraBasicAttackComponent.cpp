@@ -87,6 +87,7 @@ void UVeyraBasicAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraBasicAttackComponent, State, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraBasicAttackComponent, EmpowermentView, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraBasicAttackComponent, ProfileRange, Params);
 }
 
 void UVeyraBasicAttackComponent::InitializeComponent()
@@ -148,6 +149,8 @@ bool UVeyraBasicAttackComponent::SetProfile(const FVeyraBasicAttackProfile& InPr
 	}
 	Profile = InProfile;
 	bHasProfile = true;
+	ProfileRange = Profile.Range;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, ProfileRange, this);
 	return true;
 }
 
@@ -557,7 +560,7 @@ FVeyraAttackTiming UVeyraBasicAttackComponent::GetTiming() const
 
 double UVeyraBasicAttackComponent::GetRange(const AActor* Target) const
 {
-	double Range = Profile.Range;
+	double Range = ProfileRange;
 	const UVeyraStatusComponent* Statuses = GetOwner() ? GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	if (Statuses)
 	{

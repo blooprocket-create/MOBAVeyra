@@ -80,6 +80,7 @@ namespace
 		case EVeyraStatusKind::Sounded:
 		case EVeyraStatusKind::Cover:
 		case EVeyraStatusKind::Designated:
+		case EVeyraStatusKind::Stasis:
 			break;
 		}
 		return NAME_None;

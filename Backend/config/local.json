@@ -185,6 +185,17 @@
     "reportWindow": "336h",
     "commendWindow": "10m"
   },
+  "profile": {
+    "icons": ["default", "vanguard_cairn", "vanguard_qazharr", "vanguard_oriel", "vanguard_bryn", "vanguard_kade", "vanguard_vera", "vanguard_mimzi", "vanguard_patch", "vanguard_gorraveth", "vanguard_raska", "vanguard_moro", "vanguard_korruk", "vanguard_mavra", "vanguard_celandrine", "vanguard_aurelisse", "vanguard_silt", "vanguard_torr", "vanguard_tavi", "vanguard_angeru", "vanguard_varkesh", "vanguard_relay", "vanguard_marek", "vanguard_neris", "vanguard_sylra", "vanguard_eudora"],
+    "backgrounds": ["default", "vanguard_cairn", "vanguard_qazharr", "vanguard_oriel", "vanguard_bryn", "vanguard_kade", "vanguard_vera", "vanguard_mimzi", "vanguard_patch", "vanguard_gorraveth", "vanguard_raska", "vanguard_moro", "vanguard_korruk", "vanguard_mavra", "vanguard_celandrine", "vanguard_aurelisse", "vanguard_silt", "vanguard_torr", "vanguard_tavi", "vanguard_angeru", "vanguard_varkesh", "vanguard_relay", "vanguard_marek", "vanguard_neris", "vanguard_sylra", "vanguard_eudora"],
+    "defaultIcon": "default",
+    "defaultBackground": "default"
+  },
+  "names": {
+    "renameCooldown": "24h",
+    "claimAfter": "8760h",
+    "renamePrice": { "flux": 6000, "refinedFlux": 600 }
+  },
   "allocator": {
     "kind": "docker",
     "docker": {

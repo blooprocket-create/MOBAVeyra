@@ -82,7 +82,8 @@ public:
 
 	/**
 	 * How far the unit's basic attacks reach now (ADR-018 §2): its profile's range, its AttackRange
-	 * statuses and, against Target, what Target's statuses from this unit add. Null for any target.
+	 * statuses and, against Target, what Target's statuses from this unit add. Null for any target. On
+	 * every machine: the profile's range and the statuses replicate.
 	 */
 	double GetRange(const AActor* Target) const;
 
@@ -185,6 +186,10 @@ private:
 	FVeyraAttackState State;
 
 	FVeyraBasicAttackProfile Profile;
+
+	/** The profile's reach, which every machine's GetRange starts from, so a player's client can show it (ADR-052 §4). */
+	UPROPERTY(Replicated)
+	double ProfileRange = 0.0;
 	bool bHasProfile = false;
 
 	TOptional<FRunningAttack> Running;

@@ -15,6 +15,7 @@
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 #include "Chat/VeyraChatTypes.h"
+#include "Feedback/VeyraCombatTextTypes.h"
 #include "Pings/VeyraPingTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
@@ -179,6 +180,18 @@ public:
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
+	/**
+	 * The body this player's orders move now, on the server and its own client (ADR-050 §6): the Echo it commands, while
+	 * it commands one, else its Vanguard. The camera follows it.
+	 */
+	APawn* GetCommandedBody() const;
+
+	/** Whether this player commands an Echo now, on the server and its own client. */
+	bool IsCommandingEcho() const { return CommandedUnit != nullptr; }
+
+	/** Server: the unit this player commands in its Vanguard's stead, or null when it commands its Vanguard again. */
+	void SetCommandedUnit(APawn* Unit);
+
 	/** Owning client: the reason the server gave for the last refused order, and how many it refused. */
 	EVeyraOrderRejection GetLastOrderRejection() const { return LastOrderRejection; }
 	int32 GetOrderRejectionCount() const { return OrderRejectionCount; }
@@ -263,6 +276,22 @@ public:
 
 	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
 	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
+
+	/** Owning client: Show Attack Range's key is held, so the player sees how far their basic attacks reach (ADR-052 §4). */
+	bool IsShowingAttackRange() const;
+
+	/** Owning client: a combat text number the server sent this player (ADR-052 §1), which the UI shows. */
+	TMulticastDelegate<void(const FVeyraCombatTextLine&)> OnCombatText;
+
+	/** Server: sends Line to this player's client. Unreliable: a lost number costs nothing that matters. */
+	UFUNCTION(Client, Unreliable)
+	void ClientCombatText(const FVeyraCombatTextLine& Line);
+
+	/**
+	 * Owning client: the units the player targets now, for When Targeted bars (ADR-052 §2): the unit its last
+	 * attack order named, the one its body is attacking, and the one under the cursor. Presentation only.
+	 */
+	TArray<const AActor*> GetTargetedUnits() const;
 
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -402,6 +431,15 @@ private:
 
 	/** Owning client: this frame's camera input from the keys, the screen's edges and the drag. */
 	void TickCamera(float DeltaTime);
+
+	/** Owning client: the unit the latest attack order named, until a move order replaces it. */
+	TWeakObjectPtr<AActor> OrderedAttackTarget;
+
+	/** Owning client: the zoom keys' presses this frame move the player's zoom level, which persists (ADR-052 §3). */
+	void TickZoom();
+
+	/** Owning client: how many times Key went down since input was last processed; a wheel turns several notches a frame. */
+	int32 PressesOf(const FKey& Key) const;
 
 	/** Owning client: lets go of old pings, and pings where the player clicks with a ping key held. */
 	void TickPings();
@@ -560,6 +598,10 @@ private:
 	/** Its team's open vote; a controller replicates to its own player only. */
 	UPROPERTY(Replicated)
 	FVeyraVoteState TeamVote;
+
+	/** The Echo its orders move in its Vanguard's stead, if any (ADR-050 §6). */
+	UPROPERTY(Replicated)
+	TObjectPtr<APawn> CommandedUnit;
 
 	bool bWarnedAfk = false;
 

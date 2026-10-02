@@ -12,19 +12,19 @@ import (
 func (s *Server) routeParty(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/modes", s.authed(s.listModes))
 	mux.HandleFunc("GET /v1/party", s.authed(s.getParty))
-	mux.HandleFunc("PUT /v1/party/mode", s.authed(s.selectMode))
+	mux.HandleFunc("PUT /v1/party/mode", s.authed(s.named(s.selectMode)))
 	mux.HandleFunc("PUT /v1/party/privacy", s.authed(s.setPrivacy))
 	mux.HandleFunc("PUT /v1/party/ready", s.authed(s.setReady))
 	mux.HandleFunc("PUT /v1/party/leader", s.authed(s.transferLeader))
 	mux.HandleFunc("POST /v1/party/leave", s.authed(s.leaveParty))
 	mux.HandleFunc("DELETE /v1/party/members/{accountId}", s.authed(s.kick))
-	mux.HandleFunc("POST /v1/party/queue", s.authed(s.startQueue))
+	mux.HandleFunc("POST /v1/party/queue", s.authed(s.named(s.startQueue)))
 	mux.HandleFunc("DELETE /v1/party/queue", s.authed(s.cancelQueue))
 	mux.HandleFunc("GET /v1/party/invites", s.authed(s.listInvites))
-	mux.HandleFunc("POST /v1/party/invites", s.authed(s.invite))
-	mux.HandleFunc("POST /v1/party/invites/{inviteId}/accept", s.authed(s.acceptInvite))
+	mux.HandleFunc("POST /v1/party/invites", s.authed(s.named(s.invite)))
+	mux.HandleFunc("POST /v1/party/invites/{inviteId}/accept", s.authed(s.named(s.acceptInvite)))
 	mux.HandleFunc("POST /v1/party/invites/{inviteId}/decline", s.authed(s.declineInvite))
-	mux.HandleFunc("POST /v1/parties/{partyId}/join", s.authed(s.joinParty))
+	mux.HandleFunc("POST /v1/parties/{partyId}/join", s.authed(s.named(s.joinParty)))
 }
 
 type memberJSON struct {

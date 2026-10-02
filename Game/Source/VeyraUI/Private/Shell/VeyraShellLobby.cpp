@@ -18,6 +18,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Engine/Texture2D.h"
+#include "Shell/VeyraProfileModels.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellScreen.h"
@@ -569,6 +570,13 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 					CloseCard();
 				},
 				Friend.bCanMessage);
+			// Their profile, over the screen (ADR-048 §5).
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraProfileModels::ViewProfileLabel(Name), LOCTEXT("ViewFriendProfile", "View Profile"),
+				[this, Name] {
+					Client->OpenProfile(Name);
+					CloseCard();
+				},
+				Client->CanIssue(EVeyraClientIntent::OpenProfile));
 			if (Friend.bOffersPartyInvite && !bInviteOnLine)
 			{
 				AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraShellModels::PartyInviteLabel(Name), LOCTEXT("InviteToPartyCard", "Invite to Party"),

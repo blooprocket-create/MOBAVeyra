@@ -70,6 +70,10 @@ struct FVeyraItemStatsTuning
 	UPROPERTY()
 	double MagicPenetrationFlat = 0.0;
 
+	/** Flat Physical Penetration (Combat Bible §3; ADR-051 §1). */
+	UPROPERTY()
+	double PhysicalPenetrationFlat = 0.0;
+
 	/** Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-023 §2). */
 	UPROPERTY()
 	double CritChance = 0.0;
@@ -490,6 +494,179 @@ struct FVeyraMarkedForDoomTuning
 	double MissingHealthRatio = 0.0;
 };
 
+/** A bonus Physical hit's amount: Base plus PhysicalPowerRatio of its holder's Physical Power, each at least 0 (ADR-051 §3). */
+USTRUCT()
+struct FVeyraBonusHitTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double Base = 0.0;
+
+	UPROPERTY()
+	double PhysicalPowerRatio = 0.0;
+};
+
+/**
+ * No Allegiance (Blank Sigil, Item Bible §8; ADR-051 §3): after QuietSeconds without damaging an enemy Vanguard, the
+ * holder's next action against one opens it for OpeningSeconds; the holder's next different action against it consumes
+ * the Opening for a bonus Physical hit carrying Penetration extra flat Physical Penetration.
+ */
+USTRUCT()
+struct FVeyraNoAllegianceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double QuietSeconds = 0.0;
+
+	UPROPERTY()
+	double OpeningSeconds = 0.0;
+
+	UPROPERTY()
+	FVeyraBonusHitTuning Bonus;
+
+	UPROPERTY()
+	double Penetration = 0.0;
+};
+
+/**
+ * Clean Break (Cutline Mantle, Item Bible §8; ADR-051 §3): an enemy Vanguard dying within WindowSeconds of the holder's
+ * last hit on it grants SpeedStacks stacks of SpeedPerStack Movement Speed, each decaying after SpeedStackSeconds, and a
+ * shield of ShieldShare of what the holder dealt it within the window, at most ShieldCap, for ShieldSeconds.
+ */
+USTRUCT()
+struct FVeyraCleanBreakTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	double SpeedPerStack = 0.0;
+
+	UPROPERTY()
+	int32 SpeedStacks = 0;
+
+	UPROPERTY()
+	double SpeedStackSeconds = 0.0;
+
+	UPROPERTY()
+	double ShieldShare = 0.0;
+
+	UPROPERTY()
+	double ShieldCap = 0.0;
+
+	UPROPERTY()
+	double ShieldSeconds = 0.0;
+};
+
+/**
+ * Through the Guard (Oathpiercer, Item Bible §8; ADR-051 §3): the holder's hit on an enemy Vanguard's shield another
+ * Vanguard granted brands it for BrandSeconds; BreachShare of what the holder's hits make it absorb is recorded, and the
+ * holder breaking it in time detonates BreachConversion of the Breach as a bonus Physical hit.
+ */
+USTRUCT()
+struct FVeyraThroughTheGuardTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double BrandSeconds = 0.0;
+
+	UPROPERTY()
+	double BreachShare = 0.0;
+
+	UPROPERTY()
+	double BreachConversion = 0.0;
+};
+
+/**
+ * No One Coming (Witnessless Edge, Item Bible §8; ADR-051 §3): damaging an enemy Vanguard with no allied Vanguard within
+ * ProtectionRadius marks it Abandoned for MarkSeconds, the holder gaining Speed toward enemy Vanguards meanwhile; LockDamage
+ * dealt to it before an ally arrives locks the mark for LockSeconds, and the holder's next hit on it deals a bonus Physical
+ * hit. Allies' arrival is checked every CheckSeconds.
+ */
+USTRUCT()
+struct FVeyraNoOneComingTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double ProtectionRadius = 0.0;
+
+	UPROPERTY()
+	double MarkSeconds = 0.0;
+
+	UPROPERTY()
+	double Speed = 0.0;
+
+	UPROPERTY()
+	double LockDamage = 0.0;
+
+	UPROPERTY()
+	double LockSeconds = 0.0;
+
+	UPROPERTY()
+	FVeyraBonusHitTuning Bonus;
+
+	UPROPERTY()
+	double CheckSeconds = 0.0;
+};
+
+/**
+ * Reenactment (Memoryglass Reliquary, Item Bible §9; ADR-051 §3): after QuietSeconds without damaging an enemy Vanguard,
+ * the holder's first ability hit on one is remembered for MemorySeconds; its next damaging hit on that Vanguard from at
+ * least Displacement away from where it stood replays ReplayShare of the remembered wound as Magic Damage.
+ */
+USTRUCT()
+struct FVeyraReenactmentTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double QuietSeconds = 0.0;
+
+	UPROPERTY()
+	double MemorySeconds = 0.0;
+
+	UPROPERTY()
+	double Displacement = 0.0;
+
+	UPROPERTY()
+	double ReplayShare = 0.0;
+};
+
+/**
+ * Reverberation (Echo Lens and The Second Self, Item Bible §9, §11; ADR-050 §5): the item's Echo repeats one of its
+ * holder's eligible abilities. The Echo ability the item carries as its Active holds the numbers, and Abilities delivers
+ * the repeat; the tuning checker holds that an item with Reverberation carries one.
+ */
+USTRUCT()
+struct FVeyraReverberationTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+};
+
 /**
  * Safe Harbor (Harborline Harness, Item Bible §8; ADR-025 §7): a share of the damage the holder deals
  * enemy Vanguards banks as Reserve, which converts into Health while the holder is out of Vanguard
@@ -573,7 +750,7 @@ struct FVeyraItemsTuning
 	GENERATED_BODY()
 
 	/** The Items.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraShopTuning Shop;
@@ -639,6 +816,24 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraHighTideTuning> HighTide;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraReverberationTuning> Reverberation;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraNoAllegianceTuning> NoAllegiance;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraCleanBreakTuning> CleanBreak;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraThroughTheGuardTuning> ThroughTheGuard;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraNoOneComingTuning> NoOneComing;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraReenactmentTuning> Reenactment;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */

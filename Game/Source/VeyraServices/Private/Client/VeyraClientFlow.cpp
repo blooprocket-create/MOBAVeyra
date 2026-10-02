@@ -348,6 +348,26 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("ReportPlayer");
 	case EVeyraClientIntent::CommendTeammate:
 		return TEXT("CommendTeammate");
+	case EVeyraClientIntent::OpenProfile:
+		return TEXT("OpenProfile");
+	case EVeyraClientIntent::CloseProfile:
+		return TEXT("CloseProfile");
+	case EVeyraClientIntent::LoadMoreProfileMatches:
+		return TEXT("LoadMoreProfileMatches");
+	case EVeyraClientIntent::FilterProfileMatches:
+		return TEXT("FilterProfileMatches");
+	case EVeyraClientIntent::OpenProfileMatch:
+		return TEXT("OpenProfileMatch");
+	case EVeyraClientIntent::CloseProfileMatch:
+		return TEXT("CloseProfileMatch");
+	case EVeyraClientIntent::LoadProfileSettings:
+		return TEXT("LoadProfileSettings");
+	case EVeyraClientIntent::SaveProfileSettings:
+		return TEXT("SaveProfileSettings");
+	case EVeyraClientIntent::LoadDisplayName:
+		return TEXT("LoadDisplayName");
+	case EVeyraClientIntent::ChangeDisplayName:
+		return TEXT("ChangeDisplayName");
 	}
 	return TEXT("Unknown");
 }
@@ -552,6 +572,22 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 		return State == EVeyraClientState::Results || State == EVeyraClientState::Shell;
 	case EVeyraClientIntent::CommendTeammate:
 		return State == EVeyraClientState::Results;
+	// Profiles open where the friends panel and the player menu are: the shell, a lobby and the results; never
+	// through Match Found, a committed select or Reconnect-only (Profiles Bible §1).
+	case EVeyraClientIntent::OpenProfile:
+	case EVeyraClientIntent::CloseProfile:
+	case EVeyraClientIntent::LoadMoreProfileMatches:
+	case EVeyraClientIntent::FilterProfileMatches:
+	case EVeyraClientIntent::OpenProfileMatch:
+	case EVeyraClientIntent::CloseProfileMatch:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;
+	// The player's own choices are made on the shell's Profile page.
+	case EVeyraClientIntent::LoadProfileSettings:
+	case EVeyraClientIntent::SaveProfileSettings:
+	// The name changes on the Profile page, and a claimed account chooses its new one in the shell (ADR-049 §4).
+	case EVeyraClientIntent::LoadDisplayName:
+	case EVeyraClientIntent::ChangeDisplayName:
+		return State == EVeyraClientState::Shell;
 	}
 	return false;
 }
@@ -876,6 +912,14 @@ void FVeyraClientFlow::LoadProfile()
 		if (!VeyraBackendProtocol::ParseProfile(Response.Body, Profile, Problem))
 		{
 			ShowBadAnswer(TEXT("the player's profile"), Problem, [this] { Resume(); });
+			return;
+		}
+		// A claimed account chooses a new name before anything else: no starter, lobby or other step first; the
+		// shell asks it, and the account goes on once it has a name (ADR-049 §4).
+		Snapshot.bRenameRequired = Profile.bRenameRequired;
+		if (Profile.bRenameRequired)
+		{
+			EnterShell(Snapshot.Notice);
 			return;
 		}
 		if (Profile.bTutorialCompleted)

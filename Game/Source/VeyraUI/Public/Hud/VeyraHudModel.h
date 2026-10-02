@@ -52,6 +52,9 @@ struct FVeyraHudSlot
 	/** Invalid when the slot holds no ability. */
 	FVeyraContentId Ability;
 
+	/** The slot's own ability, which Ability overrides while a variant, follow-up or mounted action lasts. */
+	FVeyraContentId OwnAbility;
+
 	int32 Rank = 0;
 	int32 MaxRank = 0;
 
@@ -86,6 +89,21 @@ struct FVeyraHudItemSlot
 
 	/** Seconds until its Active is ready; 0 when it is, or it has none. */
 	double CooldownSeconds = 0.0;
+};
+
+/** A player's projected Echo on the HUD (ADR-050 §7): its Integrity, its formation and immunity, and what it may still cast. */
+struct FVeyraHudEcho
+{
+	/** Its Integrity as a share of what it formed with, from 0 to 1. */
+	double IntegrityShare = 0.0;
+
+	/** Seconds until it takes control, and until its immunity ends; 0 once each has passed. */
+	double FormingSeconds = 0.0;
+	double ImmuneSeconds = 0.0;
+
+	/** How many of the slots' abilities it may still cast, and which slots. */
+	int32 RepeatsLeft = 0;
+	TArray<EVeyraAbilitySlot> Slots;
 };
 
 /** One Flux Spell slot on the HUD (ADR-015 §7): locked with the permanent Flux it needs, ready, or cooling down. */
@@ -148,6 +166,9 @@ struct FVeyraHudPlayer
 	bool bRecalling = false;
 	double RecallSeconds = 0.0;
 	double RecallProgress = 0.0;
+
+	/** The player's projected Echo while it stands (ADR-050 §7); unset without one. */
+	TOptional<FVeyraHudEcho> Echo;
 
 	/** Q, W, E and R, in order. */
 	TArray<FVeyraHudSlot> Slots;
@@ -262,6 +283,15 @@ namespace VeyraHud
 
 	/** Unit's species as a jungle creature; nothing when it is not one (ADR-014 §2). */
 	VEYRAUI_API TOptional<FVeyraContentId> SpeciesOf(const AActor& Unit);
+
+	/**
+	 * How far from Unit's centre its basic attacks reach a target's edge now, as Show Attack Range rings it
+	 * (ADR-052 §4): its reach, statuses included, and its own body's radius; nothing when it has no basic attack.
+	 */
+	VEYRAUI_API TOptional<double> AttackReachOf(const AActor& Unit);
+
+	/** Whether Unit is in the middle of a basic attack, as When Engaged bars read fighting (ADR-052 §2). */
+	VEYRAUI_API bool IsFighting(const AActor& Unit);
 
 	/** The mastery emote Unit's player shows at ServerNow, in server gameplay time; nothing when none shows. */
 	VEYRAUI_API TOptional<FVeyraHudMasteryEmote> MasteryEmoteOf(const AActor& Unit, double ServerNow);

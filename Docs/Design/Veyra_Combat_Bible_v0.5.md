@@ -457,6 +457,8 @@ Existing DoTs remain attached, but their damage ticks deal 0 while Stasis is act
 
 Stasis cannot normally be cancelled early unless explicitly allowed.
 
+**Controllable-proxy exception:** An effect may explicitly transfer the player's control to a separate spawned proxy while the original Vanguard remains in Stasis. This does **not** let the Stasis Vanguard move, attack, cast, use items, or otherwise act; inputs are routed to the separate proxy entity under that effect's own rules. Destroying or losing that proxy may explicitly end the originating Stasis when the effect says so. Item-specific proxy resources, damage coefficients, tether rules, and presentation belong to the Item Bible rather than this universal Stasis definition.
+
 ## 11. Stealth and vision interaction
 
 ### Camouflage

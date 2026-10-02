@@ -20,6 +20,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/profile"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/progression"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/settings"
@@ -70,6 +71,9 @@ type Deps struct {
 	// Conduct is optional; without it no report or commendation routes are
 	// registered (ADR-047).
 	Conduct *conduct.Service
+	// Profile is optional; without it no profile routes are registered
+	// (ADR-048).
+	Profile *profile.Service
 	Modes   []ModeInfo
 	Ready   Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
@@ -120,6 +124,8 @@ func New(d Deps) http.Handler {
 	s.routeSettings(mux)
 	s.routeChat(mux)
 	s.routeConduct(mux)
+	s.routeProfile(mux)
+	s.routeNames(mux)
 	return mux
 }
 
@@ -295,6 +301,11 @@ var errorStatus = []struct {
 	{identity.ErrAlreadyRegistered, http.StatusConflict, "already_registered"},
 	{identity.ErrDisplayNameTaken, http.StatusConflict, "display_name_taken"},
 	{identity.ErrInvalidDisplayName, http.StatusBadRequest, "invalid_display_name"},
+	{identity.ErrRenameCooldown, http.StatusConflict, "rename_cooldown"},
+	{identity.ErrSameDisplayName, http.StatusConflict, "same_display_name"},
+	{identity.ErrInvalidCurrency, http.StatusBadRequest, "invalid_currency"},
+	{identity.ErrRenameRequired, http.StatusConflict, "rename_required"},
+	{identity.ErrNamesDisabled, http.StatusNotFound, "not_found"},
 
 	{social.ErrSelf, http.StatusBadRequest, "cannot_target_self"},
 	{social.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
@@ -414,6 +425,12 @@ var errorStatus = []struct {
 	{conduct.ErrNotTeammate, http.StatusConflict, "not_teammate"},
 	{conduct.ErrCommendClosed, http.StatusConflict, "commend_closed"},
 	{conduct.ErrAlreadyCommended, http.StatusConflict, "already_commended"},
+
+	{profile.ErrUnavailable, http.StatusNotFound, "profile_unavailable"},
+	{profile.ErrHistoryPrivate, http.StatusForbidden, "history_private"},
+	{profile.ErrInvalidIcon, http.StatusBadRequest, "invalid_icon"},
+	{profile.ErrInvalidBackground, http.StatusBadRequest, "invalid_background"},
+	{profile.ErrNotOwned, http.StatusConflict, "not_owned"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {

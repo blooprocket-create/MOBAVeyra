@@ -85,4 +85,19 @@ FVector PanToward(const FVector& From, const FVector& To, double Elapsed, double
 	}
 	return FMath::Lerp(From, To, FMath::SmoothStep(0.0, 1.0, FMath::Clamp(Elapsed / Seconds, 0.0, 1.0)));
 }
+
+double Zoom(double From, int32 Notches, double ZoomStep, double Nearest, double Farthest)
+{
+	return FMath::Clamp(From - Notches * ZoomStep, Nearest, FMath::Max(Nearest, Farthest));
+}
+
+double EaseZoom(double Current, double Target, double DeltaSeconds, double SmoothingSeconds)
+{
+	if (SmoothingSeconds <= 0.0)
+	{
+		return Target;
+	}
+	// The same share of what is left each equal stretch of time, whatever the frame rate.
+	return FMath::Lerp(Current, Target, 1.0 - FMath::Exp(-FMath::Max(0.0, DeltaSeconds) / SmoothingSeconds));
+}
 }

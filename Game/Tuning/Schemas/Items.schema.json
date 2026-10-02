@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime", "markedForDoom", "safeHarbor", "highTide"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime", "markedForDoom", "safeHarbor", "reverberation", "highTide", "noAllegiance", "cleanBreak", "throughTheGuard", "noOneComing", "reenactment"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -20,7 +20,7 @@
       "description": "What an item adds to its holder while it is delivered and the holder lives (Item Bible §3). Flat amounts, except attackSpeed, a fraction of the Vanguard's base Attack Speed added to its level growth (ADR-012 §6).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["health", "healthRegeneration", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat", "critChance", "magicPowerFraction"],
+      "required": ["health", "healthRegeneration", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat", "physicalPenetrationFlat", "critChance", "magicPowerFraction"],
       "properties": {
         "health": { "description": "Max Health.", "type": "number", "minimum": 0 },
         "healthRegeneration": { "description": "Health restored per second.", "type": "number", "minimum": 0 },
@@ -32,6 +32,7 @@
         "abilityHaste": { "description": "Ability Haste: cooldowns last 100 / (100 + Ability Haste) of their base (ADR-012 §6).", "type": "number", "minimum": 0 },
         "moveSpeed": { "description": "Movement Speed.", "type": "number", "minimum": 0 },
         "magicPenetrationFlat": { "description": "Flat Magic Penetration (Combat Bible §3).", "type": "number", "minimum": 0 },
+        "physicalPenetrationFlat": { "description": "Flat Physical Penetration (Combat Bible §3; ADR-051 §1).", "type": "number", "minimum": 0 },
         "critChance": { "description": "Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-023 §2).", "type": "number", "minimum": 0, "maximum": 1 },
         "magicPowerFraction": { "description": "A percentage of total Magic Power, as a fraction, multiplying with every other (Combat Bible §41; ADR-023 §2).", "type": "number", "minimum": 0 }
       }
@@ -54,7 +55,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [3]
+      "enum": [5]
     },
     "shop": {
       "description": "The shop's own rules (Economy & Progression Bible §10, §12; ADR-012 §9).",
@@ -378,6 +379,121 @@
             "reserveFraction": { "description": "The share of post-mitigation damage banked.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
             "capMaxHealthFraction": { "description": "The most Reserve, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "conversionMaxHealthFractionPerSecond": { "description": "Reserve converted each second, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "noAllegiance": {
+      "description": "No Allegiance (Blank Sigil, Item Bible §8; ADR-051 §3): after a quiet period, an action against an enemy Vanguard opens it; a different action consumes the Opening for a bonus Physical hit with extra penetration.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "quietSeconds", "openingSeconds", "bonus", "penetration"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "quietSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "openingSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "bonus": { "type": "object", "additionalProperties": false, "required": ["base", "physicalPowerRatio"], "properties": { "base": { "type": "number", "minimum": 0 }, "physicalPowerRatio": { "type": "number", "minimum": 0 } } },
+            "penetration": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "cleanBreak": {
+      "description": "Clean Break (Cutline Mantle, Item Bible §8; ADR-051 §3): a takedown soon after the holder hit grants decaying Movement Speed and a shield sized by the damage dealt.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "windowSeconds", "speedPerStack", "speedStacks", "speedStackSeconds", "shieldShare", "shieldCap", "shieldSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "speedPerStack": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "speedStacks": { "type": "integer", "minimum": 1 },
+            "speedStackSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "shieldShare": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "shieldCap": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "shieldSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "throughTheGuard": {
+      "description": "Through the Guard (Oathpiercer, Item Bible §8; ADR-051 §3): branding and personally breaking an enemy Vanguard's ally-granted shield detonates part of what it absorbed.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "brandSeconds", "breachShare", "breachConversion"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "brandSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "breachShare": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "breachConversion": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "noOneComing": {
+      "description": "No One Coming (Witnessless Edge, Item Bible §8; ADR-051 §3): an isolated enemy Vanguard is marked Abandoned; enough damage before an ally arrives locks the mark, and the next hit deals a bonus Physical hit.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "protectionRadius", "markSeconds", "speed", "lockDamage", "lockSeconds", "bonus", "checkSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "protectionRadius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "markSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "speed": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "lockDamage": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "lockSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "bonus": { "type": "object", "additionalProperties": false, "required": ["base", "physicalPowerRatio"], "properties": { "base": { "type": "number", "minimum": 0 }, "physicalPowerRatio": { "type": "number", "minimum": 0 } } },
+            "checkSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "reenactment": {
+      "description": "Reenactment (Memoryglass Reliquary, Item Bible §9; ADR-051 §3): after a quiet period the first ability wound on an enemy Vanguard is remembered; hitting it again after repositioning replays part of it as Magic Damage.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "quietSeconds", "memorySeconds", "displacement", "replayShare"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "quietSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "memorySeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "displacement": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "replayShare": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "reverberation": {
+      "description": "Reverberation (Echo Lens and The Second Self, Item Bible §9, §11; ADR-050 §5): the item's Echo repeats one of its holder's eligible abilities. The Echo ability its holder carries as the item's Active holds the numbers; an item with Reverberation carries one.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" }
           }
         }
       }

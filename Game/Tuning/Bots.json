@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -52,6 +52,7 @@
     { "role": "Bottom", "fluxSpells": ["blink", "enfeeble"] }
   ],
   "fluxSpells": { "blink": "Escape", "mend": "Defend", "scorch": "Damage", "enfeeble": "Damage", "wildstrike": "Secure" },
+  "itemActives": { "razorwheel_cleave": "Damage", "seize_momentum": "Engage", "project_echo": "Never", "second_self": "Never" },
   "jungle": {
     "provenance": "Provisional",
     "gankRange": 3000,

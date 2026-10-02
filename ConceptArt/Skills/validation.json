@@ -1,14 +1,8 @@
 {
-  "icons": 25,
-  "exports": 100,
-  "originals": 25,
-  "runtime_id_coverage": "25/25",
-  "unique_images": 25,
-  "dimensions": [
-    512,
-    256,
-    128,
-    64
-  ],
-  "root": "C:\\Users\\arame\\OneDrive\\Desktop\\MOBAVeyra_Skill_Icons"
+  "icons": 172,
+  "runtimeIcons": 157,
+  "stateIcons": 15,
+  "kitAbilitiesAndFluxSpellsWithoutIcon": [
+    "test_bolt"
+  ]
 }
