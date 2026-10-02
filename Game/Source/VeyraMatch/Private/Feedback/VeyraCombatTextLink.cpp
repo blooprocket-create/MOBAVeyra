@@ -24,7 +24,7 @@ void FVeyraCombatTextLink::Start(UWorld& World)
 		return;
 	}
 	Events = Subsystem;
-	DamageHandle = Subsystem->OnDamageDealt.AddRaw(this, &FVeyraCombatTextLink::OnDamageDealt);
+	DamageHandle = Subsystem->OnDamageTaken.AddRaw(this, &FVeyraCombatTextLink::OnDamageTaken);
 	HealingHandle = Subsystem->OnHealthRestored.AddRaw(this, &FVeyraCombatTextLink::OnHealthRestored);
 	ShieldHandle = Subsystem->OnShieldGranted.AddRaw(this, &FVeyraCombatTextLink::OnShieldGranted);
 }
@@ -33,16 +33,16 @@ void FVeyraCombatTextLink::Stop()
 {
 	if (UVeyraCombatEventSubsystem* Subsystem = Events.Get())
 	{
-		Subsystem->OnDamageDealt.Remove(DamageHandle);
+		Subsystem->OnDamageTaken.Remove(DamageHandle);
 		Subsystem->OnHealthRestored.Remove(HealingHandle);
 		Subsystem->OnShieldGranted.Remove(ShieldHandle);
 	}
 	Events.Reset();
 }
 
-void FVeyraCombatTextLink::OnDamageDealt(const FVeyraDamageDealtEvent& Event)
+void FVeyraCombatTextLink::OnDamageTaken(const FVeyraDamageDealtEvent& Event)
 {
-	// The player its dealer answers to, whatever unit struck for it, and the player it struck.
+	// The player its dealer answers to, whatever unit struck for it, and the player it struck: one player for Self-Damage.
 	UAbilitySystemComponent* Dealer = VeyraCombat::ResponsibleFor(Event.Source.Get());
 	UAbilitySystemComponent* Receiver = Event.Target.Get();
 	for (UAbilitySystemComponent* Player : { Dealer, Receiver != Dealer ? Receiver : nullptr })

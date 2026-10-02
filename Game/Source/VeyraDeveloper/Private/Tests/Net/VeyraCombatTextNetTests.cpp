@@ -176,6 +176,23 @@ namespace VeyraNetTests
 			});
 		}
 
+		TEST_METHOD(SelfDamageReachesItsPlayerAsReceived)
+		{
+			FPIENetworkComponent<FState>& Hurt = Prepare(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("The observer hurts itself"), [this](FState& State) {
+					FVeyraRawDamageEvent Cost;
+					Cost.Components.Add({ EVeyraDamageType::TrueDamage, HitAmount });
+					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(UnitOf(State, ObserverIndex), UnitOf(State, ObserverIndex), Cost)));
+				})
+				.UntilClients(TEXT("It sees what it took"), [this](FState& State) {
+					return State.ClientIndex != ObserverIndex || CountOf(ObserverIndex, EVeyraCombatTextKind::DamageReceived) > 0;
+				});
+			Hold(Hurt).ThenClients(TEXT("Only as received, and no one else saw it"), [this](FState& State) {
+				ASSERT_THAT(IsTrue(CountOf(ObserverIndex, EVeyraCombatTextKind::DamageReceived) == 1 && CountOf(ObserverIndex, EVeyraCombatTextKind::DamageDealt) == 0));
+				ASSERT_THAT(IsTrue(Received[BystanderIndex].IsEmpty() && Received[EnemyIndex].IsEmpty()));
+			});
+		}
+
 		TEST_METHOD(AHitOnAUnitInTheFogSendsItsDealerNothing)
 		{
 			const FVector2D Observer(-SightRadius(), 0.0);

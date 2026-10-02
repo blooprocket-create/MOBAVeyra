@@ -217,7 +217,9 @@ void UVeyraGreyboxSubsystem::RefreshCombatText()
 		CombatTextSource = Local;
 		CombatTextHandle = Local ? Local->OnCombatText.AddUObject(this, &UVeyraGreyboxSubsystem::OnCombatText) : FDelegateHandle();
 	}
-	VeyraCombatTextView::Forget(CombatText, FPlatformTime::Seconds(), GetDefault<UVeyraGreyboxSettings>()->CombatTextShowSeconds);
+	// Forgotten as they are drawn: a running total keeps all of its parts while it shows.
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(GetWorld()));
+	VeyraCombatTextView::Forget(CombatText, FPlatformTime::Seconds(), Preferences.CombatText);
 }
 
 void UVeyraGreyboxSubsystem::OnCombatText(const FVeyraCombatTextLine& Line)

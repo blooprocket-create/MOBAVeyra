@@ -26,7 +26,7 @@ ADR-024 deferred four approved, Locked settings features, and none exists today:
 
 Combat's events are server-only. **Match** answers them with a combat text link the game mode owns (`Feedback/FVeyraCombatTextLink`), as it owns its other links:
 - **Damage dealt:** each damage instance dealt to an enemy (`OnDamageDealt`) whose source answers to the player's participant: its Vanguard, or a unit it owns. Each damage type is its own number at the target, with crit emphasis when a basic attack crit.
-- **Damage received:** each damage instance dealt to the player's Vanguard, by type, whatever it cost: Health, Temporary Health or shields. It is shown at the player's Vanguard.
+- **Damage received:** each damage instance dealt to the player's Vanguard, by type, whatever it cost: Health, Temporary Health or shields. It is shown at the player's Vanguard. Self-Damage counts, so Combat gains `OnDamageTaken`, which announces every instance a unit took, hostile or not; the link hears it for both kinds.
 - **Healing:** Health a unit restored (`OnHealthRestored` with a provider), when the player gave or received it, at the unit healed. Regeneration, the fountain and a Well heal no one in particular and show nothing.
 - **Shielding:** a shield the player granted or received, at the unit shielded. Combat gains `OnShieldGranted`, raised by the absorption component with what the grant added.
 
@@ -36,7 +36,7 @@ Combat's events are server-only. **Match** answers them with a combat text link 
 
 **Showing it (presentation only):**
 - The controller raises each line it receives as a client event; the UI keeps them and draws each number rising and fading above its unit, in the HUD canvas, from replicated positions.
-- **Density** is Standard or Reduced. Reduced merges quick successive numbers of the same kind and type between the same two units into one running total, as the bible says. The merge window is a presentation setting.
+- **Density** is Standard or Reduced. Reduced merges quick successive numbers of the same kind and type between the same two units into one running total, as the bible says. The merge window is a presentation setting. A total shows from its latest part, and the client keeps every part until the total has shown.
 - **Damage number appearance** (Proposal 52): Color-Coded by default, so Physical, Magic and True damage differ; Uniform shows every damage number in one colour. Healing and shielding keep their own colours.
 
 **Settings (Interface):**

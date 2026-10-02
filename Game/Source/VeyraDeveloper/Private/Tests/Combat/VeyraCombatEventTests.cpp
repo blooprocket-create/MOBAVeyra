@@ -32,6 +32,7 @@ namespace VeyraCombatEventTests
 		TArray<FVeyraHealthRestored> Restored;
 		TArray<FVeyraStatusApplied> Applied;
 		TArray<FVeyraDamageDealtEvent> Dealt;
+		TArray<FVeyraDamageDealtEvent> Taken;
 
 		BEFORE_EACH()
 		{
@@ -45,6 +46,7 @@ namespace VeyraCombatEventTests
 			Events->OnHealthRestored.AddLambda([this](const FVeyraHealthRestored& Event) { Restored.Add(Event); });
 			Events->OnStatusApplied.AddLambda([this](const FVeyraStatusApplied& Event) { Applied.Add(Event); });
 			Events->OnDamageDealt.AddLambda([this](const FVeyraDamageDealtEvent& Event) { Dealt.Add(Event); });
+			Events->OnDamageTaken.AddLambda([this](const FVeyraDamageDealtEvent& Event) { Taken.Add(Event); });
 		}
 
 		static UAbilitySystemComponent& Abilities(AVeyraVanguardCharacter& Vanguard)
@@ -104,6 +106,18 @@ namespace VeyraCombatEventTests
 			// Damage between allies is dealt to no enemy.
 			VeyraCombat::DealDamage(Abilities(*Ally), Abilities(*Target), TrueDamage(Hit));
 			ASSERT_THAT(AreEqual(1, Dealt.Num()));
+		}
+
+		TEST_METHOD(EveryInstanceTakenIsAnnouncedSelfDamageToo)
+		{
+			// Self-Damage is dealt to no enemy, but its unit took it (Combat Bible §47).
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Abilities(*Target), Abilities(*Target), TrueDamage(Hit))));
+			ASSERT_THAT(IsTrue(Dealt.IsEmpty()));
+			ASSERT_THAT(AreEqual(1, Taken.Num()));
+			ASSERT_THAT(IsTrue(Taken[0].Source.Get() == &Abilities(*Target) && Taken[0].Target.Get() == &Abilities(*Target)
+				&& FMath::IsNearlyEqual(Taken[0].Of(EVeyraDamageType::TrueDamage), Hit)));
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Abilities(*Attacker), Abilities(*Target), TrueDamage(Hit))));
+			ASSERT_THAT(IsTrue(Taken.Num() == 2 && Dealt.Num() == 1, TEXT("a hostile hit is both")));
 		}
 
 		TEST_METHOD(AHealSaysWhatItRestoredAndWhoGaveIt)

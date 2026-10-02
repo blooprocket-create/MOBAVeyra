@@ -270,6 +270,12 @@ public:
 	FOnDamageDealt OnDamageDealt;
 
 	/**
+	 * Every damage instance a unit took, hostile or not, with what it cost by type: Self-Damage too (Combat Bible §47),
+	 * which OnDamageDealt leaves out. Combat text reads it (ADR-052 §1).
+	 */
+	FOnDamageDealt OnDamageTaken;
+
+	/**
 	 * Every damage component that cost a unit something, before any death it causes (ADR-017 §1):
 	 * Health, Temporary Health or a shield.
 	 */

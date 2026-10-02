@@ -825,6 +825,10 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	{
 		return false;
 	}
+	if (Events)
+	{
+		Events->OnDamageTaken.Broadcast(Dealt);
+	}
 	// Towers and Fluxborn react to who hurts whom (Battleground Bible §19; ADR-011 §6), and Attunements
 	// to what a hit dealt (ADR-023 §4).
 	if (Events && VeyraTargeting::AreHostile(Source->GetOwner(), Target.GetOwner()))

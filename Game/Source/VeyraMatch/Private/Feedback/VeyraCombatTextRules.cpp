@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Targeting/VeyraTargeting.h"
 #include "VeyraCombatVerbs.h"
 
 namespace VeyraCombatTextRouting
@@ -36,8 +37,10 @@ TArray<FVeyraCombatTextLine> ForDamage(const FVeyraDamageDealtEvent& Event, cons
 	{
 		return Lines;
 	}
-	const bool bDealt = AnswersTo(Source, Player);
-	if (!bDealt && Target != &Player)
+	// What the player's own Vanguard took it received, Self-Damage included; what it or its units struck, it dealt.
+	const bool bReceived = Target == &Player;
+	const bool bDealt = !bReceived && AnswersTo(Source, Player) && VeyraTargeting::AreHostile(Source->GetOwner(), Target->GetOwner());
+	if (!bDealt && !bReceived)
 	{
 		return Lines;
 	}
