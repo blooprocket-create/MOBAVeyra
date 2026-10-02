@@ -91,6 +91,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
   - the lobby screen and friends panel: `VeyraUI/Private/Shell/VeyraShellLobby.cpp`;
   - the smoke: `Smoke.ps1 -Flow Custom`.
   - Party invitations, member cards (Make Party Leader, Remove), Leave Party, privacy, joining a friend's Public party, blocks and cancelling a sent friend request in the client are [ADR-044](ADR/ADR-044-party-and-social-client.md); their canon is the Parties & Social Bible §1–§2, §5–§6 and the Pre-Game Client UX Bible 7–11. The smoke: `Smoke.ps1 -Flow Party`.
+  - Account level and XP, Flux and Refined Flux, buying Vanguards, the Collection and Vanguard Mastery are [ADR-045](ADR/ADR-045-account-progression-collection-mastery.md); their canon is the Account, Collection & Mastery Bible §1–§7 and the Modes Bible §1–§4. The code: backend `Backend/internal/progression`, granting from `match.Service.ServerResult`; its tuning is `progression` in `Backend/config/local.json`.
 - **Vanguard editing:** one character's section of the Character Bible → `Docs/Design/Vanguards/<nn>-<name>.yaml` → [Vanguard validation instructions](Design/Vanguards/README.md) → specific base [hero art](../ConceptArt/Vanguards/README.md). Do **not** interpret YAML as engine balance data.
 - **Item icons:** [item icon art](../ConceptArt/Items/README.md), one per Item Bible item, imported by `Game/Scripts/BuildIconArt.ps1 -Kind Items` for the shop and the HUD; the item's rules stay the Item Bible's and `Game/Tuning/Items.json`'s.
 - **Ability icons:** [ability icon art](../ConceptArt/Skills/README.md), the Flux Spells' and Vanguard kits' by runtime ID, imported by `Game/Scripts/BuildIconArt.ps1 -Kind Abilities` for the HUD, champion select and the shop; what each ability does stays the Character Bible's and `Game/Tuning/Abilities.json`'s.
@@ -149,6 +150,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-042-draft-pick-and-trades.md](ADR/ADR-042-draft-pick-and-trades.md) — **Proposed** (accepted when the M32 pull request merges): Draft Pick's bans and turns, and trades.
 - [ADR-043-map-walls-and-terrain-sight.md](ADR/ADR-043-map-walls-and-terrain-sight.md) — **Proposed** (accepted when the M33 pull request merges): map walls as layout terrain, and walls that block sight.
 - [ADR-044-party-and-social-client.md](ADR/ADR-044-party-and-social-client.md) — **Proposed** (accepted when the M34 pull request merges): party invitations, member cards, privacy, joining a friend's Public party and blocks in the client.
+- [ADR-045-account-progression-collection-mastery.md](ADR/ADR-045-account-progression-collection-mastery.md) — **Proposed** (accepted when the M35 pull requests merge): account progression, the two account currencies, buying Vanguards, the Collection and Mastery.
 
 ## Keeping the maps current
 
