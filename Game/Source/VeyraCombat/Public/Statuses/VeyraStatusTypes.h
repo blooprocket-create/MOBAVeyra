@@ -208,6 +208,13 @@ enum class EVeyraStatusKind : uint8
 	 * reveals nothing and extends no range. Not crowd control. Magnitude: 0.
 	 */
 	Designated,
+	/**
+	 * Stasis (Combat Bible §10; ADR-050 §1): the unit cannot move, attack or cast, item Actives and Flux Spells
+	 * included; it is Untargetable and takes no damage, True Damage included, so effects over time tick for 0. No
+	 * enemy status, no displacement, no heal and no shield lands on it; its Health Regeneration continues. Not crowd
+	 * control: Tenacity does not shorten it, and only the effect that applied it ends it early. Magnitude: 0.
+	 */
+	Stasis,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

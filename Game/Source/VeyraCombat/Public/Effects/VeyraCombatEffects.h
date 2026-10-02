@@ -112,6 +112,7 @@ public:
 	static const FName AbilityHasteName;
 	static const FName MoveSpeedName;
 	static const FName MagicPenetrationFlatName;
+	static const FName PhysicalPenetrationFlatName;
 	static const FName MagicPowerMultiplierName;
 	static const FName CritChanceName;
 	static const FName CritDamageBonusName;

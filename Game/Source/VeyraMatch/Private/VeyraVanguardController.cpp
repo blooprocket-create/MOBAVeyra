@@ -354,9 +354,10 @@ void AVeyraVanguardController::TraceAttack(const AActor& Target, EVeyraAttackRej
 
 UVeyraBasicAttackComponent* AVeyraVanguardController::GetBasicAttack() const
 {
+	// A Vanguard's attack is its participant's; a unit it drives without one, as an Echo, carries its own (ADR-050 §6).
 	const APawn* Body = GetPawn();
 	const APlayerState* Participant = Body ? Body->GetPlayerState() : nullptr;
-	return Participant ? Participant->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+	return Participant ? Participant->FindComponentByClass<UVeyraBasicAttackComponent>() : Body ? Body->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
 }
 
 AActor* AVeyraVanguardController::FindAttackMoveTarget(const UVeyraBasicAttackComponent& Attacks) const

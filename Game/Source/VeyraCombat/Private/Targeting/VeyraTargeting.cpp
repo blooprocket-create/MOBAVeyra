@@ -72,7 +72,8 @@ bool IsUntargetable(const AActor& Unit)
 	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
 	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
-	return Statuses && Statuses->Has(EVeyraStatusKind::Untargetable);
+	// Stasis is Untargetable too (Combat Bible §10; ADR-050 §1).
+	return Statuses && (Statuses->Has(EVeyraStatusKind::Untargetable) || Statuses->Has(EVeyraStatusKind::Stasis));
 }
 
 bool CanHitEnemy(const UObject* Source, const AActor& Unit)

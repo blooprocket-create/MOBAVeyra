@@ -45,6 +45,15 @@ public:
 	/** The point the camera looks at. */
 	FVector GetFocus() const { return GetActorLocation(); }
 
+	/** Eases the arm toward Distance for one frame, as UVeyraCameraSettings' zoom smoothing sets (ADR-052 §3). */
+	void EaseZoom(double Distance, double DeltaSeconds);
+
+	/** Puts the arm at Distance at once, as a match's first view does. */
+	void SetZoom(double Distance);
+
+	/** The arm's length now, in units. */
+	double GetZoom() const;
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> Root;

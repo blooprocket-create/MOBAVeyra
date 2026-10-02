@@ -601,7 +601,7 @@ namespace
 			const bool bLearned = Slot.Rank > 0;
 			const FString Name = Slot.Ability.IsValid() ? VeyraContentText::AbilityName(Slot.Ability).ToString() : FString();
 			Paint.Rect(At, FVector2D(Ability), Settings.BarBackgroundColor);
-			if (!DrawIcon(Paint, VeyraShellArt::AbilityIconOf(Slot.Ability.ToString()), At, Ability))
+			if (!DrawIcon(Paint, VeyraShellArt::SlotIconOf(Slot.Ability.ToString(), Slot.OwnAbility.ToString()), At, Ability))
 			{
 				// Until it has an icon, its name.
 				float LineY = At.Y + Ability / 2.0f;
@@ -774,6 +774,26 @@ namespace
 			DrawBar(Paint, At, Size, Player.RecallProgress, Settings.ChannelColor, FString());
 			Paint.TextCentred(At + FVector2D(Size.X / 2.0f, -Paint.S(12.0f)), FString::Printf(TEXT("RECALL   %.1f"), Player.RecallSeconds),
 				Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
+		}
+
+		// Commanding its Echo: its Integrity over the deck, strained as it runs low, and the keys it may still cast with
+		// (ADR-050 §7). Its Vanguard waits in Stasis, so no Recall runs beside it.
+		if (Player.Echo.IsSet())
+		{
+			const FVeyraHudEcho& Echo = Player.Echo.GetValue();
+			const FVector2D Size(Paint.S(320.0f), Paint.S(12.0f));
+			const FVector2D At((Paint.Canvas.ClipX - Size.X) / 2.0f, TopLeft.Y - Size.Y - Paint.S(34.0f));
+			const bool bStrained = Echo.IntegrityShare < Settings.EchoStrainShare;
+			DrawBar(Paint, At, Size, Echo.IntegrityShare, bStrained ? Settings.EchoStrainColor : Settings.ChannelColor, FString());
+			FString Keys;
+			for (const EVeyraAbilitySlot Slot : Echo.Slots)
+			{
+				Keys += KeyName(Input.GetAbilityKey(Slot)) + TEXT(" ");
+			}
+			const TCHAR* Phase = Echo.FormingSeconds > 0.0 ? TEXT("FORMING") : Echo.ImmuneSeconds > 0.0 ? TEXT("ECHO   PROTECTED") : TEXT("ECHO");
+			const FString Line = Echo.RepeatsLeft > 0 ? FString::Printf(TEXT("%s   %s x%d"), Phase, *Keys.TrimEnd(), Echo.RepeatsLeft) : FString(Phase);
+			Paint.TextCentred(At + FVector2D(Size.X / 2.0f, -Paint.S(12.0f)), Line, Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize),
+				bStrained ? Settings.EchoStrainColor : Settings.TextColor, true);
 		}
 
 		// Dead: the world dims, and the wait for the fountain counts down (Economy & Progression Bible §14).

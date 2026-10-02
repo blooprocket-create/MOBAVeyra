@@ -65,6 +65,11 @@ enum class EVeyraCastRejection : uint8
 	NoCompanion,
 	/** A status its caster holds refuses it, as Tidebreaker's lock refuses Change the Weather (ADR-035 §2). */
 	HeldBack,
+	/**
+	 * Its caster acts through its Echo, which casts only an eligible ability of its kit, as many times as it repeats, and
+	 * never an item's Active or a Flux Spell (ADR-050 §5).
+	 */
+	Projected,
 };
 
 VEYRAABILITIES_API const TCHAR* LexToString(EVeyraCastRejection Rejection);

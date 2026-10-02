@@ -10,8 +10,8 @@
 #include "Life/VeyraDeath.h"
 #include "Net/UnrealNetwork.h"
 #include "Records/VeyraCombatRecords.h"
-#include "Tags/VeyraStatusTags.h"
 #include "VeyraCombatLog.h"
+#include "VeyraCombatVerbs.h"
 
 FGameplayAttribute UVeyraVitalsSet::GetIncomingDamageAttribute(EVeyraDamageType Type)
 {
@@ -146,7 +146,7 @@ void UVeyraVitalsSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 		VeyraCombatRecords::NoteHostileAction(Source, *AbilitySystem);
 	}
 
-	const bool bInvulnerable = AbilitySystem->HasMatchingGameplayTag(VeyraTags::Status_Invulnerable);
+	const bool bInvulnerable = VeyraCombat::IsInvulnerable(*AbilitySystem);
 	TArray<FVeyraShieldShare> ShieldShares;
 	const FVeyraAbsorptionResult Result = Absorption->ApplyIncomingDamage(Type.GetValue(), Amount, bInvulnerable, GetHealth(), &ShieldShares);
 	if (Result.HealthLost > 0.0)

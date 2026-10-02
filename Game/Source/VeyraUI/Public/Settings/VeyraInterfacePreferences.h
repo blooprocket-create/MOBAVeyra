@@ -3,11 +3,36 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "Hud/VeyraCombatTextModel.h"
 #include "Misc/Optional.h"
+#include "Units/VeyraUnit.h"
 
 class FVeyraSettingsStore;
 class UObject;
 class UVeyraGreyboxSettings;
+
+/** When a unit's overhead bar shows (Settings Bible §3.4; ADR-052 §2). It only hides bars: an unseen unit stays unseen. */
+enum class EVeyraBarVisibility : uint8
+{
+	Always,
+	/** Below full Health. */
+	WhenDamaged,
+	/** The player's attack target, or the unit under the cursor. */
+	WhenTargeted,
+	/** Below full Health, or fighting someone. */
+	WhenEngaged,
+};
+
+/** What decides whether a unit's bar shows to the player. */
+struct FVeyraBarFacts
+{
+	EVeyraUnitKind Kind = EVeyraUnitKind::Vanguard;
+	/** On the player's side. */
+	bool bAllied = false;
+	bool bDamaged = false;
+	bool bTargeted = false;
+	bool bFighting = false;
+};
 
 /** The HUD, the minimap and the in-match controls as the player set them (Settings Bible §3; ADR-024 §6). */
 struct FVeyraInterfacePreferences
@@ -38,6 +63,14 @@ struct FVeyraInterfacePreferences
 	FLinearColor ChatBackdrop = FLinearColor::Transparent;
 	float ChatFadeSeconds = 0.0f;
 	bool bChatTimestamps = false;
+	/** When Fluxborn bars show, on the player's side and the other, and when jungle creatures' do (Settings Bible §3.4; ADR-052 §2). */
+	EVeyraBarVisibility AlliedFluxbornBars = EVeyraBarVisibility::Always;
+	EVeyraBarVisibility EnemyFluxbornBars = EVeyraBarVisibility::Always;
+	EVeyraBarVisibility JungleBars = EVeyraBarVisibility::Always;
+	/** Which combat text numbers show, and how (Settings Bible §3.4; ADR-052 §1), with the HUD's timing. */
+	FVeyraCombatTextOptions CombatText;
+	/** Damage numbers in one colour rather than coded by type (Proposal 52). */
+	bool bUniformDamageColors = false;
 };
 
 /** The player's interface settings over the developer's (UVeyraGreyboxSettings), apart from the engine. */
@@ -59,6 +92,25 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& ChatBackdrop();
 	VEYRAUI_API const FVeyraContentId& ChatFadeSeconds();
 	VEYRAUI_API const FVeyraContentId& ChatTimestamps();
+	VEYRAUI_API const FVeyraContentId& AlliedFluxbornBars();
+	VEYRAUI_API const FVeyraContentId& EnemyFluxbornBars();
+	VEYRAUI_API const FVeyraContentId& JungleBars();
+	VEYRAUI_API const FVeyraContentId& CombatTextDamageDealt();
+	VEYRAUI_API const FVeyraContentId& CombatTextDamageReceived();
+	VEYRAUI_API const FVeyraContentId& CombatTextHealing();
+	VEYRAUI_API const FVeyraContentId& CombatTextShielding();
+	VEYRAUI_API const FVeyraContentId& CombatTextCrits();
+	VEYRAUI_API const FVeyraContentId& CombatTextDensity();
+	VEYRAUI_API const FVeyraContentId& DamageNumberColors();
+
+	/** A bar setting's option as the HUD reads it; Always for anything else. */
+	VEYRAUI_API EVeyraBarVisibility ParseBars(const FString& Option);
+
+	/**
+	 * Whether a unit's bar shows (ADR-052 §2): Fluxborn bars by side and jungle creatures' as the player set
+	 * them; every other unit's, such as a Vanguard's or a structure's, whenever the unit is seen.
+	 */
+	VEYRAUI_API bool ShowsBar(const FVeyraInterfacePreferences& Preferences, const FVeyraBarFacts& Facts);
 
 	/** The interface: Hud's, with the player's settings in Store in their place; Hud's alone without a store. */
 	VEYRAUI_API FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore* Store);
