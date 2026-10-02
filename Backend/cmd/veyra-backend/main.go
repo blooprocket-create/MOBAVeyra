@@ -20,6 +20,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/catalog"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/config"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/docker"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/favorites"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/firebaseauth"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
@@ -219,6 +220,8 @@ func run(log *slog.Logger) error {
 	conductService := newConductService(store.Conduct(), cfg.Conduct, matches)
 	// Profiles read levels, ownership and Mastery from progression, and blocks from social (ADR-048 §1).
 	profiles := newProfileService(store.Profile(), cfg.Profile, svc, progress, accounts, soc)
+	// Favorites read the released roster from the catalog, and champion select and matches from their services (ADR-058 §5).
+	favs := favorites.NewService(store.Favorites(), vanguards, favoriteActivity{matches: matches, selects: selects}, cfg.Favorites.MaxPerAccount)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
@@ -236,6 +239,7 @@ func run(log *slog.Logger) error {
 			Chat:           talk,
 			Conduct:        conductService,
 			Profile:        profiles,
+			Favorites:      favs,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,

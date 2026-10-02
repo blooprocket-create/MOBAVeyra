@@ -610,6 +610,24 @@ bool ParseVanguardAccess(const FString& Body, FVanguardAccess& Out, FString& Out
 	return true;
 }
 
+bool ParseFavorites(const FString& Body, TArray<FString>& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	TArray<FString> Favorites;
+	if (!Root.IsValid() || !StringArrayField(*Root, TEXT("favorites"), ContentIdPattern, Favorites))
+	{
+		OutProblem = TEXT("the answer does not list favorite Vanguards by their IDs");
+		return false;
+	}
+	Out = MoveTemp(Favorites);
+	return true;
+}
+
+FString FavoritePath(const FString& VanguardId)
+{
+	return TEXT("/v1/me/favorites/") + VanguardId;
+}
+
 const FSelectSeat* FSelect::FindYou() const
 {
 	return Seats.FindByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; });

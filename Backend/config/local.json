@@ -213,5 +213,8 @@
       "serverArgs": ["-port=7777", "-log", "-stdout", "-FullStdOutLogOutput", "-LogCmds=LogVeyraAbilities Verbose"],
       "stopTimeout": "10s"
     }
+  },
+  "favorites": {
+    "maxPerAccount": 64
   }
 }

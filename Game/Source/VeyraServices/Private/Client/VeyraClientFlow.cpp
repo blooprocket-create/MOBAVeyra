@@ -340,6 +340,8 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("LoadCollection");
 	case EVeyraClientIntent::PurchaseVanguard:
 		return TEXT("PurchaseVanguard");
+	case EVeyraClientIntent::SetFavoriteVanguard:
+		return TEXT("SetFavoriteVanguard");
 	case EVeyraClientIntent::SendChatMessage:
 		return TEXT("SendChatMessage");
 	case EVeyraClientIntent::OpenDirectChat:
@@ -563,8 +565,10 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::CancelFriendRequest:
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
 	// The Collection is the ordinary client's, as Match History is: not through Match Found, a select or Reconnect-only.
+	// Favorites change there too, never from champion select (ADR-058 §4).
 	case EVeyraClientIntent::LoadCollection:
 	case EVeyraClientIntent::PurchaseVanguard:
+	case EVeyraClientIntent::SetFavoriteVanguard:
 		return State == EVeyraClientState::Shell;
 	// Chat goes on through every signed-in state but Reconnect-only, which offers nothing but Reconnect (ADR-046 §6;
 	// UX-17). Which conversation is open where is the intent's own check.
@@ -738,6 +742,9 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 		return !Snapshot.Social.Friends.Outgoing.IsEmpty();
 	case EVeyraClientIntent::PurchaseVanguard:
 		// From the Collection as read, so the player saw the price they confirm.
+		return Snapshot.Collection.bLoaded;
+	case EVeyraClientIntent::SetFavoriteVanguard:
+		// From the Collection's cards (ADR-058 §3).
 		return Snapshot.Collection.bLoaded;
 	default:
 		return true;
@@ -1034,6 +1041,7 @@ void FVeyraClientFlow::EnterShell(const FString& Notice)
 	PollSocial();
 	// The level and balances, which a match just played may have changed (ADR-045 §7).
 	ReadProgression();
+	ReadFavorites();
 }
 
 void FVeyraClientFlow::LoadModes()
@@ -2126,6 +2134,8 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 	}
 	Snapshot.AvailableVanguards.Reset();
 	Snapshot.ReleasedVanguards.Reset();
+	Snapshot.OwnedVanguards.Reset();
+	Snapshot.RotationVanguards.Reset();
 	Log(FString::Printf(TEXT("in champion select %s (%s)."), *Select.Id, *Select.Mode));
 	ApplySelect(Select);
 	if (Snapshot.State != EVeyraClientState::Selecting)
@@ -2133,6 +2143,8 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 		return;
 	}
 	LoadAvailableVanguards();
+	// A select resumed after sign-in never passed through the shell: its Favorites tab reads them here.
+	ReadFavorites();
 	After(Config.SelectPollIntervalSeconds, [this] { PollSelect(); });
 }
 
@@ -2178,6 +2190,8 @@ void FVeyraClientFlow::LoadAvailableVanguards()
 		}
 		Snapshot.AvailableVanguards = MoveTemp(Access.Available);
 		Snapshot.ReleasedVanguards = MoveTemp(Access.Released);
+		Snapshot.OwnedVanguards = MoveTemp(Access.Owned);
+		Snapshot.RotationVanguards = MoveTemp(Access.Rotation);
 		Broadcast();
 	});
 }

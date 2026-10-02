@@ -143,6 +143,8 @@ enum class EVeyraClientIntent : uint8
 	LoadCollection,
 	/** Buys a Vanguard with one account currency, once the player confirmed its price (ADR-045 §6). */
 	PurchaseVanguard,
+	/** Marks or unmarks a released Vanguard as a favorite, from the Collection (ADR-058 §5). Shell only. */
+	SetFavoriteVanguard,
 	/**
 	 * Sends a chat message (ADR-046): to the party or a friend wherever the player is signed in, except
 	 * Reconnect-only; to the team in champion select; across both teams on the results screen.
@@ -273,9 +275,9 @@ struct FVeyraCollection
 	/** In the catalog's order. */
 	TArray<VeyraBackendProtocol::FCollectionEntry> Vanguards;
 	/**
-	 * What came of the player's last purchase, for the Collection rather than the screen's problem:
-	 * "vanguard_purchased", or the backend's refusal, such as "insufficient_balance" or "already_owned".
-	 * Empty for none.
+	 * What came of the player's last purchase or favorite, for the Collection rather than the screen's problem:
+	 * "vanguard_purchased", or the backend's refusal, such as "insufficient_balance", "already_owned" or
+	 * "favorites_full". Empty for none.
 	 */
 	FString Feedback;
 	/** The Vanguard that purchase was for. */
@@ -463,6 +465,17 @@ struct FVeyraClientSnapshot
 	TArray<FString> AvailableVanguards;
 	/** Selecting: every released Vanguard, which a draft's bans may name (ADR-042 §1); empty until read. */
 	TArray<FString> ReleasedVanguards;
+	/**
+	 * Selecting: the Vanguards the player owns and the ones this week's rotation lends, read with the available ones:
+	 * the roster's Owned and Free Rotation tabs (ADR-058 §4). Narrowing by them never changes what may be picked.
+	 */
+	TArray<FString> OwnedVanguards;
+	TArray<FString> RotationVanguards;
+	/**
+	 * The player's favorite Vanguards in the order marked (ADR-058 §5): read on entering the shell and a champion
+	 * select, and after each change. A failed read keeps the last; a favorite never hovers, picks or grants anything.
+	 */
+	TArray<FString> FavoriteVanguards;
 	/** Selecting: the select as last read. */
 	VeyraBackendProtocol::FSelect Select;
 	/** Selecting: when the pick timer ends, on the flow host's clock. */

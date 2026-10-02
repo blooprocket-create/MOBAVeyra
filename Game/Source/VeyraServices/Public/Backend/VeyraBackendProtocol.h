@@ -96,6 +96,15 @@ namespace VeyraBackendProtocol
 	/** Reads the Vanguards a player may pick. False, with the problem, if it is not that. */
 	VEYRASERVICES_API bool ParseVanguardAccess(const FString& Body, FVanguardAccess& Out, FString& OutProblem);
 
+	/**
+	 * Reads the answer to GET, PUT or DELETE /v1/me/favorites: the player's favorite Vanguards in the order marked
+	 * (ADR-058 §5). False, with the problem, if it is not that.
+	 */
+	VEYRASERVICES_API bool ParseFavorites(const FString& Body, TArray<FString>& Out, FString& OutProblem);
+
+	/** PUT or DELETE /v1/me/favorites/{vanguardId}, for a Vanguard's content ID. */
+	VEYRASERVICES_API FString FavoritePath(const FString& VanguardId);
+
 	/** Where a champion select is (ADR-010 §8). */
 	enum class ESelectState : uint8
 	{

@@ -247,6 +247,18 @@ Each account has a public profile ([ADR-048](../Docs/ADR/ADR-048-player-profiles
 
 The catalog is `profile` in `config/local.json` (ADR-048 §2, provisional): a neutral default, plus each released Vanguard's portrait as an icon and its hero art as a background.
 
+### Favorite Vanguards
+
+A player marks Vanguards as favorites in the Collection, and champion select shows them under its Favorites tab ([ADR-058](../Docs/ADR/ADR-058-search-filters-and-favorites.md) §5; `internal/favorites`). Favorites are account data, so they follow the player to any machine. Any released Vanguard may be one, owned or not.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/me/favorites` | `Bearer <game token>` | — | `favorites`: Vanguard IDs in the order marked |
+| `PUT /v1/me/favorites/{vanguardId}` | `Bearer <game token>` | — | `favorites` after marking it; marking a favorite again changes nothing. Refusals: `unknown_vanguard` (not released), `playing` (never during champion select or a match), `favorites_full` |
+| `DELETE /v1/me/favorites/{vanguardId}` | `Bearer <game token>` | — | `favorites` after unmarking it. Refusal: `playing` |
+
+The most an account keeps is `favorites.maxPerAccount` in `config/local.json`. Canon sets no limit, so the provisional value allows the whole released roster.
+
 ### Custom practice and champion select
 
 Solo Custom practice opens a champion select with no lobby; an accepted match found opens a Casual Select. The select creates the match ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–8, §10).

@@ -119,6 +119,8 @@ public:
 	virtual bool LoadCollection() = 0;
 	/** Buys VanguardId with Currency. The screen asks the player to confirm the price first. */
 	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) = 0;
+	/** Marks VanguardId a favorite, or unmarks it (ADR-058 §5). The backend decides; a refusal shows in the Collection. */
+	virtual bool SetFavoriteVanguard(const FString& VanguardId, bool bFavorite) = 0;
 	/**
 	 * Sends Text to a conversation of Kind (ADR-046): the party, the friend Target, the player's side in
 	 * champion select, or the results screen's post-match chat, whose first message opts the player in.
