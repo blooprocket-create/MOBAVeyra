@@ -420,6 +420,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0", ClampMax = "1"))
 	float TurnCueVolume = 0.0f;
 
+	/** Interface Text Size's factor on the menus' text, by option (SET-62; ADR-055 §2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Text")
+	TMap<FString, float> TextSizeScales;
+
 	/** The break reminder's options in seconds of continuous play, by option (ADR-053 §4); Off has none. */
 	UPROPERTY(Config, EditAnywhere, Category = "Reminders")
 	TMap<FString, float> PlayReminderSeconds;

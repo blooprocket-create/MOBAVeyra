@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Shop/VeyraShopScreen.h"
+#include "Shell/VeyraShellLook.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
@@ -690,7 +691,7 @@ UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, co
 		// The icon whole, its corners rounded like a tile's, and greyed while it cannot be had.
 		UImage* Image = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
 		Image->SetBrush(VeyraShellArt::Brush(Icon, FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector), FVector2D(Size), Settings.ButtonCornerRadius,
-			Settings.SurfaceRaisedColor, Edge, 1.0f));
+			VeyraShellLook::Panel(Settings.SurfaceRaisedColor), Edge, 1.0f));
 		if (!bLit)
 		{
 			Image->SetColorAndOpacity(Settings.ItemDimTint);
@@ -702,7 +703,7 @@ UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, co
 		return *Square;
 	}
 	UBorder* Mark = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-	Mark->SetBrush(FSlateRoundedBoxBrush(Settings.SurfaceRaisedColor, Settings.ButtonCornerRadius, Edge, 1.0f));
+	Mark->SetBrush(FSlateRoundedBoxBrush(VeyraShellLook::Panel(Settings.SurfaceRaisedColor), Settings.ButtonCornerRadius, Edge, 1.0f));
 	Mark->SetPadding(FMargin(0.0f));
 	Mark->SetHorizontalAlignment(HAlign_Center);
 	Mark->SetVerticalAlignment(VAlign_Center);

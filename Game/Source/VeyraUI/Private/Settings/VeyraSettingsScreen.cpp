@@ -2,6 +2,10 @@
 
 #include "Settings/VeyraSettingsScreen.h"
 
+#include "Greybox/VeyraGreyboxSettings.h"
+#include "Settings/VeyraInterfacePreferences.h"
+#include "Shell/VeyraShellLook.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Border.h"
@@ -99,8 +103,8 @@ bool UVeyraSettingsScreen::Initialize()
 		VeyraSettingsLayout::AddStretch(*WidgetTree, *Header);
 		SearchBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
 		FEditableTextBoxStyle FieldStyle = SearchBox->GetWidgetStyle();
-		const FSlateRoundedBoxBrush Field(VeyraSettingsLayout::Style().SurfaceRaisedColor, VeyraSettingsLayout::Style().ButtonCornerRadius, VeyraSettingsLayout::Style().HairlineColor, 1.0f);
-		const FSlateRoundedBoxBrush Focused(VeyraSettingsLayout::Style().SurfaceRaisedColor, VeyraSettingsLayout::Style().ButtonCornerRadius, VeyraSettingsLayout::Style().AccentColor, 1.0f);
+		const FSlateRoundedBoxBrush Field(VeyraShellLook::Panel(VeyraSettingsLayout::Style().SurfaceRaisedColor), VeyraSettingsLayout::Style().ButtonCornerRadius, VeyraSettingsLayout::Style().HairlineColor, 1.0f);
+		const FSlateRoundedBoxBrush Focused(VeyraShellLook::Panel(VeyraSettingsLayout::Style().SurfaceRaisedColor), VeyraSettingsLayout::Style().ButtonCornerRadius, VeyraSettingsLayout::Style().AccentColor, 1.0f);
 		FieldStyle.SetBackgroundImageNormal(Field);
 		FieldStyle.SetBackgroundImageHovered(Field);
 		FieldStyle.SetBackgroundImageFocused(Focused);
@@ -341,6 +345,8 @@ void UVeyraSettingsScreen::Rebuild()
 	{
 		return;
 	}
+	// The rows are built in the player's look, so a change of text size or transparency shows at once (ADR-055 §2–§3).
+	VeyraShellLook::Use(VeyraShellLook::For(VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), Store)));
 	Model = VeyraSettingsModels::Describe(*Store, Category, Search, bInMatch);
 	Category = Model.Category;
 	Buttons.Reset();

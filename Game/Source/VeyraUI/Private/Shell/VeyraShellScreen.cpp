@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Shell/VeyraShellScreen.h"
+#include "Shell/VeyraShellLook.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
@@ -242,6 +243,12 @@ void UVeyraShellScreen::Refresh()
 		return;
 	}
 	const FVeyraClientSnapshot& Snapshot = Client->GetSnapshot();
+	// Built in the player's look, and rebuilt when it changes (ADR-055 §2–§3).
+	const bool bNewLook = VeyraShellLook::Use(VeyraShellLook::For(InterfacePreferences()));
+	if (bNewLook)
+	{
+		ShownSignature.Reset();
+	}
 	// A draft turn of the player's own asks for their attention once, as it begins (UX-31, UX-32).
 	if (const FString Turn = VeyraShellModels::PlayersTurn(Snapshot); Turn != AttendedTurn)
 	{

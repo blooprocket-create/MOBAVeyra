@@ -156,6 +156,13 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 	{
 		bEveryReminderPositive &= Option.Value > 0.0f;
 	}
+	const float* StandardScale = TextSizeScales.Find(TEXT("Standard"));
+	bool bEveryScalePositive = true;
+	for (const TPair<FString, float>& Scale : TextSizeScales)
+	{
+		bEveryScalePositive &= Scale.Value > 0.0f;
+	}
+	Require(StandardScale && *StandardScale == 1.0f && bEveryScalePositive, TEXT("TextSizeScales"), TEXT("Standard is 1, and every size above 0."));
 	Require(!PlayReminderSeconds.IsEmpty() && bEveryReminderPositive, TEXT("PlayReminderSeconds"), TEXT("lists the reminder's options, each above 0 seconds."));
 	// SET-120: at least 8 seconds for every automatically shown entry.
 	constexpr float LeastEntrySeconds = 8.0f;

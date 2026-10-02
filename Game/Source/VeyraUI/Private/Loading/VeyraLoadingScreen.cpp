@@ -14,6 +14,7 @@
 #include "InputCoreTypes.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
@@ -41,8 +42,19 @@ bool UVeyraLoadingScreen::Initialize()
 	StageLabel = VeyraShellStyle::MakeText(*WidgetTree, StageText(Stage), VeyraShellStyle::EVeyraShellText::Display);
 	StageLabel->SetJustification(ETextJustify::Center);
 	VeyraShellStyle::AddSpaced(*Column, *StageLabel);
-	UCircularThrobber* Activity = WidgetTree->ConstructWidget<UCircularThrobber>(UCircularThrobber::StaticClass());
-	VeyraShellStyle::AddSpaced(*Column, *Activity);
+	// Still under Reduce Interface Animation: the stage says the work goes on, in words (SET-65, SET-112).
+	if (VeyraShellLook::Current().bStillAnimation)
+	{
+		UTextBlock* Working = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Working", "Working…"), VeyraShellStyle::EVeyraShellText::Muted);
+		Working->SetJustification(ETextJustify::Center);
+		VeyraShellStyle::AddSpaced(*Column, *Working);
+	}
+	else
+	{
+		UCircularThrobber* Activity = WidgetTree->ConstructWidget<UCircularThrobber>(UCircularThrobber::StaticClass());
+		VeyraShellStyle::AddSpaced(*Column, *Activity);
+		bSpinning = true;
+	}
 
 	// The tip or fact, its kind above it, and Previous and Next under it.
 	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Panel, FMargin(Style.ScreenPadding));

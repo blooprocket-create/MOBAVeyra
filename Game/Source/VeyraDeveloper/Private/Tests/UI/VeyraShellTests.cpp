@@ -11,6 +11,7 @@
 #include "Engine/Texture2D.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -547,6 +548,8 @@ namespace VeyraShellTests
 			{
 				Screen->Unbind();
 			}
+			// One look for the whole client: the next test starts from the standard one.
+			VeyraShellLook::Use(FVeyraShellLook());
 		}
 
 		/** A screen showing the rig's coordinator. */
@@ -910,6 +913,19 @@ namespace VeyraShellTests
 			{
 				ASSERT_THAT(AreEqual(GetDefault<UVeyraShellStyleSettings>()->PlayReminderSeconds.Contains(Option), Option != TEXT("Off"), Option));
 			}
+		}
+
+		TEST_METHOD(TheShellTakesThePlayersLookAtOnce)
+		{
+			// ADR-055 §2: Interface Text Size applies at once; the shell rebuilds in the new look.
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			Settings = MakeUnique<FVeyraSettingsStore>(Registry);
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ShowScreen().BindSettings(*Settings);
+			ASSERT_THAT(IsTrue(VeyraShellLook::Current().TextScale == 1.0f));
+			Settings->Set(VeyraInterfacePreferences::TextSize(), TEXT("ExtraLarge"));
+			ASSERT_THAT(IsTrue(VeyraShellLook::Current().TextScale == GetDefault<UVeyraShellStyleSettings>()->TextSizeScales.FindChecked(TEXT("ExtraLarge"))));
 		}
 
 		TEST_METHOD(TheBreakReminderFollowsItsSettingAtOnce)

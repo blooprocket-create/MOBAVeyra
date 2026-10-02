@@ -61,6 +61,9 @@ protected:
 
 public:
 
+	/** Whether its activity indicator spins: not under Reduce Interface Animation (SET-65). */
+	bool IsSpinning() const { return bSpinning; }
+
 	/** What the screen shows now. For tests. */
 	EVeyraLoadingStage GetStage() const { return Stage; }
 	const FVeyraLoadingRotation& GetRotation() const { return Rotation; }
@@ -73,6 +76,7 @@ private:
 	/** Shows the categories the followed store chooses now, if they changed; from the start when bAlways. */
 	void ApplyCategories(double Now, bool bAlways);
 
+	bool bSpinning = false;
 	FVeyraSettingsStore* SettingsStore = nullptr;
 	FDelegateHandle SettingsHandle;
 	TOptional<EVeyraLoadingContent> ShownContent;
