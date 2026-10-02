@@ -10,6 +10,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundLink.h"
 #include "Echoes/VeyraEchoLink.h"
+#include "Feedback/VeyraCombatTextLink.h"
 #include "Echoes/VeyraEchoSubsystem.h"
 #include "Buyback/VeyraBuybackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
@@ -239,6 +240,8 @@ void AVeyraGameMode::StartPlay()
 	Battleground->Start(*GetWorld(), FVeyraBattlegroundLink::FOnPrimeWellDestroyed::CreateUObject(this, &AVeyraGameMode::OnPrimeWellDestroyed));
 	EchoLink = MakeShared<FVeyraEchoLink>();
 	EchoLink->Start(*GetWorld());
+	CombatText = MakeShared<FVeyraCombatTextLink>();
+	CombatText->Start(*GetWorld());
 	if (Roster)
 	{
 		NoteConnectedParticipants();
@@ -263,6 +266,7 @@ void AVeyraGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	Battleground.Reset();
 	EchoLink.Reset();
+	CombatText.Reset();
 	Super::EndPlay(EndPlayReason);
 }
 

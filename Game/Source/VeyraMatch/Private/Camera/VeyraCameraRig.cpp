@@ -60,3 +60,18 @@ void AVeyraCameraRig::CenterOn(const FVector& Point)
 	SetActorLocation(Point);
 	Offset = FVector::ZeroVector;
 }
+
+void AVeyraCameraRig::EaseZoom(double Distance, double DeltaSeconds)
+{
+	Arm->TargetArmLength = VeyraCamera::EaseZoom(Arm->TargetArmLength, Distance, DeltaSeconds, GetDefault<UVeyraCameraSettings>()->ZoomSmoothingSeconds);
+}
+
+void AVeyraCameraRig::SetZoom(double Distance)
+{
+	Arm->TargetArmLength = Distance;
+}
+
+double AVeyraCameraRig::GetZoom() const
+{
+	return Arm->TargetArmLength;
+}
