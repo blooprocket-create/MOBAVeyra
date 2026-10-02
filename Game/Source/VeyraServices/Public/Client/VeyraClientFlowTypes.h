@@ -3,7 +3,9 @@
 #pragma once
 
 #include "Backend/VeyraBackendProtocol.h"
+#include "Backend/VeyraChatProtocol.h"
 #include "Containers/Array.h"
+#include "Containers/Map.h"
 #include "Containers/UnrealString.h"
 #include "Handoff/VeyraLaunchHandshake.h"
 #include "Misc/Optional.h"
@@ -139,6 +141,16 @@ enum class EVeyraClientIntent : uint8
 	LoadCollection,
 	/** Buys a Vanguard with one account currency, once the player confirmed its price (ADR-045 §6). */
 	PurchaseVanguard,
+	/**
+	 * Sends a chat message (ADR-046): to the party or a friend wherever the player is signed in, except
+	 * Reconnect-only; to the team in champion select; across both teams on the results screen.
+	 */
+	SendChatMessage,
+	/** Shows one friend's direct conversation in the sidebar, or none. */
+	OpenDirectChat,
+	CloseDirectChat,
+	/** Mutes or unmutes another participant in the results screen's post-match chat, for the player only. */
+	MutePostMatchChat,
 };
 
 /** Which kind of world the client just loaded. */
@@ -228,6 +240,72 @@ struct FVeyraCollection
 	FString FeedbackVanguard;
 };
 
+/** One line of a chat conversation as the player sees it (ADR-046 §6). */
+struct FVeyraChatEntry
+{
+	/** The backend's sequence, which orders every line; 0 while the player's own message awaits its answer. */
+	int64 Seq = 0;
+	VeyraBackendProtocol::EChatKind Kind = VeyraBackendProtocol::EChatKind::Party;
+	FString SenderId;
+	FString SenderName;
+	/** A direct message's other account: the friend the player talks with, whoever sent it. */
+	FString With;
+	FString Text;
+	/** The sender's own ID for the message. */
+	FString ClientId;
+	/** The player's own message, sent and not yet answered. */
+	bool bPending = false;
+	/**
+	 * The player's own message that did not go: the backend's refusal, such as "rate_limited" or
+	 * "not_friends", or "not_sent" when no answer came. Empty for a sent message.
+	 */
+	FString Failure;
+	/** When it arrived, on the flow host's clock: the match HUD fades lines after a while. */
+	double ArrivedAt = 0.0;
+	/** It came with the first read after sign-in: history rather than news, so it raises no unread count. */
+	bool bHistory = false;
+};
+
+/** One conversation's lines (ADR-046 §2). */
+struct FVeyraChatConversation
+{
+	/**
+	 * The backend's key: the party, the select and side, or the match. A direct conversation's is the
+	 * friend's account.
+	 */
+	FString Key;
+	/** Oldest first, at most the flow's ChatKeepMessages. */
+	TArray<FVeyraChatEntry> Lines;
+	/** Lines from the friend that arrived while the conversation was not open. Direct conversations only. */
+	int32 Unread = 0;
+};
+
+/**
+ * Party Chat, friend direct messages, champion-select team chat and post-match chat as the player has read
+ * them (ADR-046). The backend decides who reads each line; reading never stops the flow.
+ */
+struct FVeyraChat
+{
+	/** Whether the first read after sign-in has come. */
+	bool bLoaded = false;
+	/** The player's current party; a new party starts it afresh. */
+	FVeyraChatConversation Party;
+	/** By the friend's account. */
+	TMap<FString, FVeyraChatConversation> Direct;
+	/** The player's side in the current champion select. */
+	FVeyraChatConversation Select;
+	/** The results screen's cross-team chat for the match just played. */
+	FVeyraChatConversation PostMatch;
+	/** The player opted into the post-match chat by sending; before that it shows nothing (UX-59). */
+	bool bPostMatchJoined = false;
+	/** The participants the player muted in the post-match chat. */
+	TArray<FString> PostMatchMuted;
+	/** The direct conversation the sidebar shows; empty for none. */
+	FString OpenDirect;
+	/** The friend who sent the latest direct message, whom the match HUD's reply command answers. */
+	FString LastDirectFrom;
+};
+
 /** Everything the presentation shows about the flow. Only the flow changes it. */
 struct FVeyraClientSnapshot
 {
@@ -296,6 +374,8 @@ struct FVeyraClientSnapshot
 	TOptional<VeyraBackendProtocol::FProgression> Progression;
 	/** Shell: the Collection, once the player opens it. */
 	FVeyraCollection Collection;
+	/** Party, direct, select and post-match chat, read in every signed-in state but Reconnect-only (ADR-046 §6). */
+	FVeyraChat Chat;
 
 	/**
 	 * Whether the backend serves custom lobbies: the lobby route's 404 says it does not (ADR-021 §1),

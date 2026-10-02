@@ -57,6 +57,10 @@ struct FVeyraClientFlowConfig
 	double MatchFoundPollIntervalSeconds = 0.0;
 	double LobbyPollIntervalSeconds = 0.0;
 	double SocialPollIntervalSeconds = 0.0;
+	/** How often chat is read, in every signed-in state but Reconnect-only (ADR-046 §6). */
+	double ChatPollIntervalSeconds = 0.0;
+	/** How many lines each chat conversation keeps. */
+	int32 ChatKeepMessages = 0;
 	/** How long the player stays in a match that ended, watching the end, before it leaves for the results (ADR-020 §1). */
 	double EndingShowSeconds = 0.0;
 	/** When the player's account settings are sent (ADR-024 §1). */
@@ -183,6 +187,13 @@ public:
 	virtual bool CancelFriendRequest(const FString& AccountId) override;
 	virtual bool LoadCollection() override;
 	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) override;
+	/** Only a friend is on offer for a direct message; the select's chat in champion select, the post-match chat on the results screen. */
+	virtual bool SendChatMessage(VeyraBackendProtocol::EChatKind Kind, const FString& Target, const FString& Text) override;
+	/** Only a friend is on offer. */
+	virtual bool OpenDirectChat(const FString& AccountId) override;
+	virtual bool CloseDirectChat() override;
+	/** Only another participant of the match is on offer. */
+	virtual bool MutePostMatchChat(const FString& AccountId, bool bMute) override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);
@@ -279,6 +290,29 @@ private:
 	void ReadProgression();
 	/** Shows what came of a purchase in the Collection, not as the screen's problem. */
 	void ShowCollectionFeedback(const FString& Code, const FString& VanguardId);
+
+	// Chat (VeyraClientFlowChat.cpp; ADR-046).
+	/** Whether chat is read now: signed in, and in any state but Reconnect-only. */
+	bool ChatRuns() const;
+	/** Reads chat when it is due and sends messages whose retry is due; on its own clock, so state changes never stop it. */
+	void TickChat(double Now);
+	void PollChat();
+	/** Shows one message the backend delivered or answered with; History marks the first read after sign-in. */
+	void ApplyChatMessage(const VeyraBackendProtocol::FChatMessage& Message, bool bHistory);
+	/** Where a message of the backend's belongs, or null when the player has no such conversation now. */
+	FVeyraChatConversation* ChatConversationFor(const VeyraBackendProtocol::FChatMessage& Message);
+	/** Sends the pending message ClientId; a lost answer is tried again with the same ID. */
+	void SendPendingChat(const FString& ClientId);
+	/** Marks the player's own line ClientId as refused or never answered. */
+	void FailChatLine(const FString& ClientId, const FString& Failure);
+	/** Drops a conversation's oldest lines beyond ChatKeepMessages. */
+	void TrimChat(FVeyraChatConversation& Conversation) const;
+	/** A new party, select or match starts its conversation afresh. */
+	void ResetChatConversation(FVeyraChatConversation& Conversation, const FString& Key);
+	/** The results screen opens on a match: its post-match chat starts unjoined. */
+	void StartPostMatchChat(const FString& MatchId);
+	/** The player leaves the results screen: the backend is told, and the post-match chat ends for them. */
+	void LeavePostMatchChat();
 	/**
 	 * Sends a request once, for reads that must never stop the flow: an answer that arrives after the
 	 * state changed is ignored and a refused session ends it, but anything else, even no answer at all,
@@ -392,4 +426,26 @@ private:
 		VeyraBackendProtocol::ECurrency Currency = VeyraBackendProtocol::ECurrency::Flux;
 	};
 	TOptional<FPendingPurchase> PendingPurchase;
+
+	/** A chat message the player sent whose answer has not arrived; a lost answer is sent again with its ID. */
+	struct FChatSend
+	{
+		FString ClientId;
+		VeyraBackendProtocol::EChatKind Kind = VeyraBackendProtocol::EChatKind::Party;
+		/** The friend of a direct message, or the match of a post-match one. */
+		FString Target;
+		FString Text;
+		int32 Attempt = 1;
+		/** When the next try is due; 0 while one is in flight. */
+		double DueAt = 0.0;
+	};
+	TArray<FChatSend> ChatSends;
+	/** Chat's own clock: the next read, and whether one is in flight. */
+	double NextChatPollAt = 0.0;
+	bool bChatPollInFlight = false;
+	/** The cursor of the next read; before the first read there is none, and the backend answers with history. */
+	bool bChatHasCursor = false;
+	int64 ChatCursor = 0;
+	/** Increases when the game session ends, so a chat answer for the old session is ignored. */
+	uint32 ChatGeneration = 0;
 };

@@ -440,6 +440,8 @@ namespace VeyraClientFlowTests
 
 		/** Fixture value: how long a player watches its match end. */
 		static constexpr double EndingShowSeconds = 6.0;
+		/** Fixture value: how many lines a chat conversation keeps. */
+		static constexpr int32 ChatKeepMessages = 4;
 
 		FClientFlowTestRig()
 		{
@@ -459,6 +461,8 @@ namespace VeyraClientFlowTests
 			Config.MatchFoundPollIntervalSeconds = 0.5;
 			Config.LobbyPollIntervalSeconds = 1.0;
 			Config.SocialPollIntervalSeconds = 3.0;
+			Config.ChatPollIntervalSeconds = 1.0;
+			Config.ChatKeepMessages = ChatKeepMessages;
 			Config.EndingShowSeconds = EndingShowSeconds;
 			Config.AccountSettings.SendDelaySeconds = 1.5;
 			Config.AccountSettings.RetrySeconds = 15.0;

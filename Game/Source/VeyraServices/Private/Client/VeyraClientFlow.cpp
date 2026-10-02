@@ -336,6 +336,14 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("LoadCollection");
 	case EVeyraClientIntent::PurchaseVanguard:
 		return TEXT("PurchaseVanguard");
+	case EVeyraClientIntent::SendChatMessage:
+		return TEXT("SendChatMessage");
+	case EVeyraClientIntent::OpenDirectChat:
+		return TEXT("OpenDirectChat");
+	case EVeyraClientIntent::CloseDirectChat:
+		return TEXT("CloseDirectChat");
+	case EVeyraClientIntent::MutePostMatchChat:
+		return TEXT("MutePostMatchChat");
 	}
 	return TEXT("Unknown");
 }
@@ -357,6 +365,8 @@ FVeyraClientFlowConfig FVeyraClientFlowConfig::FromSettings(const UVeyraServices
 	Config.MatchFoundPollIntervalSeconds = Settings.MatchFoundPollIntervalSeconds;
 	Config.LobbyPollIntervalSeconds = Settings.LobbyPollIntervalSeconds;
 	Config.SocialPollIntervalSeconds = Settings.SocialPollIntervalSeconds;
+	Config.ChatPollIntervalSeconds = Settings.ChatPollIntervalSeconds;
+	Config.ChatKeepMessages = Settings.ChatKeepMessages;
 	// Match data, so the client stays as long as the server does.
 	Config.EndingShowSeconds = UVeyraMatchTuningSubsystem::Get().Ending.ShowSeconds;
 	Config.AccountSettings.SendDelaySeconds = Settings.AccountSettingsSendDelaySeconds;
@@ -413,6 +423,7 @@ void FVeyraClientFlow::Tick()
 	{
 		AccountSettings->Tick(Now);
 	}
+	TickChat(Now);
 	TArray<TFunction<void()>> Due;
 	TArray<FWait> Pending = MoveTemp(Waits);
 	Waits.Reset();
@@ -517,6 +528,17 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::LoadCollection:
 	case EVeyraClientIntent::PurchaseVanguard:
 		return State == EVeyraClientState::Shell;
+	// Chat goes on through every signed-in state but Reconnect-only, which offers nothing but Reconnect (ADR-046 §6;
+	// UX-17). Which conversation is open where is the intent's own check.
+	case EVeyraClientIntent::SendChatMessage:
+		return State != EVeyraClientState::SigningIn && State != EVeyraClientState::SignInFailed && State != EVeyraClientState::ReconnectOnly
+			&& State != EVeyraClientState::SessionEnded;
+	// Direct conversations open in the sidebar, beside the friends panel.
+	case EVeyraClientIntent::OpenDirectChat:
+	case EVeyraClientIntent::CloseDirectChat:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
+	case EVeyraClientIntent::MutePostMatchChat:
+		return State == EVeyraClientState::Results;
 	}
 	return false;
 }
@@ -535,6 +557,12 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	{
 		// Settings are not the flow's step: the choice shows over whatever the player is doing.
 		return Snapshot.bSettingsConflict;
+	}
+	if (Intent == EVeyraClientIntent::SendChatMessage || Intent == EVeyraClientIntent::OpenDirectChat || Intent == EVeyraClientIntent::CloseDirectChat
+		|| Intent == EVeyraClientIntent::MutePostMatchChat)
+	{
+		// Chat is not the flow's step either: a request in flight never holds a conversation up.
+		return !GameSession.IsEmpty() && IsIntentAllowed(Snapshot.State, Intent);
 	}
 	if (Snapshot.bBusy || !IsIntentAllowed(Snapshot.State, Intent))
 	{
@@ -1145,6 +1173,12 @@ bool FVeyraClientFlow::ApplyParty(uint32 Sequence, TOptional<VeyraBackendProtoco
 	if (Party.IsSet() && Party->Status != EPartyStatus::Idle)
 	{
 		Snapshot.QueuedSince = Host.Now() - Party->QueuedSeconds;
+	}
+	// Leaving the party ends its conversation; a new party starts its own (ADR-046 §2).
+	FVeyraChatConversation& PartyChat = Snapshot.Chat.Party;
+	if (!Party.IsSet() ? !PartyChat.Key.IsEmpty() || !PartyChat.Lines.IsEmpty() : !PartyChat.Key.IsEmpty() && PartyChat.Key != Party->Id)
+	{
+		ResetChatConversation(PartyChat, Party.IsSet() ? Party->Id : FString());
 	}
 	Snapshot.Party = MoveTemp(Party);
 	Broadcast();
@@ -2017,6 +2051,12 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 {
 	Enter(EVeyraClientState::Selecting);
 	SelectId = Select.Id;
+	// A new select starts its team chat afresh; resuming this one keeps it. The backend keys it by select and side.
+	FVeyraChatConversation& SelectChat = Snapshot.Chat.Select;
+	if (!SelectChat.Key.IsEmpty() && !SelectChat.Key.StartsWith(Select.Id + TEXT("|")))
+	{
+		ResetChatConversation(SelectChat, FString());
+	}
 	Snapshot.AvailableVanguards.Reset();
 	Snapshot.ReleasedVanguards.Reset();
 	Log(FString::Printf(TEXT("in champion select %s (%s)."), *Select.Id, *Select.Mode));
@@ -2550,6 +2590,8 @@ void FVeyraClientFlow::ShowResults(TOptional<VeyraBackendProtocol::FMatchOutcome
 	{
 		Log(FString::Printf(TEXT("match %s has no verified result yet."), *Snapshot.MatchId));
 	}
+	// The results screen offers the match's post-match chat, unjoined until the player's first message (UX-59).
+	StartPostMatchChat(Outcome.IsSet() && !Outcome->MatchId.IsEmpty() ? Outcome->MatchId : Snapshot.MatchId);
 	Snapshot.Result = MoveTemp(Outcome);
 	Broadcast();
 }
@@ -2560,6 +2602,7 @@ bool FVeyraClientFlow::ContinueFromResults()
 	{
 		return false;
 	}
+	LeavePostMatchChat();
 	Snapshot.Result.Reset();
 	Resume();
 	return true;
@@ -2678,6 +2721,13 @@ bool FVeyraClientFlow::Quit()
 void FVeyraClientFlow::EndSession()
 {
 	GameSession.Reset();
+	// Chat answers for the ended session are ignored, and a new sign-in reads its history afresh.
+	++ChatGeneration;
+	ChatSends.Reset();
+	bChatPollInFlight = false;
+	bChatHasCursor = false;
+	ChatCursor = 0;
+	Snapshot.Chat = FVeyraChat();
 	if (AccountSettings)
 	{
 		AccountSettings->SignOut();
