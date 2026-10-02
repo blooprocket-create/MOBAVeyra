@@ -24,9 +24,18 @@ namespace VeyraCursorPicks
 	/** A direct attack's target: the first hostile unit; with Target Vanguards Only, the first hostile Vanguard. */
 	VEYRAMATCH_API AActor* Enemy(TConstArrayView<FVeyraCursorUnit> Under, bool bVanguardsOnly);
 
-	/** The unit a cast names: the first one; with Target Vanguards Only, the first Vanguard of either side. */
-	VEYRAMATCH_API AActor* ForCast(TConstArrayView<FVeyraCursorUnit> Under, bool bVanguardsOnly);
+	/** The first allied Vanguard, the player's own among them: the only unit an ally's cast may name. */
+	VEYRAMATCH_API AActor* Ally(TConstArrayView<FVeyraCursorUnit> Under);
 
-	/** Whether an allied Vanguard is under the cursor, so Smart Self-Cast leaves the cast to it. */
-	VEYRAMATCH_API bool HasAlliedVanguard(TConstArrayView<FVeyraCursorUnit> Under);
+	/**
+	 * The unit a cast names, of the side its ability targets: for one that may land on an ally (bNamesAlly), the
+	 * first allied Vanguard, whatever Target Vanguards Only says; for any other, as an attack names its target.
+	 */
+	VEYRAMATCH_API AActor* ForCast(TConstArrayView<FVeyraCursorUnit> Under, bool bVanguardsOnly, bool bNamesAlly);
+
+	/**
+	 * Whether Smart Self-Cast names Caster for a cast of CastRange (Settings Bible §1.5): unless the first allied
+	 * Vanguard under the cursor is a valid target for it, alive and within range, as the server judges it.
+	 */
+	VEYRAMATCH_API bool SmartSelfCasts(const AActor& Caster, TConstArrayView<FVeyraCursorUnit> Under, double CastRange);
 }

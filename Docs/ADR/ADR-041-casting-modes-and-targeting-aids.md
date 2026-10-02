@@ -38,6 +38,8 @@
 
 Pressing another ability's key while one is pending moves the indicator to it. The rank-up modifier keeps its priority over all of this.
 
+**An ability becomes unavailable** when its Vanguard dies, its slot is locked, its slot holds another ability or none (an override ending or beginning), or it cools down, a shared cooldown included. The controller checks a waiting cast against its slot each frame (`FVeyraCastInput::Recheck`) and hides it, so a later click casts nothing; a waiting Quick Cast with Indicator likewise casts nothing on its release. Crowd control does not cancel: the server refuses a cast made meanwhile. A preview stays.
+
 **Show Cast Range (§1.7):** while its modifier is held, an ability's key shows that ability's indicator and never casts. Releasing the modifier, or Escape, hides it. The next cast uses the player's mode.
 
 **Escape** first cancels a pending cast or preview. Only when nothing is pending does it open the match menu: the menu asks the controller before it opens.
@@ -46,7 +48,8 @@ Pressing another ability's key while one is pending moves the indicator to it. T
 
 `VeyraCastTelegraphs::ForAim` gives the shape of an ability not yet cast, from its tuning, the caster's location and the aim:
 - the cast-range ring;
-- a line of the ability's width for skillshots, dashes and volleys;
+- a line of the ability's width for skillshots and dashes;
+- for a volley, the lane its shots fly in: a cone from the caster as long as a shot reaches, the lane's half angle either side of the aim;
 - a circle for areas, a cone for cones;
 - a ring around a targeted unit.
 
@@ -54,12 +57,12 @@ VeyraUI draws the local player's indicator each frame with the telegraph lines i
 
 ### 3. Targeting aids (VeyraMatch, VeyraAbilities)
 
-- **Target Vanguards Only (§1.4):** a rebindable key, Hold or Toggle. While active, the cursor picks for direct attack orders and unit-targeted casts consider enemy Vanguards only. Skillshots, areas and attack move are unchanged. The server still validates every target.
+- **Target Vanguards Only (§1.4):** a rebindable key, Hold or Toggle. While active, the cursor picks for direct attack orders and unit-targeted casts consider enemy Vanguards only. Skillshots, areas and attack move are unchanged. The server still validates every target. A cast names a unit of the side its ability targets (`VeyraCursorPicks::ForCast`): one that accepts an allied unit names the first allied Vanguard under the cursor, whatever this key says; any other names the first enemy, or with this key the first enemy Vanguard, so a nearer ally never takes a cast meant for an enemy.
 - **Self-Cast Modifier (§1.5):** a rebindable key. Held with an ability's key, it names the player's own Vanguard as the target when that ability accepts an allied unit. Otherwise the cast is unchanged: directional, ground-targeted and self-ineligible abilities are never redirected. `VeyraAbilityRules::AcceptsAllyTarget` answers from the archetype data:
   - a buff that may land on an ally;
   - a companion command bound to an ally;
   - the Unanchor order.
-- **Smart Self-Cast (§1.5):** per slot, Off by default. With no allied unit under the cursor, an eligible ability targets its caster. A buff that may land on an ally already does so on the server (ADR-027 §4), so the setting changes only the other eligible abilities, which otherwise refuse a cast that names no ally.
+- **Smart Self-Cast (§1.5):** per slot, Off by default. With no valid allied target under the cursor, an eligible ability targets its caster. An allied Vanguard there is valid only while it is alive and within the cast's range, as `VeyraTargeting::CheckAllyTarget` judges it on the server (`VeyraCursorPicks::SmartSelfCasts`). A buff that may land on an ally already does so on the server (ADR-027 §4), so the setting changes only the other eligible abilities, which otherwise refuse a cast that names no ally.
 
 ### 4. Attack move (§1.3; VeyraMatch)
 

@@ -3,6 +3,7 @@
 #include "CQTest.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Input/VeyraCursorPicks.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -122,6 +123,25 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy.GetAbilitySystemComponent(), *Fallen.GetAbilitySystemComponent(), Blow)));
 			ASSERT_THAT(IsTrue(CastAt(&Fallen) == EVeyraCastRejection::TargetDead));
 			ASSERT_THAT(IsFalse(World.Has(*Caster, TEXT("test_gust")), TEXT("a refused cast buffs no one")));
+		}
+
+		TEST_METHOD(SmartSelfCastLeavesTheCastOnlyToAnAllyTheServerWouldTake)
+		{
+			// An allied Vanguard under the cursor takes the cast only while it is alive and in range (Settings Bible §1.5);
+			// otherwise Smart Self-Cast names the caster rather than send a cast the server refuses.
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Near = World.Spawn(EVeyraTeam::A, FVector(CastRange / 2.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Far = World.Spawn(EVeyraTeam::A, FVector(CastRange * 3.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(0.0, -CastRange * 3.0, 0.0));
+			const auto Hovering = [](AActor& Unit, bool bHostile) { return TArray<FVeyraCursorUnit>{ { &Unit, EVeyraUnitKind::Vanguard, bHostile } }; };
+			ASSERT_THAT(IsFalse(VeyraCursorPicks::SmartSelfCasts(*Caster, Hovering(Near, false), CastRange), TEXT("a living ally in range takes it")));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::SmartSelfCasts(*Caster, Hovering(Far, false), CastRange), TEXT("an ally out of range")));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::SmartSelfCasts(*Caster, Hovering(Enemy, true), CastRange), TEXT("an enemy")));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::SmartSelfCasts(*Caster, {}, CastRange), TEXT("nothing")));
+			FVeyraRawDamageEvent Blow;
+			Blow.Components.Add({ EVeyraDamageType::TrueDamage, Lethal });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy.GetAbilitySystemComponent(), *Near.GetAbilitySystemComponent(), Blow)));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::SmartSelfCasts(*Caster, Hovering(Near, false), CastRange), TEXT("a fallen ally")));
 		}
 
 		TEST_METHOD(ItsAuraFollowsTheAllyItBuffs)

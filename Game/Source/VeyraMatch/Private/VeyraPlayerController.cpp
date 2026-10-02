@@ -3,6 +3,7 @@
 #include "VeyraPlayerController.h"
 
 #include "Camera/VeyraCameraPreferences.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "Input/VeyraControlPreferences.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -332,13 +333,47 @@ bool AVeyraPlayerController::IsTargetingVanguardsOnly() const
 
 bool AVeyraPlayerController::ShouldSelfCast(EVeyraAbilitySlot Slot, TConstArrayView<FVeyraCursorUnit> Under) const
 {
-	const UVeyraAbilityLoadoutComponent* Loadout = PlayerState ? PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
-	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr;
-	if (!Entry || !VeyraAbilityRules::AcceptsAllyTarget(UVeyraAbilitiesTuningSubsystem::Get(), Entry->Ability))
+	const FVeyraAbilitiesTuning& Tuning = UVeyraAbilitiesTuningSubsystem::Get();
+	const FVeyraContentId Ability = AbilityIn(Slot);
+	if (!Ability.IsValid() || !VeyraAbilityRules::AcceptsAllyTarget(Tuning, Ability))
 	{
 		return false;
 	}
-	return IsInputKeyDown(GetKeys().SelfCastKey) || (ControlPreferences().SmartSelfCast.Contains(Slot) && !VeyraCursorPicks::HasAlliedVanguard(Under));
+	if (IsInputKeyDown(GetKeys().SelfCastKey))
+	{
+		return true;
+	}
+	if (!ControlPreferences().SmartSelfCast.Contains(Slot))
+	{
+		return false;
+	}
+	const APawn* Body = GetVanguard();
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(Tuning, Ability);
+	return !Body || !Cast || VeyraCursorPicks::SmartSelfCasts(*Body, Under, Cast->CastRange);
+}
+
+FVeyraContentId AVeyraPlayerController::AbilityIn(EVeyraAbilitySlot Slot) const
+{
+	const UVeyraAbilityLoadoutComponent* Loadout = PlayerState ? PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr;
+	return Entry ? Entry->Ability : FVeyraContentId();
+}
+
+FVeyraSlotNow AVeyraPlayerController::SlotNow(EVeyraAbilitySlot Slot) const
+{
+	FVeyraSlotNow Now;
+	const APawn* Body = GetVanguard();
+	Now.bCasterAlive = Body && VeyraTargeting::IsAlive(Body);
+	Now.Ability = AbilityIn(Slot);
+	const UVeyraAbilityLoadoutComponent* Loadout = PlayerState ? PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const UVeyraCooldownComponent* Cooldowns = PlayerState ? PlayerState->FindComponentByClass<UVeyraCooldownComponent>() : nullptr;
+	Now.bLocked = Loadout && Loadout->IsLocked(Slot);
+	if (Loadout && Cooldowns && Now.Ability.IsValid())
+	{
+		// A shared cooldown counts under the ability it is shared with, as the HUD shows it.
+		Now.CooldownSeconds = Cooldowns->GetRemainingSecondsNow(Loadout->CooldownIdOf(Now.Ability));
+	}
+	return Now;
 }
 
 TOptional<FVector> AVeyraPlayerController::MinimapPointUnderCursor(EMinimapClick Purpose) const
@@ -382,7 +417,7 @@ void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 	}
 	const bool bPreview = IsInputKeyDown(GetKeys().ShowCastRangeKey);
 	bAttackMoveWaiting = false;
-	ApplyCastStep(CastInput.Press(Slot, ControlPreferences().CastModeOf(Slot), bPreview));
+	ApplyCastStep(CastInput.Press(Slot, ControlPreferences().CastModeOf(Slot), bPreview, AbilityIn(Slot)));
 }
 
 void AVeyraPlayerController::OnAbilityReleased(EVeyraAbilitySlot Slot)
@@ -424,6 +459,11 @@ void AVeyraPlayerController::TickCastInput()
 		}
 		return;
 	}
+	// An ability that can no longer be cast gives up its waiting cast (ADR-041 §1).
+	if (CastInput.Recheck(SlotNow(Shown->Slot)).Step != EVeyraCastStep::Nothing)
+	{
+		return;
+	}
 	// A click that pings, or lands on the minimap, is theirs and leaves the cast waiting.
 	if (WasInputKeyJustPressed(Keys.SelectKey) && !IsPinging() && !MinimapPointUnderCursor(EMinimapClick::Ping))
 	{
@@ -445,7 +485,9 @@ void AVeyraPlayerController::CastAtCursor(EVeyraAbilitySlot Slot)
 	// whether it is valid.
 	FVeyraCastTarget Target;
 	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
-	Target.Actor = ShouldSelfCast(Slot, Under) ? GetVanguard() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly());
+	const FVeyraContentId Ability = AbilityIn(Slot);
+	const bool bNamesAlly = Ability.IsValid() && VeyraAbilityRules::AcceptsAllyTarget(UVeyraAbilitiesTuningSubsystem::Get(), Ability);
+	Target.Actor = ShouldSelfCast(Slot, Under) ? GetVanguard() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly(), bNamesAlly);
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
