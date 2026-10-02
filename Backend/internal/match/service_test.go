@@ -439,6 +439,49 @@ func TestResultEndsTheMatchAndKillsTickets(t *testing.T) {
 	}
 }
 
+// recordingRewards stands in for the progression domain (ADR-045 §1).
+type recordingRewards struct {
+	granted []string
+	fail    error
+}
+
+func (r *recordingRewards) Grant(_ context.Context, m *Match) error {
+	if r.fail != nil {
+		return r.fail
+	}
+	if m.Result == nil || m.State != Ended {
+		return errors.New("granted before the result was stored")
+	}
+	r.granted = append(r.granted, m.ID)
+	return nil
+}
+
+func TestAResultGrantsRewardsInItsTransaction(t *testing.T) {
+	f := newFixture(t)
+	rewards := &recordingRewards{fail: errors.New("the grant failed")}
+	f.svc.SetRewards(rewards)
+	m := f.create(t, twoSeats...)
+	a := f.ready(t, m)
+	stored, _ := f.store.MatchByID(ctx, m.ID)
+	r := resultFor(stored)
+	if err := f.svc.ServerResult(ctx, a.ServerCredential, m.ID, r); err == nil {
+		t.Fatal("a failed grant must fail the result")
+	}
+	if got, _ := f.svc.Get(ctx, m.ID); got.State == Ended {
+		t.Fatal("a failed grant must leave the result unstored, for the server to report again")
+	}
+	rewards.fail = nil
+	for range 2 {
+		if err := f.svc.ServerResult(ctx, a.ServerCredential, m.ID, r); err != nil {
+			t.Fatalf("ServerResult: %v", err)
+		}
+	}
+	// Each delivery asks; the progression ledger makes the second grant nothing.
+	if len(rewards.granted) != 2 || rewards.granted[0] != m.ID {
+		t.Fatalf("granted %v", rewards.granted)
+	}
+}
+
 func TestResultNeedsAReadyMatch(t *testing.T) {
 	f := newFixture(t)
 	m := f.create(t, twoSeats...)

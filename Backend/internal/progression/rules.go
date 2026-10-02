@@ -109,8 +109,8 @@ type Weights struct {
 	WardsDestroyed      float64
 }
 
-// Mastery tunes the Mastery points a match gives and their levels (Bible §5).
-type Mastery struct {
+// MasteryTuning tunes the Mastery points a match gives and their levels (Bible §5).
+type MasteryTuning struct {
 	PerMinute      float64
 	WinBonus       int64
 	PerformanceCap int64
@@ -134,7 +134,7 @@ type Tuning struct {
 	AccountLevels Curve
 	FluxPerLevel  int64
 	RefinedFlux   RefinedFlux
-	Mastery       Mastery
+	Mastery       MasteryTuning
 	// Prices holds every released Vanguard's price.
 	Prices map[string]Price
 	// DevGrant mounts the development route that grants currency.
@@ -218,7 +218,7 @@ func MatchXP(t AccountXP, r *match.Result, won bool) int64 {
 
 // Performance is a match's Mastery performance award from the player's
 // verified statistics, capped (Bible §5.1).
-func Performance(t Mastery, s match.PlayerStatistics) int64 {
+func Performance(t MasteryTuning, s match.PlayerStatistics) int64 {
 	w := t.Weights
 	score := w.Kills*float64(s.Kills) + w.Assists*float64(s.Assists) + w.VanguardDamage*s.VanguardDamage +
 		w.DamageShielded*s.DamageShielded + w.TeammateHealing*s.TeammateHealing + w.CrowdControlSeconds*s.CrowdControl.Total +
@@ -229,7 +229,7 @@ func Performance(t Mastery, s match.PlayerStatistics) int64 {
 
 // MatchMastery is the Mastery points a match gives the Vanguard played: per
 // minute of the match clock, the win bonus, and the performance award.
-func MatchMastery(t Mastery, r *match.Result, won bool, s match.PlayerStatistics) int64 {
+func MatchMastery(t MasteryTuning, r *match.Result, won bool, s match.PlayerStatistics) int64 {
 	points := int64(math.Round(t.PerMinute*minutes(r))) + Performance(t, s)
 	if won {
 		points += t.WinBonus
@@ -238,7 +238,7 @@ func MatchMastery(t Mastery, r *match.Result, won bool, s match.PlayerStatistics
 }
 
 // EmoteTier is how many of the emote's tiers a Mastery Level has reached.
-func EmoteTier(t Mastery, level int) int {
+func EmoteTier(t MasteryTuning, level int) int {
 	tier := 0
 	for _, at := range t.EmoteTierLevels {
 		if level >= at {

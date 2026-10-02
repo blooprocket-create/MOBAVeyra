@@ -17,13 +17,18 @@ import (
 var (
 	ErrNotAStarter   = errors.New("not a starter Vanguard")
 	ErrAlreadyChosen = errors.New("the starter was already chosen")
+	ErrNotReleased   = errors.New("not a released Vanguard")
 )
 
 // Source says how an account came to own a Vanguard.
 type Source string
 
-// SourceStarter is the Vanguard chosen at the end of onboarding.
-const SourceStarter Source = "starter"
+const (
+	// SourceStarter is the Vanguard chosen at the end of onboarding.
+	SourceStarter Source = "starter"
+	// SourcePurchase is a Vanguard bought with an account currency (ADR-045 §6).
+	SourcePurchase Source = "purchase"
+)
 
 // Profile is an account's onboarding state.
 type Profile struct {
@@ -148,6 +153,24 @@ func (s *Service) Vanguards(ctx context.Context, accountID string) (Availability
 		}
 	}
 	return out, nil
+}
+
+// Entitlements returns the Vanguards the account owns and how it came to own
+// each.
+func (s *Service) Entitlements(ctx context.Context, accountID string) ([]Entitlement, error) {
+	return s.store.Entitlements(ctx, accountID)
+}
+
+// GrantPurchase gives the account a Vanguard it bought. The progression
+// domain decides the purchase and calls this in its transaction, which ctx
+// carries, so the entitlement commits with the spending (ADR-045 §6).
+func (s *Service) GrantPurchase(ctx context.Context, accountID, vanguardID string, at time.Time) error {
+	if !s.catalog.IsReleased(vanguardID) {
+		return ErrNotReleased
+	}
+	return s.store.InTx(ctx, func(tx Tx) error {
+		return tx.Grant(accountID, Entitlement{VanguardID: vanguardID, Source: SourcePurchase, GrantedAt: at})
+	})
 }
 
 // IsReleased reports whether a Vanguard is released: one a draft may ban

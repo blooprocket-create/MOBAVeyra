@@ -105,7 +105,7 @@ func TestMatchXPIsPerMinutePlusTheWinBonus(t *testing.T) {
 }
 
 func TestMasteryCreditsMoreThanKillsAndCapsPerformance(t *testing.T) {
-	tuning := Mastery{PerMinute: 10, WinBonus: 100, PerformanceCap: 300,
+	tuning := MasteryTuning{PerMinute: 10, WinBonus: 100, PerformanceCap: 300,
 		Weights: Weights{Kills: 15, Assists: 10, VanguardDamage: 0.005, DamageShielded: 0.005, TeammateHealing: 0.005,
 			CrowdControlSeconds: 2, TowerDamage: 0.005, WellsSecured: 20, WardsPlaced: 3, WardsDestroyed: 5}}
 	r := &match.Result{DurationSeconds: 30 * 60}
@@ -128,7 +128,7 @@ func TestMasteryCreditsMoreThanKillsAndCapsPerformance(t *testing.T) {
 }
 
 func TestTheEmoteTierCountsTheMilestonesReached(t *testing.T) {
-	tuning := Mastery{EmoteTierLevels: []int{1, 5, 10}}
+	tuning := MasteryTuning{EmoteTierLevels: []int{1, 5, 10}}
 	for level, want := range map[int]int{1: 1, 4: 1, 5: 2, 9: 2, 10: 3, 400: 3} {
 		if got := EmoteTier(tuning, level); got != want {
 			t.Errorf("EmoteTier(%d) = %d, want %d", level, got, want)
