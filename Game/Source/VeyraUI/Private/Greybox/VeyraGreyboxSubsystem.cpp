@@ -11,6 +11,7 @@
 #include "Casting/VeyraCastTelegraphs.h"
 #include "Components/LineBatchComponent.h"
 #include "Companions/VeyraCompanion.h"
+#include "Echoes/VeyraEcho.h"
 #include "Components/StaticMeshComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
@@ -271,11 +272,12 @@ FLinearColor UVeyraGreyboxSubsystem::ColorOfSide(EVeyraTeam Team) const
 FLinearColor UVeyraGreyboxSubsystem::SideColorOf(const AActor& Unit) const
 {
 	// The viewer's Vanguard carries the viewer's PlayerState (ADR-006 §7), and the viewer's companion
-	// names it as its owner's (ADR-034 §3).
+	// names it as its owner's (ADR-034 §3), as the viewer's Echo names its holder's (ADR-050 §7).
 	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
 	const APawn* Pawn = Cast<APawn>(&Unit);
 	const AVeyraCompanion* Companion = Cast<AVeyraCompanion>(&Unit);
-	const APlayerState* Whose = Companion ? Companion->GetOwnerState() : (Pawn ? Pawn->GetPlayerState() : nullptr);
+	const AVeyraEcho* Echo = Cast<AVeyraEcho>(&Unit);
+	const APlayerState* Whose = Companion ? Companion->GetOwnerState() : Echo ? Echo->GetHolderState() : (Pawn ? Pawn->GetPlayerState() : nullptr);
 	if (Viewer && Viewer->PlayerState && Whose == Viewer->PlayerState)
 	{
 		return GetDefault<UVeyraGreyboxSettings>()->OwnColor;

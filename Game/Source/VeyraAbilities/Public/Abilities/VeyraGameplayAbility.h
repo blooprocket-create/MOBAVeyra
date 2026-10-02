@@ -112,6 +112,12 @@ protected:
 	virtual bool MovesCaster(const FVeyraContentId& Ability) const { return false; }
 
 	/**
+	 * Whether Ability's delivery can be repeated by another caster from where it stands, as an Echo repeats it (ADR-050
+	 * §5): it starts from its caster's position or its point, does not channel, and neither moves nor carries its caster.
+	 */
+	virtual bool CanReverberate(const FVeyraContentId& Ability) const { return false; }
+
+	/**
 	 * Whether Ability may be cast during one of its caster's own dashes, taking over from it (ADR-031 §7).
 	 * Any other ability that moves its caster is refused until the dash ends.
 	 */

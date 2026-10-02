@@ -681,6 +681,102 @@ namespace
 			CheckCast(Pointer + TEXT("/cast"), Dismount.Cast);
 		}
 
+		/** Whether status Id is defined as Kind and lasts at least Seconds. */
+		bool IsStatusOfAtLeast(const FVeyraContentId& Id, TOptional<EVeyraStatusKind> Kind, double Seconds) const
+		{
+			const FVeyraStatusTuning* Status = Tuning.Statuses.Find(Id);
+			return Status && (!Kind.IsSet() || Status->Kind == Kind.GetValue()) && Status->DurationSeconds >= Seconds;
+		}
+
+		void CheckEcho(const FString& Pointer, const FVeyraEchoAbilityTuning& Echo)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Echo.Cast);
+			if (!(Echo.DamageCoefficient > 0.0) || Echo.DamageCoefficient > 1.0)
+			{
+				Problem(Pointer + TEXT("/damageCoefficient"), TEXT("is above 0 and at most 1"));
+			}
+			if (Echo.Repeats < 1)
+			{
+				Problem(Pointer + TEXT("/repeats"), TEXT("is at least 1"));
+			}
+			TSet<EVeyraAbilitySlot> Seen;
+			for (const EVeyraAbilitySlot Slot : Echo.Slots)
+			{
+				bool bAlreadySeen = false;
+				Seen.Add(Slot, &bAlreadySeen);
+				bool bKitSlot = false;
+				for (const EVeyraAbilitySlot Kit : VeyraAbilitySlots::All)
+				{
+					bKitSlot |= Kit == Slot;
+				}
+				if (bAlreadySeen || !bKitSlot)
+				{
+					Problem(Pointer + TEXT("/slots"), TEXT("names kit slots, each once"));
+				}
+			}
+			if (Echo.Slots.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/slots"), TEXT("names at least one kit slot"));
+			}
+			// It forms one kind of Echo (ADR-050 §4).
+			if (Echo.Manifest.Num() + Echo.Projection.Num() != 1)
+			{
+				Problem(Pointer, TEXT("holds exactly one of manifest and projection"));
+			}
+			if (Echo.Manifest.Num() == 1)
+			{
+				const FVeyraEchoManifestTuning& Manifest = Echo.Manifest[0];
+				if (!(Manifest.WindowSeconds > 0.0) || !(Echo.Cast.CastRange > 0.0))
+				{
+					Problem(Pointer + TEXT("/manifest/0"), TEXT("waits above 0 seconds, at a cast range above 0"));
+				}
+				CheckStatusIds(Pointer + TEXT("/manifest/0/statuses"), Manifest.Statuses);
+				for (const FVeyraContentId& Id : Manifest.Statuses)
+				{
+					if (Tuning.Statuses.Contains(Id) && !IsStatusOfAtLeast(Id, {}, Manifest.WindowSeconds))
+					{
+						Problem(Pointer + TEXT("/manifest/0/statuses"), FString::Printf(TEXT("%s lasts at least the window"), *Id.ToString()));
+					}
+				}
+			}
+			if (Echo.Projection.Num() == 1)
+			{
+				const FVeyraEchoProjectionTuning& Projection = Echo.Projection[0];
+				const FString At = Pointer + TEXT("/projection/0");
+				if (!(Projection.ImmunitySeconds > 0.0) || Projection.FormationSeconds < 0.0 || Projection.FormationSeconds > Projection.ImmunitySeconds)
+				{
+					Problem(At, TEXT("forms within its immunity, which lasts above 0 seconds"));
+				}
+				if (!(Projection.Integrity > 0.0) || !(Projection.DecayPerSecond > 0.0) || !(Projection.UpdateSeconds > 0.0))
+				{
+					Problem(At, TEXT("has Integrity, decay and an update interval above 0"));
+				}
+				if (!(Projection.MinRadius > 0.0) || Projection.MinRadius > Projection.MaxRadius || !(Projection.RadiusExponent > 0.0))
+				{
+					Problem(At, TEXT("has a minimum radius above 0 and at most its maximum, and an exponent above 0"));
+				}
+				// Its cast reaches as far as its tether at full Integrity.
+				if (Echo.Cast.CastRange != Projection.MaxRadius)
+				{
+					Problem(Pointer + TEXT("/cast/castRange"), TEXT("equals the projection's maximum radius"));
+				}
+				const FVeyraEchoIntegrityLossTuning& Loss = Projection.IntegrityLoss;
+				for (const double Each : { Loss.VanguardBasicAttack, Loss.UnitBasicAttack, Loss.Ability, Loss.StructureAttack, Loss.Periodic, Loss.Proc })
+				{
+					if (!(Each >= 0.0))
+					{
+						Problem(At + TEXT("/integrityLoss"), TEXT("removes at least 0 for each kind of hit"));
+						break;
+					}
+				}
+				// Only the Echo's end removes its holder's Stasis, so the status outlasts the Echo's longest life.
+				if (!IsStatusOfAtLeast(Projection.Stasis, EVeyraStatusKind::Stasis, Projection.Integrity / FMath::Max(Projection.DecayPerSecond, UE_SMALL_NUMBER)))
+				{
+					Problem(At + TEXT("/stasis"), TEXT("names a Stasis status lasting at least integrity / decayPerSecond"));
+				}
+			}
+		}
+
 		void CheckShield(const FString& Pointer, const FVeyraShieldTuning& Shield)
 		{
 			CheckByRank(Pointer + TEXT("/amountByRank"), Shield.AmountByRank);
@@ -1228,6 +1324,10 @@ namespace
 			{
 				Note(Entry.Key, TEXT("dismount"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraEchoAbilityTuning>& Entry : Tuning.Echo)
+			{
+				Note(Entry.Key, TEXT("echo"));
+			}
 		}
 	};
 }
@@ -1346,6 +1446,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckDismount(TEXT("/dismount/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraEchoAbilityTuning>& Entry : Tuning.Echo)
+	{
+		Checker.CheckEcho(TEXT("/echo/") + Entry.Key.ToString(), Entry.Value);
+	}
 	for (const TPair<FVeyraContentId, FVeyraCompanionTuning>& Entry : Tuning.Companions)
 	{
 		Checker.CheckCompanion(TEXT("/companions/") + Entry.Key.ToString(), Entry.Value);
@@ -1366,7 +1470,7 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
 		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability) || Tuning.Ambush.Contains(Ability)
 		|| Tuning.Stance.Contains(Ability) || Tuning.Placement.Contains(Ability) || Tuning.Blink.Contains(Ability) || Tuning.Command.Contains(Ability)
-		|| Tuning.Dismount.Contains(Ability);
+		|| Tuning.Dismount.Contains(Ability) || Tuning.Echo.Contains(Ability);
 }
 
 bool AcceptsAllyTarget(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
@@ -1444,6 +1548,10 @@ const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVey
 	else if (const FVeyraDismountAbilityTuning* Dismount = Tuning.Dismount.Find(Ability))
 	{
 		Cast = &Dismount->Cast;
+	}
+	else if (const FVeyraEchoAbilityTuning* Echo = Tuning.Echo.Find(Ability))
+	{
+		Cast = &Echo->Cast;
 	}
 	return Cast;
 }
@@ -1532,6 +1640,10 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraDismountAbilityTuning* Dismount = Tuning.Dismount.Find(Ability))
 	{
 		Checker.CheckDismount(TEXT("/dismount/") + Key, *Dismount);
+	}
+	if (const FVeyraEchoAbilityTuning* Echo = Tuning.Echo.Find(Ability))
+	{
+		Checker.CheckEcho(TEXT("/echo/") + Key, *Echo);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;

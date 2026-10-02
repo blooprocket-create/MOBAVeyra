@@ -2337,13 +2337,144 @@ struct FVeyraCompanionTuning
 	TArray<FVeyraMovingAuraTuning> MovingAura;
 };
 
+/** A short-lived Echo that waits to repeat its holder's next eligible ability (ADR-050 §4), as Project Echo's. */
+USTRUCT()
+struct FVeyraEchoManifestTuning
+{
+	GENERATED_BODY()
+
+	/** How long it waits for the ability it repeats, above 0. */
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	/** Status IDs it holds while it waits, such as being Untargetable; each lasts at least the window. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/** How much Integrity each enemy hit removes from a projected Echo once its immunity ends (ADR-050 §3), each at least 0. */
+USTRUCT()
+struct FVeyraEchoIntegrityLossTuning
+{
+	GENERATED_BODY()
+
+	/** An enemy Vanguard's basic attack. */
+	UPROPERTY()
+	double VanguardBasicAttack = 0.0;
+
+	/** Any other unit's basic attack: a Fluxborn's, a wildlife's or a companion's. */
+	UPROPERTY()
+	double UnitBasicAttack = 0.0;
+
+	/** An ability's hit. */
+	UPROPERTY()
+	double Ability = 0.0;
+
+	/** A structure's attack. */
+	UPROPERTY()
+	double StructureAttack = 0.0;
+
+	/** One tick of an effect over time. */
+	UPROPERTY()
+	double Periodic = 0.0;
+
+	/** An item's or a passive's proc. */
+	UPROPERTY()
+	double Proc = 0.0;
+};
+
+/**
+ * A controllable Echo projected from its holder, who waits in Stasis (ADR-050 §4), as The Second Self's: it forms at
+ * a point within its tether radius, takes control once formed, and lasts while its Integrity holds and it stays within
+ * the radius its Integrity allows.
+ */
+USTRUCT()
+struct FVeyraEchoProjectionTuning
+{
+	GENERATED_BODY()
+
+	/** The Stasis status its holder takes as it is cast; only the Echo's end removes it. */
+	UPROPERTY()
+	FVeyraContentId Stasis;
+
+	/** How long it takes to form, from the cast, before control passes to it; at least 0 and within the immunity. */
+	UPROPERTY()
+	double FormationSeconds = 0.0;
+
+	/** How long after the cast enemy hits cannot reduce its Integrity, above 0. */
+	UPROPERTY()
+	double ImmunitySeconds = 0.0;
+
+	/** The Integrity it forms with, above 0. */
+	UPROPERTY()
+	double Integrity = 0.0;
+
+	/** The Integrity it loses each second from the cast, above 0: its hard lifetime. */
+	UPROPERTY()
+	double DecayPerSecond = 0.0;
+
+	/** Its tether radius at full Integrity, and the least it shrinks to while any Integrity remains; 0 < min <= max. */
+	UPROPERTY()
+	double MaxRadius = 0.0;
+
+	UPROPERTY()
+	double MinRadius = 0.0;
+
+	/** How the radius follows its share of Integrity: min + (max - min) x share ^ exponent; above 0, 1 for a straight line. */
+	UPROPERTY()
+	double RadiusExponent = 0.0;
+
+	/** Seconds between its Integrity updates, above 0. */
+	UPROPERTY()
+	double UpdateSeconds = 0.0;
+
+	UPROPERTY()
+	FVeyraEchoIntegrityLossTuning IntegrityLoss;
+};
+
+/**
+ * An ability that forms its caster's Echo (ADR-050 §4, §5): a projection of its holder that repeats one of its eligible
+ * abilities at a share of its damage. Exactly one of Manifest and Projection says which kind it forms.
+ */
+USTRUCT()
+struct FVeyraEchoAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** The share of its holder's outgoing damage the Echo deals, above 0 and at most 1 (Item Bible §11: 0.25). */
+	UPROPERTY()
+	double DamageCoefficient = 0.0;
+
+	/** The kit slots whose abilities it may repeat; at least one, each a kit slot once. */
+	UPROPERTY()
+	TArray<EVeyraAbilitySlot> Slots;
+
+	/** How many abilities it may repeat, at least 1. */
+	UPROPERTY()
+	int32 Repeats = 0;
+
+	/** At most one: a short-lived Echo that waits for its holder's next eligible cast. */
+	UPROPERTY()
+	TArray<FVeyraEchoManifestTuning> Manifest;
+
+	/** At most one: a controllable Echo, its holder in Stasis. */
+	UPROPERTY()
+	TArray<FVeyraEchoProjectionTuning> Projection;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 24;
+	static constexpr int32 SchemaVersion = 25;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -2398,6 +2529,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraDismountAbilityTuning> Dismount;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraEchoAbilityTuning> Echo;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

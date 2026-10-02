@@ -32,7 +32,8 @@ FVeyraDamagePayload ApplySourceSide(const FVeyraRawDamageEvent& Raw, const FVeyr
 	const double Amplification = NonNegative(Offence.OutgoingDamageMultiplier);
 	for (const FVeyraDamageComponent& Component : Raw.Components)
 	{
-		const double Amount = NonNegative(Component.Amount);
+		// A projection deals its share of every type (ADR-050 §2).
+		const double Amount = NonNegative(Component.Amount) * NonNegative(Offence.DamageShare);
 		// Generic amplification affects Physical and Magic Damage only (§15).
 		const double Amplified = Component.Type == EVeyraDamageType::TrueDamage ? Amount : Amount * Amplification;
 		Payload.Components.Add({ Component.Type, Amplified });

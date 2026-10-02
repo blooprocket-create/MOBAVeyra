@@ -51,6 +51,20 @@ namespace
 		return FMath::IsFinite(Value) && Value >= 0.0;
 	}
 
+	/** Whether the unit is in Stasis (Combat Bible §10; ADR-050 §1). */
+	bool IsInStasis(const UAbilitySystemComponent& AbilitySystem)
+	{
+		const AActor* Owner = AbilitySystem.GetOwner();
+		const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+		return Statuses && Statuses->Has(EVeyraStatusKind::Stasis);
+	}
+
+	/** Whether no heal or shield may reach the unit now: in Stasis, or its Health sealed (ADR-050 §1, §3). */
+	bool RefusesRestoration(const UAbilitySystemComponent& AbilitySystem)
+	{
+		return IsInStasis(AbilitySystem) || AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_SealedHealth);
+	}
+
 	/** Every base stat a stat block sets, paired with its value in the block. */
 	struct FStatEntry
 	{
@@ -141,6 +155,11 @@ namespace
 		{
 			UE_LOG(LogVeyraCombat, Error, TEXT("Refused %s of %g for %g s on %s: both must be finite and above 0."),
 				What, Amount, DurationSeconds, *GetNameSafe(Target.GetOwner()));
+			return FActiveGameplayEffectHandle();
+		}
+		if (RefusesRestoration(Target))
+		{
+			UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored %s on %s: none reaches it in Stasis or with its Health sealed (ADR-050 §1, §3)."), What, *GetNameSafe(Target.GetOwner()));
 			return FActiveGameplayEffectHandle();
 		}
 		const FGameplayEffectSpecHandle Spec = Source.MakeOutgoingSpec(EffectClass, UnscaledEffectLevel, Source.MakeEffectContext());
@@ -496,6 +515,12 @@ namespace
 		{
 			return {};
 		}
+		if (RefusesRestoration(AbilitySystem))
+		{
+			UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored %g Health for %s: nothing restores it in Stasis or with its Health sealed (ADR-050 §1, §3)."),
+				Amount, *GetNameSafe(AbilitySystem.GetOwner()));
+			return {};
+		}
 		// The vitals set keeps Health within [0, Max Health], so restoration never overheals (Combat Bible §6).
 		const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
 		const double Before = AbilitySystem.GetNumericAttribute(Health);
@@ -534,7 +559,53 @@ void RevokeInvulnerability(UAbilitySystemComponent& AbilitySystem)
 
 bool IsInvulnerable(const UAbilitySystemComponent& AbilitySystem)
 {
-	return AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_Invulnerable);
+	// Stasis and a sealed Health take no damage either (ADR-050 §1, §3).
+	return AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_Invulnerable) || AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_SealedHealth)
+		|| IsInStasis(AbilitySystem);
+}
+
+void SealHealth(UAbilitySystemComponent& AbilitySystem)
+{
+	if (!AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_SealedHealth))
+	{
+		AbilitySystem.AddLooseGameplayTag(VeyraTags::Status_SealedHealth);
+	}
+}
+
+bool CopyOffence(const UAbilitySystemComponent& From, UAbilitySystemComponent& To, double DamageCoefficient)
+{
+	if (!From.GetSet<UVeyraOffenceSet>() || !To.GetSet<UVeyraOffenceSet>() || !IsPositiveFinite(DamageCoefficient))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to copy %s's offence to %s at %g: both need offence, and the coefficient must be finite and above 0."),
+			*GetNameSafe(From.GetOwner()), *GetNameSafe(To.GetOwner()), DamageCoefficient);
+		return false;
+	}
+	const FGameplayAttribute Copied[] = { UVeyraOffenceSet::GetPhysicalPowerAttribute(), UVeyraOffenceSet::GetMagicPowerAttribute(),
+		UVeyraOffenceSet::GetAttackSpeedAttribute(), UVeyraOffenceSet::GetAbilityHasteAttribute(), UVeyraOffenceSet::GetCritChanceAttribute(),
+		UVeyraOffenceSet::GetCritDamageBonusAttribute(), UVeyraOffenceSet::GetPhysicalPenetrationFlatAttribute(),
+		UVeyraOffenceSet::GetPhysicalPenetrationRetainedAttribute(), UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(),
+		UVeyraOffenceSet::GetMagicPenetrationRetainedAttribute(), UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute() };
+	for (const FGameplayAttribute& Attribute : Copied)
+	{
+		To.SetNumericAttributeBase(Attribute, From.GetNumericAttribute(Attribute));
+	}
+	// Its share of every type of damage, True Damage too, which generic amplification spares (§15).
+	To.SetNumericAttributeBase(UVeyraOffenceSet::GetDamageShareAttribute(),
+		static_cast<float>(From.GetNumericAttribute(UVeyraOffenceSet::GetDamageShareAttribute()) * DamageCoefficient));
+	return true;
+}
+
+bool SetSealedHealth(UAbilitySystemComponent& AbilitySystem, double Health)
+{
+	if (!AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_SealedHealth) || !AbilitySystem.GetSet<UVeyraVitalsSet>() || !IsNonNegativeFinite(Health))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to set %s's Health to %g: it needs sealed Health, a UVeyraVitalsSet and an amount that is finite and at least 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()), Health);
+		return false;
+	}
+	// The vitals set keeps Health within [0, Max Health].
+	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), static_cast<float>(Health));
+	return true;
 }
 
 bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount)
@@ -809,6 +880,12 @@ FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Source, UAbilit
 		UE_LOG(LogVeyraCombat, Error, TEXT("Refused shield %s on %s: it has no UVeyraDamageAbsorptionComponent."), *Grant.Id.ToString(), *GetNameSafe(TargetOwner));
 		return FActiveGameplayEffectHandle();
 	}
+	if (RefusesRestoration(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored shield %s on %s: no shield reaches it in Stasis or with its Health sealed (ADR-050 §1, §3)."),
+			*Grant.Id.ToString(), *GetNameSafe(TargetOwner));
+		return FActiveGameplayEffectHandle();
+	}
 	return Absorption->GrantShield(Source, Grant);
 }
 
@@ -834,9 +911,9 @@ FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source
 {
 	AActor* TargetOwner = Target.GetOwner();
 	UVeyraDamageAbsorptionComponent* Absorption = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraDamageAbsorptionComponent>() : nullptr;
-	if (!Absorption || IsDeadUnit(Target))
+	if (!Absorption || IsDeadUnit(Target) || RefusesRestoration(Target))
 	{
-		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored Temporary Health %s on %s: it has no UVeyraDamageAbsorptionComponent, or its death is final."),
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored Temporary Health %s on %s: it has no UVeyraDamageAbsorptionComponent, its death is final, or nothing reaches it (ADR-050)."),
 			*Id.ToString(), *GetNameSafe(TargetOwner));
 		return FActiveGameplayEffectHandle();
 	}
@@ -877,6 +954,12 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 	const bool bHostile = VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner);
 	const bool bUnstoppable = VeyraStatuses::IsCrowdControl(Status.Kind) && Statuses->Has(EVeyraStatusKind::Unstoppable);
 	const bool bImmune = Status.Kind == EVeyraStatusKind::Knockup && Statuses->Has(EVeyraStatusKind::DisplacementImmunity);
+	// Stasis refuses every enemy status (Combat Bible §10; ADR-050 §1).
+	if (bHostile && Statuses->Has(EVeyraStatusKind::Stasis))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: it is in Stasis."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		return false;
+	}
 	if (bHostile && (bUnstoppable || bImmune))
 	{
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: it is %s."), *Status.Id.ToString(), *GetNameSafe(TargetOwner),
@@ -887,7 +970,8 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 	{
 		return false;
 	}
-	if (Status.Kind == EVeyraStatusKind::Knockup || Status.Kind == EVeyraStatusKind::Fear)
+	// Taking no action, it gives up a cast under way (Combat Bible §8, §10).
+	if (Status.Kind == EVeyraStatusKind::Knockup || Status.Kind == EVeyraStatusKind::Fear || Status.Kind == EVeyraStatusKind::Stasis)
 	{
 		Statuses->NotifyInterrupted();
 	}
@@ -1056,7 +1140,7 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	// Unstoppable or immune to displacement, it stays where it is (§9).
 	const AActor* Moved = Target.GetOwner();
 	const UVeyraStatusComponent* Guards = Moved ? Moved->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
-	if (Guards && (Guards->Has(EVeyraStatusKind::Unstoppable) || Guards->Has(EVeyraStatusKind::DisplacementImmunity)))
+	if (Guards && (Guards->Has(EVeyraStatusKind::Unstoppable) || Guards->Has(EVeyraStatusKind::DisplacementImmunity) || Guards->Has(EVeyraStatusKind::Stasis)))
 	{
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored a displacement of %s: it cannot be displaced now."), *GetNameSafe(Moved));
 		return false;

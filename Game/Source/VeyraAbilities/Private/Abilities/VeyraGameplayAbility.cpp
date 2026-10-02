@@ -13,7 +13,9 @@
 #include "Casting/VeyraCastSubsystem.h"
 #include "Companions/VeyraCompanionSubsystem.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Echoes/VeyraEchoSubsystem.h"
 #include "Engine/World.h"
+#include "Entities/VeyraOwnedUnit.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Loadout/VeyraFollowUpSubsystem.h"
@@ -382,6 +384,12 @@ int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, cons
 int32 UVeyraGameplayAbility::GetCasterLevel(const UAbilitySystemComponent& Caster)
 {
 	const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Caster);
+	// An Echo casts at its holder's Level (ADR-050 §5).
+	const IVeyraOwnedUnit* Projection = VeyraUnits::KindOf(Caster.GetOwner()) == EVeyraUnitKind::Echo ? Cast<IVeyraOwnedUnit>(Caster.GetOwner()) : nullptr;
+	if (const UAbilitySystemComponent* Holder = Projection ? Projection->GetOwnerAbilities() : nullptr; !Progression && Holder)
+	{
+		Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(*Holder);
+	}
 	return Progression ? FMath::Max(1, Progression->GetLevel()) : 1;
 }
 
@@ -490,6 +498,18 @@ void UVeyraGameplayAbility::OnWindupEnded()
 	NoteCastCommitted(*Caster, Run.Cast.Ability, Run.Cast.TargetActor.Get());
 
 	Run.Channel = Deliver(Run.Cast);
+	// Its caster's waiting Echo may repeat it (ADR-050 §5). The repeat is delivered, never cast, so nothing that
+	// answers casts sees it, and it repeats nothing itself.
+	if (CanReverberate(Run.Cast.Ability))
+	{
+		if (UVeyraEchoSubsystem* Echoes = GetWorld()->GetSubsystem<UVeyraEchoSubsystem>())
+		{
+			if (const TOptional<FVeyraCast> Repeat = Echoes->TakeRepeat(*Caster, Run.Cast))
+			{
+				Deliver(Repeat.GetValue());
+			}
+		}
+	}
 	if (Run.Channel.Ticks > 0 && Run.Channel.Seconds > 0.0)
 	{
 		VeyraCombat::SetCastLocksMovement(*Caster, Run.Channel.bLocksMovement);

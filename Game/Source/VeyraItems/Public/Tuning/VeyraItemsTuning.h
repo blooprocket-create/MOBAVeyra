@@ -491,6 +491,20 @@ struct FVeyraMarkedForDoomTuning
 };
 
 /**
+ * Reverberation (Echo Lens and The Second Self, Item Bible §9, §11; ADR-050 §5): the item's Echo repeats one of its
+ * holder's eligible abilities. The Echo ability the item carries as its Active holds the numbers, and Abilities delivers
+ * the repeat; the tuning checker holds that an item with Reverberation carries one.
+ */
+USTRUCT()
+struct FVeyraReverberationTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+};
+
+/**
  * Safe Harbor (Harborline Harness, Item Bible §8; ADR-025 §7): a share of the damage the holder deals
  * enemy Vanguards banks as Reserve, which converts into Health while the holder is out of Vanguard
  * combat.
@@ -573,7 +587,7 @@ struct FVeyraItemsTuning
 	GENERATED_BODY()
 
 	/** The Items.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 4;
 
 	UPROPERTY()
 	FVeyraShopTuning Shop;
@@ -639,6 +653,9 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraHighTideTuning> HighTide;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraReverberationTuning> Reverberation;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */

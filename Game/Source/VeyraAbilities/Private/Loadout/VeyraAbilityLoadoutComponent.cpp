@@ -11,6 +11,7 @@
 #include "Abilities/VeyraCommandAbility.h"
 #include "Abilities/VeyraDashAbility.h"
 #include "Abilities/VeyraDismountAbility.h"
+#include "Abilities/VeyraEchoAbility.h"
 #include "Abilities/VeyraRideAbility.h"
 #include "Abilities/VeyraEmpoweredAttackAbility.h"
 #include "Abilities/VeyraPlacementAbility.h"
@@ -99,6 +100,10 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindDismount(Ability))
 		{
 			return UVeyraDismountAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindEcho(Ability))
+		{
+			return UVeyraEchoAbility::StaticClass();
 		}
 		return nullptr;
 	}

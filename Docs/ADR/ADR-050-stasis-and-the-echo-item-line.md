@@ -61,7 +61,9 @@ The Item Bible's 2026-10-02 revision adds an item line built on a new combat sta
 - the holder's basic attack profile;
 - `IVeyraOwnedUnit`: everything it causes is its holder's (Combat Bible §32). Its damage therefore sets off none of the holder's Attunements, as with a companion (ADR-023), which keeps Reverberation from recursing.
 
-At formation it takes a snapshot of the holder's offence (powers, penetration, crit, Attack Speed). Its Outgoing Damage Multiplier is the holder's multiplied by the Echo's **damage coefficient**.
+At formation, and again before each repeat, it takes a snapshot of the holder's offence: powers, Attack Speed, Ability Haste, crit, penetration and amplification.
+
+Its **Damage Share** is the holder's times the Echo's **damage coefficient**. This new Combat offence attribute is 1 for every unit, and the damage resolver applies it to every component, True Damage included. Generic amplification cannot carry the coefficient, because it spares True Damage (Combat Bible §15), while the Item Bible scales all of an Echo's damage.
 
 Vision treats an Echo as it treats a companion: a sight source for its side. The minimap and the Fluxborn rules treat it in the same way.
 
@@ -137,7 +139,7 @@ The Echo replicates:
 - its immunity end, its formation end and its current radius.
 
 The grey-box draws:
-- the Echo as a translucent body in its side's colour;
+- the Echo as a unit's body in its side's colour, in its holder's own colour for its holder, its health bar showing Integrity;
 - the **tether circle** around the anchor at the current radius;
 - the **stream** from the anchor to the Echo. It reads strained once Integrity falls below a set share, and warns near the boundary.
 

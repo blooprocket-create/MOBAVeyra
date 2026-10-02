@@ -190,6 +190,12 @@ M30 added ([ADR-039](Docs/ADR/ADR-039-weekly-rotation-and-co-op-vs-ai.md)), Co-o
 - in the client, co-op cards and queues, the Play page's four categories (Ranked, Casual, AI, Customs) from each mode's `category`, and `Smoke.ps1 -Flow Coop`;
 - in the scripts, `Set-VeyraBackendConfig`, which sizes a script's queue to its clients in `Backend/config/scripted.json`.
 
+M40a added ([ADR-050](Docs/ADR/ADR-050-stasis-and-the-echo-item-line.md)), the Echo item line:
+- in Combat, the Stasis status kind (no action, Untargetable, no damage, no enemy status, displacement, heal or shield); sealed Health (`VeyraCombat::SealHealth` and `SetSealedHealth`), a meter its owner sets; the Damage Share offence attribute, a share of every type of damage; and `VeyraCombat::CopyOffence`;
+- the Echo unit kind, seen and fought as a companion is;
+- in Abilities, `Echoes/`: `AVeyraEcho`, its holder's owned projection whose Integrity is its sealed Health; `UVeyraEchoSubsystem`, which forms one Echo per holder and hands a waiting Echo the repeat of its holder's next eligible cast; the pure `VeyraEchoRules`; and the echo archetype (`Abilities/UVeyraEchoAbility`), Abilities.json's `echo` map. `UVeyraGameplayAbility::CanReverberate` says which deliveries an Echo may repeat (areas from their caster or point without a channel, skillshots without a recoil);
+- in Items, the Reverberation Attunement and Echo Lens.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

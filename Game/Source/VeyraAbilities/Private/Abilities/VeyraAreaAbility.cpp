@@ -71,6 +71,13 @@ const FVeyraCastTuning* UVeyraAreaAbility::GetCastTuning(const FVeyraContentId& 
 	return Area ? &Area->Cast : nullptr;
 }
 
+bool UVeyraAreaAbility::CanReverberate(const FVeyraContentId& Ability) const
+{
+	// Placed on its caster or at its point, without a channel, it can be placed again from an Echo (ADR-050 §5).
+	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Ability);
+	return Area && (Area->Origin == EVeyraAreaOrigin::Caster || Area->Origin == EVeyraAreaOrigin::TargetPoint) && Area->ChannelTicks <= 1;
+}
+
 FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 {
 	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Cast.Ability);

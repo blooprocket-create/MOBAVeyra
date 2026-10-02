@@ -1,10 +1,27 @@
 {
-  "schemaVersion": 24,
+  "schemaVersion": 25,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
   },
   "statuses": {
+    "project_echo_veil": {
+      "provenance": "Provisional",
+      "kind": "Untargetable",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [], "landsOn": [],
+      "attackCharges": 0,
+      "cover": []
+    },
     "ashfang_trait": {
       "provenance": "Provisional",
       "kind": "MoveSpeed",
@@ -7292,6 +7309,34 @@
         "refusedWhile": [],
         "minimumResource": []
       }
+    }
+  },
+  "echo": {
+    "project_echo": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [30],
+        "resourceCostByRank": [0],
+        "castRange": 700,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "damageCoefficient": 0.35,
+      "slots": ["Q", "W", "E"],
+      "repeats": 1,
+      "manifest": [{ "windowSeconds": 4, "statuses": ["project_echo_veil"] }],
+      "projection": []
     }
   },
   "fluxSpells": {
