@@ -214,6 +214,21 @@ A match's participants report other humans in it, and commend one teammate ([ADR
 
 The tuning is `conduct` in `config/local.json`, all of it provisional (ADR-047 §6): the reasons, the details' length and the two windows.
 
+### Display names
+
+A player may change their display name ([ADR-049](../Docs/ADR/ADR-049-display-name-changes-and-claims.md); `internal/identity`). Names stay unique ignoring case.
+- The first voluntary change is free. Later ones cost Flux or Refined Flux, charged through progression in the same unit of work as the change.
+- A cooldown applies between voluntary changes, paid or not.
+- The old name is anyone's as soon as the change commits.
+- A name whose holder has not logged into the launcher for `names.claimAfter` is claimed by whoever changes to it. The holder gets a unique placeholder and must choose a new name, for free, before they can queue, practise, or join or make a party or lobby.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/me/display-name` | `Bearer <game token>` | — | `displayName` (`name`, `freeChangeAvailable`, `nextChangeAt` or `null`, `renameRequired`, `price` {`flux`, `refinedFlux`}) |
+| `PUT /v1/me/display-name` | `Bearer <game token>` | `{"name", "currency"}` (`flux` or `refinedFlux`, after the free change) | the same, after the change. Refusals: `invalid_display_name`, `same_display_name`, `display_name_taken`, `rename_cooldown`, `invalid_currency`, `insufficient_balance` |
+
+`GET /v1/me/profile` also reports `renameRequired`. Requests refused with `rename_required` until the player chooses: `PUT /v1/party/mode`, `POST /v1/party/queue`, party invitations and joins, `POST /v1/practice`, and making or joining a lobby. The tuning is `names` in `config/local.json`: the 24-hour cooldown is canon, the one-year claim threshold is the bible's working value, and the prices are provisional.
+
 ### Player profiles
 
 Each account has a public profile ([ADR-048](../Docs/ADR/ADR-048-player-profiles.md); `internal/profile`). It shows the display name, an official icon and background, the account level, and one permanently owned Vanguard the player chose to feature, with its Mastery level. Match History is private until the owner shares it. A block in either direction makes a profile read as unknown. Profiles never carry account IDs.

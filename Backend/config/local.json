@@ -191,6 +191,11 @@
     "defaultIcon": "default",
     "defaultBackground": "default"
   },
+  "names": {
+    "renameCooldown": "24h",
+    "claimAfter": "8760h",
+    "renamePrice": { "flux": 6000, "refinedFlux": 600 }
+  },
   "allocator": {
     "kind": "docker",
     "docker": {

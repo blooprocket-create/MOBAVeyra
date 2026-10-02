@@ -12,7 +12,7 @@ import (
 
 func (s *Server) routeLobby(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/lobby", s.authed(s.getLobby))
-	mux.HandleFunc("POST /v1/lobby", s.authed(s.createLobby))
+	mux.HandleFunc("POST /v1/lobby", s.authed(s.named(s.createLobby)))
 	mux.HandleFunc("POST /v1/lobby/leave", s.authed(s.leaveLobby))
 	mux.HandleFunc("DELETE /v1/lobby/members/{accountId}", s.authed(s.kickFromLobby))
 	mux.HandleFunc("PUT /v1/lobby/members/{accountId}/seat", s.authed(s.moveInLobby))
@@ -21,8 +21,8 @@ func (s *Server) routeLobby(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /v1/lobby/settings", s.authed(s.setLobbySettings))
 	mux.HandleFunc("POST /v1/lobby/launch", s.authed(s.launchLobby))
 	mux.HandleFunc("GET /v1/lobby/invites", s.authed(s.listLobbyInvites))
-	mux.HandleFunc("POST /v1/lobby/invites", s.authed(s.inviteToLobby))
-	mux.HandleFunc("POST /v1/lobby/invites/{inviteId}/accept", s.authed(s.acceptLobbyInvite))
+	mux.HandleFunc("POST /v1/lobby/invites", s.authed(s.named(s.inviteToLobby)))
+	mux.HandleFunc("POST /v1/lobby/invites/{inviteId}/accept", s.authed(s.named(s.acceptLobbyInvite)))
 	mux.HandleFunc("POST /v1/lobby/invites/{inviteId}/decline", s.authed(s.declineLobbyInvite))
 }
 
