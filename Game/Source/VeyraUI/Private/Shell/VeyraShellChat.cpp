@@ -1,6 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
-// The chat panels (ADR-046 §6): the sidebar's Party Chat and direct conversations (UX-3). The backend decides
+// The chat panels (ADR-046 §6): the sidebar's Party Chat and direct conversations (UX-3), champion select's one panel with /p (UX-33-34) and the results screen's post-match chat (UX-59-60). The backend decides
 // who reads each line and the flow keeps the conversations; these panels show them and send what the
 // player types.
 

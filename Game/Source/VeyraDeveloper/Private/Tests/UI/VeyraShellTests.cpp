@@ -590,9 +590,10 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
 			ShowScreen();
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::ChampionSelect));
-			// No navigation leaves a committed select (UX-4): the roster across the top, each Flux Spell slot's
-			// tile, and Lock In.
-			const TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In") };
+			// No navigation leaves a committed select (UX-4): the roster across the top, the one chat panel's Hide and
+			// Send beside the allies (UX-33), each Flux Spell slot's tile, and Lock In.
+			const TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Hide Chat"), TEXT("Send to Team Chat"),
+				TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In") };
 			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == Expected, FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
 			ASSERT_THAT(IsFalse(Button(TEXT("Lock In"))->GetIsEnabled(), TEXT("nothing is hovered yet")));
 			FString Text = Screen->DescribeText();
@@ -670,7 +671,8 @@ namespace VeyraShellTests
 			// The spell picker: None and every roster spell, each described, and the slot's threshold.
 			Screen->FindButton(VeyraShellModels::SpellSlotTitle(1))->Press();
 			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), 1));
-			TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In"), TEXT("None") };
+			TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Hide Chat"), TEXT("Send to Team Chat"), TEXT("Flux Spell 1"),
+				TEXT("Flux Spell 2"), TEXT("Lock In"), TEXT("None") };
 			for (const FVeyraContentId& Spell : Roster)
 			{
 				Expected.Add(VeyraContentText::AbilityName(Spell).ToString());
