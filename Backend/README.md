@@ -209,7 +209,7 @@ A match's participants report other humans in it, and commend one teammate ([ADR
 |---|---|---|---|
 | `POST /v1/me/matches/{matchId}/reports` | `Bearer <game token>` | `{"reportedName", "reason", "details", "clientId"}` | `report` (`reportedName`, `status`: `received`), whatever the case holds. One per reporter, reported player and match: a repeat, or a resend with the same `clientId`, returns the first. Refusals: `not_participant`, `unknown_player`, `invalid_reason`, `details_too_long`, `report_closed` (more than `conduct.reportWindow` after the end, or no result), `invalid_report` |
 | `POST /v1/me/matches/{matchId}/commendation` | `Bearer <game token>` | `{"name"}` | `commendation` (`name`): one teammate, once. Refusals: `not_teammate`, `unknown_player`, `already_commended`, `commend_closed` (more than `conduct.commendWindow` after the end) |
-| `GET /v1/me/matches/{matchId}/conduct` | `Bearer <game token>` | — | `conduct`: `reported` (the names the player reported) and `commended` (or `null`) |
+| `GET /v1/me/matches/{matchId}/conduct` | `Bearer <game token>` | — | `conduct`: `reported` (the names the player reported), `commended` (or `null`), `players` (the match's other humans: `name`, `teammate`), and the `reasons` and `detailsMaxCharacters` a report form offers |
 | `GET /v1/dev/matches/{matchId}/conduct` | — | — | the match's `case` (`open`, `reports`) and `commendations`. **Local only**, with `matches.devCreate` |
 
 The tuning is `conduct` in `config/local.json`, all of it provisional (ADR-047 §6): the reasons, the details' length and the two windows.

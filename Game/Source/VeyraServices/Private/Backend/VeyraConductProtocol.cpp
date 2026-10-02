@@ -44,6 +44,28 @@ namespace
 		return true;
 	}
 
+	bool ConductPlayers(const FJsonObject& Object, TArray<FConductPlayer>& Out)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (!Object.HasTypedField<EJson::Array>(TEXT("players")) || !Object.TryGetArrayField(TEXT("players"), Values))
+		{
+			return false;
+		}
+		TArray<FConductPlayer> Players;
+		for (const TSharedPtr<FJsonValue>& Value : *Values)
+		{
+			const TSharedPtr<FJsonObject>* Player = nullptr;
+			FConductPlayer& Read = Players.AddDefaulted_GetRef();
+			if (!Value.IsValid() || !Value->TryGetObject(Player) || !Player->IsValid() || !(*Player)->TryGetStringField(TEXT("name"), Read.Name)
+				|| Read.Name.IsEmpty() || !(*Player)->HasTypedField<EJson::Boolean>(TEXT("teammate")) || !(*Player)->TryGetBoolField(TEXT("teammate"), Read.bTeammate))
+			{
+				return false;
+			}
+		}
+		Out = MoveTemp(Players);
+		return true;
+	}
+
 	FString ConductWrite(TFunctionRef<void(TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>&)> Fill)
 	{
 		FString Body;
@@ -71,12 +93,12 @@ bool ParseConductRecord(const FString& Body, FConductRecord& Out, FString& OutPr
 	double DetailsMax = 0.0;
 	const bool bCommended = Conduct.HasTypedField<EJson::Null>(TEXT("commended"))
 		|| (Conduct.HasTypedField<EJson::String>(TEXT("commended")) && Conduct.TryGetStringField(TEXT("commended"), Record.Commended) && !Record.Commended.IsEmpty());
-	if (!bCommended || !ConductStrings(Conduct, TEXT("reported"), [](const FString&) { return true; }, Record.Reported)
+	if (!bCommended || !ConductPlayers(Conduct, Record.Players) || !ConductStrings(Conduct, TEXT("reported"), [](const FString&) { return true; }, Record.Reported)
 		|| !ConductStrings(Conduct, TEXT("reasons"), ConductIsReason, Record.Reasons) || Record.Reasons.IsEmpty()
 		|| !Conduct.HasTypedField<EJson::Number>(TEXT("detailsMaxCharacters")) || !Conduct.TryGetNumberField(TEXT("detailsMaxCharacters"), DetailsMax)
 		|| DetailsMax < 0.0 || DetailsMax > MAX_int32 || DetailsMax != FMath::FloorToDouble(DetailsMax))
 	{
-		OutProblem = TEXT("the conduct record's names, reasons or details limit are missing or not in the expected format");
+		OutProblem = TEXT("the conduct record's players, names, reasons or details limit are missing or not in the expected format");
 		return false;
 	}
 	Record.DetailsMaxCharacters = static_cast<int32>(DetailsMax);

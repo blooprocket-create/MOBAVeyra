@@ -63,7 +63,7 @@ A report is an allegation, never an automatic punishment (§3). Staff review, sa
 ### 4. The player's own record
 
 - `GET /v1/me/matches/{matchId}/conduct` lists whom the player reported in the match and whom they commended, so a screen shows *Reported* and *Commended*. It never shows anyone else's.
-- The same answer carries `conduct.reasons` and `conduct.detailsMaxCharacters`, so the client's report form offers exactly what the backend accepts and keeps no list of its own.
+- The same answer names the match's other human participants, each with whether they were the player's teammate, and carries `conduct.reasons` and `conduct.detailsMaxCharacters`. The client opens a player menu, offers Commend and fills its report form from what the backend accepts, and keeps no list of its own. Bots are never listed, and account IDs stay private.
 - `GET /v1/dev/matches/{matchId}/conduct` (local only) shows the case and the commendations, for scripted runs.
 
 ### 5. The client

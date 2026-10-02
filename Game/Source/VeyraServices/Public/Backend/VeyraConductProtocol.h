@@ -11,9 +11,19 @@
  */
 namespace VeyraBackendProtocol
 {
+	/** Another human participant of the match, whom a player menu opens for. */
+	struct FConductPlayer
+	{
+		FString Name;
+		/** Whether they played on the player's side, so may be commended. */
+		bool bTeammate = false;
+	};
+
 	/** The answer to GET /v1/me/matches/{id}/conduct (ADR-047 §4). */
 	struct FConductRecord
 	{
+		/** The match's other human participants, in the match's order; never a bot. */
+		TArray<FConductPlayer> Players;
 		/** The names the player reported in the match. */
 		TArray<FString> Reported;
 		/** The teammate the player commended in the match; empty when none. */

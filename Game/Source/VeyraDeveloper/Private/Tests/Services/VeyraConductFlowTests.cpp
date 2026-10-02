@@ -15,7 +15,8 @@ namespace VeyraClientFlowTests
 	// Fixture answers, independent of the committed backend configuration.
 	inline FString ConductAnswer(const TCHAR* ReportedJson = TEXT("[]"), const TCHAR* CommendedJson = TEXT("null"))
 	{
-		return FString::Printf(TEXT("{\"conduct\":{\"reported\":%s,\"commended\":%s,\"reasons\":[\"abusive_chat\",\"afk\",\"other\"],\"detailsMaxCharacters\":500}}"),
+		return FString::Printf(TEXT("{\"conduct\":{\"reported\":%s,\"commended\":%s,\"players\":[{\"name\":\"DevTwo\",\"teammate\":false},{\"name\":\"DevThree\",\"teammate\":true}],")
+							   TEXT("\"reasons\":[\"abusive_chat\",\"afk\",\"other\"],\"detailsMaxCharacters\":500}}"),
 			ReportedJson, CommendedJson);
 	}
 
@@ -58,6 +59,8 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Conduct.bLoaded && Conduct.MatchId == MatchId && Conduct.Record.Reported == TArray<FString>{ TEXT("DevTwo") }
 				&& Conduct.Record.Commended == TEXT("DevThree")));
 			ASSERT_THAT(IsTrue(Conduct.Record.Reasons.Num() == 3 && Conduct.Record.DetailsMaxCharacters == 500));
+			ASSERT_THAT(IsTrue(Conduct.Record.Players.Num() == 2 && Conduct.Record.Players[0].Name == TEXT("DevTwo") && !Conduct.Record.Players[0].bTeammate
+				&& Conduct.Record.Players[1].bTeammate, TEXT("the other humans, never a bot")));
 			// Reported and commended already: nothing more to send.
 			ASSERT_THAT(IsFalse(Rig.Flow->ReportPlayer(TEXT("DevTwo"), TEXT("afk"), FString())));
 			ASSERT_THAT(IsFalse(Rig.Flow->CommendTeammate(TEXT("DevTwo"))));
@@ -162,11 +165,12 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseConductRecord(ConductAnswer(TEXT("[\"DevTwo\"]")), Record, Problem), Problem));
 			ASSERT_THAT(IsTrue(Record.Reported.Num() == 1 && Record.Commended.IsEmpty() && Record.Reasons[1] == TEXT("afk") && Record.DetailsMaxCharacters == 500));
 			for (const TCHAR* Bad : {
-					 TEXT("{\"conduct\":{\"reported\":[],\"commended\":null,\"reasons\":[],\"detailsMaxCharacters\":500}}"),
-					 TEXT("{\"conduct\":{\"reported\":[],\"commended\":null,\"reasons\":[\"Not A Reason\"],\"detailsMaxCharacters\":500}}"),
-					 TEXT("{\"conduct\":{\"reported\":[],\"commended\":null,\"reasons\":[\"afk\"],\"detailsMaxCharacters\":-1}}"),
-					 TEXT("{\"conduct\":{\"reported\":[\"\"],\"commended\":null,\"reasons\":[\"afk\"],\"detailsMaxCharacters\":5}}"),
-					 TEXT("{\"conduct\":{\"reported\":[],\"reasons\":[\"afk\"],\"detailsMaxCharacters\":5}}"),
+					 TEXT("{\"conduct\":{\"players\":[],\"reported\":[],\"commended\":null,\"reasons\":[],\"detailsMaxCharacters\":500}}"),
+					 TEXT("{\"conduct\":{\"players\":[],\"reported\":[],\"commended\":null,\"reasons\":[\"Not A Reason\"],\"detailsMaxCharacters\":500}}"),
+					 TEXT("{\"conduct\":{\"players\":[],\"reported\":[],\"commended\":null,\"reasons\":[\"afk\"],\"detailsMaxCharacters\":-1}}"),
+					 TEXT("{\"conduct\":{\"players\":[],\"reported\":[\"\"],\"commended\":null,\"reasons\":[\"afk\"],\"detailsMaxCharacters\":5}}"),
+					 TEXT("{\"conduct\":{\"players\":[],\"reported\":[],\"reasons\":[\"afk\"],\"detailsMaxCharacters\":5}}"),
+					 TEXT("{\"conduct\":{\"players\":[{\"name\":\"DevTwo\"}],\"reported\":[],\"commended\":null,\"reasons\":[\"afk\"],\"detailsMaxCharacters\":5}}"),
 					 TEXT("{}") })
 			{
 				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseConductRecord(Bad, Record, Problem), Bad));

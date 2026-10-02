@@ -61,6 +61,9 @@ func TestConductOverHTTP(t *testing.T) {
 	if status != http.StatusOK || record["commended"] != testAccounts[1] || len(record["reported"].([]any)) != 1 {
 		t.Fatalf("record: %d %v", status, got)
 	}
+	if players, ok := record["players"].([]any); !ok || len(players) == 0 || players[0].(map[string]any)["teammate"] == nil {
+		t.Fatalf("record's players: %v", record)
+	}
 	if reasons, ok := record["reasons"].([]any); !ok || len(reasons) == 0 || record["detailsMaxCharacters"] == nil {
 		t.Fatalf("record's reasons and details limit: %v", record)
 	}

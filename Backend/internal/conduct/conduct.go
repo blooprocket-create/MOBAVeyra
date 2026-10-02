@@ -268,26 +268,42 @@ func (s *Service) Commend(ctx context.Context, actor, matchID, name string) (Com
 }
 
 // Record is what the player did in a match: whom they reported and whom they
-// commended, by the names the match recorded (ADR-047 §4). It carries the
-// reasons a report may give and how long its details may be, so a client's
-// form offers what the backend accepts.
+// commended, by the names the match recorded (ADR-047 §4). It names the other
+// human participants a report or commendation may be about, and carries the
+// reasons a report may give and how long its details may be, so a client
+// offers what the backend accepts.
 type Record struct {
 	Reported             []string
 	Commended            string
+	Players              []RecordPlayer
 	Reasons              []string
 	DetailsMaxCharacters int
 }
 
+// RecordPlayer is another human participant: whom a player menu opens for.
+type RecordPlayer struct {
+	Name string
+	// Teammate is whether they played on the actor's side, so may be commended.
+	Teammate bool
+}
+
 // Record returns the actor's own conduct records for a match it played.
 func (s *Service) Record(ctx context.Context, actor, matchID string) (Record, error) {
-	if _, err := s.matches.Played(ctx, actor, matchID); err != nil {
+	played, err := s.matches.Played(ctx, actor, matchID)
+	if err != nil {
 		return Record{}, err
 	}
+	me, _ := participant(played, actor)
 	reports, err := s.store.ReportsBy(ctx, matchID, actor)
 	if err != nil {
 		return Record{}, err
 	}
-	out := Record{Reported: []string{}, Reasons: slices.Clone(s.tuning.Reasons), DetailsMaxCharacters: s.tuning.DetailsMaxCharacters}
+	out := Record{Reported: []string{}, Players: []RecordPlayer{}, Reasons: slices.Clone(s.tuning.Reasons), DetailsMaxCharacters: s.tuning.DetailsMaxCharacters}
+	for _, p := range played.Participants {
+		if p.AccountID != actor {
+			out.Players = append(out.Players, RecordPlayer{Name: p.DisplayName, Teammate: p.Side == me.Side})
+		}
+	}
 	for _, r := range reports {
 		out.Reported = append(out.Reported, r.ReportedName)
 	}

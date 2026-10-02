@@ -4,6 +4,7 @@
 
 #include "Algo/Count.h"
 #include "Shell/VeyraChatModels.h"
+#include "Shell/VeyraConductModels.h"
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Slots/VeyraAbilitySlot.h"
@@ -1359,6 +1360,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	}
 	// The account's level and balances, the Collection and a result's rewards (ADR-045 §8).
 	Text << VeyraProgressionModels::Signature(Snapshot);
+	// The shown match's conduct record and what came of the player's reports and commendation (ADR-047 §5).
+	Text << VeyraConductModels::Signature(Snapshot);
 	return FString(Text.ToString());
 }
 }

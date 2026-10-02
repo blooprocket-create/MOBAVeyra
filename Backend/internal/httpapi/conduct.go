@@ -64,8 +64,16 @@ func (s *Server) myConduct(w http.ResponseWriter, r *http.Request, actor string)
 		s.fail(w, err)
 		return
 	}
+	type playerJSON struct {
+		Name     string `json:"name"`
+		Teammate bool   `json:"teammate"`
+	}
+	players := make([]playerJSON, 0, len(rec.Players))
+	for _, p := range rec.Players {
+		players = append(players, playerJSON{Name: p.Name, Teammate: p.Teammate})
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"conduct": map[string]any{"reported": rec.Reported, "commended": textOrNil(rec.Commended),
-		"reasons": rec.Reasons, "detailsMaxCharacters": rec.DetailsMaxCharacters}})
+		"players": players, "reasons": rec.Reasons, "detailsMaxCharacters": rec.DetailsMaxCharacters}})
 }
 
 // devConduct shows a match's case and commendations, for scripted runs.
