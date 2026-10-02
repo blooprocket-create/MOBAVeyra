@@ -32,6 +32,7 @@
 #include "Match/VeyraMatchMenu.h"
 #include "Match/VeyraMatchMenuSubsystem.h"
 #include "Scoreboard/VeyraScoreboard.h"
+#include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
@@ -158,6 +159,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("settingschange"), EScript::SettingsChange },
 		{ TEXT("settingscheck"), EScript::SettingsCheck },
 		{ TEXT("partyleader"), EScript::PartyLeader },
+		{ TEXT("collection"), EScript::Collection },
 		{ TEXT("partymember"), EScript::PartyMember },
 	};
 	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
@@ -302,6 +304,15 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		else if (IsParty())
 		{
 			TickPartyShell(Flow);
+		}
+		else if (Script == EScript::Collection && !bPurchased)
+		{
+			TickCollection(Flow);
+		}
+		else if (Script == EScript::Collection && bSawResults)
+		{
+			Finish(true, FString::Printf(TEXT("opened the Collection, bought %s for %lld Flux through its confirmation, saw it owned, practised with it, ")
+										 TEXT("ended the match as its host and saw its verified result and rewards"), *BoughtVanguard, static_cast<long long>(BoughtPrice)));
 		}
 		else if (bSawResults && !TickHistory(Flow))
 		{
@@ -1216,7 +1227,7 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 #if WITH_VEYRA_UI
 	// The match is ended from the in-match menu (ADR-010 §4, §7), behind its confirmation: End Custom
 	// Match by a practice host, the developer end in a standard match.
-	const TCHAR* const EndLabel = Script == EScript::Practice ? EndCustomMatchLabel : DeveloperEndLabel;
+	const TCHAR* const EndLabel = IsPracticeRules() ? EndCustomMatchLabel : DeveloperEndLabel;
 	UVeyraMatchMenuSubsystem* Menus = GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>();
 	if (!Menus)
 	{
@@ -1599,7 +1610,7 @@ bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, con
 	}
 	// Practice goes on after the enemy Prime Well falls (ADR-011 §14): the siege stops there, and the
 	// script ends the match as its host. A standard match ends at that fall, and the flow leaves it.
-	if (Script == EScript::Practice)
+	if (IsPracticeRules())
 	{
 		const EVeyraTeam Enemies = VeyraTeams::Opposing(VeyraTeams::TeamOf(Controller.PlayerState));
 		for (TActorIterator<AVeyraStructure> It(&World); It; ++It)
@@ -1615,7 +1626,7 @@ bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, con
 	if (SiegeRequests >= MaxSiegeRequests)
 	{
 		Finish(false, FString::Printf(TEXT("sieged %d times and the %s"), SiegeRequests,
-			Script == EScript::Practice ? TEXT("enemy Prime Well still stands") : TEXT("match has not ended")));
+			IsPracticeRules() ? TEXT("enemy Prime Well still stands") : TEXT("match has not ended")));
 		return true;
 	}
 	const double Now = FPlatformTime::Seconds();
@@ -1696,7 +1707,7 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified result of match %s: %s, %s rules, winner %s, %.1f s, as %s, %s, %s at the end."),
 		*Result->MatchId, *Result->EndReason, *Result->Rules, Result->Winner.IsEmpty() ? TEXT("none") : *Result->Winner, Result->DurationSeconds,
 		*Result->VanguardId, Result->bJoined ? TEXT("joined") : TEXT("never joined"), Result->bConnectedAtEnd ? TEXT("connected") : TEXT("disconnected"));
-	const bool bPractice = Script == EScript::Practice;
+	const bool bPractice = IsPracticeRules();
 	const TCHAR* const ExpectedEndReason = bPractice ? PracticeEndReason : bVictory ? VictoryEndReason : DeveloperEndReason;
 	const TCHAR* const ExpectedRules = bPractice ? PracticeRules : IsCustom() ? CustomRules : StandardRules;
 	// Only a won match has a winner: the sieging player's side, which the other lost to. Against AI the
@@ -1730,6 +1741,26 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified scoreboard lists %d player(s) (%d bot(s)) and %d Flux Well capture(s); this player went %d/%d/%d, earned %.0f Gold, dealt %.0f to towers."),
 		Result->Players.Num(), Bots, Result->Wells.Num(), You->Statistics.Kills, You->Statistics.Deaths, You->Statistics.Assists, You->Statistics.GoldEarned,
 		You->Statistics.TowerDamage);
+	// What the match gave the player (ADR-045 §7): practice and custom matches give nothing and say so, a match
+	// ended by a developer is not completed, and a won match gives Mastery, and account XP unless co-op's level passed.
+	if (!Result->Rewards.IsSet())
+	{
+		Finish(false, TEXT("the verified result carries no rewards"));
+		return;
+	}
+	const VeyraBackendProtocol::FMatchRewards& Rewards = *Result->Rewards;
+	const bool bRewardsRight = bPractice || IsCustom() ? Rewards.Reason == TEXT("custom")
+		: bVictory ? (Rewards.Reason.IsEmpty() || (bVersusAI && Rewards.Reason == TEXT("coop_level"))) && Rewards.MasteryPoints > 0
+				   : Rewards.Reason == TEXT("not_completed");
+	if (!bRewardsRight)
+	{
+		Finish(false, FString::Printf(TEXT("the match's rewards are not what it earns: reason \"%s\", %lld account XP, %lld Mastery points"), *Rewards.Reason,
+			static_cast<long long>(Rewards.AccountXP), static_cast<long long>(Rewards.MasteryPoints)));
+		return;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the match gave %lld account XP (Level %d to %d), %lld Flux and %lld Mastery points%s."),
+		static_cast<long long>(Rewards.AccountXP), Rewards.LevelBefore, Rewards.LevelAfter, static_cast<long long>(Rewards.Flux),
+		static_cast<long long>(Rewards.MasteryPoints), Rewards.Reason.IsEmpty() ? TEXT("") : *FString::Printf(TEXT(" (%s)"), *Rewards.Reason));
 #if WITH_VEYRA_UI
 	// The results screen says so (ADR-011 §13).
 	if (bVictory)
@@ -2011,6 +2042,86 @@ void UVeyraSmokeFlowSubsystem::TickSettings()
 	}
 #else
 	Finish(false, TEXT("this build has no Settings screen"));
+#endif
+}
+
+void UVeyraSmokeFlowSubsystem::TickCollection(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	const FVeyraCollection& Collection = Snapshot.Collection;
+	if (!bOpenedCollection)
+	{
+		if (!Capture(TEXT("Home")) && Click(TEXT("Collection")))
+		{
+			bOpenedCollection = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: opened the Collection."));
+		}
+		return;
+	}
+	if (!Collection.bLoaded || Snapshot.bBusy)
+	{
+		return;
+	}
+	if (BoughtVanguard.IsEmpty())
+	{
+		// One the player cannot play yet: not owned, and no rotation lends it, so only the purchase makes it playable.
+		const VeyraBackendProtocol::FCollectionEntry* Target = Collection.Vanguards.FindByPredicate(
+			[](const VeyraBackendProtocol::FCollectionEntry& Entry) { return Entry.bPurchasable && !Entry.bOwned && !Entry.bRotation; });
+		if (!Target)
+		{
+			Finish(false, TEXT("the Collection offers nothing to buy that the rotation does not lend"));
+			return;
+		}
+		BoughtVanguard = Target->VanguardId;
+		BoughtPrice = Target->PriceFlux;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: buying %s for %lld Flux."), *BoughtVanguard, static_cast<long long>(BoughtPrice));
+	}
+	const VeyraBackendProtocol::FCollectionEntry* Entry = Collection.Vanguards.FindByPredicate(
+		[this](const VeyraBackendProtocol::FCollectionEntry& Candidate) { return Candidate.VanguardId == BoughtVanguard; });
+	if (!Entry)
+	{
+		Finish(false, FString::Printf(TEXT("the Collection no longer lists %s"), *BoughtVanguard));
+		return;
+	}
+	if (Entry->bOwned)
+	{
+		if (Collection.Feedback != TEXT("vanguard_purchased") || Entry->Source != TEXT("purchase"))
+		{
+			Finish(false, FString::Printf(TEXT("%s is owned, but not by this purchase (%s, %s)"), *BoughtVanguard, *Collection.Feedback, *Entry->Source));
+			return;
+		}
+		if (!Capture(TEXT("Purchased")))
+		{
+			// The select that follows offers it only because it is owned now (Bible §4: visibility is not permission).
+			bPurchased = true;
+			WantedVanguard = BoughtVanguard;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s is owned; practising with it."), *BoughtVanguard);
+		}
+		return;
+	}
+	if (bConfirmedBuy && !Collection.Feedback.IsEmpty() && Collection.Feedback != TEXT("vanguard_purchased"))
+	{
+		Finish(false, FString::Printf(TEXT("the purchase of %s was refused: %s"), *BoughtVanguard, *Collection.Feedback));
+		return;
+	}
+	if (!bOpenedCollectionCard)
+	{
+		if (!Capture(TEXT("Collection")) && Click(VeyraProgressionModels::CollectionCardLabel(BoughtVanguard).ToString()))
+		{
+			bOpenedCollectionCard = true;
+		}
+	}
+	else if (!bAskedToBuy)
+	{
+		bAskedToBuy = Click(VeyraProgressionModels::BuyLabel(BoughtVanguard, VeyraBackendProtocol::ECurrency::Flux, BoughtPrice).ToString());
+	}
+	else if (!bConfirmedBuy && !Capture(TEXT("CollectionConfirm")))
+	{
+		bConfirmedBuy = Click(VeyraProgressionModels::ConfirmBuyLabel(BoughtVanguard, VeyraBackendProtocol::ECurrency::Flux, BoughtPrice).ToString());
+	}
+#else
+	Finish(false, TEXT("the Collection script needs the shell's UI"));
 #endif
 }
 

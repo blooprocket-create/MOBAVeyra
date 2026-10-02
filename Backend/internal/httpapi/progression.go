@@ -19,7 +19,28 @@ func (s *Server) routeProgression(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/me/purchases", s.authed(s.purchase))
 	if s.DevLogin && s.Progression.DevGrantEnabled() {
 		mux.HandleFunc("POST /v1/dev/accounts/{name}/progression-grant", s.devProgressionGrant)
+		mux.HandleFunc("POST /v1/dev/accounts/{name}/progression-reset", s.devProgressionReset)
 	}
+}
+
+// devProgressionReset takes back the Vanguards a development account bought,
+// so scripted runs can buy again. Local only.
+func (s *Server) devProgressionReset(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	if !slices.Contains(s.DevAccounts, name) {
+		writeError(w, http.StatusNotFound, "account_not_found")
+		return
+	}
+	acct, err := s.Identity.LookupAccount(r.Context(), name)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if err := s.Progression.DevResetPurchases(r.Context(), acct.ID); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // progressionJSON is an account's level, XP and balances. Flux and Refined

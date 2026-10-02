@@ -110,6 +110,8 @@ private:
 		PartyLeader,
 		/** A party: joins its friend's party from the invitation, then leads it into the queue. */
 		PartyMember,
+		/** The Collection (ADR-045 §8): buys a Vanguard nobody lends it through the confirmation, then practises with it. */
+		Collection,
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -126,6 +128,10 @@ private:
 	/** The party's scripts in the shell: friends, then the party formed and its leadership handed over, then the queue. */
 	void TickPartyShell(IVeyraClientIntents& Flow);
 	bool IsParty() const { return Script == EScript::PartyLeader || Script == EScript::PartyMember; }
+	/** The Collection's purchase, before the script practises with what it bought: opens the page, a card, its Buy and the confirmation. */
+	void TickCollection(IVeyraClientIntents& Flow);
+	/** Whether the script plays a practice match: Practice, and Collection after its purchase. */
+	bool IsPracticeRules() const { return Script == EScript::Practice || Script == EScript::Collection; }
 	/** The host's bots: removes a bot the script did not ask for, then seats the one each side lacks. True while it changes them. */
 	bool TickLobbyBots(const VeyraBackendProtocol::FLobby& Lobby);
 	/** Types Name into the friends panel's name field, as the player would. */
@@ -262,6 +268,14 @@ private:
 	/** Whether the script has done each step, so it does each once. */
 	bool bOpenedPlay = false;
 	bool bStartedPractice = false;
+	/** Collection: the purchase's steps, and what it bought for how much Flux. */
+	bool bOpenedCollection = false;
+	bool bOpenedCollectionCard = false;
+	bool bAskedToBuy = false;
+	bool bConfirmedBuy = false;
+	bool bPurchased = false;
+	FString BoughtVanguard;
+	int64 BoughtPrice = 0;
 	/** Matchmade: the mode chosen, then Ready, Find Match, the answer to the match found and Cancel. */
 	FString ChosenMode;
 	bool bReadied = false;

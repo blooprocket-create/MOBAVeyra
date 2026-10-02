@@ -108,6 +108,11 @@ func (t progressionTx) AddPurchase(p progression.Purchase) error {
 	return err
 }
 
+func (t progressionTx) DeletePurchases(accountID string) error {
+	_, err := t.q.Exec(t.ctx, `DELETE FROM progression.purchases WHERE account_id = $1::uuid`, accountID)
+	return err
+}
+
 func (t progressionTx) AddDevAdjustment(a progression.DevAdjustment) error {
 	_, err := t.q.Exec(t.ctx, `INSERT INTO progression.dev_adjustments (account_id, flux, refined_flux, granted_at) VALUES ($1::uuid, $2, $3, $4)`,
 		a.AccountID, a.Flux, a.RefinedFlux, a.GrantedAt)

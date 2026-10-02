@@ -208,6 +208,17 @@ func TestBuyingAVanguardSpendsOnceAndGrantsIt(t *testing.T) {
 	if adj := f.store.Adjustments(); len(adj) != 1 || adj[0].Flux != 4000 {
 		t.Fatalf("the development grant is recorded: %+v", adj)
 	}
+
+	// The development reset takes the bought Vanguards back and forgets their purchases; the balances stay.
+	if err := f.svc.DevResetPurchases(ctx, "acc-a"); err != nil {
+		t.Fatalf("DevResetPurchases: %v", err)
+	}
+	if available, _ := f.accounts.Vanguards(ctx, "acc-a"); len(available.Owned) != 0 {
+		t.Fatalf("still owned after the reset: %+v", available.Owned)
+	}
+	if _, summary, err := f.svc.Buy(ctx, "acc-a", "purchase-0001", "oriel", CurrencyRefinedFlux); err != nil || summary.RefinedFlux != 0 {
+		t.Fatalf("the forgotten purchase ID buys again: %+v %v", summary, err)
+	}
 }
 
 func TestTheCollectionShowsEveryReleasedVanguard(t *testing.T) {

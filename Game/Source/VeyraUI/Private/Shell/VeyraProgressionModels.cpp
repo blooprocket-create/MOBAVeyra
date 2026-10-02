@@ -17,7 +17,7 @@ namespace
 	{
 		if (Entry.bOwned)
 		{
-			return Entry.Source == TEXT("starter") ? LOCTEXT("OwnedStarter", "Owned: your starter") : LOCTEXT("Owned", "Owned");
+			return Entry.Source == TEXT("starter") ? LOCTEXT("OwnedStarter", "Your starter") : LOCTEXT("Owned", "Owned");
 		}
 		// Visible is not playable (Bible §4): only the rotation lends an unowned Vanguard.
 		return Entry.bRotation ? LOCTEXT("Rotation", "Free this week") : LOCTEXT("NotOwned", "Not owned");

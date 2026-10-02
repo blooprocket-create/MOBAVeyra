@@ -89,6 +89,8 @@ type Store interface {
 	Entitlements(ctx context.Context, accountID string) ([]Entitlement, error)
 	// ResetOnboarding removes the account's onboarding and starter.
 	ResetOnboarding(ctx context.Context, accountID string) error
+	// ResetPurchases removes the Vanguards the account bought, in ctx's transaction.
+	ResetPurchases(ctx context.Context, accountID string) error
 }
 
 // Service applies onboarding and entitlement rules.
@@ -191,4 +193,10 @@ func (s *Service) MayPick(ctx context.Context, accountID, vanguardID string) (bo
 // expose it only in development, for repeatable test runs.
 func (s *Service) ResetOnboarding(ctx context.Context, accountID string) error {
 	return s.store.ResetOnboarding(ctx, accountID)
+}
+
+// ResetPurchases removes the Vanguards the account bought. The progression domain calls it,
+// only in development, so scripted runs can buy again (ADR-045 §6).
+func (s *Service) ResetPurchases(ctx context.Context, accountID string) error {
+	return s.store.ResetPurchases(ctx, accountID)
 }

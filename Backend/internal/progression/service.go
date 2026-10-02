@@ -112,6 +112,8 @@ type Tx interface {
 	Purchase(purchaseID string) (Purchase, error)
 	AddPurchase(p Purchase) error
 	AddDevAdjustment(a DevAdjustment) error
+	// DeletePurchases removes the account's purchases, for the development reset.
+	DeletePurchases(accountID string) error
 }
 
 // Store persists progression. InTx passes its callback a ctx carrying the
@@ -132,6 +134,9 @@ type Ownership interface {
 	// GrantPurchase gives the account a Vanguard it bought, in ctx's
 	// transaction.
 	GrantPurchase(ctx context.Context, accountID, vanguardID string, at time.Time) error
+	// ResetPurchases removes the Vanguards the account bought, in ctx's
+	// transaction.
+	ResetPurchases(ctx context.Context, accountID string) error
 }
 
 // Service applies the progression rules.
@@ -381,6 +386,21 @@ func (s *Service) DevGrant(ctx context.Context, accountID string, flux, refinedF
 		return Summary{}, err
 	}
 	return s.Progression(ctx, accountID)
+}
+
+// DevResetPurchases takes back every Vanguard the account bought and forgets
+// its purchases, so scripted runs can buy again. Its balances stay as they
+// are. Callers expose it only in development (ADR-045 §6).
+func (s *Service) DevResetPurchases(ctx context.Context, accountID string) error {
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		if _, err := tx.LockAccount(accountID); err != nil {
+			return err
+		}
+		if err := tx.DeletePurchases(accountID); err != nil {
+			return err
+		}
+		return s.ownership.ResetPurchases(ctx, accountID)
+	})
 }
 
 // MatchRewards returns what a match gave the account, or ErrNoGrant while

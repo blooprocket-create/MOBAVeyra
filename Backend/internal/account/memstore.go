@@ -65,6 +65,19 @@ func (s *MemStore) ResetOnboarding(_ context.Context, accountID string) error {
 	return nil
 }
 
+func (s *MemStore) ResetPurchases(_ context.Context, accountID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var kept []Entitlement
+	for _, e := range s.entitlements[accountID] {
+		if e.Source != SourcePurchase {
+			kept = append(kept, e)
+		}
+	}
+	s.entitlements[accountID] = kept
+	return nil
+}
+
 type memTx struct{ s *MemStore }
 
 func (t memTx) CompleteOnboarding(p Profile) error {

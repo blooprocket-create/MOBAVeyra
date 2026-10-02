@@ -98,7 +98,7 @@ namespace VeyraCollectionScreenTests
 			ASSERT_THAT(IsTrue(ShowShell(ProgressionOf(1200, 250))));
 			ASSERT_THAT(IsTrue(OpenCollection()));
 			const FString Text = Screen->DescribeText();
-			for (const TCHAR* Line : { TEXT("Cairn"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Owned: your starter"), TEXT("Free this week"), TEXT("Not owned"), TEXT("Mastery 2") })
+			for (const TCHAR* Line : { TEXT("Cairn"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Your starter"), TEXT("Free this week"), TEXT("Not owned"), TEXT("Mastery 2") })
 			{
 				ASSERT_THAT(IsTrue(Text.Contains(Line), Line));
 			}
