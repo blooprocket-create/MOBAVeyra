@@ -61,9 +61,10 @@ namespace VeyraClientFlowTests
 				{ EVeyraClientIntent::SetLobbySettings, EVeyraClientState::Lobby },
 				{ EVeyraClientIntent::LaunchLobby, EVeyraClientState::Lobby },
 			};
-			// The friends panel's intents belong to the shell and the lobby alike.
-			const EVeyraClientIntent Social[] = { EVeyraClientIntent::DeclineLobbyInvite, EVeyraClientIntent::SendFriendRequest,
-				EVeyraClientIntent::AnswerFriendRequest, EVeyraClientIntent::RemoveFriend };
+			// The friends panel's intents belong to the shell and the lobby alike; the results screen's player menu
+			// also sends friend requests (UX-57), which Veyra.Services.ConductFlow covers.
+			const EVeyraClientIntent Social[] = { EVeyraClientIntent::DeclineLobbyInvite, EVeyraClientIntent::AnswerFriendRequest,
+				EVeyraClientIntent::RemoveFriend };
 			for (uint8 Index = 0; Index <= static_cast<uint8>(EVeyraClientState::SessionEnded); ++Index)
 			{
 				const EVeyraClientState Candidate = static_cast<EVeyraClientState>(Index);
