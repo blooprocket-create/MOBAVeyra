@@ -1359,9 +1359,12 @@ if ($PlayingBots -gt 0) {
     $secured = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: Flux Well \d+ was secured by .*')
     $warded = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraVision: \S+ places a ward at ')
     $unwarded = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraVision: VeyraWard\S* is destroyed\.')
+    # ADR-056: consumables drunk and buybacks.
+    $drunk = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraItems: \S+ used \S+\.')
+    $boughtBack = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraMatch: \S+ bought back\.')
     $ended = Select-String -LiteralPath $serverLogPath -Pattern 'The match ended \(.*' | Select-Object -Last 1
-    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed, {5} camp(s) cleared, {6} Flux Well(s) secured, {7} ward(s) placed, {8} destroyed." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
-        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count, $cleared.Count, $secured.Count, $warded.Count, $unwarded.Count)
+    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed, {5} camp(s) cleared, {6} Flux Well(s) secured, {7} ward(s) placed, {8} destroyed, {9} consumable(s) drunk, {10} buyback(s)." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
+        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count, $cleared.Count, $secured.Count, $warded.Count, $unwarded.Count, $drunk.Count, $boughtBack.Count)
     $reports | Select-Object -Last 3 | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
     $fallen | Select-Object -First 12 | ForEach-Object { Write-Host "  $($_.Line -replace '^.*LogVeyraWorld: ', '')" }
     $secured | Select-Object -First 6 | ForEach-Object { Write-Host "  $($_.Matches[0].Value -replace '^LogVeyraWorld: ', '')" }
