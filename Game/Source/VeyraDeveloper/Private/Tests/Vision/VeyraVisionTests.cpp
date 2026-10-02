@@ -2,6 +2,7 @@
 
 #include "CQTest.h"
 #include "Components/ActorTestSpawner.h"
+#include "Layout/VeyraLayout.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Rules/VeyraVisionRules.h"
 #include "Targeting/VeyraTargeting.h"
@@ -9,6 +10,7 @@
 #include "Tests/Abilities/VeyraTestFluxborn.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
+#include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
@@ -38,7 +40,7 @@ namespace VeyraVisionTests
 		TEST_METHOD(AWallBetweenASourceAndAPointHidesIt)
 		{
 			// Fixture: a wall facing +X at 500 along X, 400 long across it (ADR-042 §3).
-			const FVeyraTerrainBox Walls[] = { { FVector2D(500.0, 0.0), FVector2D(1.0, 0.0), 400.0, 100.0 } };
+			const FVeyraSightWalls Walls({ FVeyraTerrainBox{ FVector2D(500.0, 0.0), FVector2D(1.0, 0.0), 400.0, 100.0 } });
 			FVeyraSightSource Sources[] = { { EVeyraTeam::A, FVector2D(0.0, 0.0), 1000.0, /*bDetects*/ true } };
 			ASSERT_THAT(IsTrue(VeyraVisionRules::IsBlocked(Walls, FVector2D(0.0, 0.0), FVector2D(900.0, 0.0))));
 			ASSERT_THAT(IsFalse(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(900.0, 0.0), Walls), TEXT("behind the wall")));
@@ -49,6 +51,41 @@ namespace VeyraVisionTests
 			// A lit area lights what lies inside it, walls or none.
 			Sources[0].bThroughWalls = true;
 			ASSERT_THAT(IsTrue(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(900.0, 0.0), Walls)));
+		}
+
+		TEST_METHOD(TheGridOffersALineOnlyTheWallsNearItAndAgreesWithTestingThemAll)
+		{
+			// The committed battleground's walls (ADR-042 §3): a short line near one wall is offered only nearby walls.
+			const TArray<FVeyraTerrainBox> All = VeyraLayout::Walls(UVeyraWorldTuningSubsystem::Get().Layout);
+			ASSERT_THAT(IsTrue(All.Num() > 1));
+			const FVeyraSightWalls Walls(All);
+			const FVector2D Centre = All[0].Centre;
+			const TArray<int32> Near = Walls.CandidatesFor(Centre - FVector2D(10.0, 10.0), Centre + FVector2D(10.0, 10.0));
+			ASSERT_THAT(IsTrue(Near.Contains(0) && Near.Num() < All.Num(), FString::Printf(TEXT("%d of %d walls offered"), Near.Num(), All.Num())));
+			// Over a lattice of lines a sight radius long, every way, the grid and testing every wall agree.
+			const double Reach = UVeyraVisionTuningSubsystem::Get().Sight.Vanguard;
+			const double HalfExtent = UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent;
+			// Fixture values: the lattice's spacing in sight radii, and the directions tried.
+			constexpr double Spacing = 0.5;
+			constexpr int32 Directions = 8;
+			int32 Blocked = 0;
+			for (double X = -HalfExtent; X <= HalfExtent; X += Reach * Spacing)
+			{
+				for (double Y = -HalfExtent; Y <= HalfExtent; Y += Reach * Spacing)
+				{
+					for (int32 Way = 0; Way < Directions; ++Way)
+					{
+						const double Angle = UE_TWO_PI * Way / Directions;
+						const FVector2D From(X, Y);
+						const FVector2D To = From + FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)) * Reach;
+						const bool bAny = All.ContainsByPredicate([&From, &To](const FVeyraTerrainBox& Wall) { return Wall.Crosses(From, To); });
+						ASSERT_THAT(AreEqual(Walls.Blocks(From, To), bAny, *FString::Printf(TEXT("%s to %s"), *From.ToString(), *To.ToString())));
+						Blocked += bAny ? 1 : 0;
+					}
+				}
+			}
+			ASSERT_THAT(IsTrue(Blocked > 0, TEXT("some lines cross a wall")));
+			ASSERT_THAT(IsFalse(FVeyraSightWalls().Blocks(FVector2D::ZeroVector, FVector2D(Reach, 0.0)), TEXT("no walls block nothing")));
 		}
 
 		TEST_METHOD(FogCirclesThatTouchAreOneVolume)
@@ -295,6 +332,33 @@ namespace VeyraVisionTests
 			Vision().AddTrueSight(EVeyraTeam::A, Caster, SightRadius(), TrueSightSeconds);
 			Vision().UpdateNow();
 			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy)));
+		}
+
+		TEST_METHOD(TrueSightShowsNothingBehindAWall)
+		{
+			// Fixture: a Camouflaged enemy and an Invisible one, each within True Sight, a wall between (ADR-042 §3).
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Camouflaged = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Invisible = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, SightRadius() / 8.0, 0.0));
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Camouflaged, DetectionRadius())));
+			FVeyraStatusSpec Vanish;
+			Vanish.Id = FVeyraContentId::FromText(TEXT("test_invisible")).GetValue();
+			Vanish.Kind = EVeyraStatusKind::Invisible;
+			// Fixture value: longer than the test.
+			Vanish.DurationSeconds = 60.0;
+			UAbilitySystemComponent& Hidden = *Invisible.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Hidden, Hidden, Vanish)));
+			Vision().Start();
+			Vision().SetSightWalls({ FVeyraTerrainBox{ FVector2D(SightRadius() / 4.0, 0.0), FVector2D(1.0, 0.0), SightRadius(), SightRadius() / 20.0 } });
+			constexpr double TrueSightSeconds = 60.0;
+			Vision().AddTrueSight(EVeyraTeam::A, Caster, SightRadius(), TrueSightSeconds);
+			Vision().UpdateNow();
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Camouflaged), TEXT("True Sight does not see through the wall")));
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Invisible), TEXT("nor reveals the Invisible behind it")));
+			// With the wall gone, it does.
+			Vision().SetSightWalls({});
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Camouflaged) && Vision().IsVisibleToTeam(EVeyraTeam::A, Invisible)));
 		}
 
 		TEST_METHOD(DenseFogStillComesFirstForTheCamouflaged)

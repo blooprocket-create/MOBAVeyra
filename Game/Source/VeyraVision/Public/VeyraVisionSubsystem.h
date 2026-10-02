@@ -185,7 +185,8 @@ private:
 	/** The map's fog, which Match gives; and the fog abilities laid, a bank for each cast. */
 	TArray<FVeyraFogCircle> AuthoredFog;
 	/** The map's walls, which Match gives: no sight passes them (ADR-042 §3). */
-	TArray<FVeyraTerrainBox> SightWalls;
+	/** The map walls that block sight, indexed on a grid (ADR-042 §3). */
+	FVeyraSightWalls SightWalls;
 	TArray<FFogBank> FogBanks;
 	int32 NextFogBankId = 1;
 	/** The enemy Vanguards inside fog at the last pass, and the volume each is in. */
