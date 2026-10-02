@@ -208,6 +208,10 @@ func run(log *slog.Logger) error {
 	selects.SetMatchmaking(matchmaker)
 	go matchmaker.Run(ctx, cfg.Matchmaking.Interval)
 
+	prefs := settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes)
+	// Chat asks the party, social, selection, match and settings domains who reads each conversation (ADR-046 §1).
+	talk := newChatService(store.Chat(), cfg.Chat, parties, soc, selects, matches, prefs, displayNames(svc))
+
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
 		Handler: httpapi.New(httpapi.Deps{
@@ -220,7 +224,8 @@ func run(log *slog.Logger) error {
 			Progression:    progress,
 			Selection:      selects,
 			Matchmaking:    matchmaker,
-			Settings:       settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes),
+			Settings:       prefs,
+			Chat:           talk,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,

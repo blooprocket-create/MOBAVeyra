@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/chat"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
@@ -63,8 +64,10 @@ type Deps struct {
 	// Settings is optional; without it no account settings routes are
 	// registered (ADR-024 §1).
 	Settings *settings.Service
-	Modes    []ModeInfo
-	Ready    Pinger
+	// Chat is optional; without it no chat routes are registered (ADR-046).
+	Chat  *chat.Service
+	Modes []ModeInfo
+	Ready Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -111,6 +114,7 @@ func New(d Deps) http.Handler {
 	s.routeSelection(mux)
 	s.routeMatchFound(mux)
 	s.routeSettings(mux)
+	s.routeChat(mux)
 	return mux
 }
 
@@ -381,6 +385,19 @@ var errorStatus = []struct {
 	{match.ErrResultConflict, http.StatusConflict, "result_conflict"},
 	{match.ErrInvalidFilter, http.StatusBadRequest, "invalid_filter"},
 	{match.ErrInvalidCursor, http.StatusBadRequest, "invalid_cursor"},
+
+	{chat.ErrNotInParty, http.StatusConflict, "not_in_party"},
+	{chat.ErrNotFriends, http.StatusForbidden, "not_friends"},
+	{chat.ErrBlocked, http.StatusForbidden, "blocked"},
+	{chat.ErrNoSelect, http.StatusConflict, "no_select"},
+	{chat.ErrNotParticipant, http.StatusNotFound, "not_participant"},
+	{chat.ErrPostMatchClosed, http.StatusConflict, "postmatch_closed"},
+	{chat.ErrAllChatOff, http.StatusConflict, "all_chat_off"},
+	{chat.ErrEmptyMessage, http.StatusBadRequest, "empty_message"},
+	{chat.ErrMessageTooLong, http.StatusBadRequest, "message_too_long"},
+	{chat.ErrRateLimited, http.StatusTooManyRequests, "rate_limited"},
+	{chat.ErrInvalidMessage, http.StatusBadRequest, "invalid_message"},
+	{chat.ErrClientIDConflict, http.StatusConflict, "client_id_conflict"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {
