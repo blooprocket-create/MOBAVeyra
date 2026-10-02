@@ -16,7 +16,11 @@ func (s *Server) routeNames(mux *http.ServeMux) {
 func (s *Server) writeNameStatus(w http.ResponseWriter, st identity.NameStatus) {
 	var next *time.Time
 	if !st.NextChangeAt.IsZero() {
-		at := st.NextChangeAt.UTC()
+		// Whole seconds, rounded up, so the client never reads a time before the change is allowed.
+		at := st.NextChangeAt.UTC().Truncate(time.Second)
+		if at.Before(st.NextChangeAt) {
+			at = at.Add(time.Second)
+		}
 		next = &at
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"displayName": map[string]any{

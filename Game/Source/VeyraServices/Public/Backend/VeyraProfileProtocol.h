@@ -4,6 +4,7 @@
 
 #include "Containers/Array.h"
 #include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
 #include "Misc/Optional.h"
 
 /**
@@ -53,6 +54,24 @@ namespace VeyraBackendProtocol
 		/** The Vanguards the player permanently owns: the featured Vanguard's choices (Profiles Bible §2). */
 		TArray<FString> FeaturedChoices;
 	};
+
+	/** The player's display name and what changing it takes, as GET and PUT /v1/me/display-name report it (ADR-049). */
+	struct FDisplayNameStatus
+	{
+		FString Name;
+		bool bFreeChangeAvailable = false;
+		/** When a voluntary change is next allowed; unset when it is now. */
+		TOptional<FDateTime> NextChangeAt;
+		bool bRenameRequired = false;
+		int64 PriceFlux = 0;
+		int64 PriceRefinedFlux = 0;
+	};
+
+	/** Reads the answer to GET or PUT /v1/me/display-name. False, with the problem, if it is not one. */
+	VEYRASERVICES_API bool ParseDisplayNameStatus(const FString& Body, FDisplayNameStatus& Out, FString& OutProblem);
+
+	/** The body of PUT /v1/me/display-name; Currency is "flux" or "refinedFlux", or empty for a free change. */
+	VEYRASERVICES_API FString BuildDisplayNameBody(const FString& Name, const FString& Currency);
 
 	/** GET /v1/profiles/{name}. */
 	VEYRASERVICES_API FString ProfilePath(const FString& Name);

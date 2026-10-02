@@ -201,6 +201,11 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	const FVeyraProfileSettings& Own = Snapshot.ProfileSettings;
 	Text << TEXT("|own:") << (Own.bLoaded ? 1 : 0) << TEXT(":") << Own.Saved.Icon << TEXT(":") << Own.Saved.Background << TEXT(":") << Own.Saved.FeaturedVanguardId
 		 << TEXT(":") << (Own.Saved.bShowMatchHistory ? 1 : 0) << TEXT(":") << Own.Feedback << TEXT(":") << Own.Catalog.FeaturedChoices.Num();
+	// The display name and what changing it takes (ADR-049).
+	const FVeyraDisplayName& Name = Snapshot.DisplayNameChange;
+	Text << TEXT("|name:") << (Snapshot.bRenameRequired ? 1 : 0) << (Name.bLoaded ? 1 : 0) << TEXT(":") << Name.Status.Name << TEXT(":")
+		 << (Name.Status.bFreeChangeAvailable ? 1 : 0) << TEXT(":") << (Name.Status.NextChangeAt.IsSet() ? Name.Status.NextChangeAt->GetTicks() : 0) << TEXT(":")
+		 << Name.Feedback;
 	if (Own.Preview.IsSet())
 	{
 		Text << TEXT(":preview:") << Own.Preview->Level << TEXT(":") << (Own.Preview->Featured.IsSet() ? Own.Preview->Featured->MasteryLevel : 0);

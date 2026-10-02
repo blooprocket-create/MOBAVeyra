@@ -76,10 +76,11 @@ namespace VeyraClientFlowTests
 			SelectId, State, Remaining, *Quoted(Hover), *Quoted(Locked), FluxSpells, *Quoted(StartedMatch), *Quoted(CancelReason));
 	}
 
-	inline FString ProfileBody(bool bCompleted)
+	inline FString ProfileBody(bool bCompleted, bool bRenameRequired = false)
 	{
-		return FString::Printf(TEXT("{\"account\":{\"id\":\"%s\",\"displayName\":\"DevOne\"},\"tutorial\":{\"completed\":%s,\"starterVanguardId\":%s}}"), AccountId,
-			bCompleted ? TEXT("true") : TEXT("false"), bCompleted ? TEXT("\"oriel\"") : TEXT("null"));
+		return FString::Printf(TEXT("{\"account\":{\"id\":\"%s\",\"displayName\":\"DevOne\"},\"tutorial\":{\"completed\":%s,\"starterVanguardId\":%s},")
+								   TEXT("\"renameRequired\":%s}"),
+			AccountId, bCompleted ? TEXT("true") : TEXT("false"), bCompleted ? TEXT("\"oriel\"") : TEXT("null"), bRenameRequired ? TEXT("true") : TEXT("false"));
 	}
 
 	inline const TCHAR* const VanguardsBody = TEXT("{\"owned\":[],\"rotation\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],")
@@ -491,6 +492,9 @@ namespace VeyraClientFlowTests
 		/** With the flow syncing account settings, sign-in answers their read with this document. */
 		TOptional<FString> AccountSettingsAnswer;
 
+		/** When set, sign-in's profile says another player claimed the name, so the player must choose a new one (ADR-049 §4). */
+		bool bRenameRequired = false;
+
 		/** When set, reaching the shell answers its read of the account's level and balances with this document. */
 		TOptional<FString> ShellProgression;
 
@@ -511,7 +515,7 @@ namespace VeyraClientFlowTests
 		bool ReachProfile(bool bCompleted)
 		{
 			return SignIn() && Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)
-				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(bCompleted));
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(bCompleted, bRenameRequired));
 		}
 
 		/**

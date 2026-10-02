@@ -73,6 +73,8 @@ namespace VeyraBackendProtocol
 		bool bTutorialCompleted = false;
 		/** Empty until chosen. */
 		FString StarterVanguardId;
+		/** Another player claimed the name: the player chooses a new one, for free, before anything else (ADR-049 §4). */
+		bool bRenameRequired = false;
 	};
 
 	/** Reads a profile. False, with the problem, if it is not one. */

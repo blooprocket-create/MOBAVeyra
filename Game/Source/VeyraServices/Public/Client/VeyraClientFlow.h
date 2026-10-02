@@ -203,6 +203,8 @@ public:
 	virtual bool CloseProfileMatch() override;
 	virtual bool LoadProfileSettings() override;
 	virtual bool SaveProfileSettings(const VeyraBackendProtocol::FProfileSettings& Settings) override;
+	virtual bool LoadDisplayName() override;
+	virtual bool ChangeDisplayName(const FString& Name, const FString& Currency) override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);

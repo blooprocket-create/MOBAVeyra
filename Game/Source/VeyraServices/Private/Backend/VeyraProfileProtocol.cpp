@@ -145,6 +145,49 @@ bool ParseProfileSettings(const FString& Body, FProfileSettings& OutSettings, FP
 	return true;
 }
 
+bool ParseDisplayNameStatus(const FString& Body, FDisplayNameStatus& Out, FString& OutProblem)
+{
+	TSharedPtr<FJsonObject> Root;
+	const FJsonObject* Object = FJsonSerializer::Deserialize(TJsonReaderFactory<TCHAR>::Create(Body), Root) && Root.IsValid() ? ProfileChild(*Root, TEXT("displayName")) : nullptr;
+	const FJsonObject* Price = Object ? ProfileChild(*Object, TEXT("price")) : nullptr;
+	FDisplayNameStatus Status;
+	double Flux = 0.0;
+	double RefinedFlux = 0.0;
+	bool bValid = Object && Price && Object->TryGetStringField(TEXT("name"), Status.Name) && !Status.Name.IsEmpty()
+		&& Object->HasTypedField<EJson::Boolean>(TEXT("freeChangeAvailable")) && Object->TryGetBoolField(TEXT("freeChangeAvailable"), Status.bFreeChangeAvailable)
+		&& Object->HasTypedField<EJson::Boolean>(TEXT("renameRequired")) && Object->TryGetBoolField(TEXT("renameRequired"), Status.bRenameRequired)
+		&& Price->TryGetNumberField(TEXT("flux"), Flux) && Price->TryGetNumberField(TEXT("refinedFlux"), RefinedFlux) && Flux >= 0.0 && RefinedFlux >= 0.0
+		&& Flux == FMath::FloorToDouble(Flux) && RefinedFlux == FMath::FloorToDouble(RefinedFlux);
+	if (bValid && !Object->HasTypedField<EJson::Null>(TEXT("nextChangeAt")))
+	{
+		FString When;
+		FDateTime At;
+		bValid = Object->TryGetStringField(TEXT("nextChangeAt"), When) && FDateTime::ParseIso8601(*When, At);
+		Status.NextChangeAt = At;
+	}
+	if (!bValid)
+	{
+		OutProblem = TEXT("the display name, its free change, its next change, its price or the required rename is missing or not in the expected format");
+		return false;
+	}
+	Status.PriceFlux = static_cast<int64>(Flux);
+	Status.PriceRefinedFlux = static_cast<int64>(RefinedFlux);
+	Out = MoveTemp(Status);
+	return true;
+}
+
+FString BuildDisplayNameBody(const FString& Name, const FString& Currency)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+	Writer->WriteObjectStart();
+	Writer->WriteValue(TEXT("name"), Name);
+	Writer->WriteValue(TEXT("currency"), Currency);
+	Writer->WriteObjectEnd();
+	Writer->Close();
+	return Body;
+}
+
 FString BuildProfileSettingsBody(const FProfileSettings& Settings)
 {
 	FString Body;
