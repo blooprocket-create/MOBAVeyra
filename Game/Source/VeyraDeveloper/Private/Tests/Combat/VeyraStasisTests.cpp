@@ -136,6 +136,9 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(VeyraCombat::GrantShield(Ally, Held, EVeyraShieldCategory::Universal, StasisFixture::Mend, StasisFixture::LongSeconds).IsValid()));
 			ASSERT_THAT(IsFalse(VeyraCombat::GrantTemporaryHealth(Ally, Held, StasisFixture::Mend, StasisFixture::LongSeconds).IsValid()));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCombat::GetMissingHealth(Held), StasisFixture::Hit)));
+			// Health Regeneration is no new heal: it goes on in Stasis (ADR-050 §1).
+			ASSERT_THAT(IsTrue(VeyraCombat::RegenerateHealth(Held, StasisFixture::Mend / 5.0)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCombat::GetMissingHealth(Held), StasisFixture::Hit - StasisFixture::Mend / 5.0)));
 
 			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(Held, StasisSpec().Id)));
 			ASSERT_THAT(IsTrue(VeyraCombat::RestoreHealthFrom(Ally, Held, StasisFixture::Mend) > 0.0, TEXT("out of Stasis, heals land again")));
@@ -196,7 +199,8 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(VeyraCombat::SetSealedHealth(Sealed, Full / 2.0)));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCombat::GetMissingHealth(Sealed), Full / 2.0)));
 			ASSERT_THAT(IsTrue(VeyraCombat::RestoreHealthFrom(Ally, Sealed, StasisFixture::Mend) == 0.0));
-			ASSERT_THAT(IsFalse(VeyraCombat::RestoreHealth(Sealed, StasisFixture::Mend), TEXT("nor regeneration")));
+			ASSERT_THAT(IsFalse(VeyraCombat::RestoreHealth(Sealed, StasisFixture::Mend), TEXT("nor any restoration")));
+			ASSERT_THAT(IsFalse(VeyraCombat::RegenerateHealth(Sealed, StasisFixture::Mend), TEXT("nor regeneration")));
 			ASSERT_THAT(IsFalse(VeyraCombat::GrantShield(Ally, Sealed, EVeyraShieldCategory::Universal, StasisFixture::Mend, StasisFixture::LongSeconds).IsValid()));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCombat::GetMissingHealth(Sealed), Full / 2.0)));
 		}

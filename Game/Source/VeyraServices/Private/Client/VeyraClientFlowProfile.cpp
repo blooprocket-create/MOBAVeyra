@@ -87,19 +87,22 @@ void FVeyraClientFlow::ReadProfile(const FString& Name)
 		Broadcast();
 		if (View.Profile.bSharesMatchHistory)
 		{
-			ReadProfileMatches(Name, FString());
+			ReadProfileMatches(Name, View.Filter, FString());
 		}
 	});
 }
 
-void FVeyraClientFlow::ReadProfileMatches(const FString& Name, const FString& Cursor)
+void FVeyraClientFlow::ReadProfileMatches(const FString& Name, const VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Cursor)
 {
-	Call(EVerb::Get, VeyraBackendProtocol::ProfileMatchesPath(Name, Cursor), FString(), [this, Name, Cursor](const FVeyraBackendResponse& Response) {
+	Snapshot.ProfileView.bReadingMatches = true;
+	Call(EVerb::Get, VeyraBackendProtocol::ProfileMatchesPath(Name, Filter, Cursor), FString(), [this, Name, Filter, Cursor](const FVeyraBackendResponse& Response) {
 		FVeyraProfileView& View = Snapshot.ProfileView;
-		if (View.Name != Name)
+		// Another profile, or other filters, since it was asked for: a newer read answers instead.
+		if (View.Name != Name || !(View.Filter == Filter))
 		{
 			return;
 		}
+		View.bReadingMatches = false;
 		VeyraBackendProtocol::FHistoryPage Page;
 		FString Problem;
 		// The owner may stop sharing, or block, after the profile was read: the history then shows nothing.
@@ -114,12 +117,12 @@ void FVeyraClientFlow::ReadProfileMatches(const FString& Name, const FString& Cu
 		}
 		if (!Response.IsSuccess())
 		{
-			ShowRefusal(Response, TEXT("the profile's Match History"), [this, Name, Cursor] { ReadProfileMatches(Name, Cursor); });
+			ShowRefusal(Response, TEXT("the profile's Match History"), [this, Name, Filter, Cursor] { ReadProfileMatches(Name, Filter, Cursor); });
 			return;
 		}
 		if (!VeyraBackendProtocol::ParseHistoryPage(Response.Body, Page, Problem))
 		{
-			ShowBadAnswer(TEXT("the profile's Match History"), Problem, [this, Name, Cursor] { ReadProfileMatches(Name, Cursor); });
+			ShowBadAnswer(TEXT("the profile's Match History"), Problem, [this, Name, Filter, Cursor] { ReadProfileMatches(Name, Filter, Cursor); });
 			return;
 		}
 		if (Cursor.IsEmpty())
@@ -128,6 +131,7 @@ void FVeyraClientFlow::ReadProfileMatches(const FString& Name, const FString& Cu
 		}
 		View.Matches.Append(MoveTemp(Page.Entries));
 		View.Next = Page.Next;
+		View.Modes = MoveTemp(Page.Modes);
 		View.bMatchesLoaded = true;
 		Broadcast();
 	});
@@ -136,11 +140,28 @@ void FVeyraClientFlow::ReadProfileMatches(const FString& Name, const FString& Cu
 bool FVeyraClientFlow::LoadMoreProfileMatches()
 {
 	const FVeyraProfileView& View = Snapshot.ProfileView;
-	if (!CanIssue(EVeyraClientIntent::LoadMoreProfileMatches) || View.Name.IsEmpty() || View.Next.IsEmpty() || View.OpenedMatch.IsSet())
+	// One page at a time: a second Load More before the first page arrives asks for nothing.
+	if (!CanIssue(EVeyraClientIntent::LoadMoreProfileMatches) || View.Name.IsEmpty() || View.Next.IsEmpty() || View.OpenedMatch.IsSet() || View.bReadingMatches)
 	{
 		return false;
 	}
-	ReadProfileMatches(View.Name, View.Next);
+	ReadProfileMatches(View.Name, View.Filter, View.Next);
+	return true;
+}
+
+bool FVeyraClientFlow::FilterProfileMatches(const VeyraBackendProtocol::FHistoryFilter& Filter)
+{
+	FVeyraProfileView& View = Snapshot.ProfileView;
+	if (!CanIssue(EVeyraClientIntent::FilterProfileMatches) || View.Name.IsEmpty() || !View.Profile.bSharesMatchHistory || View.OpenedMatch.IsSet())
+	{
+		return false;
+	}
+	View.Filter = Filter;
+	View.Matches.Reset();
+	View.Next.Reset();
+	View.bMatchesLoaded = false;
+	Broadcast();
+	ReadProfileMatches(View.Name, Filter, FString());
 	return true;
 }
 
@@ -322,6 +343,7 @@ bool FVeyraClientFlow::ChangeDisplayName(const FString& Name, const FString& Cur
 			return;
 		}
 		// The player is shown by the new name from now on; a required rename is done.
+		const bool bWasRequired = Snapshot.bRenameRequired;
 		Snapshot.DisplayName = Status.Name;
 		Snapshot.bRenameRequired = Status.bRenameRequired;
 		Own.Status = MoveTemp(Status);
@@ -330,6 +352,11 @@ bool FVeyraClientFlow::ChangeDisplayName(const FString& Name, const FString& Cur
 		Log(TEXT("display name: name_changed."));
 		Broadcast();
 		ReadProfilePreview();
+		// Its required name chosen, the account goes where it was bound: its starter, its lobby or the shell.
+		if (bWasRequired && !Status.bRenameRequired)
+		{
+			Resume();
+		}
 	});
 	return true;
 }

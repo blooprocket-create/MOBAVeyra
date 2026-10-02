@@ -239,3 +239,25 @@ func (s *Service) DevResetName(ctx context.Context, current, original string) (A
 func (s *Service) touchLauncherLogin(ctx context.Context, accountID string) error {
 	return s.store.TouchLauncherLogin(ctx, accountID, s.now())
 }
+
+// issueLauncherSession creates a launcher session and records the successful
+// launcher login that keeps the account's name from being claimed (ADR-049
+// §1). With name changes enabled the two commit together; either way, a
+// session that could not be created records no login.
+func (s *Service) issueLauncherSession(ctx context.Context, accountID string) (IssuedToken, error) {
+	var tok IssuedToken
+	issue := func(ctx context.Context) error {
+		var err error
+		if tok, err = s.createSession(ctx, accountID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession); err != nil {
+			return err
+		}
+		return s.touchLauncherLogin(ctx, accountID)
+	}
+	if s.atomic == nil {
+		return tok, issue(ctx)
+	}
+	if err := s.atomic(ctx, issue); err != nil {
+		return IssuedToken{}, err
+	}
+	return tok, nil
+}
