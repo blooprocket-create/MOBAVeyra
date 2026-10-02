@@ -51,7 +51,7 @@ struct FVeyraCollectionModel
 /** What the results screen says the match gave the player (ADR-045 §8), apart from the match's Gold, XP and Team Flux. */
 struct FVeyraRewardsModel
 {
-	/** Unset until the result is adjudicated, or from a backend without progression. */
+	/** Unset before a result, or from a backend without progression. */
 	bool bShown = false;
 	TArray<FText> Lines;
 };
@@ -63,7 +63,8 @@ namespace VeyraProgressionModels
 	/** The Collection as read; bCanPurchase is whether the purchase intent is allowed now. */
 	VEYRAUI_API FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, bool bCanPurchase);
 
-	VEYRAUI_API FVeyraRewardsModel DescribeRewards(const TOptional<VeyraBackendProtocol::FMatchOutcome>& Result);
+	/** A result's rewards; Wait says whether ones it came without are still to come. */
+	VEYRAUI_API FVeyraRewardsModel DescribeRewards(const TOptional<VeyraBackendProtocol::FMatchOutcome>& Result, EVeyraRewardsWait Wait = EVeyraRewardsWait::None);
 
 	/** "Collection Bryn": the button that opens a Vanguard's card. */
 	VEYRAUI_API FText CollectionCardLabel(const FString& VanguardId);

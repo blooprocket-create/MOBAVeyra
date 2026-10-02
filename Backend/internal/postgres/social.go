@@ -188,6 +188,24 @@ func (s *SocialStore) FriendOfAny(ctx context.Context, account string, others []
 		   OR (account_b = $1::uuid AND account_a = ANY($2::uuid[]))`, account, others)
 }
 
+func (s *SocialStore) BlockedWith(ctx context.Context, account string, others []string) (map[string]bool, error) {
+	rows, err := querierFor(ctx, s.pool).Query(ctx, `SELECT CASE WHEN blocker_id = $1::uuid THEN blocked_id::text ELSE blocker_id::text END FROM social.blocks
+		WHERE (blocker_id = $1::uuid AND blocked_id = ANY($2::uuid[]))
+		   OR (blocked_id = $1::uuid AND blocker_id = ANY($2::uuid[]))`, account, others)
+	if err != nil {
+		return nil, err
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		out[id] = true
+	}
+	return out, nil
+}
+
 func (s *SocialStore) BlockedWithAny(ctx context.Context, account string, others []string) (bool, error) {
 	return s.exists(ctx, `SELECT 1 FROM social.blocks
 		WHERE (blocker_id = $1::uuid AND blocked_id = ANY($2::uuid[]))

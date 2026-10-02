@@ -70,6 +70,9 @@ func TestBlockingEndsFriendshipAndStopsRequestsBothWays(t *testing.T) {
 	if blocked, _ := s.BlockedWithAny(ctx, "a", []string{"x", "b"}); !blocked {
 		t.Fatal("BlockedWithAny must see the block from the other side")
 	}
+	if blocked, _ := s.BlockedWith(ctx, "a", []string{"x", "b"}); len(blocked) != 1 || !blocked["b"] {
+		t.Fatalf("BlockedWith must name b, blocked from the other side: %v", blocked)
+	}
 	// Unblocking only removes the actor's own block.
 	if err := s.Unblock(ctx, "a", "b"); err != nil {
 		t.Fatal(err)

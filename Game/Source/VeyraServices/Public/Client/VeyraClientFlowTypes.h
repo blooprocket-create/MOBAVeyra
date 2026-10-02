@@ -150,6 +150,17 @@ enum class EVeyraClientWorld : uint8
 	Match,
 };
 
+/** Results: whether the flow still waits for the result's rewards (ADR-045 §7). */
+enum class EVeyraRewardsWait : uint8
+{
+	/** The rewards arrived with the result, or there are none to wait for. */
+	None,
+	/** The result arrived without them; the flow asks again. */
+	Pending,
+	/** They did not arrive within the wait; the account still receives them once they are counted. */
+	Late,
+};
+
 VEYRASERVICES_API const TCHAR* LexToString(EVeyraClientState State);
 VEYRASERVICES_API const TCHAR* LexToString(EVeyraClientIntent Intent);
 
@@ -283,6 +294,8 @@ struct FVeyraClientSnapshot
 	FString MatchId;
 	/** Results: the verified result, or unset when none arrived in time. */
 	TOptional<VeyraBackendProtocol::FMatchOutcome> Result;
+	/** Results: whether the result's rewards are still to come. */
+	EVeyraRewardsWait RewardsWait = EVeyraRewardsWait::None;
 	/** Shell: Match History, once the player opens it. */
 	FVeyraMatchHistory History;
 	/** Lobby: the player's custom lobby as last read; unset elsewhere. */
