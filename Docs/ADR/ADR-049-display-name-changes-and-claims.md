@@ -51,7 +51,7 @@ Nothing else keys on the name: friends, parties, chat, conduct and profiles name
 If another account holds the name, the change is refused as `display_name_taken`, unless that account's last launcher login is older than `names.claimAfter`. In that case the name is claimed: the old holder gets a unique placeholder name and is marked rename-required, all in the same unit of work.
 
 - There is no availability-search route. A failed attempt reveals only that a name is taken, and a successful one claims it.
-- A rename to the player's own name, ignoring case, is refused as `same_display_name`. A change of case alone is a change.
+- A rename to exactly the player's current name is refused as `same_display_name`. A change of case alone is a change.
 
 ### 3. Price and cooldown
 
