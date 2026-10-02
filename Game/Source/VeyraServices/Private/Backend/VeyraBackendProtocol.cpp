@@ -1243,16 +1243,18 @@ bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem)
 			OutProblem = TEXT("the joinable parties are not an object");
 			return false;
 		}
-		for (const TPair<FString, TSharedPtr<FJsonValue>>& Entry : Joinable->Values)
+		// The map's key type is the JSON library's own string, which converts to FString.
+		for (const auto& Entry : Joinable->Values)
 		{
+			const FString AccountId(Entry.Key);
 			FString PartyId;
-			if (!MatchesWhole(IdPattern, Entry.Key) || !Entry.Value.IsValid() || Entry.Value->Type != EJson::String || !Entry.Value->TryGetString(PartyId)
+			if (!MatchesWhole(IdPattern, AccountId) || !Entry.Value.IsValid() || Entry.Value->Type != EJson::String || !Entry.Value->TryGetString(PartyId)
 				|| !MatchesWhole(IdPattern, PartyId))
 			{
 				OutProblem = TEXT("a joinable party is not an account and a party");
 				return false;
 			}
-			Friends.JoinableParties.Add(FJoinableParty{ Entry.Key, MoveTemp(PartyId) });
+			Friends.JoinableParties.Add(FJoinableParty{ AccountId, MoveTemp(PartyId) });
 		}
 		// A map's order means nothing, and an unchanged list must compare equal.
 		Friends.JoinableParties.Sort([](const FJoinableParty& A, const FJoinableParty& B) { return A.AccountId < B.AccountId; });
