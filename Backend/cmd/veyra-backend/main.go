@@ -28,6 +28,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/postgres"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/progression"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/settings"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
@@ -128,6 +129,12 @@ func run(log *slog.Logger) error {
 	if cfg.Matches.DevCreate {
 		log.Warn("development match creation is enabled; never expose this backend publicly")
 	}
+	// Each verified result grants account progression in its own transaction (ADR-045 §1).
+	progress := progression.NewService(store.Progression(), accounts, progressionTuning(cfg.Progression), modeCategories(cfg.Modes), time.Now)
+	matches.SetRewards(progress)
+	if cfg.Progression.DevGrant {
+		log.Warn("the development currency grant is enabled; never expose this backend publicly")
+	}
 	go matches.RunReaper(ctx, cfg.Matches.ReapInterval, log)
 
 	queued := selection.PartiesFunc(func(ctx context.Context, accountID string) (bool, error) {
@@ -208,6 +215,7 @@ func run(log *slog.Logger) error {
 			Lobby:          customLobbies(cfg, lobbies),
 			Match:          matches,
 			Account:        accounts,
+			Progression:    progress,
 			Selection:      selects,
 			Matchmaking:    matchmaker,
 			Settings:       settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes),

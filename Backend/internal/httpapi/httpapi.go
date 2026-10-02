@@ -18,6 +18,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/progression"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/settings"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
@@ -51,6 +52,9 @@ type Deps struct {
 	Match *match.Service
 	// Account is optional; without it no onboarding routes are registered.
 	Account *account.Service
+	// Progression is optional; without it no progression, Collection or purchase
+	// routes are registered, and match results carry no rewards (ADR-045 §7).
+	Progression *progression.Service
 	// Selection is optional; without it no practice or champion-select routes
 	// are registered.
 	Selection *selection.Service
@@ -103,6 +107,7 @@ func New(d Deps) http.Handler {
 	}
 	s.routeMatch(mux)
 	s.routeOnboarding(mux)
+	s.routeProgression(mux)
 	s.routeSelection(mux)
 	s.routeMatchFound(mux)
 	s.routeSettings(mux)
@@ -340,6 +345,11 @@ var errorStatus = []struct {
 
 	{account.ErrNotAStarter, http.StatusBadRequest, "not_a_starter"},
 	{account.ErrAlreadyChosen, http.StatusConflict, "already_completed"},
+	{progression.ErrNotForSale, http.StatusBadRequest, "not_for_sale"},
+	{progression.ErrAlreadyOwned, http.StatusConflict, "already_owned"},
+	{progression.ErrInsufficient, http.StatusConflict, "insufficient_balance"},
+	{progression.ErrInvalidPurchase, http.StatusBadRequest, "invalid_purchase"},
+	{progression.ErrPurchaseConflict, http.StatusConflict, "purchase_conflict"},
 
 	{selection.ErrTutorialRequired, http.StatusConflict, "tutorial_required"},
 	{selection.ErrBusy, http.StatusConflict, "busy"},
