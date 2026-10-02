@@ -33,9 +33,15 @@ func (s *Server) profileJSON(r *http.Request, actor string, p account.Profile) (
 		return nil, err
 	}
 	acct := accounts[actor]
+	// A claimed account chooses a new name before anything else (ADR-049 §4).
+	required, err := s.Identity.RenameRequired(r.Context(), actor)
+	if err != nil {
+		return nil, err
+	}
 	return map[string]any{
-		"account":  toAccountJSON(acct),
-		"tutorial": tutorialJSON{Completed: p.TutorialCompleted, StarterVanguardID: textOrNil(p.StarterVanguardID)},
+		"account":        toAccountJSON(acct),
+		"tutorial":       tutorialJSON{Completed: p.TutorialCompleted, StarterVanguardID: textOrNil(p.StarterVanguardID)},
+		"renameRequired": required,
 	}, nil
 }
 

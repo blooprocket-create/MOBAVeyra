@@ -147,4 +147,11 @@ public:
 	virtual bool LoadProfileSettings() = 0;
 	/** Saves the player's profile choices: catalog entries, and a featured Vanguard they permanently own or none. */
 	virtual bool SaveProfileSettings(const VeyraBackendProtocol::FProfileSettings& Settings) = 0;
+	/** Reads the player's display name and what changing it takes. */
+	virtual bool LoadDisplayName() = 0;
+	/**
+	 * Changes the player's display name to Name. Currency ("flux" or "refinedFlux") pays for a voluntary change after
+	 * the free one; a required rename is free. The backend decides; a refusal shows beside the name.
+	 */
+	virtual bool ChangeDisplayName(const FString& Name, const FString& Currency) = 0;
 };

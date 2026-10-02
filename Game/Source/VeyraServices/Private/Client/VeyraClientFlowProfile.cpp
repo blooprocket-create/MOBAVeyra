@@ -10,6 +10,9 @@
 namespace
 {
 	const TCHAR* const ProfileSettingsPath = TEXT("/v1/me/profile-settings");
+	const TCHAR* const DisplayNamePath = TEXT("/v1/me/display-name");
+	/** The Profile page's feedback after a name change went through. */
+	const TCHAR* const NameChangedFeedback = TEXT("name_changed");
 	/** The Profile page's feedback after a save went through. */
 	const TCHAR* const ProfileSavedFeedback = TEXT("profile_saved");
 
@@ -287,6 +290,73 @@ bool FVeyraClientFlow::SaveProfileSettings(const VeyraBackendProtocol::FProfileS
 		Log(TEXT("profile: profile_saved."));
 		Broadcast();
 		ReadProfilePreview();
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::LoadDisplayName()
+{
+	if (!CanIssue(EVeyraClientIntent::LoadDisplayName))
+	{
+		return false;
+	}
+	// A read that must never stop the page: a backend without name changes, or a failure, keeps the last read.
+	Probe(EVerb::Get, DisplayNamePath, [this](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FDisplayNameStatus Status;
+		FString Problem;
+		if (!Response.IsSuccess() || !VeyraBackendProtocol::ParseDisplayNameStatus(Response.Body, Status, Problem))
+		{
+			return;
+		}
+		Snapshot.DisplayNameChange.Status = MoveTemp(Status);
+		Snapshot.DisplayNameChange.bLoaded = true;
+		Broadcast();
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::ChangeDisplayName(const FString& Name, const FString& Currency)
+{
+	const FString Trimmed = Name.TrimStartAndEnd();
+	if (!CanIssue(EVeyraClientIntent::ChangeDisplayName) || Trimmed.IsEmpty())
+	{
+		return false;
+	}
+	Log(TEXT("changing the display name."));
+	SetBusy(true);
+	Call(EVerb::Put, DisplayNamePath, VeyraBackendProtocol::BuildDisplayNameBody(Trimmed, Currency), [this](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		FVeyraDisplayName& Own = Snapshot.DisplayNameChange;
+		VeyraBackendProtocol::FDisplayNameStatus Status;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			// A refusal shows beside the name, never as the screen's problem.
+			Own.Feedback = ProfileRefusalCode(Response);
+			Log(FString::Printf(TEXT("display name: %s."), *Own.Feedback));
+			Broadcast();
+			return;
+		}
+		if (!VeyraBackendProtocol::ParseDisplayNameStatus(Response.Body, Status, Problem))
+		{
+			ShowBadAnswer(TEXT("the display name"), Problem, [this] { LoadDisplayName(); });
+			return;
+		}
+		// The player is shown by the new name from now on; a required rename is done.
+		const bool bWasRequired = Snapshot.bRenameRequired;
+		Snapshot.DisplayName = Status.Name;
+		Snapshot.bRenameRequired = Status.bRenameRequired;
+		Own.Status = MoveTemp(Status);
+		Own.bLoaded = true;
+		Own.Feedback = NameChangedFeedback;
+		Log(TEXT("display name: name_changed."));
+		Broadcast();
+		ReadProfilePreview();
+		// Its required name chosen, the account goes where it was bound: its starter, its lobby or the shell.
+		if (bWasRequired && !Status.bRenameRequired)
+		{
+			Resume();
+		}
 	});
 	return true;
 }

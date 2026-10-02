@@ -67,6 +67,30 @@ struct FVeyraProfilePageModel
 	FText Feedback;
 };
 
+/** One way to pay for a name change: free, Flux or Refined Flux, as its button names it. */
+struct FVeyraNameOffer
+{
+	/** Empty for a free change; otherwise "flux" or "refinedFlux". */
+	FString Currency;
+	FText Label;
+	/** The price as the confirmation names it: Free, or the amount and currency. */
+	FText Price;
+};
+
+/** The Profile page's Display Name section (ADR-049 §6). */
+struct FVeyraDisplayNameModel
+{
+	bool bLoaded = false;
+	FText Current;
+	/** What the next change costs, and when it is allowed. */
+	FText Cost;
+	FText Next;
+	/** False within the cooldown. */
+	bool bCanChange = false;
+	TArray<FVeyraNameOffer> Offers;
+	FText Feedback;
+};
+
 namespace VeyraProfileModels
 {
 	/** The Vanguard a catalog entry's picture shows: "vanguard_<id>" is that Vanguard; anything else is neutral. */
@@ -92,6 +116,17 @@ namespace VeyraProfileModels
 	/** The player menu's way to Name's profile. */
 	VEYRAUI_API FText MenuProfileLabel(const FString& Name);
 	VEYRAUI_API FText CloseLabel();
+
+	/** The Display Name section at Now (UTC): the name, the next change's price and when it is allowed. */
+	VEYRAUI_API FVeyraDisplayNameModel DescribeName(const FVeyraClientSnapshot& Snapshot, const FDateTime& Now);
+	/** The confirmation of a change to Name for Price: the old name is anyone's at once (Profiles Bible §4). */
+	VEYRAUI_API FText NameChangePrompt(const FString& Name, const FText& Price);
+	VEYRAUI_API FText ConfirmNameChangeLabel();
+	VEYRAUI_API FText CancelNameChangeLabel();
+	/** The Choose Your Name screen's action, for a claimed account (ADR-049 §4). */
+	VEYRAUI_API FText ChooseNameLabel();
+	/** What came of a name change, as the page says it. */
+	VEYRAUI_API FText NameFeedbackText(const FString& Code);
 
 	/** Everything the profile view and the Profile page show, so the screen rebuilds when any of it changes. */
 	VEYRAUI_API FString Signature(const FVeyraClientSnapshot& Snapshot);

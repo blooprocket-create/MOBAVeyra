@@ -63,6 +63,7 @@ namespace
 	const TCHAR* const ReconnectsSwitch = TEXT("VeyraSmokeFlowReconnects");
 	const TCHAR* const AwaitsReturnSwitch = TEXT("VeyraSmokeFlowAwaitsReturn");
 	const TCHAR* const FriendSwitch = TEXT("VeyraSmokeFlowFriend=");
+	const TCHAR* const NameSwitch = TEXT("VeyraSmokeFlowName=");
 	const TCHAR* const BotsSwitch = TEXT("VeyraSmokeFlowBots=");
 	// A matchmade script: the mode it queues for, such as a co-op queue; the first matchmade one without it.
 	const TCHAR* const ModeSwitch = TEXT("VeyraSmokeFlowMode=");
@@ -146,6 +147,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	bReconnects = FParse::Param(FCommandLine::Get(), ReconnectsSwitch);
 	bAwaitsReturn = FParse::Param(FCommandLine::Get(), AwaitsReturnSwitch);
 	FParse::Value(FCommandLine::Get(), FriendSwitch, FriendName);
+	FParse::Value(FCommandLine::Get(), NameSwitch, WantedName);
 	FString Bots;
 	// A list: FParse stops at its first comma unless told not to.
 	FParse::Value(FCommandLine::Get(), BotsSwitch, Bots, /*bShouldStopOnSeparator*/ false);
@@ -170,6 +172,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("chatmember"), EScript::ChatMember },
 		{ TEXT("profileowner"), EScript::ProfileOwner },
 		{ TEXT("profileviewer"), EScript::ProfileViewer },
+		{ TEXT("rename"), EScript::Rename },
 	};
 	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
 		return Mode.Equals(Candidate.Key, ESearchCase::CaseSensitive);
@@ -177,7 +180,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (!Known)
 	{
 		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost, customguest, settingschange, settingscheck, ")
-										  TEXT("partyleader, partymember, collection, chatleader, chatmember, profileowner or profileviewer, not \"%s\""), *Mode));
+										  TEXT("partyleader, partymember, collection, chatleader, chatmember, profileowner, profileviewer or rename, not \"%s\""), *Mode));
 		return;
 	}
 	Script = Known->Value;
@@ -326,6 +329,10 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		else if (IsProfile())
 		{
 			TickProfileShell(Flow);
+		}
+		else if (Script == EScript::Rename)
+		{
+			TickRenameShell(Flow);
 		}
 		else if (Script == EScript::Collection && !bPurchased)
 		{
@@ -1132,6 +1139,75 @@ void UVeyraSmokeFlowSubsystem::TickProfileShell(IVeyraClientIntents& Flow)
 		{
 			Finish(true, FString::Printf(TEXT("opened %s's profile from their card: level %d, featuring %s at Mastery Level %d, with %d shared match(es) listed"), *FriendName,
 							 View.Profile.Level, *View.Profile.Featured->VanguardId, View.Profile.Featured->MasteryLevel, View.Matches.Num()));
+		}
+		return;
+	}
+#endif
+}
+
+void UVeyraSmokeFlowSubsystem::TickRenameShell(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	if (Snapshot.bBusy)
+	{
+		return;
+	}
+	if (WantedName.IsEmpty())
+	{
+		Finish(false, TEXT("-VeyraSmokeFlow=rename needs -VeyraSmokeFlowName=<new name>"));
+		return;
+	}
+	switch (ProfileStep)
+	{
+	case 0:
+		OriginalName = Snapshot.DisplayName;
+		if (Click(VeyraProfileModels::PageLabel().ToString()))
+		{
+			ProfileStep = 1;
+		}
+		return;
+	case 1:
+	{
+		if (!Snapshot.DisplayNameChange.bLoaded)
+		{
+			return;
+		}
+		const FVeyraDisplayNameModel Model = VeyraProfileModels::DescribeName(Snapshot, FDateTime::UtcNow());
+		// The script resets the account first, so its free change is left.
+		if (!Snapshot.DisplayNameChange.Status.bFreeChangeAvailable || Model.Offers.Num() != 1 || !Model.bCanChange)
+		{
+			Finish(false, TEXT("the Profile page offers no free name change"));
+			return;
+		}
+		const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+		if (UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr)
+		{
+			Screen->SetNameDraft(WantedName);
+		}
+		if (Click(Model.Offers[0].Label.ToString()))
+		{
+			ProfileStep = 2;
+		}
+		return;
+	}
+	case 2:
+		// The confirmation names the price and the risk; then the change goes.
+		if (!Capture(TEXT("RenameConfirm")) && Click(VeyraProfileModels::ConfirmNameChangeLabel().ToString()))
+		{
+			ProfileStep = 3;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: changing its name to %s."), *WantedName);
+		}
+		return;
+	default:
+		if (Snapshot.DisplayName == WantedName && !Capture(TEXT("Renamed")))
+		{
+			Finish(true, FString::Printf(TEXT("changed its name from %s to %s on the Profile page through the confirmation, its first change free"), *OriginalName,
+							 *WantedName));
+		}
+		else if (!Snapshot.DisplayNameChange.Feedback.IsEmpty() && Snapshot.DisplayNameChange.Feedback != TEXT("name_changed"))
+		{
+			Finish(false, FString::Printf(TEXT("the name change was refused: %s"), *Snapshot.DisplayNameChange.Feedback));
 		}
 		return;
 	}

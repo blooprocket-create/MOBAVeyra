@@ -152,6 +152,93 @@ FVeyraProfilePageModel DescribePage(const FVeyraClientSnapshot& Snapshot, const 
 	return Model;
 }
 
+FVeyraDisplayNameModel DescribeName(const FVeyraClientSnapshot& Snapshot, const FDateTime& Now)
+{
+	const FVeyraDisplayName& Name = Snapshot.DisplayNameChange;
+	FVeyraDisplayNameModel Model;
+	Model.bLoaded = Name.bLoaded;
+	Model.Current = FText::FromString(Snapshot.DisplayName);
+	Model.Feedback = NameFeedbackText(Name.Feedback);
+	if (!Name.bLoaded)
+	{
+		return Model;
+	}
+	const VeyraBackendProtocol::FDisplayNameStatus& Status = Name.Status;
+	Model.bCanChange = Status.bRenameRequired || !Status.NextChangeAt.IsSet() || *Status.NextChangeAt <= Now;
+	if (!Model.bCanChange)
+	{
+		Model.Next = FText::Format(LOCTEXT("NameNext", "You can change it again {0}."),
+			FText::AsDateTime(*Status.NextChangeAt, EDateTimeStyle::Medium, EDateTimeStyle::Short));
+	}
+	if (Status.bFreeChangeAvailable || Status.bRenameRequired)
+	{
+		Model.Cost = Status.bRenameRequired ? LOCTEXT("NameRequired", "Choosing a new name is free.") : LOCTEXT("NameFree", "Your first change is free.");
+		Model.Offers.Add({ FString(), LOCTEXT("ChangeNameFree", "Change Name"), LOCTEXT("PriceFree", "Free") });
+		return Model;
+	}
+	const FText Flux = FText::Format(LOCTEXT("PriceFlux", "{0} Flux"), FText::AsNumber(Status.PriceFlux));
+	const FText Refined = FText::Format(LOCTEXT("PriceRefined", "{0} Refined Flux"), FText::AsNumber(Status.PriceRefinedFlux));
+	// Paying never skips the cooldown (Profiles Bible §4).
+	Model.Cost = FText::Format(LOCTEXT("NamePaid", "A change costs {0} or {1}, at most once a day."), Flux, Refined);
+	Model.Offers.Add({ TEXT("flux"), FText::Format(LOCTEXT("ChangeNameFor", "Change Name for {0}"), Flux), Flux });
+	Model.Offers.Add({ TEXT("refinedFlux"), FText::Format(LOCTEXT("ChangeNameFor", "Change Name for {0}"), Refined), Refined });
+	return Model;
+}
+
+FText NameChangePrompt(const FString& Name, const FText& Price)
+{
+	return FText::Format(LOCTEXT("NamePrompt", "Change your name to {0} ({1})? Your current name becomes available to anyone at once."),
+		FText::FromString(Name), Price);
+}
+
+FText ConfirmNameChangeLabel()
+{
+	return LOCTEXT("ConfirmNameChange", "Confirm Name Change");
+}
+
+FText CancelNameChangeLabel()
+{
+	return LOCTEXT("CancelNameChange", "Cancel Name Change");
+}
+
+FText ChooseNameLabel()
+{
+	return LOCTEXT("ChooseName", "Choose Name");
+}
+
+FText NameFeedbackText(const FString& Code)
+{
+	if (Code.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+	if (Code == TEXT("name_changed"))
+	{
+		return LOCTEXT("NameChanged", "Your name is changed.");
+	}
+	if (Code == TEXT("display_name_taken"))
+	{
+		return LOCTEXT("NameTaken", "That name is taken.");
+	}
+	if (Code == TEXT("invalid_display_name"))
+	{
+		return LOCTEXT("NameInvalid", "A name is 3 to 16 letters, digits or underscores.");
+	}
+	if (Code == TEXT("rename_cooldown"))
+	{
+		return LOCTEXT("NameCooldown", "You changed your name too recently.");
+	}
+	if (Code == TEXT("same_display_name"))
+	{
+		return LOCTEXT("NameSame", "That is already your name.");
+	}
+	if (Code == TEXT("insufficient_balance"))
+	{
+		return LOCTEXT("NameInsufficient", "Not enough to pay for the change.");
+	}
+	return FText::Format(LOCTEXT("NameFailed", "Your name was not changed ({0})."), FText::FromString(Code));
+}
+
 FText PageLabel()
 {
 	return LOCTEXT("PageLabel", "Profile");
@@ -210,6 +297,11 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	const FVeyraProfileSettings& Own = Snapshot.ProfileSettings;
 	Text << TEXT("|own:") << (Own.bLoaded ? 1 : 0) << TEXT(":") << Own.Saved.Icon << TEXT(":") << Own.Saved.Background << TEXT(":") << Own.Saved.FeaturedVanguardId
 		 << TEXT(":") << (Own.Saved.bShowMatchHistory ? 1 : 0) << TEXT(":") << Own.Feedback << TEXT(":") << Own.Catalog.FeaturedChoices.Num();
+	// The display name and what changing it takes (ADR-049).
+	const FVeyraDisplayName& Name = Snapshot.DisplayNameChange;
+	Text << TEXT("|name:") << (Snapshot.bRenameRequired ? 1 : 0) << (Name.bLoaded ? 1 : 0) << TEXT(":") << Name.Status.Name << TEXT(":")
+		 << (Name.Status.bFreeChangeAvailable ? 1 : 0) << TEXT(":") << (Name.Status.NextChangeAt.IsSet() ? Name.Status.NextChangeAt->GetTicks() : 0) << TEXT(":")
+		 << Name.Feedback;
 	if (Own.Preview.IsSet())
 	{
 		Text << TEXT(":preview:") << Own.Preview->Level << TEXT(":") << (Own.Preview->Featured.IsSet() ? Own.Preview->Featured->MasteryLevel : 0);

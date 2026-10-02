@@ -40,6 +40,12 @@ namespace VeyraShellArt
 	VEYRAUI_API UTexture2D* AbilityIconOf(const FString& AbilityId);
 
 	/**
+	 * The icon a slot shows while it holds AbilityId over its own ability, OwnAbilityId: AbilityId's own icon, or,
+	 * for a variant, follow-up or mounted action with none of its own, its slot's, so the HUD never falls back to text.
+	 */
+	VEYRAUI_API UTexture2D* SlotIconOf(const FString& AbilityId, const FString& OwnAbilityId);
+
+	/**
 	 * The part of a Width x Height hero illustration to show at Aspect (width over height), as UVs.
 	 * A portrait crops the style's CropHeight of the height around VanguardId's face; otherwise the
 	 * crop is as large as the illustration allows. Either way it is centred on the face as far as the

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Hud/VeyraCombatTextModel.h"
 #include "Shapes/VeyraShapes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
@@ -103,6 +104,9 @@ public:
 	/** The side of this machine's player; None for a spectator or a world without one. */
 	EVeyraTeam GetViewerTeam() const;
 
+	/** The combat text this machine's player received and still shows, oldest first, by this machine's clock (ADR-052 §1). */
+	const TArray<FVeyraCombatTextArrival>& GetCombatText() const { return CombatText; }
+
 	/** The colour of Team as the viewer sees it: ally, enemy or neutral. */
 	FLinearColor ColorOfSide(EVeyraTeam Team) const;
 
@@ -113,6 +117,14 @@ public:
 	FLinearColor BodyColorOf(const AActor& Unit) const;
 
 private:
+	/** Listens to the local player's combat text once its controller exists, and forgets the numbers done showing. */
+	void RefreshCombatText();
+	void OnCombatText(const FVeyraCombatTextLine& Line);
+
+	TArray<FVeyraCombatTextArrival> CombatText;
+	TWeakObjectPtr<class AVeyraPlayerController> CombatTextSource;
+	FDelegateHandle CombatTextHandle;
+
 	struct FBody
 	{
 		TWeakObjectPtr<UStaticMeshComponent> Mesh;
@@ -171,6 +183,9 @@ private:
 
 	/** Adds the local player's indicator, while it holds a cast ready or previews one, aimed at the ground under its cursor. */
 	void AddIndicator(const class AVeyraPlayerController& Local, const struct FVeyraAbilitiesTuning& Tuning);
+
+	/** Adds the ring of the local player's basic attack reach around the body it commands, while Show Attack Range is held. */
+	void AddAttackRange(const class AVeyraPlayerController& Local);
 	void DrawTelegraphs();
 
 	/** The viewer's side's presence pings and outlines, drawn on the ground with the telegraphs (ADR-016 §8). */
@@ -178,6 +193,9 @@ private:
 
 	/** The chains between companions and their owners, joining the telegraphs' lines (ADR-034 §7). */
 	void DrawChains();
+
+	/** A projected Echo's tether circle and stream (ADR-050 §7). */
+	void DrawEchoTethers();
 
 	/**
 	 * Has the local player's HUD draw the grey-box HUD, through an overlay actor it renders for

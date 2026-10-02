@@ -298,3 +298,27 @@ func TestTheCollectionShowsEveryReleasedVanguard(t *testing.T) {
 		t.Errorf("an unowned Vanguard: %+v", bryn)
 	}
 }
+
+func TestASpendTakesTheBalanceAndIsRecordedOrChangesNothing(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	if _, err := f.svc.DevGrant(ctx, "acc-a", 7000, 100); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.svc.Spend(ctx, "acc-a", "display_name_change", CurrencyFlux, 6000); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.svc.Spend(ctx, "acc-a", "display_name_change", CurrencyRefinedFlux, 600); !errors.Is(err, ErrInsufficient) {
+		t.Fatalf("100 Refined Flux does not cover 600: %v", err)
+	}
+	if err := f.svc.Spend(ctx, "acc-a", "display_name_change", CurrencyFlux, 0); !errors.Is(err, ErrInvalidPurchase) {
+		t.Fatalf("nothing to spend: %v", err)
+	}
+	s, _ := f.svc.Progression(ctx, "acc-a")
+	if s.Flux != 1000 || s.RefinedFlux != 100 {
+		t.Fatalf("balances: %+v", s)
+	}
+	if spends := f.store.Spends(); len(spends) != 1 || spends[0].Reason != "display_name_change" || spends[0].Amount != 6000 {
+		t.Fatalf("recorded: %+v", spends)
+	}
+}

@@ -189,3 +189,96 @@ namespace VeyraClientFlowTests
 }
 
 #endif
+
+#if WITH_AUTOMATION_WORKER
+
+namespace VeyraClientFlowTests
+{
+	// Fixture answers, independent of the committed backend configuration.
+	inline FString NameStatusAnswer(const TCHAR* Name, bool bFree, const TCHAR* NextJson = TEXT("null"), bool bRequired = false)
+	{
+		return FString::Printf(TEXT("{\"displayName\":{\"name\":\"%s\",\"freeChangeAvailable\":%s,\"nextChangeAt\":%s,\"renameRequired\":%s,")
+								   TEXT("\"price\":{\"flux\":6000,\"refinedFlux\":600}}}"),
+			Name, bFree ? TEXT("true") : TEXT("false"), NextJson, bRequired ? TEXT("true") : TEXT("false"));
+	}
+
+	// Veyra.Services.NameFlow.*: the player's display name, its change, and a claimed account's required rename
+	// (ADR-049), driven through the fake backend as the screens drive them.
+	TEST_CLASS(NameFlow, "Veyra.Services")
+	{
+		FClientFlowTestRig Rig;
+		FFlowTestBackend& Backend = Rig.Backend;
+
+		const FVeyraClientSnapshot& Snapshot() const { return Rig.Flow->GetSnapshot(); }
+
+		TEST_METHOD(ANameChangeShowsTheNewNameEverywhere)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell() && !Snapshot().bRenameRequired));
+			ASSERT_THAT(IsTrue(Rig.Flow->LoadDisplayName()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("DevOne"), true))));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayNameChange.bLoaded && Snapshot().DisplayNameChange.Status.bFreeChangeAvailable
+				&& Snapshot().DisplayNameChange.Status.PriceFlux == 6000 && !Snapshot().DisplayNameChange.Status.NextChangeAt.IsSet()));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT(" Oneiric "), FString())));
+			const FFlowTestBackend::FRequest* Request = Backend.Find(TEXT("PUT"), TEXT("/v1/me/display-name"));
+			ASSERT_THAT(IsTrue(Request && Request->Body.Contains(TEXT("\"name\":\"Oneiric\""))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200,
+				NameStatusAnswer(TEXT("Oneiric"), false, TEXT("\"2026-10-03T12:00:00Z\"")))));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayName == TEXT("Oneiric") && Snapshot().DisplayNameChange.Feedback == TEXT("name_changed")));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayNameChange.Status.NextChangeAt.IsSet()));
+			ASSERT_THAT(IsNotNull(Backend.Find(TEXT("GET"), TEXT("/v1/profiles/Oneiric")), TEXT("the preview is read under the new name")));
+		}
+
+		TEST_METHOD(ARefusedChangeShowsBesideTheName)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("DevTwo"), TEXT("flux"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 409, ErrorBody(TEXT("display_name_taken")))));
+			ASSERT_THAT(IsTrue(Snapshot().DisplayNameChange.Feedback == TEXT("display_name_taken") && Snapshot().DisplayName == TEXT("DevOne")
+				&& !Snapshot().Problem.IsSet()));
+		}
+
+		/** Answers the reads that find where the player is, ending with Profile's answer. */
+		bool AnswerResume(const FString& Profile)
+		{
+			return Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, Profile);
+		}
+
+		TEST_METHOD(AClaimedAccountChoosesANewNameFirst)
+		{
+			// ADR-049 §4: before its lobby, or anything else.
+			Rig.bRenameRequired = true;
+			ASSERT_THAT(IsTrue(Rig.ReachProfile(true) && Rig.State() == EVeyraClientState::Shell && Snapshot().bRenameRequired));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), TEXT("/v1/lobby")), TEXT("no lobby before a name")));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("Returned"), FString())));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("Returned"), true))));
+			ASSERT_THAT(IsTrue(!Snapshot().bRenameRequired && Snapshot().DisplayName == TEXT("Returned")));
+			// Named, it goes on where it was bound.
+			ASSERT_THAT(IsTrue(AnswerResume(ProfileBody(true)) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && Rig.State() == EVeyraClientState::Shell));
+		}
+
+		TEST_METHOD(AClaimedAccountWithoutAStarterNamesItselfBeforeItsStarter)
+		{
+			Rig.bRenameRequired = true;
+			ASSERT_THAT(IsTrue(Rig.ReachProfile(false) && Rig.State() == EVeyraClientState::Shell && Snapshot().bRenameRequired));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), TEXT("/v1/me/vanguards")), TEXT("no starter before a name")));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("Returned"), FString())));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("Returned"), true))));
+			ASSERT_THAT(IsTrue(AnswerResume(ProfileBody(false)) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody)));
+			ASSERT_THAT(IsTrue(Rig.State() == EVeyraClientState::StarterChoice));
+		}
+
+		TEST_METHOD(TheStatusIsReadAndAMalformedOneRefused)
+		{
+			VeyraBackendProtocol::FDisplayNameStatus Status;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseDisplayNameStatus(NameStatusAnswer(TEXT("DevOne"), false, TEXT("\"2026-10-03T12:00:00Z\""), true), Status, Problem), Problem));
+			ASSERT_THAT(IsTrue(Status.bRenameRequired && Status.NextChangeAt.IsSet() && Status.PriceRefinedFlux == 600));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseDisplayNameStatus(NameStatusAnswer(TEXT("DevOne"), false, TEXT("\"soon\"")), Status, Problem)));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseDisplayNameStatus(TEXT("{\"displayName\":{\"name\":\"\"}}"), Status, Problem)));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::BuildDisplayNameBody(TEXT("DevOne"), TEXT("refinedFlux")).Contains(TEXT("\"currency\":\"refinedFlux\""))));
+		}
+	};
+}
+
+#endif

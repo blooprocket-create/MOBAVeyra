@@ -140,6 +140,16 @@ namespace VeyraMatchTests
 			constexpr float StraightDownDegrees = -90.0f;
 			ASSERT_THAT(IsTrue(View.PitchDegrees > StraightDownDegrees && View.PitchDegrees < 0.0f));
 		}
+
+		TEST_METHOD(TheWheelZoomsAndShowAttackRangeWaitsForAKey)
+		{
+			// ADR-052 §3, §4, §7: the wheel by default; Show Attack Range has no default key.
+			const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+			ASSERT_THAT(IsTrue(Keys.CameraZoomInKey == EKeys::MouseScrollUp && Keys.CameraZoomOutKey == EKeys::MouseScrollDown));
+			ASSERT_THAT(IsFalse(Keys.ShowAttackRangeKey.IsValid()));
+			const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+			ASSERT_THAT(IsTrue(View.ZoomStep > 0.0f && View.ZoomStep <= View.MaxDistance - View.MinDistance && View.ZoomSmoothingSeconds >= 0.0f));
+		}
 	};
 }
 

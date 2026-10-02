@@ -5,4 +5,5 @@
 namespace VeyraTags
 {
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Invulnerable, "Status.Invulnerable", "Invulnerable: damage reduces Health by 0 and consumes no shield or Temporary Health (Combat Bible §10, §25 step 7).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_SealedHealth, "Status.SealedHealth", "Sealed Health: its owner sets the unit's Health; damage reduces it by 0 and no heal or shield reaches it (ADR-050 §3).");
 }

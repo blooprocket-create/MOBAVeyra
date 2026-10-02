@@ -125,6 +125,7 @@ func New(d Deps) http.Handler {
 	s.routeChat(mux)
 	s.routeConduct(mux)
 	s.routeProfile(mux)
+	s.routeNames(mux)
 	return mux
 }
 
@@ -300,6 +301,11 @@ var errorStatus = []struct {
 	{identity.ErrAlreadyRegistered, http.StatusConflict, "already_registered"},
 	{identity.ErrDisplayNameTaken, http.StatusConflict, "display_name_taken"},
 	{identity.ErrInvalidDisplayName, http.StatusBadRequest, "invalid_display_name"},
+	{identity.ErrRenameCooldown, http.StatusConflict, "rename_cooldown"},
+	{identity.ErrSameDisplayName, http.StatusConflict, "same_display_name"},
+	{identity.ErrInvalidCurrency, http.StatusBadRequest, "invalid_currency"},
+	{identity.ErrRenameRequired, http.StatusConflict, "rename_required"},
+	{identity.ErrNamesDisabled, http.StatusNotFound, "not_found"},
 
 	{social.ErrSelf, http.StatusBadRequest, "cannot_target_self"},
 	{social.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},

@@ -364,6 +364,10 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("LoadProfileSettings");
 	case EVeyraClientIntent::SaveProfileSettings:
 		return TEXT("SaveProfileSettings");
+	case EVeyraClientIntent::LoadDisplayName:
+		return TEXT("LoadDisplayName");
+	case EVeyraClientIntent::ChangeDisplayName:
+		return TEXT("ChangeDisplayName");
 	}
 	return TEXT("Unknown");
 }
@@ -580,6 +584,9 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	// The player's own choices are made on the shell's Profile page.
 	case EVeyraClientIntent::LoadProfileSettings:
 	case EVeyraClientIntent::SaveProfileSettings:
+	// The name changes on the Profile page, and a claimed account chooses its new one in the shell (ADR-049 §4).
+	case EVeyraClientIntent::LoadDisplayName:
+	case EVeyraClientIntent::ChangeDisplayName:
 		return State == EVeyraClientState::Shell;
 	}
 	return false;
@@ -905,6 +912,14 @@ void FVeyraClientFlow::LoadProfile()
 		if (!VeyraBackendProtocol::ParseProfile(Response.Body, Profile, Problem))
 		{
 			ShowBadAnswer(TEXT("the player's profile"), Problem, [this] { Resume(); });
+			return;
+		}
+		// A claimed account chooses a new name before anything else: no starter, lobby or other step first; the
+		// shell asks it, and the account goes on once it has a name (ADR-049 §4).
+		Snapshot.bRenameRequired = Profile.bRenameRequired;
+		if (Profile.bRenameRequired)
+		{
+			EnterShell(Snapshot.Notice);
 			return;
 		}
 		if (Profile.bTutorialCompleted)

@@ -171,6 +171,10 @@ enum class EVeyraClientIntent : uint8
 	LoadProfileSettings,
 	/** Saves the player's profile choices (ADR-048 §4). */
 	SaveProfileSettings,
+	/** Reads the player's display name and what changing it takes (ADR-049). */
+	LoadDisplayName,
+	/** Changes the player's display name; free first and when another player claimed it, paid later. */
+	ChangeDisplayName,
 };
 
 /** Which kind of world the client just loaded. */
@@ -395,6 +399,15 @@ struct FVeyraProfileSettings
 	FString Feedback;
 };
 
+/** The player's display name and what changing it takes (ADR-049), read on the Profile page. */
+struct FVeyraDisplayName
+{
+	bool bLoaded = false;
+	VeyraBackendProtocol::FDisplayNameStatus Status;
+	/** What came of the last change: "name_changed", or the backend's refusal, such as "display_name_taken". Empty for none. */
+	FString Feedback;
+};
+
 struct FVeyraClientSnapshot
 {
 	EVeyraClientState State = EVeyraClientState::SigningIn;
@@ -470,6 +483,13 @@ struct FVeyraClientSnapshot
 	FVeyraProfileView ProfileView;
 	/** Shell: the player's own profile choices, once the Profile page opens. */
 	FVeyraProfileSettings ProfileSettings;
+	/** Shell: the player's display name and what changing it takes, once the Profile page opens. */
+	FVeyraDisplayName DisplayNameChange;
+	/**
+	 * Another player claimed this player's name while they were away: they choose a new one, for free, before
+	 * anything else (ADR-049 §4). Read with the profile on sign-in.
+	 */
+	bool bRenameRequired = false;
 	/** Party, direct, select and post-match chat, read in every signed-in state but Reconnect-only (ADR-046 §6). */
 	FVeyraChat Chat;
 

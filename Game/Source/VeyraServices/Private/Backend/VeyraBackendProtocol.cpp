@@ -582,6 +582,12 @@ bool ParseProfile(const FString& Body, FProfile& Out, FString& OutProblem)
 		OutProblem = TEXT("the answer is not a profile with an account and a tutorial");
 		return false;
 	}
+	// Absent from a backend without name changes, and from the answer to choosing a starter.
+	if (Root->HasField(TEXT("renameRequired")) && !BoolField(*Root, TEXT("renameRequired"), Profile.bRenameRequired))
+	{
+		OutProblem = TEXT("the profile's renameRequired is not true or false");
+		return false;
+	}
 	Out = MoveTemp(Profile);
 	return true;
 }

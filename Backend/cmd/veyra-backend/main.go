@@ -134,6 +134,8 @@ func run(log *slog.Logger) error {
 	matches.SetRewards(progress)
 	// Each assignment carries its players' Mastery, for the mastery emote (ADR-045 §9).
 	matches.SetMasteries(progress)
+	// Names change in one unit of work with their charge (ADR-049).
+	enableNameChanges(svc, cfg.Names, progress, store.Atomic)
 	if cfg.Progression.DevGrant {
 		log.Warn("the development currency grant is enabled; never expose this backend publicly")
 	}

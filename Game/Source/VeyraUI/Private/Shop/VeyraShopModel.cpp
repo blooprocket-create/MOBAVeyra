@@ -168,6 +168,7 @@ FText DescribeStats(const FVeyraItemStatsTuning& Stats)
 	Add(Stats.AbilityHaste, LOCTEXT("AbilityHaste", "+{0} Ability Haste"));
 	Add(Stats.MoveSpeed, LOCTEXT("MoveSpeed", "+{0} Movement Speed"));
 	Add(Stats.MagicPenetrationFlat, LOCTEXT("MagicPenetrationFlat", "+{0} Magic Penetration"));
+	Add(Stats.PhysicalPenetrationFlat, LOCTEXT("PhysicalPenetrationFlat", "+{0} Physical Penetration"));
 	Add(Stats.CritChance * Percent, LOCTEXT("CritChance", "+{0}% Crit Chance"));
 	Add(Stats.MagicPowerFraction * Percent, LOCTEXT("MagicPowerFraction", "+{0}% Magic Power"));
 	return FText::Join(LOCTEXT("StatSeparator", ", "), Lines);
