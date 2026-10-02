@@ -1055,6 +1055,21 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 	return Model;
 }
 
+FString PlayersTurn(const FVeyraClientSnapshot& Snapshot)
+{
+	const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
+	if (Snapshot.State != EVeyraClientState::Selecting || !Select.Turn.IsSet() || !(Select.YouBan() || Select.YouMayLock()))
+	{
+		return FString();
+	}
+	// The turn's kind and side, and how far the draft had gone as it began: a teammate acting in the same
+	// turn changes none of them.
+	const VeyraBackendProtocol::FSelectTurn& Turn = *Select.Turn;
+	const int32 Locked = Algo::CountIf(Select.Seats, [](const FSelectSeat& Seat) { return !Seat.Locked.IsEmpty(); });
+	return FString::Printf(TEXT("%s:%s:%s:%d:%d"), *Select.Id, Turn.bBan ? TEXT("ban") : TEXT("pick"), *Turn.Side, Select.Bans.Num() - (Turn.bBan ? Turn.Done : 0),
+		Locked - (Turn.bBan ? 0 : Turn.Done));
+}
+
 FString Signature(const FVeyraClientSnapshot& Snapshot)
 {
 	TStringBuilder<1024> Text;

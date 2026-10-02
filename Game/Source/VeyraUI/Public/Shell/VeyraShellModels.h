@@ -476,4 +476,11 @@ namespace VeyraShellModels
 	 * when this changes, so a poll that changes nothing never interrupts a click.
 	 */
 	VEYRAUI_API FString Signature(const FVeyraClientSnapshot& Snapshot);
+
+	/**
+	 * The player's own draft turn, a ban or a pick, as a key that stays the same through the turn and
+	 * differs from every other turn; empty outside one (Pre-Game Client UX Bible 31-32). The screen asks
+	 * for the player's attention once as a new key appears.
+	 */
+	VEYRAUI_API FString PlayersTurn(const FVeyraClientSnapshot& Snapshot);
 }

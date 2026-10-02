@@ -212,6 +212,15 @@ namespace VeyraShellTests
 			ASSERT_THAT(AreEqual(Model.Seats[0].BanHover.ToString(), FString(TEXT("Banning Bryn"))));
 			ASSERT_THAT(IsTrue(Model.bOffersLeave, TEXT("a draft may be left, as a dodge")));
 
+			// The player's turn is one key through the turn, a teammate's ban in it included; none outside it.
+			const FString Turn = VeyraShellModels::PlayersTurn(Snapshot);
+			ASSERT_THAT(IsFalse(Turn.IsEmpty()));
+			FVeyraClientSnapshot Teammate = Snapshot;
+			Teammate.Select.Turn = VeyraBackendProtocol::FSelectTurn{ true, TEXT("A"), 2, 1 };
+			Teammate.Select.Bans.Add(VeyraBackendProtocol::FSelectBan{ TEXT("A"), TEXT("cairn") });
+			ASSERT_THAT(AreEqual(VeyraShellModels::PlayersTurn(Teammate), VeyraShellModels::PlayersTurn(
+				[&Snapshot] { FVeyraClientSnapshot Before = Snapshot; Before.Select.Turn = VeyraBackendProtocol::FSelectTurn{ true, TEXT("A"), 2, 0 }; return Before; }())));
+
 			// The enemy's ban turn says so; the bench is the player's own again, with the bans taken.
 			Snapshot.Select.Turn = VeyraBackendProtocol::FSelectTurn{ true, TEXT("B"), 1, 0 };
 			Snapshot.Select.Seats[0].bActing = false;
@@ -220,6 +229,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(!Model.bBanning && !Model.bCanBan));
 			ASSERT_THAT(AreEqual(Model.Phase.ToString(), FString(TEXT("The enemy team is banning."))));
 			ASSERT_THAT(AreEqual(Model.Cards.Num(), 2));
+			ASSERT_THAT(IsTrue(VeyraShellModels::PlayersTurn(Snapshot).IsEmpty(), TEXT("the enemy's turn is not the player's")));
 
 			// The final window: locked teammates trade. An offer to DevThree stands; DevTwo is an enemy.
 			Snapshot.Select.Phase = VeyraBackendProtocol::ESelectPhase::Final;
@@ -614,6 +624,8 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody)));
 			ASSERT_THAT(IsTrue(Rig.Flow->CanIssue(EVeyraClientIntent::BanVanguard)));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Your turn to ban.")), Screen->DescribeText()));
+			// The player's turn asked for their attention once, as it began (UX-31, UX-32).
+			ASSERT_THAT(AreEqual(Screen->GetTurnAttentionCount(), 1));
 			// Every released Vanguard is on the bench, Silt too, which the player does not own.
 			UVeyraShellButton* Silt = Button(TEXT("Silt"));
 			ASSERT_THAT(IsTrue(Silt && Silt->GetIsEnabled(), FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
@@ -623,6 +635,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/ban/hover"), 200,
 				DraftSelectBody(TEXT("banning"), ABan, TEXT("[]"), TEXT("\"hover\":null,\"locked\":null,\"banHover\":\"silt\",\"acting\":true"), Teammate))));
 			ASSERT_THAT(IsTrue(Button(TEXT("Ban"))->GetIsEnabled(), TEXT("the hovered ban can be banned")));
+			ASSERT_THAT(AreEqual(Screen->GetTurnAttentionCount(), 1, TEXT("not again within the same turn")));
 			Button(TEXT("Ban"))->Press();
 			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/ban"))));
 
@@ -633,6 +646,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("The enemy team is banning.")) && Screen->DescribeText().Contains(TEXT("Bans: Silt")),
 				Screen->DescribeText()));
 			ASSERT_THAT(IsNull(Button(TEXT("Silt")), TEXT("the bench is the player's own again")));
+			ASSERT_THAT(AreEqual(Screen->GetTurnAttentionCount(), 1, TEXT("the enemy's turn asks nothing of the player")));
 		}
 
 		TEST_METHOD(APollThatChangesNothingKeepsTheButtons)
