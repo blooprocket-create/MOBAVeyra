@@ -4,6 +4,7 @@
 
 #if WITH_AUTOMATION_WORKER
 
+#include "Backend/VeyraBackendProtocol.h"
 #include "Backend/VeyraProfileProtocol.h"
 #include "Tests/Services/VeyraClientFlowTestRig.h"
 

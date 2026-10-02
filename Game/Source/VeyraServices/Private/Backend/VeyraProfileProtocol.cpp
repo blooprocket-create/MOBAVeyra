@@ -2,6 +2,7 @@
 
 #include "Backend/VeyraProfileProtocol.h"
 
+#include "Backend/VeyraBackendProtocol.h"
 #include "Dom/JsonObject.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Internationalization/Regex.h"
