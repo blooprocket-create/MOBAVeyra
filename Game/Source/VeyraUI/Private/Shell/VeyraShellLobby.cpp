@@ -497,18 +497,7 @@ UEditableTextBox* UVeyraShellScreen::MakeTextField(const FText& Hint, const FStr
 {
 	const UVeyraShellStyleSettings& Style = LobbyStyle();
 	UEditableTextBox* Box = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-	FEditableTextBoxStyle FieldStyle = Box->GetWidgetStyle();
-	const FSlateRoundedBoxBrush Field(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.HairlineColor, 1.0f);
-	const FSlateRoundedBoxBrush Focused(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.AccentColor, 1.0f);
-	FieldStyle.SetBackgroundImageNormal(Field);
-	FieldStyle.SetBackgroundImageHovered(Field);
-	FieldStyle.SetBackgroundImageFocused(Focused);
-	FieldStyle.SetBackgroundImageReadOnly(Field);
-	FieldStyle.SetForegroundColor(FSlateColor(Style.TextColor));
-	FieldStyle.SetFocusedForegroundColor(FSlateColor(Style.TextColor));
-	FieldStyle.SetPadding(FMargin(Style.ButtonPadding));
-	FieldStyle.SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Body));
-	Box->SetWidgetStyle(FieldStyle);
+	VeyraShellStyle::StyleTextField(*Box, Style.ButtonPadding);
 	Box->SetHintText(Hint);
 	Box->SetText(FText::FromString(Draft));
 	Box->SetIsEnabled(bEnabled);

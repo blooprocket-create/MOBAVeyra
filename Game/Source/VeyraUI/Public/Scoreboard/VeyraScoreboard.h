@@ -5,6 +5,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Scoreboard/VeyraScoreboardModel.h"
 #include "Settings/VeyraInterfacePreferences.h"
+#include "Shell/VeyraShellLook.h"
 
 #include "VeyraScoreboard.generated.h"
 
@@ -42,6 +43,9 @@ public:
 	/** The side colours its headings and faces wear: the player's colour vision (SET-8; ADR-055 §1). */
 	const FVeyraSideColors& GetSides() const { return Sides; }
 
+	/** The look its last build used: always the standard one, the HUD's (ADR-055 §2). For tests. */
+	const FVeyraShellLook& GetBuiltLook() const { return BuiltLook; }
+
 	/** Reads the player's settings from Store rather than the game instance's. For tests. */
 	void BindSettings(const FVeyraSettingsStore& Store) { SettingsStore = &Store; }
 
@@ -66,6 +70,7 @@ private:
 	TWeakObjectPtr<const APlayerController> Controller;
 	FVeyraScoreboardView View;
 	FVeyraSideColors Sides;
+	FVeyraShellLook BuiltLook;
 	const FVeyraSettingsStore* SettingsStore = nullptr;
 	bool bBuilt = false;
 

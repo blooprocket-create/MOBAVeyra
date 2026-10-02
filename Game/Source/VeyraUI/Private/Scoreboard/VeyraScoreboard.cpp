@@ -21,6 +21,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
@@ -32,7 +33,9 @@ bool UVeyraScoreboard::Initialize()
 	const bool bFirst = Super::Initialize();
 	if (bFirst && WidgetTree && !WidgetTree->RootWidget)
 	{
-		// Centred over the match, which stays in play: clicks pass through to it.
+		// Centred over the match, which stays in play: clicks pass through to it. Part of the match's HUD, it keeps
+		// the HUD's own text and panels, whatever look the menus take (ADR-055 §2).
+		const FVeyraScopedShellLook Hud{ FVeyraShellLook() };
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 		const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 		UOverlay* Screen = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
@@ -108,6 +111,8 @@ void UVeyraScoreboard::Rebuild()
 		return;
 	}
 	Columns->ClearChildren();
+	const FVeyraScopedShellLook Hud{ FVeyraShellLook() };
+	BuiltLook = VeyraShellLook::Current();
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	for (const FVeyraScoreboardSide& Side : View.Sides)
 	{

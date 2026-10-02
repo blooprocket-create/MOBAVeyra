@@ -52,6 +52,26 @@ namespace VeyraShellLookTests
 			ASSERT_THAT(IsTrue(Reduced.bOpaquePanels && Reduced.bStillAnimation));
 		}
 
+		TEST_METHOD(EnhancedFocusEdgesTextFieldsAndAScopedLookPassesBack)
+		{
+			// Under Enhanced focus a focused field wears the thick, high-contrast outline a focused button does (SET-74).
+			const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+			const FVeyraFocusEdge Plain = VeyraShellLook::FieldFocusEdge();
+			ASSERT_THAT(IsTrue(Plain.Width < Style.FocusOutlineWidth && Plain.Color.Equals(Style.AccentColor)));
+			FVeyraShellLook Enhanced;
+			Enhanced.bEnhancedFocus = true;
+			Enhanced.TextScale = 1.3f;
+			VeyraShellLook::Use(Enhanced);
+			const FVeyraFocusEdge Lit = VeyraShellLook::FieldFocusEdge();
+			ASSERT_THAT(IsTrue(Lit.Width == Style.FocusOutlineWidth && Lit.Color.Equals(Style.FocusOutlineColor)));
+			// A HUD surface builds in the standard look, and the menus' look comes back after (ADR-055 §2).
+			{
+				const FVeyraScopedShellLook Hud{ FVeyraShellLook() };
+				ASSERT_THAT(IsTrue(VeyraShellLook::Current() == FVeyraShellLook()));
+			}
+			ASSERT_THAT(IsTrue(VeyraShellLook::Current() == Enhanced));
+		}
+
 		TEST_METHOD(TextScalesAndPanelsGoOpaqueInTheLook)
 		{
 			const FLinearColor Glass(0.1f, 0.2f, 0.3f, 0.8f);

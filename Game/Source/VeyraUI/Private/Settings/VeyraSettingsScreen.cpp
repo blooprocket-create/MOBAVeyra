@@ -106,31 +106,19 @@ bool UVeyraSettingsScreen::Initialize()
 		USizeBox* Window = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		Window->SetWidthOverride(VeyraSettingsLayout::Style().SettingsWidth);
 		Window->SetHeightOverride(VeyraSettingsLayout::Style().SettingsHeight);
-		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(VeyraSettingsLayout::Style().ScreenPadding));
+		WindowPanel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(VeyraSettingsLayout::Style().ScreenPadding));
 		UVerticalBox* Frame = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		Panel->SetContent(Frame);
-		Window->AddChild(Panel);
+		WindowPanel->SetContent(Frame);
+		Window->AddChild(WindowPanel);
 		Scrim->SetContent(Window);
 
 		// The title, the search, and the screen's own actions.
 		UHorizontalBox* Header = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		UTextBlock* Title = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Title", "Settings"), VeyraShellStyle::EVeyraShellText::Heading);
+		Title = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Title", "Settings"), VeyraShellStyle::EVeyraShellText::Heading);
 		Title->SetAutoWrapText(false);
 		VeyraShellStyle::AddSpaced(*Header, *Title);
 		VeyraSettingsLayout::AddStretch(*WidgetTree, *Header);
 		SearchBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-		FEditableTextBoxStyle FieldStyle = SearchBox->GetWidgetStyle();
-		const FSlateRoundedBoxBrush Field(VeyraShellLook::Panel(VeyraSettingsLayout::Style().SurfaceRaisedColor), VeyraSettingsLayout::Style().ButtonCornerRadius, VeyraSettingsLayout::Style().HairlineColor, 1.0f);
-		const FSlateRoundedBoxBrush Focused(VeyraShellLook::Panel(VeyraSettingsLayout::Style().SurfaceRaisedColor), VeyraSettingsLayout::Style().ButtonCornerRadius, VeyraSettingsLayout::Style().AccentColor, 1.0f);
-		FieldStyle.SetBackgroundImageNormal(Field);
-		FieldStyle.SetBackgroundImageHovered(Field);
-		FieldStyle.SetBackgroundImageFocused(Focused);
-		FieldStyle.SetBackgroundImageReadOnly(Field);
-		FieldStyle.SetForegroundColor(FSlateColor(VeyraSettingsLayout::Style().TextColor));
-		FieldStyle.SetFocusedForegroundColor(FSlateColor(VeyraSettingsLayout::Style().TextColor));
-		FieldStyle.SetPadding(FMargin(VeyraSettingsLayout::Style().ButtonPadding));
-		FieldStyle.SetFont(VeyraShellStyle::FontFor(VeyraShellStyle::EVeyraShellText::Body));
-		SearchBox->SetWidgetStyle(FieldStyle);
 		SearchBox->SetHintText(LOCTEXT("SearchHint", "Search settings"));
 		SearchBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraSettingsScreen::HandleSearchChanged);
 		VeyraShellStyle::AddSpaced(*Header, *VeyraSettingsLayout::Sized(*WidgetTree, *SearchBox, VeyraSettingsLayout::Style().SettingsSearchWidth));
@@ -155,8 +143,28 @@ bool UVeyraSettingsScreen::Initialize()
 		Frame->AddChild(Footer);
 		WidgetTree->RootWidget = Scrim;
 		SetIsFocusable(true);
+		StyleFrame();
 	}
 	return bFirst;
+}
+
+void UVeyraSettingsScreen::StyleFrame()
+{
+	FrameLook = VeyraShellLook::Current();
+	const UVeyraShellStyleSettings& Style = VeyraSettingsLayout::Style();
+	WindowPanel->SetBrush(FSlateRoundedBoxBrush(VeyraShellLook::Panel(Style.SurfaceRaisedColor), Style.PanelCornerRadius, Style.HairlineColor, 1.0f));
+	Title->SetFont(VeyraShellStyle::FontFor(VeyraShellStyle::EVeyraShellText::Heading));
+	VeyraShellStyle::StyleTextField(*SearchBox, Style.ButtonPadding);
+}
+
+int32 UVeyraSettingsScreen::GetTitleTextSize() const
+{
+	return Title ? FMath::RoundToInt32(Title->GetFont().Size) : 0;
+}
+
+FLinearColor UVeyraSettingsScreen::GetWindowFill() const
+{
+	return WindowPanel ? WindowPanel->Background.TintColor.GetSpecifiedColor() : FLinearColor::Transparent;
 }
 
 void UVeyraSettingsScreen::Show(UVeyraSettingsSubsystem& InSettings, bool bInLiveMatch, TFunction<void()> InClose)
@@ -364,6 +372,11 @@ void UVeyraSettingsScreen::Rebuild()
 	}
 	// The rows are built in the player's look, so a change of text size or transparency shows at once (ADR-055 §2–§3).
 	VeyraShellLook::Use(VeyraShellLook::For(VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), Store)));
+	// The frame built once follows too, not only the rows rebuilt here.
+	if (!(FrameLook == VeyraShellLook::Current()))
+	{
+		StyleFrame();
+	}
 	Model = VeyraSettingsModels::Describe(*Store, Category, Search, bInMatch);
 	Category = Model.Category;
 	Buttons.Reset();
