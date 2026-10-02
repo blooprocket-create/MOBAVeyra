@@ -161,6 +161,31 @@ func TestCoopStopsGivingAccountXPAtItsLevelButKeepsMastery(t *testing.T) {
 	}
 }
 
+func TestARecordedPurchaseAnswersBeforeWhatIsOnSaleNow(t *testing.T) {
+	f := newFixture(t)
+	if _, err := f.svc.DevGrant(ctx, "acc-a", 4000, 0); err != nil {
+		t.Fatalf("DevGrant: %v", err)
+	}
+	bought, _, err := f.svc.Buy(ctx, "acc-a", "purchase-0001", "bryn", CurrencyFlux)
+	if err != nil {
+		t.Fatalf("Buy: %v", err)
+	}
+	// Bryn leaves the storefront: the same purchase, retried, still returns its first outcome.
+	tuning := testTuning()
+	delete(tuning.Prices, "bryn")
+	later := NewService(f.store, f.accounts, tuning, map[string]string{}, func() time.Time { return t0 })
+	if again, _, err := later.Buy(ctx, "acc-a", "purchase-0001", "bryn", CurrencyFlux); err != nil || again != bought {
+		t.Fatalf("a retry after bryn left the storefront: %+v %v", again, err)
+	}
+	// Its ID with a Vanguard not on sale is still a conflict, not "not for sale".
+	if _, _, err := later.Buy(ctx, "acc-a", "purchase-0001", "nobody", CurrencyFlux); !errors.Is(err, ErrPurchaseConflict) {
+		t.Fatalf("the ID for an unreleased Vanguard: %v", err)
+	}
+	if _, _, err := later.Buy(ctx, "acc-a", "purchase-0002", "nobody", CurrencyFlux); !errors.Is(err, ErrNotForSale) {
+		t.Fatalf("a new purchase of an unreleased Vanguard: %v", err)
+	}
+}
+
 func TestBuyingAVanguardSpendsOnceAndGrantsIt(t *testing.T) {
 	f := newFixture(t)
 	if _, _, err := f.svc.Buy(ctx, "acc-a", "purchase-0001", "bryn", CurrencyFlux); !errors.Is(err, ErrInsufficient) {

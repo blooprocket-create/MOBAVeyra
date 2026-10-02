@@ -305,10 +305,6 @@ func (s *Service) Buy(ctx context.Context, accountID, purchaseID, vanguardID str
 	if !purchaseIDPattern.MatchString(purchaseID) || (currency != CurrencyFlux && currency != CurrencyRefinedFlux) {
 		return Purchase{}, Summary{}, ErrInvalidPurchase
 	}
-	price, released := s.tuning.Prices[vanguardID]
-	if !released {
-		return Purchase{}, Summary{}, ErrNotForSale
-	}
 	var bought Purchase
 	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		// The account's lock orders this purchase against its others.
@@ -316,6 +312,8 @@ func (s *Service) Buy(ctx context.Context, accountID, purchaseID, vanguardID str
 		if err != nil {
 			return err
 		}
+		// A recorded purchase answers first, whatever is on sale now: a retry gets its first outcome, and its ID
+		// with another Vanguard or currency is a conflict.
 		earlier, err := tx.Purchase(purchaseID)
 		switch {
 		case err == nil:
@@ -326,6 +324,10 @@ func (s *Service) Buy(ctx context.Context, accountID, purchaseID, vanguardID str
 			return nil
 		case !errors.Is(err, ErrPurchaseNotFound):
 			return err
+		}
+		price, released := s.tuning.Prices[vanguardID]
+		if !released {
+			return ErrNotForSale
 		}
 		available, err := s.ownership.Vanguards(ctx, accountID)
 		if err != nil {
