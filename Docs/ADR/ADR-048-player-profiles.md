@@ -113,4 +113,8 @@ It owns no level, ownership or Mastery. It reads those from progression through 
   Against both stores, with Postgres under `-Postgres`, and through each route.
 - **Services:** the protocol, the profile and settings reads, saving, and shared Match History pages.
 - **UI:** the Profile page's pickers and Save; another player's profile from the friends card and the player menu; unavailable and private states.
-- **Smoke:** `Smoke.ps1 -Flow Profile`. One client sets an icon, a featured Vanguard and sharing. The other views them and reads the shared history, then blocks and sees the profile unavailable.
+- **Smoke:** `Smoke.ps1 -Flow Profile`.
+  - The script first resets the owner's profile through a local-only development route.
+  - One client sets an icon, a featured Vanguard and sharing.
+  - The other client opens the profile from the friend's card until it shows them and the shared history.
+  - The smoke does not block: a block would end the development accounts' friendship, which the other smokes use. Blocks are covered by the Go, Services and UI tests.

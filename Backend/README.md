@@ -226,6 +226,8 @@ Each account has a public profile ([ADR-048](../Docs/ADR/ADR-048-player-profiles
 | `GET /v1/me/profile-settings` | `Bearer <game token>` | — | `settings` (`icon`, `background`, `featuredVanguardId` or `null`, `showMatchHistory`) and the `catalog`, with `featuredChoices`: the Vanguards the player permanently owns |
 | `PUT /v1/me/profile-settings` | `Bearer <game token>` | `settings`' fields | the saved `settings` and the `catalog`. Refusals: `invalid_icon`, `invalid_background`, `not_owned` (only a permanently owned Vanguard may be featured, never one lent by the rotation) |
 
+`POST /v1/dev/accounts/{name}/profile-reset` (local only, with `devLogin`) forgets a development account's choices, so scripted runs start from the defaults with the history private.
+
 The catalog is `profile` in `config/local.json` (ADR-048 §2, provisional): a neutral default, plus each released Vanguard's portrait as an icon and its hero art as a background.
 
 ### Custom practice and champion select
