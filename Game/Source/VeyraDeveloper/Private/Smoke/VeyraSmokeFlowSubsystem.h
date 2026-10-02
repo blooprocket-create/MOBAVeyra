@@ -157,6 +157,13 @@ private:
 	 * friend's line shows, so whichever joined last still reads the other (UX-59). True while it waits.
 	 */
 	bool TickPostMatchChat(IVeyraClientIntents& Flow);
+	/**
+	 * Party scripts, on the results screen after the post-match chat: the leader commends the other member and the
+	 * member files a test report about the leader, each through the player menu (ADR-047 §5). True while it has more to do.
+	 */
+	bool TickConduct(IVeyraClientIntents& Flow);
+	/** Types Text into the open report form's details, as the player would. */
+	bool TypeReportDetails(const FString& Text);
 	/** The Collection's purchase, before the script practises with what it bought: opens the page, a card, its Buy and the confirmation. */
 	void TickCollection(IVeyraClientIntents& Flow);
 	/** Whether the script plays a practice match: Practice, and Collection after its purchase. */
@@ -355,6 +362,8 @@ private:
 	int32 SelectChatStep = 0;
 	int32 MatchDirectStep = 0;
 	int32 PostMatchStep = 0;
+	/** How far the party script has come with its commendation or report on the results screen. */
+	int32 ConductStep = 0;
 	/** The starting Gold the lobby set for its match, which the verified scoreboard must show; unset for the game's own. */
 	TOptional<double> LobbyStartingGold;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */

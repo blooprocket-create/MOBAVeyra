@@ -32,6 +32,7 @@
 #include "Match/VeyraMatchMenu.h"
 #include "Match/VeyraMatchMenuSubsystem.h"
 #include "Scoreboard/VeyraScoreboard.h"
+#include "Shell/VeyraConductModels.h"
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellModels.h"
@@ -1231,6 +1232,71 @@ bool UVeyraSmokeFlowSubsystem::TickMatchDirect(IVeyraClientIntents& Flow)
 #endif
 }
 
+bool UVeyraSmokeFlowSubsystem::TickConduct(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	const FVeyraConduct& Conduct = Snapshot.Conduct;
+	const bool bCommends = Script == EScript::PartyLeader;
+	switch (ConductStep)
+	{
+	case 0:
+		// The record names whom a player menu opens for; until it is read, the scoreboard offers none.
+		if (Conduct.bLoaded && Click(VeyraConductModels::MenuLabel(FriendName).ToString()))
+		{
+			ConductStep = 1;
+		}
+		return true;
+	case 1:
+		if (Click((bCommends ? VeyraConductModels::CommendLabel(FriendName) : VeyraConductModels::ReportLabel(FriendName)).ToString()))
+		{
+			ConductStep = bCommends ? 3 : 2;
+		}
+		return true;
+	case 2:
+		// A test report, which the development route shows the script (Smoke.ps1).
+		if (Click(VeyraConductModels::ReasonButtonLabel(FriendName, TEXT("other")).ToString())
+			&& TypeReportDetails(FString::Printf(TEXT("smoke test %s"), *ChatRunTag)) && Click(VeyraConductModels::SubmitReportLabel(FriendName).ToString()))
+		{
+			ConductStep = 3;
+		}
+		return true;
+	case 3:
+		if (bCommends ? Conduct.Record.Commended == FriendName : Conduct.Record.Reported.Contains(FriendName))
+		{
+			ConductStep = 4;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s %s from the results screen."), bCommends ? TEXT("commended") : TEXT("reported"), *FriendName);
+		}
+		else if (!Conduct.Feedback.IsEmpty() && Conduct.Feedback != TEXT("commended") && Conduct.Feedback != TEXT("report_sent"))
+		{
+			Finish(false, FString::Printf(TEXT("the %s about %s was refused: %s"), bCommends ? TEXT("commendation") : TEXT("report"), *FriendName, *Conduct.Feedback));
+		}
+		return ConductStep < 4;
+	default:
+		return false;
+	}
+#else
+	return false;
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TypeReportDetails(const FString& Text)
+{
+#if WITH_VEYRA_UI
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	if (!Screen)
+	{
+		Finish(false, TEXT("the shell shows no report form to write in"));
+		return false;
+	}
+	Screen->SetReportDetailsDraft(Text);
+	return true;
+#else
+	return false;
+#endif
+}
+
 bool UVeyraSmokeFlowSubsystem::TickPostMatchChat(IVeyraClientIntents& Flow)
 {
 #if WITH_VEYRA_UI
@@ -1993,7 +2059,8 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	if (IsParty())
 	{
 		UVeyraClientFlowSubsystem* FlowHost = GetGameInstance()->GetSubsystem<UVeyraClientFlowSubsystem>();
-		if (FlowHost && TickPostMatchChat(FlowHost->GetClient()))
+		// Then the leader commends the other member, and the member reports the leader as a test (ADR-047 §5).
+		if (FlowHost && (TickPostMatchChat(FlowHost->GetClient()) || TickConduct(FlowHost->GetClient())))
 		{
 			return;
 		}

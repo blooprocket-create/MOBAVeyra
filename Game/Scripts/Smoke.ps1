@@ -820,6 +820,26 @@ if ($Handoff -or $Flow) {
         # The backend's development view of the match, which holds no credential.
         $match | ConvertTo-Json -Depth 6 | Out-File -LiteralPath (Join-Path $reportDir 'BackendMatch.json') -Encoding utf8
 
+        # A party's leader commends the other member, and the member files a test report about the leader, from
+        # the results screen (ADR-047 §5). The development view of the match's conduct shows both.
+        if ($isParty -and $matchId) {
+            $conduct = Invoke-Backend -Method Get -Path "/v1/dev/matches/$matchId/conduct"
+            $conduct.Body | ConvertTo-Json -Depth 6 | Out-File -LiteralPath (Join-Path $reportDir 'BackendConduct.json') -Encoding utf8
+            $reports = @(if ($conduct.Status -eq 200) { $conduct.Body.case.reports })
+            $commendations = @(if ($conduct.Status -eq 200) { $conduct.Body.commendations })
+            if ($reports.Count -ne 1 -or $reports[0].reason -ne 'other' -or -not $conduct.Body.case.open) {
+                Write-Host "The match's case holds $($reports.Count) report(s); expected the member's one test report."
+                $failed = $true
+            }
+            elseif ($commendations.Count -ne 1 -or $commendations[0].commendedName -eq $reports[0].reportedName) {
+                Write-Host "The match holds $($commendations.Count) commendation(s); expected the leader's one, of the member."
+                $failed = $true
+            }
+            else {
+                Write-Host "Conduct: $($commendations[0].commendedName) commended; $($reports[0].reportedName) reported (a test report)."
+            }
+        }
+
         # The clients' verdicts and handoff.
         foreach ($client in $handoffClients) {
             $verdict = if (Test-Path -LiteralPath $client.Log) { Select-String -LiteralPath $client.Log -Pattern 'VeyraSmoke: (PASS|FAIL).*' | Select-Object -Last 1 } else { $null }
