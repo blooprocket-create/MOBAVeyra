@@ -502,8 +502,11 @@ bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount)
 
 namespace
 {
-	/** Restores Health and reports what it actually restored, and who gave it (ADR-017 §1); nullopt when refused. */
-	TOptional<double> Restore(UAbilitySystemComponent* Provider, UAbilitySystemComponent& AbilitySystem, double Amount)
+	/**
+	 * Restores Health and reports what it actually restored, and who gave it (ADR-017 §1); nullopt when refused. Health
+	 * Regeneration is not a new heal: it goes on in Stasis, and only sealed Health refuses it (ADR-050 §1, §3).
+	 */
+	TOptional<double> Restore(UAbilitySystemComponent* Provider, UAbilitySystemComponent& AbilitySystem, double Amount, bool bRegeneration = false)
 	{
 		if (!AbilitySystem.GetSet<UVeyraVitalsSet>() || !IsNonNegativeFinite(Amount))
 		{
@@ -515,7 +518,8 @@ namespace
 		{
 			return {};
 		}
-		if (RefusesRestoration(AbilitySystem))
+		const bool bRefused = bRegeneration ? AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_SealedHealth) : RefusesRestoration(AbilitySystem);
+		if (bRefused)
 		{
 			UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored %g Health for %s: nothing restores it in Stasis or with its Health sealed (ADR-050 §1, §3)."),
 				Amount, *GetNameSafe(AbilitySystem.GetOwner()));
@@ -539,6 +543,11 @@ namespace
 bool RestoreHealth(UAbilitySystemComponent& AbilitySystem, double Amount)
 {
 	return Restore(nullptr, AbilitySystem, Amount).IsSet();
+}
+
+bool RegenerateHealth(UAbilitySystemComponent& AbilitySystem, double Amount)
+{
+	return Restore(nullptr, AbilitySystem, Amount, /*bRegeneration*/ true).IsSet();
 }
 
 double RestoreHealthFrom(UAbilitySystemComponent& Provider, UAbilitySystemComponent& Target, double Amount)
