@@ -34,6 +34,27 @@ namespace
 
 	/** The indicator boundary's option that draws it thick (Settings Bible §3.3). */
 	const TCHAR* const Thick = TEXT("Thick");
+
+	/** Combat text's density and damage colours that differ from the default (ADR-052 §1). */
+	const TCHAR* const Reduced = TEXT("Reduced");
+	const TCHAR* const Uniform = TEXT("Uniform");
+
+	/** Whether a bar shows under Visibility. */
+	bool Shows(EVeyraBarVisibility Visibility, const FVeyraBarFacts& Facts)
+	{
+		switch (Visibility)
+		{
+		case EVeyraBarVisibility::Always:
+			return true;
+		case EVeyraBarVisibility::WhenDamaged:
+			return Facts.bDamaged;
+		case EVeyraBarVisibility::WhenTargeted:
+			return Facts.bTargeted;
+		case EVeyraBarVisibility::WhenEngaged:
+			return Facts.bDamaged || Facts.bFighting;
+		}
+		return true;
+	}
 }
 
 const FVeyraContentId& HudScale()
@@ -126,6 +147,87 @@ const FVeyraContentId& ChatTimestamps()
 	return Id;
 }
 
+const FVeyraContentId& AlliedFluxbornBars()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_fluxborn_bars_allied"));
+	return Id;
+}
+
+const FVeyraContentId& EnemyFluxbornBars()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_fluxborn_bars_enemy"));
+	return Id;
+}
+
+const FVeyraContentId& JungleBars()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_jungle_bars"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextDamageDealt()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_damage_dealt"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextDamageReceived()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_damage_received"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextHealing()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_healing"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextShielding()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_shielding"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextCrits()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_crits"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextDensity()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_density"));
+	return Id;
+}
+
+const FVeyraContentId& DamageNumberColors()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_damage_number_colors"));
+	return Id;
+}
+
+EVeyraBarVisibility ParseBars(const FString& Option)
+{
+	return Option == TEXT("WhenDamaged") ? EVeyraBarVisibility::WhenDamaged
+		: Option == TEXT("WhenTargeted") ? EVeyraBarVisibility::WhenTargeted
+		: Option == TEXT("WhenEngaged")	 ? EVeyraBarVisibility::WhenEngaged
+										 : EVeyraBarVisibility::Always;
+}
+
+bool ShowsBar(const FVeyraInterfacePreferences& Preferences, const FVeyraBarFacts& Facts)
+{
+	switch (Facts.Kind)
+	{
+	case EVeyraUnitKind::Fluxborn:
+		return Shows(Facts.bAllied ? Preferences.AlliedFluxbornBars : Preferences.EnemyFluxbornBars, Facts);
+	case EVeyraUnitKind::Wildlife:
+		return Shows(Preferences.JungleBars, Facts);
+	default:
+		return true;
+	}
+}
+
 FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore* Store)
 {
 	FVeyraInterfacePreferences Preferences;
@@ -140,6 +242,8 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.ChatBackdrop = Hud.ChatBackdropColor;
 	Preferences.ChatFadeSeconds = Hud.ChatFadeSeconds;
 	Preferences.IndicatorThickness = Hud.IndicatorThickness;
+	Preferences.CombatText.MergeSeconds = Hud.CombatTextMergeSeconds;
+	Preferences.CombatText.ShowSeconds = Hud.CombatTextShowSeconds;
 	if (!Store)
 	{
 		return Preferences;
@@ -165,6 +269,16 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.ChatBackdrop = Backdrop == Transparent ? FLinearColor::Transparent : Backdrop == HighContrast ? Hud.ChatHighContrastBackdropColor : Hud.ChatBackdropColor;
 	Preferences.ChatFadeSeconds = static_cast<float>(Store->GetNumber(ChatFadeSeconds()));
 	Preferences.bChatTimestamps = Store->IsOn(ChatTimestamps());
+	Preferences.AlliedFluxbornBars = ParseBars(Store->Get(AlliedFluxbornBars()));
+	Preferences.EnemyFluxbornBars = ParseBars(Store->Get(EnemyFluxbornBars()));
+	Preferences.JungleBars = ParseBars(Store->Get(JungleBars()));
+	Preferences.CombatText.bDamageDealt = Store->IsOn(CombatTextDamageDealt());
+	Preferences.CombatText.bDamageReceived = Store->IsOn(CombatTextDamageReceived());
+	Preferences.CombatText.bHealing = Store->IsOn(CombatTextHealing());
+	Preferences.CombatText.bShielding = Store->IsOn(CombatTextShielding());
+	Preferences.CombatText.bCritEmphasis = Store->IsOn(CombatTextCrits());
+	Preferences.CombatText.bReduced = Store->Get(CombatTextDensity()) == Reduced;
+	Preferences.bUniformDamageColors = Store->Get(DamageNumberColors()) == Uniform;
 	return Preferences;
 }
 

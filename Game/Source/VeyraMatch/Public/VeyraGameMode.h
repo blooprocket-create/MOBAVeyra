@@ -20,6 +20,7 @@ class AVeyraGameState;
 class AVeyraPlayerController;
 class FVeyraBattlegroundLink;
 class FVeyraEchoLink;
+class FVeyraCombatTextLink;
 class AVeyraVanguardController;
 class AVeyraPlayerState;
 class AVeyraVanguardCharacter;
@@ -267,6 +268,9 @@ private:
 
 	/** Passes a participant's orders to the Echo it commands (ADR-050 §6). */
 	TSharedPtr<FVeyraEchoLink> EchoLink;
+
+	/** Sends each player its floating combat text (ADR-052 §1). */
+	TSharedPtr<FVeyraCombatTextLink> CombatText;
 
 	/** The controller Participant's move and attack orders reach: its commanded Echo's, else its Vanguard's. */
 	AVeyraVanguardController* OrderedControllerOf(const AVeyraPlayerState* Participant) const;

@@ -284,6 +284,15 @@ namespace VeyraHud
 	/** Unit's species as a jungle creature; nothing when it is not one (ADR-014 §2). */
 	VEYRAUI_API TOptional<FVeyraContentId> SpeciesOf(const AActor& Unit);
 
+	/**
+	 * How far from Unit's centre its basic attacks reach a target's edge now, as Show Attack Range rings it
+	 * (ADR-052 §4): its reach, statuses included, and its own body's radius; nothing when it has no basic attack.
+	 */
+	VEYRAUI_API TOptional<double> AttackReachOf(const AActor& Unit);
+
+	/** Whether Unit is in the middle of a basic attack, as When Engaged bars read fighting (ADR-052 §2). */
+	VEYRAUI_API bool IsFighting(const AActor& Unit);
+
 	/** The mastery emote Unit's player shows at ServerNow, in server gameplay time; nothing when none shows. */
 	VEYRAUI_API TOptional<FVeyraHudMasteryEmote> MasteryEmoteOf(const AActor& Unit, double ServerNow);
 

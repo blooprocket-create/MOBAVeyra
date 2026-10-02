@@ -145,6 +145,23 @@ TOptional<FVeyraContentId> VeyraHud::SpeciesOf(const AActor& Unit)
 	return Creature && Creature->GetSpecies().IsValid() ? TOptional<FVeyraContentId>(Creature->GetSpecies()) : TOptional<FVeyraContentId>();
 }
 
+TOptional<double> VeyraHud::AttackReachOf(const AActor& Unit)
+{
+	const UVeyraBasicAttackComponent* Attacks = FindBesideHudAbilitySystem<UVeyraBasicAttackComponent>(Unit);
+	if (!Attacks)
+	{
+		return {};
+	}
+	// Reach runs edge to edge (Combat Bible §40), so a target whose edge touches the ring is in reach.
+	return Attacks->GetRange(nullptr) + Unit.GetSimpleCollisionRadius();
+}
+
+bool VeyraHud::IsFighting(const AActor& Unit)
+{
+	const UVeyraBasicAttackComponent* Attacks = FindBesideHudAbilitySystem<UVeyraBasicAttackComponent>(Unit);
+	return Attacks && Attacks->GetState().Phase != EVeyraAttackPhase::None;
+}
+
 TOptional<FVeyraHudMasteryEmote> VeyraHud::MasteryEmoteOf(const AActor& Unit, double ServerNow)
 {
 	const APawn* Pawn = Cast<APawn>(&Unit);

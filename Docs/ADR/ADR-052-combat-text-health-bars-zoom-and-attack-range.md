@@ -5,6 +5,7 @@
 **Related:**
 - [Settings & Accessibility Bible](../Design/Veyra_Settings_Accessibility_Bible_v0.1.md):
   - §3.4: health bars and combat text (Proposals 38 and 39).
+  - Proposal 52: damage number appearance.
   - Proposals 155 and 158: manual camera zoom.
   - Proposals 162 and 163: Show Attack Range.
 - [ADR-024](ADR-024-player-settings.md): the settings registry, stores and categories, and §7's deferrals, which this ADR takes up.
@@ -23,24 +24,26 @@ ADR-024 deferred four approved, Locked settings features, and none exists today:
 
 ### 1. Floating combat text: the server tells only the player it concerns
 
-Combat's events are server-only. **Match** (`Feedback/UVeyraCombatTextComponent` on the PlayerController) answers them:
-- **Damage dealt:** each resolved damage instance whose source is the player's Vanguard or a unit it owns. It is shown at the target, by type, with crit emphasis when a basic attack crit.
-- **Damage received:** each damage instance that cost the player's Vanguard Health, Temporary Health or shields. It is shown at the player's Vanguard.
-- **Healing:** restored Health the player gave or received, at the unit healed.
-- **Shielding:** a shield the player granted or received, at the unit shielded.
+Combat's events are server-only. **Match** answers them with a combat text link the game mode owns (`Feedback/FVeyraCombatTextLink`), as it owns its other links:
+- **Damage dealt:** each damage instance dealt to an enemy (`OnDamageDealt`) whose source answers to the player's participant: its Vanguard, or a unit it owns. Each damage type is its own number at the target, with crit emphasis when a basic attack crit.
+- **Damage received:** each damage instance dealt to the player's Vanguard, by type, whatever it cost: Health, Temporary Health or shields. It is shown at the player's Vanguard.
+- **Healing:** Health a unit restored (`OnHealthRestored` with a provider), when the player gave or received it, at the unit healed. Regeneration, the fountain and a Well heal no one in particular and show nothing.
+- **Shielding:** a shield the player granted or received, at the unit shielded. Combat gains `OnShieldGranted`, raised by the absorption component with what the grant added.
 
 **Who receives it:**
-- Each line goes only to the player it concerns, through an unreliable client RPC that carries the unit, the amount and the kind. Nothing is broadcast.
-- A number about a unit the player's side cannot see is never sent: the server asks Vision's contract before sending, so combat text never reveals a unit in the fog.
+- Each line goes only to the player it concerns, through an unreliable client RPC on that player's controller. It carries the unit, the unit at the other end, the kind, the damage type, the crit and the amount. Nothing is broadcast, and a bot's participant has no controller to send to.
+- A number about a unit the player's side cannot see is never sent, and the other end travels only while the side sees it: the server asks Vision's contract (`VeyraVisibility::IsVisibleToTeam`) first, so combat text never reveals a unit in the fog.
 
 **Showing it (presentation only):**
-- The client draws each number rising and fading above its unit, in the HUD canvas, from replicated positions.
-- **Density** is Standard or Reduced. Reduced merges numbers of the same kind on the same unit that arrive within a short window into one running total. The merge window is a presentation setting.
+- The controller raises each line it receives as a client event; the UI keeps them and draws each number rising and fading above its unit, in the HUD canvas, from replicated positions.
+- **Density** is Standard or Reduced. Reduced merges quick successive numbers of the same kind and type between the same two units into one running total, as the bible says. The merge window is a presentation setting.
+- **Damage number appearance** (Proposal 52): Color-Coded by default, so Physical, Magic and True damage differ; Uniform shows every damage number in one colour. Healing and shielding keep their own colours.
 
 **Settings (Interface):**
 - `interface_combat_text_damage_dealt`, `_damage_received`, `_healing` and `_shielding`, each On or Off. Every one defaults On.
 - `interface_combat_text_crits`, On by default.
 - `interface_combat_text_density`: Standard or Reduced, Standard by default.
+- `interface_damage_number_colors`: Color-Coded or Uniform, Color-Coded by default.
 
 The client skips a turned-off kind. The server sends regardless, since the setting is the client's.
 
@@ -72,8 +75,9 @@ Vanguards and structures keep their bars whenever they are seen. The setting onl
 
 | Piece | Owner |
 |---|---|
-| Who receives which number | Match: the combat text component on the PlayerController, which listens to Combat's events on the server |
-| Drawing, merging and rising numbers; health-bar visibility | VeyraUI |
+| Who receives which number | Match: the combat text link, which listens to Combat's events on the server and sends through each player's controller |
+| What a shield grant added | Combat: `OnShieldGranted` |
+| Keeping, merging and drawing numbers; health-bar visibility | VeyraUI |
 | Zoom input and the camera arm | Match: the PlayerController and the camera rig |
 | Setting definitions and text | Settings.json and the text table |
 
@@ -99,6 +103,9 @@ Vanguards and structures keep their bars whenever they are seen. The setting onl
 4. **Presentation values:** combat text rises 60 units over 1.2 s, and Reduced density merges within 0.4 s.
 5. **Show Attack Range has no default key.** The bible names none, and every free key near the hand is spoken for.
 6. **Damage dealt by the player's companion or Echo** counts as the player's. It shows at the target like their own.
+7. **Only a unit's healing shows.** Regeneration, the fountain and a Well show no healing number.
+8. **Temporary Health shows no shielding number.** Only shields do.
+9. **One number per damage type.** A hit dealing Physical and Magic damage shows two numbers, each in its type's colour.
 
 ## Out of scope
 

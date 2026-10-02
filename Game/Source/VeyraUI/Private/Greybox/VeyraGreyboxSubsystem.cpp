@@ -166,6 +166,12 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 	Bodies.Reset();
 	Projectiles.Reset();
 	Telegraphs.Reset();
+	if (AVeyraPlayerController* Source = CombatTextSource.Get())
+	{
+		Source->OnCombatText.Remove(CombatTextHandle);
+	}
+	CombatTextSource.Reset();
+	CombatText.Reset();
 	bReady = false;
 	Super::Deinitialize();
 }
@@ -195,7 +201,28 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawVisionMarks();
 	DrawChains();
 	DrawEchoTethers();
+	RefreshCombatText();
 	AttachHudOverlay();
+}
+
+void UVeyraGreyboxSubsystem::RefreshCombatText()
+{
+	AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (Local != CombatTextSource.Get())
+	{
+		if (AVeyraPlayerController* Previous = CombatTextSource.Get())
+		{
+			Previous->OnCombatText.Remove(CombatTextHandle);
+		}
+		CombatTextSource = Local;
+		CombatTextHandle = Local ? Local->OnCombatText.AddUObject(this, &UVeyraGreyboxSubsystem::OnCombatText) : FDelegateHandle();
+	}
+	VeyraCombatTextView::Forget(CombatText, FPlatformTime::Seconds(), GetDefault<UVeyraGreyboxSettings>()->CombatTextShowSeconds);
+}
+
+void UVeyraGreyboxSubsystem::OnCombatText(const FVeyraCombatTextLine& Line)
+{
+	CombatText.Add(FVeyraCombatTextArrival{ Line, FPlatformTime::Seconds() });
 }
 
 void UVeyraGreyboxSubsystem::AttachHudOverlay()
@@ -705,6 +732,7 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 	if (const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
 	{
 		AddIndicator(*Local, Tuning);
+		AddAttackRange(*Local);
 	}
 }
 
@@ -730,6 +758,21 @@ void UVeyraGreyboxSubsystem::AddIndicator(const AVeyraPlayerController& Local, c
 	{
 		Telegraphs.Add(FVeyraTelegraph{ Placed, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
 	}
+}
+
+void UVeyraGreyboxSubsystem::AddAttackRange(const AVeyraPlayerController& Local)
+{
+	// A guide in the indicator's appearance: no target is acquired and no attack follows (ADR-052 §4).
+	const APawn* Body = Local.GetCommandedBody();
+	const TOptional<double> Reach = Body && Local.IsShowingAttackRange() ? VeyraHud::AttackReachOf(*Body) : TOptional<double>();
+	if (!Reach)
+	{
+		return;
+	}
+	FVeyraShape Ring;
+	Ring.Kind = EVeyraShapeKind::Circle;
+	Ring.Radius = Reach.GetValue();
+	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, Body->GetActorLocation(), FVector::ForwardVector }, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
 }
 
 FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const

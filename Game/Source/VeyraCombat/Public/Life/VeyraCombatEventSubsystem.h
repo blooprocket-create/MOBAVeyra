@@ -106,6 +106,15 @@ struct FVeyraHealthRestored
 	double Restored = 0.0;
 };
 
+/** A shield granted to a unit (Combat Bible §7): by whom, and what it added to the unit's shields (ADR-052 §1). */
+struct FVeyraShieldGranted
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Provider;
+	TWeakObjectPtr<UAbilitySystemComponent> Target;
+	/** What the grant added: a merged shield's top-up, never what the shield already held. */
+	double Added = 0.0;
+};
+
 /** A status as it was applied, after Tenacity (Combat Bible §8–§14). */
 struct FVeyraStatusApplied
 {
@@ -238,6 +247,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageDealt, const FVeyraDamageDealtEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageResolved, const FVeyraDamageResolution&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHealthRestored, const FVeyraHealthRestored&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnShieldGranted, const FVeyraShieldGranted&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStatusApplied, const FVeyraStatusApplied&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCast, const FVeyraCastEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDisplaced, const FVeyraDisplacementEvent&);
@@ -267,6 +277,9 @@ public:
 
 	/** Health actually restored, with the unit that healed it when one did. */
 	FOnHealthRestored OnHealthRestored;
+
+	/** A shield granted, with what it added (ADR-052 §1): floating combat text reads it. */
+	FOnShieldGranted OnShieldGranted;
 
 	/** A status applied or refreshed on a unit. */
 	FOnStatusApplied OnStatusApplied;
