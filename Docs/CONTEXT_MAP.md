@@ -95,6 +95,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
   - Reconnecting to the same Vanguard, disconnect autopilot, AFK and absence, personal loss, and remake, surrender and pause votes are [ADR-019](ADR/ADR-019-match-flow.md); their canon is the Match Flow Bible §3–§11.
   - Leave Match, the Match Found alert, the match loading screen with tips and lore, and the break reminder are [ADR-053](ADR/ADR-053-leave-match-match-found-alert-loading-screen-and-break-reminder.md); their canon is Match Flow §3, §5.2 and §13, Settings SET-50, SET-71, SET-76 and SET-111–120, and the Account Bible §2.
   - Accessibility settings (colour vision and side colours, text size, focus, transparency, motion and flashing) and the connection and performance warnings are [ADR-055](ADR/ADR-055-accessibility-settings-and-hud-warnings.md); their canon is Settings §3.6 and §4.1–§4.2 and Proposals 62, 65, 74, 75, 110 and 112.
+  - HUD component scales, the safe area and the HUD's layout, cooldown display, the player's own status row and Chat Text Size in every chat are [ADR-059](ADR/ADR-059-hud-scaling-cooldowns-statuses-and-chat-readability.md); their canon is Settings §3.1 and §3.4 and Proposals 10, 41, 38, 43, 44, 53 and 66.
   - The camera, the minimap, the kill-streak bounty, death-streak devaluation and buyback are [ADR-020](ADR/ADR-020-camera-minimap-kill-economy.md); their canon is the Settings & Accessibility Bible §2 and §3.2 and the Economy & Progression Bible §5.3, §5.4 and §15.
   - Custom lobbies (the host, human and bot slots on either side, invites, launch through champion select), `custom` rules with victory and starting Gold per session, and friends in the client are [ADR-021](ADR/ADR-021-custom-lobbies.md); their canon is the Custom Matches Bible §1–§5 and the Parties & Social Bible. The code:
   - backend: `Backend/internal/lobby`;
@@ -174,6 +175,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-055-accessibility-settings-and-hud-warnings.md](ADR/ADR-055-accessibility-settings-and-hud-warnings.md) — **Proposed** (accepted when the M45 pull request merges): colour vision and side colours, Interface Text Size, focus, transparency, motion and flashing, and the connection and performance warnings.
 - [ADR-056-bot-competence.md](ADR/ADR-056-bot-competence.md) — **Proposed** (accepted when the M46 pull request merges): bots' consumables, base defence, buyback, late-game grouping and burst-item builds.
 - [ADR-058-search-filters-and-favorites.md](ADR/ADR-058-search-filters-and-favorites.md) — **Proposed** (accepted when the M47 pull request merges): shop search and the Focus Shop Search key; roster search and filters in the Collection and champion select; favorite Vanguards.
+- [ADR-059-hud-scaling-cooldowns-statuses-and-chat-readability.md](ADR/ADR-059-hud-scaling-cooldowns-statuses-and-chat-readability.md) — **Proposed** (accepted when the M48 pull request merges): a scale for each HUD component and safe-area margins in one layout; cooldown numbers, sweep and precision; the own-status row; Chat Text Size in every chat.
 
 ## Keeping the maps current
 
