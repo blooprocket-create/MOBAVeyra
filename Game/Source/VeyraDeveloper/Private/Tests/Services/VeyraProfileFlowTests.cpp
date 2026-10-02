@@ -236,13 +236,35 @@ namespace VeyraClientFlowTests
 				&& !Snapshot().Problem.IsSet()));
 		}
 
+		/** Answers the reads that find where the player is, ending with Profile's answer. */
+		bool AnswerResume(const FString& Profile)
+		{
+			return Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, Profile);
+		}
+
 		TEST_METHOD(AClaimedAccountChoosesANewNameFirst)
 		{
+			// ADR-049 §4: before its lobby, or anything else.
 			Rig.bRenameRequired = true;
-			ASSERT_THAT(IsTrue(Rig.ReachShell() && Snapshot().bRenameRequired));
+			ASSERT_THAT(IsTrue(Rig.ReachProfile(true) && Rig.State() == EVeyraClientState::Shell && Snapshot().bRenameRequired));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), TEXT("/v1/lobby")), TEXT("no lobby before a name")));
 			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("Returned"), FString())));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("Returned"), true))));
 			ASSERT_THAT(IsTrue(!Snapshot().bRenameRequired && Snapshot().DisplayName == TEXT("Returned")));
+			// Named, it goes on where it was bound.
+			ASSERT_THAT(IsTrue(AnswerResume(ProfileBody(true)) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && Rig.State() == EVeyraClientState::Shell));
+		}
+
+		TEST_METHOD(AClaimedAccountWithoutAStarterNamesItselfBeforeItsStarter)
+		{
+			Rig.bRenameRequired = true;
+			ASSERT_THAT(IsTrue(Rig.ReachProfile(false) && Rig.State() == EVeyraClientState::Shell && Snapshot().bRenameRequired));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), TEXT("/v1/me/vanguards")), TEXT("no starter before a name")));
+			ASSERT_THAT(IsTrue(Rig.Flow->ChangeDisplayName(TEXT("Returned"), FString())));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/display-name"), 200, NameStatusAnswer(TEXT("Returned"), true))));
+			ASSERT_THAT(IsTrue(AnswerResume(ProfileBody(false)) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody)));
+			ASSERT_THAT(IsTrue(Rig.State() == EVeyraClientState::StarterChoice));
 		}
 
 		TEST_METHOD(TheStatusIsReadAndAMalformedOneRefused)

@@ -181,3 +181,34 @@ func TestALauncherLoginKeepsTheNameFromBeingClaimed(t *testing.T) {
 		t.Fatalf("the holder keeps the name: %+v", got)
 	}
 }
+
+// failingSessions refuses every new session, as a full disk or a lost connection would.
+type failingSessions struct{ *MemStore }
+
+var errSessionRefused = errors.New("the session could not be stored")
+
+func (failingSessions) CreateSession(context.Context, Session) error { return errSessionRefused }
+
+// A launcher login records the login only with its session: a failed one never
+// protects the name (ADR-049 §1).
+func TestOnlyASuccessfulLoginRecordsTheLauncherLogin(t *testing.T) {
+	f := newNamesFixture(t)
+	ctx := context.Background()
+	a := f.account(t, "Alpha")
+	before := f.now
+	f.now = f.now.Add(time.Hour)
+	failing := NewService(failingSessions{f.store}, Settings{DevLoginEnabled: true, LauncherSessionLifetime: time.Hour}, func() time.Time { return f.now })
+	failing.SetNames(testNames, f.payer, func(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) })
+	if _, err := failing.issueLauncherSession(ctx, a.ID); !errors.Is(err, errSessionRefused) {
+		t.Fatalf("the session fails: %v", err)
+	}
+	if state, _ := f.store.NameState(ctx, a.ID); !state.LastLauncherLogin.Equal(before) {
+		t.Fatalf("a failed login moved the launcher login to %v", state.LastLauncherLogin)
+	}
+	if _, err := f.svc.issueLauncherSession(ctx, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if state, _ := f.store.NameState(ctx, a.ID); !state.LastLauncherLogin.Equal(f.now) {
+		t.Fatalf("a successful login records it: %v", state.LastLauncherLogin)
+	}
+}

@@ -343,6 +343,7 @@ bool FVeyraClientFlow::ChangeDisplayName(const FString& Name, const FString& Cur
 			return;
 		}
 		// The player is shown by the new name from now on; a required rename is done.
+		const bool bWasRequired = Snapshot.bRenameRequired;
 		Snapshot.DisplayName = Status.Name;
 		Snapshot.bRenameRequired = Status.bRenameRequired;
 		Own.Status = MoveTemp(Status);
@@ -351,6 +352,11 @@ bool FVeyraClientFlow::ChangeDisplayName(const FString& Name, const FString& Cur
 		Log(TEXT("display name: name_changed."));
 		Broadcast();
 		ReadProfilePreview();
+		// Its required name chosen, the account goes where it was bound: its starter, its lobby or the shell.
+		if (bWasRequired && !Status.bRenameRequired)
+		{
+			Resume();
+		}
 	});
 	return true;
 }

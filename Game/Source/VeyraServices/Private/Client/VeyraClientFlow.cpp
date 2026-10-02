@@ -914,8 +914,14 @@ void FVeyraClientFlow::LoadProfile()
 			ShowBadAnswer(TEXT("the player's profile"), Problem, [this] { Resume(); });
 			return;
 		}
-		// A claimed account chooses a new name before anything else; the shell asks it (ADR-049 §4).
+		// A claimed account chooses a new name before anything else: no starter, lobby or other step first; the
+		// shell asks it, and the account goes on once it has a name (ADR-049 §4).
 		Snapshot.bRenameRequired = Profile.bRenameRequired;
+		if (Profile.bRenameRequired)
+		{
+			EnterShell(Snapshot.Notice);
+			return;
+		}
 		if (Profile.bTutorialCompleted)
 		{
 			LoadLobby(Snapshot.Notice);
