@@ -57,6 +57,18 @@ bool AllowsBuyback(EVeyraMatchRules Rules)
 	return Rules == EVeyraMatchRules::Standard || Rules == EVeyraMatchRules::Custom;
 }
 
+FVector ClampToFountain(const FVector& Destination, const FVector& Fountain, double Radius)
+{
+	const FVector2D Offset(Destination.X - Fountain.X, Destination.Y - Fountain.Y);
+	const double Distance = Offset.Size();
+	if (Distance <= Radius)
+	{
+		return Destination;
+	}
+	const FVector2D Edge = FVector2D(Fountain.X, Fountain.Y) + Offset * (FMath::Max(0.0, Radius) / Distance);
+	return FVector(Edge.X, Edge.Y, Destination.Z);
+}
+
 bool DoesPrimeWellWin(bool bHasVictory, EVeyraMatchPhase Phase)
 {
 	return bHasVictory && Phase == EVeyraMatchPhase::Live;

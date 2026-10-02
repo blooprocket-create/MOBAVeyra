@@ -23,7 +23,7 @@ Two match-facing pieces are missing.
 - During Preparation, the game mode accepts **move and stop orders** only. Attack, attack-move, cast, Recall and vision-tool orders are still refused as the wrong phase: the bible allows moving, buying and skill points, and nothing else.
 - **The fountain area** is the circle of Match.json `fountain.radius` around the side's start, the same area that heals and lets a player shop.
 - A move order's destination is brought inside that circle by the pure `VeyraMatchRules::ClampToFountain`, and the order is accepted with the clamped point. A destination already inside is unchanged.
-- **Staying inside:** a path between two points of the circle stays inside it, so no exit can be walked. As a safety net, each preparation tick returns a Vanguard found outside the circle (pushed by a body, say) to its edge.
+- **Staying inside:** a Vanguard spawns at its side's start, and a path between two points of the circle stays inside it, so no exit can be walked.
 - **At Live,** every order is accepted as before: the fountain exits open together. Bots keep waiting for Live.
 
 ### 2. Vision publishes each side's seen ground
