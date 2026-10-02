@@ -76,6 +76,9 @@ func TestSocialGraphInPostgres(t *testing.T) {
 	if ok, _ := f.social.BlockedWithAny(ctx, a, []string{c, b}); !ok {
 		t.Fatal("block must be visible from both sides")
 	}
+	if blocked, _ := f.social.BlockedWith(ctx, a, []string{c, b}); len(blocked) != 1 || !blocked[b] {
+		t.Fatalf("BlockedWith must name B, blocked from the other side: %v", blocked)
+	}
 	if _, err := f.social.SendFriendRequest(ctx, a, b); !errors.Is(err, social.ErrBlocked) {
 		t.Fatalf("want ErrBlocked, got %v", err)
 	}
@@ -133,6 +136,46 @@ func TestPartyLifecycleInPostgres(t *testing.T) {
 	}
 	if _, err := f.parties.Get(ctx, b); !errors.Is(err, party.ErrNotInParty) {
 		t.Fatalf("empty party must be deleted: %v", err)
+	}
+}
+
+// The friends list's joinable parties come from one bulk read, and a party
+// with a member who blocks the reader is left out.
+func TestJoinablePartiesInPostgres(t *testing.T) {
+	f := newPartyFixture(t, "A", "B", "C", "D")
+	ctx := context.Background()
+	a, b, c, d := f.ids["A"], f.ids["B"], f.ids["C"], f.ids["D"]
+	f.befriend(t, "A", "B")
+	f.befriend(t, "A", "C")
+	f.befriend(t, "A", "D")
+	inv, err := f.parties.Invite(ctx, a, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.parties.AcceptInvite(ctx, b, inv.ID); err != nil {
+		t.Fatal(err)
+	}
+	p, err := f.parties.SetPrivacy(ctx, a, party.Public)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := f.store.Party().PartiesOf(ctx, []string{a, b, c, "not-a-uuid"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[a].ID != p.ID || got[b].ID != p.ID || len(got[a].Members) != 2 || got[a].Members[0].AccountID != a {
+		t.Fatalf("PartiesOf: %+v", got)
+	}
+
+	if joinable, err := f.parties.JoinableParties(ctx, d, []string{a}); err != nil || joinable[a] != p.ID {
+		t.Fatalf("D's joinable parties: %v %v", joinable, err)
+	}
+	if err := f.social.Block(ctx, b, c); err != nil {
+		t.Fatal(err)
+	}
+	if joinable, err := f.parties.JoinableParties(ctx, c, []string{a}); err != nil || len(joinable) != 0 {
+		t.Fatalf("B blocks C, so C may not join B's party: %v %v", joinable, err)
 	}
 }
 

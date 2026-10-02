@@ -209,6 +209,75 @@ func (s *PartyStore) PartyOf(ctx context.Context, accountID string) (party.Party
 	return p, err
 }
 
+// PartiesOf reads the accounts' parties and all their members in two
+// statements, however many accounts are asked about.
+func (s *PartyStore) PartiesOf(ctx context.Context, accountIDs []string) (map[string]party.Party, error) {
+	var ids []string
+	for _, id := range accountIDs {
+		if uuidPattern.MatchString(id) {
+			ids = append(ids, id)
+		}
+	}
+	out := map[string]party.Party{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	q := querierFor(ctx, s.pool)
+	rows, err := q.Query(ctx, `SELECT id::text, leader_id::text, coalesce(mode, ''), privacy, status, queued_at FROM party.parties
+		WHERE id IN (SELECT party_id FROM party.members WHERE account_id = ANY($1::uuid[]))`, ids)
+	if err != nil {
+		return nil, err
+	}
+	parties, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (party.Party, error) {
+		var p party.Party
+		var privacy, status string
+		var queuedAt *time.Time
+		err := r.Scan(&p.ID, &p.LeaderID, &p.Mode, &privacy, &status, &queuedAt)
+		p.Privacy, p.Status, p.QueuedAt = party.Privacy(privacy), party.Status(status), timeOrZero(queuedAt)
+		return p, err
+	})
+	if err != nil || len(parties) == 0 {
+		return out, err
+	}
+	partyIDs := make([]string, len(parties))
+	byID := map[string]*party.Party{}
+	for i := range parties {
+		partyIDs[i] = parties[i].ID
+		byID[parties[i].ID] = &parties[i]
+	}
+	rows, err = q.Query(ctx, `SELECT party_id::text, account_id::text, ready, joined_at FROM party.members
+		WHERE party_id = ANY($1::uuid[]) ORDER BY party_id, joined_at, account_id`, partyIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var partyID string
+		var m party.Member
+		if err := rows.Scan(&partyID, &m.AccountID, &m.Ready, &m.JoinedAt); err != nil {
+			return nil, err
+		}
+		if p := byID[partyID]; p != nil {
+			p.Members = append(p.Members, m)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	asked := map[string]bool{}
+	for _, id := range ids {
+		asked[id] = true
+	}
+	for _, p := range parties {
+		for _, m := range p.Members {
+			if asked[m.AccountID] {
+				out[m.AccountID] = p
+			}
+		}
+	}
+	return out, nil
+}
+
 func (s *PartyStore) InvitesFor(ctx context.Context, accountID string, now time.Time) ([]party.Invite, error) {
 	rows, err := querierFor(ctx, s.pool).Query(ctx, `SELECT `+inviteColumns+` FROM party.invites
 		WHERE invitee_id = $1::uuid AND expires_at > $2 ORDER BY created_at`, accountID, now)
