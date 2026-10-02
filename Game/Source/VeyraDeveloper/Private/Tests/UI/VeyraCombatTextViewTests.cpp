@@ -105,10 +105,33 @@ namespace VeyraCombatTextViewTests
 			const TArray<FVeyraCombatTextShown> Shown = VeyraCombatTextView::Describe(Arrivals, 0.6, OptionsOf(false));
 			ASSERT_THAT(IsTrue(Shown.Num() == 1 && FMath::IsNearlyEqual(Shown[0].Progress, 0.5), TEXT("halfway through, and nothing that rounds to 0")));
 			ASSERT_THAT(IsTrue(VeyraCombatTextView::Describe(Arrivals, ShowSeconds, OptionsOf(false)).IsEmpty(), TEXT("gone once shown")));
-			VeyraCombatTextView::Forget(Arrivals, ShowSeconds - 0.1, ShowSeconds);
+			VeyraCombatTextView::Forget(Arrivals, ShowSeconds - 0.1, OptionsOf(false));
 			ASSERT_THAT(IsTrue(Arrivals.Num() == 2));
-			VeyraCombatTextView::Forget(Arrivals, ShowSeconds, ShowSeconds);
+			VeyraCombatTextView::Forget(Arrivals, ShowSeconds, OptionsOf(false));
 			ASSERT_THAT(IsTrue(Arrivals.IsEmpty()));
+		}
+
+		TEST_METHOD(ReducedDensityKeepsEveryPartOfATotalWhileItShows)
+		{
+			AActor& Target = Spawner.SpawnActor<AActor>();
+			AActor& Dealer = Spawner.SpawnActor<AActor>();
+			// Two quick hits merge, and their total shows from the second.
+			constexpr double Second = MergeSeconds - 0.1;
+			const TArray<FVeyraCombatTextArrival> Hits = {
+				ArrivalOf(Target, &Dealer, EVeyraCombatTextKind::DamageDealt, 10.0, 0.0),
+				ArrivalOf(Target, &Dealer, EVeyraCombatTextKind::DamageDealt, 12.0, Second),
+			};
+			TArray<FVeyraCombatTextArrival> Standard = Hits;
+			VeyraCombatTextView::Forget(Standard, ShowSeconds, OptionsOf(false));
+			ASSERT_THAT(IsTrue(Standard.Num() == 1, TEXT("Standard drops each number in its own time")));
+
+			TArray<FVeyraCombatTextArrival> Reduced = Hits;
+			VeyraCombatTextView::Forget(Reduced, ShowSeconds, OptionsOf(true));
+			ASSERT_THAT(IsTrue(Reduced.Num() == 2, TEXT("past the first part's own time, the total still shows")));
+			const TArray<FVeyraCombatTextShown> Shown = VeyraCombatTextView::Describe(Reduced, ShowSeconds, OptionsOf(true));
+			ASSERT_THAT(IsTrue(Shown.Num() == 1 && Shown[0].Amount == 22.0, TEXT("whole")));
+			VeyraCombatTextView::Forget(Reduced, Second + ShowSeconds, OptionsOf(true));
+			ASSERT_THAT(IsTrue(Reduced.IsEmpty(), TEXT("its parts go with it")));
 		}
 
 		TEST_METHOD(ThePlayersCombatTextSettingsTakeTheirPlace)

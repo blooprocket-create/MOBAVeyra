@@ -49,6 +49,28 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(VeyraCombatTextRouting::ForDamage(Event, UnitOf(Bystander)).IsEmpty(), TEXT("an ally who took no part")));
 		}
 
+		TEST_METHOD(SelfDamageIsReceivedAndDamageToAnAllyIsNotDealt)
+		{
+			// Fixture value.
+			constexpr double Cost = 25.0;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Self = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Ally = World.Spawn(EVeyraTeam::A, FVector(0.0, 300.0, 0.0));
+			FVeyraDamageDealtEvent Event;
+			Event.Source = &UnitOf(Self);
+			Event.Target = &UnitOf(Self);
+			Event.Dealt.Add({ EVeyraDamageType::TrueDamage, Cost });
+			// Self-Damage is damage its Vanguard took (Combat Bible §47).
+			const TArray<FVeyraCombatTextLine> Lines = VeyraCombatTextRouting::ForDamage(Event, UnitOf(Self));
+			ASSERT_THAT(IsTrue(Lines.Num() == 1 && Lines[0].Kind == EVeyraCombatTextKind::DamageReceived && Lines[0].Unit.Get() == &Self
+				&& Lines[0].Amount == static_cast<float>(Cost)));
+
+			Event.Target = &UnitOf(Ally);
+			ASSERT_THAT(IsTrue(VeyraCombatTextRouting::ForDamage(Event, UnitOf(Self)).IsEmpty(), TEXT("dealt is dealt to an enemy")));
+			const TArray<FVeyraCombatTextLine> Taken = VeyraCombatTextRouting::ForDamage(Event, UnitOf(Ally));
+			ASSERT_THAT(IsTrue(Taken.Num() == 1 && Taken[0].Kind == EVeyraCombatTextKind::DamageReceived, TEXT("received is whatever its Vanguard took")));
+		}
+
 		TEST_METHOD(AUnitsHealingAndShieldsShowToBothEndsAndNoOneElse)
 		{
 			constexpr double Restored = 25.0;

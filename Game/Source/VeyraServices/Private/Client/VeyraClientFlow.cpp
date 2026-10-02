@@ -358,6 +358,8 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("CloseProfile");
 	case EVeyraClientIntent::LoadMoreProfileMatches:
 		return TEXT("LoadMoreProfileMatches");
+	case EVeyraClientIntent::FilterProfileMatches:
+		return TEXT("FilterProfileMatches");
 	case EVeyraClientIntent::OpenProfileMatch:
 		return TEXT("OpenProfileMatch");
 	case EVeyraClientIntent::CloseProfileMatch:
@@ -585,6 +587,7 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::OpenProfile:
 	case EVeyraClientIntent::CloseProfile:
 	case EVeyraClientIntent::LoadMoreProfileMatches:
+	case EVeyraClientIntent::FilterProfileMatches:
 	case EVeyraClientIntent::OpenProfileMatch:
 	case EVeyraClientIntent::CloseProfileMatch:
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;
@@ -921,8 +924,14 @@ void FVeyraClientFlow::LoadProfile()
 			ShowBadAnswer(TEXT("the player's profile"), Problem, [this] { Resume(); });
 			return;
 		}
-		// A claimed account chooses a new name before anything else; the shell asks it (ADR-049 §4).
+		// A claimed account chooses a new name before anything else: no starter, lobby or other step first; the
+		// shell asks it, and the account goes on once it has a name (ADR-049 §4).
 		Snapshot.bRenameRequired = Profile.bRenameRequired;
+		if (Profile.bRenameRequired)
+		{
+			EnterShell(Snapshot.Notice);
+			return;
+		}
 		if (Profile.bTutorialCompleted)
 		{
 			LoadLobby(Snapshot.Notice);

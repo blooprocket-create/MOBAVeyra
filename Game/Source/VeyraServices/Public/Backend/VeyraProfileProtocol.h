@@ -13,6 +13,8 @@
  */
 namespace VeyraBackendProtocol
 {
+	struct FHistoryFilter;
+
 	/** A profile's featured Vanguard with its owner's Mastery Level. */
 	struct FProfileFeatured
 	{
@@ -76,8 +78,8 @@ namespace VeyraBackendProtocol
 	/** GET /v1/profiles/{name}. */
 	VEYRASERVICES_API FString ProfilePath(const FString& Name);
 
-	/** GET /v1/profiles/{name}/matches, from Cursor (empty for the first page). */
-	VEYRASERVICES_API FString ProfileMatchesPath(const FString& Name, const FString& Cursor);
+	/** GET /v1/profiles/{name}/matches with the owner's own Match History filters (ADR-048 §3), from Cursor (empty for the first page). */
+	VEYRASERVICES_API FString ProfileMatchesPath(const FString& Name, const FHistoryFilter& Filter, const FString& Cursor);
 
 	/** GET /v1/profiles/{name}/matches/{matchId}. */
 	VEYRASERVICES_API FString ProfileMatchPath(const FString& Name, const FString& MatchId);

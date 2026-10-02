@@ -123,6 +123,12 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool RestoreHealth(UAbilitySystemComponent& AbilitySystem, double Amount);
 
 	/**
+	 * Restores Amount of Health as Health Regeneration does (Combat Bible §6): it is no new heal, so it goes on in Stasis,
+	 * which refuses heals and shields; sealed Health takes none (ADR-050 §1, §3). Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool RegenerateHealth(UAbilitySystemComponent& AbilitySystem, double Amount);
+
+	/**
 	 * Server: restores Amount of Health to Target as a heal Provider gives, as an ability or an item
 	 * does, never above Max Health (Combat Bible §6). Returns the Health actually restored, which
 	 * statistics credit to Provider (ADR-017 §1); 0 for a dead unit or a refused amount.
@@ -141,6 +147,9 @@ namespace VeyraCombat
 
 	/** Whether the unit is invulnerable now, by a grant, Stasis or a sealed Health (ADR-050 §1, §3). */
 	VEYRACOMBAT_API bool IsInvulnerable(const UAbilitySystemComponent& AbilitySystem);
+
+	/** Whether the unit is in Stasis (Combat Bible §10; ADR-050 §1): it takes no action, a consumable's included. */
+	VEYRACOMBAT_API bool IsInStasis(const UAbilitySystemComponent& AbilitySystem);
 
 	/**
 	 * Server: the unit's Health becomes a meter its owner sets with SetSealedHealth (ADR-050 §3), as an Echo's

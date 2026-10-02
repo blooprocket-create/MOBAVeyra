@@ -205,9 +205,12 @@ private:
 	void BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/** Match History: its filters and list, or an opened match's report (UX-51, UX-64, UX-67). */
 	void BuildHistory(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
-	/** A filter's choices as a row of buttons; choosing one reads the first page again with it. */
-	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
-		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply);
+	/**
+	 * A filter's choices as a row of buttons over Current; choosing one reads the first page again with it, through Load,
+	 * when bCanLoad.
+	 */
+	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options, const VeyraBackendProtocol::FHistoryFilter& Current,
+		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply, TFunction<void(const VeyraBackendProtocol::FHistoryFilter&)> Load, bool bCanLoad);
 	/**
 	 * The Collection (VeyraShellCollection.cpp; ADR-045 §8): every released Vanguard as a card, owned or not, with the
 	 * player's Mastery; an opened card's detail and Buy in either currency, each behind a confirmation naming its price.

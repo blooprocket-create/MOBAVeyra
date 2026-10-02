@@ -43,8 +43,11 @@ struct FVeyraCombatTextShown
 /** The client's presentation of combat text, apart from the engine. */
 namespace VeyraCombatTextView
 {
-	/** Drops the arrivals that have finished showing by Now. */
-	VEYRAUI_API void Forget(TArray<FVeyraCombatTextArrival>& Arrivals, double Now, double ShowSeconds);
+	/**
+	 * Drops the arrivals that have finished showing by Now, as Describe groups them: every part of a running total stays
+	 * while the total shows, from its latest part. Arrivals of a kind the player turned off go at once.
+	 */
+	VEYRAUI_API void Forget(TArray<FVeyraCombatTextArrival>& Arrivals, double Now, const FVeyraCombatTextOptions& Options);
 
 	/**
 	 * The numbers to draw at Now, in the order they arrived: the kinds the player turned off are left out, and

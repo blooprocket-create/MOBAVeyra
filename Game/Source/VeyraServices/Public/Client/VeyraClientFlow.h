@@ -203,6 +203,7 @@ public:
 	virtual bool OpenProfile(const FString& Name) override;
 	virtual bool CloseProfile() override;
 	virtual bool LoadMoreProfileMatches() override;
+	virtual bool FilterProfileMatches(const VeyraBackendProtocol::FHistoryFilter& Filter) override;
 	virtual bool OpenProfileMatch(const FString& MatchId) override;
 	virtual bool CloseProfileMatch() override;
 	virtual bool LoadProfileSettings() override;
@@ -316,7 +317,7 @@ private:
 	/** Reads Name's profile into the opened view, and its shared Match History's first page when it shares it. */
 	void ReadProfile(const FString& Name);
 	/** Reads a page of the opened profile's shared Match History from Cursor. */
-	void ReadProfileMatches(const FString& Name, const FString& Cursor);
+	void ReadProfileMatches(const FString& Name, const VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Cursor);
 	/** Reads the player's own profile as another player sees it, for the Profile page's preview. */
 	void ReadProfilePreview();
 

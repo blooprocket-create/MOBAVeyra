@@ -29,7 +29,7 @@ public:
 	void Stop();
 
 private:
-	void OnDamageDealt(const FVeyraDamageDealtEvent& Event);
+	void OnDamageTaken(const FVeyraDamageDealtEvent& Event);
 	void OnHealthRestored(const FVeyraHealthRestored& Event);
 	void OnShieldGranted(const FVeyraShieldGranted& Event);
 

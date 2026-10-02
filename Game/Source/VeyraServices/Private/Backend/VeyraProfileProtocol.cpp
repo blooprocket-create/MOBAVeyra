@@ -2,6 +2,7 @@
 
 #include "Backend/VeyraProfileProtocol.h"
 
+#include "Backend/VeyraBackendProtocol.h"
 #include "Dom/JsonObject.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Internationalization/Regex.h"
@@ -82,10 +83,9 @@ FString ProfilePath(const FString& Name)
 	return TEXT("/v1/profiles/") + ProfileSegment(Name);
 }
 
-FString ProfileMatchesPath(const FString& Name, const FString& Cursor)
+FString ProfileMatchesPath(const FString& Name, const FHistoryFilter& Filter, const FString& Cursor)
 {
-	const FString Path = ProfilePath(Name) + TEXT("/matches");
-	return Cursor.IsEmpty() ? Path : Path + TEXT("?cursor=") + FGenericPlatformHttp::UrlEncode(Cursor);
+	return ProfilePath(Name) + TEXT("/matches") + HistoryQuery(Filter, Cursor);
 }
 
 FString ProfileMatchPath(const FString& Name, const FString& MatchId)

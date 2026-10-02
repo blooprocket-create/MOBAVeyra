@@ -94,6 +94,15 @@ public:
 	 */
 	bool DeliverRepeat(const FVeyraCast& Repeat);
 
+	/**
+	 * Why Target may not aim a repeat of Ability by Caster, another caster standing in (ADR-050 §5); None if it may. The
+	 * archetype's own target rules, as for any cast: a projected order is checked before its repeat is spent.
+	 */
+	EVeyraCastRejection CheckRepeatTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
+	{
+		return CheckTarget(Caster, Ability, Target);
+	}
+
 protected:
 	/** Whether this archetype's tuning defines Ability. */
 	virtual bool Defines(const FVeyraContentId& Ability) const PURE_VIRTUAL(UVeyraGameplayAbility::Defines, return false;);

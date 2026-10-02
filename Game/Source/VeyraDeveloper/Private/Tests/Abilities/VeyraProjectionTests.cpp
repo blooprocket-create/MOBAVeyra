@@ -230,6 +230,14 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Echoes().CastFrom(HolderAbilities(), EVeyraAbilitySlot::Q, AtEnemy) == EVeyraCastRejection::Projected, TEXT("not before control")));
 			Wait(Formation + Step);
 			ASSERT_THAT(IsTrue(Echoes().CastFrom(HolderAbilities(), EVeyraAbilitySlot::Item1, AtEnemy) == EVeyraCastRejection::Projected, TEXT("never an item")));
+			// A point the ability may not take refuses the order and spends nothing, as for any cast.
+			FVeyraCastTarget Nowhere;
+			ASSERT_THAT(IsTrue(Echoes().CastFrom(HolderAbilities(), EVeyraAbilitySlot::Q, Nowhere) == EVeyraCastRejection::InvalidLocation, TEXT("a ground point it needs")));
+			FVeyraCastTarget Malformed;
+			Malformed.bHasLocation = true;
+			Malformed.Location = FVector(TNumericLimits<double>::Max() * 2.0, 0.0, 0.0);
+			ASSERT_THAT(IsTrue(Echoes().CastFrom(HolderAbilities(), EVeyraAbilitySlot::Q, Malformed) == EVeyraCastRejection::InvalidLocation, TEXT("a finite one")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyZero(FArchetypeTestWorld::HealthLost(*Enemy)), TEXT("nothing delivered")));
 			ASSERT_THAT(IsTrue(Echoes().CastFrom(HolderAbilities(), EVeyraAbilitySlot::Q, AtEnemy) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(FArchetypeTestWorld::HealthLost(*Enemy), Burst * Coefficient, Tolerance), TEXT("at its share, True Damage too")));
 			ASSERT_THAT(IsTrue(Echoes().CastFrom(HolderAbilities(), EVeyraAbilitySlot::Q, AtEnemy) == EVeyraCastRejection::Projected, TEXT("once")));

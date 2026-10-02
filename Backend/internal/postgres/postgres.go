@@ -146,7 +146,8 @@ func (s *Store) AccountByID(ctx context.Context, id string) (identity.Account, e
 	if !uuidPattern.MatchString(id) {
 		return identity.Account{}, identity.ErrNotFound
 	}
-	err := s.pool.QueryRow(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE id = $1::uuid`,
+	// Through ctx's transaction when there is one: a rename reads the account in its own unit of work (ADR-049).
+	err := querierFor(ctx, s.pool).QueryRow(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE id = $1::uuid`,
 		id).Scan(&a.ID, &a.DisplayName)
 	return a, notFound(err)
 }
@@ -157,7 +158,8 @@ type execer interface {
 }
 
 func (s *Store) CreateSession(ctx context.Context, sess identity.Session) error {
-	return insertSession(ctx, s.pool, sess)
+	// In ctx's transaction when there is one, so a launcher login commits with its session.
+	return insertSession(ctx, querierFor(ctx, s.pool), sess)
 }
 
 func insertSession(ctx context.Context, db execer, sess identity.Session) error {

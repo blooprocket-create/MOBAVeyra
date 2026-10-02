@@ -6,6 +6,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Absence/VeyraAbsenceSubsystem.h"
 #include "Echoes/VeyraEcho.h"
 #include "Echoes/VeyraEchoSubsystem.h"
 #include "Gold/VeyraGoldComponent.h"
@@ -34,7 +35,11 @@ namespace VeyraNetTests
 		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
 		TUniquePtr<FScopedExpectedPlayers> ExpectedPlayers;
 		TUniquePtr<FScopedMatchTuning> Tuning;
+		TUniquePtr<FScopedTestTickets> Tickets;
+		TUniquePtr<FScopedMatchAssignment> Assignment;
 		FVeyraGreyboxLayout Layout;
+		TWeakObjectPtr<AVeyraPlayerState> Holder;
+		TWeakObjectPtr<AVeyraEcho> Projected;
 
 		// Fixture values: a short preparation, a purse for the Mythical, and how far the Echo forms and is sent.
 		static constexpr double ShortPreparationSeconds = 0.1;
@@ -42,6 +47,8 @@ namespace VeyraNetTests
 		static constexpr double Out = 300.0;
 		static constexpr double Walk = 250.0;
 		static constexpr double Moved = 50.0;
+		// The client in this PIE instance projects the Echo: the first client.
+		static constexpr int32 HolderInstance = 1;
 
 		BEFORE_EACH()
 		{
@@ -50,11 +57,17 @@ namespace VeyraNetTests
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 			ExpectedPlayers = MakeUnique<FScopedExpectedPlayers>(MatchClientCount);
+			// Rostered, so a player who leaves keeps its PlayerState for its return (ADR-019 §1).
+			Tickets = MakeUnique<FScopedTestTickets>();
+			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B });
+			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
 			BuildMatchNetwork(Network);
 		}
 
 		AFTER_EACH()
 		{
+			Assignment.Reset();
+			Tickets.Reset();
 			Tuning.Reset();
 			ExpectedPlayers.Reset();
 		}
@@ -81,9 +94,10 @@ namespace VeyraNetTests
 			return Statuses && Statuses->Has(EVeyraStatusKind::Stasis);
 		}
 
-		TEST_METHOD(ItsOrdersMoveTheEchoAndItsCameraFollowsUntilItEnds)
+		/** Buys The Second Self for the first client's participant, and projects its Echo until it takes control. */
+		FPIENetworkComponent<FState>& ProjectAndCommand()
 		{
-			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+			return StartMatch(Network, Layout, EVeyraMatchPhase::Live)
 				.ThenServer(TEXT("Give the player The Second Self"), [this](FState& State) {
 					AVeyraPlayerState& Participant = ServerParticipant(State);
 					ASSERT_THAT(IsTrue(Participant.FindComponentByClass<UVeyraGoldComponent>()->Grant(Purse, EVeyraGoldReason::Developer)));
@@ -91,6 +105,7 @@ namespace VeyraNetTests
 					Shop->SetAtFountain(Participant, true);
 					ASSERT_THAT(IsTrue(Shop->Buy(Participant, SecondSelfItem()) == EVeyraShopRefusal::None));
 					State.VanguardAt = Participant.GetPawn()->GetActorLocation();
+					Holder = &Participant;
 				})
 				.ThenClient(TEXT("Project the Echo beside its Vanguard"), 0, [](FState& State) {
 					AVeyraPlayerController* Player = LocalControllerOf(State.World);
@@ -99,12 +114,18 @@ namespace VeyraNetTests
 					Target.Location = Player->GetVanguard()->GetActorLocation() + FVector(Out, 0.0, 0.0);
 					Player->IssueCastOrder(VeyraAbilitySlots::Items[0], Target);
 				})
-				.UntilServer(TEXT("Its Vanguard waits in Stasis and its Echo takes control"), [](FState& State) {
+				.UntilServer(TEXT("Its Vanguard waits in Stasis and its Echo takes control"), [this](FState& State) {
 					AVeyraPlayerState& Participant = ServerParticipant(State);
-					const AVeyraEcho* Echo = ServerEcho(State);
+					AVeyraEcho* Echo = ServerEcho(State);
+					Projected = Echo;
 					return InStasis(Participant) && Echo && ServerControllerOf(State, 0)->GetCommandedBody() == Echo
 						&& Echo->GetController() != nullptr;
-				})
+				});
+		}
+
+		TEST_METHOD(ItsOrdersMoveTheEchoAndItsCameraFollowsUntilItEnds)
+		{
+			ProjectAndCommand()
 				.UntilClient(TEXT("Its camera follows the Echo"), 0, [](FState& State) {
 					const APawn* Body = LocalControllerOf(State.World)->GetCommandedBody();
 					return Body && Body->IsA<AVeyraEcho>();
@@ -129,6 +150,25 @@ namespace VeyraNetTests
 				.UntilClient(TEXT("Its camera follows its Vanguard again"), 0, [](FState& State) {
 					AVeyraPlayerController* Player = LocalControllerOf(State.World);
 					return Player->GetCommandedBody() && Player->GetCommandedBody() == Player->GetVanguard();
+				});
+		}
+
+		TEST_METHOD(ItsPlayerLeavingEndsItSoTheAutopilotTakesTheVanguard)
+		{
+			ProjectAndCommand()
+				.ThenServer(TEXT("Its player leaves"), [](FState& /*State*/) {
+					const FWorldContext* Context = GEngine->GetWorldContextFromPIEInstance(HolderInstance);
+					GEngine->Exec(Context ? Context->World() : nullptr, TEXT("disconnect"));
+				})
+				.UntilServer(TEXT("The server counts it disconnected"), [this](FState& State) {
+					const FVeyraAbsenceRecord* Record = Holder.IsValid() ? State.World->GetSubsystem<UVeyraAbsenceSubsystem>()->Find(*Holder) : nullptr;
+					return Record && Record->Absence == EVeyraAbsence::Disconnected;
+				})
+				// At once, not when its Integrity fades: the Echo would otherwise go on with its last order while the Vanguard
+				// waits in Stasis, out of the autopilot's reach (ADR-050 §6; Match Flow Bible §4).
+				.ThenServer(TEXT("Its Echo has ended and its Vanguard is awake"), [this](FState& /*State*/) {
+					ASSERT_THAT(IsTrue(!Projected.IsValid() || Projected->IsWithdrawn(), TEXT("the Echo ended with its player")));
+					ASSERT_THAT(IsTrue(Holder.IsValid() && !InStasis(*Holder), TEXT("its Vanguard woke for the autopilot")));
 				});
 		}
 	};

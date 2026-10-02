@@ -163,6 +163,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 	Require(LoadingEntryBaseCharacters >= 0 && LoadingEntryCharactersPerSecond >= 1, TEXT("LoadingEntryCharactersPerSecond"),
 		TEXT("the base must not be negative, and the characters per extra second must be at least 1."));
 	Require(MatchReadyCueVolume > 0.0f && MatchReadyCueVolume <= 1.0f, TEXT("MatchReadyCueVolume"), TEXT("must be above 0 and at most 1."));
+	Require(ProfileHistoryMaxHeight >= 1.0f, TEXT("ProfileHistoryMaxHeight"), TEXT("must be at least 1."));
 	Require(!LobbyStartingGoldChoices.IsEmpty() && !LobbyStartingGoldChoices.ContainsByPredicate([](float Gold) { return !(Gold >= 0.0f); }),
 		TEXT("LobbyStartingGoldChoices"), TEXT("lists at least one amount, none of them negative."));
 	TSet<FString> Modes;
