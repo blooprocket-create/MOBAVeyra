@@ -2,6 +2,7 @@
 
 #include "Hud/VeyraChatLogModel.h"
 
+#include "Algo/StableSort.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 
 #define LOCTEXT_NAMESPACE "VeyraChatLog"
@@ -37,13 +38,13 @@ namespace
 	}
 
 	/** 1 while Line is fresh, falling to 0 as it fades. */
-	double OpacityOf(const FVeyraReceivedChat& Line, double Now, bool bComposing, const FVeyraChatLogPreferences& Preferences)
+	double OpacityOf(double ReceivedAt, double Now, bool bComposing, const FVeyraChatLogPreferences& Preferences)
 	{
 		if (bComposing)
 		{
 			return 1.0;
 		}
-		const double Past = Now - Line.ReceivedAt - Preferences.FadeSeconds;
+		const double Past = Now - ReceivedAt - Preferences.FadeSeconds;
 		if (Past <= 0.0)
 		{
 			return 1.0;
@@ -61,18 +62,54 @@ namespace
 TArray<FVeyraChatLine> Describe(TConstArrayView<FVeyraReceivedChat> Chat, double Now, bool bComposing, const FVeyraChatLogPreferences& Preferences,
 	EVeyraTeam ViewerSide, TFunctionRef<FString(int32 PlayerId)> VanguardOf)
 {
-	TArray<FVeyraChatLine> Lines;
-	const int32 First = FMath::Max(0, Chat.Num() - FMath::Max(0, Preferences.Lines));
-	for (int32 Index = First; Index < Chat.Num(); ++Index)
+	return Describe(Chat, TConstArrayView<FVeyraOutsideChat>(), Now, bComposing, Preferences, ViewerSide, VanguardOf);
+}
+
+TArray<FVeyraChatLine> Describe(TConstArrayView<FVeyraReceivedChat> Chat, TConstArrayView<FVeyraOutsideChat> Outside, double Now, bool bComposing,
+	const FVeyraChatLogPreferences& Preferences, EVeyraTeam ViewerSide, TFunctionRef<FString(int32 PlayerId)> VanguardOf)
+{
+	// The match's lines and the backend's, in the order they arrived; the match's first where two arrived at once.
+	struct FArrival
 	{
-		const FVeyraReceivedChat& Received = Chat[Index];
-		const double Opacity = OpacityOf(Received, Now, bComposing, Preferences);
+		double At = 0.0;
+		const FVeyraReceivedChat* Match = nullptr;
+		const FVeyraOutsideChat* Outside = nullptr;
+	};
+	TArray<FArrival> Arrivals;
+	for (const FVeyraReceivedChat& Received : Chat)
+	{
+		Arrivals.Add({ Received.ReceivedAt, &Received, nullptr });
+	}
+	for (const FVeyraOutsideChat& Line : Outside)
+	{
+		Arrivals.Add({ Line.ReceivedAt, nullptr, &Line });
+	}
+	Algo::StableSortBy(Arrivals, &FArrival::At);
+	TArray<FVeyraChatLine> Lines;
+	const int32 First = FMath::Max(0, Arrivals.Num() - FMath::Max(0, Preferences.Lines));
+	for (int32 Index = First; Index < Arrivals.Num(); ++Index)
+	{
+		const FArrival& Arrival = Arrivals[Index];
+		const double Opacity = OpacityOf(Arrival.At, Now, bComposing, Preferences);
 		if (Opacity <= 0.0)
 		{
 			continue;
 		}
 		FVeyraChatLine& Line = Lines.AddDefaulted_GetRef();
 		Line.Opacity = Opacity;
+		if (const FVeyraOutsideChat* From = Arrival.Outside)
+		{
+			// The party's and friends' lines, which the backend carries, are marked as theirs (ADR-046 §6).
+			Line.Side = From->Kind == EVeyraOutsideChatKind::Party ? EVeyraChatLineSide::Party : EVeyraChatLineSide::Direct;
+			Line.Prefix = (From->Kind == EVeyraOutsideChatKind::Party ? LOCTEXT("PartyChannel", "[Party] ")
+							  : From->Kind == EVeyraOutsideChatKind::DirectFrom ? LOCTEXT("FromChannel", "[From] ")
+																				 : LOCTEXT("ToChannel", "[To] "))
+							  .ToString();
+			Line.Sender = FString::Printf(TEXT("%s: "), *From->Name);
+			Line.Text = From->Status.IsEmpty() ? From->Text : FString::Printf(TEXT("%s (%s)"), *From->Text, *From->Status);
+			continue;
+		}
+		const FVeyraReceivedChat& Received = *Arrival.Match;
 		if (Received.Notice != EVeyraChatNotice::None)
 		{
 			Line.Text = NoticeText(Received).ToString();
@@ -87,6 +124,32 @@ TArray<FVeyraChatLine> Describe(TConstArrayView<FVeyraReceivedChat> Chat, double
 		Line.Text = Message.Text;
 	}
 	return Lines;
+}
+
+TArray<FVeyraOutsideChat> OutsideOf(const FVeyraClientSnapshot& Snapshot)
+{
+	TArray<FVeyraOutsideChat> Out;
+	const auto StatusOf = [](const FVeyraChatEntry& Entry) {
+		return Entry.bPending ? LOCTEXT("OutsideSending", "sending").ToString() : Entry.Failure.IsEmpty() ? FString() : LOCTEXT("OutsideNotSent", "not sent").ToString();
+	};
+	for (const FVeyraChatEntry& Entry : Snapshot.Chat.Party.Lines)
+	{
+		const bool bOwn = Entry.SenderId == Snapshot.AccountId;
+		Out.Add({ EVeyraOutsideChatKind::Party, bOwn ? Snapshot.DisplayName : Entry.SenderName, Entry.Text, StatusOf(Entry), Entry.ArrivedAt });
+	}
+	for (const TPair<FString, FVeyraChatConversation>& Direct : Snapshot.Chat.Direct)
+	{
+		const VeyraBackendProtocol::FAccount* Friend = Snapshot.Social.Friends.Friends.FindByPredicate(
+			[&Direct](const VeyraBackendProtocol::FAccount& Account) { return Account.Id == Direct.Key; });
+		for (const FVeyraChatEntry& Entry : Direct.Value.Lines)
+		{
+			const bool bOwn = Entry.SenderId == Snapshot.AccountId;
+			// The friend's name, whoever sent it: the player reads "[To] DevTwo" for their own.
+			const FString Name = !bOwn ? Entry.SenderName : Friend ? Friend->DisplayName : FString(LOCTEXT("OutsideAFriend", "a friend").ToString());
+			Out.Add({ bOwn ? EVeyraOutsideChatKind::DirectTo : EVeyraOutsideChatKind::DirectFrom, Name, Entry.Text, StatusOf(Entry), Entry.ArrivedAt });
+		}
+	}
+	return Out;
 }
 
 FText NoticeText(const FVeyraReceivedChat& Line)
@@ -105,7 +168,13 @@ FText NoticeText(const FVeyraReceivedChat& Line)
 	case EVeyraChatNotice::NoSuchPlayer:
 		return FText::Format(LOCTEXT("NoSuchPlayer", "No one in this match is called {0}."), Subject);
 	case EVeyraChatNotice::UnknownCommand:
-		return FText::Format(LOCTEXT("UnknownCommand", "{0} is not a command. Try /all, /mute or /unmute."), Subject);
+		return FText::Format(LOCTEXT("UnknownCommand", "{0} is not a command. Try /all, /p, /r, /msg, /mute or /unmute."), Subject);
+	case EVeyraChatNotice::NoReplyTarget:
+		return LOCTEXT("NoReplyTarget", "No friend has messaged you yet.");
+	case EVeyraChatNotice::NoSuchFriend:
+		return FText::Format(LOCTEXT("NoSuchFriend", "You have no friend called {0}."), Subject);
+	case EVeyraChatNotice::OutsideUnavailable:
+		return LOCTEXT("OutsideUnavailable", "Party Chat and friend messages need the Veyra launcher.");
 	}
 	return FText::GetEmpty();
 }

@@ -3,6 +3,8 @@
 #include "Hud/VeyraHudDeck.h"
 
 #include "CanvasItem.h"
+#include "Client/VeyraClientFlowSubsystem.h"
+#include "Client/VeyraClientIntents.h"
 #include "Engine/Canvas.h"
 #include "Engine/Font.h"
 #include "Engine/Texture2D.h"
@@ -385,7 +387,14 @@ namespace
 		Log.FadeSeconds = Preferences.ChatFadeSeconds;
 		Log.FadeOutSeconds = Settings.ChatFadeOutSeconds;
 		Log.bTimestamps = Preferences.bChatTimestamps;
-		const TArray<FVeyraChatLine> Lines = VeyraChatLog::Describe(Player.GetChat(), FPlatformTime::Seconds(), bComposing, Log, Side, [&Match](int32 PlayerId) {
+		// The party's and friends' lines the client flow holds, mixed in without popping up or taking focus (ADR-046 §6).
+		TArray<FVeyraOutsideChat> Outside;
+		const UGameInstance* Game = Player.GetGameInstance();
+		if (const UVeyraClientFlowSubsystem* Flow = Game ? Game->GetSubsystem<UVeyraClientFlowSubsystem>() : nullptr)
+		{
+			Outside = VeyraChatLog::OutsideOf(Flow->GetClient().GetSnapshot());
+		}
+		const TArray<FVeyraChatLine> Lines = VeyraChatLog::Describe(Player.GetChat(), Outside, FPlatformTime::Seconds(), bComposing, Log, Side, [&Match](int32 PlayerId) {
 			for (const APlayerState* Each : Match.PlayerArray)
 			{
 				const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(Each);
@@ -423,6 +432,8 @@ namespace
 		{
 			const FLinearColor SideColor = Line.Side == EVeyraChatLineSide::Ally ? Settings.AllyColor
 				: Line.Side == EVeyraChatLineSide::Enemy						 ? Settings.EnemyColor
+				: Line.Side == EVeyraChatLineSide::Party						 ? Settings.PartyChatColor
+				: Line.Side == EVeyraChatLineSide::Direct						 ? Settings.DirectChatColor
 																				 : Settings.DescriptionColor;
 			const FString LineHead = Line.Prefix + Line.Sender;
 			const float HeadWidth = static_cast<float>(Paint.Measure(LineHead, Head).X);

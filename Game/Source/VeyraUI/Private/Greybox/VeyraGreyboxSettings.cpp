@@ -55,6 +55,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("BarBackgroundColor"), BarBackgroundColor },
 		{ TEXT("TextColor"), TextColor },
 		{ TEXT("DescriptionColor"), DescriptionColor },
+		{ TEXT("PartyChatColor"), PartyChatColor },
+		{ TEXT("DirectChatColor"), DirectChatColor },
 		{ TEXT("EmpoweredColor"), EmpoweredColor },
 		{ TEXT("ChannelColor"), ChannelColor },
 		{ TEXT("LaneColor"), LaneColor },

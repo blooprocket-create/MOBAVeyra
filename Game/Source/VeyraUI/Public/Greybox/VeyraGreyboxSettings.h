@@ -112,6 +112,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor DescriptionColor = FLinearColor::Transparent;
 
+	/** A Party Chat line in the match's chat log, marked apart from Team and All (ADR-046 §6). */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat")
+	FLinearColor PartyChatColor = FLinearColor::Transparent;
+
+	/** A direct message from or to a friend in the match's chat log. */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat")
+	FLinearColor DirectChatColor = FLinearColor::Transparent;
+
 	/** An ability whose empowerment waits for the next basic attack. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor EmpoweredColor = FLinearColor::Transparent;

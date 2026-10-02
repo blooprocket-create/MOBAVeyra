@@ -14,6 +14,12 @@ enum class EVeyraChatCommandKind : uint8
 	Send,
 	Mute,
 	Unmute,
+	/** "/p <text>": Party Chat, which the backend carries (ADR-046 §6). */
+	Party,
+	/** "/r <text>": a direct message to the friend who sent the latest one. */
+	Reply,
+	/** "/msg <name> <text>": a direct message to the friend called Name. */
+	Message,
 	/** A command the composer does not know. */
 	Unknown,
 };
@@ -21,10 +27,10 @@ enum class EVeyraChatCommandKind : uint8
 struct FVeyraChatCommand
 {
 	EVeyraChatCommandKind Kind = EVeyraChatCommandKind::Nothing;
-	/** Send: where to, and what. */
+	/** Send: where to. Send, Party, Reply and Message: what. */
 	EVeyraChatChannel Channel = EVeyraChatChannel::Team;
 	FString Text;
-	/** Mute and Unmute: the participant's name. Unknown: the command as typed. */
+	/** Mute and Unmute: the participant's name. Message: the friend's. Unknown: the command as typed. */
 	FString Name;
 };
 
@@ -40,8 +46,9 @@ namespace VeyraChatCommands
 {
 	/**
 	 * What Typed asks for, sent on Chosen unless it says otherwise: "/all <text>" sends that one message
-	 * to All Chat, "/mute <name>" and "/unmute <name>" mute and unmute a participant, and any other
-	 * leading "/" is an unknown command. Anything else is a message.
+	 * to All Chat, "/mute <name>" and "/unmute <name>" mute and unmute a participant, "/p <text>" goes to
+	 * Party Chat, "/r <text>" answers the latest direct message and "/msg <name> <text>" messages a friend
+	 * (ADR-046 §6). Any other leading "/" is an unknown command. Anything else is a message.
 	 */
 	VEYRAUI_API FVeyraChatCommand Parse(const FString& Typed, EVeyraChatChannel Chosen);
 

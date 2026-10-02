@@ -15,6 +15,7 @@ class UInputMappingContext;
 class UVeyraMatchMenu;
 class UVeyraSettingsScreen;
 class UVeyraUIInputSettings;
+struct FVeyraChatCommand;
 struct FVeyraContentId;
 struct FVeyraInterfacePreferences;
 class UVeyraChatComposer;
@@ -87,6 +88,9 @@ public:
 
 	/** Carries out a line the player sent from the composer: a message, or a mute (ADR-029 §3). */
 	void SubmitChat(EVeyraChatChannel Channel, const FString& Typed);
+
+	/** "/p", "/r" and "/msg": Party Chat and direct messages, which the client flow sends to the backend (ADR-046 §6). */
+	void SubmitOutsideChat(AVeyraPlayerController& Controller, const FVeyraChatCommand& Command);
 
 private:
 	/** Binds the menu key for each new match controller. */
