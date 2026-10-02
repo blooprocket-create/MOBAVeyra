@@ -120,7 +120,8 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Chat().Party.Key == PartyId && Chat().Party.Lines.Num() == 1 && Chat().Party.Lines[0].Text == TEXT("ready?")));
 			const FVeyraChatConversation* Direct = Chat().Direct.Find(FriendId);
 			ASSERT_THAT(IsTrue(Direct && Direct->Lines.Num() == 1 && Direct->Lines[0].With == FriendId && Direct->Lines[0].bHistory));
-			ASSERT_THAT(IsTrue(Direct->Unread == 0 && Chat().LastDirectFrom.IsEmpty(), TEXT("history is not news")));
+			ASSERT_THAT(IsTrue(Direct->Unread == 0, TEXT("history is not news")));
+			ASSERT_THAT(IsTrue(Chat().LastDirectFrom == FriendId, TEXT("but /r answers the friend whose message it recovered")));
 			// The next read follows the cursor, on chat's own interval.
 			Rig.Advance(0.5);
 			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), ChatAfter(4)), TEXT("not before the interval")));

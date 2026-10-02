@@ -43,7 +43,7 @@ The Item Bible's 2026-10-02 revision adds an item line built on a new combat sta
 ### 1. Stasis is a status kind
 
 `EVeyraStatusKind::Stasis` (Combat) has magnitude 0. While a unit holds it:
-- **It cannot act:** it cannot move, basic attack or cast. Item Actives and Flux Spells cast through the same path, so Cast blocks them too.
+- **It cannot act:** it cannot move, basic attack or cast. Item Actives and Flux Spells cast through the same path, so Cast blocks them too. Nor can it use a consumable, whose restoration would outlast the Stasis.
 - **Entering Stasis interrupts** a windup or channel in progress, as a Knockup does.
 - **It is Untargetable.** `VeyraTargeting::IsUntargetable` answers true for Stasis, so acquisition, skillshots, areas, cleaves, lingering areas, tethers and targeted projectiles already treat it as Untargetable.
 - **It takes no damage, True Damage included.** The vitals treat Stasis as Invulnerability at §25 step 7, so a damage-over-time tick deals 0 and consumes no shield, while the status stays attached and keeps its time.
@@ -126,8 +126,9 @@ A level-scaled amount reads the caster's Level. An owned unit's Level is its hol
 When a Projection Echo forms, `UVeyraEchoSubsystem` announces control passing to the Echo. When it ends, it announces control returning. **Match** routes this, as it routes every peer:
 - **Orders:** the GameMode keeps a **commanded unit** for each participant: its Vanguard, or its Echo while one is controlled.
   - Move, attack, attack-move and stop orders reach a controller possessing the commanded unit. Match spawns one when control passes and releases it when control returns.
-  - Cast orders go to the Echo subsystem while an Echo is commanded.
+  - Cast orders go to the Echo subsystem while an Echo is commanded. It checks the order's point or unit with the ability's own target rules before spending the repeat.
   - The Vanguard's own controller keeps nothing from the Echo's orders.
+- **Disconnects:** a participant who disconnects loses its Echo, which ends as its holder's going would. Its Vanguard leaves Stasis at once, so the disconnect autopilot can take it.
 - **Camera:** the PlayerController replicates the commanded unit to its owner. The camera, smart self-cast and self-cast follow it. Over the deck, the HUD shows an Echo panel in place of a Recall bar: its Integrity, whether it is still forming or protected, and the keys of the slots it may still cast with, with its repeats left.
 - **Bots:** bots do not buy the Echo items until their brains can play a projection. Their builds are data, and the Echo items are left out.
 

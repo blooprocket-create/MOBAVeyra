@@ -195,6 +195,12 @@ void AVeyraGameMode::Logout(AController* Exiting)
 	{
 		Statistics->NoteLeaving(*PlayerState);
 	}
+	// Its Echo ends with its player gone, waking its Vanguard from Stasis, so the autopilot takes it at once (ADR-050 §6).
+	UVeyraEchoSubsystem* Echoes = GetWorld()->GetSubsystem<UVeyraEchoSubsystem>();
+	if (const UAbilitySystemComponent* Holder = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr; Holder && Echoes)
+	{
+		Echoes->End(*Holder, EVeyraEchoEnd::HolderGone);
+	}
 	// Its Vanguard is walked to safety until it returns (Match Flow Bible §4).
 	if (UVeyraAbsenceSubsystem* Absence = PlayerState ? GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>() : nullptr)
 	{

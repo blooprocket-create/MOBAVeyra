@@ -226,10 +226,7 @@ func (s *Service) DevLogin(ctx context.Context, displayName string) (IssuedToken
 	if err != nil {
 		return IssuedToken{}, Account{}, err
 	}
-	if err := s.touchLauncherLogin(ctx, acct.ID); err != nil {
-		return IssuedToken{}, Account{}, err
-	}
-	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
+	tok, err := s.issueLauncherSession(ctx, acct.ID)
 	return tok, acct, err
 }
 
@@ -248,11 +245,7 @@ func (s *Service) PlayerLogin(ctx context.Context, credential string) (IssuedTok
 	if err != nil {
 		return IssuedToken{}, Account{}, err
 	}
-	// A launcher login keeps the account's name from being claimed (ADR-049 §1).
-	if err := s.touchLauncherLogin(ctx, acct.ID); err != nil {
-		return IssuedToken{}, Account{}, err
-	}
-	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
+	tok, err := s.issueLauncherSession(ctx, acct.ID)
 	return tok, acct, err
 }
 
@@ -272,10 +265,7 @@ func (s *Service) Register(ctx context.Context, credential, displayName string) 
 	if err != nil {
 		return IssuedToken{}, Account{}, err
 	}
-	if err := s.touchLauncherLogin(ctx, acct.ID); err != nil {
-		return IssuedToken{}, Account{}, err
-	}
-	tok, err := s.createSession(ctx, acct.ID, SessionLauncher, "", s.settings.LauncherSessionLifetime, prefixLauncherSession)
+	tok, err := s.issueLauncherSession(ctx, acct.ID)
 	return tok, acct, err
 }
 

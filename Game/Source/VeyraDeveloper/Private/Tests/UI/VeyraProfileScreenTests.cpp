@@ -85,6 +85,9 @@ namespace VeyraProfileScreenTests
 			// Only the Vanguards the player owns may be featured, or none.
 			ASSERT_THAT(IsTrue(Offers(FeatureLabel(FString())) && Offers(FeatureLabel(TEXT("cairn"))) && !Offers(FeatureLabel(TEXT("oriel")))));
 			ASSERT_THAT(IsTrue(Press(IconLabel(TEXT("vanguard_oriel")))));
+			// The card previews the choice before it is saved, over the confirmed level and Mastery.
+			const TOptional<FVeyraProfileCardModel> Preview = DescribePage(Rig.Flow->GetSnapshot(), Screen->GetProfileDraft()).Preview;
+			ASSERT_THAT(IsTrue(Preview.IsSet() && Preview->IconVanguard == TEXT("oriel") && Preview->Level.ToString() == TEXT("Level 12")));
 			ASSERT_THAT(IsTrue(Press(FeatureLabel(TEXT("cairn")))));
 			ASSERT_THAT(IsTrue(Press(ShareHistoryLabel())));
 			const VeyraBackendProtocol::FProfileSettings& Draft = Screen->GetProfileDraft();
@@ -131,6 +134,10 @@ namespace VeyraProfileScreenTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/profiles/DevTwo/matches"), 200, HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
 			const TArray<FVeyraHistoryRow> Rows = VeyraProfileModels::DescribeView(Rig.Flow->GetSnapshot(), false).Rows;
 			ASSERT_THAT(AreEqual(1, Rows.Num()));
+			// The owner's own filters read the shared history again (ADR-048 §3).
+			ASSERT_THAT(IsTrue(Press(VeyraMatchHistoryModel::OutcomeText(TEXT("loss")))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/profiles/DevTwo/matches?outcome=loss"), 200, HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
+			ASSERT_THAT(IsTrue(Rig.Flow->GetSnapshot().ProfileView.Filter.Outcome == TEXT("loss")));
 			ASSERT_THAT(IsTrue(Press(FText::Format(FText::FromString(TEXT("Open {0}")), Rows[0].Summary))));
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), FString(TEXT("/v1/profiles/DevTwo/matches/")) + OlderMatchId, 200, ScoredOutcomeBody())));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Back to Match History"))));

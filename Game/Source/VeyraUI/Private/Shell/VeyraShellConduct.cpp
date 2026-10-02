@@ -130,7 +130,7 @@ void UVeyraShellScreen::BuildReportForm(const FVeyraClientSnapshot& Snapshot, co
 	ReportDetailsBox = MakeTextField(LOCTEXT("ReportDetailsHint", "Details (optional)"), ReportDetailsDraft, true);
 	ReportDetailsBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleReportDetailsChanged);
 	VeyraShellStyle::AddSpaced(Parent, *ReportDetailsBox);
-	ReportDetailsCount = AddText(Parent, VeyraConductModels::DetailsCount(ReportDetailsDraft.Len(), Form.DetailsMaxCharacters), ConductRole(EVeyraShellText::Small));
+	ReportDetailsCount = AddText(Parent, VeyraConductModels::DetailsCount(VeyraConductModels::CharacterCount(ReportDetailsDraft), Form.DetailsMaxCharacters), ConductRole(EVeyraShellText::Small));
 	UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddNamedButton(*Answers, EVeyraShellButtonKind::Primary, VeyraConductModels::SubmitReportLabel(Name), LOCTEXT("SubmitReport", "Submit"),
 		[this, Name] {
@@ -154,12 +154,12 @@ void UVeyraShellScreen::BuildReportForm(const FVeyraClientSnapshot& Snapshot, co
 
 void UVeyraShellScreen::HandleReportDetailsChanged(const FText& Text)
 {
-	// The field holds no more than the backend accepts.
+	// The field holds no more than the backend accepts, counted as it counts: by character, not UTF-16 unit.
 	const int32 Max = Client ? Client->GetSnapshot().Conduct.Record.DetailsMaxCharacters : 0;
 	FString Draft = Text.ToString();
-	if (Draft.Len() > Max)
+	if (VeyraConductModels::CharacterCount(Draft) > Max)
 	{
-		Draft.LeftInline(Max);
+		Draft = VeyraConductModels::LeftCharacters(Draft, Max);
 		if (ReportDetailsBox)
 		{
 			ReportDetailsBox->SetText(FText::FromString(Draft));
@@ -168,7 +168,7 @@ void UVeyraShellScreen::HandleReportDetailsChanged(const FText& Text)
 	ReportDetailsDraft = Draft;
 	if (ReportDetailsCount)
 	{
-		ReportDetailsCount->SetText(VeyraConductModels::DetailsCount(Draft.Len(), Max));
+		ReportDetailsCount->SetText(VeyraConductModels::DetailsCount(VeyraConductModels::CharacterCount(Draft), Max));
 	}
 }
 
