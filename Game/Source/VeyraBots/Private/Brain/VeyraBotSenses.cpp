@@ -4,6 +4,9 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Algo/Count.h"
+#include "Buyback/VeyraBuybackComponent.h"
+#include "Buyback/VeyraBuybackRules.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraOffenceSet.h"
@@ -85,6 +88,75 @@ namespace
 	}
 
 	/**
+	 * The allied inhibitor, base tower or Prime Well with the most enemy Vanguards its side sees within the threat
+	 * radius (ADR-056 §2); the first found on a tie. Unset at peace.
+	 */
+	void SenseBaseThreat(const AVeyraPlayerState& Bot, const UWorld& World, EVeyraTeam Team, const FVeyraBotsTuning& Tuning, FVeyraBotView& View)
+	{
+		UVeyraBattlegroundSubsystem* Battleground = World.GetSubsystem<UVeyraBattlegroundSubsystem>();
+		const AGameStateBase* State = World.GetGameState();
+		if (!Battleground || !State)
+		{
+			return;
+		}
+		TArray<FVector> Enemies;
+		for (const APlayerState* Member : State->PlayerArray)
+		{
+			const APawn* Other = Member ? Member->GetPawn() : nullptr;
+			if (Other && VeyraTargeting::IsAlive(Member) && VeyraTargeting::AreHostile(&Bot, Member) && VeyraTargeting::CanAcquire(&Bot, *Other))
+			{
+				Enemies.Add(Other->GetActorLocation());
+			}
+		}
+		for (const AVeyraStructure* Structure : Battleground->GetStructures())
+		{
+			if (!Structure || Structure->IsDestroyed() || Structure->GetVeyraTeam() != Team || Structure->GetStructureKind() == EVeyraStructureKind::LaneSpire)
+			{
+				continue;
+			}
+			const FVector Location = Structure->GetActorLocation();
+			const int32 Attackers =
+				Algo::CountIf(Enemies, [&Location, &Tuning](const FVector& Enemy) { return FVector::Dist2D(Enemy, Location) <= Tuning.Defence.ThreatRadius; });
+			if (Attackers > 0 && (!View.BaseThreat.IsSet() || Attackers > View.BaseThreat->Attackers))
+			{
+				View.BaseThreat = FVeyraBotThreat{ Location, Attackers };
+			}
+		}
+	}
+
+	/** The lane its side's laners push together late in a match (ADR-056 §4), from the enemy structures fallen in each. */
+	EVeyraLane PushLane(const UWorld& World, EVeyraTeam Team, const FVeyraBotsTuning& Tuning)
+	{
+		TMap<EVeyraLane, int32> Fallen;
+		if (UVeyraBattlegroundSubsystem* Battleground = World.GetSubsystem<UVeyraBattlegroundSubsystem>())
+		{
+			for (const AVeyraStructure* Structure : Battleground->GetStructures())
+			{
+				const TOptional<EVeyraLane> StructureLane = Structure ? Structure->GetLane() : TOptional<EVeyraLane>();
+				if (StructureLane.IsSet() && Structure->GetVeyraTeam() != Team && Structure->IsDestroyed())
+				{
+					++Fallen.FindOrAdd(StructureLane.GetValue());
+				}
+			}
+		}
+		return VeyraBotRules::GroupLane(Fallen, Tuning.Grouping.LaneOrder);
+	}
+
+	/** While dead: how long it waits to respawn, and what buying back costs now and whether it may (ADR-056 §3). */
+	void SenseBuyback(const AVeyraPlayerState& Bot, FVeyraBotView& View)
+	{
+		View.RespawnWait = FMath::Max(0.0, Bot.GetRespawnAt() - View.Now);
+		const UVeyraBuybackComponent* Buyback = Bot.FindComponentByClass<UVeyraBuybackComponent>();
+		const UVeyraGoldComponent* Gold = Bot.FindComponentByClass<UVeyraGoldComponent>();
+		if (Buyback && Gold)
+		{
+			const FVeyraBuybackQuote Quote = Buyback->Quote(View.MatchSeconds, View.Now, /*bDead*/ true, *Gold);
+			View.BuybackCost = Quote.Cost;
+			View.bBuybackAllowed = Quote.Refusal == EVeyraBuybackRefusal::None;
+		}
+	}
+
+	/**
 	 * Its slots as it can use them now: learned, off cooldown, affordable, and not held by another cast;
 	 * a Flux Spell also unlocked by its team's permanent Flux (ADR-015 §8).
 	 */
@@ -163,7 +235,6 @@ namespace
 
 FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWards, const FVeyraBotsTuning& Tuning)
 {
-	const EVeyraLane Lane = VeyraBots::LaneOf(Role);
 	FVeyraBotView View;
 	View.bJungle = Role == EVeyraBotRole::Jungle;
 	View.bWards = bWards;
@@ -202,11 +273,17 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 	const EVeyraTeam Team = Bot.GetVeyraTeam();
 	const AActor* Start = FindStart(*World, Team);
 	View.Home = Start ? Start->GetActorLocation() : FVector::ZeroVector;
+	// Threats to its base, which it answers alive and may buy back for dead (ADR-056 §2, §3).
+	SenseBaseThreat(Bot, *World, Team, Tuning, View);
 	if (!View.bAlive)
 	{
+		SenseBuyback(Bot, View);
 		return View;
 	}
 	View.Self = UnitOf(*Body);
+	// Its lane: its role's, or late in a match the one its side's laners push together (ADR-056 §4); a jungler keeps its own.
+	const EVeyraLane Lane =
+		!View.bJungle && View.MatchSeconds >= Tuning.Grouping.StartSeconds ? PushLane(*World, Team, Tuning) : VeyraBots::LaneOf(Role);
 
 	// Its basic attack: reach, and what one does before the target's resistance.
 	const UAbilitySystemComponent* AbilitySystem = Bot.GetAbilitySystemComponent();

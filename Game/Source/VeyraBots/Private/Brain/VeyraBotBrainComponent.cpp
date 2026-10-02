@@ -4,6 +4,7 @@
 
 #include "Brain/VeyraBotRules.h"
 #include "Brain/VeyraBotSenses.h"
+#include "Buyback/VeyraBuybackRules.h"
 #include "Engine/World.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
@@ -63,6 +64,12 @@ FVeyraBotIntent UVeyraBotBrainComponent::Think()
 	}
 	const FVeyraBotsTuning& Tuning = UVeyraBotsTuningSubsystem::Get();
 	const FVeyraBotView View = VeyraBotSenses::Sense(*Participant, Role, bWards, Tuning);
+	// Dead while its base is threatened, it buys back before it spends its Gold on items, as a player's order does (ADR-056 §3).
+	if (VeyraBotRules::ShouldBuyBack(View, UVeyraBotsTuningSubsystem::GetDifficulty(Difficulty), Tuning.Buyback))
+	{
+		const EVeyraBuybackRefusal Refusal = GameMode->HandleBuybackOrder(Participant);
+		UE_LOG(LogVeyraBots, Verbose, TEXT("%s buys back: %s."), *Participant->GetPlayerName(), LexToString(Refusal));
+	}
 	// Shopping and skill points work in preparation too, and while dead, as a player's do.
 	Shop(View, *GameMode);
 	RankUp(*GameMode);

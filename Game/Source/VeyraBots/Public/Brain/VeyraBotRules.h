@@ -47,6 +47,18 @@ namespace VeyraBotRules
 	VEYRABOTS_API TOptional<int32> NextDrink(const FVeyraBotView& View, const FVeyraBotConsumablesTuning& Consumables);
 
 	/**
+	 * Whether a dead bot buys back now (ADR-056 §3): its difficulty buys back, its base is under threat, it would
+	 * otherwise wait at least the least wait, the economy allows it, and its Gold covers the cost and its reserve.
+	 */
+	VEYRABOTS_API bool ShouldBuyBack(const FVeyraBotView& View, const FVeyraBotDifficultyTuning& Difficulty, const FVeyraBotBuybackTuning& Buyback);
+
+	/**
+	 * The lane a side's laners push together late in a match (ADR-056 §4): the one where the most enemy structures have
+	 * fallen, by Fallen, the first of Order on a tie. Mid without an order.
+	 */
+	VEYRABOTS_API EVeyraLane GroupLane(const TMap<EVeyraLane, int32>& Fallen, TConstArrayView<EVeyraLane> Order);
+
+	/**
 	 * Which slot to rank next: R whenever it may, then the first of Priority that may. CanRank says
 	 * whether a slot may take a rank now. Nothing when none may.
 	 */
@@ -64,8 +76,9 @@ namespace VeyraBotRules
 	/**
 	 * The decision, in priority order (ADR-013 §4): stay dead, recalling or healing; retreat and recall when hurt; step
 	 * out of a tower shooting it; secure a creature or Well; guard a chased ally; fight the weakest enemy Vanguard it has
-	 * watched long enough when the trade favours it; recall to shop; ward; take a Flux Well; a jungler's own steps;
-	 * last-hit, keep at its Fluxborn, siege with its wave and push; else hold its place in lane.
+	 * watched long enough when the trade favours it; answer a threat to its base (ADR-056 §2); recall to shop; ward; take
+	 * a Flux Well; a jungler's own steps; last-hit, keep at its Fluxborn, siege with its wave and push; else hold its place
+	 * in lane, or by its threatened base structure.
 	 */
 	VEYRABOTS_API FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTuning& Difficulty, const FVeyraBotsTuning& Tuning,
 		FVeyraBotMemory& Memory, FRandomStream& Random);

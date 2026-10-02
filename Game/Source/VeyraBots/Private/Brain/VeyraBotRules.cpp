@@ -363,6 +363,25 @@ TOptional<int32> NextDrink(const FVeyraBotView& View, const FVeyraBotConsumables
 	return View.ConsumableSlot;
 }
 
+bool ShouldBuyBack(const FVeyraBotView& View, const FVeyraBotDifficultyTuning& Difficulty, const FVeyraBotBuybackTuning& Buyback)
+{
+	return !View.bAlive && Difficulty.Buyback == EVeyraBotBuyback::WhenBaseThreatened && View.BaseThreat.IsSet() && View.RespawnWait >= Buyback.MinWaitSeconds
+		&& View.bBuybackAllowed && View.Gold - View.BuybackCost >= Buyback.ReserveGold;
+}
+
+EVeyraLane GroupLane(const TMap<EVeyraLane, int32>& Fallen, TConstArrayView<EVeyraLane> Order)
+{
+	TOptional<EVeyraLane> Best;
+	for (const EVeyraLane Lane : Order)
+	{
+		if (!Best.IsSet() || Fallen.FindRef(Lane) > Fallen.FindRef(Best.GetValue()))
+		{
+			Best = Lane;
+		}
+	}
+	return Best.Get(EVeyraLane::Mid);
+}
+
 TOptional<EVeyraAbilitySlot> NextRank(TConstArrayView<EVeyraBotSkill> Priority, TFunctionRef<bool(EVeyraAbilitySlot)> CanRank)
 {
 	if (CanRank(EVeyraAbilitySlot::R))
@@ -597,6 +616,25 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		return AttackOf(*Foe, TEXT("fighting"));
 	}
 
+	// Its base under threat: answer it (ADR-056 §2). From afar, with no enemy near, it recalls, since its fountain is in
+	// its base; otherwise it walks there. Once there it stays by the structure, fighting as the steps above allow and
+	// farming the wave that came with the threat, rather than leaving for a Well, its camps or its lane.
+	const bool bDefending = View.BaseThreat.IsSet();
+	if (bDefending)
+	{
+		const double Away = FVector::Dist2D(View.Self.Location, View.BaseThreat->Location);
+		const FVeyraBotUnit* Near = Nearest(View.Self, View.EnemyVanguards);
+		if (Away > Tuning.Defence.RecallDistance && (!Near || EdgeDistance(View.Self, *Near) > Tuning.Senses.SafeRadius))
+		{
+			return Intent(EVeyraBotAction::Recall, TEXT("its base under threat: recalling to defend it"));
+		}
+		if (Away > Tuning.Defence.ThreatRadius)
+		{
+			return MoveTo(EVeyraBotAction::Move, View.BaseThreat->Location, TEXT("its base under threat: going to defend it"));
+		}
+	}
+	const FVector Hold = bDefending ? View.BaseThreat->Location : View.LaneHold;
+
 	// Gold to spend and a quiet lane: back to shop (ADR-013 §8.2).
 	if (!View.bAtFountain && View.bPurchaseWaiting && View.Gold >= Difficulty.ShopRecallGold)
 	{
@@ -631,12 +669,12 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 	const FVeyraBotUnit* Well = Nearest(View.Self, View.Wells);
 	const double WellReach = View.bJungle ? Tuning.Jungle.WellRange : Tuning.Positioning.WellRange;
 	const FVeyraBotUnit* Threat = Nearest(View.Self, View.EnemyVanguards);
-	if (Well && EdgeDistance(View.Self, *Well) <= WellReach && (!Threat || EdgeDistance(View.Self, *Threat) > Tuning.Senses.SafeRadius))
+	if (!bDefending && Well && EdgeDistance(View.Self, *Well) <= WellReach && (!Threat || EdgeDistance(View.Self, *Threat) > Tuning.Senses.SafeRadius))
 	{
 		return AttackOf(*Well, TEXT("taking a Flux Well"));
 	}
 
-	if (View.bJungle)
+	if (View.bJungle && !bDefending)
 	{
 		return DecideJungle(View, Difficulty, Tuning, Memory, Random);
 	}
@@ -678,7 +716,7 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 	}
 
 	// Siege with its wave: a structure it can damage while the tower shoots the wave (ADR-013 §8.4).
-	if (View.EnemyStructure.IsSet() && View.EnemyStructure->bVulnerable && View.EnemyStructure->bAlliesInRange)
+	if (!bDefending && View.EnemyStructure.IsSet() && View.EnemyStructure->bVulnerable && View.EnemyStructure->bAlliesInRange)
 	{
 		return AttackOf(View.EnemyStructure->Unit, TEXT("sieging with its wave"));
 	}
@@ -690,9 +728,9 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		return AttackOf(*Weakest, TEXT("pushing the wave"));
 	}
 
-	if (FVector::Dist2D(View.Self.Location, View.LaneHold) > Tuning.Positioning.HoldTolerance)
+	if (FVector::Dist2D(View.Self.Location, Hold) > Tuning.Positioning.HoldTolerance)
 	{
-		return MoveTo(EVeyraBotAction::Move, View.LaneHold, TEXT("taking its place in lane"));
+		return MoveTo(EVeyraBotAction::Move, Hold, bDefending ? TEXT("standing by its threatened base") : TEXT("taking its place in lane"));
 	}
 	return Intent(EVeyraBotAction::Wait, TEXT("holding its place"));
 }
