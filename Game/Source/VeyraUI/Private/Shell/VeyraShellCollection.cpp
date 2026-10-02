@@ -6,9 +6,11 @@
 #include "Blueprint/WidgetTree.h"
 #include "Client/VeyraClientIntents.h"
 #include "Components/Border.h"
+#include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/ScrollBox.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -92,6 +94,8 @@ void UVeyraShellScreen::BuildCollection(const FVeyraClientSnapshot& Snapshot, UP
 		AddText(Parent, LOCTEXT("CollectionReading", "Reading your Collection..."), CollectionRole(EVeyraShellText::Muted));
 		return;
 	}
+	// The roster's search and tabs (UX-19; ADR-058 §3): they narrow what shows, never what is owned.
+	AddRosterSearch(Parent, { EVeyraRosterTab::All, EVeyraRosterTab::Owned, EVeyraRosterTab::FreeRotation });
 	// An opened card's detail and Buy sit above the roster, which scrolls beneath.
 	if (const FVeyraCollectionCard* Opened = Model.Cards.FindByPredicate([this](const FVeyraCollectionCard& Card) { return OpenCardId == CollectionCardKey(Card.VanguardId); }))
 	{
@@ -103,6 +107,7 @@ void UVeyraShellScreen::BuildCollection(const FVeyraClientSnapshot& Snapshot, UP
 	Scroll->AddChild(Roster);
 	AddCollectionFilling(Parent, *Scroll);
 	// Every released Vanguard, whatever the player owns (Bible §4); its status says whether it can be played now.
+	// Every card is built, and the search and tab show some of them, so typing narrows them in place.
 	for (const FVeyraCollectionCard& Card : Model.Cards)
 	{
 		const TArray<TPair<FText, uint8>> Plate = {
@@ -111,8 +116,93 @@ void UVeyraShellScreen::BuildCollection(const FVeyraClientSnapshot& Snapshot, UP
 			{ Card.MasteryShort, CollectionRole(EVeyraShellText::Muted) },
 		};
 		const FString Key = CollectionCardKey(Card.VanguardId);
-		AddArtCard(*Roster, VeyraProgressionModels::CollectionCardLabel(Card.VanguardId), Card.VanguardId, Plate, [this, Key] { OpenCard(Key); }, true, OpenCardId == Key);
+		UVeyraShellButton* Button =
+			AddArtCard(*Roster, VeyraProgressionModels::CollectionCardLabel(Card.VanguardId), Card.VanguardId, Plate, [this, Key] { OpenCard(Key); }, true, OpenCardId == Key);
+		RosterCards.Add({ Button, Card.VanguardId, FVeyraRosterEntry{ Card.Name, Card.bOwned, Card.bRotation, Card.bFavorite } });
 	}
+	RosterNoMatch = AddText(*Roster, LOCTEXT("NoVanguardMatches", "No Vanguard matches."), CollectionRole(EVeyraShellText::Muted));
+	ApplyRosterFilter();
+}
+
+void UVeyraShellScreen::ApplyRosterFilter()
+{
+	bool bAny = false;
+	for (const FRosterCard& Card : RosterCards)
+	{
+		const bool bShown = VeyraRosterFilter::Shows(Card.Entry, GetRosterTab(), GetRosterSearch());
+		bAny |= bShown;
+		if (UWidget* Widget = Card.Widget.Get())
+		{
+			Widget->SetVisibility(bShown ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		}
+	}
+	if (UWidget* NoMatch = RosterNoMatch.Get())
+	{
+		NoMatch->SetVisibility(bAny ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	}
+}
+
+bool UVeyraShellScreen::IsRosterCardShown(const FString& VanguardId) const
+{
+	const FRosterCard* Card = RosterCards.FindByPredicate([&VanguardId](const FRosterCard& Each) { return Each.VanguardId == VanguardId; });
+	const UWidget* Widget = Card ? Card->Widget.Get() : nullptr;
+	return Widget && Widget->GetVisibility() != ESlateVisibility::Collapsed;
+}
+
+void UVeyraShellScreen::AddRosterSearch(UPanelWidget& Parent, TConstArrayView<EVeyraRosterTab> Tabs)
+{
+	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	RosterSearchBox = MakeTextField(LOCTEXT("RosterSearchHint", "Search Vanguards"), GetRosterSearch(), true);
+	RosterSearchBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleRosterSearchChanged);
+	USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Width->SetWidthOverride(CollectionStyle().SettingsSearchWidth);
+	Width->AddChild(RosterSearchBox);
+	Line->AddChildToHorizontalBox(Width)->SetVerticalAlignment(VAlign_Center);
+	for (const EVeyraRosterTab Tab : Tabs)
+	{
+		AddNamedButton(*Line, EVeyraShellButtonKind::Tab, RosterTabLabel(Tab), VeyraRosterFilter::TabName(Tab), [this, Tab] { ShowRosterTab(Tab); }, true, GetRosterTab() == Tab)
+			->KeepLabelOnOneLine();
+	}
+	VeyraShellStyle::AddSpaced(Parent, *Line);
+}
+
+FText UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab Tab)
+{
+	return FText::Format(LOCTEXT("RosterTab", "Show {0}"), VeyraRosterFilter::TabName(Tab));
+}
+
+const FString& UVeyraShellScreen::GetRosterSearch() const
+{
+	return Shown == EVeyraShellScreen::ChampionSelect ? SelectSearch : CollectionSearch;
+}
+
+EVeyraRosterTab UVeyraShellScreen::GetRosterTab() const
+{
+	return Shown == EVeyraShellScreen::ChampionSelect ? SelectTab : CollectionTab;
+}
+
+void UVeyraShellScreen::HandleRosterSearchChanged(const FText& Text)
+{
+	(Shown == EVeyraShellScreen::ChampionSelect ? SelectSearch : CollectionSearch) = Text.ToString();
+	// In place: a rebuild would replace the very field being typed in.
+	ApplyRosterFilter();
+}
+
+void UVeyraShellScreen::SetRosterSearch(const FString& Search)
+{
+	if (RosterSearchBox)
+	{
+		// Through the field, as typing is.
+		RosterSearchBox->SetText(FText::FromString(Search));
+	}
+	HandleRosterSearchChanged(FText::FromString(Search));
+}
+
+void UVeyraShellScreen::ShowRosterTab(EVeyraRosterTab Tab)
+{
+	(Shown == EVeyraShellScreen::ChampionSelect ? SelectTab : CollectionTab) = Tab;
+	ShownSignature.Reset();
+	Refresh();
 }
 
 void UVeyraShellScreen::BuildCollectionDetail(const FVeyraClientSnapshot& Snapshot, const FVeyraCollectionCard& Card, UPanelWidget& Parent)

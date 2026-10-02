@@ -5,6 +5,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Shell/VeyraChatModels.h"
 #include "Shell/VeyraProgressionModels.h"
+#include "Shell/VeyraRosterFilter.h"
 #include "Shell/VeyraShellModels.h"
 #include "Types/SlateEnums.h"
 
@@ -140,6 +141,22 @@ public:
 	/** Types Name into the friends panel's name field, as the player would. For tests and scripts. */
 	void SetFriendNameDraft(const FString& Name);
 
+	/** Types Search into the shown roster's search, the Collection's or champion select's, as the player would (ADR-058 §2). For tests and scripts. */
+	void SetRosterSearch(const FString& Search);
+
+	/** Shows Tab of the shown roster, as its button does. */
+	void ShowRosterTab(EVeyraRosterTab Tab);
+
+	/** The shown roster's search and tab: the Collection's, or champion select's. */
+	const FString& GetRosterSearch() const;
+	EVeyraRosterTab GetRosterTab() const;
+
+	/** The label of a roster tab's button: "Show Owned". */
+	static FText RosterTabLabel(EVeyraRosterTab Tab);
+
+	/** Whether the shown roster shows VanguardId's card under its search and tab. For tests and scripts. */
+	bool IsRosterCardShown(const FString& VanguardId) const;
+
 	/** Types Text into the chat composer that shows, as the player would. For tests and scripts. */
 	void SetChatDraft(const FString& Text);
 
@@ -273,6 +290,25 @@ private:
 
 	UFUNCTION()
 	void HandleFriendNameChanged(const FText& Text);
+
+	UFUNCTION()
+	void HandleRosterSearchChanged(const FText& Text);
+
+	/** The search field and tab buttons over a roster (ADR-058 §2), the Collection's or champion select's. */
+	void AddRosterSearch(UPanelWidget& Parent, TConstArrayView<EVeyraRosterTab> Tabs);
+
+	/** Shows the roster's cards its search and tab keep, and says so when none is kept; typing calls it with no rebuild. */
+	void ApplyRosterFilter();
+
+	/** One card of the shown roster, with what the filter reads of it. */
+	struct FRosterCard
+	{
+		TWeakObjectPtr<UWidget> Widget;
+		FString VanguardId;
+		FVeyraRosterEntry Entry;
+	};
+	TArray<FRosterCard> RosterCards;
+	TWeakObjectPtr<UWidget> RosterNoMatch;
 
 	UFUNCTION()
 	void HandleFriendNameCommitted(const FText& Text, ETextCommit::Type Method);
@@ -475,6 +511,20 @@ private:
 	TObjectPtr<UEditableTextBox> FriendNameBox;
 
 	FString FriendNameDraft;
+
+	/** The shown roster's search field, rebuilt with the screen; what it holds outlives it (ADR-058 §2). */
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> RosterSearchBox;
+
+	/** The Collection's search and tab, kept while the client runs. */
+	FString CollectionSearch;
+	EVeyraRosterTab CollectionTab = EVeyraRosterTab::All;
+
+	/** Champion select's, reset as each selection session begins (UX-29): the session they belong to. */
+	FString SelectSearch;
+	EVeyraRosterTab SelectTab = EVeyraRosterTab::All;
+	FString SearchedSelectId;
+
 
 	/** The chat composer, rebuilt with the screen, and the conversation it sends to (ADR-046 §6). */
 	UPROPERTY(Transient)

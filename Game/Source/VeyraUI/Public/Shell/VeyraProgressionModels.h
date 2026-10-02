@@ -35,6 +35,10 @@ struct FVeyraCollectionCard
 	bool bCanBuyWithRefinedFlux = false;
 	int64 PriceFlux = 0;
 	int64 PriceRefinedFlux = 0;
+	/** What the roster's search and tabs read (ADR-058 §2–§3). */
+	bool bOwned = false;
+	bool bRotation = false;
+	bool bFavorite = false;
 };
 
 struct FVeyraCollectionModel

@@ -135,6 +135,8 @@ FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, b
 			FText::Format(LOCTEXT("MasteryLifetime", "{0} Mastery points in all"), FText::AsNumber(Entry.Mastery.LifetimePoints)),
 			FText::Format(LOCTEXT("MasteryEmote", "Mastery emote: tier {0}"), FText::AsNumber(Entry.Mastery.EmoteTier)),
 		};
+		Card.bOwned = Entry.bOwned;
+		Card.bRotation = Entry.bRotation;
 		Card.bPurchasable = Entry.bPurchasable;
 		Card.PriceFlux = Entry.PriceFlux;
 		Card.PriceRefinedFlux = Entry.PriceRefinedFlux;

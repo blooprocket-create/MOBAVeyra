@@ -112,6 +112,40 @@ namespace VeyraCollectionScreenTests
 			ASSERT_THAT(IsNull(Screen->FindButton(VeyraProgressionModels::BuyLabel(TEXT("cairn"), ECurrency::Flux, 3000))));
 		}
 
+		TEST_METHOD(TheRosterFilterNarrowsByNameAndTabOnly)
+		{
+			// Owned wins over the rotation; Favorites reads the favorite alone (ADR-058 §2).
+			const FVeyraRosterEntry Owned{ FText::FromString(TEXT("Cairn")), true, true, false };
+			const FVeyraRosterEntry Lent{ FText::FromString(TEXT("Oriel")), false, true, true };
+			const FVeyraRosterEntry Locked{ FText::FromString(TEXT("Bryn")), false, false, false };
+			ASSERT_THAT(IsTrue(VeyraRosterFilter::Shows(Owned, EVeyraRosterTab::All, FString()) && VeyraRosterFilter::Shows(Locked, EVeyraRosterTab::All, FString())));
+			ASSERT_THAT(IsTrue(VeyraRosterFilter::Shows(Owned, EVeyraRosterTab::Owned, FString()) && !VeyraRosterFilter::Shows(Lent, EVeyraRosterTab::Owned, FString())));
+			ASSERT_THAT(IsTrue(VeyraRosterFilter::Shows(Lent, EVeyraRosterTab::FreeRotation, FString()) && !VeyraRosterFilter::Shows(Owned, EVeyraRosterTab::FreeRotation, FString())));
+			ASSERT_THAT(IsTrue(VeyraRosterFilter::Shows(Lent, EVeyraRosterTab::Favorites, FString()) && !VeyraRosterFilter::Shows(Owned, EVeyraRosterTab::Favorites, FString())));
+			ASSERT_THAT(IsTrue(VeyraRosterFilter::Shows(Lent, EVeyraRosterTab::All, TEXT(" ORI ")) && !VeyraRosterFilter::Shows(Owned, EVeyraRosterTab::All, TEXT("ori"))));
+		}
+
+		TEST_METHOD(TheRosterSearchesByNameAndNarrowsToOwnedOrFreeRotation)
+		{
+			ASSERT_THAT(IsTrue(ShowShell(ProgressionOf(1200, 250))));
+			ASSERT_THAT(IsTrue(OpenCollection()));
+			const auto Shown = [this](const TCHAR* Id) { return Screen->IsRosterCardShown(Id); };
+			ASSERT_THAT(IsTrue(Shown(TEXT("cairn")) && Shown(TEXT("oriel")) && Shown(TEXT("bryn")), TEXT("every Vanguard under All")));
+			// By name, ignoring case (UX-19; ADR-058 §3).
+			Screen->SetRosterSearch(TEXT(" ORI"));
+			ASSERT_THAT(IsTrue(Shown(TEXT("oriel")) && !Shown(TEXT("cairn")) && !Shown(TEXT("bryn"))));
+			Screen->SetRosterSearch(TEXT("nobody"));
+			ASSERT_THAT(IsTrue(!Shown(TEXT("oriel")) && !Shown(TEXT("cairn")) && !Shown(TEXT("bryn"))));
+			Screen->SetRosterSearch(FString());
+			// Owned takes the starter; Free Rotation the Vanguard lent this week; filters never grant: the locked one stays under All.
+			ASSERT_THAT(IsTrue(Press(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Owned))));
+			ASSERT_THAT(IsTrue(Shown(TEXT("cairn")) && !Shown(TEXT("oriel")) && !Shown(TEXT("bryn"))));
+			ASSERT_THAT(IsTrue(Press(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::FreeRotation))));
+			ASSERT_THAT(IsTrue(Shown(TEXT("oriel")) && !Shown(TEXT("cairn")) && !Shown(TEXT("bryn"))));
+			ASSERT_THAT(IsTrue(Press(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::All)) && Shown(TEXT("bryn"))));
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Favorites)), TEXT("Favorites belongs to champion select")));
+		}
+
 		TEST_METHOD(BuyAsksFirstNamingThePriceThenBuys)
 		{
 			ASSERT_THAT(IsTrue(ShowShell(ProgressionOf(4000, 300))));

@@ -232,6 +232,7 @@ void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 	{
 		return;
 	}
+
 	if (Countdown && Shown == EVeyraShellScreen::ChampionSelect)
 	{
 		Countdown->SetText(VeyraShellModels::FormatCountdown(Client->GetRemainingPickSeconds()));
@@ -433,6 +434,11 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	// And for a player writing a report's details.
 	const bool bRefocusReport = ReportDetailsBox && ReportDetailsBox->HasKeyboardFocus();
 	ReportDetailsBox = nullptr;
+	// And for a player searching a roster (ADR-058 §2).
+	const bool bRefocusRosterSearch = RosterSearchBox && RosterSearchBox->HasKeyboardFocus();
+	RosterSearchBox = nullptr;
+	RosterCards.Reset();
+	RosterNoMatch = nullptr;
 	ReportDetailsCount = nullptr;
 	ChatScroll = nullptr;
 	ChatRecipient = nullptr;
@@ -487,6 +493,10 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		if (bRefocusReport && ReportDetailsBox)
 		{
 			ReportDetailsBox->SetKeyboardFocus();
+		}
+		if (bRefocusRosterSearch && RosterSearchBox)
+		{
+			RosterSearchBox->SetKeyboardFocus();
 		}
 		if (bRefocusName && NameBox)
 		{
