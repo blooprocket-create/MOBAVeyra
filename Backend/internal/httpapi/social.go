@@ -63,18 +63,36 @@ func (s *Server) listFriends(w http.ResponseWriter, r *http.Request, actor strin
 		{"incomingRequests", s.Social.IncomingRequests},
 		{"outgoingRequests", s.Social.OutgoingRequests},
 	}
-	out := map[string][]accountJSON{}
+	out := map[string]any{}
+	var friends []string
 	for _, l := range lists {
 		ids, err := l.fetch(ctx, actor)
 		if err != nil {
 			s.fail(w, err)
 			return
 		}
-		if out[l.key], err = s.accountList(ctx, ids); err != nil {
+		if l.key == "friends" {
+			friends = ids
+		}
+		list, err := s.accountList(ctx, ids)
+		if err != nil {
 			s.fail(w, err)
 			return
 		}
+		out[l.key] = list
 	}
+	// The friends whose Public party the player may join directly, by account:
+	// the party to ask to join (Parties & Social Bible §1).
+	joinable := map[string]string{}
+	if s.Party != nil {
+		found, err := s.Party.JoinableParties(ctx, actor, friends)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		joinable = found
+	}
+	out["joinableParties"] = joinable
 	writeJSON(w, http.StatusOK, out)
 }
 

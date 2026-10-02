@@ -394,6 +394,33 @@ func (s *Service) JoinPublic(ctx context.Context, actor, partyID string) (Party,
 	return out, err
 }
 
+// JoinableParties returns, for each of friends whose party the actor could
+// join directly, that party's ID: a Public party, idle so its membership is
+// not locked, with an open slot, and not the actor's own (Parties & Social
+// Bible §1-§2). It is what the friends list offers; JoinPublic still decides,
+// blocks included.
+func (s *Service) JoinableParties(ctx context.Context, actor string, friends []string) (map[string]string, error) {
+	own, err := s.store.PartyOf(ctx, actor)
+	if err != nil && !errors.Is(err, ErrNotInParty) {
+		return nil, err
+	}
+	out := map[string]string{}
+	for _, friend := range friends {
+		p, err := s.store.PartyOf(ctx, friend)
+		if errors.Is(err, ErrNotInParty) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if (own.ID != "" && p.ID == own.ID) || p.Privacy != Public || p.Status != Idle || len(p.Members) >= s.settings.Rules.MaxSize {
+			continue
+		}
+		out[friend] = p.ID
+	}
+	return out, nil
+}
+
 // OnBlock applies a new block to party state: pending invites that would put
 // the two accounts in one party are withdrawn, whoever sent them, and two
 // accounts may never share a party (§6).

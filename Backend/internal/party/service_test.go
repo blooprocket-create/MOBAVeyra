@@ -273,6 +273,43 @@ func TestPublicJoin(t *testing.T) {
 	}
 }
 
+// The friends list offers a friend's party to join only when JoinPublic would
+// take the player: Public, idle and with room, and not their own.
+func TestJoinablePartiesAreFriendsPublicIdlePartiesWithRoom(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	f.befriend(t, "a", "b")
+	f.befriend(t, "c", "a")
+	f.invite(t, "a", "b")
+	p, _ := f.parties.Get(ctx, "a")
+	if found, err := f.parties.JoinableParties(ctx, "c", []string{"a", "d"}); err != nil || len(found) != 0 {
+		t.Fatalf("a private party: %v %v", found, err)
+	}
+	if _, err := f.parties.SetPrivacy(ctx, "a", Public); err != nil {
+		t.Fatal(err)
+	}
+	if found, err := f.parties.JoinableParties(ctx, "c", []string{"a", "d"}); err != nil || found["a"] != p.ID || len(found) != 1 {
+		t.Fatalf("a's public party: %v %v", found, err)
+	}
+	if found, _ := f.parties.JoinableParties(ctx, "b", []string{"a"}); len(found) != 0 {
+		t.Fatalf("a member's own party is not offered: %v", found)
+	}
+	if _, err := f.parties.SelectMode(ctx, "a", "casual"); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"a", "b"} {
+		if _, err := f.parties.SetReady(ctx, id, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := f.parties.StartQueue(ctx, "a"); err != nil {
+		t.Fatal(err)
+	}
+	if found, _ := f.parties.JoinableParties(ctx, "c", []string{"a"}); len(found) != 0 {
+		t.Fatalf("a queued party is locked: %v", found)
+	}
+}
+
 func TestBlockRemovesBlockedMemberAndInvites(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()
