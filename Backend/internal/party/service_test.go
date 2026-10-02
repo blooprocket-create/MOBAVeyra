@@ -273,6 +273,32 @@ func TestPublicJoin(t *testing.T) {
 	}
 }
 
+// A friend's Public party is not offered when another of its members blocks
+// the player, or is blocked by them: JoinPublic would refuse it (§6).
+func TestJoinablePartiesLeaveOutPartiesWithABlockedMember(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	f.befriend(t, "a", "b")
+	f.befriend(t, "c", "a")
+	f.invite(t, "a", "b")
+	p, _ := f.parties.Get(ctx, "a")
+	if _, err := f.parties.SetPrivacy(ctx, "a", Public); err != nil {
+		t.Fatal(err)
+	}
+	if found, _ := f.parties.JoinableParties(ctx, "c", []string{"a"}); found["a"] != p.ID {
+		t.Fatalf("before the block: %v", found)
+	}
+	if err := f.social.Block(ctx, "b", "c"); err != nil {
+		t.Fatal(err)
+	}
+	if found, err := f.parties.JoinableParties(ctx, "c", []string{"a"}); err != nil || len(found) != 0 {
+		t.Fatalf("b blocks c: %v %v", found, err)
+	}
+	if _, err := f.parties.JoinPublic(ctx, "c", p.ID); !errors.Is(err, ErrBlocked) {
+		t.Fatalf("JoinPublic agrees: %v", err)
+	}
+}
+
 // The friends list offers a friend's party to join only when JoinPublic would
 // take the player: Public, idle and with room, and not their own.
 func TestJoinablePartiesAreFriendsPublicIdlePartiesWithRoom(t *testing.T) {
