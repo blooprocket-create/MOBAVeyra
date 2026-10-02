@@ -99,6 +99,9 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, Team, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, VanguardId, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, RespawnAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, MasteryLevel, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, EmoteTier, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, MasteryEmoteUntil, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, bAway, Params);
 }
 
@@ -137,6 +140,20 @@ void AVeyraPlayerState::SetRespawnAt(double InRespawnAt)
 {
 	RespawnAt = InRespawnAt;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, RespawnAt, this);
+}
+
+void AVeyraPlayerState::SetMastery(int32 InLevel, int32 InEmoteTier)
+{
+	MasteryLevel = FMath::Max(InLevel, 0);
+	EmoteTier = FMath::Max(InEmoteTier, 0);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, MasteryLevel, this);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, EmoteTier, this);
+}
+
+void AVeyraPlayerState::ShowMasteryEmote(double Until)
+{
+	MasteryEmoteUntil = Until;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, MasteryEmoteUntil, this);
 }
 
 void AVeyraPlayerState::OnRep_VanguardId()

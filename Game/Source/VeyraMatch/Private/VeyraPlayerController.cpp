@@ -3,6 +3,7 @@
 #include "VeyraPlayerController.h"
 
 #include "Camera/VeyraCameraPreferences.h"
+#include "Emote/VeyraMasteryEmote.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Input/VeyraControlPreferences.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -204,6 +205,7 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
 		Enhanced->BindAction(Input.VoteYes, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteYesPressed);
 		Enhanced->BindAction(Input.VoteNo, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteNoPressed);
+		Enhanced->BindAction(Input.MasteryEmote, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMasteryEmotePressed);
 		// Each ability's key reports its press and its release, which its casting mode reads (ADR-041 §1).
 		const auto BindAbility = [this, Enhanced](EVeyraAbilitySlot Slot) {
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Started, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
@@ -276,6 +278,38 @@ void AVeyraPlayerController::AttackMoveToCursor()
 void AVeyraPlayerController::OnRecallPressed()
 {
 	RequestRecall();
+}
+
+void AVeyraPlayerController::OnMasteryEmotePressed()
+{
+	RequestMasteryEmote();
+}
+
+void AVeyraPlayerController::RequestMasteryEmote()
+{
+	ServerMasteryEmote();
+}
+
+void AVeyraPlayerController::ServerMasteryEmote_Implementation()
+{
+	AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const AGameStateBase* GameState = GetWorld()->GetGameState();
+	if (!Participant || !GameState)
+	{
+		return;
+	}
+	// World time, so a pause holds both the emote and its cooldown.
+	const double Now = GameState->GetServerWorldTimeSeconds();
+	const FVeyraMasteryEmoteTuning& Emote = UVeyraMatchTuningSubsystem::Get().MasteryEmote;
+	const TOptional<double> Until = VeyraMasteryEmote::Show(Participant->GetMasteryLevel(), Now, NextMasteryEmoteAt, Emote);
+	if (!Until)
+	{
+		return;
+	}
+	NextMasteryEmoteAt = Now + Emote.CooldownSeconds;
+	Participant->ShowMasteryEmote(Until.GetValue());
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s shows the mastery emote: Mastery %d, tier %d."), *Participant->GetPlayerName(), Participant->GetMasteryLevel(),
+		Participant->GetEmoteTier());
 }
 
 void AVeyraPlayerController::OnVoteYesPressed()

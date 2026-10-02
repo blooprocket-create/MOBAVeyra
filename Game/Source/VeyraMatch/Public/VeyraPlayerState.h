@@ -118,6 +118,22 @@ public:
 	/** Server only: set as the Vanguard dies. */
 	void SetRespawnAt(double InRespawnAt);
 
+	/**
+	 * The account's Mastery Level of the Vanguard it plays and its mastery emote's tier, from the assignment
+	 * (ADR-045 §9), on every machine; 0 for a bot, or a match the backend gave no progression.
+	 */
+	int32 GetMasteryLevel() const { return MasteryLevel; }
+	int32 GetEmoteTier() const { return EmoteTier; }
+
+	/** Server only: from the assignment, as the participant joins. */
+	void SetMastery(int32 InLevel, int32 InEmoteTier);
+
+	/** Until when, in the server's world time, the mastery emote shows above the Vanguard, on every machine. */
+	double GetMasteryEmoteUntil() const { return MasteryEmoteUntil; }
+
+	/** Server only: shows the mastery emote until Until. It has no gameplay effect. */
+	void ShowMasteryEmote(double Until);
+
 protected:
 	/**
 	 * The engine destroys a departing player's PlayerState. Veyra keeps it: the Vanguard stays in the
@@ -227,6 +243,15 @@ private:
 
 	UPROPERTY(Replicated)
 	double RespawnAt = 0.0;
+
+	UPROPERTY(Replicated)
+	int32 MasteryLevel = 0;
+
+	UPROPERTY(Replicated)
+	int32 EmoteTier = 0;
+
+	UPROPERTY(Replicated)
+	double MasteryEmoteUntil = 0.0;
 
 	/** Server only. */
 	UPROPERTY(Transient)

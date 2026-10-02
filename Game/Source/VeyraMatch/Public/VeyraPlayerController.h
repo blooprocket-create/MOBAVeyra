@@ -64,6 +64,9 @@ public:
 	 */
 	void RequestRecall();
 
+	/** Shows the player's mastery emote, as its key does; the server refuses it within its cooldown (ADR-045 §9). */
+	void RequestMasteryEmote();
+
 	/**
 	 * Owning client, developer builds: asks the server to pause or resume the match at once. Pause
 	 * votes (Match Flow Bible §10) will replace it; Shipping servers refuse it.
@@ -293,6 +296,9 @@ private:
 	void ServerRecall();
 
 	UFUNCTION(Server, Reliable)
+	void ServerMasteryEmote();
+
+	UFUNCTION(Server, Reliable)
 	void ServerIssueCastOrder(EVeyraAbilitySlot Slot, FVeyraCastTarget Target);
 
 	UFUNCTION(Client, Unreliable)
@@ -458,6 +464,10 @@ private:
 	void OnRecallPressed();
 	void OnVoteYesPressed();
 	void OnVoteNoPressed();
+	void OnMasteryEmotePressed();
+
+	/** Server only: when, in world time, this player may next show the mastery emote. */
+	double NextMasteryEmoteAt = 0.0;
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void OnAbilityReleased(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
