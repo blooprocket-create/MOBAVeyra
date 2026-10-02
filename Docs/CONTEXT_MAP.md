@@ -91,6 +91,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
   - Draft Pick's bans and turns, and trades between locked teammates, are [ADR-042](ADR/ADR-042-draft-pick-and-trades.md); their canon is the Battleground Bible's shared lock-in rules and Draft Pick, and the Modes Bible §1.
   - The battleground's walls and terrain line of sight are [ADR-043](ADR/ADR-043-map-walls-and-terrain-sight.md); their canon is the Battleground Bible §2 and §7, and the Vision Bible.
   - Reconnecting to the same Vanguard, disconnect autopilot, AFK and absence, personal loss, and remake, surrender and pause votes are [ADR-019](ADR/ADR-019-match-flow.md); their canon is the Match Flow Bible §3–§11.
+  - Leave Match, the Match Found alert, the match loading screen with tips and lore, and the break reminder are [ADR-053](ADR/ADR-053-leave-match-match-found-alert-loading-screen-and-break-reminder.md); their canon is Match Flow §3, §5.2 and §13, Settings SET-50, SET-71, SET-76 and SET-111–120, and the Account Bible §2.
   - The camera, the minimap, the kill-streak bounty, death-streak devaluation and buyback are [ADR-020](ADR/ADR-020-camera-minimap-kill-economy.md); their canon is the Settings & Accessibility Bible §2 and §3.2 and the Economy & Progression Bible §5.3, §5.4 and §15.
   - Custom lobbies (the host, human and bot slots on either side, invites, launch through champion select), `custom` rules with victory and starting Gold per session, and friends in the client are [ADR-021](ADR/ADR-021-custom-lobbies.md); their canon is the Custom Matches Bible §1–§5 and the Parties & Social Bible. The code:
   - backend: `Backend/internal/lobby`;
@@ -165,6 +166,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-050-stasis-and-the-echo-item-line.md](ADR/ADR-050-stasis-and-the-echo-item-line.md) — **Proposed** (accepted when the M40 pull request merges): Stasis, Echoes, Echo Lens and The Second Self.
 - [ADR-051-assassin-items-and-memoryglass-reliquary.md](ADR/ADR-051-assassin-items-and-memoryglass-reliquary.md) — **Proposed** (accepted when the M41 pull request merges): Veil Needle, Blank Sigil, Cutline Mantle, Oathpiercer, Witnessless Edge and Memoryglass Reliquary.
 - [ADR-052-combat-text-health-bars-zoom-and-attack-range.md](ADR/ADR-052-combat-text-health-bars-zoom-and-attack-range.md) — **Proposed** (accepted when the M42 pull request merges): floating combat text, health-bar visibility, manual camera zoom and Show Attack Range.
+- [ADR-053-leave-match-match-found-alert-loading-screen-and-break-reminder.md](ADR/ADR-053-leave-match-match-found-alert-loading-screen-and-break-reminder.md) — **Proposed** (accepted when the M43 pull request merges): Leave Match, the Match Found alert, the match loading screen and the break reminder.
 
 ## Keeping the maps current
 
