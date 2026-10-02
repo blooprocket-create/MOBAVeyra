@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"errors"
+	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -99,5 +101,35 @@ func TestConcurrentChangesToOneNameInPostgres(t *testing.T) {
 	}
 	if won != 1 || lost != 1 {
 		t.Fatalf("one winner and one loser, got %d and %d", won, lost)
+	}
+}
+
+// A rename reads and writes only through its own transaction: with a single
+// pooled connection it still completes rather than waiting on itself.
+func TestARenameNeedsOnlyItsOwnConnectionInPostgres(t *testing.T) {
+	openTestStore(t)
+	url := os.Getenv(testDatabaseURLEnv)
+	separator := "?"
+	if strings.Contains(url, "?") {
+		separator = "&"
+	}
+	store, err := Open(context.Background(), url+separator+"pool_max_conns=1")
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(store.Close)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	now := time.Now().UTC()
+	svc := newNamesService(t, store, &now)
+	a, err := store.EnsureDevAccount(ctx, "PgSolo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := svc.ChangeDisplayName(ctx, a.ID, "PgSoloRenamed", ""); err != nil || got.DisplayName != "PgSoloRenamed" {
+		t.Fatalf("rename on one connection: %+v %v", got, err)
+	}
+	if _, _, err := svc.DevLogin(ctx, "PgSoloRenamed"); err != nil {
+		t.Fatalf("a login, its session and its record in one transaction: %v", err)
 	}
 }

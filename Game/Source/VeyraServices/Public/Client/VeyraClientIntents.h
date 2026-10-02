@@ -138,6 +138,8 @@ public:
 	virtual bool CloseProfile() = 0;
 	/** Reads the opened profile's next page of shared Match History. */
 	virtual bool LoadMoreProfileMatches() = 0;
+	/** Reads the opened profile's shared Match History again from its first page, with Filter. */
+	virtual bool FilterProfileMatches(const VeyraBackendProtocol::FHistoryFilter& Filter) = 0;
 	/** Opens MatchId, listed in the opened profile's shared Match History, into its report. */
 	virtual bool OpenProfileMatch(const FString& MatchId) = 0;
 	virtual bool CloseProfileMatch() = 0;

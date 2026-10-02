@@ -32,6 +32,10 @@ struct FVeyraProfileViewModel
 	TArray<FVeyraHistoryRow> Rows;
 	FText HistoryNote;
 	bool bOffersLoadMore = false;
+	/** The shared Match History's filters, the owner's own, while it is shared (ADR-048 §3). */
+	TArray<FVeyraHistoryOption> Vanguards;
+	TArray<FVeyraHistoryOption> Modes;
+	TArray<FVeyraHistoryOption> Outcomes;
 	/** One shared match opened into its report. */
 	TOptional<FVeyraResultsModel> Opened;
 };
