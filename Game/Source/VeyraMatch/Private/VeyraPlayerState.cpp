@@ -16,6 +16,7 @@
 #include "Buyback/VeyraBuybackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Emote/VeyraMasteryEmote.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -30,6 +31,7 @@
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraParticipantData.h"
 #include "Tools/VeyraVisionToolComponent.h"
+#include "Tuning/VeyraMatchTuning.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
 #include "VeyraVanguardCharacter.h"
@@ -99,6 +101,9 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, Team, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, VanguardId, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, RespawnAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, MasteryLevel, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, EmoteTier, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, MasteryEmoteUntil, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, bAway, Params);
 }
 
@@ -137,6 +142,27 @@ void AVeyraPlayerState::SetRespawnAt(double InRespawnAt)
 {
 	RespawnAt = InRespawnAt;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, RespawnAt, this);
+}
+
+void AVeyraPlayerState::SetMastery(int32 InLevel, int32 InEmoteTier)
+{
+	MasteryLevel = FMath::Max(InLevel, 0);
+	EmoteTier = FMath::Max(InEmoteTier, 0);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, MasteryLevel, this);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, EmoteTier, this);
+}
+
+bool AVeyraPlayerState::TryShowMasteryEmote(double Now, const FVeyraMasteryEmoteTuning& Emote)
+{
+	const TOptional<double> Until = VeyraMasteryEmote::Show(MasteryLevel, Now, NextMasteryEmoteAt, Emote);
+	if (!Until)
+	{
+		return false;
+	}
+	NextMasteryEmoteAt = Now + Emote.CooldownSeconds;
+	MasteryEmoteUntil = Until.GetValue();
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, MasteryEmoteUntil, this);
+	return true;
 }
 
 void AVeyraPlayerState::OnRep_VanguardId()

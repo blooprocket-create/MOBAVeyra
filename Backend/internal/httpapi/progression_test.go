@@ -149,4 +149,17 @@ func TestTheCollectionAndPurchasesOverHTTP(t *testing.T) {
 	if status, body := call(t, srv, "POST", "/v1/dev/accounts/Nobody/progression-grant", "", map[string]int64{"flux": 1}); status != http.StatusNotFound {
 		t.Fatalf("an unknown development account: %d %v", status, body)
 	}
+
+	// The development reset takes the bought Vanguard back, so a scripted run can buy it again.
+	if status, body := call(t, srv, "POST", "/v1/dev/accounts/DevOne/progression-reset", "", nil); status != http.StatusNoContent {
+		t.Fatalf("dev reset: %d %v", status, body)
+	}
+	_, body = call(t, srv, "GET", "/v1/me/collection", one, nil)
+	if bryn := body["vanguards"].([]any)[3].(map[string]any); bryn["owned"] != false || bryn["purchasable"] != true {
+		t.Fatalf("bryn after the reset: %v", bryn)
+	}
+	call(t, srv, "POST", "/v1/dev/accounts/DevOne/progression-grant", "", map[string]int64{"flux": 2000})
+	if status, body := call(t, srv, "POST", "/v1/me/purchases", one, buy); status != http.StatusOK || body["progression"].(map[string]any)["flux"] != float64(0) {
+		t.Fatalf("buying again after the reset: %d %v", status, body)
+	}
 }

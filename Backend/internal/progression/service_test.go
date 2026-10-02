@@ -233,6 +233,42 @@ func TestBuyingAVanguardSpendsOnceAndGrantsIt(t *testing.T) {
 	if adj := f.store.Adjustments(); len(adj) != 1 || adj[0].Flux != 4000 {
 		t.Fatalf("the development grant is recorded: %+v", adj)
 	}
+
+	// The development reset takes the bought Vanguards back and forgets their purchases; the balances stay.
+	if err := f.svc.DevResetPurchases(ctx, "acc-a"); err != nil {
+		t.Fatalf("DevResetPurchases: %v", err)
+	}
+	if available, _ := f.accounts.Vanguards(ctx, "acc-a"); len(available.Owned) != 0 {
+		t.Fatalf("still owned after the reset: %+v", available.Owned)
+	}
+	if _, summary, err := f.svc.Buy(ctx, "acc-a", "purchase-0001", "oriel", CurrencyRefinedFlux); err != nil || summary.RefinedFlux != 0 {
+		t.Fatalf("the forgotten purchase ID buys again: %+v %v", summary, err)
+	}
+}
+
+func TestTheAssignmentLearnsEachPlayersMastery(t *testing.T) {
+	f := newFixture(t)
+	if err := f.svc.Grant(ctx, endedMatch("casual_select", match.EndPrimeWellDestroyed, match.SideA)); err != nil {
+		t.Fatalf("Grant: %v", err)
+	}
+	// 480 points short of 500 keep Cairn at Level 1, emote tier 1; Bryn, never played, is the same.
+	for _, c := range []struct {
+		vanguard string
+		want     match.ParticipantMastery
+	}{{"cairn", match.ParticipantMastery{Level: 1, EmoteTier: 1}}, {"bryn", match.ParticipantMastery{Level: 1, EmoteTier: 1}}} {
+		if got, err := f.svc.MasteryOf(ctx, "acc-a", c.vanguard); err != nil || got != c.want {
+			t.Errorf("%s: %+v %v", c.vanguard, got, err)
+		}
+	}
+	// Another win takes Cairn past 500 points: Level 2, the second emote tier.
+	m := endedMatch("casual_select", match.EndPrimeWellDestroyed, match.SideA)
+	m.ID = "m-2"
+	if err := f.svc.Grant(ctx, m); err != nil {
+		t.Fatalf("Grant: %v", err)
+	}
+	if got, _ := f.svc.MasteryOf(ctx, "acc-a", "cairn"); got != (match.ParticipantMastery{Level: 2, EmoteTier: 2}) {
+		t.Fatalf("after two wins: %+v", got)
+	}
 }
 
 func TestTheCollectionShowsEveryReleasedVanguard(t *testing.T) {

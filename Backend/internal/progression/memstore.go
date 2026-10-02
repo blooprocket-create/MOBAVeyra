@@ -129,6 +129,15 @@ func (t *memTx) AddPurchase(p Purchase) error {
 	return nil
 }
 
+func (t *memTx) DeletePurchases(accountID string) error {
+	for id, p := range t.state.purchases {
+		if p.AccountID == accountID {
+			delete(t.state.purchases, id)
+		}
+	}
+	return nil
+}
+
 func (t *memTx) AddDevAdjustment(a DevAdjustment) error {
 	t.state.adjustments = append(t.state.adjustments, a)
 	return nil

@@ -392,6 +392,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;
 
+	/** The height of a chat panel's lines (ADR-046 §6): the sidebar's, champion select's and the results screen's, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ChatLinesHeight = 0.0f;
+
 	/**
 	 * The one brief, distinct cue as the player's draft turn begins (Pre-Game Client UX Bible 32): its tones
 	 * in turn, in hertz, each tone's length in seconds, and its volume. Presentation, made as it plays.

@@ -57,7 +57,7 @@ The client learns of a refusal as it does for pings.
 
 ### 6. Out of scope
 
-- Party Chat, friend direct messages and post-match chat (§3–§5). They need the backend's social services.
+- Party Chat, friend direct messages and post-match chat (§3–§5). They need the backend's social services; [ADR-046](ADR-046-party-direct-select-postmatch-chat.md) adds them.
 - Chat reports, filters and moderation evidence (the Moderation Bible).
 
 ## 8. Provisional answers where canon is open

@@ -80,6 +80,14 @@ func (s *AccountStore) Entitlements(ctx context.Context, accountID string) ([]ac
 	})
 }
 
+func (s *AccountStore) ResetPurchases(ctx context.Context, accountID string) error {
+	if !uuidPattern.MatchString(accountID) {
+		return nil
+	}
+	_, err := querierFor(ctx, s.pool).Exec(ctx, `DELETE FROM account.entitlements WHERE account_id = $1::uuid AND source = $2`, accountID, string(account.SourcePurchase))
+	return err
+}
+
 func (s *AccountStore) ResetOnboarding(ctx context.Context, accountID string) error {
 	if !uuidPattern.MatchString(accountID) {
 		return nil

@@ -179,6 +179,12 @@ void UVeyraShellScreen::NativeDestruct()
 void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	// A chat panel built since the last frame shows its newest lines, once its scroll box exists to scroll.
+	if (ChatScroll)
+	{
+		ChatScroll->ScrollToEnd();
+		ChatScroll = nullptr;
+	}
 	if (!Client)
 	{
 		return;
@@ -277,6 +283,10 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	// A player typing a friend's name keeps typing across a rebuild, into the field that replaces it.
 	const bool bRefocusFriendName = FriendNameBox && FriendNameBox->HasKeyboardFocus();
 	FriendNameBox = nullptr;
+	// The same for a player typing a chat message while lines arrive (ADR-046 §6).
+	const bool bRefocusChat = ChatBox && ChatBox->HasKeyboardFocus();
+	ChatBox = nullptr;
+	ChatScroll = nullptr;
 	Content->ClearChildren();
 	Popup->ClearChildren();
 	Buttons.Reset();
@@ -314,6 +324,10 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		if (bRefocusFriendName && FriendNameBox)
 		{
 			FriendNameBox->SetKeyboardFocus();
+		}
+		if (bRefocusChat && ChatBox)
+		{
+			ChatBox->SetKeyboardFocus();
 		}
 	};
 	// Each screen chooses its own art; champion select shows the Vanguard it is looking at.
@@ -479,8 +493,14 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 			ShowPage(EVeyraShellPage::History);
 			Client->LoadHistory(Client->GetSnapshot().History.Filter);
 		}, true, Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
+		// Opening the Collection reads it afresh, with the level and balances (ADR-045 §8).
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavCollection", "Collection"), [this] {
+			ShowPage(EVeyraShellPage::Collection);
+			Client->LoadCollection();
+		}, true, Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
 	}
 	AddStretch(*WidgetTree, *Bar);
+	AddProgressionReadout(Snapshot, *Bar);
 	UTextBlock* Player = AddText(*Bar, FText::Format(LOCTEXT("SignedInAs", "Signed in as {0}"), FText::FromString(Snapshot.DisplayName)), RoleOf(EVeyraShellText::Muted));
 	Player->SetAutoWrapText(false);
 	AddSettingsButton(*Bar);
@@ -514,6 +534,10 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	else if (Page == EVeyraShellPage::History)
 	{
 		BuildHistory(Snapshot, *Body);
+	}
+	else if (Page == EVeyraShellPage::Collection)
+	{
+		BuildCollection(Snapshot, *Body);
 	}
 	else
 	{
@@ -910,6 +934,7 @@ void UVeyraShellScreen::BuildResults(const FVeyraClientSnapshot& Snapshot)
 	Buttons.Add(Continue);
 	Header->AddChildToHorizontalBox(Continue)->SetVerticalAlignment(VAlign_Bottom);
 	VeyraShellStyle::AddSpaced(*Content, *Header);
+	BuildRewards(Snapshot, *Content);
 	if (Model.bVerified)
 	{
 		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing * 2.0f));

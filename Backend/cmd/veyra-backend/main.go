@@ -132,6 +132,8 @@ func run(log *slog.Logger) error {
 	// Each verified result grants account progression in its own transaction (ADR-045 §1).
 	progress := progression.NewService(store.Progression(), accounts, progressionTuning(cfg.Progression), modeCategories(cfg.Modes), time.Now)
 	matches.SetRewards(progress)
+	// Each assignment carries its players' Mastery, for the mastery emote (ADR-045 §9).
+	matches.SetMasteries(progress)
 	if cfg.Progression.DevGrant {
 		log.Warn("the development currency grant is enabled; never expose this backend publicly")
 	}
@@ -206,6 +208,12 @@ func run(log *slog.Logger) error {
 	selects.SetMatchmaking(matchmaker)
 	go matchmaker.Run(ctx, cfg.Matchmaking.Interval)
 
+	prefs := settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes)
+	// Chat asks the party, social, selection, match and settings domains who reads each conversation (ADR-046 §1).
+	talk := newChatService(store.Chat(), cfg.Chat, parties, soc, selects, matches, prefs, displayNames(svc))
+	// Expired messages go whether or not anyone sends again (ADR-046 §4).
+	go talk.RunPruner(ctx, cfg.Chat.PruneInterval, log)
+
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
 		Handler: httpapi.New(httpapi.Deps{
@@ -218,7 +226,8 @@ func run(log *slog.Logger) error {
 			Progression:    progress,
 			Selection:      selects,
 			Matchmaking:    matchmaker,
-			Settings:       settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes),
+			Settings:       prefs,
+			Chat:           talk,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,

@@ -102,7 +102,7 @@ One pure rule decides each participant's eligibility and gives a reason code for
   - the Vanguard, its Mastery points, and its Mastery levels before and after;
   - the reason when nothing was earned.
 
-  Before the result is adjudicated, `rewards` is absent and the client shows it as pending (Client & Platform §2.7).
+  Before the result is adjudicated, `rewards` is null or absent and the client shows it as pending (Client & Platform §2.7).
 - **Visibility is not permission** (Bible §4). Champion select still offers owned and rotation Vanguards only, and the backend still checks each pick.
 
 ### 8. The client
@@ -111,14 +111,17 @@ One pure rule decides each participant's eligibility and gives a reason code for
 - **A Collection page** shows every released Vanguard:
   - owned, in rotation, or not playable;
   - its Mastery;
-  - a **Buy** action with a confirmation naming the price and the currency.
+  - a **Buy** action with a confirmation naming the price, the currency and the balance. Buy stays off until the balance has been read and covers the price; the backend still decides every purchase.
 - **The results screen** shows account rewards and Mastery apart from the match's Gold, XP and Team Flux (Client & Platform §3).
+  - A result that arrives without its rewards, for an account with progression, shows them as pending.
+  - The client reads the result again every `ResultPollIntervalSeconds`, for up to `ResultWaitTimeoutSeconds`.
+  - Once that wait ends, the screen says the rewards are late and reach the account once counted, rather than hiding the panel.
 
 ### 9. The mastery emote in a match
 
 - The match roster carries each human's Mastery Level and emote tier for the Vanguard they play, read when the match is created.
 - The match server keeps them on the player's state.
-- An emote key shows a badge above the Vanguard with the level and tier, for `emoteSeconds`, at most once per `emoteCooldownSeconds`. Both are game tuning.
+- An emote key (a rebindable control) shows a badge above the Vanguard with the level, coloured by tier, for `Match.json` `masteryEmote.seconds`, at most once per `masteryEmote.cooldownSeconds`. The server decides both, by its own clock. The cooldown is kept on the player's state, which a returning player takes back, so a reconnect does not reset it.
 - It has no gameplay effect, and a client draws it only while it can see that Vanguard.
 
 ### 10. Provisional answers
@@ -136,6 +139,7 @@ Every value below is configuration in `Backend/config/*.json` (`progression`), v
 | Mastery weights | kill 15; assist 10; per Vanguard damage 0.005; per damage shielded 0.005; per teammate healing 0.005; per crowd-control second 2; per tower damage 0.005; Well secured 20; ward placed 3; ward destroyed 5 |
 | Mastery curve | 1,000 points from Level 1 to 2, +500 per level through Level 5, then constant |
 | Emote tiers | Mastery Levels 1, 5, 10, 25, 50, 100 |
+| Mastery emote (game tuning) | shown 3 s; at most once per 10 s |
 | Prices (Flux / Refined Flux) | 1,500 / 300 for the starters and the plainest kits (Cairn, Qazharr, Oriel, Bryn, Korruk, Moro); 3,000 / 550 for most (Kade, Vera, Mimzi, Patch, Gorraveth, Mavra, Celandrine, Aurelisse, Silt, Torr); 4,500 / 800 for kits with rides, stances, stealth, companions or terrain (Raska, Tavi, Angeru, Varkesh, Relay, Marek, Neris, Sylra, Eudora) |
 | Personal loss and Mastery | no Mastery while a personal loss stands (the bible leaves it open) |
 

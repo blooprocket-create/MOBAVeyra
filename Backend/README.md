@@ -179,10 +179,27 @@ Account level and XP, the account currencies, buying Vanguards and Vanguard Mast
 | `GET /v1/me/collection` | `Bearer <game token>` | — | `vanguards`: every released Vanguard in catalog order, whatever the player owns: `vanguardId`, `owned`, `source` (`starter`, `purchase` or `null`), `rotation`, `price` (`flux`, `refinedFlux`), `purchasable`, and the player's `mastery` (`level`, `levelPoints`, `levelNeed`, `lifetimePoints`, `emoteTier`) |
 | `POST /v1/me/purchases` | `Bearer <game token>` | `{"purchaseId", "vanguardId", "currency": "flux" \| "refinedFlux"}` | `purchase` (`purchaseId`, `vanguardId`, `currency`, `price`) and the new `progression`. The client generates `purchaseId` (8–64 letters, digits and hyphens), so a retry returns the same purchase without spending again. Refusals: `insufficient_balance`, `already_owned`, `not_for_sale`, `invalid_purchase`, and `purchase_conflict` for an ID already used otherwise |
 | `POST /v1/dev/accounts/{name}/progression-grant` | — | `{"flux", "refinedFlux"}` | the dev account's `progression` after adding the currency, recorded as a development adjustment. **Local only**, with dev login and `progression.devGrant` |
+| `POST /v1/dev/accounts/{name}/progression-reset` | — | — | `204`; the Vanguards the dev account bought are taken back and its purchases forgotten, so scripted runs can buy again; balances stay. **Local only**, as above |
 
 `GET /v1/me/matches/{matchId}` carries `rewards` once its result is adjudicated (`null` before): `reason` (`null` when earned; otherwise `custom`, `not_matchmade`, `no_contest`, `not_completed`, `not_joined`, `personal_loss` or `coop_level`), `accountXp`, `levelBefore`, `levelAfter`, `flux`, `refinedFlux`, `vanguardId`, `masteryPoints`, `masteryBefore`, `masteryAfter`.
 
 The tuning is `progression` in `config/local.json`, all of it provisional (ADR-045 §10): account XP per minute and win bonus, the Co-op account-XP level, the account and Mastery level curves, Flux per level-up, Refined Flux milestones, the Mastery weights and cap, the emote tiers, and a price in both currencies for exactly the released Vanguards.
+
+### Chat
+
+Party Chat, friend direct messages, champion-select team chat and post-match chat ([ADR-046](../Docs/ADR/ADR-046-party-direct-select-postmatch-chat.md)); in-match Team and All Chat stay on the match server. Who reads a conversation is checked when a message is sent and again each time it is delivered (`internal/chat`): a party's current members, from when each joined; two friends with no block; one side of an active champion select; and the participants of an ended match who opted into its post-match chat by sending. Delivery drops every message across a block.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/me/chat?after=<seq>` | `Bearer <game token>` | — | `messages` the player may read now, oldest first (`seq`, `kind`, `conversation`, `sender` (`id`, `displayName`), `recipientId` for a direct message, `text`, `sentAt`, `clientId`), `next` (the cursor for the next poll) and `more` (the page was full). Without `after`, the newest `chat.historyMessages`, so a restarted client recovers its conversations |
+| `POST /v1/me/chat/party/{partyId}` | `Bearer <game token>` | `{"clientId", "text"}` | `message` to the party the player wrote in. Refusals: `not_in_party`, `conversation_changed` (the player is in another party now) |
+| `POST /v1/me/chat/direct/{accountId}` | `Bearer <game token>` | `{"clientId", "text"}` | `message`. Refusals: `not_friends`, `blocked` |
+| `POST /v1/me/chat/select/{selectId}` | `Bearer <game token>` | `{"clientId", "text"}` | `message` to the player's side in the select they wrote in. Refusals: `no_select`, `conversation_changed` |
+| `POST /v1/me/chat/matches/{matchId}` | `Bearer <game token>` | `{"clientId", "text"}` | `message`; the first opts the player in, and it reads only what follows. Refusals: `not_participant`, `postmatch_closed` (left, moved on to a select or match even if it is over now, or `chat.postMatchWindow` after the end), `all_chat_off` |
+| `DELETE /v1/me/chat/matches/{matchId}` | `Bearer <game token>` | — | `204`; the player leaves the match's post-match chat for good |
+| `PUT` / `DELETE /v1/me/chat/matches/{matchId}/mutes/{accountId}` | `Bearer <game token>` | — | `204`; mutes or unmutes a participant for the player only |
+
+Every send's text is cleaned (control characters become spaces, ends trimmed) and refused as `empty_message` or `message_too_long`; more than `chat.maxPerWindow` in `chat.window` is `rate_limited`. The client generates `clientId` (8–64 letters, digits and hyphens), so a resend after a lost answer returns the first message; reusing one for another kind is `client_id_conflict`. Expired messages are pruned every `chat.pruneInterval`, whether or not anyone sends. The tuning is `chat` in `config/local.json`, all of it provisional (ADR-046 §9).
 
 ### Custom practice and champion select
 
