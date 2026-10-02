@@ -7,6 +7,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
 
+#include "Hud/VeyraHudWarnings.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "VeyraGreyboxSubsystem.generated.h"
 
 class AHUD;
@@ -109,6 +111,13 @@ public:
 
 	/** The colour of Team as the viewer sees it: ally, enemy or neutral. */
 	FLinearColor ColorOfSide(EVeyraTeam Team) const;
+
+	/** Whether the connection and frame-rate warnings show now (ADR-055 §5). */
+	bool IsShowingConnectionWarning() const { return ConnectionWarning.bShowing; }
+	bool IsShowingPerformanceWarning() const { return PerformanceWarning.bShowing; }
+
+	/** The player's side colours this frame, from their colour vision (ADR-055 §1). */
+	const FVeyraSideColors& GetSideColors() const;
 
 	/** The colour of Unit as the viewer sees it: the viewer's own Vanguard, or its side's. */
 	FLinearColor SideColorOf(const AActor& Unit) const;
@@ -251,6 +260,16 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ULineBatchComponent> FogOfWarSheet;
 	uint32 FogOfWarDrawn = 0;
+
+	/** Measures the connection and the frame rate for the HUD's warnings, as the player allows them. */
+	void RefreshWarnings();
+
+	FVeyraWarningState ConnectionWarning;
+	FVeyraWarningState PerformanceWarning;
+
+	/** The side colours, resolved once a frame. */
+	mutable FVeyraSideColors SideColors;
+	mutable uint64 SideColorsFrame = MAX_uint64;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFont> HudFont;

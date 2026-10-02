@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Shell/VeyraShellStyle.h"
+#include "Shell/VeyraShellLook.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateColorBrush.h"
@@ -8,6 +9,7 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
@@ -89,6 +91,8 @@ FSlateFontInfo FontFor(EVeyraShellText Role)
 		Tracking = Style.ButtonLetterSpacing;
 		break;
 	}
+	// The player's Interface Text Size; layouts reflow around it (SET-62).
+	Size = VeyraShellLook::ScaledFontSize(Size);
 	FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle(Typeface, Size);
 	Font.LetterSpacing = Tracking;
 	return Font;
@@ -149,10 +153,30 @@ UBorder* MakeSurface(UWidgetTree& Tree, EVeyraShellSurface Surface, const FMargi
 {
 	const UVeyraShellStyleSettings& Style = Settings();
 	UBorder* Border = Tree.ConstructWidget<UBorder>(UBorder::StaticClass());
-	const FLinearColor Fill = Surface == EVeyraShellSurface::Raised ? Style.SurfaceRaisedColor : Style.SurfaceColor;
+	// Opaque under Reduce Interface Transparency (SET-75).
+	const FLinearColor Fill = VeyraShellLook::Panel(Surface == EVeyraShellSurface::Raised ? Style.SurfaceRaisedColor : Style.SurfaceColor);
 	Border->SetBrush(FSlateRoundedBoxBrush(Fill, Style.PanelCornerRadius, Style.HairlineColor, 1.0f));
 	Border->SetPadding(Padding);
 	return Border;
+}
+
+void StyleTextField(UEditableTextBox& Box, float Padding)
+{
+	const UVeyraShellStyleSettings& Style = Settings();
+	FEditableTextBoxStyle FieldStyle = Box.GetWidgetStyle();
+	const FLinearColor Fill = VeyraShellLook::Panel(Style.SurfaceRaisedColor);
+	const FVeyraFocusEdge Edge = VeyraShellLook::FieldFocusEdge();
+	const FSlateRoundedBoxBrush Plain(Fill, Style.ButtonCornerRadius, Style.HairlineColor, 1.0f);
+	const FSlateRoundedBoxBrush Focused(Fill, Style.ButtonCornerRadius, Edge.Color, Edge.Width);
+	FieldStyle.SetBackgroundImageNormal(Plain);
+	FieldStyle.SetBackgroundImageHovered(Plain);
+	FieldStyle.SetBackgroundImageFocused(Focused);
+	FieldStyle.SetBackgroundImageReadOnly(Plain);
+	FieldStyle.SetForegroundColor(FSlateColor(Style.TextColor));
+	FieldStyle.SetFocusedForegroundColor(FSlateColor(Style.TextColor));
+	FieldStyle.SetPadding(FMargin(Padding));
+	FieldStyle.SetFont(FontFor(EVeyraShellText::Body));
+	Box.SetWidgetStyle(FieldStyle);
 }
 
 UWidget* MakeRule(UWidgetTree& Tree)

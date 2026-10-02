@@ -35,9 +35,33 @@ struct FVeyraBarFacts
 	bool bFighting = false;
 };
 
+/** The colours of each side as the player sees them (Settings Bible §4.1; ADR-055 §1): every side-coloured cue reads these. */
+struct FVeyraSideColors
+{
+	/** The player's own Vanguard. */
+	FLinearColor Own = FLinearColor::Transparent;
+	FLinearColor Ally = FLinearColor::Transparent;
+	FLinearColor Enemy = FLinearColor::Transparent;
+	FLinearColor Neutral = FLinearColor::Transparent;
+
+	bool operator==(const FVeyraSideColors& Other) const = default;
+};
+
 /** The HUD, the minimap and the in-match controls as the player set them (Settings Bible §3; ADR-024 §6). */
 struct FVeyraInterfacePreferences
 {
+	/** The player's colour vision (SET-8; ADR-055 §1). */
+	FVeyraSideColors SideColors;
+	/** Interface Text Size's option (SET-62): the shell's text scales by its factor. */
+	FString TextSize;
+	/** Enhanced keyboard focus (SET-74), opaque panels (SET-75), still decorative motion (SET-65) and no flashing (SET-18). */
+	bool bEnhancedFocus = false;
+	bool bReduceTransparency = false;
+	bool bReduceUiAnimation = false;
+	bool bReduceFlashing = false;
+	/** The connection and low-performance warnings (SET-21, SET-110; ADR-055 §5). */
+	bool bConnectionWarning = true;
+	bool bPerformanceWarning = true;
 	/** The HUD deck's size, as a multiple of its designed size. */
 	float HudScale = 1.0f;
 	/** The minimap's side and its icons' sides, in pixels. */
@@ -117,6 +141,30 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& CombatTextCrits();
 	VEYRAUI_API const FVeyraContentId& CombatTextDensity();
 	VEYRAUI_API const FVeyraContentId& DamageNumberColors();
+	VEYRAUI_API const FVeyraContentId& ConnectionWarning();
+	VEYRAUI_API const FVeyraContentId& PerformanceWarning();
+	VEYRAUI_API const FVeyraContentId& ColorVision();
+	VEYRAUI_API const FVeyraContentId& AllyColor();
+	VEYRAUI_API const FVeyraContentId& EnemyColor();
+	VEYRAUI_API const FVeyraContentId& NeutralColor();
+	VEYRAUI_API const FVeyraContentId& TextSize();
+	VEYRAUI_API const FVeyraContentId& FocusIndicator();
+	VEYRAUI_API const FVeyraContentId& ReduceTransparency();
+	VEYRAUI_API const FVeyraContentId& ReduceUiAnimation();
+	VEYRAUI_API const FVeyraContentId& ReduceFlashing();
+
+	/**
+	 * The side colours for Color Vision's option Vision (ADR-055 §1): Standard's, a preset's, or under Custom the named
+	 * palette colours Ally, Enemy and Neutral, the player's own lightening their ally colour. Anything unknown is Standard.
+	 */
+	VEYRAUI_API FVeyraSideColors SideColorsFor(const UVeyraGreyboxSettings& Hud, const FString& Vision, const FString& Ally, const FString& Enemy,
+		const FString& Neutral);
+
+	/**
+	 * The colours setting Id shows beside it in Settings (SET-8; ADR-055 §1): for Color Vision, the player's own, ally, enemy
+	 * and neutral colours as Store now resolves them; for a custom side colour, the palette colour it holds; none otherwise.
+	 */
+	VEYRAUI_API TArray<FLinearColor> SwatchesFor(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore& Store, const FVeyraContentId& Id);
 
 	/** A bar setting's option as the HUD reads it; Always for anything else. */
 	VEYRAUI_API EVeyraBarVisibility ParseBars(const FString& Option);

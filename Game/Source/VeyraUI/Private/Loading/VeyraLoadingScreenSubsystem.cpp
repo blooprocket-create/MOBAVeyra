@@ -9,6 +9,7 @@
 #include "Engine/GameInstance.h"
 #include "Loading/VeyraLoadingScreen.h"
 #include "Match/VeyraMatchMenuSubsystem.h"
+#include "Shell/VeyraShellLook.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
@@ -59,6 +60,8 @@ void UVeyraLoadingScreenSubsystem::Tick(float DeltaTime)
 	const double Now = FPlatformTime::Seconds();
 	if (!Screen && Local && Local->IsLocalController() && World->GetGameViewport())
 	{
+		// In the player's look: text size, transparency and motion (SET-112; ADR-055 §2–§3).
+		VeyraShellLook::FollowPlayer(Local);
 		Screen = CreateWidget<UVeyraLoadingScreen>(Local);
 		if (Screen)
 		{

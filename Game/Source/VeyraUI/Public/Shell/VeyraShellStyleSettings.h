@@ -388,6 +388,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float SettingsControlWidth = 0.0f;
 
+	/** The side of each colour swatch a colour setting previews beside its name (SET-8; ADR-055 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsSwatchSize = 0.0f;
+
 	/** The friends panel down the right of the shell and the lobby (Art Bible §7), in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;
@@ -419,6 +423,17 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0", ClampMax = "1"))
 	float TurnCueVolume = 0.0f;
+
+	/** The enhanced keyboard focus outline (SET-74; ADR-055 §3): high-contrast against every surface, and its width in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Focus")
+	FLinearColor FocusOutlineColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Focus", meta = (ClampMin = "1"))
+	float FocusOutlineWidth = 0.0f;
+
+	/** Interface Text Size's factor on the menus' text, by option (SET-62; ADR-055 §2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Text")
+	TMap<FString, float> TextSizeScales;
 
 	/** The break reminder's options in seconds of continuous play, by option (ADR-053 §4); Off has none. */
 	UPROPERTY(Config, EditAnywhere, Category = "Reminders")

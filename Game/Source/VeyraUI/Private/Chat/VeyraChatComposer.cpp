@@ -39,18 +39,7 @@ bool UVeyraChatComposer::Initialize()
 
 		// Styled as the Settings search is, so the client's fields look alike.
 		Field = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-		FEditableTextBoxStyle FieldStyle = Field->GetWidgetStyle();
-		const FSlateRoundedBoxBrush Plain(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.HairlineColor, 1.0f);
-		const FSlateRoundedBoxBrush Focused(Style.SurfaceRaisedColor, Style.ButtonCornerRadius, Style.AccentColor, 1.0f);
-		FieldStyle.SetBackgroundImageNormal(Plain);
-		FieldStyle.SetBackgroundImageHovered(Plain);
-		FieldStyle.SetBackgroundImageFocused(Focused);
-		FieldStyle.SetBackgroundImageReadOnly(Plain);
-		FieldStyle.SetForegroundColor(FSlateColor(Style.TextColor));
-		FieldStyle.SetFocusedForegroundColor(FSlateColor(Style.TextColor));
-		FieldStyle.SetPadding(FMargin(Style.Spacing / 2.0f));
-		FieldStyle.SetFont(VeyraShellStyle::FontFor(VeyraShellStyle::EVeyraShellText::Body));
-		Field->SetWidgetStyle(FieldStyle);
+		VeyraShellStyle::StyleTextField(*Field, Style.Spacing / 2.0f);
 		Field->SetHintText(LOCTEXT("Hint", "Enter sends, Tab switches Team and All, Escape closes"));
 		Field->OnTextChanged.AddUniqueDynamic(this, &UVeyraChatComposer::HandleTextChanged);
 		UHorizontalBoxSlot* FieldSlot = Row->AddChildToHorizontalBox(Field);

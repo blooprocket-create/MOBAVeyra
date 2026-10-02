@@ -32,7 +32,10 @@
 #include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
+#include "Engine/NetConnection.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Hud/VeyraFogOfWarModel.h"
+#include "Settings/VeyraDisplayRules.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -205,7 +208,37 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawEchoTethers();
 	RefreshCombatText();
 	RefreshFogOfWar();
+	RefreshWarnings();
 	AttachHudOverlay();
+}
+
+// The engine's running average frame rate, which it declares in no public header.
+extern ENGINE_API float GAverageFPS;
+
+void UVeyraGreyboxSubsystem::RefreshWarnings()
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraSettingsStore* Store = VeyraInterfacePreferences::StoreOf(this);
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, Store);
+	const double Now = FPlatformTime::Seconds();
+	// The connection: a client's link to its match server, losing packets or lagging (SET-21).
+	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
+	const UNetConnection* Connection = Viewer && GetWorld()->GetNetMode() == NM_Client ? Viewer->GetNetConnection() : nullptr;
+	bool bConnectionTrouble = false;
+	if (Connection && Preferences.bConnectionWarning)
+	{
+		// Despite its name, the engine's average loss is a fraction from 0 to 1, lost packets over sent (NetAnalyticsTypes.h),
+		// as the threshold is.
+		const double Loss = FMath::Max(Connection->GetInLossPercentage().GetAvgLossPercentage(), Connection->GetOutLossPercentage().GetAvgLossPercentage());
+		bConnectionTrouble = VeyraHudWarnings::IsConnectionTroubled(Loss, Connection->AvgLag * 1000.0, Settings.ConnectionWarningLossFraction, Settings.ConnectionWarningRoundTripMs);
+	}
+	VeyraHudWarnings::Update(ConnectionWarning, bConnectionTrouble, Now, Settings.WarningStartSeconds, Settings.WarningClearSeconds);
+	// The frame rate, against the cap the player chose; in the background its own cap rules, so never then (Proposal 110).
+	const bool bForeground = FPlatformApplicationMisc::IsThisApplicationForeground();
+	const double Cap = Store ? VeyraDisplayRules::Resolve(*Store, /*bForeground*/ true).FrameCap : 0.0;
+	const bool bPerformanceTrouble = Preferences.bPerformanceWarning
+		&& VeyraHudWarnings::IsPerformanceTroubled(bForeground, GAverageFPS, Cap, Settings.UncappedReferenceFps, Settings.PerformanceWarningFraction);
+	VeyraHudWarnings::Update(PerformanceWarning, bPerformanceTrouble, Now, Settings.WarningStartSeconds, Settings.WarningClearSeconds);
 }
 
 void UVeyraGreyboxSubsystem::RefreshFogOfWar()
@@ -331,16 +364,26 @@ EVeyraTeam UVeyraGreyboxSubsystem::GetViewerTeam() const
 	return Viewer ? VeyraTeams::TeamOf(Viewer->PlayerState) : EVeyraTeam::None;
 }
 
+const FVeyraSideColors& UVeyraGreyboxSubsystem::GetSideColors() const
+{
+	if (SideColorsFrame != GFrameCounter)
+	{
+		SideColors = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).SideColors;
+		SideColorsFrame = GFrameCounter;
+	}
+	return SideColors;
+}
+
 FLinearColor UVeyraGreyboxSubsystem::ColorOfSide(EVeyraTeam Team) const
 {
-	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraSideColors& Colors = GetSideColors();
 	if (Team == EVeyraTeam::None)
 	{
-		return Settings.NeutralColor;
+		return Colors.Neutral;
 	}
 	const EVeyraTeam ViewerTeam = GetViewerTeam();
 	const EVeyraTeam Allies = ViewerTeam == EVeyraTeam::None ? EVeyraTeam::A : ViewerTeam;
-	return Team == Allies ? Settings.AllyColor : Settings.EnemyColor;
+	return Team == Allies ? Colors.Ally : Colors.Enemy;
 }
 
 FLinearColor UVeyraGreyboxSubsystem::SideColorOf(const AActor& Unit) const
@@ -354,7 +397,7 @@ FLinearColor UVeyraGreyboxSubsystem::SideColorOf(const AActor& Unit) const
 	const APlayerState* Whose = Companion ? Companion->GetOwnerState() : Echo ? Echo->GetHolderState() : (Pawn ? Pawn->GetPlayerState() : nullptr);
 	if (Viewer && Viewer->PlayerState && Whose == Viewer->PlayerState)
 	{
-		return GetDefault<UVeyraGreyboxSettings>()->OwnColor;
+		return GetSideColors().Own;
 	}
 	return ColorOfSide(VeyraTeams::TeamOf(&Unit));
 }
@@ -649,7 +692,8 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 FLinearColor UVeyraGreyboxSubsystem::BaseColorOf(EVeyraTeam Team) const
 {
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	return ColorOfSide(Team) == Settings.AllyColor ? Settings.AllyBaseColor : Settings.EnemyBaseColor;
+	const EVeyraTeam ViewerTeam = GetViewerTeam();
+	return Team == (ViewerTeam == EVeyraTeam::None ? EVeyraTeam::A : ViewerTeam) ? Settings.AllyBaseColor : Settings.EnemyBaseColor;
 }
 
 UMaterialInstanceDynamic* UVeyraGreyboxSubsystem::AddGroundMarking(AActor& Owner, UStaticMesh& Mesh, const FLinearColor& Color, const FVector2D& Centre,

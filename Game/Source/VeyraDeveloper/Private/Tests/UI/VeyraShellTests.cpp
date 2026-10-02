@@ -11,6 +11,7 @@
 #include "Engine/Texture2D.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -547,6 +548,8 @@ namespace VeyraShellTests
 			{
 				Screen->Unbind();
 			}
+			// One look for the whole client: the next test starts from the standard one.
+			VeyraShellLook::Use(FVeyraShellLook());
 		}
 
 		/** A screen showing the rig's coordinator. */
@@ -912,6 +915,35 @@ namespace VeyraShellTests
 			}
 		}
 
+		TEST_METHOD(UnderReduceFlashingTheMatchFoundAttentionIsSteady)
+		{
+			// ADR-055 §4: Reduce Flashing turns the taskbar's repeated flashes into one steady highlight (SET-18).
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			Settings = MakeUnique<FVeyraSettingsStore>(Registry);
+			Settings->Set(VeyraInterfacePreferences::ReduceFlashing(), VeyraSettings::On());
+			ASSERT_THAT(IsTrue(Rig.ReachMatchFound()));
+			// The screen follows the player's settings from its first refresh, which announces the match found.
+			Screen = CreateWidget<UVeyraShellScreen>(&Spawner.GetWorld());
+			Screen->BindSettings(*Settings);
+			Screen->Bind(*Rig.Flow);
+			ASSERT_THAT(AreEqual(Screen->GetMatchFoundAlertCount(), 1));
+			ASSERT_THAT(IsTrue(Screen->GetLastMatchFoundAlert().bSteadyAttention && Screen->GetLastMatchFoundAlert().bAttentionAllowed));
+		}
+
+		TEST_METHOD(TheShellTakesThePlayersLookAtOnce)
+		{
+			// ADR-055 §2: Interface Text Size applies at once; the shell rebuilds in the new look.
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			Settings = MakeUnique<FVeyraSettingsStore>(Registry);
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ShowScreen().BindSettings(*Settings);
+			ASSERT_THAT(IsTrue(VeyraShellLook::Current().TextScale == 1.0f));
+			Settings->Set(VeyraInterfacePreferences::TextSize(), TEXT("ExtraLarge"));
+			ASSERT_THAT(IsTrue(VeyraShellLook::Current().TextScale == GetDefault<UVeyraShellStyleSettings>()->TextSizeScales.FindChecked(TEXT("ExtraLarge"))));
+		}
+
 		TEST_METHOD(TheBreakReminderFollowsItsSettingAtOnce)
 		{
 			// ADR-053 §4: Break Reminder applies at once, so turning it off takes the banner down with nothing else changing.
@@ -941,7 +973,7 @@ namespace VeyraShellTests
 			ShowScreen();
 			ASSERT_THAT(AreEqual(Screen->GetMatchFoundAlertCount(), 1));
 			const FVeyraMatchFoundAlert& Alert = Screen->GetLastMatchFoundAlert();
-			ASSERT_THAT(IsTrue(Alert.bSound && Alert.bAttentionAllowed, TEXT("both are on by default")));
+			ASSERT_THAT(IsTrue(Alert.bSound && Alert.bAttentionAllowed && !Alert.bSteadyAttention, TEXT("both are on by default, and the attention may flash")));
 			Button(TEXT("Accept"))->Press();
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("pending"), TEXT("accepted"), 1))));
 			ASSERT_THAT(AreEqual(Screen->GetMatchFoundAlertCount(), 1, TEXT("not again for the same match found")));
