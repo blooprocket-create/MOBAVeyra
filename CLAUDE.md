@@ -28,6 +28,10 @@ Do not optimize for the fewest edited files if doing so creates the wrong owners
 
 ## World, environment, asset, and VFX tasks
 
+For production Crucible work, also read [ADR-040](Docs/ADR/ADR-040-crucible-world-authoring-toolchain.md). Treat the Epic UE 5.8.3 source checkout as **read-only by default**: reading, building, running and debugging engine source are allowed; editing `Engine/Source`, `Engine/Plugins`, engine build files or engine-owned content is not allowed without explicit author approval plus a dedicated ADR.
+
+World generation/editor automation belongs in `Game/Plugins/VeyraWorldTools/`. Runtime/gameplay modules must not depend on that editor plugin. The production battleground is genuinely 3D: do not preserve or introduce Z=0 spawn assumptions when touching structures, Fluxborn, wildlife, Flux Wells, team starts or other terrain-bound actors.
+
 Use the production loop in `Docs/Production/`: identify the authoritative gameplay source and visual source, edit the source/generator, regenerate only the affected scope, validate in Unreal, capture repeatable gameplay/debug views, and iterate from the actual in-engine result.
 
 Do not:
