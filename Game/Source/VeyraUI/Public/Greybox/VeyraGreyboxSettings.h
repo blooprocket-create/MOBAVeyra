@@ -126,7 +126,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
 
-	/** The battleground's walls on the minimap (ADR-042 §4); its river is drawn in RiverColor. */
+	/** The battleground's walls on the minimap (ADR-043 §4); its river is drawn in RiverColor. */
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	FLinearColor MinimapWallColor = FLinearColor::Transparent;
 

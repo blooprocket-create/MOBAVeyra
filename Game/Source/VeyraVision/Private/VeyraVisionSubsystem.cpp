@@ -299,7 +299,7 @@ void UVeyraVisionSubsystem::RevealShape(EVeyraTeam Team, const FVeyraPlacedShape
 bool UVeyraVisionSubsystem::IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const
 {
 	const FVector2D Where(Unit.GetActorLocation());
-	// True Sight is sight: a map wall between it and the unit hides the unit from it (ADR-042 §3).
+	// True Sight is sight: a map wall between it and the unit hides the unit from it (ADR-043 §3).
 	return TrueSights.ContainsByPredicate([this, Side, &Where](const FTrueSight& Sight) {
 		const AActor* Around = Sight.Follow.Get();
 		const FVector2D From = Around ? FVector2D(Around->GetActorLocation()) : FVector2D::ZeroVector;

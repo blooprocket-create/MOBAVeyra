@@ -199,7 +199,7 @@ namespace
 	}
 
 	/**
-	 * The minimap, bottom-right (Settings Bible §3.2; ADR-020 §2): the river, the walls (ADR-042 §4), the
+	 * The minimap, bottom-right (Settings Bible §3.2; ADR-020 §2): the river, the walls (ADR-043 §4), the
 	 * lanes, every unit this client has (so only what its side sees), its side's presence pings, and where
 	 * the camera looks.
 	 */

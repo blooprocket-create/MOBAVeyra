@@ -137,7 +137,7 @@ namespace VeyraWorldTests
 
 		TEST_METHOD(WallsLieInTeamAsHalfAndTeamBsMirrorThem)
 		{
-			// The battleground's walls (ADR-042 §1): Team A's, then their mirrors.
+			// The battleground's walls (ADR-043 §1): Team A's, then their mirrors.
 			const FVeyraBattlegroundLayout& Layout = Committed();
 			ASSERT_THAT(IsFalse(Layout.Walls.IsEmpty()));
 			const TArray<FVeyraTerrainBox> Walls = VeyraLayout::Walls(Layout);

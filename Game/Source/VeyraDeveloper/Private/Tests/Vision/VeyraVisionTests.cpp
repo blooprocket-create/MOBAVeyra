@@ -39,7 +39,7 @@ namespace VeyraVisionTests
 
 		TEST_METHOD(AWallBetweenASourceAndAPointHidesIt)
 		{
-			// Fixture: a wall facing +X at 500 along X, 400 long across it (ADR-042 §3).
+			// Fixture: a wall facing +X at 500 along X, 400 long across it (ADR-043 §3).
 			const FVeyraSightWalls Walls({ FVeyraTerrainBox{ FVector2D(500.0, 0.0), FVector2D(1.0, 0.0), 400.0, 100.0 } });
 			FVeyraSightSource Sources[] = { { EVeyraTeam::A, FVector2D(0.0, 0.0), 1000.0, /*bDetects*/ true } };
 			ASSERT_THAT(IsTrue(VeyraVisionRules::IsBlocked(Walls, FVector2D(0.0, 0.0), FVector2D(900.0, 0.0))));
@@ -55,7 +55,7 @@ namespace VeyraVisionTests
 
 		TEST_METHOD(TheGridOffersALineOnlyTheWallsNearItAndAgreesWithTestingThemAll)
 		{
-			// The committed battleground's walls (ADR-042 §3): a short line near one wall is offered only nearby walls.
+			// The committed battleground's walls (ADR-043 §3): a short line near one wall is offered only nearby walls.
 			const TArray<FVeyraTerrainBox> All = VeyraLayout::Walls(UVeyraWorldTuningSubsystem::Get().Layout);
 			ASSERT_THAT(IsTrue(All.Num() > 1));
 			const FVeyraSightWalls Walls(All);
@@ -157,7 +157,7 @@ namespace VeyraVisionTests
 
 		TEST_METHOD(TheBattlegroundsWallsHideWhatStandsBehindThem)
 		{
-			// Fixture: an enemy within sight, a wall between them, and a reveal that lights it anyway (ADR-042 §3).
+			// Fixture: an enemy within sight, a wall between them, and a reveal that lights it anyway (ADR-043 §3).
 			AVeyraVanguardCharacter& Watcher = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
 			AVeyraVanguardCharacter& Behind = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, 0.0, 0.0));
 			Vision().Start();
@@ -336,7 +336,7 @@ namespace VeyraVisionTests
 
 		TEST_METHOD(TrueSightShowsNothingBehindAWall)
 		{
-			// Fixture: a Camouflaged enemy and an Invisible one, each within True Sight, a wall between (ADR-042 §3).
+			// Fixture: a Camouflaged enemy and an Invisible one, each within True Sight, a wall between (ADR-043 §3).
 			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
 			AVeyraVanguardCharacter& Camouflaged = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, 0.0, 0.0));
 			AVeyraVanguardCharacter& Invisible = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, SightRadius() / 8.0, 0.0));

@@ -29,7 +29,7 @@ namespace
 	}
 
 	/**
-	 * Each of Team A's walls (ADR-042 §1): sized, on the floor, wholly in Team A's half so it never meets
+	 * Each of Team A's walls (ADR-043 §1): sized, on the floor, wholly in Team A's half so it never meets
 	 * its mirror, and WallClearance from everything placed in a straight line. Team B's are the mirror,
 	 * so they are too.
 	 */

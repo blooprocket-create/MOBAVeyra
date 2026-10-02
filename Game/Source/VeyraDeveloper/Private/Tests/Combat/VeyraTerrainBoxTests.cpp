@@ -8,7 +8,7 @@
 
 namespace VeyraCombatTests
 {
-	// Veyra.Combat.TerrainBox.*: a wall's footprint as pure geometry (ADR-042 §1, §3), which the
+	// Veyra.Combat.TerrainBox.*: a wall's footprint as pure geometry (ADR-043 §1, §3), which the
 	// layout's validation and sight both measure against.
 	TEST_CLASS(TerrainBox, "Veyra.Combat")
 	{

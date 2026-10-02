@@ -9,9 +9,9 @@
 struct FVeyraWallRequest;
 
 /**
- * A wall's footprint on the ground (ADR-032 §4; ADR-042 §1): a box Length long across the way it faces
+ * A wall's footprint on the ground (ADR-032 §4; ADR-043 §1): a box Length long across the way it faces
  * and Thickness deep along it. Pure geometry, for what must reason about terrain without the physics
- * scene: the layout's validation and sight (ADR-042 §3).
+ * scene: the layout's validation and sight (ADR-043 §3).
  */
 struct VEYRACOMBAT_API FVeyraTerrainBox
 {

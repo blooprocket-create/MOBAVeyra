@@ -117,7 +117,7 @@ void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout
 
 void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InLayout)
 {
-	// The layout's walls (ADR-042 §2), raised as the same terrain as an ability's wall: the server's
+	// The layout's walls (ADR-043 §2), raised as the same terrain as an ability's wall: the server's
 	// paths go round them, every machine's movement meets them, and they stand for the whole match.
 	UVeyraTerrainSubsystem* Terrain = GetWorld()->GetSubsystem<UVeyraTerrainSubsystem>();
 	int32 Raised = 0;

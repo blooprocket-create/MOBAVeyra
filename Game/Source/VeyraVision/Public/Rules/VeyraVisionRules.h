@@ -22,7 +22,7 @@ struct FVeyraSightSource
 	/** A lit shape, which sees exactly what lies inside it; unset for a circle of Radius (ADR-018 §5). */
 	TOptional<FVeyraPlacedShape> Shape;
 
-	/** A lit area lights what lies inside it directly, so walls hide nothing from it (ADR-042 §3). */
+	/** A lit area lights what lies inside it directly, so walls hide nothing from it (ADR-043 §3). */
 	bool bThroughWalls = false;
 };
 
@@ -35,7 +35,7 @@ struct FVeyraFogCircle
 };
 
 /**
- * The map walls sight is tested against (ADR-042 §3), with a grid that offers each sight line only the
+ * The map walls sight is tested against (ADR-043 §3), with a grid that offers each sight line only the
  * walls near it. Built once from the layout. A cell is as large as the largest wall's bounds, so a wall
  * lies in at most four cells and a line of sight crosses only a few.
  */
@@ -64,7 +64,7 @@ private:
 /** Vision's rules, as plain functions of positions (ADR-016 §2). */
 namespace VeyraVisionRules
 {
-	/** Whether one of Walls stands between From and To, so neither sees the other (ADR-042 §3). */
+	/** Whether one of Walls stands between From and To, so neither sees the other (ADR-043 §3). */
 	VEYRAVISION_API bool IsBlocked(const FVeyraSightWalls& Walls, const FVector2D& From, const FVector2D& To);
 
 	/**

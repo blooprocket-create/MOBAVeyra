@@ -60,7 +60,7 @@ public:
 	 */
 	void SetDenseFog(TArray<FVeyraFogCircle> Circles);
 
-	/** Server: the battleground's walls, which no sight passes (ADR-042 §3); walls abilities raise are not among them. */
+	/** Server: the battleground's walls, which no sight passes (ADR-043 §3); walls abilities raise are not among them. */
 	void SetSightWalls(TArray<FVeyraTerrainBox> Walls);
 
 	/** The Dense Fog now, the map's and what abilities laid: a place every player knows (the fog itself is always seen). */
@@ -184,8 +184,8 @@ private:
 	TArray<int32> FogVolumes;
 	/** The map's fog, which Match gives; and the fog abilities laid, a bank for each cast. */
 	TArray<FVeyraFogCircle> AuthoredFog;
-	/** The map's walls, which Match gives: no sight passes them (ADR-042 §3). */
-	/** The map walls that block sight, indexed on a grid (ADR-042 §3). */
+	/** The map's walls, which Match gives: no sight passes them (ADR-043 §3). */
+	/** The map walls that block sight, indexed on a grid (ADR-043 §3). */
 	FVeyraSightWalls SightWalls;
 	TArray<FFogBank> FogBanks;
 	int32 NextFogBankId = 1;
