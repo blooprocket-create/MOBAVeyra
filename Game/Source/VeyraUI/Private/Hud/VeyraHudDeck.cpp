@@ -3,6 +3,8 @@
 #include "Hud/VeyraHudDeck.h"
 
 #include "CanvasItem.h"
+#include "Client/VeyraClientFlowSubsystem.h"
+#include "Client/VeyraClientIntents.h"
 #include "Engine/Canvas.h"
 #include "Engine/Font.h"
 #include "Engine/Texture2D.h"
@@ -385,7 +387,14 @@ namespace
 		Log.FadeSeconds = Preferences.ChatFadeSeconds;
 		Log.FadeOutSeconds = Settings.ChatFadeOutSeconds;
 		Log.bTimestamps = Preferences.bChatTimestamps;
-		const TArray<FVeyraChatLine> Lines = VeyraChatLog::Describe(Player.GetChat(), FPlatformTime::Seconds(), bComposing, Log, Side, [&Match](int32 PlayerId) {
+		// The party's and friends' lines the client flow holds, mixed in without popping up or taking focus (ADR-046 §6).
+		TArray<FVeyraOutsideChat> Outside;
+		const UGameInstance* Game = Player.GetGameInstance();
+		if (const UVeyraClientFlowSubsystem* Flow = Game ? Game->GetSubsystem<UVeyraClientFlowSubsystem>() : nullptr)
+		{
+			Outside = VeyraChatLog::OutsideOf(Flow->GetClient().GetSnapshot());
+		}
+		const TArray<FVeyraChatLine> Lines = VeyraChatLog::Describe(Player.GetChat(), Outside, FPlatformTime::Seconds(), bComposing, Log, Side, [&Match](int32 PlayerId) {
 			for (const APlayerState* Each : Match.PlayerArray)
 			{
 				const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(Each);
@@ -423,6 +432,8 @@ namespace
 		{
 			const FLinearColor SideColor = Line.Side == EVeyraChatLineSide::Ally ? Settings.AllyColor
 				: Line.Side == EVeyraChatLineSide::Enemy						 ? Settings.EnemyColor
+				: Line.Side == EVeyraChatLineSide::Party						 ? Settings.PartyChatColor
+				: Line.Side == EVeyraChatLineSide::Direct						 ? Settings.DirectChatColor
 																				 : Settings.DescriptionColor;
 			const FString LineHead = Line.Prefix + Line.Sender;
 			const float HeadWidth = static_cast<float>(Paint.Measure(LineHead, Head).X);
@@ -763,6 +774,26 @@ namespace
 			DrawBar(Paint, At, Size, Player.RecallProgress, Settings.ChannelColor, FString());
 			Paint.TextCentred(At + FVector2D(Size.X / 2.0f, -Paint.S(12.0f)), FString::Printf(TEXT("RECALL   %.1f"), Player.RecallSeconds),
 				Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
+		}
+
+		// Commanding its Echo: its Integrity over the deck, strained as it runs low, and the keys it may still cast with
+		// (ADR-050 §7). Its Vanguard waits in Stasis, so no Recall runs beside it.
+		if (Player.Echo.IsSet())
+		{
+			const FVeyraHudEcho& Echo = Player.Echo.GetValue();
+			const FVector2D Size(Paint.S(320.0f), Paint.S(12.0f));
+			const FVector2D At((Paint.Canvas.ClipX - Size.X) / 2.0f, TopLeft.Y - Size.Y - Paint.S(34.0f));
+			const bool bStrained = Echo.IntegrityShare < Settings.EchoStrainShare;
+			DrawBar(Paint, At, Size, Echo.IntegrityShare, bStrained ? Settings.EchoStrainColor : Settings.ChannelColor, FString());
+			FString Keys;
+			for (const EVeyraAbilitySlot Slot : Echo.Slots)
+			{
+				Keys += KeyName(Input.GetAbilityKey(Slot)) + TEXT(" ");
+			}
+			const TCHAR* Phase = Echo.FormingSeconds > 0.0 ? TEXT("FORMING") : Echo.ImmuneSeconds > 0.0 ? TEXT("ECHO   PROTECTED") : TEXT("ECHO");
+			const FString Line = Echo.RepeatsLeft > 0 ? FString::Printf(TEXT("%s   %s x%d"), Phase, *Keys.TrimEnd(), Echo.RepeatsLeft) : FString(Phase);
+			Paint.TextCentred(At + FVector2D(Size.X / 2.0f, -Paint.S(12.0f)), Line, Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize),
+				bStrained ? Settings.EchoStrainColor : Settings.TextColor, true);
 		}
 
 		// Dead: the world dims, and the wait for the fountain counts down (Economy & Progression Bible §14).

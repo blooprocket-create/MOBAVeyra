@@ -75,6 +75,12 @@ enum class EVeyraChatNotice : uint8
 	NoSuchPlayer,
 	/** The composer knows no command by the name in Message.Text. */
 	UnknownCommand,
+	/** "/r" with no direct message to answer (ADR-046 §6). */
+	NoReplyTarget,
+	/** "/msg" naming no friend: the name is in Message.SenderName. */
+	NoSuchFriend,
+	/** Party Chat and direct messages need the backend, which this game does not reach (a game without a launcher). */
+	OutsideUnavailable,
 };
 
 /** A chat line a client holds: when it arrived, in real seconds and on the match clock, and what it is. */

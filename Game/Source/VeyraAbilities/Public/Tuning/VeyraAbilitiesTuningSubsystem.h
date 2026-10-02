@@ -57,6 +57,9 @@ public:
 	static const FVeyraCommandAbilityTuning* FindCommand(const FVeyraContentId& Ability);
 	static const FVeyraDismountAbilityTuning* FindDismount(const FVeyraContentId& Ability);
 
+	/** Ability's tuning if it forms an Echo (ADR-050 §4), else null. */
+	static const FVeyraEchoAbilityTuning* FindEcho(const FVeyraContentId& Ability);
+
 	/** The companion Id defines (ADR-034 §3), or null. */
 	static const FVeyraCompanionTuning* FindCompanion(const FVeyraContentId& Id);
 

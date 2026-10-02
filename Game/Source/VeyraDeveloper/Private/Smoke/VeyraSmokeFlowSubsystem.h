@@ -117,6 +117,12 @@ private:
 		ChatLeader,
 		/** Chat: joins its friend's party from the invitation, then exchanges Party Chat and direct messages with them. */
 		ChatMember,
+		/** Profiles (ADR-048): features an owned Vanguard, picks an icon and shares its Match History on the Profile page. */
+		ProfileOwner,
+		/** Profiles: opens its friend's profile from their card until it shows their shared Match History. */
+		ProfileViewer,
+		/** Display names (ADR-049): changes its name on the Profile page, its first change free, through the confirmation. */
+		Rename,
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -139,6 +145,17 @@ private:
 	 */
 	void TickChatShell(IVeyraClientIntents& Flow);
 	bool IsChat() const { return Script == EScript::ChatLeader || Script == EScript::ChatMember; }
+	bool IsProfile() const { return Script == EScript::ProfileOwner || Script == EScript::ProfileViewer; }
+	/** The profile scripts in the shell, once friends: the owner's Profile page, or the viewer's look at it. */
+	void TickProfileShell(IVeyraClientIntents& Flow);
+	/** The rename script in the shell: the Profile page's Display Name section, to -VeyraSmokeFlowName. */
+	void TickRenameShell(IVeyraClientIntents& Flow);
+	/** The name the rename script changes to. */
+	FString WantedName;
+	FString OriginalName;
+	/** How far a profile script has come, and when the viewer next opens the profile again. */
+	int32 ProfileStep = 0;
+	double NextProfileTryAt = 0.0;
 	/** Types Text into the chat composer that shows, as the player would. */
 	bool TypeChat(const FString& Text);
 	/**
@@ -146,6 +163,24 @@ private:
 	 * the script, if it did not go.
 	 */
 	bool ChatLineSent(const FVeyraChatConversation& Conversation, const FString& Text, const FString& AccountId);
+	/** Whether Conversation holds SenderName's confirmed line Text. */
+	static bool ChatHasLine(const FVeyraChatConversation* Conversation, const FString& SenderName, const FString& Text);
+	/** The party scripts in champion select (ADR-046 §6): "/p" through the select's one chat panel, then the friend's line read. True while it waits. */
+	bool TickSelectChat(IVeyraClientIntents& Flow);
+	/** The party scripts in the match: a direct message to the friend with the composer's /msg, then theirs read. True while it waits. */
+	bool TickMatchDirect(IVeyraClientIntents& Flow);
+	/**
+	 * The party scripts on the results screen: the post-match chat joined by a first message, and answered once the
+	 * friend's line shows, so whichever joined last still reads the other (UX-59). True while it waits.
+	 */
+	bool TickPostMatchChat(IVeyraClientIntents& Flow);
+	/**
+	 * Party scripts, on the results screen after the post-match chat: the leader commends the other member and the
+	 * member files a test report about the leader, each through the player menu (ADR-047 §5). True while it has more to do.
+	 */
+	bool TickConduct(IVeyraClientIntents& Flow);
+	/** Types Text into the open report form's details, as the player would. */
+	bool TypeReportDetails(const FString& Text);
 	/** The Collection's purchase, before the script practises with what it bought: opens the page, a card, its Buy and the confirmation. */
 	void TickCollection(IVeyraClientIntents& Flow);
 	/** Whether the script plays a practice match: Practice, and Collection after its purchase. */
@@ -340,6 +375,12 @@ private:
 	 */
 	int32 ChatStep = 0;
 	FString ChatRunTag;
+	/** The party scripts' chat in champion select, the match and the results: how far each has gone. */
+	int32 SelectChatStep = 0;
+	int32 MatchDirectStep = 0;
+	int32 PostMatchStep = 0;
+	/** How far the party script has come with its commendation or report on the results screen. */
+	int32 ConductStep = 0;
 	/** The starting Gold the lobby set for its match, which the verified scoreboard must show; unset for the game's own. */
 	TOptional<double> LobbyStartingGold;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */

@@ -10,6 +10,7 @@ UVeyraOffenceSet::UVeyraOffenceSet()
 	// Identities: no amplification and no penetration until an effect grants them. Power and Attack
 	// Speed are 0 until a Vanguard's data sets them.
 	InitOutgoingDamageMultiplier(1.0f);
+	InitDamageShare(1.0f);
 	InitPhysicalPenetrationFlat(0.0f);
 	InitPhysicalPenetrationRetained(1.0f);
 	InitMagicPenetrationFlat(0.0f);
@@ -32,6 +33,7 @@ void UVeyraOffenceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Params.Condition = COND_OwnerOnly;
 	Params.RepNotifyCondition = REPNOTIFY_Always;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, OutgoingDamageMultiplier, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, DamageShare, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, PhysicalPenetrationFlat, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, PhysicalPenetrationRetained, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, MagicPenetrationFlat, Params);
@@ -53,6 +55,7 @@ void UVeyraOffenceSet::PreAttributeBaseChange(const FGameplayAttribute& Attribut
 		: Attribute == GetAbilityHasteAttribute()                                 ? &AbilityHaste
 		: Attribute == GetCritChanceAttribute()                                   ? &CritChance
 		: Attribute == GetCritDamageBonusAttribute()                              ? &CritDamageBonus
+		: Attribute == GetDamageShareAttribute()                                  ? &DamageShare
 																				  : nullptr;
 	if (Data && NewValue < 0.0f)
 	{
@@ -65,6 +68,11 @@ void UVeyraOffenceSet::PreAttributeBaseChange(const FGameplayAttribute& Attribut
 void UVeyraOffenceSet::OnRep_OutgoingDamageMultiplier(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraOffenceSet, OutgoingDamageMultiplier, OldValue);
+}
+
+void UVeyraOffenceSet::OnRep_DamageShare(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraOffenceSet, DamageShare, OldValue);
 }
 
 void UVeyraOffenceSet::OnRep_PhysicalPenetrationFlat(const FGameplayAttributeData& OldValue)

@@ -2,6 +2,7 @@
 
 #include "VeyraPlayerController.h"
 
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Camera/VeyraCameraPreferences.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Input/VeyraControlPreferences.h"
@@ -16,6 +17,7 @@
 #include "Ending/VeyraMatchEnding.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GameFramework/PlayerInput.h"
 #include "GameFramework/PlayerState.h"
 #include "Input/VeyraCameraSettings.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -49,6 +51,7 @@ AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectI
 
 void AVeyraPlayerController::IssueMoveOrder(const FVector& Destination)
 {
+	OrderedAttackTarget.Reset();
 	ServerIssueMoveOrder(Destination);
 }
 
@@ -59,11 +62,13 @@ void AVeyraPlayerController::SteerMoveOrder(const FVector& Destination)
 
 void AVeyraPlayerController::IssueAttackOrder(AActor* Target)
 {
+	OrderedAttackTarget = Target;
 	ServerIssueAttackOrder(Target);
 }
 
 void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
 {
+	OrderedAttackTarget.Reset();
 	ServerIssueAttackMoveOrder(Destination, ControlPreferences().AttackMoveTarget);
 }
 
@@ -112,8 +117,9 @@ void AVeyraPlayerController::BeginPlay()
 		Parameters.Owner = this;
 		Parameters.ObjectFlags |= RF_Transient;
 		CameraRig = GetWorld()->SpawnActor<AVeyraCameraRig>(Parameters);
-		// The mode the player left the camera in last match (SET-5).
+		// The mode the player left the camera in last match (SET-5), at the zoom they left it at (ADR-052 §3).
 		CameraRig->SetMode(CameraPreferences().DefaultMode);
+		CameraRig->SetZoom(CameraPreferences().Distance);
 		if (APawn* Vanguard = GetVanguard())
 		{
 			OnVanguardSet(PlayerState, Vanguard, nullptr);
@@ -377,7 +383,8 @@ bool AVeyraPlayerController::ShouldSelfCast(EVeyraAbilitySlot Slot, TConstArrayV
 	{
 		return false;
 	}
-	const APawn* Body = GetVanguard();
+	// From the body that casts it: the Vanguard, or the Echo it commands (ADR-050 §6).
+	const APawn* Body = GetCommandedBody();
 	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(Tuning, Ability);
 	return !Body || !Cast || VeyraCursorPicks::SmartSelfCasts(*Body, Under, Cast->CastRange);
 }
@@ -517,7 +524,7 @@ void AVeyraPlayerController::CastAtCursor(EVeyraAbilitySlot Slot)
 	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
 	const FVeyraContentId Ability = AbilityIn(Slot);
 	const bool bNamesAlly = Ability.IsValid() && VeyraAbilityRules::AcceptsAllyTarget(UVeyraAbilitiesTuningSubsystem::Get(), Ability);
-	Target.Actor = ShouldSelfCast(Slot, Under) ? GetVanguard() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly(), bNamesAlly);
+	Target.Actor = ShouldSelfCast(Slot, Under) ? GetCommandedBody() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly(), bNamesAlly);
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
@@ -640,6 +647,22 @@ void AVeyraPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerController, TeamVote, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerController, CommandedUnit, Params);
+}
+
+APawn* AVeyraPlayerController::GetCommandedBody() const
+{
+	return CommandedUnit ? CommandedUnit.Get() : GetVanguard();
+}
+
+void AVeyraPlayerController::SetCommandedUnit(APawn* Unit)
+{
+	if (CommandedUnit == Unit)
+	{
+		return;
+	}
+	CommandedUnit = Unit;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerController, CommandedUnit, this);
 }
 
 const FVeyraVoteState& AVeyraPlayerController::GetOpenVote() const
@@ -1096,7 +1119,7 @@ void AVeyraPlayerController::GetPlayerViewPoint(FVector& OutLocation, FRotator& 
 		return;
 	}
 
-	const AActor* ViewPoint = GetVanguard();
+	const AActor* ViewPoint = GetCommandedBody();
 	if (!ViewPoint)
 	{
 		ViewPoint = this;
@@ -1170,7 +1193,9 @@ void AVeyraPlayerController::PlayerTick(float DeltaTime)
 void AVeyraPlayerController::TickCamera(float DeltaTime)
 {
 	const UVeyraInputSettings& Keys = GetKeys();
+	TickZoom();
 	const FVeyraCameraPreferences View = CameraPreferences();
+	CameraRig->EaseZoom(View.Distance, DeltaTime);
 	if (TickEndPan(DeltaTime))
 	{
 		return;
@@ -1222,9 +1247,10 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 			return;
 		}
 	}
-	if (const AVeyraVanguardCharacter* Vanguard = GetVanguard())
+	// The camera follows the body the player's orders move: its Vanguard, or the Echo it commands (ADR-050 §6).
+	if (const APawn* Commanded = GetCommandedBody())
 	{
-		CameraInput.Vanguard = Vanguard->GetActorLocation();
+		CameraInput.Vanguard = Commanded->GetActorLocation();
 	}
 	else if (!View.bFreeWhileDead && CameraRig->GetMode() != EVeyraCameraMode::Free)
 	{
@@ -1234,6 +1260,69 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 		CameraInput.Drag = FVector2D::ZeroVector;
 	}
 	CameraRig->Step(CameraInput, DeltaTime, &View);
+}
+
+void AVeyraPlayerController::TickZoom()
+{
+	const UVeyraInputSettings& Keys = GetKeys();
+	const int32 Notches = PressesOf(Keys.CameraZoomInKey) - PressesOf(Keys.CameraZoomOutKey);
+	UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	if (Notches == 0 || !Settings)
+	{
+		return;
+	}
+	FVeyraSettingsStore& Store = Settings->GetStore();
+	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+	const TOptional<FVeyraZoomScale> Scale = VeyraCameraPreferences::ZoomScaleOf(View, Store);
+	if (!Scale)
+	{
+		return;
+	}
+	// The level is the player's zoom: it persists, and the arm eases to the length it gives.
+	const double Level = VeyraCameraPreferences::ZoomLevelAfter(Scale.GetValue(), Store.GetNumber(VeyraCameraPreferences::Zoom()), Notches, View.ZoomStep);
+	Store.Set(VeyraCameraPreferences::Zoom(), VeyraSettings::NumberText(Level), /*bInLiveMatch*/ true);
+}
+
+int32 AVeyraPlayerController::PressesOf(const FKey& Key) const
+{
+	const FKeyState* State = Key.IsValid() && PlayerInput ? PlayerInput->GetKeyState(Key) : nullptr;
+	return State ? State->EventCounts[IE_Pressed].Num() : 0;
+}
+
+TArray<const AActor*> AVeyraPlayerController::GetTargetedUnits() const
+{
+	TArray<const AActor*> Targeted;
+	if (const AActor* Ordered = OrderedAttackTarget.Get())
+	{
+		Targeted.Add(Ordered);
+	}
+	// The attack its body is making now, ordered or not: a Vanguard's attack is its participant's, an Echo's its own.
+	if (const APawn* Body = GetCommandedBody())
+	{
+		const APlayerState* Participant = Body->GetPlayerState();
+		const UVeyraBasicAttackComponent* Attacks = Participant ? Participant->FindComponentByClass<UVeyraBasicAttackComponent>() : Body->FindComponentByClass<UVeyraBasicAttackComponent>();
+		if (const AActor* Attacked = Attacks ? Attacks->GetState().Target.Get() : nullptr)
+		{
+			Targeted.Add(Attacked);
+		}
+	}
+	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
+	if (!Under.IsEmpty())
+	{
+		Targeted.Add(Under[0].Actor);
+	}
+	return Targeted;
+}
+
+void AVeyraPlayerController::ClientCombatText_Implementation(const FVeyraCombatTextLine& Line)
+{
+	OnCombatText.Broadcast(Line);
+}
+
+bool AVeyraPlayerController::IsShowingAttackRange() const
+{
+	const FKey& Key = GetKeys().ShowAttackRangeKey;
+	return IsLocalController() && Key.IsValid() && IsInputKeyDown(Key);
 }
 
 void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination)

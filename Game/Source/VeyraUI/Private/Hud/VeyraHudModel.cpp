@@ -12,6 +12,8 @@
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Echoes/VeyraEcho.h"
+#include "EngineUtils.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Ledger/VeyraFluxLedger.h"
@@ -27,6 +29,7 @@
 #include "Structures/VeyraStructure.h"
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Wildlife/VeyraWildlife.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -142,6 +145,23 @@ TOptional<FVeyraContentId> VeyraHud::SpeciesOf(const AActor& Unit)
 	return Creature && Creature->GetSpecies().IsValid() ? TOptional<FVeyraContentId>(Creature->GetSpecies()) : TOptional<FVeyraContentId>();
 }
 
+TOptional<double> VeyraHud::AttackReachOf(const AActor& Unit)
+{
+	const UVeyraBasicAttackComponent* Attacks = FindBesideHudAbilitySystem<UVeyraBasicAttackComponent>(Unit);
+	if (!Attacks)
+	{
+		return {};
+	}
+	// Reach runs edge to edge (Combat Bible §40), so a target whose edge touches the ring is in reach.
+	return Attacks->GetRange(nullptr) + Unit.GetSimpleCollisionRadius();
+}
+
+bool VeyraHud::IsFighting(const AActor& Unit)
+{
+	const UVeyraBasicAttackComponent* Attacks = FindBesideHudAbilitySystem<UVeyraBasicAttackComponent>(Unit);
+	return Attacks && Attacks->GetState().Phase != EVeyraAttackPhase::None;
+}
+
 TOptional<FVeyraHudMasteryEmote> VeyraHud::MasteryEmoteOf(const AActor& Unit, double ServerNow)
 {
 	const APawn* Pawn = Cast<APawn>(&Unit);
@@ -188,6 +208,26 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		Player.bRecalling = true;
 		Player.RecallSeconds = FMath::Max(0.0, Channel.EndsAt - ServerNow);
 		Player.RecallProgress = Length > 0.0 ? FMath::Clamp((ServerNow - Channel.StartedAt) / Length, 0.0, 1.0) : 1.0;
+	}
+
+	// Its projected Echo, which it commands while it stands (ADR-050 §7).
+	for (TActorIterator<AVeyraEcho> It(Participant.GetWorld()); It; ++It)
+	{
+		const AVeyraEcho& Echo = **It;
+		const FVeyraEchoAbilityTuning* EchoTuning = UVeyraAbilitiesTuningSubsystem::FindEcho(Echo.GetAbility());
+		if (Echo.GetHolderState() != &Participant || Echo.IsWithdrawn() || !EchoTuning || EchoTuning->Projection.IsEmpty())
+		{
+			continue;
+		}
+		const UAbilitySystemComponent* Abilities = Echo.GetAbilitySystemComponent();
+		const double Max = Abilities ? Abilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) : 0.0;
+		FVeyraHudEcho& Shown = Player.Echo.Emplace();
+		Shown.IntegrityShare = Max > 0.0 ? FMath::Clamp(Abilities->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) / Max, 0.0, 1.0) : 0.0;
+		Shown.FormingSeconds = FMath::Max(0.0, Echo.GetControlAt() - ServerNow);
+		Shown.ImmuneSeconds = FMath::Max(0.0, Echo.GetImmuneUntil() - ServerNow);
+		Shown.RepeatsLeft = Echo.GetRepeatsLeft();
+		Shown.Slots = EchoTuning->Slots;
+		break;
 	}
 
 	if (const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard); Definition && !Definition->Passive.IsEmpty())

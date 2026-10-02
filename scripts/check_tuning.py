@@ -53,7 +53,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # name content too. An ID is valid when any of the maps defines it (ADR-008 §7). The game checks
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
-ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance", "/placement", "/blink", "/command", "/dismount")
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance", "/placement", "/blink", "/command", "/dismount", "/echo")
 PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry", "/disciplines", "/stressTemper", "/charger", "/accord", "/mistTrail", "/allHands")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
@@ -141,6 +141,9 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/companions/*/escort/*/statuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/companions/*/attackStatuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/skillshot/*/mimic/*/repeatEffects/statuses/*", "Abilities", ("/statuses",)),
+    # What an Echo holds while it waits, and the Stasis its projection puts its holder in (ADR-050 §4).
+    ("Abilities", "/echo/*/manifest/*/statuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/echo/*/projection/*/stasis", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.
@@ -158,7 +161,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle", "/perfectCut",
                                                  "/reprisalGuard", "/drag", "/convergence", "/fracture", "/endlessCleave", "/temperedByConflict",
                                                  "/residualCurrent", "/dragTheTempo", "/quietingChime",
-                                                 "/markedForDoom", "/safeHarbor", "/highTide")),
+                                                 "/markedForDoom", "/safeHarbor", "/reverberation", "/highTide",
+                                                 "/noAllegiance", "/cleanBreak", "/throughTheGuard", "/noOneComing", "/reenactment")),
     ("Items", "/items/*/active/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Items", "/consumables/#", "Items", ("/items",)),
     ("Items", "/quests/#", "Items", ("/items",)),
@@ -170,6 +174,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     # Bot seats take Flux Spells, and know what each is for (ADR-015 §8).
     ("Bots", "/seats/*/fluxSpells/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Bots", "/fluxSpells/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    # And what each item's Active is for (ADR-051 §6).
+    ("Bots", "/itemActives/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.
@@ -524,6 +530,22 @@ def reference_errors(documents: dict[str, Any], labels: dict[str, str]) -> list[
     return errors
 
 
+def reverberation_errors(documents: dict[str, Any], labels: dict[str, str]) -> list[str]:
+    """An item with Reverberation carries the Echo ability that holds its numbers as its Active (ADR-050 §5)."""
+    if "Items" not in documents or "Abilities" not in documents:
+        return []
+    errors = []
+    reverberations = documents["Items"].get("reverberation", {})
+    echoes = documents["Abilities"].get("echo", {})
+    for item_id, item in documents["Items"].get("items", {}).items():
+        if any(attunement in reverberations for attunement in item.get("attunement", [])):
+            actives = item.get("active", [])
+            if len(actives) != 1 or actives[0] not in echoes:
+                errors.append(f"{labels['Items']} /items/{item_id}/active: an item with Reverberation carries one Active from "
+                              f"{labels['Abilities']} /echo")
+    return errors
+
+
 def load_schema(path: Path, label: str) -> tuple[dict[str, Any] | None, list[str]]:
     from jsonschema import Draft4Validator
     from jsonschema.exceptions import SchemaError
@@ -597,6 +619,7 @@ def check(game_dir: Path) -> tuple[list[str], str]:
             labels[domain] = shown(document_path)
         checked += 1
     errors.extend(reference_errors(valid_documents, labels))
+    errors.extend(reverberation_errors(valid_documents, labels))
     provisional = sum(count_provisional(document) for document in valid_documents.values())
     return errors, f"{checked} tuning domain(s) valid; {provisional} provisional record(s) await review."
 

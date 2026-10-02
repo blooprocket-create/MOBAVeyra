@@ -106,6 +106,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SettingsControlWidth"), SettingsControlWidth },
 		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
 		{ TEXT("ChatLinesHeight"), ChatLinesHeight },
+		{ TEXT("ProfileIconSize"), ProfileIconSize },
+		{ TEXT("ProfileFeaturedHeight"), ProfileFeaturedHeight },
 		{ TEXT("LobbySeatWidth"), LobbySeatWidth },
 		{ TEXT("ShopTileSize"), ShopTileSize },
 		{ TEXT("ShopMarkSize"), ShopMarkSize },
@@ -145,6 +147,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		TEXT("TurnCueTonesHz"), TEXT("lists at least one tone, each above 0 and below half the cue's sample rate."));
 	Require(TurnCueToneSeconds > 0.0f, TEXT("TurnCueToneSeconds"), TEXT("must be above 0."));
 	Require(TurnCueVolume > 0.0f && TurnCueVolume <= 1.0f, TEXT("TurnCueVolume"), TEXT("must be above 0 and at most 1."));
+	Require(ProfileHistoryMaxHeight >= 1.0f, TEXT("ProfileHistoryMaxHeight"), TEXT("must be at least 1."));
 	Require(!LobbyStartingGoldChoices.IsEmpty() && !LobbyStartingGoldChoices.ContainsByPredicate([](float Gold) { return !(Gold >= 0.0f); }),
 		TEXT("LobbyStartingGoldChoices"), TEXT("lists at least one amount, none of them negative."));
 	TSet<FString> Modes;

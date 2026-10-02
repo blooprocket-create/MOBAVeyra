@@ -201,10 +201,11 @@ void FVeyraClientFlow::ApplyChatMessage(const VeyraBackendProtocol::FChatMessage
 	if (Message.Kind == EChatKind::Direct)
 	{
 		Line.With = Conversation->Key;
-		if (!bOwn && !bHistory)
+		if (!bOwn)
 		{
+			// Recovered history names whom /r answers too, but is not news: it counts nothing unread.
 			Snapshot.Chat.LastDirectFrom = Message.SenderId;
-			if (Snapshot.Chat.OpenDirect != Conversation->Key)
+			if (!bHistory && Snapshot.Chat.OpenDirect != Conversation->Key)
 			{
 				++Conversation->Unread;
 			}

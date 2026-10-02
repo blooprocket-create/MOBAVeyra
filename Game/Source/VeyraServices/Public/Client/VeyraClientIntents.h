@@ -126,4 +126,32 @@ public:
 	virtual bool CloseDirectChat() = 0;
 	/** Mutes or unmutes AccountId, another participant, in the post-match chat, for the player only. */
 	virtual bool MutePostMatchChat(const FString& AccountId, bool bMute) = 0;
+	/**
+	 * Reports Name, another human in the match whose conduct record is read, for Reason, one the record offers,
+	 * with optional Details (ADR-047 §2). The answer only says the report was received.
+	 */
+	virtual bool ReportPlayer(const FString& Name, const FString& Reason, const FString& Details) = 0;
+	/** Commends Name, a teammate in the results' match; one per match (ADR-047 §3). */
+	virtual bool CommendTeammate(const FString& Name) = 0;
+	/** Opens Name's profile, the player's own included; a block either way shows it as unavailable (ADR-048 §3). */
+	virtual bool OpenProfile(const FString& Name) = 0;
+	virtual bool CloseProfile() = 0;
+	/** Reads the opened profile's next page of shared Match History. */
+	virtual bool LoadMoreProfileMatches() = 0;
+	/** Reads the opened profile's shared Match History again from its first page, with Filter. */
+	virtual bool FilterProfileMatches(const VeyraBackendProtocol::FHistoryFilter& Filter) = 0;
+	/** Opens MatchId, listed in the opened profile's shared Match History, into its report. */
+	virtual bool OpenProfileMatch(const FString& MatchId) = 0;
+	virtual bool CloseProfileMatch() = 0;
+	/** Reads the player's own profile choices, the catalog, and their profile as others see it. */
+	virtual bool LoadProfileSettings() = 0;
+	/** Saves the player's profile choices: catalog entries, and a featured Vanguard they permanently own or none. */
+	virtual bool SaveProfileSettings(const VeyraBackendProtocol::FProfileSettings& Settings) = 0;
+	/** Reads the player's display name and what changing it takes. */
+	virtual bool LoadDisplayName() = 0;
+	/**
+	 * Changes the player's display name to Name. Currency ("flux" or "refinedFlux") pays for a voluntary change after
+	 * the free one; a required rename is free. The backend decides; a refusal shows beside the name.
+	 */
+	virtual bool ChangeDisplayName(const FString& Name, const FString& Currency) = 0;
 };

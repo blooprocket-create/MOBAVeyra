@@ -122,6 +122,9 @@ struct FVeyraAttackerOffence
 	/** Generic Damage Amplification (§15): the product of every source's 1 + x. */
 	double OutgoingDamageMultiplier = 1.0;
 
+	/** The share of its damage the attacker deals, every type, True Damage included: below 1 for an Echo (ADR-050 §2). */
+	double DamageShare = 1.0;
+
 	FVeyraPenetration PhysicalPenetration;
 	FVeyraPenetration MagicPenetration;
 };

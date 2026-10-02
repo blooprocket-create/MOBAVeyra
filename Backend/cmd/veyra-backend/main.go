@@ -134,6 +134,8 @@ func run(log *slog.Logger) error {
 	matches.SetRewards(progress)
 	// Each assignment carries its players' Mastery, for the mastery emote (ADR-045 §9).
 	matches.SetMasteries(progress)
+	// Names change in one unit of work with their charge (ADR-049).
+	enableNameChanges(svc, cfg.Names, progress, store.Atomic)
 	if cfg.Progression.DevGrant {
 		log.Warn("the development currency grant is enabled; never expose this backend publicly")
 	}
@@ -213,6 +215,10 @@ func run(log *slog.Logger) error {
 	talk := newChatService(store.Chat(), cfg.Chat, parties, soc, selects, matches, prefs, displayNames(svc))
 	// Expired messages go whether or not anyone sends again (ADR-046 §4).
 	go talk.RunPruner(ctx, cfg.Chat.PruneInterval, log)
+	// Reports and commendation name players as the match recorded them (ADR-047 §5).
+	conductService := newConductService(store.Conduct(), cfg.Conduct, matches)
+	// Profiles read levels, ownership and Mastery from progression, and blocks from social (ADR-048 §1).
+	profiles := newProfileService(store.Profile(), cfg.Profile, svc, progress, accounts, soc)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
@@ -228,6 +234,8 @@ func run(log *slog.Logger) error {
 			Matchmaking:    matchmaker,
 			Settings:       prefs,
 			Chat:           talk,
+			Conduct:        conductService,
+			Profile:        profiles,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,

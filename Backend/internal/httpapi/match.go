@@ -252,6 +252,13 @@ func (s *Server) myMatch(w http.ResponseWriter, r *http.Request, actor string) {
 // participation; it is null until the match has ended. A match the player was
 // not in does not exist for them.
 func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor string) {
+	s.writeMatchResult(w, r, actor, true)
+}
+
+// writeMatchResult writes one of owner's matches as owner sees it, marking
+// owner's line. A profile's shared record leaves out the rewards, which are
+// the owner's alone (ADR-048 §3).
+func (s *Server) writeMatchResult(w http.ResponseWriter, r *http.Request, actor string, withRewards bool) {
 	m, p, err := s.Match.ForParticipant(r.Context(), actor, r.PathValue("matchId"))
 	if err != nil {
 		s.fail(w, err)
@@ -285,7 +292,7 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 		Rewards *rewardsJSON `json:"rewards"`
 	}{ID: m.ID, Mode: m.Mode, Rules: string(m.Rules), State: string(m.State), Side: string(p.Side), VanguardID: textOrNil(p.VanguardID),
 		FailureReason: textOrNil(string(m.FailureReason))}
-	if m.Result != nil {
+	if m.Result != nil && withRewards {
 		if out.Rewards, err = s.matchRewards(r, m.ID, actor); err != nil {
 			s.fail(w, err)
 			return
@@ -308,6 +315,12 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 // Vanguard and personal outcome. The query's vanguard, mode and outcome filter
 // it; cursor continues from the previous page's next.
 func (s *Server) myMatchHistory(w http.ResponseWriter, r *http.Request, actor string) {
+	s.writeMatchHistory(w, r, actor)
+}
+
+// writeMatchHistory writes a page of actor's Match History: the player's own,
+// or a profile owner's while they share it (ADR-048 §3).
+func (s *Server) writeMatchHistory(w http.ResponseWriter, r *http.Request, actor string) {
 	q := r.URL.Query()
 	filter := match.HistoryFilter{VanguardID: q.Get("vanguard"), Mode: q.Get("mode"), Outcome: match.Outcome(q.Get("outcome"))}
 	entries, next, err := s.Match.History(r.Context(), actor, filter, q.Get("cursor"))

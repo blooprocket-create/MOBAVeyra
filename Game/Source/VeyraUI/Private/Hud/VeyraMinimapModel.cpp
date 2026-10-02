@@ -121,8 +121,9 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 			Dot.Kind = EVeyraMinimapDot::Vanguard;
 			break;
 		case EVeyraUnitKind::Fluxborn:
-		// A companion is a unit's dot, as a Fluxborn's (ADR-034 §4).
+		// A companion or an Echo is a unit's dot, as a Fluxborn's (ADR-034 §4; ADR-050 §2).
 		case EVeyraUnitKind::Companion:
+		case EVeyraUnitKind::Echo:
 			Dot.Kind = EVeyraMinimapDot::Fluxborn;
 			break;
 		case EVeyraUnitKind::Structure:

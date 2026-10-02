@@ -50,6 +50,21 @@ FVeyraChatCommand Parse(const FString& Typed, EVeyraChatChannel Chosen)
 		Command.Kind = Rest.IsEmpty() ? EVeyraChatCommandKind::Nothing : bMute ? EVeyraChatCommandKind::Mute : EVeyraChatCommandKind::Unmute;
 		Command.Name = Rest;
 	}
+	else if (TakeCommand(Line, TEXT("/p"), Rest) || TakeCommand(Line, TEXT("/r"), Rest))
+	{
+		const bool bParty = Line.StartsWith(TEXT("/p"), ESearchCase::IgnoreCase);
+		Command.Kind = Rest.IsEmpty() ? EVeyraChatCommandKind::Nothing : bParty ? EVeyraChatCommandKind::Party : EVeyraChatCommandKind::Reply;
+		Command.Text = Rest;
+	}
+	else if (TakeCommand(Line, TEXT("/msg"), Rest))
+	{
+		// A display name has no spaces, so the first word is the friend's (Profiles & Identity Bible §4).
+		int32 Space = INDEX_NONE;
+		const bool bHasText = Rest.FindChar(TEXT(' '), Space);
+		Command.Name = bHasText ? Rest.Left(Space) : Rest;
+		Command.Text = bHasText ? Rest.Mid(Space + 1).TrimStartAndEnd() : FString();
+		Command.Kind = Command.Name.IsEmpty() || Command.Text.IsEmpty() ? EVeyraChatCommandKind::Nothing : EVeyraChatCommandKind::Message;
+	}
 	else
 	{
 		Command.Kind = EVeyraChatCommandKind::Unknown;

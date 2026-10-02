@@ -27,7 +27,10 @@ namespace
 			+ static_cast<int32>(Tuning.TemperedByConflict.Contains(Id)) + static_cast<int32>(Tuning.ResidualCurrent.Contains(Id))
 			+ static_cast<int32>(Tuning.DragTheTempo.Contains(Id)) + static_cast<int32>(Tuning.QuietingChime.Contains(Id))
 			+ static_cast<int32>(Tuning.MarkedForDoom.Contains(Id)) + static_cast<int32>(Tuning.SafeHarbor.Contains(Id))
-			+ static_cast<int32>(Tuning.HighTide.Contains(Id));
+			+ static_cast<int32>(Tuning.HighTide.Contains(Id)) + static_cast<int32>(Tuning.Reverberation.Contains(Id))
+			+ static_cast<int32>(Tuning.NoAllegiance.Contains(Id)) + static_cast<int32>(Tuning.CleanBreak.Contains(Id))
+			+ static_cast<int32>(Tuning.ThroughTheGuard.Contains(Id)) + static_cast<int32>(Tuning.NoOneComing.Contains(Id))
+			+ static_cast<int32>(Tuning.Reenactment.Contains(Id));
 	}
 }
 

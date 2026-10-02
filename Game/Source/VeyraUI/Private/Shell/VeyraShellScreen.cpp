@@ -27,7 +27,9 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "Widgets/SWindow.h"
 #include "Settings/VeyraSettingsScreen.h"
+#include "Shell/VeyraConductModels.h"
 #include "Shell/VeyraMatchHistoryModel.h"
+#include "Shell/VeyraProfileModels.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
@@ -220,9 +222,13 @@ void UVeyraShellScreen::Refresh()
 			DrawTurnAttention();
 		}
 	}
-	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|"), static_cast<int32>(Page),
-								  OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex, *BotDifficulty, *OpenCardId,
-								  static_cast<int32>(Confirm), *ConfirmId) +
+	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|select chat %d|menu %s|form %s:%s|"),
+								  static_cast<int32>(Page), OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex,
+								  *BotDifficulty, *OpenCardId, static_cast<int32>(Confirm), *ConfirmId, bSelectChatHidden ? 1 : 0, *OpenPlayerMenu, *ReportFormName,
+								  *ReportReason) +
+		// The Profile page's choices before Save (ADR-048 §5).
+		FString::Printf(TEXT("profile draft %d:%s:%s:%s:%d|"), bProfileDraftReady ? 1 : 0, *ProfileDraft.Icon, *ProfileDraft.Background,
+			*ProfileDraft.FeaturedVanguardId, ProfileDraft.bShowMatchHistory ? 1 : 0) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
@@ -286,7 +292,15 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	// The same for a player typing a chat message while lines arrive (ADR-046 §6).
 	const bool bRefocusChat = ChatBox && ChatBox->HasKeyboardFocus();
 	ChatBox = nullptr;
+	// And for a player typing a new name.
+	const bool bRefocusName = NameBox && NameBox->HasKeyboardFocus();
+	NameBox = nullptr;
+	// And for a player writing a report's details.
+	const bool bRefocusReport = ReportDetailsBox && ReportDetailsBox->HasKeyboardFocus();
+	ReportDetailsBox = nullptr;
+	ReportDetailsCount = nullptr;
 	ChatScroll = nullptr;
+	ChatRecipient = nullptr;
 	Content->ClearChildren();
 	Popup->ClearChildren();
 	Buttons.Reset();
@@ -319,6 +333,12 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		Confirm = EVeyraShellConfirm::None;
 		ConfirmId.Reset();
 	}
+	if (Shown != EVeyraShellScreen::Results)
+	{
+		// The post-match chat, its notice and its draft belong to one results screen (UX-60).
+		ChatNotice = FText::GetEmpty();
+		ChatDrafts.Remove(FString(VeyraBackendProtocol::ChatKindName(VeyraBackendProtocol::EChatKind::PostMatch)) + TEXT(":"));
+	}
 	ON_SCOPE_EXIT
 	{
 		if (bRefocusFriendName && FriendNameBox)
@@ -329,7 +349,24 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		{
 			ChatBox->SetKeyboardFocus();
 		}
+		if (bRefocusReport && ReportDetailsBox)
+		{
+			ReportDetailsBox->SetKeyboardFocus();
+		}
+		if (bRefocusName && NameBox)
+		{
+			NameBox->SetKeyboardFocus();
+		}
 	};
+	// Player menus and a report form belong to one shown match (ADR-047 §5).
+	if (const FString Match = VeyraConductModels::ShownMatch(Snapshot); Match != PlayerMenuMatch)
+	{
+		PlayerMenuMatch = Match;
+		OpenPlayerMenu.Reset();
+		ReportFormName.Reset();
+		ReportReason.Reset();
+		ReportDetailsDraft.Reset();
+	}
 	// Each screen chooses its own art; champion select shows the Vanguard it is looking at.
 	ShowBackdrop(nullptr);
 	for (UImage* Scrim : { ScrimLeft.Get(), ScrimBottom.Get(), ScrimTop.Get() })
@@ -367,6 +404,11 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	case EVeyraShellScreen::Results:
 		BuildResults(Snapshot);
 		break;
+	}
+	// Another player's profile opens over the shell, a lobby or the results (ADR-048 §5).
+	if (Shown == EVeyraShellScreen::Shell || Shown == EVeyraShellScreen::Lobby || Shown == EVeyraShellScreen::Results)
+	{
+		BuildProfileOverlay(Snapshot);
 	}
 	BuildProblem(Snapshot);
 	BuildSettingsConflict(Snapshot);
@@ -498,6 +540,13 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 			ShowPage(EVeyraShellPage::Collection);
 			Client->LoadCollection();
 		}, true, Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
+		// Opening the Profile page reads the choices afresh, and starts the draft from them (ADR-048 §5).
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, VeyraProfileModels::PageLabel(), [this] {
+			bProfileDraftReady = false;
+			ShowPage(EVeyraShellPage::Profile);
+			Client->LoadProfileSettings();
+			Client->LoadDisplayName();
+		}, true, Page == EVeyraShellPage::Profile)->KeepLabelOnOneLine();
 	}
 	AddStretch(*WidgetTree, *Bar);
 	AddProgressionReadout(Snapshot, *Bar);
@@ -513,6 +562,12 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 
 void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 {
+	// Another player claimed the name: a new one comes before anything else (ADR-049 §4).
+	if (Snapshot.bRenameRequired)
+	{
+		BuildChooseName(Snapshot);
+		return;
+	}
 	BuildTopBar(Snapshot, *Content);
 	if (const FText Notice = VeyraShellModels::DescribeNotice(Snapshot.Notice); !Notice.IsEmpty())
 	{
@@ -539,6 +594,10 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	{
 		BuildCollection(Snapshot, *Body);
 	}
+	else if (Page == EVeyraShellPage::Profile)
+	{
+		BuildProfilePage(Snapshot, *Body);
+	}
 	else
 	{
 		BuildHome(Snapshot, *Body);
@@ -561,14 +620,17 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 		{
 			AddText(Parent, Line, RoleOf(EVeyraShellText::Muted));
 		}
-		BuildReport(Model.Opened->Report, Parent);
+		BuildReport(Snapshot, Model.Opened->Report, Parent);
 		return;
 	}
 	AddText(Parent, LOCTEXT("HistoryEyebrow", "Your record"), RoleOf(EVeyraShellText::Eyebrow));
 	AddText(Parent, LOCTEXT("HistoryTitle", "Match History"), RoleOf(EVeyraShellText::Display));
-	AddHistoryFilter(Parent, Model.Vanguards, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.VanguardId = Value; });
-	AddHistoryFilter(Parent, Model.Modes, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Mode = Value; });
-	AddHistoryFilter(Parent, Model.Outcomes, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Outcome = Value; });
+	const VeyraBackendProtocol::FHistoryFilter& Current = Snapshot.History.Filter;
+	const auto Load = [this](const VeyraBackendProtocol::FHistoryFilter& Filter) { Client->LoadHistory(Filter); };
+	const bool bCanLoad = Client->CanIssue(EVeyraClientIntent::LoadHistory);
+	AddHistoryFilter(Parent, Model.Vanguards, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.VanguardId = Value; }, Load, bCanLoad);
+	AddHistoryFilter(Parent, Model.Modes, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Mode = Value; }, Load, bCanLoad);
+	AddHistoryFilter(Parent, Model.Outcomes, Current, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Outcome = Value; }, Load, bCanLoad);
 	if (!Model.Empty.IsEmpty())
 	{
 		AddText(Parent, Model.Empty, RoleOf(EVeyraShellText::Muted));
@@ -595,18 +657,17 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 	}
 }
 
-void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
-	TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply)
+void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options, const VeyraBackendProtocol::FHistoryFilter& Current,
+	TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply, TFunction<void(const VeyraBackendProtocol::FHistoryFilter&)> Load, bool bCanLoad)
 {
 	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	const bool bCanLoad = Client->CanIssue(EVeyraClientIntent::LoadHistory);
 	for (const FVeyraHistoryOption& Option : Options)
 	{
 		const FString Value = Option.Value;
-		AddKindButton(*Row, EVeyraShellButtonKind::Tab, Option.Label, [this, Value, Apply] {
-			VeyraBackendProtocol::FHistoryFilter Filter = Client->GetSnapshot().History.Filter;
+		AddKindButton(*Row, EVeyraShellButtonKind::Tab, Option.Label, [Current, Value, Apply, Load] {
+			VeyraBackendProtocol::FHistoryFilter Filter = Current;
 			Apply(Filter, Value);
-			Client->LoadHistory(Filter);
+			Load(Filter);
 		}, bCanLoad, Option.bSelected)->KeepLabelOnOneLine();
 	}
 	VeyraShellStyle::AddSpaced(Parent, *Row);
@@ -931,21 +992,37 @@ void UVeyraShellScreen::BuildResults(const FVeyraClientSnapshot& Snapshot)
 	AddSettingsButton(*Header);
 	UVeyraShellButton* Continue = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Primary, LOCTEXT("Continue", "Continue"),
 		[this] { Client->ContinueFromResults(); }, Client->CanIssue(EVeyraClientIntent::ContinueFromResults));
+	// Play Again leaves as Continue does and opens Play with the party panel; it readies, queues and changes nothing (UX-62).
+	UVeyraShellButton* PlayAgain = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Secondary, VeyraConductModels::PlayAgainLabel(),
+		[this] {
+			Page = EVeyraShellPage::Play;
+			Client->ContinueFromResults();
+		},
+		Client->CanIssue(EVeyraClientIntent::ContinueFromResults));
+	Buttons.Add(PlayAgain);
+	Header->AddChildToHorizontalBox(PlayAgain)->SetVerticalAlignment(VAlign_Bottom);
 	Buttons.Add(Continue);
 	Header->AddChildToHorizontalBox(Continue)->SetVerticalAlignment(VAlign_Bottom);
 	VeyraShellStyle::AddSpaced(*Content, *Header);
 	BuildRewards(Snapshot, *Content);
+	// The report, with the optional post-match chat beside it (UX-59–60).
+	UHorizontalBox* Below = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	UWidget* Report = WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass());
 	if (Model.bVerified)
 	{
 		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing * 2.0f));
 		UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Panel->SetContent(Body);
-		BuildReport(Model.Report, *Body);
-		AddFilling(*Content, *Panel);
+		BuildReport(Snapshot, Model.Report, *Body);
+		Report = Panel;
 	}
+	UHorizontalBoxSlot* ReportSlot = Below->AddChildToHorizontalBox(Report);
+	ReportSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	BuildPostMatchChat(Snapshot, *Below);
+	AddFilling(*Content, *Below);
 }
 
-void UVeyraShellScreen::BuildReport(const FVeyraMatchReport& Report, UPanelWidget& Parent)
+void UVeyraShellScreen::BuildReport(const FVeyraClientSnapshot& Snapshot, const FVeyraMatchReport& Report, UPanelWidget& Parent)
 {
 	if (!Report.bHasScoreboard)
 	{
@@ -969,7 +1046,7 @@ void UVeyraShellScreen::BuildReport(const FVeyraMatchReport& Report, UPanelWidge
 	AddFilling(Parent, *Scroll);
 	if (ReportView == EVeyraReportView::Scoreboard)
 	{
-		BuildScoreboard(Report, *Body);
+		BuildScoreboard(Snapshot, Report, *Body);
 	}
 	else
 	{
@@ -977,7 +1054,7 @@ void UVeyraShellScreen::BuildReport(const FVeyraMatchReport& Report, UPanelWidge
 	}
 }
 
-void UVeyraShellScreen::BuildScoreboard(const FVeyraMatchReport& Report, UPanelWidget& Parent)
+void UVeyraShellScreen::BuildScoreboard(const FVeyraClientSnapshot& Snapshot, const FVeyraMatchReport& Report, UPanelWidget& Parent)
 {
 	const UVeyraShellStyleSettings& Style = ShellStyle();
 	const uint8 Role = RoleOf(EVeyraShellText::Body);
@@ -1004,10 +1081,23 @@ void UVeyraShellScreen::BuildScoreboard(const FVeyraMatchReport& Report, UPanelW
 			RowSurface->SetContent(Stack);
 			UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 			AddCell(*Row, Line.Vanguard, Style.ReportColumnWidth, RoleOf(EVeyraShellText::Heading));
-			UTextBlock* Name = AddCell(*Row, Line.Name, Style.ReportLabelWidth, Role);
-			if (Line.bYou)
+			// Another human's name opens their player menu (UX-57); the player's own, and a bot's, is only a name.
+			const FString PlayerName = Line.Name.ToString();
+			if (!Line.bYou && VeyraConductModels::MenuPlayer(Snapshot, PlayerName))
 			{
-				Name->SetColorAndOpacity(Style.AccentColor);
+				USizeBox* Cell = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+				Cell->SetWidthOverride(Style.ReportLabelWidth);
+				Row->AddChild(Cell);
+				AddNamedButton(*Cell, EVeyraShellButtonKind::Quiet, VeyraConductModels::MenuLabel(PlayerName), Line.Name, [this, PlayerName] { TogglePlayerMenu(PlayerName); },
+					true, OpenPlayerMenu == PlayerName);
+			}
+			else
+			{
+				UTextBlock* Name = AddCell(*Row, Line.Name, Style.ReportLabelWidth, Role);
+				if (Line.bYou)
+				{
+					Name->SetColorAndOpacity(Style.AccentColor);
+				}
 			}
 			AddCell(*Row, Line.Level, Style.ReportColumnWidth, Role);
 			AddCell(*Row, Line.Kda, Style.ReportColumnWidth, Role);
@@ -1021,6 +1111,10 @@ void UVeyraShellScreen::BuildScoreboard(const FVeyraMatchReport& Report, UPanelW
 			Loadout->SetAutoWrapText(false);
 			Loadout->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
 			Stack->AddChild(Build);
+			if (!Line.bYou && OpenPlayerMenu == PlayerName && VeyraConductModels::MenuPlayer(Snapshot, PlayerName))
+			{
+				BuildPlayerMenu(Snapshot, PlayerName, *Stack);
+			}
 			VeyraShellStyle::AddSpaced(Parent, *RowSurface);
 		}
 		AddGap(*WidgetTree, Parent, Style.Spacing);

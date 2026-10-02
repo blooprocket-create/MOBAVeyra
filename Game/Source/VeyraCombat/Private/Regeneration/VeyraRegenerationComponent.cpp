@@ -65,7 +65,8 @@ void UVeyraRegenerationComponent::ApplyTick(double Seconds)
 		const double Regeneration = AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetHealthRegenAttribute());
 		if (Regeneration > 0.0 && VeyraCombat::GetMissingHealth(*AbilitySystem) > 0.0)
 		{
-			VeyraCombat::RestoreHealth(*AbilitySystem, Regeneration * Seconds);
+			// Regeneration goes on in Stasis, which refuses new heals (ADR-050 §1).
+			VeyraCombat::RegenerateHealth(*AbilitySystem, Regeneration * Seconds);
 		}
 	}
 }

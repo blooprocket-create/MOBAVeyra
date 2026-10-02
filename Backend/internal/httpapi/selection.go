@@ -15,7 +15,7 @@ func (s *Server) routeSelection(mux *http.ServeMux) {
 	if s.Selection == nil {
 		return
 	}
-	mux.HandleFunc("POST /v1/practice", s.authed(s.startPractice))
+	mux.HandleFunc("POST /v1/practice", s.authed(s.named(s.startPractice)))
 	mux.HandleFunc("GET /v1/me/select", s.authed(s.mySelect))
 	mux.HandleFunc("GET /v1/me/selects/{selectId}", s.authed(s.mySelectByID))
 	mux.HandleFunc("PUT /v1/me/select/hover", s.authed(s.hoverVanguard))

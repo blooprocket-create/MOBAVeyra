@@ -123,6 +123,12 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool RestoreHealth(UAbilitySystemComponent& AbilitySystem, double Amount);
 
 	/**
+	 * Restores Amount of Health as Health Regeneration does (Combat Bible §6): it is no new heal, so it goes on in Stasis,
+	 * which refuses heals and shields; sealed Health takes none (ADR-050 §1, §3). Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool RegenerateHealth(UAbilitySystemComponent& AbilitySystem, double Amount);
+
+	/**
 	 * Server: restores Amount of Health to Target as a heal Provider gives, as an ability or an item
 	 * does, never above Max Health (Combat Bible §6). Returns the Health actually restored, which
 	 * statistics credit to Provider (ADR-017 §1); 0 for a dead unit or a refused amount.
@@ -139,8 +145,28 @@ namespace VeyraCombat
 	/** Ends one GrantInvulnerability. */
 	VEYRACOMBAT_API void RevokeInvulnerability(UAbilitySystemComponent& AbilitySystem);
 
-	/** Whether the unit is invulnerable now, by a grant or a status. */
+	/** Whether the unit is invulnerable now, by a grant, Stasis or a sealed Health (ADR-050 §1, §3). */
 	VEYRACOMBAT_API bool IsInvulnerable(const UAbilitySystemComponent& AbilitySystem);
+
+	/** Whether the unit is in Stasis (Combat Bible §10; ADR-050 §1): it takes no action, a consumable's included. */
+	VEYRACOMBAT_API bool IsInStasis(const UAbilitySystemComponent& AbilitySystem);
+
+	/**
+	 * Server: the unit's Health becomes a meter its owner sets with SetSealedHealth (ADR-050 §3), as an Echo's
+	 * Integrity: from now on damage reduces it by 0, as Invulnerability does, while every hit is still announced, and
+	 * no heal, shield or Temporary Health reaches it.
+	 */
+	VEYRACOMBAT_API void SealHealth(UAbilitySystemComponent& AbilitySystem);
+
+	/** Server: a sealed unit's Health becomes Health, within [0, Max Health]. False, changing nothing, unless it is sealed. */
+	VEYRACOMBAT_API bool SetSealedHealth(UAbilitySystemComponent& AbilitySystem, double Health);
+
+	/**
+	 * Server: To's offence becomes From's as it stands now (ADR-050 §2), as an Echo takes its holder's: powers, Attack
+	 * Speed, Ability Haste, critical strikes, penetration and amplification as base values, and a Damage Share of
+	 * From's times DamageCoefficient, which must be finite and above 0. False, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool CopyOffence(const UAbilitySystemComponent& From, UAbilitySystemComponent& To, double DamageCoefficient);
 
 	/** Whether the unit has at least Amount of its resource. A cost of 0 is always affordable. */
 	VEYRACOMBAT_API bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount);

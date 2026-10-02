@@ -23,8 +23,9 @@ namespace
 		case EVeyraUnitKind::Structure:
 			return bSiege && Candidate.bInAttackRange ? ERank::SiegeStructure : ERank::Structure;
 		case EVeyraUnitKind::Fluxborn:
-		// A companion is fought as a Fluxborn is (ADR-034 §4).
+		// A companion or an Echo is fought as a Fluxborn is (ADR-034 §4; ADR-050 §2).
 		case EVeyraUnitKind::Companion:
+		case EVeyraUnitKind::Echo:
 			return ERank::Fluxborn;
 		case EVeyraUnitKind::Vanguard:
 		// Fluxborn never choose neutral units (ADR-014 §1) or wards (ADR-016 §6); were one offered, it would come last.

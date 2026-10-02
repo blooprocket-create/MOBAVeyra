@@ -95,6 +95,17 @@ type DevAdjustment struct {
 	GrantedAt   time.Time
 }
 
+// Spend is account currency paid for something besides a Vanguard, such as a
+// display-name change (ADR-049), recorded so the balances stay explained.
+type Spend struct {
+	AccountID string
+	// Reason says what was paid for, such as "display_name_change".
+	Reason   string
+	Currency Currency
+	Amount   int64
+	SpentAt  time.Time
+}
+
 // Tx is one storage transaction.
 type Tx interface {
 	// LockAccount returns the account's progression, locked until the
@@ -112,6 +123,7 @@ type Tx interface {
 	Purchase(purchaseID string) (Purchase, error)
 	AddPurchase(p Purchase) error
 	AddDevAdjustment(a DevAdjustment) error
+	AddSpend(sp Spend) error
 	// DeletePurchases removes the account's purchases, for the development reset.
 	DeletePurchases(accountID string) error
 }
@@ -364,6 +376,33 @@ func (s *Service) Buy(ctx context.Context, accountID, purchaseID, vanguardID str
 	}
 	summary, err := s.Progression(ctx, accountID)
 	return bought, summary, err
+}
+
+// Spend takes amount of currency from the account for reason, in the
+// caller's unit of work when ctx carries one, or refuses with
+// ErrInsufficient and changes nothing.
+func (s *Service) Spend(ctx context.Context, accountID, reason string, currency Currency, amount int64) error {
+	if amount <= 0 || (currency != CurrencyFlux && currency != CurrencyRefinedFlux) {
+		return ErrInvalidPurchase
+	}
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		acc, err := tx.LockAccount(accountID)
+		if err != nil {
+			return err
+		}
+		balance := &acc.Flux
+		if currency == CurrencyRefinedFlux {
+			balance = &acc.RefinedFlux
+		}
+		if *balance < amount {
+			return ErrInsufficient
+		}
+		*balance -= amount
+		if err := tx.AddSpend(Spend{AccountID: accountID, Reason: reason, Currency: currency, Amount: amount, SpentAt: s.now()}); err != nil {
+			return err
+		}
+		return tx.SaveAccount(acc)
+	})
 }
 
 // DevGrant adds currency to an account, recorded as a development

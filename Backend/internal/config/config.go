@@ -114,6 +114,12 @@ type Config struct {
 	// Chat is Party Chat, friend messages, champion-select chat and
 	// post-match chat (ADR-046).
 	Chat Chat
+	// Conduct is reports and commendation (ADR-047).
+	Conduct Conduct
+	// Profile is the official profile icons and backgrounds (ADR-048).
+	Profile Profile
+	// Names is display-name changes and claims (ADR-049).
+	Names Names
 }
 
 // Vanguards configures the catalog of Vanguards players may own and pick
@@ -540,6 +546,9 @@ type fileConfig struct {
 	} `json:"allocator"`
 	Progression *fileProgression `json:"progression"`
 	Chat        *fileChat        `json:"chat"`
+	Conduct     *fileConduct     `json:"conduct"`
+	Profile     *fileProfile     `json:"profile"`
+	Names       *fileNames       `json:"names"`
 }
 
 type fileDockerConfig struct {
@@ -1196,6 +1205,9 @@ func Parse(raw []byte) (Config, error) {
 
 	c.Progression = parseProgression(f.Progression, c.Vanguards.Released, c.Environment, missing, func(s string) { problems = append(problems, s) })
 	c.Chat = parseChat(f.Chat, missing, func(s string) { problems = append(problems, s) }, positive)
+	c.Conduct = parseConduct(f.Conduct, missing, func(s string) { problems = append(problems, s) }, positive)
+	c.Profile = parseProfile(f.Profile, c.Vanguards.Released, missing, func(s string) { problems = append(problems, s) })
+	c.Names = parseNames(f.Names, missing, func(s string) { problems = append(problems, s) }, positive)
 
 	// A select waits for its match's creation, which waits for the allocator.
 	if d := c.Allocator.Docker; d != nil && c.Selection.StartingTimeout > 0 && c.Selection.StartingTimeout <= d.RequestTimeout {

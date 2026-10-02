@@ -109,6 +109,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Untargetable:
 	case EVeyraStatusKind::Sounded:
 	case EVeyraStatusKind::Designated:
+	case EVeyraStatusKind::Stasis:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	case EVeyraStatusKind::Fear:
@@ -270,7 +271,8 @@ EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries)
 		{
 			Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast;
 		}
-		else if (Entry.Kind == EVeyraStatusKind::Dormant || Entry.Kind == EVeyraStatusKind::Fear || Entry.Kind == EVeyraStatusKind::Knockup)
+		else if (Entry.Kind == EVeyraStatusKind::Dormant || Entry.Kind == EVeyraStatusKind::Fear || Entry.Kind == EVeyraStatusKind::Knockup
+			|| Entry.Kind == EVeyraStatusKind::Stasis)
 		{
 			Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast;
 		}

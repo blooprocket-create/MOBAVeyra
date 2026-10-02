@@ -147,6 +147,8 @@ namespace
 		case EVeyraUnitKind::Ward:
 			return Sight.Ward;
 		case EVeyraUnitKind::Companion:
+		// An Echo sees as a companion does (ADR-050 §2).
+		case EVeyraUnitKind::Echo:
 			return Sight.Companion;
 		case EVeyraUnitKind::Wildlife:
 		case EVeyraUnitKind::Objective:
@@ -171,7 +173,8 @@ bool UVeyraVisionSubsystem::IsGated(const AActor& Unit)
 	const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
 	return Kind.IsSet() && Unit.IsA<APawn>()
 		&& (Kind.GetValue() == EVeyraUnitKind::Vanguard || Kind.GetValue() == EVeyraUnitKind::Fluxborn || Kind.GetValue() == EVeyraUnitKind::Wildlife
-			|| Kind.GetValue() == EVeyraUnitKind::Ward || Kind.GetValue() == EVeyraUnitKind::Marker || Kind.GetValue() == EVeyraUnitKind::Companion);
+			|| Kind.GetValue() == EVeyraUnitKind::Ward || Kind.GetValue() == EVeyraUnitKind::Marker || Kind.GetValue() == EVeyraUnitKind::Companion
+			|| Kind.GetValue() == EVeyraUnitKind::Echo);
 }
 
 bool UVeyraVisionSubsystem::IsInvisible(const AActor& Unit)

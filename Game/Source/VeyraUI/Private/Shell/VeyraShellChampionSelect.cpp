@@ -156,7 +156,11 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 
 	Content->AddChildToVerticalBox(&MakeSelectHeader(Model));
 	UHorizontalBox* Middle = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	Middle->AddChildToHorizontalBox(&MakeSeatColumn(Model, /*bAllies*/ true))->SetVerticalAlignment(VAlign_Center);
+	// The allies, with the one chat panel beside them, below their seats (UX-33).
+	UVerticalBox* Allies = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Allies->AddChildToVerticalBox(&MakeSeatColumn(Model, /*bAllies*/ true));
+	BuildSelectChat(Snapshot, *Allies);
+	Middle->AddChildToHorizontalBox(Allies)->SetVerticalAlignment(VAlign_Center);
 	UHorizontalBoxSlot* CentreSlot = Middle->AddChildToHorizontalBox(&MakeCentre(Model));
 	CentreSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	CentreSlot->SetHorizontalAlignment(HAlign_Center);

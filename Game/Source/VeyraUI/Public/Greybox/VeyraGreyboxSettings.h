@@ -112,6 +112,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor DescriptionColor = FLinearColor::Transparent;
 
+	/** A Party Chat line in the match's chat log, marked apart from Team and All (ADR-046 §6). */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat")
+	FLinearColor PartyChatColor = FLinearColor::Transparent;
+
+	/** A direct message from or to a friend in the match's chat log. */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat")
+	FLinearColor DirectChatColor = FLinearColor::Transparent;
+
 	/** An ability whose empowerment waits for the next basic attack. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor EmpoweredColor = FLinearColor::Transparent;
@@ -290,6 +298,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Vision", meta = (ClampMin = "1"))
 	float OutlineMarkerRadius = 0.0f;
 
+	/**
+	 * A projected Echo's tether (ADR-050 §7): below this share of its Integrity its circle and stream read strained, in
+	 * EchoStrainColor, warning that the circle is closing. Above 0 and below 1.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Echoes", meta = (ClampMin = "0", ClampMax = "1"))
+	float EchoStrainShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Echoes")
+	FLinearColor EchoStrainColor = FLinearColor::Transparent;
+
 	/** How thick each marking is, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
 	float GroundMarkingThickness = 0.0f;
@@ -412,4 +430,47 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Chat")
 	FLinearColor ChatHighContrastBackdropColor = FLinearColor::Transparent;
+
+	/** How far a combat text number rises above its unit's bars while it shows, in units (ADR-052 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextRise = 0.0f;
+
+	/** How long a number shows, rising and fading, in seconds. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextShowSeconds = 0.0f;
+
+	/** Reduced density merges a number arriving within this many seconds of the last it would join. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextMergeSeconds = 0.0f;
+
+	/** The numbers' size against the HUD's small type, and a crit's against that. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextScale = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "1"))
+	float CombatTextCritScale = 0.0f;
+
+	/** Color-Coded damage (Proposal 52): each type its own colour, dealt or received. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextPhysicalColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextMagicColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextTrueColor = FLinearColor::Transparent;
+
+	/** Uniform damage: one colour for damage dealt, another for damage received. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextUniformColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextReceivedColor = FLinearColor::Transparent;
+
+	/** Healing and shielding keep their own colours whichever damage appearance the player chose. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextHealingColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextShieldingColor = FLinearColor::Transparent;
 };

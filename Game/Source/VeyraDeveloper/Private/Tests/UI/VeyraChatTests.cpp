@@ -42,6 +42,19 @@ namespace VeyraChatTests
 			ASSERT_THAT(IsTrue(Unknown.Kind == EVeyraChatCommandKind::Unknown && Unknown.Name == TEXT("/muted")));
 		}
 
+		TEST_METHOD(PartyReplyAndMessageGoToTheBackendsConversations)
+		{
+			const FVeyraChatCommand Party = VeyraChatCommands::Parse(TEXT("/p  group mid "), EVeyraChatChannel::All);
+			ASSERT_THAT(IsTrue(Party.Kind == EVeyraChatCommandKind::Party && Party.Text == TEXT("group mid")));
+			const FVeyraChatCommand Reply = VeyraChatCommands::Parse(TEXT("/R on my way"), EVeyraChatChannel::Team);
+			ASSERT_THAT(IsTrue(Reply.Kind == EVeyraChatCommandKind::Reply && Reply.Text == TEXT("on my way")));
+			const FVeyraChatCommand Message = VeyraChatCommands::Parse(TEXT("/msg DevTwo  are you free after? "), EVeyraChatChannel::Team);
+			ASSERT_THAT(IsTrue(Message.Kind == EVeyraChatCommandKind::Message && Message.Name == TEXT("DevTwo") && Message.Text == TEXT("are you free after?")));
+			ASSERT_THAT(IsTrue(VeyraChatCommands::Parse(TEXT("/msg DevTwo"), EVeyraChatChannel::Team).Kind == EVeyraChatCommandKind::Nothing, TEXT("nothing to say")));
+			ASSERT_THAT(IsTrue(VeyraChatCommands::Parse(TEXT("/p"), EVeyraChatChannel::Team).Kind == EVeyraChatCommandKind::Nothing));
+			ASSERT_THAT(IsTrue(VeyraChatCommands::Parse(TEXT("/party on"), EVeyraChatChannel::Team).Kind == EVeyraChatCommandKind::Unknown, TEXT("not /p")));
+		}
+
 		TEST_METHOD(AParticipantIsFoundByTheirWholeNameIgnoringCase)
 		{
 			const TArray<FVeyraChatParticipant> Participants = { { 3, TEXT("Nyx") }, { 7, TEXT("Dusk Walker") }, { 9, TEXT("nyx2") } };
@@ -127,6 +140,60 @@ namespace VeyraChatTests
 			ASSERT_THAT(IsTrue(Lines[0].Side == EVeyraChatLineSide::Notice && Lines[0].Prefix.IsEmpty() && Lines[0].Text.Contains(TEXT("too quickly"))));
 			ASSERT_THAT(IsTrue(Lines[1].Text.Contains(TEXT("muted Rook"))));
 			ASSERT_THAT(IsTrue(VeyraChatLog::NoticeText(Unknown).ToString().StartsWith(TEXT("/shrug"))));
+		}
+
+		TEST_METHOD(ThePartysAndFriendsLinesMixInByArrivalMarkedAsTheirs)
+		{
+			Preferences.Lines = 3;
+			const TArray<FVeyraReceivedChat> Chat = { Said(EVeyraTeam::A, EVeyraChatChannel::Team, TEXT("b"), 5.0) };
+			const TArray<FVeyraOutsideChat> Outside = { { EVeyraOutsideChatKind::Party, TEXT("Vale"), TEXT("duo bot"), FString(), 3.0 },
+				{ EVeyraOutsideChatKind::DirectFrom, TEXT("Vale"), TEXT("gl"), FString(), 7.0 },
+				{ EVeyraOutsideChatKind::DirectTo, TEXT("Vale"), TEXT("ty"), TEXT("sending"), 8.0 } };
+			const TArray<FVeyraChatLine> Lines = VeyraChatLog::Describe(Chat, Outside, 8.0, false, Preferences, EVeyraTeam::A, &NoVanguard);
+			ASSERT_THAT(AreEqual(3, Lines.Num()));
+			ASSERT_THAT(IsTrue(Lines[0].Side == EVeyraChatLineSide::Ally && Lines[0].Text == TEXT("b"), TEXT("the newest three by arrival")));
+			ASSERT_THAT(IsTrue(Lines[1].Side == EVeyraChatLineSide::Direct && Lines[1].Prefix == TEXT("[From] ") && Lines[1].Sender == TEXT("Vale: ")));
+			ASSERT_THAT(IsTrue(Lines[2].Prefix == TEXT("[To] ") && Lines[2].Text == TEXT("ty (sending)")));
+			Preferences.Lines = 4;
+			const TArray<FVeyraChatLine> Wider = VeyraChatLog::Describe(Chat, Outside, 8.0, false, Preferences, EVeyraTeam::A, &NoVanguard);
+			ASSERT_THAT(IsTrue(Wider[0].Side == EVeyraChatLineSide::Party && Wider[0].Prefix == TEXT("[Party] ") && Wider[0].Text == TEXT("duo bot")));
+		}
+
+		TEST_METHOD(TheFlowsPartyAndDirectLinesBecomeTheLogsOutsideLines)
+		{
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.AccountId = TEXT("me");
+			Snapshot.DisplayName = TEXT("DevOne");
+			Snapshot.Social.Friends.Friends.Add({ TEXT("friend"), TEXT("DevTwo") });
+			FVeyraChatEntry Party;
+			Party.Kind = VeyraBackendProtocol::EChatKind::Party;
+			Party.SenderId = TEXT("me");
+			Party.SenderName = TEXT("DevOne");
+			Party.Text = TEXT("ready");
+			Party.ArrivedAt = 4.0;
+			Snapshot.Chat.Party.Lines.Add(Party);
+			FVeyraChatEntry Mine;
+			Mine.Kind = VeyraBackendProtocol::EChatKind::Direct;
+			Mine.SenderId = TEXT("me");
+			Mine.With = TEXT("friend");
+			Mine.Text = TEXT("hi");
+			Mine.Failure = TEXT("rate_limited");
+			Mine.ArrivedAt = 6.0;
+			Snapshot.Chat.Direct.FindOrAdd(TEXT("friend")).Lines.Add(Mine);
+			const TArray<FVeyraOutsideChat> Outside = VeyraChatLog::OutsideOf(Snapshot);
+			ASSERT_THAT(AreEqual(2, Outside.Num()));
+			ASSERT_THAT(IsTrue(Outside[0].Kind == EVeyraOutsideChatKind::Party && Outside[0].Name == TEXT("DevOne") && Outside[0].ReceivedAt == 4.0));
+			ASSERT_THAT(IsTrue(Outside[1].Kind == EVeyraOutsideChatKind::DirectTo && Outside[1].Name == TEXT("DevTwo") && Outside[1].Status == TEXT("not sent")));
+
+			// A conversation kept from before the friendship ended, or a block, is never shown in the match.
+			FVeyraChatEntry Former;
+			Former.Kind = VeyraBackendProtocol::EChatKind::Direct;
+			Former.SenderId = TEXT("former");
+			Former.SenderName = TEXT("DevThree");
+			Former.With = TEXT("former");
+			Former.Text = TEXT("still here?");
+			Snapshot.Chat.Direct.FindOrAdd(TEXT("former")).Lines.Add(Former);
+			ASSERT_THAT(AreEqual(2, VeyraChatLog::OutsideOf(Snapshot).Num(), TEXT("only friends' conversations")));
 		}
 
 		TEST_METHOD(TheLogSitsJustAboveTheComposerAtTheBottomLeft)

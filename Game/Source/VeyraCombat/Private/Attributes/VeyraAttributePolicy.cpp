@@ -32,6 +32,7 @@ namespace
 			{ UVeyraVitalsSet::GetIncomingMagicDamageAttribute(), EVeyraModifierRule::None },
 			{ UVeyraVitalsSet::GetIncomingTrueDamageAttribute(), EVeyraModifierRule::None },
 			{ UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute(), EVeyraModifierRule::Percentage },
+			{ UVeyraOffenceSet::GetDamageShareAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraOffenceSet::GetPhysicalPenetrationFlatAttribute(), EVeyraModifierRule::Flat },
 			{ UVeyraOffenceSet::GetPhysicalPenetrationRetainedAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(), EVeyraModifierRule::Flat },

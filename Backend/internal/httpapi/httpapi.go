@@ -14,11 +14,13 @@ import (
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/chat"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/conduct"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/profile"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/progression"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/settings"
@@ -65,9 +67,15 @@ type Deps struct {
 	// registered (ADR-024 §1).
 	Settings *settings.Service
 	// Chat is optional; without it no chat routes are registered (ADR-046).
-	Chat  *chat.Service
-	Modes []ModeInfo
-	Ready Pinger
+	Chat *chat.Service
+	// Conduct is optional; without it no report or commendation routes are
+	// registered (ADR-047).
+	Conduct *conduct.Service
+	// Profile is optional; without it no profile routes are registered
+	// (ADR-048).
+	Profile *profile.Service
+	Modes   []ModeInfo
+	Ready   Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -115,6 +123,9 @@ func New(d Deps) http.Handler {
 	s.routeMatchFound(mux)
 	s.routeSettings(mux)
 	s.routeChat(mux)
+	s.routeConduct(mux)
+	s.routeProfile(mux)
+	s.routeNames(mux)
 	return mux
 }
 
@@ -290,6 +301,11 @@ var errorStatus = []struct {
 	{identity.ErrAlreadyRegistered, http.StatusConflict, "already_registered"},
 	{identity.ErrDisplayNameTaken, http.StatusConflict, "display_name_taken"},
 	{identity.ErrInvalidDisplayName, http.StatusBadRequest, "invalid_display_name"},
+	{identity.ErrRenameCooldown, http.StatusConflict, "rename_cooldown"},
+	{identity.ErrSameDisplayName, http.StatusConflict, "same_display_name"},
+	{identity.ErrInvalidCurrency, http.StatusBadRequest, "invalid_currency"},
+	{identity.ErrRenameRequired, http.StatusConflict, "rename_required"},
+	{identity.ErrNamesDisabled, http.StatusNotFound, "not_found"},
 
 	{social.ErrSelf, http.StatusBadRequest, "cannot_target_self"},
 	{social.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
@@ -399,6 +415,22 @@ var errorStatus = []struct {
 	{chat.ErrInvalidMessage, http.StatusBadRequest, "invalid_message"},
 	{chat.ErrClientIDConflict, http.StatusConflict, "client_id_conflict"},
 	{chat.ErrConversationChanged, http.StatusConflict, "conversation_changed"},
+
+	{conduct.ErrNotParticipant, http.StatusNotFound, "not_participant"},
+	{conduct.ErrUnknownPlayer, http.StatusNotFound, "unknown_player"},
+	{conduct.ErrInvalidReason, http.StatusBadRequest, "invalid_reason"},
+	{conduct.ErrDetailsTooLong, http.StatusBadRequest, "details_too_long"},
+	{conduct.ErrReportClosed, http.StatusConflict, "report_closed"},
+	{conduct.ErrInvalidRequest, http.StatusBadRequest, "invalid_report"},
+	{conduct.ErrNotTeammate, http.StatusConflict, "not_teammate"},
+	{conduct.ErrCommendClosed, http.StatusConflict, "commend_closed"},
+	{conduct.ErrAlreadyCommended, http.StatusConflict, "already_commended"},
+
+	{profile.ErrUnavailable, http.StatusNotFound, "profile_unavailable"},
+	{profile.ErrHistoryPrivate, http.StatusForbidden, "history_private"},
+	{profile.ErrInvalidIcon, http.StatusBadRequest, "invalid_icon"},
+	{profile.ErrInvalidBackground, http.StatusBadRequest, "invalid_background"},
+	{profile.ErrNotOwned, http.StatusConflict, "not_owned"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {

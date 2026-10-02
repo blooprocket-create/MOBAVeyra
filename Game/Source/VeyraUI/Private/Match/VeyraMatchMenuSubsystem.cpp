@@ -5,6 +5,8 @@
 #include "Blueprint/UserWidget.h"
 #include "Chat/VeyraChatCommands.h"
 #include "Chat/VeyraChatComposer.h"
+#include "Client/VeyraClientFlowSubsystem.h"
+#include "Client/VeyraClientIntents.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerState.h"
 #include "Engine/GameInstance.h"
@@ -445,9 +447,59 @@ void UVeyraMatchMenuSubsystem::SubmitChat(EVeyraChatChannel Channel, const FStri
 		Controller->NoteChat(bMute ? EVeyraChatNotice::Muted : EVeyraChatNotice::Unmuted, Named ? Named->Name : Command.Name);
 		break;
 	}
+	case EVeyraChatCommandKind::Party:
+	case EVeyraChatCommandKind::Reply:
+	case EVeyraChatCommandKind::Message:
+		SubmitOutsideChat(*Controller, Command);
+		break;
 	case EVeyraChatCommandKind::Unknown:
 		Controller->NoteChat(EVeyraChatNotice::UnknownCommand, Command.Name);
 		break;
+	}
+}
+
+void UVeyraMatchMenuSubsystem::SubmitOutsideChat(AVeyraPlayerController& Controller, const FVeyraChatCommand& Command)
+{
+	// The party and friends are the backend's, which the client flow reaches; a game without a launcher has none.
+	const UGameInstance* Game = Controller.GetGameInstance();
+	const UVeyraClientFlowSubsystem* Flow = Game ? Game->GetSubsystem<UVeyraClientFlowSubsystem>() : nullptr;
+	if (!Flow)
+	{
+		Controller.NoteChat(EVeyraChatNotice::OutsideUnavailable, FString());
+		return;
+	}
+	IVeyraClientIntents& Client = Flow->GetClient();
+	const FVeyraClientSnapshot& Snapshot = Client.GetSnapshot();
+	FString Target;
+	VeyraBackendProtocol::EChatKind Kind = VeyraBackendProtocol::EChatKind::Direct;
+	if (Command.Kind == EVeyraChatCommandKind::Party)
+	{
+		Kind = VeyraBackendProtocol::EChatKind::Party;
+	}
+	else if (Command.Kind == EVeyraChatCommandKind::Reply)
+	{
+		Target = Snapshot.Chat.LastDirectFrom;
+		if (Target.IsEmpty())
+		{
+			Controller.NoteChat(EVeyraChatNotice::NoReplyTarget, FString());
+			return;
+		}
+	}
+	else
+	{
+		const VeyraBackendProtocol::FAccount* Friend = Snapshot.Social.Friends.Friends.FindByPredicate(
+			[&Command](const VeyraBackendProtocol::FAccount& Account) { return Account.DisplayName.Equals(Command.Name, ESearchCase::IgnoreCase); });
+		if (!Friend)
+		{
+			Controller.NoteChat(EVeyraChatNotice::NoSuchFriend, Command.Name);
+			return;
+		}
+		Target = Friend->Id;
+	}
+	// The line shows as sending, then sent or why not, in the chat log; nothing pops up (ADR-046 §6).
+	if (!Client.SendChatMessage(Kind, Target, Command.Text))
+	{
+		Controller.NoteChat(EVeyraChatNotice::OutsideUnavailable, FString());
 	}
 }
 

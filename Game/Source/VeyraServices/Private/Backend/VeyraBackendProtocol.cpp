@@ -582,6 +582,12 @@ bool ParseProfile(const FString& Body, FProfile& Out, FString& OutProblem)
 		OutProblem = TEXT("the answer is not a profile with an account and a tutorial");
 		return false;
 	}
+	// Absent from a backend without name changes, and from the answer to choosing a starter.
+	if (Root->HasField(TEXT("renameRequired")) && !BoolField(*Root, TEXT("renameRequired"), Profile.bRenameRequired))
+	{
+		OutProblem = TEXT("the profile's renameRequired is not true or false");
+		return false;
+	}
 	Out = MoveTemp(Profile);
 	return true;
 }
@@ -827,6 +833,11 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 
 FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor)
 {
+	return TEXT("/v1/me/matches") + HistoryQuery(Filter, Cursor);
+}
+
+FString HistoryQuery(const FHistoryFilter& Filter, const FString& Cursor)
+{
 	TArray<FString> Query;
 	const TPair<const TCHAR*, const FString*> Fields[] = {
 		{ TEXT("vanguard"), &Filter.VanguardId },
@@ -841,7 +852,7 @@ FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor)
 			Query.Add(FString::Printf(TEXT("%s=%s"), Field.Key, *FGenericPlatformHttp::UrlEncode(*Field.Value)));
 		}
 	}
-	return Query.IsEmpty() ? FString(TEXT("/v1/me/matches")) : TEXT("/v1/me/matches?") + FString::Join(Query, TEXT("&"));
+	return Query.IsEmpty() ? FString() : TEXT("?") + FString::Join(Query, TEXT("&"));
 }
 
 bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem)
