@@ -7,6 +7,7 @@
 
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
@@ -649,6 +650,35 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Player.Slots[0].EmpoweredSeconds == 0.0, TEXT("only the slot that cast it")));
 			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now + LongSeconds + StepSeconds).Slots[1].EmpoweredSeconds == 0.0,
 				TEXT("a lapsed empowerment shows nothing")));
+		}
+
+		// ADR-052 §4: the ring follows the reach as it is now, statuses included, out to a target's edge.
+		TEST_METHOD(ShowAttackRangeRingsTheBasicAttacksReachAsItIsNow)
+		{
+			constexpr double Reach = 525.0;
+			constexpr double Extra = 75.0;
+			// A Vanguard's attack is its participant's.
+			UVeyraBasicAttackComponent* Attacks = Caster->GetPlayerState()->FindComponentByClass<UVeyraBasicAttackComponent>();
+			ASSERT_THAT(IsNotNull(Attacks));
+			FVeyraBasicAttackProfile Profile;
+			Profile.Range = Reach;
+			Profile.DamageType = EVeyraDamageType::Physical;
+			Profile.PhysicalPowerRatio = 1.0;
+			Profile.WindupFraction = 0.25;
+			Profile.AcquisitionRadius = Reach;
+			ASSERT_THAT(IsTrue(Attacks->SetProfile(Profile)));
+			const double Body = Caster->GetSimpleCollisionRadius();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraHud::AttackReachOf(*Caster).Get(0.0), Reach + Body), TEXT("the reach, out from the body's edge")));
+
+			FVeyraStatusSpec Longer;
+			Longer.Id = ArchetypeTestId(TEXT("test_reach"));
+			Longer.Kind = EVeyraStatusKind::AttackRange;
+			Longer.Magnitude = Extra;
+			Longer.DurationSeconds = LongSeconds;
+			UAbilitySystemComponent& Self = *Caster->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, Longer)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraHud::AttackReachOf(*Caster).Get(0.0), Reach + Extra + Body), TEXT("a longer reach rings further at once")));
+			ASSERT_THAT(IsFalse(VeyraHud::AttackReachOf(Spawner.SpawnActor<AActor>()).IsSet(), TEXT("nothing for a unit with no basic attack")));
 		}
 
 		TEST_METHOD(OutlinesTraceTheirShapes)

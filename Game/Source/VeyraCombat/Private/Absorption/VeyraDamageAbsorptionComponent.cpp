@@ -4,6 +4,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Effects/VeyraCombatEffects.h"
+#include "Engine/World.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "GameFramework/Actor.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -120,12 +122,19 @@ FActiveGameplayEffectHandle UVeyraDamageAbsorptionComponent::GrantShield(UAbilit
 	// effect when there is one.
 	const int32 ReplacesSequence = Existing ? Existing->Sequence : INDEX_NONE;
 	const FActiveGameplayEffectHandle Replaced = Existing ? ServerEntries.FindChecked(ReplacesSequence).Effect : FActiveGameplayEffectHandle();
+	// A merge adds only its top-up; a fresh or replacing shield adds all it holds.
+	const double Added = bMerges ? Amount - Existing->Remaining : Amount;
 	PendingGrant = FPendingGrant{ Grant.Id, &Source, Grant.CapGroup, ReplacesSequence };
 	const FActiveGameplayEffectHandle Effect = Source.ApplyGameplayEffectSpecToTarget(*Spec.Data, Target);
 	PendingGrant.Reset();
 	if (Effect.IsValid() && Replaced.IsValid())
 	{
 		Target->RemoveActiveGameplayEffect(Replaced);
+	}
+	UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	if (Effect.IsValid() && Events && Added > 0.0)
+	{
+		Events->OnShieldGranted.Broadcast(FVeyraShieldGranted{ &Source, Target, Added });
 	}
 	return Effect;
 }
@@ -190,7 +199,9 @@ FVeyraAbsorptionResult UVeyraDamageAbsorptionComponent::ApplyIncomingDamage(EVey
 		for (const FVeyraAbsorbedShare& Share : Result.ShieldShares)
 		{
 			const FServerEntry* Server = ServerEntries.Find(Share.Sequence);
-			OutShieldShares->Add(FVeyraShieldShare{ Server ? Server->Source : nullptr, Share.Amount, Server ? Server->Id : FVeyraContentId() });
+			// And whether the hit emptied it, which an Attunement that rewards breaking a shield reads (ADR-051 §2).
+			OutShieldShares->Add(FVeyraShieldShare{ Server ? Server->Source : nullptr, Share.Amount, Server ? Server->Id : FVeyraContentId(),
+				Result.DepletedShields.Contains(Share.Sequence) });
 		}
 	}
 

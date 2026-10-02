@@ -31,6 +31,7 @@ FVeyraEquipmentStats StatsFor(const FVeyraItemsTuning& Tuning, TConstArrayView<F
 		Stats.AbilityHaste += Item->Stats.AbilityHaste * Slot.Count;
 		Stats.MoveSpeed += Item->Stats.MoveSpeed * Slot.Count;
 		Stats.MagicPenetrationFlat += Item->Stats.MagicPenetrationFlat * Slot.Count;
+		Stats.PhysicalPenetrationFlat += Item->Stats.PhysicalPenetrationFlat * Slot.Count;
 		Stats.CritChance += Item->Stats.CritChance * Slot.Count;
 		MagicPowerMultiplier *= FMath::Pow(1.0 + Item->Stats.MagicPowerFraction, Slot.Count);
 		AttackSpeedFraction += Item->Stats.AttackSpeed * Slot.Count;

@@ -435,6 +435,7 @@ bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquip
 		{ UVeyraEquipmentEffect::AbilityHasteName, Stats.AbilityHaste },
 		{ UVeyraEquipmentEffect::MoveSpeedName, Stats.MoveSpeed },
 		{ UVeyraEquipmentEffect::MagicPenetrationFlatName, Stats.MagicPenetrationFlat },
+		{ UVeyraEquipmentEffect::PhysicalPenetrationFlatName, Stats.PhysicalPenetrationFlat },
 		{ UVeyraEquipmentEffect::CritChanceName, Stats.CritChance },
 		{ UVeyraEquipmentEffect::CritDamageBonusName, Stats.CritDamageBonus },
 	};
@@ -823,6 +824,10 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	if (!bApplied)
 	{
 		return false;
+	}
+	if (Events)
+	{
+		Events->OnDamageTaken.Broadcast(Dealt);
 	}
 	// Towers and Fluxborn react to who hurts whom (Battleground Bible §19; ADR-011 §6), and Attunements
 	// to what a hit dealt (ADR-023 §4).

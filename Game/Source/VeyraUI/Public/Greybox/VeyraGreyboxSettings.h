@@ -430,4 +430,47 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Chat")
 	FLinearColor ChatHighContrastBackdropColor = FLinearColor::Transparent;
+
+	/** How far a combat text number rises above its unit's bars while it shows, in units (ADR-052 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextRise = 0.0f;
+
+	/** How long a number shows, rising and fading, in seconds. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextShowSeconds = 0.0f;
+
+	/** Reduced density merges a number arriving within this many seconds of the last it would join. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextMergeSeconds = 0.0f;
+
+	/** The numbers' size against the HUD's small type, and a crit's against that. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextScale = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "1"))
+	float CombatTextCritScale = 0.0f;
+
+	/** Color-Coded damage (Proposal 52): each type its own colour, dealt or received. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextPhysicalColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextMagicColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextTrueColor = FLinearColor::Transparent;
+
+	/** Uniform damage: one colour for damage dealt, another for damage received. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextUniformColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextReceivedColor = FLinearColor::Transparent;
+
+	/** Healing and shielding keep their own colours whichever damage appearance the player chose. */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextHealingColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text")
+	FLinearColor CombatTextShieldingColor = FLinearColor::Transparent;
 };

@@ -15,6 +15,7 @@
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 #include "Chat/VeyraChatTypes.h"
+#include "Feedback/VeyraCombatTextTypes.h"
 #include "Pings/VeyraPingTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
@@ -276,6 +277,22 @@ public:
 	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
 	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
 
+	/** Owning client: Show Attack Range's key is held, so the player sees how far their basic attacks reach (ADR-052 §4). */
+	bool IsShowingAttackRange() const;
+
+	/** Owning client: a combat text number the server sent this player (ADR-052 §1), which the UI shows. */
+	TMulticastDelegate<void(const FVeyraCombatTextLine&)> OnCombatText;
+
+	/** Server: sends Line to this player's client. Unreliable: a lost number costs nothing that matters. */
+	UFUNCTION(Client, Unreliable)
+	void ClientCombatText(const FVeyraCombatTextLine& Line);
+
+	/**
+	 * Owning client: the units the player targets now, for When Targeted bars (ADR-052 §2): the unit its last
+	 * attack order named, the one its body is attacking, and the one under the cursor. Presentation only.
+	 */
+	TArray<const AActor*> GetTargetedUnits() const;
+
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -414,6 +431,15 @@ private:
 
 	/** Owning client: this frame's camera input from the keys, the screen's edges and the drag. */
 	void TickCamera(float DeltaTime);
+
+	/** Owning client: the unit the latest attack order named, until a move order replaces it. */
+	TWeakObjectPtr<AActor> OrderedAttackTarget;
+
+	/** Owning client: the zoom keys' presses this frame move the player's zoom level, which persists (ADR-052 §3). */
+	void TickZoom();
+
+	/** Owning client: how many times Key went down since input was last processed; a wheel turns several notches a frame. */
+	int32 PressesOf(const FKey& Key) const;
 
 	/** Owning client: lets go of old pings, and pings where the player clicks with a ping key held. */
 	void TickPings();
