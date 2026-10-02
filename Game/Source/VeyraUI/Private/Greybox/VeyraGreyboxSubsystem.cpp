@@ -16,6 +16,7 @@
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Entities/VeyraPlacedMarker.h"
+#include "Fluxborn/VeyraFluxborn.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -99,6 +100,19 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 					Problems.Add(FString::Printf(TEXT("%sArt: %s does not load."), *UEnum::GetValueAsName(Kind).ToString(), *State->ToString()));
 				}
 				StructureMeshes.Add(Loaded);
+			}
+		}
+		for (const FVeyraFluxbornArt& Art : Settings.FluxbornArt)
+		{
+			FluxbornArtIndex.Add(Art.Kind, FluxbornArtIndex.Num());
+			for (const TSoftObjectPtr<UStaticMesh>* State : { &Art.Active, &Art.Collapsed })
+			{
+				UStaticMesh* Loaded = State->LoadSynchronous();
+				if (!Loaded)
+				{
+					Problems.Add(FString::Printf(TEXT("FluxbornArt %s: %s does not load."), *Art.Kind, *State->ToString()));
+				}
+				FluxbornMeshes.Add(Loaded);
 			}
 		}
 		if (!GroundMesh)
@@ -207,7 +221,7 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::FindBody(const AActor& Unit) const
 	return Body ? Body->Mesh.Get() : nullptr;
 }
 
-UStaticMeshComponent* UVeyraGreyboxSubsystem::FindStructureArt(const AActor& Unit) const
+UStaticMeshComponent* UVeyraGreyboxSubsystem::FindArt(const AActor& Unit) const
 {
 	const FBody* Body = Bodies.Find(&Unit);
 	return Body ? Body->Art.Get() : nullptr;
@@ -310,50 +324,70 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMes
 void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structure, FBody& Body)
 {
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	const bool bDestroyed = Structure.IsDestroyed();
-	const int32 Index = static_cast<int32>(Structure.GetStructureKind()) * 2 + (bDestroyed ? 1 : 0);
-	UStaticMesh* Mesh = StructureMeshes.IsValidIndex(Index) ? StructureMeshes[Index].Get() : nullptr;
-	USceneComponent* Root = Structure.GetRootComponent();
-	if (!Mesh || !Root)
+	// Standing, or the wreck it leaves (Battleground Bible §5); an inhibitor rebuilt stands again.
+	const int32 Index = static_cast<int32>(Structure.GetStructureKind()) * 2 + (Structure.IsDestroyed() ? 1 : 0);
+	if (UStaticMesh* Mesh = StructureMeshes.IsValidIndex(Index) ? StructureMeshes[Index].Get() : nullptr)
+	{
+		ShowArt(Structure, Body, *Mesh, Settings.StructureFluxSlot, Settings.StructureFluxParameter, SideColorOf(Structure));
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshFluxbornArt(const AVeyraFluxborn& Unit, FBody& Body)
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	// Its kind arrives with it; until then, and for a kind without art, its body shows.
+	const int32* Pair = FluxbornArtIndex.Find(Unit.GetKind().ToString());
+	// Active, or collapsed where it fell, for its corpse's moment (Battleground Bible §4).
+	const int32 Index = Pair ? *Pair * 2 + (Unit.IsAlive() ? 0 : 1) : INDEX_NONE;
+	if (UStaticMesh* Mesh = FluxbornMeshes.IsValidIndex(Index) ? FluxbornMeshes[Index].Get() : nullptr)
+	{
+		// Its Flux shows what its body would: its side, tinted while it is crowd controlled.
+		ShowArt(Unit, Body, *Mesh, Settings.FluxbornFluxSlot, Settings.FluxbornFluxParameter, BodyColorOf(Unit));
+	}
+}
+
+void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, FName FluxSlot, FName FluxParameter, const FLinearColor& Color)
+{
+	USceneComponent* Root = Unit.GetRootComponent();
+	if (!Root)
 	{
 		return;
 	}
 	if (!Body.Art.IsValid())
 	{
-		// Presentation only, as a body is; it stands on the floor, its pivot at the capsule's foot.
-		UStaticMeshComponent* Art = NewObject<UStaticMeshComponent>(const_cast<AVeyraStructure*>(&Structure), NAME_None, RF_Transient);
+		// Presentation only, as a body is.
+		UStaticMeshComponent* Art = NewObject<UStaticMeshComponent>(const_cast<APawn*>(&Unit), NAME_None, RF_Transient);
 		Art->SetMobility(EComponentMobility::Movable);
 		Art->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Art->SetGenerateOverlapEvents(false);
 		Art->SetCanEverAffectNavigation(false);
 		Art->SetupAttachment(Root);
 		Art->RegisterComponent();
-		float Radius = 0.0f;
-		float HalfHeight = 0.0f;
-		Structure.GetSimpleCollisionCylinder(Radius, HalfHeight);
-		Art->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
 		Body.Art = Art;
-		Body.bArtDestroyed = !bDestroyed;
+		Body.ArtMesh = nullptr;
 	}
 	UStaticMeshComponent* Art = Body.Art.Get();
-	if (Body.bArtDestroyed != bDestroyed)
+	// It stands on the floor, its pivot at the capsule's foot; a Fluxborn's capsule takes its kind's shape once that arrives.
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+	Art->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
+	if (Body.ArtMesh.Get() != &Mesh)
 	{
-		// Standing, or the wreck it leaves (Battleground Bible §5); an inhibitor rebuilt stands again.
-		Art->SetStaticMesh(Mesh);
-		const int32 FluxSlot = Art->GetMaterialIndex(Settings.StructureFluxSlot);
-		Body.ArtFlux = FluxSlot != INDEX_NONE ? Art->CreateDynamicMaterialInstance(FluxSlot) : nullptr;
-		Body.bArtDestroyed = bDestroyed;
+		Art->SetStaticMesh(&Mesh);
+		const int32 Slot = Art->GetMaterialIndex(FluxSlot);
+		Body.ArtFlux = Slot != INDEX_NONE ? Art->CreateDynamicMaterialInstance(Slot) : nullptr;
+		Body.ArtMesh = &Mesh;
 		Body.ArtShown = FLinearColor::Transparent;
 	}
 	if (UStaticMeshComponent* Shape = Body.Mesh.Get())
 	{
 		Shape->SetVisibility(false);
 	}
-	const FLinearColor Side = SideColorOf(Structure);
-	if (UMaterialInstanceDynamic* Flux = Body.ArtFlux.Get(); Flux && !Side.Equals(Body.ArtShown))
+	if (UMaterialInstanceDynamic* Flux = Body.ArtFlux.Get(); Flux && !Color.Equals(Body.ArtShown))
 	{
-		Flux->SetVectorParameterValue(Settings.StructureFluxParameter, Side);
-		Body.ArtShown = Side;
+		Flux->SetVectorParameterValue(FluxParameter, Color);
+		Body.ArtShown = Color;
 	}
 }
 
@@ -399,6 +433,10 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		if (const AVeyraStructure* Structure = Cast<AVeyraStructure>(&Unit))
 		{
 			RefreshStructureArt(*Structure, *Body);
+		}
+		else if (const AVeyraFluxborn* Fluxborn = Cast<AVeyraFluxborn>(&Unit))
+		{
+			RefreshFluxbornArt(*Fluxborn, *Body);
 		}
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).

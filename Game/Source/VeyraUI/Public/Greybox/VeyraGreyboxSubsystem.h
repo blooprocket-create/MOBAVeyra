@@ -79,8 +79,8 @@ public:
 	/** The body drawn for Unit, once it has one. */
 	UStaticMeshComponent* FindBody(const AActor& Unit) const;
 
-	/** A structure's art, once drawn; null for any other unit. */
-	UStaticMeshComponent* FindStructureArt(const AActor& Unit) const;
+	/** A structure's or a Fluxborn's art, once drawn; null for any other unit, or one whose art has not loaded. */
+	UStaticMeshComponent* FindArt(const AActor& Unit) const;
 
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
@@ -119,10 +119,10 @@ private:
 		TWeakObjectPtr<UMaterialInstanceDynamic> Material;
 		FLinearColor Shown = FLinearColor::Transparent;
 
-		/** A structure's art, which stands in for its body: the mesh, whether it shows the wreck, and its Flux's colour. */
+		/** A structure's or a Fluxborn's art, which stands in for its body: the component, the mesh it shows, and its Flux's colour. */
 		TWeakObjectPtr<UStaticMeshComponent> Art;
+		TWeakObjectPtr<UStaticMesh> ArtMesh;
 		TWeakObjectPtr<UMaterialInstanceDynamic> ArtFlux;
-		bool bArtDestroyed = false;
 		FLinearColor ArtShown = FLinearColor::Transparent;
 	};
 
@@ -139,6 +139,15 @@ private:
 
 	/** Dresses Structure in its kind's art, standing or wrecked as it is, its Flux in its side's colour; its body hides behind it. */
 	void RefreshStructureArt(const class AVeyraStructure& Structure, FBody& Body);
+
+	/** Dresses Unit in its kind's art, active or collapsed as it is, its Flux in its body's colour, once its kind is known and has art. */
+	void RefreshFluxbornArt(const class AVeyraFluxborn& Unit, FBody& Body);
+
+	/**
+	 * Draws Mesh over Unit in place of its body, its pivot at the capsule's foot, and colours its FluxSlot Color
+	 * through FluxParameter. Visual only, as a body is: it blocks nothing and shapes no navigation.
+	 */
+	void ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, FName FluxSlot, FName FluxParameter, const FLinearColor& Color);
 
 	/**
 	 * Once the world shows the battleground (its structures have arrived), draws its ground from
@@ -200,6 +209,12 @@ private:
 	/** Each kind of structure's art, standing then destroyed, in EVeyraStructureKind's order. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UStaticMesh>> StructureMeshes;
+
+	/** Each kind of Fluxborn's art, active then collapsed, in the settings' order; FluxbornArtIndex finds a kind's pair. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMesh>> FluxbornMeshes;
+
+	TMap<FString, int32> FluxbornArtIndex;
 
 	/** The actor holding the battleground's ground markings, once drawn. */
 	TWeakObjectPtr<AActor> GroundMarkings;

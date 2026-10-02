@@ -25,6 +25,26 @@ struct FVeyraStructureArt
 };
 
 /**
+ * A kind of Fluxborn's art, by its content ID in World.json: its body active, and collapsed where it fell for its
+ * corpse's moment (Battleground Bible §4). Ground-pivoted, facing +X, in centimetres.
+ */
+USTRUCT()
+struct FVeyraFluxbornArt
+{
+	GENERATED_BODY()
+
+	/** The kind it dresses, such as "strider". */
+	UPROPERTY(EditAnywhere)
+	FString Kind;
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UStaticMesh> Active;
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UStaticMesh> Collapsed;
+};
+
+/**
  * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
  * not tuning, stored in Config/DefaultGame.ini. Every value is required: the grey-box draws nothing
  * and logs the problems when Validate finds any.
@@ -272,6 +292,23 @@ public:
 
 	/** The art of a kind of structure. */
 	const FVeyraStructureArt& ArtOf(EVeyraStructureKind Kind) const;
+
+	/**
+	 * Each kind of Fluxborn's provisional art (Art Direction, Fluxborn greybox meshes), drawn in place of its
+	 * body; a kind without art keeps its body. Visual only: its capsule stays its only collision and movement.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	TArray<FVeyraFluxbornArt> FluxbornArt;
+
+	/**
+	 * The art's material slot whose Flux shows each Fluxborn's side, tinted while it is crowd controlled as a
+	 * body is, and the parameter that colours it.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FName FluxbornFluxSlot;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FName FluxbornFluxParameter;
 
 	/** The lanes' road, the river, and each side's base as the viewer sees it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")

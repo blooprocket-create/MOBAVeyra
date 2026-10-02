@@ -2,6 +2,8 @@
 
 #include "Greybox/VeyraGreyboxSettings.h"
 
+#include "Content/VeyraContentId.h"
+
 const FVeyraStructureArt& UVeyraGreyboxSettings::ArtOf(EVeyraStructureKind Kind) const
 {
 	switch (Kind)
@@ -83,6 +85,16 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		Require(!Art.Standing.IsNull() && !Art.Destroyed.IsNull(), *(UEnum::GetValueAsName(Kind).ToString() + TEXT("Art")), TEXT("needs a standing and a destroyed mesh."));
 	}
 	Require(!StructureFluxSlot.IsNone() && !StructureFluxParameter.IsNone(), TEXT("StructureFluxSlot"), TEXT("the Flux slot and its parameter must be named."));
+	TSet<FString> FluxbornKinds;
+	for (const FVeyraFluxbornArt& Art : FluxbornArt)
+	{
+		bool bDuplicate = false;
+		FluxbornKinds.Add(Art.Kind, &bDuplicate);
+		Require(FVeyraContentId::IsValidText(Art.Kind) && !bDuplicate, TEXT("FluxbornArt"), TEXT("each kind must be a content ID, named once."));
+		Require(!Art.Active.IsNull() && !Art.Collapsed.IsNull(), TEXT("FluxbornArt"), TEXT("each kind needs an active and a collapsed mesh."));
+	}
+	Require(FluxbornArt.IsEmpty() || (!FluxbornFluxSlot.IsNone() && !FluxbornFluxParameter.IsNone()), TEXT("FluxbornFluxSlot"),
+		TEXT("the Flux slot and its parameter must be named."));
 	Require(StatusTintStrength > 0.0f && StatusTintStrength <= 1.0f, TEXT("StatusTintStrength"), TEXT("must be above 0 and at most 1."));
 	Require(BarWidth >= 1.0f, TEXT("BarWidth"), TEXT("must be at least 1 pixel."));
 	Require(BarHeight >= 1.0f, TEXT("BarHeight"), TEXT("must be at least 1 pixel."));
