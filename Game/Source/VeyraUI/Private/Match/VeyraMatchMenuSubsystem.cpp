@@ -16,6 +16,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "Loading/VeyraLoadingScreen.h"
 #include "Match/VeyraMatchMenu.h"
 #include "Scoreboard/VeyraScoreboard.h"
 #include "Engine/GameViewportClient.h"
@@ -133,6 +134,8 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	Controller->PushInputComponent(Component);
 	MenuInput = Component;
 	BoundController = Controller;
+	// A loading screen up before this controller was bound takes the keyboard now.
+	UpdateInputMode();
 	return true;
 }
 
@@ -298,7 +301,21 @@ void UVeyraMatchMenuSubsystem::OpenMenu()
 	{
 		return;
 	}
-	Menu->Show(*Controller, [this] { CloseMenu(); }, [this] { OpenSettings(); });
+	// Leave Match goes through the client coordinator, which a game without a launcher lacks (ADR-053 §1).
+	TFunction<void()> LeaveMatch;
+	const UGameInstance* Game = Controller->GetGameInstance();
+	UVeyraClientFlowSubsystem* Flow = Game ? Game->GetSubsystem<UVeyraClientFlowSubsystem>() : nullptr;
+	if (Flow && Flow->GetClient().CanIssue(EVeyraClientIntent::LeaveMatch))
+	{
+		LeaveMatch = [WeakFlow = TWeakObjectPtr<UVeyraClientFlowSubsystem>(Flow)] {
+			if (UVeyraClientFlowSubsystem* Leaving = WeakFlow.Get())
+			{
+				Leaving->GetClient().LeaveLiveMatch();
+			}
+		};
+	}
+	const bool bConfirmLeave = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(Controller)).bConfirmLeaveMatch;
+	Menu->Show(*Controller, [this] { CloseMenu(); }, [this] { OpenSettings(); }, MoveTemp(LeaveMatch), bConfirmLeave);
 	// Above the shop, if it is open.
 	Menu->AddToViewport(/*ZOrder*/ 1);
 	UpdateInputMode();
@@ -503,6 +520,12 @@ void UVeyraMatchMenuSubsystem::SubmitOutsideChat(AVeyraPlayerController& Control
 	}
 }
 
+void UVeyraMatchMenuSubsystem::SetLoadingScreen(UVeyraLoadingScreen* Screen)
+{
+	LoadingScreen = Screen;
+	UpdateInputMode();
+}
+
 void UVeyraMatchMenuSubsystem::UpdateInputMode()
 {
 	AVeyraPlayerController* Controller = BoundController.Get();
@@ -529,6 +552,15 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 		{
 			Mode.SetWidgetToFocus(Chat->GetFocusTarget());
 		}
+		Mode.SetHideCursorDuringCapture(false);
+		Mode.SetLockMouseToViewportBehavior(Lock);
+		Controller->SetInputMode(Mode);
+	}
+	else if (UVeyraLoadingScreen* Loading = LoadingScreen.Get(); Loading && Loading->IsInViewport())
+	{
+		// Nothing to play yet: the loading screen's Previous and Next take the keyboard (SET-117).
+		FInputModeGameAndUI Mode;
+		Mode.SetWidgetToFocus(Loading->GetFocusTarget());
 		Mode.SetHideCursorDuringCapture(false);
 		Mode.SetLockMouseToViewportBehavior(Lock);
 		Controller->SetInputMode(Mode);

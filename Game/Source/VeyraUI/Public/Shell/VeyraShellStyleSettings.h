@@ -420,6 +420,37 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0", ClampMax = "1"))
 	float TurnCueVolume = 0.0f;
 
+	/** The break reminder's options in seconds of continuous play, by option (ADR-053 §4); Off has none. */
+	UPROPERTY(Config, EditAnywhere, Category = "Reminders")
+	TMap<FString, float> PlayReminderSeconds;
+
+	/** The match loading screen's column, in slate units (ADR-053 §3). */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (ClampMin = "1"))
+	float LoadingPanelWidth = 0.0f;
+
+	/**
+	 * How long an automatically shown tip or fact stays (SET-120): at least LoadingEntryMinimumSeconds, and a second more for
+	 * each LoadingEntryCharactersPerSecond characters past LoadingEntryBaseCharacters.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (ClampMin = "8"))
+	float LoadingEntryMinimumSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (ClampMin = "0"))
+	int32 LoadingEntryBaseCharacters = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (ClampMin = "1"))
+	int32 LoadingEntryCharactersPerSecond = 0;
+
+	/** The match-ready sound as a match is found (SET-71; ADR-053 §2): its tones, each tone's length and its volume, made as it plays. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sound")
+	TArray<float> MatchReadyCueTonesHz;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0.01"))
+	float MatchReadyCueToneSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sound", meta = (ClampMin = "0", ClampMax = "1"))
+	float MatchReadyCueVolume = 0.0f;
+
 	/** A seat of a custom lobby's two columns, in slate units (ADR-021). */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float LobbySeatWidth = 0.0f;

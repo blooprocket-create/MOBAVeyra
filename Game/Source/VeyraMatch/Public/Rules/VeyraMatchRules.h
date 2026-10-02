@@ -35,6 +35,13 @@ namespace VeyraMatchRules
 	 */
 	VEYRAMATCH_API bool HasVictory(EVeyraMatchRules Rules, const TOptional<FVeyraCustomSettings>& Custom);
 
+	/**
+	 * Where a move order to Destination takes a Vanguard during fountain preparation (Match Flow Bible §1; ADR-054 §1):
+	 * Destination itself within Radius of its side's Fountain, else the point of that circle nearest it. Only the
+	 * ground plane counts; the height stays Destination's.
+	 */
+	VEYRAMATCH_API FVector ClampToFountain(const FVector& Destination, const FVector& Fountain, double Radius);
+
 	/** Whether dead Vanguards may buy back: standard and custom matches, not practice (ADR-020; ADR-021 §3). */
 	VEYRAMATCH_API bool AllowsBuyback(EVeyraMatchRules Rules);
 

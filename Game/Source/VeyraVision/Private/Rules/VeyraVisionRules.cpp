@@ -89,23 +89,75 @@ bool IsBlocked(const FVeyraSightWalls& Walls, const FVector2D& From, const FVect
 	return Walls.Blocks(From, To);
 }
 
+namespace
+{
+	/** Whether Source has Point within its sight: its circle or shape, with no wall between unless it lights through. */
+	bool Sees(const FVeyraSightSource& Source, const FVector2D& Point, const FVeyraSightWalls& Walls)
+	{
+		const bool bInside = Source.Shape.IsSet() ? VeyraShapes::Touches(Source.Shape.GetValue(), FVector(Point, 0.0), 0.0)
+												  : FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Source.Radius);
+		// Within its reach first: a wall is looked for only between a source and what it could see.
+		return bInside && (Source.bThroughWalls || !IsBlocked(Walls, Source.Position, Point));
+	}
+}
+
 bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, const FVeyraSightWalls& Walls)
 {
 	for (const FVeyraSightSource& Source : Sources)
 	{
-		if (Source.Team != Team)
-		{
-			continue;
-		}
-		const bool bInside = Source.Shape.IsSet() ? VeyraShapes::Touches(Source.Shape.GetValue(), FVector(Point, 0.0), 0.0)
-												  : FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Source.Radius);
-		// Within its reach first: a wall is looked for only between a source and what it could see.
-		if (bInside && (Source.bThroughWalls || !IsBlocked(Walls, Source.Position, Point)))
+		if (Source.Team == Team && Sees(Source, Point, Walls))
 		{
 			return true;
 		}
 	}
 	return false;
+}
+
+TArray<uint8> SeenCells(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVeyraSeenGrid& Grid, const FVeyraSightWalls& Walls)
+{
+	TArray<uint8> Cells;
+	if (!Grid.IsValid())
+	{
+		return Cells;
+	}
+	Cells.SetNumZeroed((Grid.NumCells() + 7) / 8);
+	const auto CellAt = [&Grid](double Offset) { return FMath::Clamp(FMath::FloorToInt32(Offset / Grid.CellSize), 0, Grid.CellsAcross - 1); };
+	for (const FVeyraSightSource& Source : Sources)
+	{
+		if (Source.Team != Team || !(Source.Radius > 0.0))
+		{
+			continue;
+		}
+		// A shaped source's Radius is its shape's reach from its position, so one square bounds both kinds.
+		const int32 LowX = CellAt(Source.Position.X - Source.Radius - Grid.Min.X);
+		const int32 HighX = CellAt(Source.Position.X + Source.Radius - Grid.Min.X);
+		const int32 LowY = CellAt(Source.Position.Y - Source.Radius - Grid.Min.Y);
+		const int32 HighY = CellAt(Source.Position.Y + Source.Radius - Grid.Min.Y);
+		for (int32 Y = LowY; Y <= HighY; ++Y)
+		{
+			for (int32 X = LowX; X <= HighX; ++X)
+			{
+				const int32 Index = Y * Grid.CellsAcross + X;
+				uint8& Byte = Cells[Index / 8];
+				const uint8 Bit = static_cast<uint8>(1u << (Index % 8));
+				if (!(Byte & Bit) && Sees(Source, Grid.CentreOf(X, Y), Walls))
+				{
+					Byte |= Bit;
+				}
+			}
+		}
+	}
+	return Cells;
+}
+
+bool IsCellSeen(TConstArrayView<uint8> Cells, const FVeyraSeenGrid& Grid, int32 X, int32 Y)
+{
+	if (X < 0 || Y < 0 || X >= Grid.CellsAcross || Y >= Grid.CellsAcross)
+	{
+		return false;
+	}
+	const int32 Index = Y * Grid.CellsAcross + X;
+	return Cells.IsValidIndex(Index / 8) && (Cells[Index / 8] & (1u << (Index % 8))) != 0;
 }
 
 bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius,

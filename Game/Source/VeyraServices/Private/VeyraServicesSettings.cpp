@@ -26,6 +26,7 @@ TArray<FString> UVeyraServicesSettings::Validate() const
 		{ TEXT("LobbyPollIntervalSeconds"), LobbyPollIntervalSeconds },
 		{ TEXT("SocialPollIntervalSeconds"), SocialPollIntervalSeconds },
 		{ TEXT("ChatPollIntervalSeconds"), ChatPollIntervalSeconds },
+		{ TEXT("PlayStreakGapSeconds"), PlayStreakGapSeconds },
 		{ TEXT("AccountSettingsSendDelaySeconds"), AccountSettingsSendDelaySeconds },
 		{ TEXT("AccountSettingsRetrySeconds"), AccountSettingsRetrySeconds },
 		{ TEXT("AssignmentReadTimeoutSeconds"), AssignmentReadTimeoutSeconds },

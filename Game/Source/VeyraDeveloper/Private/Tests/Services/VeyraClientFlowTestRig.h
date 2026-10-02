@@ -449,6 +449,8 @@ namespace VeyraClientFlowTests
 
 		/** Fixture value: how long a player watches its match end. */
 		static constexpr double EndingShowSeconds = 6.0;
+		/** A gap this long without a match ends a play streak (ADR-053 §4). */
+		static constexpr double PlayStreakGapSeconds = 1200.0;
 		/** Fixture value: how many lines a chat conversation keeps. */
 		static constexpr int32 ChatKeepMessages = 4;
 		/** Fixture values: how often, and for how long, the flow asks for a match's result. */
@@ -476,6 +478,7 @@ namespace VeyraClientFlowTests
 			Config.ChatPollIntervalSeconds = 1.0;
 			Config.ChatKeepMessages = ChatKeepMessages;
 			Config.EndingShowSeconds = EndingShowSeconds;
+			Config.PlayStreakGapSeconds = PlayStreakGapSeconds;
 			Config.AccountSettings.SendDelaySeconds = 1.5;
 			Config.AccountSettings.RetrySeconds = 15.0;
 			Flow = MakeUnique<FVeyraClientFlow>(Backend, Host, Config);

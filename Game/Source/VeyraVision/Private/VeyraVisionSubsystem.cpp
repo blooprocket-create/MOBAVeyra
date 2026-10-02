@@ -470,6 +470,31 @@ void UVeyraVisionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(Ward, [Ward]() { Ward->Destroy(); }));
 }
 
+void UVeyraVisionSubsystem::SetSeenGroundArea(const FVector2D& Centre, double HalfExtent)
+{
+	SeenGroundArea = TPair<FVector2D, double>(Centre, HalfExtent);
+	NextSeenGroundAt = 0.0;
+}
+
+void UVeyraVisionSubsystem::PublishSeenGround(double Now)
+{
+	if (!SeenGroundArea.IsSet() || Now < NextSeenGroundAt)
+	{
+		return;
+	}
+	const FVeyraVisionPresentationTuning& Presentation = UVeyraVisionTuningSubsystem::Get().Presentation;
+	NextSeenGroundAt = Now + Presentation.UpdateSeconds;
+	const FVeyraSeenGrid Grid = FVeyraSeenGrid::Over(SeenGroundArea->Key, SeenGroundArea->Value, Presentation.CellsAcross);
+	for (const TPair<EVeyraTeam, TWeakObjectPtr<AVeyraVisionTeamState>>& State : TeamStates)
+	{
+		if (AVeyraVisionTeamState* Side = State.Value.Get())
+		{
+			// The same sources and walls as this pass's gate, so the ground drawn agrees with the units sent.
+			Side->SetSeenGround(Grid, VeyraVisionRules::SeenCells(State.Key, Sources, Grid, SightWalls));
+		}
+	}
+}
+
 void UVeyraVisionSubsystem::SetSightWalls(TArray<FVeyraTerrainBox> Walls)
 {
 	SightWalls = FVeyraSightWalls(MoveTemp(Walls));
@@ -632,6 +657,7 @@ void UVeyraVisionSubsystem::UpdateNow()
 			Gate->AddToSide(*State.Value, State.Key);
 		}
 	}
+	PublishSeenGround(Now);
 
 	// A Vanguard inside Dense Fog is hidden from all but the Vanguards inside the same volume, and a
 	// teammate's sighting there is not shared (Vision Bible §2). Everything else is ordinary vision.

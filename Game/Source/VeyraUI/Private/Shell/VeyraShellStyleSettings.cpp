@@ -147,6 +147,22 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		TEXT("TurnCueTonesHz"), TEXT("lists at least one tone, each above 0 and below half the cue's sample rate."));
 	Require(TurnCueToneSeconds > 0.0f, TEXT("TurnCueToneSeconds"), TEXT("must be above 0."));
 	Require(TurnCueVolume > 0.0f && TurnCueVolume <= 1.0f, TEXT("TurnCueVolume"), TEXT("must be above 0 and at most 1."));
+	Require(!MatchReadyCueTonesHz.IsEmpty() && !MatchReadyCueTonesHz.ContainsByPredicate([](float Hz) { return !(Hz > 0.0f && Hz < TurnCueSampleRate / 2.0f); }),
+		TEXT("MatchReadyCueTonesHz"), TEXT("lists at least one tone, each above 0 and below half the cue's sample rate."));
+	Require(MatchReadyCueToneSeconds > 0.0f, TEXT("MatchReadyCueToneSeconds"), TEXT("must be above 0."));
+	Require(LoadingPanelWidth >= 1.0f, TEXT("LoadingPanelWidth"), TEXT("must be at least 1."));
+	bool bEveryReminderPositive = true;
+	for (const TPair<FString, float>& Option : PlayReminderSeconds)
+	{
+		bEveryReminderPositive &= Option.Value > 0.0f;
+	}
+	Require(!PlayReminderSeconds.IsEmpty() && bEveryReminderPositive, TEXT("PlayReminderSeconds"), TEXT("lists the reminder's options, each above 0 seconds."));
+	// SET-120: at least 8 seconds for every automatically shown entry.
+	constexpr float LeastEntrySeconds = 8.0f;
+	Require(LoadingEntryMinimumSeconds >= LeastEntrySeconds, TEXT("LoadingEntryMinimumSeconds"), TEXT("must be at least 8 seconds (SET-120)."));
+	Require(LoadingEntryBaseCharacters >= 0 && LoadingEntryCharactersPerSecond >= 1, TEXT("LoadingEntryCharactersPerSecond"),
+		TEXT("the base must not be negative, and the characters per extra second must be at least 1."));
+	Require(MatchReadyCueVolume > 0.0f && MatchReadyCueVolume <= 1.0f, TEXT("MatchReadyCueVolume"), TEXT("must be above 0 and at most 1."));
 	Require(ProfileHistoryMaxHeight >= 1.0f, TEXT("ProfileHistoryMaxHeight"), TEXT("must be at least 1."));
 	Require(!LobbyStartingGoldChoices.IsEmpty() && !LobbyStartingGoldChoices.ContainsByPredicate([](float Gold) { return !(Gold >= 0.0f); }),
 		TEXT("LobbyStartingGoldChoices"), TEXT("lists at least one amount, none of them negative."));

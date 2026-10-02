@@ -450,8 +450,7 @@ EVeyraOrderRejection AVeyraGameMode::CheckOrdersAllowed() const
 	{
 		return EVeyraOrderRejection::Paused;
 	}
-	// Preparation should allow movement inside the fountain (Match Flow Bible §1, stage 3). Until
-	// the map has fountain areas, it refuses orders instead.
+	// Preparation takes only move orders, inside the fountain (HandleMoveOrder; ADR-054 §1).
 	return GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Live ? EVeyraOrderRejection::None : EVeyraOrderRejection::WrongPhase;
 }
 
@@ -505,7 +504,9 @@ AVeyraVanguardController* AVeyraGameMode::OrderedControllerOf(const AVeyraPlayer
 
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination)
 {
-	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	// In fountain preparation a Vanguard may move, but not leave its fountain (Match Flow Bible §1; ADR-054 §1).
+	const bool bPreparing = !GetWorld()->IsPaused() && GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Preparation;
+	const EVeyraOrderRejection Allowed = bPreparing ? EVeyraOrderRejection::None : CheckOrdersAllowed();
 	if (Allowed != EVeyraOrderRejection::None)
 	{
 		return Allowed;
@@ -514,9 +515,20 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Particip
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
+	FVector Goal = Destination;
+	if (bPreparing)
+	{
+		// The circle holds every path between its points, so a destination inside it keeps the walk inside.
+		const AActor* Start = Participant ? FindTeamStart(Participant->GetVeyraTeam()) : nullptr;
+		if (!Start)
+		{
+			return EVeyraOrderRejection::WrongPhase;
+		}
+		Goal = VeyraMatchRules::ClampToFountain(Destination, Start->GetActorLocation(), UVeyraMatchTuningSubsystem::Get().Fountain.Radius);
+	}
 	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
-	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard),
-		TOptional<FVector>(Destination));
+	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->MoveToDestination(Goal) : EVeyraOrderRejection::NoVanguard),
+		TOptional<FVector>(Goal));
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerState* Participant, AActor* Target)
@@ -1387,6 +1399,21 @@ void AVeyraGameMode::RecoverAtFountains()
 		const APawn* Body = PlayerState ? PlayerState->GetPawn() : nullptr;
 		const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
 		UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+		// In preparation no Vanguard leaves its fountain, whatever route navigation found near the rim: one found outside
+		// is brought back to the edge and stops (Match Flow Bible §1; ADR-054 §1).
+		if (Start && GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Preparation
+			&& FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) > Fountain.Radius)
+		{
+			if (APawn* Straying = PlayerState->GetPawn())
+			{
+				Straying->SetActorLocation(VeyraMatchRules::ClampToFountain(Straying->GetActorLocation(), Start->GetActorLocation(), Fountain.Radius),
+					/*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+			}
+			if (AVeyraVanguardController* Controller = PlayerState->GetVanguardController())
+			{
+				Controller->StopOrders();
+			}
+		}
 		// A rider uses the fountain only once it leaves the ride (Combat Bible §56).
 		const bool bRiding = AbilitySystem && VeyraCombat::IsRiding(*AbilitySystem);
 		const bool bAtFountain = Start && !bRiding && FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) <= Fountain.Radius;

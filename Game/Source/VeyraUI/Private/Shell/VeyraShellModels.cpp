@@ -208,6 +208,10 @@ FText DescribeNotice(const FString& Notice)
 	{
 		return LOCTEXT("NoticeConnectionLost", "You lost the connection to the match.");
 	}
+	if (Notice == TEXT("left_match"))
+	{
+		return LOCTEXT("NoticeLeftMatch", "You left the match. Your Vanguard plays on without you until you reconnect.");
+	}
 	if (Notice == TEXT("join_failed"))
 	{
 		return LOCTEXT("NoticeJoinFailed", "The match's server did not let you in.");
@@ -672,6 +676,19 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 	Model.bOffersCancel = bLeader && Model.bQueued;
 	Model.bCanCancel = bCanCancel;
 	return Model;
+}
+
+bool ShowsPlayReminder(const FVeyraClientSnapshot& Snapshot, double ReminderSeconds)
+{
+	const bool bAfterMatch = Snapshot.State == EVeyraClientState::Results || Snapshot.State == EVeyraClientState::Shell;
+	return bAfterMatch && ReminderSeconds > 0.0 && Snapshot.PlayedSeconds >= ReminderSeconds;
+}
+
+FText PlayReminderText(double PlayedSeconds)
+{
+	constexpr double SecondsPerHour = 3600.0;
+	const int32 Hours = FMath::Max(1, FMath::FloorToInt32(PlayedSeconds / SecondsPerHour));
+	return FText::Format(LOCTEXT("PlayReminder", "You have played for over {0} {0}|plural(one=hour,other=hours) in a row. A short break can help."), Hours);
 }
 
 FText FormatQueueStatus(double QueuedSeconds)

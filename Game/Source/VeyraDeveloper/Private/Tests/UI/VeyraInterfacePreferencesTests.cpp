@@ -76,6 +76,20 @@ namespace VeyraInterfacePreferencesTests
 			ASSERT_THAT(AreEqual(FString(TEXT("60 FPS")), DescribeReadouts(Preferences, 59.6f, TOptional<float>()), TEXT("no ping until one is known")));
 		}
 
+		// ADR-053 §1–§2: Leave Match asks first, and a match found plays its sound and asks for attention, unless turned off.
+		TEST_METHOD(TheLeaveConfirmationAndTheMatchFoundAlertFollowTheirSettings)
+		{
+			const FVeyraSettingsStore Defaults(Registry);
+			const FVeyraInterfacePreferences Untouched = Resolve(HudSettings(), &Defaults);
+			ASSERT_THAT(IsTrue(Untouched.bConfirmLeaveMatch && Untouched.bMatchReadySound && Untouched.bBackgroundMatchNotification, TEXT("each is On by default")));
+			FVeyraSettingsStore Store(Registry);
+			Store.Set(ConfirmLeaveMatch(), VeyraSettings::Off());
+			Store.Set(MatchReadySound(), VeyraSettings::Off());
+			Store.Set(BackgroundMatchNotification(), VeyraSettings::Off());
+			const FVeyraInterfacePreferences Off = Resolve(HudSettings(), &Store);
+			ASSERT_THAT(IsTrue(!Off.bConfirmLeaveMatch && !Off.bMatchReadySound && !Off.bBackgroundMatchNotification));
+		}
+
 		// ADR-052 §2: Fluxborn bars by side, jungle creatures' by engagement; every other bar whenever its unit is seen.
 		TEST_METHOD(BarsShowAsThePlayerSetThem)
 		{

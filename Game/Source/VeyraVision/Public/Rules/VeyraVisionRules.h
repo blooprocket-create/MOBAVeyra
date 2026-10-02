@@ -61,6 +61,33 @@ private:
 	TMap<FIntPoint, TArray<int32>> Cells;
 };
 
+/**
+ * A square grid over the battleground on which a side's seen ground is published (ADR-054 §2): CellsAcross cells a
+ * side, each CellSize wide, from the corner Min.
+ */
+struct FVeyraSeenGrid
+{
+	FVector2D Min = FVector2D::ZeroVector;
+	double CellSize = 0.0;
+	int32 CellsAcross = 0;
+
+	bool IsValid() const { return CellsAcross > 0 && CellSize > 0.0; }
+
+	int32 NumCells() const { return CellsAcross * CellsAcross; }
+
+	FVector2D CentreOf(int32 X, int32 Y) const { return Min + FVector2D((X + 0.5) * CellSize, (Y + 0.5) * CellSize); }
+
+	/** The grid of CellsAcross cells a side over the square reaching HalfExtent from Centre. */
+	static FVeyraSeenGrid Over(const FVector2D& Centre, double HalfExtent, int32 CellsAcross)
+	{
+		FVeyraSeenGrid Grid;
+		Grid.CellsAcross = CellsAcross;
+		Grid.CellSize = CellsAcross > 0 ? 2.0 * HalfExtent / CellsAcross : 0.0;
+		Grid.Min = Centre - FVector2D(HalfExtent, HalfExtent);
+		return Grid;
+	}
+};
+
 /** Vision's rules, as plain functions of positions (ADR-016 §2). */
 namespace VeyraVisionRules
 {
@@ -73,6 +100,17 @@ namespace VeyraVisionRules
 	 */
 	VEYRAVISION_API bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point,
 		const FVeyraSightWalls& Walls = FVeyraSightWalls());
+
+	/**
+	 * The cells of Grid whose centres Team's Sources see, by IsSeenBy's rules (ADR-054 §2), packed eight to a byte:
+	 * cell (X, Y) is bit (Y * CellsAcross + X) % 8 of byte (Y * CellsAcross + X) / 8. Each source tests only the cells
+	 * within its reach. Dense Fog darkens nothing: the fog itself is always seen (Vision Bible §2).
+	 */
+	VEYRAVISION_API TArray<uint8> SeenCells(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVeyraSeenGrid& Grid,
+		const FVeyraSightWalls& Walls = FVeyraSightWalls());
+
+	/** Whether cell (X, Y) of Grid is seen in Cells, as SeenCells packs them; false outside the grid. */
+	VEYRAVISION_API bool IsCellSeen(TConstArrayView<uint8> Cells, const FVeyraSeenGrid& Grid, int32 X, int32 Y);
 
 	/**
 	 * Whether one of Team's detecting Sources has Point within both its sight and DetectionRadius, with

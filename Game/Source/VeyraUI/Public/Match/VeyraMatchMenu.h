@@ -40,7 +40,9 @@ namespace VeyraMatchMenuModel
  * behind a confirmation; and outside Shipping, End Match (Developer) for a standard match, behind the
  * same confirmation. A standard match's players also start votes here (ADR-019 §7): Surrender and
  * Remake behind a confirmation, Request Pause, or Resume Early while paused, and answer an open vote
- * with Vote Yes or Vote No. It asks the server through the player's controller and decides nothing.
+ * with Vote Yes or Vote No. Every player may Leave Match, behind Stay in Match / Leave Match unless they
+ * turned that off (ADR-053 §1). It asks the server through the player's controller, and the client
+ * coordinator to leave, and decides nothing.
  */
 UCLASS()
 class VEYRAUI_API UVeyraMatchMenu : public UUserWidget
@@ -53,12 +55,19 @@ public:
 
 	/**
 	 * Shows the menu for Controller's match. Close runs when the menu should close; OpenSettings, when
-	 * given, is its Settings button's (ADR-024 §4).
+	 * given, is its Settings button's (ADR-024 §4); Leave, when given, leaves the match, at once or once
+	 * the player confirms as bConfirmLeave asks (ADR-053 §1).
 	 */
-	void Show(AVeyraPlayerController& InController, TFunction<void()> InClose, TFunction<void()> InOpenSettings = nullptr);
+	void Show(AVeyraPlayerController& InController, TFunction<void()> InClose, TFunction<void()> InOpenSettings = nullptr, TFunction<void()> InLeave = nullptr,
+		bool bInConfirmLeave = true);
 
-	/** The button that opens Settings. */
+	/** The button that opens Settings, the one that leaves, and the confirmation's that stays. */
 	static FText SettingsLabel();
+	static FText LeaveLabel();
+	static FText StayLabel();
+
+	/** The button keyboard focus goes to once it can take it: the confirmation's Stay in Match (SET-76). */
+	UVeyraShellButton* GetPendingFocus() const { return PendingFocus.Get(); }
 
 	/** Every button on the menu, in the order built. For tests and scripts. */
 	TArray<UVeyraShellButton*> GetButtons() const;
@@ -66,9 +75,15 @@ public:
 	/** The button labelled Label, or null. */
 	UVeyraShellButton* FindButton(const FText& Label) const;
 
+protected:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 private:
 	void Rebuild();
 	UVeyraShellButton* AddButton(const FText& Label, TFunction<void()> Action);
+
+	/** Closes the menu and leaves the match. */
+	void LeaveNow();
 
 	/** What waits for confirmation, if anything. */
 	enum class EConfirming : uint8
@@ -78,11 +93,15 @@ private:
 		DeveloperEnd,
 		Surrender,
 		Remake,
+		Leave,
 	};
 
 	TWeakObjectPtr<AVeyraPlayerController> Controller;
 	TFunction<void()> Close;
 	TFunction<void()> OpenSettings;
+	TFunction<void()> Leave;
+	bool bConfirmLeave = true;
+	TWeakObjectPtr<UVeyraShellButton> PendingFocus;
 	EConfirming Confirming = EConfirming::Nothing;
 
 	UPROPERTY(Transient)

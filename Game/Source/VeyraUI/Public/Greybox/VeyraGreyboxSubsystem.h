@@ -119,6 +119,9 @@ public:
 private:
 	/** Listens to the local player's combat text once its controller exists, and forgets the numbers done showing. */
 	void RefreshCombatText();
+
+	/** Darkens the ground the viewer's side does not see, redrawn only when its seen ground changes (ADR-054 §3). */
+	void RefreshFogOfWar();
 	void OnCombatText(const FVeyraCombatTextLine& Line);
 
 	TArray<FVeyraCombatTextArrival> CombatText;
@@ -243,6 +246,11 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULineBatchComponent> TelegraphLines;
+
+	/** The fog of war's sheet, and the seen ground it was drawn from (VeyraFogOfWar::SignatureOf). */
+	UPROPERTY(Transient)
+	TObjectPtr<ULineBatchComponent> FogOfWarSheet;
+	uint32 FogOfWarDrawn = 0;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFont> HudFont;

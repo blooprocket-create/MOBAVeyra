@@ -23,8 +23,10 @@ class UScrollBox;
 class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
+class FVeyraSettingsStore;
 class UVeyraSettingsScreen;
 class UVeyraSettingsSubsystem;
+struct FVeyraInterfacePreferences;
 class UVeyraShellButton;
 enum class EVeyraShellButtonKind : uint8;
 class UWidget;
@@ -75,6 +77,15 @@ enum class EVeyraShellConfirm : uint8
  * follow the backend's timers every frame; the rest is rebuilt only when what it shows changes, so a
  * poll that changes nothing never interrupts a click.
  */
+/** What a match found did to ask for the player's attention (SET-50, SET-71; ADR-053 §2). */
+struct FVeyraMatchFoundAlert
+{
+	/** The player allows the taskbar to draw attention to a client in the background. */
+	bool bAttentionAllowed = false;
+	/** The match-ready sound played. */
+	bool bSound = false;
+};
+
 UCLASS()
 class VEYRAUI_API UVeyraShellScreen : public UUserWidget
 {
@@ -86,6 +97,12 @@ public:
 
 	/** Stops showing and asking the client; the screen then shows nothing new. */
 	void Unbind();
+
+	/**
+	 * Follows Store, the player's settings, so a change to one the screen shows (the break reminder, the Match Found
+	 * alert) shows at once. Bind follows the game instance's; tests give their own. Store must outlive the binding.
+	 */
+	void BindSettings(FVeyraSettingsStore& Store);
 
 	/** Brings the screen up to date. Changes to the snapshot call it; tests call it directly. */
 	void Refresh();
@@ -153,6 +170,10 @@ public:
 
 	/** How many times a draft turn of the player's own asked for their attention (UX-31, UX-32). For tests. */
 	int32 GetTurnAttentionCount() const { return TurnAttentions; }
+
+	/** How many matches found asked for the player's attention, and what the last one did (SET-50, SET-71; ADR-053 §2). For tests. */
+	int32 GetMatchFoundAlertCount() const { return MatchFoundAlerts; }
+	const FVeyraMatchFoundAlert& GetLastMatchFoundAlert() const { return LastMatchFoundAlert; }
 
 	/** The art behind the screen: the Vanguard champion select shows, or null. */
 	UTexture2D* GetBackdrop() const;
@@ -364,6 +385,13 @@ private:
 	IVeyraClientIntents* Client = nullptr;
 	FDelegateHandle ChangedHandle;
 
+	/** The settings this screen follows, and its change handle. */
+	FVeyraSettingsStore* SettingsStore = nullptr;
+	FDelegateHandle SettingsHandle;
+
+	/** The player's interface settings, from the store this screen follows. */
+	FVeyraInterfacePreferences InterfacePreferences() const;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Content;
 
@@ -506,4 +534,24 @@ private:
 
 	/** Once as the player's draft turn begins: the window asks to come forward, or draws attention, and the cue plays. */
 	void DrawTurnAttention();
+
+	/** The match found that last asked for attention, by its ID, how many have, and what the last did. */
+	FString AttendedMatchFound;
+	int32 MatchFoundAlerts = 0;
+	FVeyraMatchFoundAlert LastMatchFoundAlert;
+
+	/** The break reminder, dismissible, where it applies (ADR-053 §4). */
+	void AddPlayReminder(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+
+	/** Whether the break reminder shows now, as the player set it. */
+	bool ShowsPlayReminder(const FVeyraClientSnapshot& Snapshot) const;
+
+	/** Once as a match is found: the taskbar draws attention to a background client, and the match-ready sound plays, as the player allows. */
+	void AnnounceMatchFound();
+
+	/** Asks the window, if it is not the active one, to draw attention until activated; first to come forward when bBringToFront. */
+	void DrawWindowAttention(bool bBringToFront);
+
+	/** Plays one brief cue made of TonesHz in turn, each ToneSeconds long and fading in and out, at Volume. */
+	void PlayCue(TConstArrayView<float> TonesHz, float ToneSeconds, float Volume);
 };

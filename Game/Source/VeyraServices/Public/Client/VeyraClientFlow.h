@@ -63,6 +63,8 @@ struct FVeyraClientFlowConfig
 	int32 ChatKeepMessages = 0;
 	/** How long the player stays in a match that ended, watching the end, before it leaves for the results (ADR-020 §1). */
 	double EndingShowSeconds = 0.0;
+	/** A gap this long without a match ends a play streak (ADR-053 §4). */
+	double PlayStreakGapSeconds = 0.0;
 	/** When the player's account settings are sent (ADR-024 §1). */
 	FVeyraAccountSettingsSyncConfig AccountSettings;
 
@@ -147,6 +149,8 @@ public:
 	/** Only a teammate whose offer stands is on offer. */
 	virtual bool AnswerTrade(int32 Seat, bool bAccept) override;
 	virtual bool Reconnect() override;
+	virtual bool LeaveLiveMatch() override;
+	virtual bool DismissPlayReminder() override;
 	virtual bool ContinueFromResults() override;
 	virtual bool Retry() override;
 	virtual bool ResolveSettingsConflict(bool bKeepThisDevice) override;
@@ -371,6 +375,13 @@ private:
 	void PollMatch();
 	void Connect(const VeyraBackendProtocol::FMyMatch& Match);
 	void LeaveMatch(bool bEnded, const FString& Notice);
+
+	/** A match began: its play streak goes on, or a new one begins after a long enough gap (ADR-053 §4). */
+	void NoteMatchStarted();
+
+	/** When the player's current play streak began, and when they last left a match, on the host's clock. */
+	TOptional<double> StreakStartedAt;
+	TOptional<double> LastMatchLeftAt;
 	void EnterAwaitingResults();
 	void PollResult();
 	void ShowResults(TOptional<VeyraBackendProtocol::FMatchOutcome> Outcome);
