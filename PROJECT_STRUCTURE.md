@@ -365,6 +365,12 @@ AI Vanguards ([ADR-013](Docs/ADR/ADR-013-ai-vanguards.md)), in their own Autonom
 
 Bots think only on the server.
 
+M46 ([ADR-056](Docs/ADR/ADR-056-bot-competence.md)) taught them:
+- to carry a consumable and drink it when hurt (`NextConsumable`, `NextDrink`);
+- to answer a threat to their base, sensed as the allied inhibitor, base tower or Prime Well with the most enemy Vanguards near it;
+- to buy back while it lasts (`ShouldBuyBack`);
+- late in a match, to push one lane together (`GroupLane`).
+
 ### VeyraVanguards
 
 Champion-specific gameplay content.

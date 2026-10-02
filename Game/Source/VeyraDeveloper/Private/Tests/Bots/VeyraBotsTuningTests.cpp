@@ -101,6 +101,17 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/grouping/laneOrder"))));
 		}
 
+		TEST_METHOD(BurstVanguardsBuildTheBurstItemsOfTheirDamage)
+		{
+			// Physical burst builds take a physical burst item, and magical ones the Reliquary (ADR-056 §5).
+			const auto Builds = [](const TCHAR* Vanguard, const TCHAR* Item) {
+				const FVeyraBotVanguardTuning* Entry = UVeyraBotsTuningSubsystem::FindVanguard(BotsId(Vanguard));
+				return Entry && Entry->Build.Contains(BotsId(Item));
+			};
+			ASSERT_THAT(IsTrue(Builds(TEXT("angeru"), TEXT("blank_sigil")) && Builds(TEXT("korruk"), TEXT("cutline_mantle")) && Builds(TEXT("qazharr"), TEXT("oathpiercer"))));
+			ASSERT_THAT(IsTrue(Builds(TEXT("tavi"), TEXT("memoryglass_reliquary")) && Builds(TEXT("moro"), TEXT("memoryglass_reliquary"))));
+		}
+
 		TEST_METHOD(SkillPriorityNamesEachKitSlotOnce)
 		{
 			FVeyraBotsTuning Broken = UVeyraBotsTuningSubsystem::Get();

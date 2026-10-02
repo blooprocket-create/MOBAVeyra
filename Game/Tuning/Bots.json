@@ -105,7 +105,7 @@
     },
     "qazharr": {
       "provenance": "Provisional",
-      "build": ["war_boots", "razorwheel_prime", "colossus_temper", "striker_assembly", "siege_frame"],
+      "build": ["war_boots", "razorwheel_prime", "colossus_temper", "oathpiercer", "siege_frame"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Top", "Jungle", "Mid"],
       "abilities": {
@@ -206,7 +206,7 @@
     },
     "korruk": {
       "provenance": "Provisional",
-      "build": ["war_boots", "sovereign_edge", "striker_assembly", "cycler_core", "razorwheel"],
+      "build": ["war_boots", "sovereign_edge", "cutline_mantle", "cycler_core", "razorwheel"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Mid", "Bottom", "Top"],
       "abilities": {
@@ -282,7 +282,7 @@
     },
     "moro": {
       "provenance": "Provisional",
-      "build": ["arcane_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_lens", "spellguard_plate"],
+      "build": ["arcane_boots", "crown_of_the_crucible", "memoryglass_reliquary", "nullglass_lens", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
       "roles": ["Jungle", "Mid"],
       "abilities": {
@@ -313,7 +313,7 @@
     },
     "tavi": {
       "provenance": "Provisional",
-      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "memoryglass_reliquary", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Jungle", "Mid"],
       "abilities": {
@@ -327,7 +327,7 @@
     },
     "angeru": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "blank_sigil"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Jungle", "Mid", "Top"],
       "abilities": {
