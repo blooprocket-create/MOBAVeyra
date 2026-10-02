@@ -141,11 +141,16 @@ TArray<FVeyraOutsideChat> OutsideOf(const FVeyraClientSnapshot& Snapshot)
 	{
 		const VeyraBackendProtocol::FAccount* Friend = Snapshot.Social.Friends.Friends.FindByPredicate(
 			[&Direct](const VeyraBackendProtocol::FAccount& Account) { return Account.Id == Direct.Key; });
+		// Only a friend's: a conversation kept from before the friendship ended, or a block, stays out of the match (ADR-046 §4, §6).
+		if (!Friend)
+		{
+			continue;
+		}
 		for (const FVeyraChatEntry& Entry : Direct.Value.Lines)
 		{
 			const bool bOwn = Entry.SenderId == Snapshot.AccountId;
 			// The friend's name, whoever sent it: the player reads "[To] DevTwo" for their own.
-			const FString Name = !bOwn ? Entry.SenderName : Friend ? Friend->DisplayName : FString(LOCTEXT("OutsideAFriend", "a friend").ToString());
+			const FString Name = !bOwn ? Entry.SenderName : Friend->DisplayName;
 			Out.Add({ bOwn ? EVeyraOutsideChatKind::DirectTo : EVeyraOutsideChatKind::DirectFrom, Name, Entry.Text, StatusOf(Entry), Entry.ArrivedAt });
 		}
 	}

@@ -184,6 +184,16 @@ namespace VeyraChatTests
 			ASSERT_THAT(AreEqual(2, Outside.Num()));
 			ASSERT_THAT(IsTrue(Outside[0].Kind == EVeyraOutsideChatKind::Party && Outside[0].Name == TEXT("DevOne") && Outside[0].ReceivedAt == 4.0));
 			ASSERT_THAT(IsTrue(Outside[1].Kind == EVeyraOutsideChatKind::DirectTo && Outside[1].Name == TEXT("DevTwo") && Outside[1].Status == TEXT("not sent")));
+
+			// A conversation kept from before the friendship ended, or a block, is never shown in the match.
+			FVeyraChatEntry Former;
+			Former.Kind = VeyraBackendProtocol::EChatKind::Direct;
+			Former.SenderId = TEXT("former");
+			Former.SenderName = TEXT("DevThree");
+			Former.With = TEXT("former");
+			Former.Text = TEXT("still here?");
+			Snapshot.Chat.Direct.FindOrAdd(TEXT("former")).Lines.Add(Former);
+			ASSERT_THAT(AreEqual(2, VeyraChatLog::OutsideOf(Snapshot).Num(), TEXT("only friends' conversations")));
 		}
 
 		TEST_METHOD(TheLogSitsJustAboveTheComposerAtTheBottomLeft)
