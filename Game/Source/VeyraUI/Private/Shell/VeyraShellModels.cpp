@@ -2,6 +2,8 @@
 
 #include "Shell/VeyraShellModels.h"
 
+#include "Algo/Count.h"
+#include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Text/VeyraContentText.h"
@@ -1347,6 +1349,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	{
 		Text << TEXT(";blocked:") << Player.Id;
 	}
+	// The account's level and balances, the Collection and a result's rewards (ADR-045 §8).
+	Text << VeyraProgressionModels::Signature(Snapshot);
 	return FString(Text.ToString());
 }
 }

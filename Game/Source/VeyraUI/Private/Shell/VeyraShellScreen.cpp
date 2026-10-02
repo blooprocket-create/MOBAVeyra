@@ -479,8 +479,14 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 			ShowPage(EVeyraShellPage::History);
 			Client->LoadHistory(Client->GetSnapshot().History.Filter);
 		}, true, Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
+		// Opening the Collection reads it afresh, with the level and balances (ADR-045 §8).
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavCollection", "Collection"), [this] {
+			ShowPage(EVeyraShellPage::Collection);
+			Client->LoadCollection();
+		}, true, Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
 	}
 	AddStretch(*WidgetTree, *Bar);
+	AddProgressionReadout(Snapshot, *Bar);
 	UTextBlock* Player = AddText(*Bar, FText::Format(LOCTEXT("SignedInAs", "Signed in as {0}"), FText::FromString(Snapshot.DisplayName)), RoleOf(EVeyraShellText::Muted));
 	Player->SetAutoWrapText(false);
 	AddSettingsButton(*Bar);
@@ -514,6 +520,10 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	else if (Page == EVeyraShellPage::History)
 	{
 		BuildHistory(Snapshot, *Body);
+	}
+	else if (Page == EVeyraShellPage::Collection)
+	{
+		BuildCollection(Snapshot, *Body);
 	}
 	else
 	{
@@ -910,6 +920,7 @@ void UVeyraShellScreen::BuildResults(const FVeyraClientSnapshot& Snapshot)
 	Buttons.Add(Continue);
 	Header->AddChildToHorizontalBox(Continue)->SetVerticalAlignment(VAlign_Bottom);
 	VeyraShellStyle::AddSpaced(*Content, *Header);
+	BuildRewards(Snapshot, *Content);
 	if (Model.bVerified)
 	{
 		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing * 2.0f));

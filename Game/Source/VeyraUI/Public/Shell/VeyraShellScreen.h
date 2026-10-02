@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellModels.h"
 #include "Types/SlateEnums.h"
 
@@ -39,6 +40,8 @@ enum class EVeyraShellPage : uint8
 	Play,
 	/** The player's completed matches (UX-51). */
 	History,
+	/** Every released Vanguard, with the player's ownership and Mastery, and Buy (ADR-045 §8). */
+	Collection,
 };
 
 /** What a card's action asks the player to confirm before it is sent (UX-11; ADR-044 §4). */
@@ -49,6 +52,8 @@ enum class EVeyraShellConfirm : uint8
 	PartyLeader,
 	/** Block, on a friend's card or a friend request. */
 	Block,
+	/** Buy, on a Vanguard's Collection card: the price and currency named (Account, Collection & Mastery Bible §7). */
+	Purchase,
 };
 
 /**
@@ -115,6 +120,8 @@ public:
 	const FString& GetOpenCard() const { return OpenCardId; }
 	static FString MemberCardKey(const FString& AccountId) { return TEXT("member:") + AccountId; }
 	static FString FriendCardKey(const FString& AccountId) { return TEXT("friend:") + AccountId; }
+	/** A Vanguard's card on the Collection page. */
+	static FString CollectionCardKey(const FString& VanguardId) { return TEXT("collection:") + VanguardId; }
 
 	/** How many times a draft turn of the player's own asked for their attention (UX-31, UX-32). For tests. */
 	int32 GetTurnAttentionCount() const { return TurnAttentions; }
@@ -160,6 +167,17 @@ private:
 	/** A filter's choices as a row of buttons; choosing one reads the first page again with it. */
 	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
 		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply);
+	/**
+	 * The Collection (VeyraShellCollection.cpp; ADR-045 §8): every released Vanguard as a card, owned or not, with the
+	 * player's Mastery; an opened card's detail and Buy in either currency, each behind a confirmation naming its price.
+	 */
+	void BuildCollection(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** The opened card's detail and its Buy actions, or the purchase's question in their place. */
+	void BuildCollectionDetail(const FVeyraClientSnapshot& Snapshot, const FVeyraCollectionCard& Card, UPanelWidget& Parent);
+	/** The top bar's account readout: the Account Level, its XP and the account currencies. */
+	void AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar);
+	/** What the match gave the player, on the results screen, apart from its own Gold and XP. */
+	void BuildRewards(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/**
 	 * The party bar along the bottom of every page of the shell while the player has a party (UX §3;
 	 * Art Bible §7.1): its mode and members, and Ready, Find Match and the queue's time.
