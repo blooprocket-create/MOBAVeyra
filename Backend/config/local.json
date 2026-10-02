@@ -179,6 +179,12 @@
     "retention": "168h",
     "postMatchWindow": "10m"
   },
+  "conduct": {
+    "reasons": ["abusive_chat", "afk", "griefing", "cheating", "offensive_name", "other"],
+    "detailsMaxCharacters": 500,
+    "reportWindow": "336h",
+    "commendWindow": "10m"
+  },
   "allocator": {
     "kind": "docker",
     "docker": {
