@@ -348,6 +348,20 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("ReportPlayer");
 	case EVeyraClientIntent::CommendTeammate:
 		return TEXT("CommendTeammate");
+	case EVeyraClientIntent::OpenProfile:
+		return TEXT("OpenProfile");
+	case EVeyraClientIntent::CloseProfile:
+		return TEXT("CloseProfile");
+	case EVeyraClientIntent::LoadMoreProfileMatches:
+		return TEXT("LoadMoreProfileMatches");
+	case EVeyraClientIntent::OpenProfileMatch:
+		return TEXT("OpenProfileMatch");
+	case EVeyraClientIntent::CloseProfileMatch:
+		return TEXT("CloseProfileMatch");
+	case EVeyraClientIntent::LoadProfileSettings:
+		return TEXT("LoadProfileSettings");
+	case EVeyraClientIntent::SaveProfileSettings:
+		return TEXT("SaveProfileSettings");
 	}
 	return TEXT("Unknown");
 }
@@ -552,6 +566,18 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 		return State == EVeyraClientState::Results || State == EVeyraClientState::Shell;
 	case EVeyraClientIntent::CommendTeammate:
 		return State == EVeyraClientState::Results;
+	// Profiles open where the friends panel and the player menu are: the shell, a lobby and the results; never
+	// through Match Found, a committed select or Reconnect-only (Profiles Bible §1).
+	case EVeyraClientIntent::OpenProfile:
+	case EVeyraClientIntent::CloseProfile:
+	case EVeyraClientIntent::LoadMoreProfileMatches:
+	case EVeyraClientIntent::OpenProfileMatch:
+	case EVeyraClientIntent::CloseProfileMatch:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;
+	// The player's own choices are made on the shell's Profile page.
+	case EVeyraClientIntent::LoadProfileSettings:
+	case EVeyraClientIntent::SaveProfileSettings:
+		return State == EVeyraClientState::Shell;
 	}
 	return false;
 }

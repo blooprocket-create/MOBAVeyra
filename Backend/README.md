@@ -223,7 +223,7 @@ Each account has a public profile ([ADR-048](../Docs/ADR/ADR-048-player-profiles
 | `GET /v1/profiles/{name}` | `Bearer <game token>` | — | `profile` (`name`, `icon`, `background`, `level`, `featured` {`vanguardId`, `masteryLevel`} or `null`, `sharesMatchHistory`). Refusal: `profile_unavailable` (an unknown name, or a block either way) |
 | `GET /v1/profiles/{name}/matches` | `Bearer <game token>` | — | the owner's Match History page, as `GET /v1/me/matches`, while they share it. Refusals: `history_private`, `profile_unavailable` |
 | `GET /v1/profiles/{name}/matches/{matchId}` | `Bearer <game token>` | — | one of those matches as the owner sees it, without the owner's rewards. Refusals as above, and `match_not_found` |
-| `GET /v1/me/profile-settings` | `Bearer <game token>` | — | `settings` (`icon`, `background`, `featuredVanguardId` or `null`, `showMatchHistory`) and the `catalog` |
+| `GET /v1/me/profile-settings` | `Bearer <game token>` | — | `settings` (`icon`, `background`, `featuredVanguardId` or `null`, `showMatchHistory`) and the `catalog`, with `featuredChoices`: the Vanguards the player permanently owns |
 | `PUT /v1/me/profile-settings` | `Bearer <game token>` | `settings`' fields | the saved `settings` and the `catalog`. Refusals: `invalid_icon`, `invalid_background`, `not_owned` (only a permanently owned Vanguard may be featured, never one lent by the rotation) |
 
 The catalog is `profile` in `config/local.json` (ADR-048 §2, provisional): a neutral default, plus each released Vanguard's portrait as an icon and its hero art as a background.

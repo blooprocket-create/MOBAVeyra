@@ -81,6 +81,8 @@ type Progress interface {
 	Level(ctx context.Context, accountID string) (int, error)
 	// Owns reports permanent ownership; the weekly rotation never counts.
 	Owns(ctx context.Context, accountID, vanguardID string) (bool, error)
+	// Owned lists the Vanguards the account permanently owns.
+	Owned(ctx context.Context, accountID string) ([]string, error)
 	MasteryLevel(ctx context.Context, accountID, vanguardID string) (int, error)
 }
 
@@ -106,6 +108,12 @@ func NewService(store Store, accounts Accounts, progress Progress, blocks Blocks
 
 // Catalog returns the choices every account may make.
 func (s *Service) Catalog() Catalog { return s.catalog }
+
+// FeaturedChoices lists the Vanguards the account may feature: those it
+// permanently owns (Profiles Bible §2).
+func (s *Service) FeaturedChoices(ctx context.Context, accountID string) ([]string, error) {
+	return s.progress.Owned(ctx, accountID)
+}
 
 // Settings returns the account's appearance as it shows now: the catalog's
 // defaults where it never chose, or chose what the catalog no longer lists,

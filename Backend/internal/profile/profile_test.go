@@ -44,6 +44,10 @@ func (p *fakeProgress) Owns(_ context.Context, accountID, vanguardID string) (bo
 	return false, nil
 }
 
+func (p *fakeProgress) Owned(_ context.Context, accountID string) ([]string, error) {
+	return p.owned[accountID], nil
+}
+
 func (p *fakeProgress) MasteryLevel(_ context.Context, _, vanguardID string) (int, error) {
 	if vanguardID == "cairn" {
 		return 4, nil
@@ -101,6 +105,9 @@ func TestOnlyCatalogChoicesAndOwnedVanguardsAreSaved(t *testing.T) {
 	}
 	if _, err := f.svc.SaveSettings(ctx, "acc-1", Appearance{Icon: "default", Background: "default", FeaturedVanguard: "oriel"}); !errors.Is(err, ErrNotOwned) {
 		t.Fatalf("a rotation Vanguard is not owned: %v", err)
+	}
+	if choices, err := f.svc.FeaturedChoices(ctx, "acc-1"); err != nil || len(choices) != 1 || choices[0] != "cairn" {
+		t.Fatalf("featured choices are the owned Vanguards: %v %v", choices, err)
 	}
 	saved := Appearance{Icon: "vanguard_oriel", Background: "vanguard_cairn", FeaturedVanguard: "cairn", ShowMatchHistory: true}
 	if _, err := f.svc.SaveSettings(ctx, "acc-1", saved); err != nil {

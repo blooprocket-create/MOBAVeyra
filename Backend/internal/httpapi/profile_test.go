@@ -32,6 +32,9 @@ func (profileProgress) Level(context.Context, string) (int, error) { return 7, n
 func (profileProgress) Owns(_ context.Context, _, vanguardID string) (bool, error) {
 	return vanguardID == "cairn", nil
 }
+func (profileProgress) Owned(context.Context, string) ([]string, error) {
+	return []string{"cairn"}, nil
+}
 func (profileProgress) MasteryLevel(context.Context, string, string) (int, error) { return 3, nil }
 
 func TestProfilesOverHTTP(t *testing.T) {
@@ -54,7 +57,7 @@ func TestProfilesOverHTTP(t *testing.T) {
 	status, got := call(t, srv, "GET", "/v1/me/profile-settings", one, nil)
 	settings := got["settings"].(map[string]any)
 	if status != http.StatusOK || settings["icon"] != "default" || settings["featuredVanguardId"] != nil || settings["showMatchHistory"] != false ||
-		len(got["catalog"].(map[string]any)["icons"].([]any)) != 2 {
+		len(got["catalog"].(map[string]any)["icons"].([]any)) != 2 || len(got["catalog"].(map[string]any)["featuredChoices"].([]any)) != 1 {
 		t.Fatalf("settings: %d %v", status, got)
 	}
 	if status, got = call(t, srv, "GET", oneProfile+"/matches", two, nil); got["error"] != "history_private" {

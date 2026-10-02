@@ -69,11 +69,21 @@ type profileSettingsJSON struct {
 	ShowMatchHistory   bool    `json:"showMatchHistory"`
 }
 
-func (s *Server) writeProfileSettings(w http.ResponseWriter, a profile.Appearance) {
+func (s *Server) writeProfileSettings(w http.ResponseWriter, r *http.Request, actor string, a profile.Appearance) {
+	// The featured Vanguard's choices are the ones the player permanently owns.
+	choices, err := s.Profile.FeaturedChoices(r.Context(), actor)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if choices == nil {
+		choices = []string{}
+	}
 	c := s.Profile.Catalog()
 	writeJSON(w, http.StatusOK, map[string]any{
 		"settings": profileSettingsJSON{Icon: a.Icon, Background: a.Background, FeaturedVanguardID: textOrNil(a.FeaturedVanguard), ShowMatchHistory: a.ShowMatchHistory},
-		"catalog":  map[string]any{"icons": c.Icons, "backgrounds": c.Backgrounds, "defaultIcon": c.DefaultIcon, "defaultBackground": c.DefaultBackground},
+		"catalog": map[string]any{"icons": c.Icons, "backgrounds": c.Backgrounds, "defaultIcon": c.DefaultIcon, "defaultBackground": c.DefaultBackground,
+			"featuredChoices": choices},
 	})
 }
 
@@ -84,7 +94,7 @@ func (s *Server) myProfileSettings(w http.ResponseWriter, r *http.Request, actor
 		s.fail(w, err)
 		return
 	}
-	s.writeProfileSettings(w, a)
+	s.writeProfileSettings(w, r, actor, a)
 }
 
 // saveProfileSettings saves the player's choices: catalog entries and a
@@ -103,5 +113,5 @@ func (s *Server) saveProfileSettings(w http.ResponseWriter, r *http.Request, act
 		s.fail(w, err)
 		return
 	}
-	s.writeProfileSettings(w, saved)
+	s.writeProfileSettings(w, r, actor, saved)
 }

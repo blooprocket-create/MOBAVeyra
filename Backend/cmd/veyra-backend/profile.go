@@ -49,6 +49,18 @@ func (p profileProgress) Owns(ctx context.Context, accountID, vanguardID string)
 	return slices.ContainsFunc(entitlements, func(e account.Entitlement) bool { return e.VanguardID == vanguardID }), nil
 }
 
+func (p profileProgress) Owned(ctx context.Context, accountID string) ([]string, error) {
+	entitlements, err := p.accounts.Entitlements(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(entitlements))
+	for _, e := range entitlements {
+		out = append(out, e.VanguardID)
+	}
+	return out, nil
+}
+
 func (p profileProgress) MasteryLevel(ctx context.Context, accountID, vanguardID string) (int, error) {
 	m, err := p.progress.MasteryOf(ctx, accountID, vanguardID)
 	return m.Level, err

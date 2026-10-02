@@ -133,4 +133,16 @@ public:
 	virtual bool ReportPlayer(const FString& Name, const FString& Reason, const FString& Details) = 0;
 	/** Commends Name, a teammate in the results' match; one per match (ADR-047 §3). */
 	virtual bool CommendTeammate(const FString& Name) = 0;
+	/** Opens Name's profile, the player's own included; a block either way shows it as unavailable (ADR-048 §3). */
+	virtual bool OpenProfile(const FString& Name) = 0;
+	virtual bool CloseProfile() = 0;
+	/** Reads the opened profile's next page of shared Match History. */
+	virtual bool LoadMoreProfileMatches() = 0;
+	/** Opens MatchId, listed in the opened profile's shared Match History, into its report. */
+	virtual bool OpenProfileMatch(const FString& MatchId) = 0;
+	virtual bool CloseProfileMatch() = 0;
+	/** Reads the player's own profile choices, the catalog, and their profile as others see it. */
+	virtual bool LoadProfileSettings() = 0;
+	/** Saves the player's profile choices: catalog entries, and a featured Vanguard they permanently own or none. */
+	virtual bool SaveProfileSettings(const VeyraBackendProtocol::FProfileSettings& Settings) = 0;
 };
