@@ -389,6 +389,10 @@ The trusted-services client (ADR-007 §12): the only module that talks to the ba
 - the match server's side: it reads the assignment from standard input, hands the roster to `VeyraMatch`, and reports ready and the result;
 - the backend's address, waits and polling, as validated settings.
 
+Since M43 ([ADR-053](Docs/ADR/ADR-053-leave-match-match-found-alert-loading-screen-and-break-reminder.md)), the coordinator:
+- takes `LeaveMatch`, a disconnect the player chose, after which the usual results or Reconnect-only follow;
+- counts the player's play streak to the end of each match (`PlayedSeconds`; a long enough gap without a match starts a new one) for the break reminder, which `DismissPlayReminder` restarts.
+
 It plugs into `VeyraMatch`'s contracts, so no gameplay module depends on it or on HTTP. It sits in its own Services layer, above Orchestration.
 
 ### VeyraUI
@@ -427,6 +431,12 @@ M42 added ([ADR-052](Docs/ADR/ADR-052-combat-text-health-bars-zoom-and-attack-ra
 - `Hud/VeyraCombatTextModel`, which keeps the combat text the player receives, leaves out the kinds they turned off, merges quick numbers under Reduced density, and which the HUD draws rising and fading above their units, coloured by damage type or Uniform;
 - the Fluxborn and jungle bar settings (`VeyraInterfacePreferences::ShowsBar`);
 - the Show Attack Range ring, in the indicator's appearance, at `VeyraHud::AttackReachOf`.
+
+M43 added ([ADR-053](Docs/ADR/ADR-053-leave-match-match-found-alert-loading-screen-and-break-reminder.md)):
+- Leave Match in the in-match menu, behind Stay in Match / Leave Match unless the player turned that off;
+- the Match Found alert: taskbar attention for a client in the background and the match-ready sound, the first Audio settings;
+- `Loading/`: the match loading screen (`UVeyraLoadingScreenSubsystem`, `UVeyraLoadingScreen` and the pure `VeyraLoadingModel`), with plain stages and the text table's tips and lore (`loading.tip.*`, `loading.lore.*`) in the player's categories;
+- the dismissible break reminder on the results and Home.
 
 ### VeyraDeveloper
 

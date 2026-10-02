@@ -298,7 +298,21 @@ void UVeyraMatchMenuSubsystem::OpenMenu()
 	{
 		return;
 	}
-	Menu->Show(*Controller, [this] { CloseMenu(); }, [this] { OpenSettings(); });
+	// Leave Match goes through the client coordinator, which a game without a launcher lacks (ADR-053 §1).
+	TFunction<void()> LeaveMatch;
+	const UGameInstance* Game = Controller->GetGameInstance();
+	UVeyraClientFlowSubsystem* Flow = Game ? Game->GetSubsystem<UVeyraClientFlowSubsystem>() : nullptr;
+	if (Flow && Flow->GetClient().CanIssue(EVeyraClientIntent::LeaveMatch))
+	{
+		LeaveMatch = [WeakFlow = TWeakObjectPtr<UVeyraClientFlowSubsystem>(Flow)] {
+			if (UVeyraClientFlowSubsystem* Leaving = WeakFlow.Get())
+			{
+				Leaving->GetClient().LeaveLiveMatch();
+			}
+		};
+	}
+	const bool bConfirmLeave = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(Controller)).bConfirmLeaveMatch;
+	Menu->Show(*Controller, [this] { CloseMenu(); }, [this] { OpenSettings(); }, MoveTemp(LeaveMatch), bConfirmLeave);
 	// Above the shop, if it is open.
 	Menu->AddToViewport(/*ZOrder*/ 1);
 	UpdateInputMode();

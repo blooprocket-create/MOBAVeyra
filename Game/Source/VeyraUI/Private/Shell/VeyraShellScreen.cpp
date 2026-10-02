@@ -31,6 +31,8 @@
 #include "Shell/VeyraMatchHistoryModel.h"
 #include "Shell/VeyraProfileModels.h"
 #include "Shell/VeyraShellArt.h"
+#include "Greybox/VeyraGreyboxSettings.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -222,6 +224,15 @@ void UVeyraShellScreen::Refresh()
 			DrawTurnAttention();
 		}
 	}
+	// A match found asks for attention once, as it arrives (SET-50, SET-71; ADR-053 §2).
+	if (const FString Found = Snapshot.State == EVeyraClientState::MatchFound ? Snapshot.MatchFound.Id : FString(); Found != AttendedMatchFound)
+	{
+		AttendedMatchFound = Found;
+		if (!Found.IsEmpty())
+		{
+			AnnounceMatchFound();
+		}
+	}
 	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|select chat %d|menu %s|form %s:%s|"),
 								  static_cast<int32>(Page), OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex,
 								  *BotDifficulty, *OpenCardId, static_cast<int32>(Confirm), *ConfirmId, bSelectChatHidden ? 1 : 0, *OpenPlayerMenu, *ReportFormName,
@@ -229,6 +240,8 @@ void UVeyraShellScreen::Refresh()
 		// The Profile page's choices before Save (ADR-048 §5).
 		FString::Printf(TEXT("profile draft %d:%s:%s:%s:%d|"), bProfileDraftReady ? 1 : 0, *ProfileDraft.Icon, *ProfileDraft.Background,
 			*ProfileDraft.FeaturedVanguardId, ProfileDraft.bShowMatchHistory ? 1 : 0) +
+		// The break reminder comes and goes with the player's setting as well as the snapshot (ADR-053 §4).
+		FString::Printf(TEXT("reminder %d|"), ShowsPlayReminder(Snapshot) ? 1 : 0) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
@@ -243,31 +256,92 @@ void UVeyraShellScreen::DrawTurnAttention()
 	++TurnAttentions;
 	// Asked for once, never held: the window comes forward, and where the OS refuses it the taskbar
 	// draws attention until the player comes back (UX-31). The timer never waits for them.
-	const TSharedPtr<SWidget> Widget = GetCachedWidget();
-	if (FSlateApplication::IsInitialized() && Widget.IsValid())
+	DrawWindowAttention(/*bBringToFront*/ true);
+	// One brief, distinct cue (UX-32).
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	PlayCue(Style.TurnCueTonesHz, Style.TurnCueToneSeconds, Style.TurnCueVolume);
+}
+
+bool UVeyraShellScreen::ShowsPlayReminder(const FVeyraClientSnapshot& Snapshot) const
+{
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this));
+	return VeyraShellModels::ShowsPlayReminder(Snapshot, ShellStyle().PlayReminderSeconds.FindRef(Preferences.PlayReminder));
+}
+
+void UVeyraShellScreen::AddPlayReminder(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
+{
+	// Optional and dismissible; it never locks anything or costs anything (Account Bible §2).
+	if (!ShowsPlayReminder(Snapshot))
 	{
-		if (const TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(Widget.ToSharedRef()))
+		return;
+	}
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing));
+	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	UTextBlock* Words = VeyraShellStyle::MakeText(*WidgetTree, VeyraShellModels::PlayReminderText(Snapshot.PlayedSeconds), EVeyraShellText::Body);
+	Words->SetAutoWrapText(true);
+	UHorizontalBoxSlot* WordsSlot = Row->AddChildToHorizontalBox(Words);
+	WordsSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	WordsSlot->SetVerticalAlignment(VAlign_Center);
+	UVeyraShellButton* Dismiss = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Secondary, LOCTEXT("DismissReminder", "Dismiss"),
+		[this] { Client->DismissPlayReminder(); }, Client->CanIssue(EVeyraClientIntent::DismissPlayReminder));
+	Buttons.Add(Dismiss);
+	Row->AddChildToHorizontalBox(Dismiss)->SetVerticalAlignment(VAlign_Center);
+	Panel->SetContent(Row);
+	VeyraShellStyle::AddSpaced(Parent, *Panel);
+}
+
+void UVeyraShellScreen::AnnounceMatchFound()
+{
+	++MatchFoundAlerts;
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this));
+	LastMatchFoundAlert = FVeyraMatchFoundAlert{ Preferences.bBackgroundMatchNotification, Preferences.bMatchReadySound };
+	// Taskbar attention only: the client never takes focus for itself, accepts, or tells anything of the party (SET-50).
+	if (Preferences.bBackgroundMatchNotification)
+	{
+		DrawWindowAttention(/*bBringToFront*/ false);
+	}
+	// The sound in the foreground or the background; turned off, the prompt and the attention stay (SET-71).
+	if (Preferences.bMatchReadySound)
+	{
+		const UVeyraShellStyleSettings& Style = ShellStyle();
+		PlayCue(Style.MatchReadyCueTonesHz, Style.MatchReadyCueToneSeconds, Style.MatchReadyCueVolume);
+	}
+}
+
+void UVeyraShellScreen::DrawWindowAttention(bool bBringToFront)
+{
+	const TSharedPtr<SWidget> Widget = GetCachedWidget();
+	if (!FSlateApplication::IsInitialized() || !Widget.IsValid())
+	{
+		return;
+	}
+	if (const TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(Widget.ToSharedRef()))
+	{
+		if (bBringToFront)
 		{
 			Window->BringToFront(/*bForce*/ true);
-			if (!Window->IsActive())
-			{
-				Window->DrawAttention(FWindowDrawAttentionParameters(EWindowDrawAttentionRequestType::UntilActivated));
-			}
+		}
+		if (!Window->IsActive())
+		{
+			Window->DrawAttention(FWindowDrawAttentionParameters(EWindowDrawAttentionRequestType::UntilActivated));
 		}
 	}
-	// One brief, distinct cue, made from the style's tones as it plays: each fades in and out over its
-	// length, so it neither clicks nor rings on (UX-32).
-	const UVeyraShellStyleSettings& Style = ShellStyle();
+}
+
+void UVeyraShellScreen::PlayCue(TConstArrayView<float> TonesHz, float ToneSeconds, float Volume)
+{
+	// Made from the tones as it plays: each fades in and out over its length, so it neither clicks nor rings on.
 	UWorld* World = GetWorld();
-	if (!World || !FApp::CanEverRenderAudio() || Style.TurnCueTonesHz.IsEmpty())
+	if (!World || !FApp::CanEverRenderAudio() || TonesHz.IsEmpty())
 	{
 		return;
 	}
 	constexpr int32 SampleRate = UVeyraShellStyleSettings::TurnCueSampleRate;
-	const int32 ToneSamples = FMath::Max(1, FMath::RoundToInt32(Style.TurnCueToneSeconds * SampleRate));
+	const int32 ToneSamples = FMath::Max(1, FMath::RoundToInt32(ToneSeconds * SampleRate));
 	TArray<int16> Samples;
-	Samples.Reserve(ToneSamples * Style.TurnCueTonesHz.Num());
-	for (const float Hz : Style.TurnCueTonesHz)
+	Samples.Reserve(ToneSamples * TonesHz.Num());
+	for (const float Hz : TonesHz)
 	{
 		for (int32 Index = 0; Index < ToneSamples; ++Index)
 		{
@@ -281,7 +355,7 @@ void UVeyraShellScreen::DrawTurnAttention()
 	Cue->Duration = static_cast<float>(Samples.Num()) / SampleRate;
 	Cue->bLooping = false;
 	Cue->QueueAudio(reinterpret_cast<const uint8*>(Samples.GetData()), Samples.Num() * sizeof(int16));
-	UGameplayStatics::PlaySound2D(World, Cue, Style.TurnCueVolume);
+	UGameplayStatics::PlaySound2D(World, Cue, Volume);
 }
 
 void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
@@ -829,6 +903,7 @@ void UVeyraShellScreen::BuildHome(const FVeyraClientSnapshot& Snapshot, UPanelWi
 	AddText(*Column, LOCTEXT("HomeLead", "Every Vanguard answers the Crucible's call. Choose a mode, then the Vanguard you will be."),
 		RoleOf(EVeyraShellText::Body));
 	AddGap(*WidgetTree, *Column, Style.Spacing);
+	AddPlayReminder(Snapshot, *Column);
 	AddKindButton(*Column, EVeyraShellButtonKind::Primary, LOCTEXT("HomePlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); });
 	AddStretch(*WidgetTree, *Column);
 	AddStretch(*WidgetTree, *Column);
@@ -1002,6 +1077,7 @@ void UVeyraShellScreen::BuildResults(const FVeyraClientSnapshot& Snapshot)
 	Buttons.Add(Continue);
 	Header->AddChildToHorizontalBox(Continue)->SetVerticalAlignment(VAlign_Bottom);
 	VeyraShellStyle::AddSpaced(*Content, *Header);
+	AddPlayReminder(Snapshot, *Content);
 	BuildRewards(Snapshot, *Content);
 	// The report, with the optional post-match chat beside it (UX-59–60).
 	UHorizontalBox* Below = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());

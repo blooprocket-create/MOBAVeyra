@@ -117,6 +117,36 @@ const FVeyraContentId& ConfineCursor()
 	return Id;
 }
 
+const FVeyraContentId& ConfirmLeaveMatch()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_confirm_leave_match"));
+	return Id;
+}
+
+const FVeyraContentId& BackgroundMatchNotification()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("audio_background_match_notification"));
+	return Id;
+}
+
+const FVeyraContentId& MatchReadySound()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("audio_match_ready_sound"));
+	return Id;
+}
+
+const FVeyraContentId& PlayReminder()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_play_reminder"));
+	return Id;
+}
+
+const FVeyraContentId& LoadingContent()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_loading_tips"));
+	return Id;
+}
+
 const FVeyraContentId& IndicatorBoundary()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("interface_indicator_boundary"));
@@ -262,6 +292,11 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.bShowPing = Store->IsOn(ShowPing());
 	Preferences.bScoreboardToggles = Store->Get(ScoreboardMode()) == Toggle;
 	Preferences.bConfineCursor = Store->IsOn(ConfineCursor());
+	Preferences.bConfirmLeaveMatch = Store->IsOn(ConfirmLeaveMatch());
+	Preferences.bBackgroundMatchNotification = Store->IsOn(BackgroundMatchNotification());
+	Preferences.bMatchReadySound = Store->IsOn(MatchReadySound());
+	Preferences.LoadingContent = VeyraLoadingModel::ParseContent(Store->Get(LoadingContent()));
+	Preferences.PlayReminder = Store->Get(PlayReminder());
 	Preferences.IndicatorThickness = Store->Get(IndicatorBoundary()) == Thick ? Hud.IndicatorThickThickness : Hud.IndicatorThickness;
 	const FString Size = Store->Get(ChatTextSize());
 	Preferences.ChatFontSize = Size == Large ? Hud.ChatLargeFontSize : Size == ExtraLarge ? Hud.ChatExtraLargeFontSize : Hud.ChatFontSize;

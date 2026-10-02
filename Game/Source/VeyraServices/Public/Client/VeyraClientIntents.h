@@ -55,6 +55,10 @@ public:
 	/** Accepts or declines the trade the teammate in seat Seat offers. */
 	virtual bool AnswerTrade(int32 Seat, bool bAccept) = 0;
 	virtual bool Reconnect() = 0;
+	/** Leaves the live match on purpose: the Vanguard plays on, and the player may reconnect (ADR-053 §1). */
+	virtual bool LeaveLiveMatch() = 0;
+	/** Dismisses the break reminder, which counts the player's play again from now (ADR-053 §4). */
+	virtual bool DismissPlayReminder() = 0;
 	virtual bool ContinueFromResults() = 0;
 	virtual bool Retry() = 0;
 	/** Keeps this device's settings, sending them over the account's, or takes the account's (ADR-024 §1). */

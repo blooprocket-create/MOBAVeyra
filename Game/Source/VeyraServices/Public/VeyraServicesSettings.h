@@ -89,6 +89,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float ChatPollIntervalSeconds = 0.0f;
 
+	/** Client: a gap this long without a match ends a play streak, which the break reminder counts (ADR-053 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float PlayStreakGapSeconds = 0.0f;
+
 	/** Client: how many lines each chat conversation keeps; older ones drop off. */
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	int32 ChatKeepMessages = 0;

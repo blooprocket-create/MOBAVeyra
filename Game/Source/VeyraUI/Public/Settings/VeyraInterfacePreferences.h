@@ -4,6 +4,7 @@
 
 #include "Content/VeyraContentId.h"
 #include "Hud/VeyraCombatTextModel.h"
+#include "Loading/VeyraLoadingModel.h"
 #include "Misc/Optional.h"
 #include "Units/VeyraUnit.h"
 
@@ -56,6 +57,15 @@ struct FVeyraInterfacePreferences
 	bool bScoreboardToggles = false;
 	/** The cursor stays inside the game's window during a match (SET-83). */
 	bool bConfineCursor = true;
+	/** Leave Match asks Stay in Match / Leave Match first (SET-76; ADR-053 §1). */
+	bool bConfirmLeaveMatch = true;
+	/** A match found draws attention to a client in the background, and plays the match-ready sound (SET-50, SET-71; ADR-053 §2). */
+	bool bBackgroundMatchNotification = true;
+	bool bMatchReadySound = true;
+	/** Which tips and lore the loading screen shows (SET-118; ADR-053 §3). */
+	EVeyraLoadingContent LoadingContent = EVeyraLoadingContent::Both;
+	/** After how long a play streak the break reminder shows, as its option; Off shows none (ADR-053 §4). */
+	FString PlayReminder;
 	/** The local player's indicator outline, in units: Standard or Thick (Settings Bible §3.3; ADR-041 §2). */
 	float IndicatorThickness = 0.0f;
 	/** The chat's type size (SET-66), its backdrop, clear for Transparent (SET-67), how long a line stays whole, and its timestamps (Settings Bible §5.2). */
@@ -87,6 +97,11 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& ShowPing();
 	VEYRAUI_API const FVeyraContentId& ScoreboardMode();
 	VEYRAUI_API const FVeyraContentId& ConfineCursor();
+	VEYRAUI_API const FVeyraContentId& ConfirmLeaveMatch();
+	VEYRAUI_API const FVeyraContentId& BackgroundMatchNotification();
+	VEYRAUI_API const FVeyraContentId& MatchReadySound();
+	VEYRAUI_API const FVeyraContentId& LoadingContent();
+	VEYRAUI_API const FVeyraContentId& PlayReminder();
 	VEYRAUI_API const FVeyraContentId& IndicatorBoundary();
 	VEYRAUI_API const FVeyraContentId& ChatTextSize();
 	VEYRAUI_API const FVeyraContentId& ChatBackdrop();

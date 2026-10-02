@@ -15,6 +15,8 @@
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shell/VeyraUIInputSettings.h"
+#include "Settings/VeyraInterfacePreferences.h"
+#include "VeyraSettingsSubsystem.h"
 #include "Tests/Services/VeyraClientFlowTestRig.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Text/VeyraContentText.h"
@@ -881,6 +883,46 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsFalse(Button(TEXT("Decline"))->GetIsEnabled()));
 		}
 
+		TEST_METHOD(TheBreakReminderShowsAfterLongPlayAndNeverOtherwise)
+		{
+			// ADR-053 §4: after a match, in the results or the shell, once the streak reaches the player's length; Off never.
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.State = EVeyraClientState::Results;
+			Snapshot.PlayedSeconds = 7300.0;
+			ASSERT_THAT(IsTrue(VeyraShellModels::ShowsPlayReminder(Snapshot, 7200.0)));
+			ASSERT_THAT(IsFalse(VeyraShellModels::ShowsPlayReminder(Snapshot, 10800.0), TEXT("not yet three hours")));
+			ASSERT_THAT(IsFalse(VeyraShellModels::ShowsPlayReminder(Snapshot, 0.0), TEXT("Off")));
+			Snapshot.State = EVeyraClientState::Shell;
+			ASSERT_THAT(IsTrue(VeyraShellModels::ShowsPlayReminder(Snapshot, 3600.0)));
+			Snapshot.State = EVeyraClientState::InMatch;
+			ASSERT_THAT(IsFalse(VeyraShellModels::ShowsPlayReminder(Snapshot, 3600.0), TEXT("never during a match")));
+			ASSERT_THAT(AreEqual(VeyraShellModels::PlayReminderText(7300.0).ToString(), FString(TEXT("You have played for over 2 hours in a row. A short break can help."))));
+			ASSERT_THAT(AreEqual(VeyraShellModels::PlayReminderText(3700.0).ToString(), FString(TEXT("You have played for over 1 hour in a row. A short break can help."))));
+
+			// Every option but Off has its length.
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			const TOptional<FVeyraSettingInfo> Setting = VeyraSettings::Find(Registry, VeyraInterfacePreferences::PlayReminder());
+			ASSERT_THAT(IsTrue(Setting.IsSet() && Setting->Choice));
+			for (const FString& Option : Setting->Choice->Options)
+			{
+				ASSERT_THAT(AreEqual(GetDefault<UVeyraShellStyleSettings>()->PlayReminderSeconds.Contains(Option), Option != TEXT("Off"), Option));
+			}
+		}
+
+		TEST_METHOD(AMatchFoundAsksForAttentionOnce)
+		{
+			// ADR-053 §2: once as it arrives, with the match-ready sound and background attention the player allows (SET-50, SET-71).
+			ASSERT_THAT(IsTrue(Rig.ReachMatchFound()));
+			ShowScreen();
+			ASSERT_THAT(AreEqual(Screen->GetMatchFoundAlertCount(), 1));
+			const FVeyraMatchFoundAlert& Alert = Screen->GetLastMatchFoundAlert();
+			ASSERT_THAT(IsTrue(Alert.bSound && Alert.bAttentionAllowed, TEXT("both are on by default")));
+			Button(TEXT("Accept"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("pending"), TEXT("accepted"), 1))));
+			ASSERT_THAT(AreEqual(Screen->GetMatchFoundAlertCount(), 1, TEXT("not again for the same match found")));
+		}
+
 		TEST_METHOD(ACasualSelectShowsTheTeamsAndOffersLeave)
 		{
 			ASSERT_THAT(IsTrue(Rig.ReachCasualSelect()));
@@ -988,6 +1030,32 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::OffersVotes(EVeyraMatchRules::Practice), TEXT("a practice match's host ends it")));
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::OffersVotes(EVeyraMatchRules::Custom), TEXT("remake and pause are matchmade")));
 			ASSERT_THAT(IsTrue(VeyraMatchMenuModel::OffersSurrender(true) && !VeyraMatchMenuModel::OffersSurrender(false), TEXT("surrender where it can be won")));
+		}
+
+		TEST_METHOD(LeaveMatchAsksFirstWithStayFocusedUnlessTurnedOff)
+		{
+			// ADR-053 §1; SET-76.
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			UVeyraMatchMenu* Menu = CreateWidget<UVeyraMatchMenu>(&Spawner.GetWorld());
+			bool bClosed = false;
+			int32 Left = 0;
+			Menu->Show(Controller, [&bClosed] { bClosed = true; }, nullptr, [&Left] { ++Left; });
+			ASSERT_THAT(IsTrue(LabelsOf(Menu->GetButtons()) == TArray<FString>{ TEXT("Resume"), TEXT("Leave Match") }));
+			Menu->FindButton(UVeyraMatchMenu::LeaveLabel())->Press();
+			ASSERT_THAT(IsTrue(LabelsOf(Menu->GetButtons()) == TArray<FString>{ TEXT("Stay in Match"), TEXT("Leave Match") }, TEXT("behind a confirmation, Stay first")));
+			ASSERT_THAT(IsTrue(Menu->GetPendingFocus() == Menu->FindButton(UVeyraMatchMenu::StayLabel()), TEXT("and focused")));
+			ASSERT_THAT(IsTrue(Left == 0 && !bClosed));
+			Menu->FindButton(UVeyraMatchMenu::StayLabel())->Press();
+			ASSERT_THAT(IsTrue(LabelsOf(Menu->GetButtons()).Contains(TEXT("Resume")) && Left == 0, TEXT("Stay keeps the player in")));
+			Menu->FindButton(UVeyraMatchMenu::LeaveLabel())->Press();
+			Menu->FindButton(UVeyraMatchMenu::LeaveLabel())->Press();
+			ASSERT_THAT(IsTrue(Left == 1 && bClosed, TEXT("the menu closes and the player leaves")));
+
+			// With the confirmation turned off, Leave Match leaves at once.
+			Left = 0;
+			Menu->Show(Controller, [] {}, nullptr, [&Left] { ++Left; }, /*bInConfirmLeave*/ false);
+			Menu->FindButton(UVeyraMatchMenu::LeaveLabel())->Press();
+			ASSERT_THAT(IsTrue(Left == 1));
 		}
 
 		TEST_METHOD(OutsidePracticeTheMenuOffersResume)

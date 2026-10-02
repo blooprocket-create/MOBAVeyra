@@ -494,6 +494,15 @@ namespace VeyraShellModels
 	VEYRAUI_API FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanReady, bool bCanFindMatch, bool bCanCancel,
 		const FVeyraPartyPermissions& Permissions = FVeyraPartyPermissions());
 
+	/**
+	 * Whether the break reminder shows (Account Bible §2; ADR-053 §4): in the results or the shell after a match, once the
+	 * player's streak reached ReminderSeconds. Never for 0, the player's Off.
+	 */
+	VEYRAUI_API bool ShowsPlayReminder(const FVeyraClientSnapshot& Snapshot, double ReminderSeconds);
+
+	/** The reminder's words for a streak of PlayedSeconds. */
+	VEYRAUI_API FText PlayReminderText(double PlayedSeconds);
+
 	/** The queue's status: its elapsed time, and no estimate until one can be made honestly (UX-2). */
 	VEYRAUI_API FText FormatQueueStatus(double QueuedSeconds);
 

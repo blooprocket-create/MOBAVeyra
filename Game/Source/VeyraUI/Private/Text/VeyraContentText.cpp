@@ -44,6 +44,29 @@ namespace
 		return Table.IsValid() && Table->GetSourceString(FTextKey(Key), Source);
 	}
 
+	/** Every row whose key starts with Prefix, in key order. */
+	TArray<FText> RowsStartingWith(const TCHAR* Prefix)
+	{
+		TArray<FString> Keys;
+		if (const FStringTableConstPtr Table = FStringTableRegistry::Get().FindStringTable(TableName))
+		{
+			Table->EnumerateSourceStrings([&Keys, Prefix](const FString& Key, const FString& /*Source*/) {
+				if (Key.StartsWith(Prefix))
+				{
+					Keys.Add(Key);
+				}
+				return true;
+			});
+		}
+		Keys.Sort();
+		TArray<FText> Rows;
+		for (const FString& Key : Keys)
+		{
+			Rows.Add(FText::FromStringTable(TableName, FTextKey(Key)));
+		}
+		return Rows;
+	}
+
 	/** The table's text for the key, or Fallback when the table has none. */
 	FText TextOr(const TCHAR* Kind, const FVeyraContentId& Id, const TCHAR* Field, const FString& Fallback)
 	{
@@ -67,6 +90,16 @@ void Register()
 FText VanguardName(const FVeyraContentId& Vanguard)
 {
 	return TextOr(VanguardKind, Vanguard, NameField, Vanguard.ToString());
+}
+
+TArray<FText> LoadingTips()
+{
+	return RowsStartingWith(TEXT("loading.tip."));
+}
+
+TArray<FText> LoadingLore()
+{
+	return RowsStartingWith(TEXT("loading.lore."));
 }
 
 FText ModeName(const FVeyraContentId& Mode, const FString& Fallback)

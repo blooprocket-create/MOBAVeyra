@@ -49,6 +49,7 @@ namespace VeyraClientFlowTests
 				{ EVeyraClientIntent::LockVanguard, EVeyraClientState::Selecting },
 				{ EVeyraClientIntent::LeaveSelect, EVeyraClientState::Selecting },
 				{ EVeyraClientIntent::Reconnect, EVeyraClientState::ReconnectOnly },
+				{ EVeyraClientIntent::LeaveMatch, EVeyraClientState::InMatch },
 				{ EVeyraClientIntent::ContinueFromResults, EVeyraClientState::Results },
 				{ EVeyraClientIntent::CreateLobby, EVeyraClientState::Shell },
 				{ EVeyraClientIntent::AcceptLobbyInvite, EVeyraClientState::Shell },
@@ -305,6 +306,42 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby)));
 			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Shell));
 			ASSERT_THAT(IsFalse(Flow->GetSnapshot().Result.IsSet()));
+		}
+
+		TEST_METHOD(LeavingAMatchOnPurposeLeavesOnlyReconnectWhileItRuns)
+		{
+			// ADR-053 §1: Leave Match is a disconnect the player chose. The Vanguard plays on, and Reconnect returns to it.
+			ASSERT_THAT(IsTrue(ReachMatch()));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::LeaveMatch)));
+			ASSERT_THAT(IsTrue(Flow->LeaveLiveMatch()));
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Returning));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("left_match"))));
+			ASSERT_THAT(AreEqual(Host.Travels.Last(), FString(TEXT("front end"))));
+			ASSERT_THAT(IsFalse(Flow->LeaveLiveMatch(), TEXT("only from a match")));
+			Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::AwaitingResults));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, OutcomeBody(TEXT("ready"), false))));
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::ReconnectOnly && Flow->CanIssue(EVeyraClientIntent::Reconnect)));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("left_match")), TEXT("Reconnect-only says why the player is there")));
+		}
+
+		TEST_METHOD(ThePlayStreakCountsUpToTheResultsAndADismissalStartsItAgain)
+		{
+			// ADR-053 §4: the reminder reads how long the player had played in a row when they left the match.
+			constexpr double Played = 7300.0;
+			ASSERT_THAT(IsTrue(ReachMatch()));
+			Advance(Played);
+			Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
+			Advance(FClientFlowTestRig::EndingShowSeconds);
+			Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, OutcomeBody(TEXT("ended"), true)) && State() == EVeyraClientState::Results));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Flow->GetSnapshot().PlayedSeconds, Played + FClientFlowTestRig::EndingShowSeconds),
+				FString::SanitizeFloat(Flow->GetSnapshot().PlayedSeconds)));
+			ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Results, EVeyraClientIntent::DismissPlayReminder)
+				&& FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Shell, EVeyraClientIntent::DismissPlayReminder)
+				&& !FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::InMatch, EVeyraClientIntent::DismissPlayReminder), TEXT("after a match only")));
+			ASSERT_THAT(IsTrue(Flow->DismissPlayReminder()));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().PlayedSeconds == 0.0, TEXT("dismissing counts again from now")));
 		}
 
 		TEST_METHOD(NetworkFailureToReconnect)

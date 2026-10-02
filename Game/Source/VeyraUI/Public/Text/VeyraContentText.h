@@ -54,6 +54,13 @@ namespace VeyraContentText
 	 */
 	VEYRAUI_API TArray<FString> FindMissingItemText();
 
+	/**
+	 * The loading screen's gameplay tips (loading.tip.<n>) and lore facts (loading.lore.<n>), each in key order (SET-116;
+	 * ADR-053 §3).
+	 */
+	VEYRAUI_API TArray<FText> LoadingTips();
+	VEYRAUI_API TArray<FText> LoadingLore();
+
 	/** A setting's name and its plain-language description (Settings Bible §6.3). */
 	VEYRAUI_API FText SettingName(const FVeyraContentId& Setting);
 	VEYRAUI_API FText SettingDescription(const FVeyraContentId& Setting);

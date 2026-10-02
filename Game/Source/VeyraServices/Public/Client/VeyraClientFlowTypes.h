@@ -173,6 +173,13 @@ enum class EVeyraClientIntent : uint8
 	LoadDisplayName,
 	/** Changes the player's display name; free first and when another player claimed it, paid later. */
 	ChangeDisplayName,
+	/**
+	 * Leaves the live match on purpose (ADR-053 §1): as a disconnect does, the Vanguard plays on under autopilot, and the
+	 * player may reconnect to it from Reconnect-only. In a match only.
+	 */
+	LeaveMatch,
+	/** Dismisses the break reminder after a match (ADR-053 §4). The results and the shell. */
+	DismissPlayReminder,
 };
 
 /** Which kind of world the client just loaded. */
@@ -441,6 +448,8 @@ struct FVeyraClientSnapshot
 	double QueuedSince = 0.0;
 	/** MatchFound: the match found as last read. */
 	VeyraBackendProtocol::FMatchFound MatchFound;
+	/** After a match: how long the player had played in a row when they left it, for the break reminder; 0 once dismissed (ADR-053 §4). */
+	double PlayedSeconds = 0.0;
 	/** MatchFound: when the acceptance timer ends, on the flow host's clock. */
 	double AcceptEndsAt = 0.0;
 	/** Selecting: the Vanguards the player may pick, in the catalog's order; empty until read. */

@@ -69,11 +69,14 @@ bool UVeyraMatchMenu::Initialize()
 	return bFirst;
 }
 
-void UVeyraMatchMenu::Show(AVeyraPlayerController& InController, TFunction<void()> InClose, TFunction<void()> InOpenSettings)
+void UVeyraMatchMenu::Show(AVeyraPlayerController& InController, TFunction<void()> InClose, TFunction<void()> InOpenSettings, TFunction<void()> InLeave,
+	bool bInConfirmLeave)
 {
 	Controller = &InController;
 	Close = MoveTemp(InClose);
 	OpenSettings = MoveTemp(InOpenSettings);
+	Leave = MoveTemp(InLeave);
+	bConfirmLeave = bInConfirmLeave;
 	Confirming = EConfirming::Nothing;
 	Rebuild();
 }
@@ -81,6 +84,41 @@ void UVeyraMatchMenu::Show(AVeyraPlayerController& InController, TFunction<void(
 FText UVeyraMatchMenu::SettingsLabel()
 {
 	return LOCTEXT("Settings", "Settings");
+}
+
+FText UVeyraMatchMenu::LeaveLabel()
+{
+	return LOCTEXT("LeaveMatch", "Leave Match");
+}
+
+FText UVeyraMatchMenu::StayLabel()
+{
+	return LOCTEXT("StayInMatch", "Stay in Match");
+}
+
+void UVeyraMatchMenu::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	// A button built this frame has no Slate widget to focus until it is laid out.
+	if (UVeyraShellButton* Focus = PendingFocus.Get(); Focus && Focus->GetCachedWidget().IsValid())
+	{
+		Focus->SetKeyboardFocus();
+		PendingFocus.Reset();
+	}
+}
+
+void UVeyraMatchMenu::LeaveNow()
+{
+	// The menu closes first: leaving takes the player out of the match world.
+	const TFunction<void()> Leaving = Leave;
+	if (Close)
+	{
+		Close();
+	}
+	if (Leaving)
+	{
+		Leaving();
+	}
 }
 
 void UVeyraMatchMenu::Rebuild()
@@ -91,6 +129,7 @@ void UVeyraMatchMenu::Rebuild()
 	}
 	Content->ClearChildren();
 	Buttons.Reset();
+	PendingFocus.Reset();
 	AVeyraPlayerController* Owner = Controller.Get();
 	const AVeyraGameState* GameState = Owner && Owner->GetWorld() ? Owner->GetWorld()->GetGameState<AVeyraGameState>() : nullptr;
 	const bool bCanEnd = Owner && GameState && VeyraMatchMenuModel::CanEndCustomMatch(GameState->GetMatchRules(), GameState->GetHost(), Owner->PlayerState);
@@ -127,6 +166,20 @@ void UVeyraMatchMenu::Rebuild()
 			Confirming = EConfirming::Nothing;
 			Rebuild();
 		});
+		return;
+	}
+	if (Confirming == EConfirming::Leave && Leave)
+	{
+		// Stay first and focused, so a stray key keeps the player in (SET-76). The match does not pause.
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("ConfirmLeave", "Leave this match?"), VeyraShellStyle::EVeyraShellText::Heading));
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
+			LOCTEXT("ConfirmLeaveDetail", "Your Vanguard plays on without you. While the match lasts, you can reconnect to it from the client."),
+			VeyraShellStyle::EVeyraShellText::Body));
+		PendingFocus = AddButton(StayLabel(), [this] {
+			Confirming = EConfirming::Nothing;
+			Rebuild();
+		});
+		AddButton(LeaveLabel(), [this] { LeaveNow(); });
 		return;
 	}
 	if (bConfirmingCustom || bConfirmingDeveloper)
@@ -248,6 +301,20 @@ void UVeyraMatchMenu::Rebuild()
 		AddButton(DeveloperEndLabel, [this] {
 			Confirming = EConfirming::DeveloperEnd;
 			Rebuild();
+		});
+	}
+	if (Leave)
+	{
+		AddButton(LeaveLabel(), [this] {
+			if (bConfirmLeave)
+			{
+				Confirming = EConfirming::Leave;
+				Rebuild();
+			}
+			else
+			{
+				LeaveNow();
+			}
 		});
 	}
 }

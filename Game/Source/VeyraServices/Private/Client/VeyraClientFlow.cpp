@@ -266,6 +266,10 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("AnswerTrade");
 	case EVeyraClientIntent::Reconnect:
 		return TEXT("Reconnect");
+	case EVeyraClientIntent::LeaveMatch:
+		return TEXT("LeaveMatch");
+	case EVeyraClientIntent::DismissPlayReminder:
+		return TEXT("DismissPlayReminder");
 	case EVeyraClientIntent::ContinueFromResults:
 		return TEXT("ContinueFromResults");
 	case EVeyraClientIntent::Retry:
@@ -383,6 +387,7 @@ FVeyraClientFlowConfig FVeyraClientFlowConfig::FromSettings(const UVeyraServices
 	Config.ResultPollIntervalSeconds = Settings.ResultPollIntervalSeconds;
 	Config.ResultWaitTimeoutSeconds = Settings.ResultWaitTimeoutSeconds;
 	Config.ReconnectPollIntervalSeconds = Settings.ReconnectPollIntervalSeconds;
+	Config.PlayStreakGapSeconds = Settings.PlayStreakGapSeconds;
 	Config.PartyPollIntervalSeconds = Settings.PartyPollIntervalSeconds;
 	Config.MatchFoundPollIntervalSeconds = Settings.MatchFoundPollIntervalSeconds;
 	Config.LobbyPollIntervalSeconds = Settings.LobbyPollIntervalSeconds;
@@ -502,6 +507,11 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 		return State == EVeyraClientState::Selecting;
 	case EVeyraClientIntent::Reconnect:
 		return State == EVeyraClientState::ReconnectOnly;
+	case EVeyraClientIntent::LeaveMatch:
+		return State == EVeyraClientState::InMatch;
+	// The reminder shows in the pre-game client after a match: the results and the shell (ADR-053 §4).
+	case EVeyraClientIntent::DismissPlayReminder:
+		return State == EVeyraClientState::Results || State == EVeyraClientState::Shell;
 	case EVeyraClientIntent::ContinueFromResults:
 		return State == EVeyraClientState::Results;
 	case EVeyraClientIntent::Retry:
@@ -2507,6 +2517,7 @@ void FVeyraClientFlow::NotifyWorld(EVeyraClientWorld World)
 	case EVeyraClientState::Connecting:
 		if (World == EVeyraClientWorld::Match)
 		{
+			NoteMatchStarted();
 			Enter(EVeyraClientState::InMatch);
 			Log(FString::Printf(TEXT("in match %s."), *Snapshot.MatchId));
 			Broadcast();
@@ -2561,8 +2572,33 @@ void FVeyraClientFlow::NotifyConnectionFailed(const FString& Reason)
 	}
 }
 
+void FVeyraClientFlow::NoteMatchStarted()
+{
+	// A match soon after the last one goes on the same streak; after a long enough gap a new streak begins (ADR-053 §4).
+	const double Now = Host.Now();
+	if (!StreakStartedAt.IsSet() || (LastMatchLeftAt.IsSet() && Now - LastMatchLeftAt.GetValue() >= Config.PlayStreakGapSeconds))
+	{
+		StreakStartedAt = Now;
+	}
+}
+
+bool FVeyraClientFlow::DismissPlayReminder()
+{
+	if (!CanIssue(EVeyraClientIntent::DismissPlayReminder))
+	{
+		return false;
+	}
+	// Dismissing starts the count again; it never stops the player from playing on.
+	StreakStartedAt = Host.Now();
+	Snapshot.PlayedSeconds = 0.0;
+	Broadcast();
+	return true;
+}
+
 void FVeyraClientFlow::LeaveMatch(bool bEnded, const FString& Notice)
 {
+	LastMatchLeftAt = Host.Now();
+	Snapshot.PlayedSeconds = StreakStartedAt.IsSet() ? LastMatchLeftAt.GetValue() - StreakStartedAt.GetValue() : 0.0;
 	bWatchingEnd = false;
 	bMatchEnded = bEnded;
 	Enter(EVeyraClientState::Returning, Notice);
@@ -2677,6 +2713,19 @@ void FVeyraClientFlow::PollRewards()
 		}
 		After(Config.ResultPollIntervalSeconds, [this] { PollRewards(); });
 	});
+}
+
+bool FVeyraClientFlow::LeaveLiveMatch()
+{
+	if (!CanIssue(EVeyraClientIntent::LeaveMatch))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("the player leaves match %s."), *Snapshot.MatchId));
+	// The server sees a disconnect; the results, or Reconnect-only while the match runs, follow as after any (ADR-053 §1).
+	// Once the match has ended, leaving only skips the rest of watching its end.
+	LeaveMatch(/*bEnded*/ bWatchingEnd, bWatchingEnd ? FString() : FString(TEXT("left_match")));
+	return true;
 }
 
 bool FVeyraClientFlow::ContinueFromResults()
