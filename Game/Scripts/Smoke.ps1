@@ -975,7 +975,7 @@ if ($Handoff -or $Flow) {
                 'Party' { 'Home', 'PartyFormed', 'PartyConfirm', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
                 'Chat' { 'Home', 'PartyFormed', 'Chat' }
-                'Profile' { 'Profile', 'ProfileView' }
+                'Profile' { 'Profile' }
                 'Rename' { 'RenameConfirm', 'Renamed' }
             }
             foreach ($screen in $screens) {
