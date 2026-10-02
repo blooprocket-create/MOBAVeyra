@@ -833,6 +833,11 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 
 FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor)
 {
+	return TEXT("/v1/me/matches") + HistoryQuery(Filter, Cursor);
+}
+
+FString HistoryQuery(const FHistoryFilter& Filter, const FString& Cursor)
+{
 	TArray<FString> Query;
 	const TPair<const TCHAR*, const FString*> Fields[] = {
 		{ TEXT("vanguard"), &Filter.VanguardId },
@@ -847,7 +852,7 @@ FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor)
 			Query.Add(FString::Printf(TEXT("%s=%s"), Field.Key, *FGenericPlatformHttp::UrlEncode(*Field.Value)));
 		}
 	}
-	return Query.IsEmpty() ? FString(TEXT("/v1/me/matches")) : TEXT("/v1/me/matches?") + FString::Join(Query, TEXT("&"));
+	return Query.IsEmpty() ? FString() : TEXT("?") + FString::Join(Query, TEXT("&"));
 }
 
 bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem)

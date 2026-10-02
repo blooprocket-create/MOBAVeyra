@@ -354,6 +354,8 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("CloseProfile");
 	case EVeyraClientIntent::LoadMoreProfileMatches:
 		return TEXT("LoadMoreProfileMatches");
+	case EVeyraClientIntent::FilterProfileMatches:
+		return TEXT("FilterProfileMatches");
 	case EVeyraClientIntent::OpenProfileMatch:
 		return TEXT("OpenProfileMatch");
 	case EVeyraClientIntent::CloseProfileMatch:
@@ -575,6 +577,7 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::OpenProfile:
 	case EVeyraClientIntent::CloseProfile:
 	case EVeyraClientIntent::LoadMoreProfileMatches:
+	case EVeyraClientIntent::FilterProfileMatches:
 	case EVeyraClientIntent::OpenProfileMatch:
 	case EVeyraClientIntent::CloseProfileMatch:
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;

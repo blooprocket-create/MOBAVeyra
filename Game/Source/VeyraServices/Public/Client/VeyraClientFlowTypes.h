@@ -162,6 +162,8 @@ enum class EVeyraClientIntent : uint8
 	CloseProfile,
 	/** Reads the opened profile's next page of shared Match History. */
 	LoadMoreProfileMatches,
+	/** Reads the opened profile's shared Match History again with other filters (ADR-048 §3). */
+	FilterProfileMatches,
 	/** Opens one of the opened profile's shared matches into its report. */
 	OpenProfileMatch,
 	CloseProfileMatch,
@@ -376,6 +378,11 @@ struct FVeyraProfileView
 	bool bMatchesLoaded = false;
 	TArray<VeyraBackendProtocol::FHistoryEntry> Matches;
 	FString Next;
+	/** Its filters, the owner's own (ADR-048 §3), and every mode the owner has a shared match in: the mode filter's choices. */
+	VeyraBackendProtocol::FHistoryFilter Filter;
+	TArray<FString> Modes;
+	/** A page is being read: Load More waits for it, so no page is asked for twice. */
+	bool bReadingMatches = false;
 	/** One shared match opened into its report; unset while none is. */
 	TOptional<VeyraBackendProtocol::FMatchOutcome> OpenedMatch;
 };

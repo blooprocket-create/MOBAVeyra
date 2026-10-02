@@ -67,9 +67,21 @@ namespace VeyraClientFlowTests
 			const FVeyraProfileView& View = Snapshot().ProfileView;
 			ASSERT_THAT(IsTrue(View.bMatchesLoaded && View.Matches.Num() == 1 && View.Next == TEXT("cursor_1") && !View.Profile.Featured.IsSet()));
 			ASSERT_THAT(IsTrue(Rig.Flow->LoadMoreProfileMatches()));
+			ASSERT_THAT(IsFalse(Rig.Flow->LoadMoreProfileMatches(), TEXT("one page at a time: the next is on its way")));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches?cursor=cursor_1"), 200,
 				HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
 			ASSERT_THAT(IsTrue(View.Matches.Num() == 2 && View.Next.IsEmpty()));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches?cursor=cursor_1")), TEXT("asked for once")));
+
+			// The owner's own filters: the first page again, with them (ADR-048 §3).
+			VeyraBackendProtocol::FHistoryFilter Filter;
+			Filter.VanguardId = TEXT("cairn");
+			Filter.Outcome = TEXT("loss");
+			ASSERT_THAT(IsTrue(Rig.Flow->FilterProfileMatches(Filter)));
+			ASSERT_THAT(IsTrue(View.Matches.IsEmpty() && !View.bMatchesLoaded));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches?vanguard=cairn&outcome=loss"), 200,
+				HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
+			ASSERT_THAT(IsTrue(View.Matches.Num() == 1 && View.Filter == Filter));
 			ASSERT_THAT(IsFalse(Rig.Flow->OpenProfileMatch(TEXT("not-listed"))));
 			ASSERT_THAT(IsTrue(Rig.Flow->OpenProfileMatch(OlderMatchId)));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), FString(ProfileOfDevTwo) + TEXT("/matches/") + OlderMatchId, 200, ScoredOutcomeBody())));
@@ -118,7 +130,8 @@ namespace VeyraClientFlowTests
 
 		TEST_METHOD(ProfilesOpenFromTheShellALobbyAndTheResults)
 		{
-			for (const EVeyraClientIntent Intent : { EVeyraClientIntent::OpenProfile, EVeyraClientIntent::OpenProfileMatch, EVeyraClientIntent::LoadMoreProfileMatches })
+			for (const EVeyraClientIntent Intent : { EVeyraClientIntent::OpenProfile, EVeyraClientIntent::OpenProfileMatch, EVeyraClientIntent::LoadMoreProfileMatches,
+					 EVeyraClientIntent::FilterProfileMatches })
 			{
 				for (const EVeyraClientState Where : { EVeyraClientState::Shell, EVeyraClientState::Lobby, EVeyraClientState::Results })
 				{
@@ -162,7 +175,10 @@ namespace VeyraClientFlowTests
 		TEST_METHOD(PathsEscapeTheNameAndASaveWritesNoneAsNull)
 		{
 			ASSERT_THAT(AreEqual(VeyraBackendProtocol::ProfilePath(TEXT("Dev Two")), FString(TEXT("/v1/profiles/Dev%20Two"))));
-			ASSERT_THAT(AreEqual(VeyraBackendProtocol::ProfileMatchesPath(TEXT("DevTwo"), TEXT("c 1")), FString(TEXT("/v1/profiles/DevTwo/matches?cursor=c%201"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::ProfileMatchesPath(TEXT("DevTwo"), {}, TEXT("c 1")), FString(TEXT("/v1/profiles/DevTwo/matches?cursor=c%201"))));
+			VeyraBackendProtocol::FHistoryFilter Filter;
+			Filter.Mode = TEXT("casual");
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::ProfileMatchesPath(TEXT("DevTwo"), Filter, FString()), FString(TEXT("/v1/profiles/DevTwo/matches?mode=casual"))));
 			VeyraBackendProtocol::FProfileSettings Settings;
 			Settings.Icon = TEXT("default");
 			Settings.Background = TEXT("default");
