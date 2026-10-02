@@ -3,5 +3,9 @@
 {
   "name": "veyra",
   "main": "Website/worker.js",
-  "compatibility_date": "2025-09-01"
+  "compatibility_date": "2025-09-01",
+  // A branch other than the production branch builds a Preview (npx wrangler preview), which needs this block even
+  // when empty. The keys above stay here at the top level and apply to Previews too; variables and bindings are not
+  // inherited, so a Preview's own go in this block, pointed at test resources.
+  "previews": {}
 }
