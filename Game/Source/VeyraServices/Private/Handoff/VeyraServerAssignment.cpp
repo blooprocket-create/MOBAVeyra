@@ -53,6 +53,8 @@ TArray<FString> Parse(FStringView Line, FStringView SchemaText, FVeyraServerAssi
 	{
 		FVeyraAssignedParticipant& Assigned = Assignment.Match.Participants.Add_GetRef({ MoveTemp(Participant.AccountId), MoveTemp(Participant.DisplayName),
 			SideOf(Participant.Side), MoveTemp(Participant.TicketHash), Participant.VanguardId });
+		Assigned.MasteryLevel = Participant.MasteryLevel;
+		Assigned.EmoteTier = Participant.EmoteTier;
 		// The schema holds each to a content ID or empty, and an empty slot has no ID.
 		for (const FString& Spell : Participant.FluxSpells)
 		{

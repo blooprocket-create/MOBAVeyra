@@ -121,6 +121,7 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
 	Objects.VoteYes = NewCastAction(Outer, TEXT("VeyraVoteYes"));
 	Objects.VoteNo = NewCastAction(Outer, TEXT("VeyraVoteNo"));
+	Objects.MasteryEmote = NewCastAction(Outer, TEXT("VeyraMasteryEmote"));
 	Objects.MappingContext = MapKeys(Settings, Objects, Outer);
 	return Objects;
 }
@@ -153,6 +154,7 @@ UInputMappingContext* MapKeys(const UVeyraInputSettings& Settings, const FVeyraI
 	Map(Actions.Recall, Settings.RecallKey);
 	Map(Actions.VoteYes, Settings.VoteYesKey);
 	Map(Actions.VoteNo, Settings.VoteNoKey);
+	Map(Actions.MasteryEmote, Settings.MasteryEmoteKey);
 	return Context;
 }
 }

@@ -3,6 +3,7 @@
 #include "Shell/VeyraShellModels.h"
 
 #include "Algo/Count.h"
+#include "Shell/VeyraChatModels.h"
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Slots/VeyraAbilitySlot.h"
@@ -1209,6 +1210,11 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 		FriendModel.bCanJoinParty = FriendModel.bOffersJoinParty && Permissions.bCanJoinFriendParty;
 		FriendModel.bCanRemove = Permissions.bCanRemoveFriend;
 		FriendModel.bCanBlock = Permissions.bCanBlock;
+		FriendModel.bCanMessage = Permissions.bCanMessage;
+		if (const FVeyraChatConversation* Conversation = Snapshot.Chat.Direct.Find(Friend.Id))
+		{
+			FriendModel.Unread = Conversation->Unread;
+		}
 		Model.Friends.Add(MoveTemp(FriendModel));
 	}
 	for (const VeyraBackendProtocol::FAccount& To : Social.Friends.Outgoing)
@@ -1245,6 +1251,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 {
 	TStringBuilder<1024> Text;
 	Text << LexToString(Snapshot.State) << TEXT("|") << Snapshot.DisplayName << TEXT("|") << (Snapshot.bBusy ? TEXT("busy") : TEXT("idle")) << TEXT("|") << Snapshot.Notice;
+	// Chat changes what the sidebar, champion select and the results show (ADR-046 §6).
+	Text << TEXT("|") << VeyraChatModels::Signature(Snapshot.Chat);
 	if (Snapshot.Problem.IsSet())
 	{
 		Text << TEXT("|problem:") << Snapshot.Problem->Code << TEXT(":") << Snapshot.Problem->Message << (Snapshot.Problem->bCanRetry ? TEXT(":retry") : TEXT(""));

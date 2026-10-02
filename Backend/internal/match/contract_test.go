@@ -38,7 +38,9 @@ func TestAssignmentMatchesTheGamesContract(t *testing.T) {
 			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB, VanguardID: "oriel", FluxSpells: [2]string{"mend", ""}},
 		},
 	}
-	line, err := BuildAssignment(m, contractCredential, "http://backend:8080")
+	// DevOne has played Cairn to Mastery Level 3; DevTwo has never played Oriel.
+	masteries := map[string]ParticipantMastery{vectorAccountID: {Level: 3, EmoteTier: 1}, "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff": {Level: 1, EmoteTier: 1}}
+	line, err := BuildAssignment(m, contractCredential, "http://backend:8080", masteries)
 	if err != nil {
 		t.Fatal(err)
 	}

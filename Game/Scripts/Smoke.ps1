@@ -97,6 +97,12 @@
     select allows only because it is owned now. Its verified result must carry rewards that say a practice
     match gives none.
 
+    -Flow Chat exchanges messages between two packaged clients (ADR-046), with no match: they become
+    friends if they are not yet; the first invites the second into a party from the friends panel and the
+    second joins from the invitation. Each says hello in Party Chat from the sidebar and waits to read the
+    other's, then opens the other's card, chooses Message and sends a direct message, and waits to read
+    the other's. Each line names its sender and the party, so an earlier run's lines never count.
+
     -Flow Coop plays Co-op vs AI to a win (ADR-039 §6) with one packaged client, against the local
     co-op mode of one human player: it queues, accepts, locks its Vanguard beside the enemy AI team
     the backend seated, and sieges with Veyra.Dev.Siege until the other side's Prime Well falls. The
@@ -238,7 +244,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Party', 'Settings', 'Collection')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Party', 'Settings', 'Collection', 'Chat')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -497,10 +503,13 @@ if ($Handoff -or $Flow) {
     $isVictory = $Flow -in 'CasualVictory', 'Custom', 'Coop', 'Party'
     # -Flow Settings: one player, two starts, no match.
     $isSettings = $Flow -eq 'Settings'
+    # -Flow Chat: two friends form a party by invitation and exchange Party Chat and direct messages through the
+    # sidebar; no match (ADR-046).
+    $isChat = $Flow -eq 'Chat'
     # Its bots, one on each side: side A's, then side B's. Neither is a Vanguard a player locks.
     $CustomBots = @('bryn', 'qazharr')
     # Every run but a declined match found plays a match.
-    $expectsMatch = $Flow -notin 'CasualDecline', 'Settings'
+    $expectsMatch = $Flow -notin 'CasualDecline', 'Settings', 'Chat'
     $playerCount = $(if ($isPractice -or $isSettings -or $isCoop) { 1 } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
     # The committed config's queues hold five humans a side (Modes Bible §1, §4). A smoke has one client a
@@ -568,7 +577,7 @@ if ($Handoff -or $Flow) {
             Side = $(if ($isPractice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
             Vanguard = $(if ($isPractice) { $PracticeVanguard } elseif ($isMatchmade -or $isCustom -or $isCoop -or $isParty) { $CasualVanguards[$index] } else { $SmokeVanguard }) }
     }
-    if (($isMatchmade -or $isCustom -or $isParty) -and @($participants).Count -lt 2) {
+    if (($isMatchmade -or $isCustom -or $isParty -or $isChat) -and @($participants).Count -lt 2) {
         Write-Host "-Flow $Flow needs two dev accounts in Backend/config/local.json devLogin.accounts."
         exit $ExitInfrastructure
     }
@@ -605,6 +614,9 @@ if ($Handoff -or $Flow) {
         # The accounts keep their onboarding and their friendship from earlier runs; the clients' lobby
         # and its champion select create the match.
         Write-Host "Seating $($participants.Name -join ' and ') in a custom lobby for $mode."
+    }
+    elseif ($isChat) {
+        Write-Host "$($participants.Name -join ' and ') form a party and chat in it: no match."
     }
     elseif ($isSettings) {
         Write-Host "Starting $($participants[0].Name)'s client twice: to change settings, then to find them kept."
@@ -690,6 +702,7 @@ if ($Handoff -or $Flow) {
                         $friend = $participants[1 - $index].Name
                         @($(if ($index -eq 0) { '-VeyraSmokeFlow=partyleader' } else { '-VeyraSmokeFlow=partymember' }), "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)",
                             "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory', "-VeyraSmokeFlowMode=$mode") + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
+                    elseif ($isChat) { @($(if ($index -eq 0) { '-VeyraSmokeFlow=chatleader' } else { '-VeyraSmokeFlow=chatmember' }), "-VeyraSmokeFlowFriend=$($participants[1 - $index].Name)") }
                     elseif ($isCoop) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory', '-VeyraSmokeFlowSieges', "-VeyraSmokeFlowMode=$mode") }
                     elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
@@ -838,6 +851,15 @@ if ($Handoff -or $Flow) {
                         $failed = $true
                     }
                 }
+                # Each friend sent Party Chat and a direct message through the client flow (ADR-046).
+                if ($isChat) {
+                    foreach ($chatLine in 'VeyraClientFlow: sending a party chat message.', 'VeyraClientFlow: sending a direct chat message.') {
+                        if (-not (Select-String -LiteralPath $client.Log -SimpleMatch $chatLine -Quiet)) {
+                            Write-Host "  It never logged '$chatLine'"
+                            $failed = $true
+                        }
+                    }
+                }
                 # In a draft each side bans in its turns (ADR-042 §1).
                 if ($isDraft -and -not (Select-String -LiteralPath $client.Log -SimpleMatch 'VeyraClientFlow: banning ' -Quiet)) {
                     Write-Host '  It never banned in its draft.'
@@ -866,6 +888,7 @@ if ($Handoff -or $Flow) {
                 'Custom' { 'Home', 'Play', 'Lobby', 'LobbyReady', 'ChampionSelect', 'Results' }
                 'Party' { 'Home', 'PartyFormed', 'PartyConfirm', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
+                'Chat' { 'Home', 'PartyFormed', 'Chat' }
             }
             foreach ($screen in $screens) {
                 $shot = Join-Path $reportDir "Flow-$screen.png"

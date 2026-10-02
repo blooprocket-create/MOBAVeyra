@@ -108,6 +108,53 @@ func (f *fixture) ready(t *testing.T, m Match) Assignment {
 
 var twoSeats = []Seat{{AccountID: "acc-1", Side: SideA, VanguardID: "cairn"}, {AccountID: "acc-2", Side: SideB, VanguardID: "cairn"}}
 
+// fixedMasteries stands in for the progression domain: acc-1 has played Cairn to Level 4.
+type fixedMasteries struct{ asked []string }
+
+func (m *fixedMasteries) MasteryOf(_ context.Context, accountID, vanguardID string) (ParticipantMastery, error) {
+	m.asked = append(m.asked, accountID+":"+vanguardID)
+	if accountID == "acc-1" {
+		return ParticipantMastery{Level: 4, EmoteTier: 2}, nil
+	}
+	return ParticipantMastery{Level: 1, EmoteTier: 1}, nil
+}
+
+func TestTheAssignmentCarriesEachPlayersMastery(t *testing.T) {
+	f := newFixture(t)
+	masteries := &fixedMasteries{}
+	f.svc.SetMasteries(masteries)
+	m := f.create(t, twoSeats...)
+	a := f.assignment(t, m.ID)
+	if a.SchemaVersion != 6 || a.Participants[0].MasteryLevel != 4 || a.Participants[0].EmoteTier != 2 || a.Participants[1].MasteryLevel != 1 {
+		t.Fatalf("assignment: %+v", a)
+	}
+	if len(masteries.asked) != 2 || masteries.asked[0] != "acc-1:cairn" {
+		t.Fatalf("asked %v", masteries.asked)
+	}
+	// Without progression, the assignment says 0.
+	g := newFixture(t)
+	n := g.create(t, twoSeats...)
+	if p := g.assignment(t, n.ID).Participants[0]; p.MasteryLevel != 0 || p.EmoteTier != 0 {
+		t.Fatalf("no progression: %+v", p)
+	}
+}
+
+// failingMasteries stands in for progression that cannot be read.
+type failingMasteries struct{ err error }
+
+func (m failingMasteries) MasteryOf(context.Context, string, string) (ParticipantMastery, error) {
+	return ParticipantMastery{}, m.err
+}
+
+func TestAMasteryThatCannotBeReadFailsTheCreate(t *testing.T) {
+	f := newFixture(t)
+	unreadable := errors.New("progression unreachable")
+	f.svc.SetMasteries(failingMasteries{err: unreadable})
+	if _, err := f.svc.Create(ctx, standard(twoSeats...)); !errors.Is(err, unreadable) {
+		t.Fatalf("Create: %v, want the read's error", err)
+	}
+}
+
 func TestCreateStartsAServerWithTheRoster(t *testing.T) {
 	f := newFixture(t)
 	m := f.create(t, twoSeats...)

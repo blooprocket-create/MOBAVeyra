@@ -82,6 +82,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float SocialPollIntervalSeconds = 0.0f;
 
+	/**
+	 * Client: seconds between reads of the player's chat (Party Chat, friend messages, champion-select and
+	 * post-match chat), in every signed-in state but Reconnect-only (ADR-046 §6).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float ChatPollIntervalSeconds = 0.0f;
+
+	/** Client: how many lines each chat conversation keeps; older ones drop off. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	int32 ChatKeepMessages = 0;
+
 	/** Client: seconds the player's account settings must stay unchanged before they are sent, so a slider's drag sends once (ADR-024 §1). */
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float AccountSettingsSendDelaySeconds = 0.0f;

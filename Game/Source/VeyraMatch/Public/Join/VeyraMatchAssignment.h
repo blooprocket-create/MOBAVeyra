@@ -27,6 +27,9 @@ struct FVeyraAssignedParticipant
 	 * order; an invalid ID is an empty slot (ADR-015 §5).
 	 */
 	TArray<FVeyraContentId> FluxSpells;
+	/** The account's Mastery Level of its Vanguard, and its mastery emote's tier (ADR-045 §9); 0 when unknown. */
+	int32 MasteryLevel = 0;
+	int32 EmoteTier = 0;
 };
 
 /**

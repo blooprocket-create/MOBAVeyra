@@ -12,8 +12,10 @@ import (
 // Vanguard and the bots (ADR-010 §7, §9); version 3 adds each bot's
 // difficulty (ADR-013 §6); version 4 adds each participant's starting Flux
 // Spells (ADR-015 §5); version 5 adds custom rules, bots for every hosted
-// match and the custom session's settings (ADR-021 §3).
-const AssignmentSchemaVersion = 5
+// match and the custom session's settings (ADR-021 §3); version 6 adds each
+// participant's Mastery Level and emote tier for the Vanguard they play
+// (ADR-045 §9).
+const AssignmentSchemaVersion = 6
 
 // Assignment is what a match server receives on its standard input when it
 // starts: its match, where to report, its credential, the rules it plays by
@@ -67,6 +69,17 @@ type AssignedParticipant struct {
 	// FluxSpells are the participant's starting Flux Spells, two in slot
 	// order, "" for an empty slot.
 	FluxSpells []string `json:"fluxSpells"`
+	// MasteryLevel and EmoteTier are the account's Mastery of the Vanguard it
+	// plays, which its mastery emote shows (ADR-045 §9); 0 when unknown.
+	MasteryLevel int `json:"masteryLevel"`
+	EmoteTier    int `json:"emoteTier"`
+}
+
+// ParticipantMastery is an account's Mastery of the Vanguard it plays, as the
+// progression domain reports it for the assignment.
+type ParticipantMastery struct {
+	Level     int
+	EmoteTier int
 }
 
 // assignedRules maps rules to the names the game's schema uses.
@@ -76,8 +89,9 @@ var assignedRules = map[Rules]string{RulesStandard: "Standard", RulesPractice: "
 var assignedDifficulties = map[BotDifficulty]string{BotBeginner: "Beginner", BotIntermediate: "Intermediate"}
 
 // BuildAssignment returns the assignment for a match as one line of JSON,
-// ending in a newline. The match must still hold its join key.
-func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, error) {
+// ending in a newline. The match must still hold its join key. masteries
+// holds each participant's Mastery by account ID; one absent is 0.
+func BuildAssignment(m Match, serverCredential, backendURL string, masteries map[string]ParticipantMastery) ([]byte, error) {
 	if len(m.JoinKey) == 0 {
 		return nil, errors.New("match has no join key")
 	}
@@ -114,12 +128,14 @@ func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, erro
 	}
 	for _, p := range m.Participants {
 		a.Participants = append(a.Participants, AssignedParticipant{
-			AccountID:   p.AccountID,
-			DisplayName: p.DisplayName,
-			Side:        p.Side,
-			TicketHash:  TicketHash(DeriveTicket(m.JoinKey, m.ID, p.AccountID)),
-			VanguardID:  p.VanguardID,
-			FluxSpells:  append([]string(nil), p.FluxSpells[:]...),
+			AccountID:    p.AccountID,
+			DisplayName:  p.DisplayName,
+			Side:         p.Side,
+			TicketHash:   TicketHash(DeriveTicket(m.JoinKey, m.ID, p.AccountID)),
+			VanguardID:   p.VanguardID,
+			FluxSpells:   append([]string(nil), p.FluxSpells[:]...),
+			MasteryLevel: masteries[p.AccountID].Level,
+			EmoteTier:    masteries[p.AccountID].EmoteTier,
 		})
 	}
 	for _, b := range m.Bots {

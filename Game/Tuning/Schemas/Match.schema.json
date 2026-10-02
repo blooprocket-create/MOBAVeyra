@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "absence", "activity", "autopilot", "votes", "pings", "chat", "ending", "orders", "developerMatch"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "absence", "activity", "autopilot", "votes", "pings", "masteryEmote", "chat", "ending", "orders", "developerMatch"],
   "properties": {
     "schemaVersion": {
-      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5); version 7 adds absence, activity, autopilot and votes (ADR-019); version 8 adds pings and the ending (ADR-020).",
+      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5); version 7 adds absence, activity, autopilot and votes (ADR-019); version 8 adds pings and the ending (ADR-020); version 10 adds the mastery emote (ADR-045 §9).",
       "type": "integer",
       "minimum": 1,
-      "enum": [9]
+      "enum": [10]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -373,6 +373,31 @@
         },
         "keepSeconds": {
           "description": "The most a client keeps a ping it received: the top of the player's ping-persistence setting (Settings Bible §3.2).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "masteryEmote": {
+      "description": "The mastery emote (ADR-045 §9; Account, Collection & Mastery Bible §5.2): how long it shows above its Vanguard, and how often a player may show it. It has no gameplay effect. World seconds.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "seconds", "cooldownSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "seconds": {
+          "description": "How long the emote shows once played.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "cooldownSeconds": {
+          "description": "The least time between one player's emotes, from the start of the last; more are refused.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
