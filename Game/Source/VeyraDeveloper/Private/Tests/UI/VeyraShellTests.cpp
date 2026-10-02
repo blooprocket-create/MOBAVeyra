@@ -538,6 +538,8 @@ namespace VeyraShellTests
 		FFakeAccountSettingsCache SettingsCache;
 		FClientFlowTestRig Rig;
 		UVeyraShellScreen* Screen = nullptr;
+		/** A player's settings a screen follows; it outlives the screen's binding, which AFTER_EACH ends. */
+		TUniquePtr<FVeyraSettingsStore> Settings;
 
 		AFTER_EACH()
 		{
@@ -908,6 +910,28 @@ namespace VeyraShellTests
 			{
 				ASSERT_THAT(AreEqual(GetDefault<UVeyraShellStyleSettings>()->PlayReminderSeconds.Contains(Option), Option != TEXT("Off"), Option));
 			}
+		}
+
+		TEST_METHOD(TheBreakReminderFollowsItsSettingAtOnce)
+		{
+			// ADR-053 §4: Break Reminder applies at once, so turning it off takes the banner down with nothing else changing.
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			Settings = MakeUnique<FVeyraSettingsStore>(Registry);
+			constexpr double Played = 7300.0;
+			ASSERT_THAT(IsTrue(Rig.ReachMatch()));
+			Rig.Advance(Played);
+			Rig.Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
+			Rig.Advance(FClientFlowTestRig::EndingShowSeconds);
+			Rig.Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, OutcomeBody(TEXT("ended"), true)) && Rig.State() == EVeyraClientState::Results));
+			ShowScreen().BindSettings(*Settings);
+			const FString Reminder = VeyraShellModels::PlayReminderText(Rig.Flow->GetSnapshot().PlayedSeconds).ToString();
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(Reminder), TEXT("over two hours, after the match")));
+			Settings->Set(VeyraInterfacePreferences::PlayReminder(), VeyraSettings::Off());
+			ASSERT_THAT(IsFalse(Screen->DescribeText().Contains(Reminder), TEXT("Off takes it down at once")));
+			Settings->Set(VeyraInterfacePreferences::PlayReminder(), TEXT("OneHour"));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(Reminder), TEXT("and On brings it back")));
 		}
 
 		TEST_METHOD(AMatchFoundAsksForAttentionOnce)

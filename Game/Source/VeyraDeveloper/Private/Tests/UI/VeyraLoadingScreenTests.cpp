@@ -27,6 +27,17 @@ namespace VeyraLoadingScreenTests
 		static constexpr int32 PerSecond = 20;
 
 		FActorTestSpawner Spawner;
+		/** A player's settings a screen follows; it outlives the screen's binding, which AFTER_EACH ends. */
+		TUniquePtr<FVeyraSettingsStore> Settings;
+		UVeyraLoadingScreen* Followed = nullptr;
+
+		AFTER_EACH()
+		{
+			if (Followed)
+			{
+				Followed->UnbindSettings();
+			}
+		}
 
 		static FVeyraLoadingTiming TimingOf()
 		{
@@ -162,6 +173,42 @@ namespace VeyraLoadingScreenTests
 			// Off shows the stage alone.
 			Screen->Show({}, /*Seed*/ 11, TimingOf(), 0.0);
 			ASSERT_THAT(IsTrue(Screen->GetShownText().IsEmpty()));
+		}
+
+		TEST_METHOD(TheArrowKeysBrowseAndNextTakesTheKeyboard)
+		{
+			UVeyraLoadingScreen* Screen = CreateWidget<UVeyraLoadingScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(EntriesOf(3), /*Seed*/ 11, TimingOf(), 0.0);
+			const FString First = Screen->GetShownText().ToString();
+			ASSERT_THAT(IsTrue(Screen->BrowseWithKey(EKeys::Right, 1.0) && Screen->GetShownText().ToString() != First && Screen->GetRotation().bManual,
+				TEXT("Right is Next")));
+			ASSERT_THAT(IsTrue(Screen->BrowseWithKey(EKeys::Left, 2.0) && Screen->GetShownText().ToString() == First, TEXT("Left is Previous")));
+			ASSERT_THAT(IsFalse(Screen->BrowseWithKey(EKeys::Q, 3.0), TEXT("other keys stay the game's")));
+			// Next takes the keyboard (SET-117), so Enter shows the next entry and Tab reaches Previous.
+			UVeyraShellButton* const* Next = Screen->GetButtons().FindByPredicate([](const UVeyraShellButton* Button) { return Button->GetLabel().ToString() == TEXT("Next"); });
+			ASSERT_THAT(IsTrue(Next && *Next));
+			const TSharedPtr<SWidget> Target = Screen->GetFocusTarget();
+			ASSERT_THAT(IsTrue(Target.IsValid() && Target == (*Next)->GetCachedWidget() && Screen->IsFocusable()));
+		}
+
+		TEST_METHOD(AChangeOfCategoriesAppliesWhileTheScreenIsUp)
+		{
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			Settings = MakeUnique<FVeyraSettingsStore>(Registry);
+			Followed = CreateWidget<UVeyraLoadingScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Followed));
+			Followed->ShowFor(Settings.Get(), /*Seed*/ 11, TimingOf(), 0.0);
+			ASSERT_THAT(IsFalse(Followed->GetShownText().IsEmpty(), TEXT("Both by default")));
+			// Settings stay reachable from the in-match menu while the match loads (SET-118).
+			Settings->Set(VeyraInterfacePreferences::LoadingContent(), VeyraSettings::Off());
+			ASSERT_THAT(IsTrue(Followed->GetShownText().IsEmpty(), TEXT("Off at once: the stage alone")));
+			Settings->Set(VeyraInterfacePreferences::LoadingContent(), TEXT("LoreOnly"));
+			const TArray<FVeyraLoadingEntry> Lore = VeyraLoadingModel::EntriesFor(EVeyraLoadingContent::LoreOnly, VeyraContentText::LoadingTips(), VeyraContentText::LoadingLore());
+			const FString Shown = Followed->GetShownText().ToString();
+			ASSERT_THAT(IsTrue(!Shown.IsEmpty() && Lore.ContainsByPredicate([&Shown](const FVeyraLoadingEntry& Entry) { return Entry.Text.ToString() == Shown; }),
+				TEXT("lore only, at once")));
 		}
 
 		TEST_METHOD(TheCommittedTimingKeepsEightSeconds)

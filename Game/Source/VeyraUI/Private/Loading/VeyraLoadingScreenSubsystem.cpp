@@ -6,12 +6,15 @@
 #include "Engine/World.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "HAL/PlatformTime.h"
+#include "Engine/GameInstance.h"
 #include "Loading/VeyraLoadingScreen.h"
+#include "Match/VeyraMatchMenuSubsystem.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
+#include "VeyraSettingsSubsystem.h"
 
 bool UVeyraLoadingScreenSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -59,7 +62,6 @@ void UVeyraLoadingScreenSubsystem::Tick(float DeltaTime)
 		Screen = CreateWidget<UVeyraLoadingScreen>(Local);
 		if (Screen)
 		{
-			const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(World));
 			const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 			FVeyraLoadingTiming Timing;
 			Timing.MinimumSeconds = Style.LoadingEntryMinimumSeconds;
@@ -67,9 +69,16 @@ void UVeyraLoadingScreenSubsystem::Tick(float DeltaTime)
 			Timing.CharactersPerSecond = Style.LoadingEntryCharactersPerSecond;
 			// A different order each match, so the screen never opens on the same entry (SET-119).
 			const int32 Seed = static_cast<int32>(FPlatformTime::Cycles());
-			Screen->Show(VeyraLoadingModel::EntriesFor(Preferences.LoadingContent, VeyraContentText::LoadingTips(), VeyraContentText::LoadingLore()), Seed, Timing, Now);
+			// The player's categories, followed while the screen is up: Settings stay reachable from the menu (SET-118).
+			UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(World);
+			Screen->ShowFor(Settings ? &Settings->GetStore() : nullptr, Seed, Timing, Now);
 			// Under the in-match menu, so Leave Match and Settings stay reachable while the match loads.
 			Screen->AddToViewport(/*ZOrder*/ 0);
+			// It takes the keyboard for Previous and Next whenever no other screen has it (SET-117).
+			if (UVeyraMatchMenuSubsystem* Menus = World->GetGameInstance() ? World->GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr)
+			{
+				Menus->SetLoadingScreen(Screen);
+			}
 		}
 	}
 	if (Screen)
@@ -83,6 +92,12 @@ void UVeyraLoadingScreenSubsystem::Close()
 {
 	if (Screen)
 	{
+		const UWorld* World = GetWorld();
+		if (UVeyraMatchMenuSubsystem* Menus = World && World->GetGameInstance() ? World->GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr)
+		{
+			Menus->SetLoadingScreen(nullptr);
+		}
+		Screen->UnbindSettings();
 		Screen->RemoveFromParent();
 		Screen = nullptr;
 	}

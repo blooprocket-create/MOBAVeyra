@@ -160,7 +160,28 @@ void UVeyraShellScreen::Bind(IVeyraClientIntents& InClient)
 	Client = &InClient;
 	ChangedHandle = Client->OnChanged().AddUObject(this, &UVeyraShellScreen::Refresh);
 	ShownSignature.Reset();
+	if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+	{
+		BindSettings(Settings->GetStore());
+	}
 	Refresh();
+}
+
+void UVeyraShellScreen::BindSettings(FVeyraSettingsStore& Store)
+{
+	if (SettingsStore)
+	{
+		SettingsStore->OnChanged.Remove(SettingsHandle);
+	}
+	SettingsStore = &Store;
+	// The signature reads the settings shown, so a change to any other redraws nothing.
+	SettingsHandle = Store.OnChanged.AddWeakLambda(this, [this](const FVeyraContentId& /*Id*/) { Refresh(); });
+	Refresh();
+}
+
+FVeyraInterfacePreferences UVeyraShellScreen::InterfacePreferences() const
+{
+	return VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), SettingsStore ? SettingsStore : VeyraInterfacePreferences::StoreOf(this));
 }
 
 void UVeyraShellScreen::Unbind()
@@ -171,6 +192,12 @@ void UVeyraShellScreen::Unbind()
 	}
 	ChangedHandle.Reset();
 	Client = nullptr;
+	if (SettingsStore)
+	{
+		SettingsStore->OnChanged.Remove(SettingsHandle);
+	}
+	SettingsHandle.Reset();
+	SettingsStore = nullptr;
 }
 
 void UVeyraShellScreen::NativeDestruct()
@@ -264,7 +291,7 @@ void UVeyraShellScreen::DrawTurnAttention()
 
 bool UVeyraShellScreen::ShowsPlayReminder(const FVeyraClientSnapshot& Snapshot) const
 {
-	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this));
+	const FVeyraInterfacePreferences Preferences = InterfacePreferences();
 	return VeyraShellModels::ShowsPlayReminder(Snapshot, ShellStyle().PlayReminderSeconds.FindRef(Preferences.PlayReminder));
 }
 
@@ -294,7 +321,7 @@ void UVeyraShellScreen::AddPlayReminder(const FVeyraClientSnapshot& Snapshot, UP
 void UVeyraShellScreen::AnnounceMatchFound()
 {
 	++MatchFoundAlerts;
-	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this));
+	const FVeyraInterfacePreferences Preferences = InterfacePreferences();
 	LastMatchFoundAlert = FVeyraMatchFoundAlert{ Preferences.bBackgroundMatchNotification, Preferences.bMatchReadySound };
 	// Taskbar attention only: the client never takes focus for itself, accepts, or tells anything of the party (SET-50).
 	if (Preferences.bBackgroundMatchNotification)

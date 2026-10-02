@@ -23,8 +23,10 @@ class UScrollBox;
 class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
+class FVeyraSettingsStore;
 class UVeyraSettingsScreen;
 class UVeyraSettingsSubsystem;
+struct FVeyraInterfacePreferences;
 class UVeyraShellButton;
 enum class EVeyraShellButtonKind : uint8;
 class UWidget;
@@ -95,6 +97,12 @@ public:
 
 	/** Stops showing and asking the client; the screen then shows nothing new. */
 	void Unbind();
+
+	/**
+	 * Follows Store, the player's settings, so a change to one the screen shows (the break reminder, the Match Found
+	 * alert) shows at once. Bind follows the game instance's; tests give their own. Store must outlive the binding.
+	 */
+	void BindSettings(FVeyraSettingsStore& Store);
 
 	/** Brings the screen up to date. Changes to the snapshot call it; tests call it directly. */
 	void Refresh();
@@ -376,6 +384,13 @@ private:
 
 	IVeyraClientIntents* Client = nullptr;
 	FDelegateHandle ChangedHandle;
+
+	/** The settings this screen follows, and its change handle. */
+	FVeyraSettingsStore* SettingsStore = nullptr;
+	FDelegateHandle SettingsHandle;
+
+	/** The player's interface settings, from the store this screen follows. */
+	FVeyraInterfacePreferences InterfacePreferences() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Content;
