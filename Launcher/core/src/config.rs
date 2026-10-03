@@ -18,6 +18,10 @@ pub const SCHEMA_VERSION: u32 = 2;
 /// The switch the launcher gives the game itself; configuration never sets it (ADR-005 L3).
 pub const LAUNCH_CODE_SWITCH: &str = "-VeyraLaunchCode=stdin";
 
+/// The switch that names the backend to the game, which the launcher sets from its own `backend.baseUrl`, so one
+/// configuration steers both; configuration never sets it (ADR-057 §5).
+pub const BACKEND_URL_SWITCH: &str = "-VeyraBackendUrl=";
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LauncherConfig {
@@ -245,6 +249,16 @@ pub fn validate(config: &LauncherConfig) -> Vec<String> {
             "game.arguments must not set the launch code; the launcher adds {LAUNCH_CODE_SWITCH} itself"
         ));
     }
+    if config
+        .game
+        .arguments
+        .iter()
+        .any(|argument| argument.to_ascii_lowercase().starts_with(&BACKEND_URL_SWITCH.to_ascii_lowercase()))
+    {
+        problems.push(format!(
+            "game.arguments must not name the backend; the launcher adds {BACKEND_URL_SWITCH} from backend.baseUrl itself"
+        ));
+    }
     problems
 }
 
@@ -375,6 +389,13 @@ mod tests {
         assert_eq!(problems.len(), 4, "{problems:?}");
     }
 
+    #[test]
+    fn the_game_arguments_never_name_the_backend() {
+        let named = VALID.replace(r#"["-windowed"]"#, r#"["-VeyraBackendUrl=https://elsewhere.example"]"#);
+        let problems = parse(&named).expect_err("the launcher names the backend itself");
+        assert!(problems.iter().any(|problem| problem.contains(BACKEND_URL_SWITCH)), "{problems:?}");
+    }
+
     const INSTALL: &str = r#""install": {
             "releasesUrl": "http://127.0.0.1:8090",
             "channel": "local",
@@ -462,6 +483,15 @@ mod tests {
             local.config.player_login.is_some() && installed.config.player_login.is_some(),
             "players can sign in"
         );
+        // The players' Setup: the public address over https, its release store on the public channel (ADR-057 §6).
+        let public = load(&folder.join("public.json")).expect("config/public.json, which players' Setup installs");
+        assert!(public.config.backend.base_url.starts_with("https://") && public.config.player_login.is_some());
+        match &public.game {
+            GameSource::Install(install) => {
+                assert!(install.releases_url.starts_with(&public.config.backend.base_url) && install.channel == "public")
+            }
+            GameSource::Packaged(_) => panic!("players' Setup installs the game"),
+        }
     }
 
     #[test]
