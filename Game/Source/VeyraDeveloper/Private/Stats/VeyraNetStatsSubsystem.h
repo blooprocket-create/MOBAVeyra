@@ -13,7 +13,10 @@
  * - the server's busy time per frame, the frame time minus the idle wait before the next tick;
  * - the bytes per second sent to clients, in total, per client and at most, and received;
  * - the bytes per second written to the replay, when one is recording;
- * - how many replicated actors exist.
+ * - how many replicated actors exist;
+ * - then one line per player's connection: its round trip, jitter and packet loss each way (ADR-062 §4).
+ * Hosted matches switch it on through the backend's server arguments, so a playtest's kept log shows
+ * what each player's connection was like.
  */
 UCLASS()
 class UVeyraNetStatsSubsystem : public UTickableWorldSubsystem

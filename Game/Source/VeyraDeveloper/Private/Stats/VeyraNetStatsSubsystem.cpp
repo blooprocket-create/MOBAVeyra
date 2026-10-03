@@ -7,6 +7,8 @@
 #include "Engine/NetDriver.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerState.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/App.h"
 #include "Misc/CommandLine.h"
@@ -19,6 +21,8 @@ namespace
 	const TCHAR* const IntervalOption = TEXT("VeyraNetStats=");
 	constexpr double BytesPerKilobyte = 1024.0;
 	constexpr double MillisecondsPerSecond = 1000.0;
+	// The engine keeps packet loss as a fraction.
+	constexpr double PercentPerFraction = 100.0;
 }
 
 bool UVeyraNetStatsSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -110,6 +114,27 @@ void UVeyraNetStatsSubsystem::Report(double WindowSeconds)
 		Frames > 0 ? BusySecondsSum / Frames * MillisecondsPerSecond : 0.0, BusySecondsMax * MillisecondsPerSecond,
 		Clients, GameOut / BytesPerKilobyte, Clients > 0 ? GameOut / BytesPerKilobyte / Clients : 0.0, ClientOutMax / BytesPerKilobyte,
 		GameIn / BytesPerKilobyte, Replay && Replay->IsRecording() ? 1 : 0, ReplayOut / BytesPerKilobyte, ReplicatedActors);
+
+	// What each player's connection is like, as the engine measures it: the round trip, its variation and
+	// the packets lost each way (ADR-062 §4). A remote player's lag shows here, not in the server's load.
+	if (!Game)
+	{
+		return;
+	}
+	int32 Index = 0;
+	for (const UNetConnection* Connection : Game->ClientConnections)
+	{
+		if (!Connection)
+		{
+			continue;
+		}
+		const APlayerController* Controller = Connection->PlayerController;
+		const APlayerState* State = Controller ? Controller->PlayerState.Get() : nullptr;
+		UE_LOG(LogVeyraNetStats, Display, TEXT("VeyraNetStats: client=%d player=%s rttMs=%.0f jitterMs=%.1f inLossPct=%.1f outLossPct=%.1f outKBps=%.2f inKBps=%.2f"),
+			Index++, State ? *State->GetPlayerName() : TEXT("-"), Connection->AvgLag * MillisecondsPerSecond, Connection->GetAverageJitterInMS(),
+			Connection->GetInLossPercentage().GetAvgLossPercentage() * PercentPerFraction, Connection->GetOutLossPercentage().GetAvgLossPercentage() * PercentPerFraction,
+			Connection->OutBytesPerSecond / BytesPerKilobyte, Connection->InBytesPerSecond / BytesPerKilobyte);
+	}
 }
 
 TStatId UVeyraNetStatsSubsystem::GetStatId() const

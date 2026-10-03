@@ -553,7 +553,8 @@
         "-log",
         "-stdout",
         "-FullStdOutLogOutput",
-        "-LogCmds=LogVeyraAbilities Verbose"
+        "-LogCmds=LogVeyraAbilities Verbose",
+        "-VeyraNetStats=10"
       ],
       "stopTimeout": "10s",
       "logDirectory": "/var/log/veyra/matches"
