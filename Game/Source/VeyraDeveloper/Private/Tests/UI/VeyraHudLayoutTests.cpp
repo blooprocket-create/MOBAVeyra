@@ -2,7 +2,7 @@
 
 #include "CQTest.h"
 
-#if WITH_AUTOMATION_WORKER
+#if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Hud/VeyraHudLayout.h"
