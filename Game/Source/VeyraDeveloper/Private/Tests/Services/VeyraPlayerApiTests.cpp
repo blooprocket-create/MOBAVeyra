@@ -324,6 +324,21 @@ namespace VeyraPlayerApiTests
 			}
 		}
 
+		TEST_METHOD(ReadsWhoCannotQueueYet)
+		{
+			// ADR-060 §3: each member's restriction after leaving a select; absent from an older backend.
+			TOptional<VeyraBackendProtocol::FParty> Read;
+			FString Problem;
+			FString Restricted = Member(OtherAccountId, TEXT("DevTwo"), true, false);
+			Restricted = Restricted.LeftChop(1) + TEXT(",\"restrictedSeconds\":245}");
+			const FString Members = Member(AccountId, TEXT("DevOne"), true, true) + TEXT(",") + Restricted;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT("casual_select"), TEXT("idle"), Members, TEXT("0")), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Find(AccountId)->RestrictedSeconds == 0.0 && Read->Find(OtherAccountId)->RestrictedSeconds == 245.0));
+			ASSERT_THAT(IsTrue(Read->RestrictedMember() && Read->RestrictedMember()->AccountId == OtherAccountId));
+			const FString Negative = Member(AccountId, TEXT("DevOne"), true, true).LeftChop(1) + TEXT(",\"restrictedSeconds\":-1}");
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseParty(Party(TEXT("casual_select"), TEXT("idle"), Negative, TEXT("0")), Read, Problem)));
+		}
+
 		TEST_METHOD(ReadsAParty)
 		{
 			TOptional<VeyraBackendProtocol::FParty> Read;

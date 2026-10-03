@@ -14,6 +14,7 @@
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Hud/VeyraHudDeck.h"
+#include "Hud/VeyraHudLayout.h"
 #include "Hud/VeyraHudModel.h"
 #include "Ending/VeyraMatchEnding.h"
 #include "Hud/VeyraMinimapModel.h"
@@ -22,6 +23,7 @@
 #include "Teams/VeyraTeam.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraUIInputSettings.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
@@ -58,9 +60,10 @@ namespace
 		Canvas.DrawItem(Tile);
 	}
 
-	void DrawHudText(UCanvas& Canvas, const FVector2D& TopLeft, const FString& Text, const FLinearColor& Color)
+	void DrawHudText(UCanvas& Canvas, float Scale, const FVector2D& TopLeft, const FString& Text, const FLinearColor& Color)
 	{
 		FCanvasTextItem Item(TopLeft, FText::FromString(Text), HudFont(), Color);
+		Item.Scale = FVector2D(Scale);
 		Item.EnableShadow(FLinearColor::Black);
 		Canvas.DrawItem(Item);
 	}
@@ -97,19 +100,25 @@ namespace
 			return; // Behind the camera.
 		}
 
-		const FVector2D TopLeft(OnScreen.X - Settings.BarWidth / 2.0f, OnScreen.Y - Settings.BarHeight);
+		// At the player's Overhead Bar Size (ADR-059 §1).
+		const float Scale = Preferences.HudScales.OverheadBars;
+		const float BarWidth = Settings.BarWidth * Scale;
+		const float BarHeight = Settings.BarHeight * Scale;
+		const float ResourceBarHeight = Settings.ResourceBarHeight * Scale;
+		const float LineHeight = HudLineHeight() * Scale;
+		const FVector2D TopLeft(OnScreen.X - BarWidth / 2.0f, OnScreen.Y - BarHeight);
 		// Health and shields share the bar; when together they pass Max Health, the bar holds their total.
 		const double Total = FMath::Max(Vitals->MaxHealth, Vitals->Health + Vitals->Shield);
-		const float HealthWidth = Settings.BarWidth * Vitals->Health / Total;
-		DrawHudRect(Canvas, TopLeft, FVector2D(Settings.BarWidth, Settings.BarHeight), Settings.BarBackgroundColor);
-		DrawHudRect(Canvas, TopLeft, FVector2D(HealthWidth, Settings.BarHeight), Greybox.SideColorOf(Unit));
-		DrawHudRect(Canvas, TopLeft + FVector2D(HealthWidth, 0.0f), FVector2D(Settings.BarWidth * Vitals->Shield / Total, Settings.BarHeight), Settings.ShieldColor);
+		const float HealthWidth = BarWidth * Vitals->Health / Total;
+		DrawHudRect(Canvas, TopLeft, FVector2D(BarWidth, BarHeight), Settings.BarBackgroundColor);
+		DrawHudRect(Canvas, TopLeft, FVector2D(HealthWidth, BarHeight), Greybox.SideColorOf(Unit));
+		DrawHudRect(Canvas, TopLeft + FVector2D(HealthWidth, 0.0f), FVector2D(BarWidth * Vitals->Shield / Total, BarHeight), Settings.ShieldColor);
 		// Ticks every HealthPerTick along a Vanguard's bar, a longer one every tenth, so its Health reads at
 		// a glance; never so close that they blur.
 		constexpr double HealthPerTick = 100.0;
 		constexpr int32 TicksPerLongTick = 10;
 		constexpr float LeastTickGap = 3.0f;
-		const double TickGap = Settings.BarWidth * HealthPerTick / Total;
+		const double TickGap = BarWidth * HealthPerTick / Total;
 		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
 		const bool bVanguardBar = (Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Vanguard) || &VeyraHud::PresentedUnitOf(Unit, Greybox.GetViewerTeam()) != &Unit;
 		if (bVanguardBar && TickGap >= LeastTickGap)
@@ -117,21 +126,21 @@ namespace
 			for (int32 Tick = 1; Tick * HealthPerTick < Total; ++Tick)
 			{
 				const bool bLong = Tick % TicksPerLongTick == 0;
-				const float Height = bLong ? Settings.BarHeight : Settings.BarHeight * 0.55f;
+				const float Height = bLong ? BarHeight : BarHeight * 0.55f;
 				DrawHudRect(Canvas, FVector2D(TopLeft.X + TickGap * Tick, TopLeft.Y), FVector2D(1.0f, Height), FLinearColor(0.0f, 0.0f, 0.0f, bLong ? 0.8f : 0.5f));
 			}
 		}
 		{
-			FCanvasBoxItem Edge(TopLeft, FVector2D(Settings.BarWidth, Settings.BarHeight));
+			FCanvasBoxItem Edge(TopLeft, FVector2D(BarWidth, BarHeight));
 			Edge.SetColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
 			Edge.BlendMode = SE_BLEND_Translucent;
 			Canvas.DrawItem(Edge);
 		}
 		if (Vitals->MaxResource > 0.0)
 		{
-			const FVector2D ResourceTopLeft = TopLeft + FVector2D(0.0f, Settings.BarHeight);
-			DrawHudRect(Canvas, ResourceTopLeft, FVector2D(Settings.BarWidth, Settings.ResourceBarHeight), Settings.BarBackgroundColor);
-			DrawHudRect(Canvas, ResourceTopLeft, FVector2D(Settings.BarWidth * Vitals->Resource / Vitals->MaxResource, Settings.ResourceBarHeight),
+			const FVector2D ResourceTopLeft = TopLeft + FVector2D(0.0f, BarHeight);
+			DrawHudRect(Canvas, ResourceTopLeft, FVector2D(BarWidth, ResourceBarHeight), Settings.BarBackgroundColor);
+			DrawHudRect(Canvas, ResourceTopLeft, FVector2D(BarWidth * Vitals->Resource / Vitals->MaxResource, ResourceBarHeight),
 				Settings.ResourceColorOf(Vitals->Family));
 		}
 
@@ -148,8 +157,8 @@ namespace
 			{
 				Label += FString::Printf(TEXT("  rebuilds in %d s"), FMath::CeilToInt32(Structure->RebuildSeconds));
 			}
-			Y -= HudLineHeight();
-			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
+			Y -= LineHeight;
+			DrawHudText(Canvas, Scale, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
 		}
 		// A Flux Well says where it stands in its cycle; a creature, what it is (ADR-014).
 		if (const TOptional<FVeyraHudFluxWell> Well = VeyraHud::FluxWellOf(Unit, Now))
@@ -167,28 +176,28 @@ namespace
 				Label += FString::Printf(TEXT("  returns in %d s"), FMath::CeilToInt32(Well->OpensInSeconds));
 				break;
 			}
-			Y -= HudLineHeight();
-			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
+			Y -= LineHeight;
+			DrawHudText(Canvas, Scale, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
 		}
 		// The mastery emote: the player's Mastery Level in its tier's colour, nearest the bar (ADR-045 §9).
 		if (const TOptional<FVeyraHudMasteryEmote> Emote = VeyraHud::MasteryEmoteOf(Unit, Now); Emote && !Settings.MasteryEmoteTierColors.IsEmpty())
 		{
 			const int32 Index = FMath::Clamp(Emote->Tier - 1, 0, Settings.MasteryEmoteTierColors.Num() - 1);
-			Y -= HudLineHeight();
-			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("Mastery %d"), Emote->Level), Settings.MasteryEmoteTierColors[Index]);
+			Y -= LineHeight;
+			DrawHudText(Canvas, Scale, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("Mastery %d"), Emote->Level), Settings.MasteryEmoteTierColors[Index]);
 		}
 		if (const TOptional<FVeyraContentId> Species = VeyraHud::SpeciesOf(Unit))
 		{
-			Y -= HudLineHeight();
-			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Species->ToString(), Settings.TextColor);
+			Y -= LineHeight;
+			DrawHudText(Canvas, Scale, FVector2D(TopLeft.X, Y), Species->ToString(), Settings.TextColor);
 		}
 		for (const FVeyraHudStatus& Status : VeyraHud::StatusesOf(Unit, Now, Greybox.GetViewerTeam()))
 		{
-			Y -= HudLineHeight();
+			Y -= LineHeight;
 			const FString Count = Status.Stacks > 1 ? FString::Printf(TEXT(" x%d"), Status.Stacks) : FString();
 			// A mark has no effect of its own, so its name says what it is, as Doom's or a Hex's.
 			const FString Name = Status.Kind == EVeyraStatusKind::Counter ? Status.Id.ToString() : HudEnumName(Status.Kind);
-			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s%s %.1f s"), *Name, *Count, Status.RemainingSeconds), Settings.TextColor);
+			DrawHudText(Canvas, Scale, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s%s %.1f s"), *Name, *Count, Status.RemainingSeconds), Settings.TextColor);
 		}
 	}
 
@@ -245,16 +254,16 @@ namespace
 			FCanvasTextItem Item(FVector2D(OnScreen.X, OnScreen.Y), FText::FromString(Text), HudFont(),
 				CombatTextColor(Settings, Preferences.bUniformDamageColors, Number).CopyWithNewOpacity(static_cast<float>(1.0 - Number.Progress)));
 			Item.bCentreX = true;
-			Item.Scale = FVector2D(Settings.CombatTextScale * (Number.bCritical ? Settings.CombatTextCritScale : 1.0f));
+			Item.Scale = FVector2D(Settings.CombatTextScale * Preferences.HudScales.CombatText * (Number.bCritical ? Settings.CombatTextCritScale : 1.0f));
 			Item.EnableShadow(FLinearColor::Black);
 			Canvas.DrawItem(Item);
 		}
 	}
 
-	/** The minimap's frame on a Viewport-sized screen, at the player's size for it. */
-	FVeyraMinimapFrame MinimapFrame(const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const FVector2D& Viewport)
+	/** The HUD on a Viewport-sized screen as the player set it: the deck, the minimap and the chat inside the safe area (ADR-059 §1-§2). */
+	FVeyraHudArrangement Arrangement(const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const FVector2D& Viewport)
 	{
-		return VeyraMinimap::FrameFor(Viewport, Preferences.MinimapSize, Settings.HudMargin, UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent);
+		return VeyraHudLayout::Arrange(Viewport, Settings, Preferences, UE_ARRAY_COUNT(VeyraAbilitySlots::All), UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent);
 	}
 
 	/** A minimap side's colour, as the player's colour vision gives it (ADR-055 §1). */
@@ -373,7 +382,7 @@ namespace
 			DrawHudOutline(Canvas, Centre, Settings.WorldPingSize / 2.0, Color);
 			if (Settings.bPingTextLabels)
 			{
-				DrawHudText(Canvas, Centre + FVector2D(Settings.WorldPingSize, -Settings.WorldPingSize / 2.0), HudEnumName(Held.Ping.Kind), Color);
+				DrawHudText(Canvas, 1.0f, Centre + FVector2D(Settings.WorldPingSize, -Settings.WorldPingSize / 2.0), HudEnumName(Held.Ping.Kind), Color);
 			}
 		}
 	}
@@ -403,7 +412,7 @@ namespace
 			}
 			FVector2D Size;
 			Viewport->GetViewportSize(Size);
-			return VeyraMinimap::ToWorld(MinimapFrame(Settings, Preferences, Size), Screen);
+			return VeyraMinimap::ToWorld(Arrangement(Settings, Preferences, Size).Minimap, Screen);
 		});
 	}
 
@@ -414,6 +423,7 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(Greybox.GetWorld()));
 	const double Now = Greybox.GetServerNow();
+	const FVeyraHudArrangement Layout = Arrangement(Settings, Preferences, FVector2D(Canvas.ClipX, Canvas.ClipY));
 	const AVeyraPlayerController* Targeting = Cast<AVeyraPlayerController>(Viewer);
 	const TArray<const AActor*> Targeted = Targeting ? Targeting->GetTargetedUnits() : TArray<const AActor*>();
 	for (TActorIterator<APawn> It(Greybox.GetWorld()); It; ++It)
@@ -433,7 +443,7 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 			BindMinimapClicks(*const_cast<AVeyraPlayerController*>(Player));
 			const AVeyraCameraRig* Rig = Player->GetCameraRig();
 			const TOptional<FVector> Focus = Rig ? TOptional<FVector>(Rig->GetFocus()) : TOptional<FVector>();
-			const FVeyraMinimapFrame Frame = MinimapFrame(Settings, Preferences, FVector2D(Canvas.ClipX, Canvas.ClipY));
+			const FVeyraMinimapFrame& Frame = Layout.Minimap;
 			FVeyraMinimapView View = VeyraMinimap::Describe(*Greybox.GetWorld(), Frame, Own->GetVeyraTeam(), Own->GetPawn(), Focus, Now);
 			const double RealNow = FPlatformTime::Seconds();
 			View.TeamPings = VeyraMinimap::DescribeTeamPings(Frame, Player->GetPings(), RealNow, Preferences.PingSeconds);
@@ -451,7 +461,7 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 		{
 			Warnings.Add(TEXT("Low frame rate: Graphics settings can help"));
 		}
-		VeyraHudDeck::Draw(Canvas, Settings, Preferences, Greybox.GetHudFont(), *Greybox.GetWorld(), *GameState, Viewer, Own, Now, Warnings);
+		VeyraHudDeck::Draw(Canvas, Settings, Preferences, Greybox.GetHudFont(), *Greybox.GetWorld(), *GameState, Viewer, Own, Now, Warnings, Layout);
 		// How the match ended, while its players watch the end (ADR-020 §1).
 		if (GameState->GetPhase() == EVeyraMatchPhase::Ended)
 		{

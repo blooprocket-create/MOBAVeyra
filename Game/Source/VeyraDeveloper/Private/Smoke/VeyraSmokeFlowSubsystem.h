@@ -33,7 +33,7 @@ namespace VeyraBackendProtocol
  * continues to the shell and quits. With -VeyraSmokeFlowSieges it first sieges the bots' side with
  * Veyra.Dev.Siege until their Prime Well falls, and the match must go on (ADR-011 §14).
  *
- * The matchmade scripts (Smoke.ps1 -Flow Casual and -Flow CasualDecline) run in two games at once.
+ * The matchmade scripts (Smoke.ps1 -Flow Casual, -Flow CasualDecline and -Flow CasualDodge) run in two games at once.
  * Each chooses a starter if asked, chooses the first matchmade mode in Play, readies up and finds a
  * match. Then:
  * - casual accepts, hovers and locks its Vanguard, plays the standard match and checks its verified
@@ -49,6 +49,11 @@ namespace VeyraBackendProtocol
  * - decline declines the match found, and passes once it is back in the shell out of the queue.
  * - requeue accepts; when another player declines, it must be back in the queue. It cancels the
  *   queue and passes.
+ * - dodge accepts and leaves champion select from its Leave button (ADR-060). Back in the shell it must
+ *   read that it left, ready up again and find Find Match held back by its own restriction, then pass
+ *   once the restriction ends and Find Match is offered again.
+ * - dodged accepts and picks; when another player leaves the select, it must be back in the queue,
+ *   told a player left. It cancels the queue and passes.
  *
  * The custom lobby's scripts (Smoke.ps1 -Flow Custom, ADR-021) run in two games at once, each naming
  * the other's player with -VeyraSmokeFlowFriend=. First they become friends: the host asks by name in
@@ -100,6 +105,10 @@ private:
 		Casual,
 		Decline,
 		Requeue,
+		/** A dodge (ADR-060): leaves champion select, then waits out its queue restriction. */
+		Dodge,
+		/** The other side of a dodge: picks, and is queued again once the other player leaves the select. */
+		Dodged,
 		Opponent,
 		CustomHost,
 		CustomGuest,
@@ -243,7 +252,12 @@ private:
 	 */
 	bool TickHistory(const IVeyraClientIntents& Flow);
 	void CheckResults(const FVeyraClientSnapshot& Snapshot);
-	bool IsMatchmade() const { return Script == EScript::Casual || Script == EScript::Decline || Script == EScript::Requeue; }
+	bool IsMatchmade() const
+	{
+		return Script == EScript::Casual || Script == EScript::Decline || Script == EScript::Requeue || Script == EScript::Dodge || Script == EScript::Dodged;
+	}
+	/** The dodge script back in the shell: its notice, its restriction holding Find Match back, then Find Match again. */
+	void TickDodgeShell(IVeyraClientIntents& Flow);
 
 	/** The settings scripts in the shell, one step a tick. */
 	void TickSettings();
@@ -341,6 +355,11 @@ private:
 	bool bFoundMatch = false;
 	bool bAnswered = false;
 	bool bCancelledQueue = false;
+	/** The dodge script: whether it left champion select, read why it is back, readied again and saw its restriction hold it back. */
+	bool bLeftSelect = false;
+	bool bReadLeftNotice = false;
+	bool bReadiedAgain = false;
+	bool bSawRestriction = false;
 	/** Practice: the item the shop bought, the Flux Spell slot 1 swapped to, and whether both arrived and the shop closed. */
 	FString BoughtItem;
 	FString SwappedSpell;

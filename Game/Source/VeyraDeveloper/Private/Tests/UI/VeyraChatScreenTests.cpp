@@ -8,10 +8,15 @@
 #include "Components/ActorTestSpawner.h"
 #include "Components/EditableTextBox.h"
 #include "Shell/VeyraChatModels.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
+#include "Shell/VeyraShellStyleSettings.h"
 #include "Tests/Services/VeyraClientFlowTestRig.h"
+#include "VeyraSettingsStore.h"
+#include "VeyraSettingsSubsystem.h"
 
 namespace VeyraChatScreenTests
 {
@@ -52,6 +57,8 @@ namespace VeyraChatScreenTests
 		FActorTestSpawner Spawner;
 		FClientFlowTestRig Rig;
 		UVeyraShellScreen* Screen = nullptr;
+		/** A player's settings a screen follows; it outlives the screen's binding, which AFTER_EACH ends. */
+		TUniquePtr<FVeyraSettingsStore> Settings;
 
 		AFTER_EACH()
 		{
@@ -59,6 +66,8 @@ namespace VeyraChatScreenTests
 			{
 				Screen->Unbind();
 			}
+			// One look for the whole client: the next test starts from the standard one.
+			VeyraShellLook::Use(FVeyraShellLook());
 		}
 
 		/** The shell's screen over the coordinator, DevTwo a friend, in a party of two. */
@@ -148,6 +157,21 @@ namespace VeyraChatScreenTests
 			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), FString(TEXT("/v1/me/chat/direct/")) + FriendId)));
 			ASSERT_THAT(IsTrue(Press(FText::FromString(TEXT("Close the conversation with DevTwo")))));
 			ASSERT_THAT(IsTrue(Rig.Flow->GetSnapshot().Chat.OpenDirect.IsEmpty() && Screen->FindButton(FText::FromString(TEXT("Send to Party Chat"))) != nullptr));
+		}
+
+		TEST_METHOD(ChatTextSizeSizesThePanelsFieldAtOnce)
+		{
+			// SET-66; ADR-059 §5: every chat takes Chat Text Size, the shell's as the match's log does.
+			FVeyraSettingsRegistry Registry;
+			UVeyraSettingsSubsystem::LoadRegistry(Registry);
+			Settings = MakeUnique<FVeyraSettingsStore>(Registry);
+			ASSERT_THAT(IsTrue(ShowShell()));
+			Screen->BindSettings(*Settings);
+			const int32 Standard = Screen->GetChatFieldFontSize();
+			ASSERT_THAT(IsTrue(Standard > 0, TEXT("the party's chat shows")));
+			Settings->Set(VeyraInterfacePreferences::ChatTextSize(), TEXT("Large"));
+			ASSERT_THAT(IsTrue(Screen->GetChatFieldFontSize() > Standard, TEXT("larger at once")));
+			ASSERT_THAT(AreEqual(VeyraShellLook::ScaledChatFontSize(GetDefault<UVeyraShellStyleSettings>()->BodyFontSize), Screen->GetChatFieldFontSize()));
 		}
 
 		TEST_METHOD(EachConversationKeepsItsOwnDraft)

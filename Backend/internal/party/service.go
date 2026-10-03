@@ -83,6 +83,15 @@ type SocialGraph interface {
 // implement it; they in turn read parties, so it is set after both exist.
 type Activity interface {
 	Busy(ctx context.Context, accounts []string) (bool, error)
+	// InMatch reports whether the account plays a live match now, when no
+	// party invitation may reach it (ADR-060 §4).
+	InMatch(ctx context.Context, accountID string) (bool, error)
+}
+
+// Restrictions says which of accounts cannot queue yet, and for how long: a
+// queue-dodge restriction (ADR-060 §3). The dodges package implements it.
+type Restrictions interface {
+	Remaining(ctx context.Context, accountIDs []string) (map[string]time.Duration, error)
 }
 
 // Settings are the validated party settings.
@@ -95,11 +104,12 @@ type Settings struct {
 
 // Service applies party rules for an acting account.
 type Service struct {
-	store    Store
-	social   SocialGraph
-	activity Activity
-	settings Settings
-	now      func() time.Time
+	store        Store
+	social       SocialGraph
+	activity     Activity
+	restrictions Restrictions
+	settings     Settings
+	now          func() time.Time
 }
 
 // NewService builds a Service. now is injectable for tests.
@@ -111,6 +121,19 @@ func NewService(store Store, social SocialGraph, settings Settings, now func() t
 // select, which StartQueue checks. Until it is set, StartQueue checks nothing
 // more than the party's own rules.
 func (s *Service) SetActivity(a Activity) { s.activity = a }
+
+// SetRestrictions connects the queue-dodge restrictions StartQueue honours.
+// Until it is set, no member is restricted.
+func (s *Service) SetRestrictions(r Restrictions) { s.restrictions = r }
+
+// Restricted returns how long each restricted member of p cannot queue yet;
+// a free member is absent (ADR-060 §3).
+func (s *Service) Restricted(ctx context.Context, p Party) (map[string]time.Duration, error) {
+	if s.restrictions == nil {
+		return map[string]time.Duration{}, nil
+	}
+	return s.restrictions.Remaining(ctx, (&p).MemberIDs())
+}
 
 // Get returns the actor's party.
 func (s *Service) Get(ctx context.Context, actor string) (Party, error) {
@@ -176,14 +199,16 @@ func (s *Service) StartQueue(ctx context.Context, actor string) (Party, error) {
 		if err := p.StartQueue(actor, s.settings.Rules, s.now()); err != nil {
 			return err
 		}
+		// A member who dodged holds the whole party back; the others may leave and queue without them.
+		if restricted, err := s.Restricted(ctx, *p); err != nil {
+			return err
+		} else if len(restricted) > 0 {
+			return ErrQueueRestricted
+		}
 		if s.activity == nil {
 			return nil
 		}
-		members := make([]string, len(p.Members))
-		for i, m := range p.Members {
-			members[i] = m.AccountID
-		}
-		busy, err := s.activity.Busy(ctx, members)
+		busy, err := s.activity.Busy(ctx, p.MemberIDs())
 		if err != nil {
 			return err
 		}
@@ -307,6 +332,16 @@ func (s *Service) Invite(ctx context.Context, actor, invitee string) (Invite, er
 	}
 	if err := s.checkSocial(ctx, actor, invitee); err != nil {
 		return Invite{}, err
+	}
+	// Never to a player in a live match, nor kept for later (ADR-060 §4).
+	if s.activity != nil {
+		playing, err := s.activity.InMatch(ctx, invitee)
+		if err != nil {
+			return Invite{}, err
+		}
+		if playing {
+			return Invite{}, ErrInviteeInMatch
+		}
 	}
 	var inv Invite
 	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {

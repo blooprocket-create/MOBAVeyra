@@ -226,7 +226,7 @@ FText DescribeNotice(const FString& Notice)
 	}
 	if (Notice == TEXT("you_left"))
 	{
-		return LOCTEXT("NoticeYouLeft", "You left champion select, which ended it for everyone. Your party left the queue.");
+		return LOCTEXT("NoticeYouLeft", "You left champion select, which ended it for everyone. Your party left the queue, and you can't queue again for a while.");
 	}
 	if (Notice == TEXT("match_found_declined"))
 	{
@@ -305,6 +305,10 @@ FText DescribeProblem(const FVeyraClientProblem& Problem)
 	if (Problem.Code == TEXT("member_busy"))
 	{
 		return LOCTEXT("ProblemMemberBusy", "Someone is still in a match, champion select or queue.");
+	}
+	if (Problem.Code == TEXT("queue_restricted"))
+	{
+		return LOCTEXT("ProblemQueueRestricted", "Someone in your party left champion select and can't queue yet.");
 	}
 	// The custom lobby's (ADR-021).
 	if (Problem.Code == TEXT("vanguard_taken"))
@@ -662,7 +666,16 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 	Model.bCanSetPrivacy = bLeader && Permissions.bCanSetPrivacy;
 	Model.bCanLeave = Permissions.bCanLeave;
 	Model.bQueued = Party.Status != EPartyStatus::Idle;
-	if (!Model.bQueued && !Party.Mode.IsEmpty())
+	const VeyraBackendProtocol::FPartyMember* Held = Party.RestrictedMember();
+	if (!Model.bQueued && Held)
+	{
+		// Who holds the party back, and for how long (ADR-060 §3).
+		const FText Time = FormatClock(FMath::CeilToInt(Held->RestrictedSeconds));
+		Model.Status = Held->AccountId == Snapshot.AccountId
+			? FText::Format(LOCTEXT("PartyYouRestricted", "You left champion select and can't queue for {0}."), Time)
+			: FText::Format(LOCTEXT("PartyMemberRestricted", "{0} left champion select and can't queue for {1}."), FText::FromString(Held->DisplayName), Time);
+	}
+	else if (!Model.bQueued && !Party.Mode.IsEmpty())
 	{
 		if (!Party.AllReady())
 		{
@@ -1145,6 +1158,10 @@ FText DescribeSocialFeedback(const FString& Code, const FString& Name)
 	{
 		return FText::Format(LOCTEXT("SocialBusy", "{0} is in a match, champion select or queue."), Who);
 	}
+	if (Code == TEXT("invitee_in_match"))
+	{
+		return FText::Format(LOCTEXT("SocialInviteeInMatch", "{0} is in a match. Invite them once it ends."), Who);
+	}
 	if (Code == TEXT("already_in_lobby"))
 	{
 		return FText::Format(LOCTEXT("SocialInLobby", "{0} is already in a lobby."), Who);
@@ -1324,7 +1341,9 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		for (const VeyraBackendProtocol::FPartyMember& Member : Party.Members)
 		{
 			Text << TEXT(";") << Member.AccountId << TEXT(":") << Member.DisplayName << TEXT(":") << (Member.bReady ? TEXT("ready") : TEXT("not ready"))
-				 << (Member.bLeader ? TEXT(":leader") : TEXT(""));
+				 << (Member.bLeader ? TEXT(":leader") : TEXT(""))
+			 // Each read's whole seconds, so the restriction's countdown shows (ADR-060 §3).
+			 << TEXT(":") << FMath::CeilToInt(Member.RestrictedSeconds);
 		}
 	}
 	if (Snapshot.State == EVeyraClientState::MatchFound)

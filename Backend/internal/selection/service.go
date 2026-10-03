@@ -78,6 +78,12 @@ type Matchmaking interface {
 	SelectEnded(ctx context.Context, accounts, leaving []string, started bool) error
 }
 
+// Dodges records a player who left a matchmade select on purpose, inside the
+// select's transaction (ADR-060 §1). The dodges package implements it.
+type Dodges interface {
+	Dodged(ctx context.Context, accountID string) error
+}
+
 // Lobbies learns how a custom select ended, inside the select's transaction.
 // The lobby package implements it.
 type Lobbies interface {
@@ -153,6 +159,7 @@ type Service struct {
 	blocks      Blocks
 	matchmaking Matchmaking
 	lobbies     Lobbies
+	dodges      Dodges
 	settings    Settings
 	now         func() time.Time
 	log         *slog.Logger
@@ -171,6 +178,10 @@ func (s *Service) SetMatchmaking(m Matchmaking) { s.matchmaking = m }
 
 // SetLobbies connects the custom lobbies, which in turn open custom selects.
 func (s *Service) SetLobbies(l Lobbies) { s.lobbies = l }
+
+// SetDodges connects what restricts a player who leaves a matchmade select
+// (ADR-060). Until it is set, leaving restricts no one.
+func (s *Service) SetDodges(d Dodges) { s.dodges = d }
 
 // StartPractice opens a practice select for the account: its host alone,
 // with no lobby (ADR-010 §7). The account must have finished the tutorial,
@@ -348,13 +359,20 @@ func (s *Service) Poll(ctx context.Context, accountID string) (Session, bool, er
 }
 
 // Leave takes the account out of its Casual Select, which cancels it: a dodge
-// (Match Flow Bible §2). The others return to the queue.
+// (Match Flow Bible §2). The others return to the queue, and the leaver of a
+// matchmade select cannot queue for a while (ADR-060 §1); a custom select's
+// leaver returns to the lobby unrestricted.
 func (s *Service) Leave(ctx context.Context, accountID string) (Session, error) {
 	return s.changeActive(ctx, accountID, func(ctx context.Context, session *Session) error {
 		if err := session.Leave(accountID, s.now()); err != nil {
 			return err
 		}
 		s.log.Info("a player left champion select", "select", session.ID, "account", accountID)
+		if session.Kind.Matchmade() && s.dodges != nil {
+			if err := s.dodges.Dodged(ctx, accountID); err != nil {
+				return err
+			}
+		}
 		return s.ended(ctx, *session, []string{accountID})
 	})
 }
