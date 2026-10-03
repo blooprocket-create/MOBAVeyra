@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -176,6 +177,35 @@ func TestJoinablePartiesInPostgres(t *testing.T) {
 	}
 	if joinable, err := f.parties.JoinableParties(ctx, c, []string{a}); err != nil || len(joinable) != 0 {
 		t.Fatalf("B blocks C, so C may not join B's party: %v %v", joinable, err)
+	}
+}
+
+// The offline sweep's members and removal (ADR-061 §4).
+func TestOfflineRemovalInPostgres(t *testing.T) {
+	f := newPartyFixture(t, "A", "B")
+	ctx := context.Background()
+	a, b := f.ids["A"], f.ids["B"]
+	f.befriend(t, "A", "B")
+	inv, err := f.parties.Invite(ctx, a, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.parties.AcceptInvite(ctx, b, inv.ID); err != nil {
+		t.Fatal(err)
+	}
+	members, err := f.parties.SweepableMembers(ctx)
+	if err != nil || !slices.Contains(members, a) || !slices.Contains(members, b) {
+		t.Fatalf("an idle party's members: %v %v", members, err)
+	}
+	if removed, err := f.parties.RemoveOffline(ctx, a); err != nil || !removed {
+		t.Fatalf("the leader goes: %v %v", removed, err)
+	}
+	p, err := f.parties.Get(ctx, b)
+	if err != nil || len(p.Members) != 1 || p.LeaderID != b {
+		t.Fatalf("B leads alone: %+v %v", p, err)
+	}
+	if removed, err := f.parties.RemoveOffline(ctx, a); err != nil || removed {
+		t.Fatalf("A is in no party now: %v %v", removed, err)
 	}
 }
 
