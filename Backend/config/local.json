@@ -216,5 +216,8 @@
   },
   "favorites": {
     "maxPerAccount": 64
+  },
+  "dodges": {
+    "restriction": "5m"
   }
 }
