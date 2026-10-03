@@ -124,6 +124,8 @@ type Config struct {
 	Favorites Favorites
 	// Dodges is queue-dodge restrictions (ADR-060).
 	Dodges Dodges
+	// Presence is who counts as online, and when an absent member leaves their party (ADR-061).
+	Presence Presence
 }
 
 // Vanguards configures the catalog of Vanguards players may own and pick
@@ -555,6 +557,7 @@ type fileConfig struct {
 	Names       *fileNames       `json:"names"`
 	Favorites   *fileFavorites   `json:"favorites"`
 	Dodges      *fileDodges      `json:"dodges"`
+	Presence    *filePresence    `json:"presence"`
 }
 
 type fileDockerConfig struct {
@@ -1216,6 +1219,7 @@ func Parse(raw []byte) (Config, error) {
 	c.Names = parseNames(f.Names, missing, func(s string) { problems = append(problems, s) }, positive)
 	c.Favorites = parseFavorites(f.Favorites, missing, func(s string) { problems = append(problems, s) })
 	c.Dodges = parseDodges(f.Dodges, missing, positive)
+	c.Presence = parsePresence(f.Presence, missing, func(s string) { problems = append(problems, s) }, positive)
 
 	// A select waits for its match's creation, which waits for the allocator.
 	if d := c.Allocator.Docker; d != nil && c.Selection.StartingTimeout > 0 && c.Selection.StartingTimeout <= d.RequestTimeout {

@@ -117,6 +117,8 @@
       shares its Match History and saves.
     - The second player opens the first player's profile from their card, again until it shows the
       shared history and the featured Vanguard.
+    - Presence (ADR-061): the first player then appears offline for a while and online again. The second
+      must have seen them Online, then Offline.
 
     -Flow Rename changes a display name with one packaged client (ADR-049), with no match:
     - It plays DevNine, which no other flow uses. The script first gives DevNine its name back with its
@@ -989,7 +991,7 @@ if ($Handoff -or $Flow) {
                 'Party' { 'Home', 'PartyFormed', 'PartyConfirm', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
                 'Chat' { 'Home', 'PartyFormed', 'Chat' }
-                'Profile' { 'Profile' }
+                'Profile' { 'Profile', 'AppearOffline' }
                 'Rename' { 'RenameConfirm', 'Renamed' }
             }
             foreach ($screen in $screens) {

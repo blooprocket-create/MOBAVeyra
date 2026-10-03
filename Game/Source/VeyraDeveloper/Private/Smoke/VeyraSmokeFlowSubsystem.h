@@ -165,6 +165,17 @@ private:
 	/** How far a profile script has come, and when the viewer next opens the profile again. */
 	int32 ProfileStep = 0;
 	double NextProfileTryAt = 0.0;
+	/**
+	 * The profile owner, once its profile is saved (ADR-061 §3): Appear Offline turned off if an earlier run left it on,
+	 * then on for a while for its friend to see, then off again. Done once it is off again.
+	 */
+	void TickOwnerPresence(IVeyraClientIntents& Flow);
+	/** How far the owner's Appear Offline has come, and since when it has held its present setting. */
+	int32 PresenceStep = 0;
+	double PresenceSince = 0.0;
+	/** What the viewer saw of its friend (ADR-061 §2): Online, then Offline while they appeared offline. */
+	bool bSawFriendOnline = false;
+	bool bSawFriendOffline = false;
 	/** Types Text into the chat composer that shows, as the player would. */
 	bool TypeChat(const FString& Text);
 	/**

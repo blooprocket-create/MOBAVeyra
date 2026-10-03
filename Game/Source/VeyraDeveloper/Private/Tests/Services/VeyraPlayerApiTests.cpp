@@ -544,6 +544,33 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFriendRequestOutcome(TEXT("{\"outcome\":\"maybe\"}"), Outcome, Problem)));
 		}
 
+		TEST_METHOD(ReadsFriendsPresenceAndTheirOwn)
+		{
+			// ADR-061 §2–§3: each friend's status, absent from an older backend; a status this game does not know shows nothing.
+			const FString Friend = FString::Printf(TEXT("{\"id\":\"%s\",\"displayName\":\"DevTwo\"}"), OtherAccountId);
+			const FString Lists = FString::Printf(TEXT("\"friends\":[%s],\"incomingRequests\":[],\"outgoingRequests\":[]"), *Friend);
+			VeyraBackendProtocol::FFriends Friends;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriends(FString::Printf(TEXT("{%s,\"presence\":{\"%s\":\"in_select\"}}"), *Lists, OtherAccountId), Friends, Problem),
+				Problem));
+			ASSERT_THAT(IsTrue(Friends.PresenceOf(OtherAccountId) == VeyraBackendProtocol::EPresence::InSelect, TEXT("the friend's status")));
+			ASSERT_THAT(IsTrue(Friends.PresenceOf(AccountId) == VeyraBackendProtocol::EPresence::Unknown, TEXT("one the backend did not name")));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriends(FString::Printf(TEXT("{%s,\"presence\":{\"%s\":\"away\"}}"), *Lists, OtherAccountId), Friends, Problem), Problem));
+			ASSERT_THAT(IsTrue(Friends.PresenceOf(OtherAccountId) == VeyraBackendProtocol::EPresence::Unknown, TEXT("an unknown status")));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriends(FString::Printf(TEXT("{%s}"), *Lists), Friends, Problem) && Friends.Presence.IsEmpty(), TEXT("an older backend")));
+			for (const FString& Bad : { FString::Printf(TEXT("{%s,\"presence\":[]}"), *Lists), FString::Printf(TEXT("{%s,\"presence\":{\"%s\":1}}"), *Lists, OtherAccountId),
+					 FString::Printf(TEXT("{%s,\"presence\":{\"x\":\"online\"}}"), *Lists) })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFriends(Bad, Friends, Problem), Bad));
+			}
+
+			VeyraBackendProtocol::FSelfPresence Self;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseSelfPresence(TEXT("{\"status\":\"online\",\"appearOffline\":true}"), Self, Problem), Problem));
+			ASSERT_THAT(IsTrue(Self.Status == VeyraBackendProtocol::EPresence::Online && Self.bAppearOffline, TEXT("their own")));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseSelfPresence(TEXT("{\"status\":\"online\"}"), Self, Problem), TEXT("no setting")));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildAppearOfflineBody(true), FString(TEXT("{\"appearOffline\":true}"))));
+		}
+
 		TEST_METHOD(ReadsJoinablePartiesPartyInvitationsAndBlocks)
 		{
 			const FString Friend = FString::Printf(TEXT("{\"id\":\"%s\",\"displayName\":\"DevTwo\"}"), OtherAccountId);

@@ -142,6 +142,11 @@ enum class EVeyraClientIntent : uint8
 	 * shell, the lobby and the results.
 	 */
 	BlockByName,
+	/**
+	 * Turns Appear Offline on or off (ADR-061 §3), from the friends panel: the shell and the lobby, once the
+	 * player's own presence has been read.
+	 */
+	SetAppearOffline,
 	/** Keeps this device's settings or the account's, when both changed (ADR-024 §1). Whenever the choice shows. */
 	ResolveSettingsConflict,
 	/** Reads the Collection: every released Vanguard, with the player's ownership and Mastery (ADR-045 §7). */
@@ -259,6 +264,8 @@ struct FVeyraSocial
 	TArray<VeyraBackendProtocol::FPartyInvite> PartyInvites;
 	/** The players the player blocked (ADR-044 §4). */
 	TArray<VeyraBackendProtocol::FAccount> Blocked;
+	/** The player's own presence and Appear Offline (ADR-061 §3); unset until read, and from a backend without presence. */
+	TOptional<VeyraBackendProtocol::FSelfPresence> Presence;
 	/**
 	 * What came of the player's last social request, for the friends panel rather than the screen's
 	 * problem: "friend_requested", "friend_added", "party_invited", "player_blocked" and the like, or the

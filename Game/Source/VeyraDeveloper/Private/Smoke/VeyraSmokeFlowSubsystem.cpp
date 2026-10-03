@@ -84,6 +84,9 @@ namespace
 	constexpr double AwayRealSeconds = 5.0;
 	// How long the profile viewer waits before opening its friend's profile again, until it is saved (ADR-048 §5).
 	constexpr double ProfileRetrySeconds = 2.0;
+	// How long the profile owner holds each Appear Offline setting: several of its friend's reads of the
+	// friends list (SocialPollIntervalSeconds), so the friend sees each (ADR-061).
+	constexpr double PresenceHoldRealSeconds = 12.0;
 	// -VeyraSmokeFlowReconnects: how long, in match seconds, it plays before leaving, so the other
 	// player has seen it in the match first.
 	constexpr double LeaveAfterMatchSeconds = 10.0;
@@ -1189,21 +1192,40 @@ void UVeyraSmokeFlowSubsystem::TickProfileShell(IVeyraClientIntents& Flow)
 			}
 			return;
 		}
-		default:
+		case 2:
 			if (Own.Feedback == TEXT("profile_saved") && Own.Saved.bShowMatchHistory && !Capture(TEXT("Profile")))
 			{
-				Finish(true, FString::Printf(TEXT("was friends with %s, featured %s on its Profile page with a portrait icon, and shared its Match History"), *FriendName,
-								 *Own.Saved.FeaturedVanguardId));
+				ProfileStep = 3;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: saved the profile, featuring %s."), *Own.Saved.FeaturedVanguardId);
 			}
 			else if (!Own.Feedback.IsEmpty() && Own.Feedback != TEXT("profile_saved"))
 			{
 				Finish(false, FString::Printf(TEXT("the profile was not saved: %s"), *Own.Feedback));
 			}
 			return;
+		default:
+			TickOwnerPresence(Flow);
+			return;
 		}
 	}
 	// The viewer: the friend's profile from their card, opened again until it shows the history they share,
-	// which this run's owner turns on after the script reset it.
+	// which this run's owner turns on after the script reset it. All the while it watches the friend's
+	// status: Online, then Offline once they appear offline (ADR-061 §2–§3).
+	if (const VeyraBackendProtocol::FAccount* Owner = Snapshot.Social.Friends.Friends.FindByPredicate(
+			[this](const VeyraBackendProtocol::FAccount& Friend) { return Friend.DisplayName == FriendName; }))
+	{
+		const VeyraBackendProtocol::EPresence Shown = Snapshot.Social.Friends.PresenceOf(Owner->Id);
+		if (!bSawFriendOnline && Shown == VeyraBackendProtocol::EPresence::Online)
+		{
+			bSawFriendOnline = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s shows Online."), *FriendName);
+		}
+		if (bSawFriendOnline && !bSawFriendOffline && Shown == VeyraBackendProtocol::EPresence::Offline)
+		{
+			bSawFriendOffline = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s shows Offline."), *FriendName);
+		}
+	}
 	const FVeyraProfileView& View = Snapshot.ProfileView;
 	const double Now = FPlatformTime::Seconds();
 	switch (ProfileStep)
@@ -1238,10 +1260,68 @@ void UVeyraSmokeFlowSubsystem::TickProfileShell(IVeyraClientIntents& Flow)
 		ProfileStep = 2;
 		return;
 	default:
-		if (View.bMatchesLoaded && !Capture(TEXT("ProfileView")))
+		// The profile seen, it waits for its friend to appear offline.
+		if (View.bMatchesLoaded && !Capture(TEXT("ProfileView")) && bSawFriendOffline)
 		{
-			Finish(true, FString::Printf(TEXT("opened %s's profile from their card: level %d, featuring %s at Mastery Level %d, with %d shared match(es) listed"), *FriendName,
-							 View.Profile.Level, *View.Profile.Featured->VanguardId, View.Profile.Featured->MasteryLevel, View.Matches.Num()));
+			Finish(true, FString::Printf(TEXT("opened %s's profile from their card: level %d, featuring %s at Mastery Level %d, with %d shared match(es) listed; ")
+											 TEXT("saw them Online, then Offline while they appeared offline"),
+				*FriendName, View.Profile.Level, *View.Profile.Featured->VanguardId, View.Profile.Featured->MasteryLevel, View.Matches.Num()));
+		}
+		return;
+	}
+#endif
+}
+
+void UVeyraSmokeFlowSubsystem::TickOwnerPresence(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const TOptional<VeyraBackendProtocol::FSelfPresence>& Self = Flow.GetSnapshot().Social.Presence;
+	if (!Self.IsSet() || !Flow.CanIssue(EVeyraClientIntent::SetAppearOffline))
+	{
+		return;
+	}
+	const double Now = FPlatformTime::Seconds();
+	switch (PresenceStep)
+	{
+	case 0:
+		// An earlier run that failed may have left it on, and it lasts until changed: off first, then shown
+		// online a while, so the friend sees them online.
+		if (Self->bAppearOffline)
+		{
+			Click(VeyraShellModels::AppearOfflineLabel(true).ToString());
+			PresenceSince = 0.0;
+			return;
+		}
+		if (PresenceSince == 0.0)
+		{
+			PresenceSince = Now;
+		}
+		else if (Now - PresenceSince >= PresenceHoldRealSeconds && Click(VeyraShellModels::AppearOfflineLabel(false).ToString()))
+		{
+			PresenceStep = 1;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: appearing offline."));
+		}
+		return;
+	case 1:
+		if (Self->bAppearOffline && !Capture(TEXT("AppearOffline")))
+		{
+			PresenceStep = 2;
+			PresenceSince = Now;
+		}
+		return;
+	case 2:
+		if (Now - PresenceSince >= PresenceHoldRealSeconds && Click(VeyraShellModels::AppearOfflineLabel(true).ToString()))
+		{
+			PresenceStep = 3;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: appearing online again."));
+		}
+		return;
+	default:
+		if (!Self->bAppearOffline)
+		{
+			Finish(true, FString::Printf(TEXT("was friends with %s, featured %s on its Profile page with a portrait icon, shared its Match History, ")
+											 TEXT("and appeared offline to them for a while, then online again"),
+				*FriendName, *Flow.GetSnapshot().ProfileSettings.Saved.FeaturedVanguardId));
 		}
 		return;
 	}

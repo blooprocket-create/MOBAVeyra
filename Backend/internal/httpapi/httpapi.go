@@ -22,6 +22,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/presence"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/profile"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/progression"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
@@ -82,8 +83,11 @@ type Deps struct {
 	// Dodges answers how long the player cannot queue after leaving a
 	// matchmade champion select (ADR-060 §3).
 	Dodges *dodges.Service
-	Modes  []ModeInfo
-	Ready  Pinger
+	// Presence is optional; with it every signed-in request marks its account
+	// seen, and friends carry their status (ADR-061).
+	Presence *presence.Service
+	Modes    []ModeInfo
+	Ready    Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -136,6 +140,7 @@ func New(d Deps) http.Handler {
 	s.routeNames(mux)
 	s.routeFavorites(mux)
 	s.routeRestriction(mux)
+	s.routePresence(mux)
 	return mux
 }
 
@@ -151,6 +156,13 @@ func (s *Server) authed(h func(w http.ResponseWriter, r *http.Request, actor str
 		if err != nil {
 			s.fail(w, err)
 			return
+		}
+		// A signed-in request is the player being here (ADR-061 §1); failing to
+		// record it never fails the request.
+		if s.Presence != nil {
+			if err := s.Presence.Touch(r.Context(), acct.ID); err != nil && s.Log != nil {
+				s.Log.Warn("presence touch failed", "err", err)
+			}
 		}
 		h(w, r, acct.ID)
 	}
@@ -446,6 +458,7 @@ var errorStatus = []struct {
 	{favorites.ErrPlaying, http.StatusConflict, "playing"},
 	{party.ErrQueueRestricted, http.StatusConflict, "queue_restricted"},
 	{party.ErrInviteeInMatch, http.StatusConflict, "invitee_in_match"},
+	{party.ErrInviteeOffline, http.StatusConflict, "invitee_offline"},
 	{favorites.ErrFull, http.StatusConflict, "favorites_full"},
 }
 

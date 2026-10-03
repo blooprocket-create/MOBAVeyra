@@ -205,6 +205,32 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("DELETE"), FString::Printf(TEXT("/v1/friends/requests/%s"), FriendId), 204)));
 			ASSERT_THAT(AreEqual(Snapshot().Social.Feedback, FString(TEXT("friend_request_cancelled"))));
 		}
+
+		TEST_METHOD(ThePlayersOwnPresenceIsReadBesideTheFriendsAndAppearOfflineTurnsOnAndOff)
+		{
+			ASSERT_THAT(IsTrue(ReachShellWithParty(NoParty)));
+			// ADR-061 §3: read beside the friends, never holding them up.
+			ASSERT_THAT(IsTrue(Snapshot().Social.bLoaded && !Snapshot().Social.Presence.IsSet(), TEXT("the lists came first")));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::SetAppearOffline), TEXT("not before the setting is read")));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/presence"), 200, TEXT("{\"status\":\"online\",\"appearOffline\":false}"))));
+			ASSERT_THAT(IsTrue(Snapshot().Social.Presence.IsSet() && !Snapshot().Social.Presence->bAppearOffline));
+			ASSERT_THAT(IsFalse(Flow->SetAppearOffline(false), TEXT("it is off already")));
+			ASSERT_THAT(IsTrue(Flow->SetAppearOffline(true)));
+			ASSERT_THAT(AreEqual(Backend.Find(TEXT("PUT"), TEXT("/v1/me/presence"))->Body, FString(TEXT("{\"appearOffline\":true}"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/presence"), 200, TEXT("{\"status\":\"online\",\"appearOffline\":true}"))));
+			ASSERT_THAT(IsTrue(Snapshot().Social.Presence->bAppearOffline, TEXT("the answer shows at once")));
+			ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Lobby, EVeyraClientIntent::SetAppearOffline)));
+			ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Selecting, EVeyraClientIntent::SetAppearOffline)));
+		}
+
+		TEST_METHOD(ABackendWithoutPresenceOffersNoAppearOffline)
+		{
+			ASSERT_THAT(IsTrue(ReachShellWithParty(NoParty)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/presence"), 404, ErrorBody(TEXT("not_found")))));
+			ASSERT_THAT(IsFalse(Snapshot().Social.Presence.IsSet()));
+			ASSERT_THAT(IsFalse(Snapshot().Problem.IsSet(), TEXT("nothing to show the screen")));
+			ASSERT_THAT(IsFalse(Flow->SetAppearOffline(true)));
+		}
 	};
 }
 

@@ -30,6 +30,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/postgres"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/presence"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/progression"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/settings"
@@ -195,6 +196,17 @@ func run(log *slog.Logger) error {
 	restrictions := dodges.NewService(store.Dodges(), cfg.Dodges.Restriction, time.Now)
 	selects.SetDodges(restrictions)
 	parties.SetRestrictions(restrictions)
+	// Who is here: friends' statuses, Appear Offline, and offline members leaving their party (ADR-061).
+	here := presence.NewService(store.Presence(), presence.Settings{
+		OfflineAfter:   cfg.Presence.OfflineAfter,
+		TouchEvery:     cfg.Presence.TouchEvery,
+		PostMatchGrace: cfg.Presence.PostMatchGrace,
+	}, time.Now)
+	here.SetActivity(presenceActivity{matches: matches, selects: selects, parties: parties})
+	here.SetParties(presenceParties{parties})
+	here.SetMatches(matches)
+	parties.SetPresence(here)
+	go here.RunSweeper(ctx, cfg.Presence.SweepInterval, log)
 	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
 	for _, m := range cfg.Modes {
 		if m.Enabled && (m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop || m.Matchmaking == config.MatchmakingDraftPick) {
@@ -246,6 +258,7 @@ func run(log *slog.Logger) error {
 			Profile:        profiles,
 			Favorites:      favs,
 			Dodges:         restrictions,
+			Presence:       here,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,

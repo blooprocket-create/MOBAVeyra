@@ -67,6 +67,9 @@ var (
 	// ErrInviteeInMatch refuses an invitation to a player in a live match,
 	// which is never kept for later (Parties, Social & Matchmaking Bible §4).
 	ErrInviteeInMatch = errors.New("the player is in a match")
+	// ErrInviteeOffline refuses an invitation to a player who shows offline
+	// to the inviter, really or by Appear Offline (ADR-061 §5).
+	ErrInviteeOffline = errors.New("the player is offline")
 )
 
 // Member is one party member.

@@ -190,6 +190,8 @@ public:
 	virtual bool UnblockPlayer(const FString& AccountId) override;
 	/** Not the player themselves. */
 	virtual bool BlockByName(const FString& DisplayName) override;
+	/** Not to what it already is. */
+	virtual bool SetAppearOffline(bool bAppearOffline) override;
 	virtual bool CancelFriendRequest(const FString& AccountId) override;
 	virtual bool LoadCollection() override;
 	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) override;
@@ -304,6 +306,10 @@ private:
 	void ShowSocialFeedback(const FString& Code, const FString& Name);
 	/** Shows lists read by the social read numbered Sequence, unless a later read's were shown already. */
 	void ApplySocial(uint32 Sequence, FVeyraSocial Read);
+	/** Reads the player's own presence beside the friends; a backend without presence leaves it unset (ADR-061 §3). */
+	void ReadSelfPresence();
+	/** Shows the player's own presence, as read or as Appear Offline's change answered. */
+	void ApplySelfPresence(const VeyraBackendProtocol::FSelfPresence& Read);
 
 	// Account progression, the Collection and purchases (VeyraClientFlowProgression.cpp; ADR-045 §7).
 	/** Reads the account's level and balances once; a failed read keeps the last, and never stops the flow. */

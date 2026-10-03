@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sort"
 	"sync"
+	"time"
 )
 
 // MemStore is an in-memory Store for tests. It is not used in any deployed
@@ -152,6 +153,23 @@ func (s *MemStore) HistoryModes(_ context.Context, accountID string) ([]string, 
 		}
 	}
 	slices.Sort(out)
+	return out, nil
+}
+
+func (s *MemStore) LastEnded(_ context.Context, accountIDs []string) (map[string]time.Time, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := map[string]time.Time{}
+	for _, m := range s.matches {
+		if m.EndedAt.IsZero() {
+			continue
+		}
+		for _, id := range accountIDs {
+			if _, in := m.Participant(id); in && m.EndedAt.After(out[id]) {
+				out[id] = m.EndedAt
+			}
+		}
+	}
 	return out, nil
 }
 

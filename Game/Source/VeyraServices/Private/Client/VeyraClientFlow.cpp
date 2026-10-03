@@ -47,6 +47,8 @@ namespace
 	const TCHAR* const LaunchLobbyPath = TEXT("/v1/lobby/launch");
 	const TCHAR* const LobbyInvitesPath = TEXT("/v1/lobby/invites");
 	const TCHAR* const FriendsPath = TEXT("/v1/friends");
+	// The player's own presence and Appear Offline (ADR-061 §3).
+	const TCHAR* const PresencePath = TEXT("/v1/me/presence");
 	const TCHAR* const FriendRequestsPath = TEXT("/v1/friends/requests");
 	// The party's own members and settings, its invitations, and blocks (ADR-044).
 	const TCHAR* const PartyPrivacyPath = TEXT("/v1/party/privacy");
@@ -336,6 +338,8 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("CancelFriendRequest");
 	case EVeyraClientIntent::BlockByName:
 		return TEXT("BlockByName");
+	case EVeyraClientIntent::SetAppearOffline:
+		return TEXT("SetAppearOffline");
 	case EVeyraClientIntent::ResolveSettingsConflict:
 		return TEXT("ResolveSettingsConflict");
 	case EVeyraClientIntent::LoadCollection:
@@ -565,6 +569,7 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::BlockPlayer:
 	case EVeyraClientIntent::UnblockPlayer:
 	case EVeyraClientIntent::CancelFriendRequest:
+	case EVeyraClientIntent::SetAppearOffline:
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
 	// A player menu opens in the shell's Match History, the lobby and the results (ADR-047 §5; ADR-060 §5).
 	case EVeyraClientIntent::BlockByName:
@@ -747,6 +752,9 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 		return !Snapshot.Social.Blocked.IsEmpty();
 	case EVeyraClientIntent::CancelFriendRequest:
 		return !Snapshot.Social.Friends.Outgoing.IsEmpty();
+	case EVeyraClientIntent::SetAppearOffline:
+		// The panel shows the setting as read, which a backend without presence never gives.
+		return Snapshot.Social.Presence.IsSet();
 	case EVeyraClientIntent::PurchaseVanguard:
 		// From the Collection as read, so the player saw the price they confirm.
 		return Snapshot.Collection.bLoaded;
@@ -1736,6 +1744,8 @@ void FVeyraClientFlow::PollSocial()
 void FVeyraClientFlow::ReadSocial(bool bThenPoll)
 {
 	const uint32 Sequence = ++SocialSequence;
+	// The player's own presence comes beside the lists, which never wait for it.
+	ReadSelfPresence();
 	const auto Next = [this, bThenPoll] {
 		if (bThenPoll)
 		{
@@ -1803,6 +1813,53 @@ void FVeyraClientFlow::ApplySocial(uint32 Sequence, FVeyraSocial Read)
 	Social.PartyInvites = MoveTemp(Read.PartyInvites);
 	Social.Blocked = MoveTemp(Read.Blocked);
 	Broadcast();
+}
+
+void FVeyraClientFlow::ReadSelfPresence()
+{
+	Probe(EVerb::Get, PresencePath, [this](const FVeyraBackendResponse& Response) {
+		if (Response.Status == NotFoundStatus)
+		{
+			// A backend without presence: there is nothing to show or change.
+			return;
+		}
+		VeyraBackendProtocol::FSelfPresence Read;
+		FString Problem;
+		if (!Response.IsSuccess() || !VeyraBackendProtocol::ParseSelfPresence(Response.Body, Read, Problem))
+		{
+			Log(FString::Printf(TEXT("could not read the player's presence: %s."), Response.IsSuccess() ? *Problem : *Response.Describe()));
+			return;
+		}
+		ApplySelfPresence(Read);
+	});
+}
+
+void FVeyraClientFlow::ApplySelfPresence(const VeyraBackendProtocol::FSelfPresence& Read)
+{
+	if (Snapshot.Social.Presence.IsSet() && *Snapshot.Social.Presence == Read)
+	{
+		return;
+	}
+	Snapshot.Social.Presence = Read;
+	Broadcast();
+}
+
+bool FVeyraClientFlow::SetAppearOffline(bool bAppearOffline)
+{
+	if (!CanIssue(EVeyraClientIntent::SetAppearOffline) || Snapshot.Social.Presence->bAppearOffline == bAppearOffline)
+	{
+		return false;
+	}
+	Log(bAppearOffline ? TEXT("appearing offline.") : TEXT("appearing online."));
+	CallSocial(EVerb::Put, PresencePath, VeyraBackendProtocol::BuildAppearOfflineBody(bAppearOffline), FString(), [this](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FSelfPresence Read;
+		FString Problem;
+		if (VeyraBackendProtocol::ParseSelfPresence(Response.Body, Read, Problem))
+		{
+			ApplySelfPresence(Read);
+		}
+	});
+	return true;
 }
 
 void FVeyraClientFlow::CallSocial(EVerb Verb, const FString& Path, const FString& Body, const FString& Name, TFunction<void(const FVeyraBackendResponse&)> OnSuccess)

@@ -69,11 +69,11 @@ Each pending request the player sent offers **Cancel** (`DELETE /v1/friends/requ
 
 ## Deferred
 
-- **Appear Offline and presence** (Bible §5): they need a presence service. Friends show no online state yet.
+- **Appear Offline and presence** (Bible §5): they need a presence service. Friends show no online state yet. Taken up by [ADR-061](ADR-061-presence-appear-offline-and-offline-removal.md).
 - **Recent Players** (Bible §5) and blocks from the post-match player list (Bible §6; UX-57).
 - **Party Chat** (Chat & Communication Bible): its own record, [ADR-046](ADR-046-party-direct-select-postmatch-chat.md).
 - **Ready-up requests and invitation notifications** (UX-24).
-- **Going offline in a party, and the post-match grace period** (Bible §4): they need presence.
+- **Going offline in a party, and the post-match grace period** (Bible §4): they need presence. Taken up by [ADR-061](ADR-061-presence-appear-offline-and-offline-removal.md).
 - **Profile icons on member cards, and an empty slot's invite entry point** (UX-10): there are no profile icons yet. Invite to Party is offered from the friends panel instead.
 - **The automatic replacement leader's rule** (Bible §1): still open. The backend's provisional rule, the longest-standing member, stands.
 

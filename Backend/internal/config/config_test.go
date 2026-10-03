@@ -44,6 +44,7 @@ const validJSON = `{
   "names": {"renameCooldown": "24h", "claimAfter": "8760h", "renamePrice": {"flux": 6000, "refinedFlux": 600}},
   "favorites": {"maxPerAccount": 64},
   "dodges": {"restriction": "5m"},
+  "presence": {"offlineAfter": "30s", "touchEvery": "5s", "sweepInterval": "5s", "postMatchGrace": "2m"},
   "progression": {
     "accountXp": {"perMinute": 6, "winBonus": 30, "coopBelowLevel": 10},
     "accountLevels": {"firstLevel": 150, "growthPerLevel": 20, "growthUntilLevel": 100},
