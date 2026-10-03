@@ -33,16 +33,21 @@ The canon (Combat Bible §24):
   - enemy Vanguards and enemy Fluxborn block;
   - allies of every kind pass through each other;
   - structures and terrain block everyone, as before.
-- **One owner:** a single combat verb, `VeyraCombat::ApplySideCollision`, sets it for every unit kind. Ghosted, riders and attached bodies ignore both sides' channels and the pawn channel, never terrain (§24).
+- **One owner:** `VeyraUnitCollision` (VeyraCombat) sets it for every unit kind and answers which channels hold units. Ghosted, riders and attached bodies ignore both sides' channels and the pawn channel, never terrain (§24).
 
 ### 2. Allies separate softly
-Allies who overlap are pushed apart on the server, at a configured speed and only while they overlap. They never stand inside each other for long, and never block. Unstuck rules use the same pass: a unit left embedded in an enemy or neutral by displacement or spawning is moved to the nearest free spot.
+- **Moving allies:** moving allies keep apart through avoidance (§3). Fluxborn steer around each other and make way for their Vanguards, and nothing allied ever blocks.
+- **Standing allies:** allied Vanguards standing still may overlap, as passing through each other allows. A pass that pushes standing allies apart is deferred: it changes only how a stack looks, never what blocks.
+- **Embedding:** the character movement component's own depenetration frees a unit that displacement or spawning left inside an enemy or neutral body. Ghosted bodies are never embedded, since they block nothing.
 
 ### 3. Local avoidance
-- **Steering:** the server controllers that move Vanguards and Fluxborn steer with crowd avoidance around the units in their way, instead of following a navmesh path blindly.
-- **Fluxborn:** they weigh allied Vanguards heavily, so they step aside.
-- **Vanguards:** they go around an enemy wave rather than into it.
-- **Settings:** data.
+- **Steering:** Vanguards and Fluxborn steer around the units in their way with the movement component's reciprocal avoidance, on the server that moves them. Fluxborn already did, but only among themselves. A navmesh path knows nothing of units.
+- **Groups:** avoidance groups by side and role decide who steers around whom:
+  - a Vanguard steers around enemy and neutral units, and walks on through its allies, which it passes anyway (§1);
+  - a Fluxborn steers around everyone, its own side's Vanguards included, so an allied wave makes way for them.
+- **Settings:** data. A Vanguard's consideration radius and weight are `Match.json` `orders`; Fluxborn keep theirs in `World.json`.
+- **Arriving at a body:** a destination that an enemy or a neutral unit stands on can't be reached, and steering would circle that body without end. A move order there ends when the Vanguard reaches the body's edge, within the order's arrival tolerance. An ally standing there is walked through, as §1 allows.
+- **Not crowd following:** a Detour crowd was considered. It would replace both controllers' path following and needs a raised agent cap. Reciprocal avoidance gives the same yield and steer-around with one setting on the units that already move by it.
 
 ### 4. Hosted diagnostics
 - **Keeping logs:** the Docker allocator saves each match server's log to a configured folder before removing its container.
@@ -66,14 +71,24 @@ When the Worker's recorded tunnel is gone, Cloudflare answers with an origin err
 - **The Docker path:** it adds nothing measurable, so ADR-057 stands.
 - **The server:** it uses about a tenth of its 33 ms frame with about 180 replicated actors, and bandwidth is far inside ADR-006 §5's budgets.
 - **The round trip** has a floor near 30 ms even on one machine: an order waits for the server's next 30 Hz tick, and so does its answer. A remote player's network round trip adds to that. Hosted logs now record each player's.
-- **The feel work** therefore targets what the player sees between a click and the server's answer (G5: instant click feedback), and the stop-and-slide near waves (§1–§3).
+- **The feel work** therefore targets what the player sees between a click and the server's answer, and the stop-and-slide near waves (§1–§3).
+- **Click feedback:** the local player's move, Attack Move and attack orders leave a mark at once, a round trip before the server answers.
+  - The mark is a ring that closes on the ground ordered, or round the unit an attack names, and fades. Moves and attacks have different colours.
+  - The grey-box presentation draws it from the order as the client gave it. It decides nothing, and the server never sees it.
+  - Its look is presentation settings, kept with the grey-box's other settings. Under Reduce Interface Animation it stays still and only fades.
+- **Smoothing:** no change.
+  - Vanguards already replicate every server tick: the engine's default rate is above the 30 Hz tick. Fluxborn replicate every third tick (ADR-011 §7).
+  - Clients draw both as simulated units, with the movement component's exponential smoothing between updates.
 - **No prediction:** movement prediction stays out of scope (ADR-009 §6).
 
 ### 7. Provisional answers where canon is open
 1. Allied Fluxborn don't hard-block allied Vanguards. They yield through avoidance and soft separation, which is this record's reading of "collision, but pathing should aggressively avoid trapping".
-2. The separation speed, the crowd's avoidance settings and the statistics interval are provisional data.
+2. The avoidance settings and the statistics interval are provisional data.
+3. A move onto a body that blocks the Vanguard ends at that body's edge (§3).
+4. The click mark's look and timing are provisional presentation (§6).
 
 ## Consequences
 - **Readability:** allies never trap each other, and enemies still body-block as the canon means.
-- **One owner** each for collision, separation and avoidance, rather than per-unit fixes.
+- **One owner** for collision and avoidance groups, rather than per-unit fixes.
+- **Feedback before the answer:** a click shows where it went at once, whatever the round trip.
 - **Playtests can be diagnosed:** hosted logs and connection statistics come from what the player actually saw.

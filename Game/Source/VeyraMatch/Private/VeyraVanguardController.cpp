@@ -5,9 +5,12 @@
 #include "Algo/MinElement.h"
 
 #include "Attacks/VeyraBasicAttackComponent.h"
+#include "Engine/OverlapResult.h"
+#include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Shapes/VeyraShapes.h"
@@ -168,6 +171,40 @@ void AVeyraVanguardController::Tick(float DeltaSeconds)
 	{
 		UpdateAttackOrder();
 		UpdateRideArrival();
+		UpdateOccupiedArrival();
+	}
+}
+
+void AVeyraVanguardController::UpdateOccupiedArrival()
+{
+	// A destination an enemy or a neutral unit stands on can't be reached: the Vanguard would steer round that body
+	// without end. It arrives instead on reaching the body's edge (ADR-062 §3).
+	const APawn* Body = GetPawn();
+	const UPrimitiveComponent* Capsule = Body ? Cast<UPrimitiveComponent>(Body->GetRootComponent()) : nullptr;
+	if (!MoveOrder.IsSet() || !Capsule || GetPathFollowingComponent()->GetStatus() != EPathFollowingStatus::Moving)
+	{
+		return;
+	}
+	const double Radius = Body->GetSimpleCollisionRadius();
+	const double Tolerance = UVeyraMatchTuningSubsystem::Get().Orders.ArrivalTolerance;
+	TArray<FOverlapResult> Occupants;
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(VeyraOccupiedArrival), /*bTraceComplex*/ false, Body);
+	GetWorld()->OverlapMultiByObjectType(Occupants, MoveOrder.GetValue(), FQuat::Identity, VeyraUnitCollision::AllUnits(), FCollisionShape::MakeSphere(Radius), Query);
+	for (const FOverlapResult& Occupant : Occupants)
+	{
+		const UPrimitiveComponent* Other = Occupant.GetComponent();
+		const AActor* Unit = Occupant.GetActor();
+		if (!Other || !Unit || Capsule->GetCollisionResponseToChannel(Other->GetCollisionObjectType()) != ECR_Block)
+		{
+			continue;
+		}
+		const double Gap = FVector::Dist2D(Body->GetActorLocation(), Unit->GetActorLocation()) - Radius - Unit->GetSimpleCollisionRadius();
+		if (Gap <= Tolerance)
+		{
+			MoveOrder.Reset();
+			StopMovement();
+			return;
+		}
 	}
 }
 

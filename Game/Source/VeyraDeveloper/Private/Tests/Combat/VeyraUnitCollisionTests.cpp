@@ -89,6 +89,28 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(IsStoppedBy(Mover, Enemy)));
 		}
 
+		TEST_METHOD(AlliedFluxbornMakeWayForAVanguardWhichSteersAroundEnemies)
+		{
+			// ADR-062 §3: who steers around whom.
+			using VeyraUnitCollision::AvoidanceGroupsOf;
+			using VeyraUnitCollision::EAvoidanceRole;
+			const VeyraUnitCollision::FAvoidanceGroups VanguardA = AvoidanceGroupsOf(EVeyraTeam::A, EAvoidanceRole::Vanguard);
+			const VeyraUnitCollision::FAvoidanceGroups FluxbornA = AvoidanceGroupsOf(EVeyraTeam::A, EAvoidanceRole::Fluxborn);
+			const VeyraUnitCollision::FAvoidanceGroups VanguardB = AvoidanceGroupsOf(EVeyraTeam::B, EAvoidanceRole::Vanguard);
+			const VeyraUnitCollision::FAvoidanceGroups FluxbornB = AvoidanceGroupsOf(EVeyraTeam::B, EAvoidanceRole::Fluxborn);
+			const VeyraUnitCollision::FAvoidanceGroups Neutral = AvoidanceGroupsOf(EVeyraTeam::None, EAvoidanceRole::Fluxborn);
+			const auto Steers = [](const VeyraUnitCollision::FAvoidanceGroups& Unit, const VeyraUnitCollision::FAvoidanceGroups& Other) {
+				return (Unit.Avoid & Other.Group) != 0 && (Unit.Ignore & Other.Group) == 0;
+			};
+			ASSERT_THAT(IsTrue(Steers(FluxbornA, VanguardA), TEXT("an allied wave makes way for its Vanguard")));
+			ASSERT_THAT(IsFalse(Steers(VanguardA, FluxbornA), TEXT("the Vanguard walks on through it")));
+			ASSERT_THAT(IsFalse(Steers(VanguardA, AvoidanceGroupsOf(EVeyraTeam::A, EAvoidanceRole::Vanguard)), TEXT("nor steers for an allied Vanguard")));
+			ASSERT_THAT(IsTrue(Steers(VanguardA, FluxbornB) && Steers(VanguardA, VanguardB) && Steers(VanguardA, Neutral), TEXT("it goes around enemies and neutrals")));
+			ASSERT_THAT(IsTrue(Steers(FluxbornA, FluxbornA) && Steers(FluxbornA, FluxbornB), TEXT("Fluxborn keep apart in their waves and from the enemy's")));
+			ASSERT_THAT(IsTrue(Steers(FluxbornB, VanguardB) && !Steers(VanguardB, FluxbornB), TEXT("the same for side B")));
+			ASSERT_THAT(IsTrue(VanguardA.Group != 0 && FluxbornA.Group != 0 && VanguardA.Group != FluxbornB.Group && Neutral.Group != 0));
+		}
+
 		TEST_METHOD(AllUnitsFindsEverySide)
 		{
 			SpawnUnit(EVeyraTeam::A, 0.0);

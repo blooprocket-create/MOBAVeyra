@@ -6,6 +6,7 @@
 #include "Engine/EngineTypes.h"
 #include "Teams/VeyraTeam.h"
 
+class UCharacterMovementComponent;
 class UPrimitiveComponent;
 
 /**
@@ -34,4 +35,29 @@ namespace VeyraUnitCollision
 
 	/** Object query parameters that find every unit, whatever its side. */
 	VEYRACOMBAT_API FCollisionObjectQueryParams AllUnits();
+
+	/** What a unit the server moves is, for the avoidance groups it steers by (ADR-062 §3). */
+	enum class EAvoidanceRole : uint8
+	{
+		Vanguard,
+		Fluxborn,
+	};
+
+	/** A unit's avoidance group, the groups it steers around, and the groups it never steers for. */
+	struct FAvoidanceGroups
+	{
+		int32 Group = 0;
+		int32 Avoid = 0;
+		int32 Ignore = 0;
+	};
+
+	/**
+	 * Who steers around whom (ADR-062 §3). A Vanguard steers around enemy and neutral units and walks
+	 * through its allies, which it passes anyway. A Fluxborn steers around everyone, its own side's
+	 * Vanguards included, so an allied wave makes way for them (Combat Bible §24).
+	 */
+	VEYRACOMBAT_API FAvoidanceGroups AvoidanceGroupsOf(EVeyraTeam Team, EAvoidanceRole Role);
+
+	/** Sets Movement's avoidance groups from AvoidanceGroupsOf. */
+	VEYRACOMBAT_API void ApplyAvoidanceGroups(UCharacterMovementComponent& Movement, EVeyraTeam Team, EAvoidanceRole Role);
 }

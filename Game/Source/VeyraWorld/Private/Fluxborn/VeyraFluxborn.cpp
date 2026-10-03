@@ -109,8 +109,10 @@ void AVeyraFluxborn::Configure(const FVeyraContentId& InKind, EVeyraTeam InTeam,
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraFluxborn, Team, this);
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraFluxborn, Lane, this);
 	ApplyBody();
-	// It collides by side: allied units pass through it, enemies are blocked (ADR-062 §1).
+	// It collides by side: allied units pass through it, enemies are blocked (ADR-062 §1). It steers around
+	// everyone, its own side's Vanguards too, so a wave makes way for them (§3).
 	VeyraUnitCollision::ApplySide(*GetCapsuleComponent(), Team);
+	VeyraUnitCollision::ApplyAvoidanceGroups(*GetCharacterMovement(), Team, VeyraUnitCollision::EAvoidanceRole::Fluxborn);
 }
 
 bool AVeyraFluxborn::InitializeStats(double HealthMultiplier, double DamageMultiplier)

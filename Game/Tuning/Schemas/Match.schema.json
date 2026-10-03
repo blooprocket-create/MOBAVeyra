@@ -426,7 +426,7 @@
       "description": "How the server accepts a player's move orders (ADR-006 §7: server-only movement). Provisional values.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["maxPerSecond", "destinationProjectionExtent", "arrivalTolerance"],
+      "required": ["maxPerSecond", "destinationProjectionExtent", "arrivalTolerance", "avoidanceConsiderationRadius", "avoidanceWeight"],
       "properties": {
         "maxPerSecond": {
           "description": "Sustained orders a player may send per second; the server refuses the rest.",
@@ -444,6 +444,18 @@
           "description": "How close, in units, a Vanguard must come to its destination to have arrived.",
           "type": "number",
           "minimum": 0
+        },
+        "avoidanceConsiderationRadius": {
+          "description": "How far, in units, a Vanguard looks for enemy and neutral units to steer around on its way (Combat Bible §24; ADR-062 §3). Provisional.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "avoidanceWeight": {
+          "description": "How much of the steering a Vanguard takes on itself when it meets such a unit, 0 to 1. Provisional.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },

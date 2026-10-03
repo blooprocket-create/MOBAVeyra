@@ -8,6 +8,8 @@
 #include "GameFramework/PlayerState.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
+#include "VeyraPlayerState.h"
+#include "VeyraVanguardController.h"
 
 namespace VeyraNetTests
 {
@@ -79,6 +81,33 @@ namespace VeyraNetTests
 				.ThenClient(0, [Destination](FState& State) { LocalControllerOf(State.World)->SteerMoveOrder(Destination); })
 				.UntilServer(TEXT("The server moves the Vanguard"), [this, Destination](FState& State) {
 					return IsNear2D(FindVanguard(State.World, MoverId), Destination);
+				});
+		}
+
+		TEST_METHOD(AMoveOntoAnEnemyEndsAtItsEdge)
+		{
+			// A Vanguard can't stand where an enemy stands, so it arrives at the enemy rather than steering round it
+			// without end (ADR-062 §3). Fixture value: how far apart the two start.
+			constexpr double Apart = 600.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Stand the enemy in the way, then walk onto it"), [this](FState& State) {
+					AVeyraPlayerState* Mover = ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>();
+					APawn* Enemy = ServerControllerOf(State, 1)->GetPlayerState<AVeyraPlayerState>()->GetPawn();
+					ASSERT_THAT(IsTrue(Mover && Mover->GetPawn() && Enemy));
+					MoverId = Mover->GetPlayerId();
+					const FVector From = Mover->GetPawn()->GetActorLocation();
+					Enemy->SetActorLocation(From + FVector(-From.X, 0.0, 0.0).GetSafeNormal() * Apart);
+					ASSERT_THAT(IsTrue(Mover->GetVanguardController()->MoveToDestination(Enemy->GetActorLocation()) == EVeyraOrderRejection::None));
+				})
+				.UntilServer(TEXT("The order ends"), [](FState& State) {
+					return !ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>()->GetVanguardController()->GetMoveOrder().IsSet();
+				})
+				.ThenServer(TEXT("At the enemy's edge"), [this](FState& State) {
+					const APawn* Mover = FindVanguard(State.World, MoverId);
+					const APawn* Enemy = ServerControllerOf(State, 1)->GetPlayerState<AVeyraPlayerState>()->GetPawn();
+					const double Gap = FVector::Dist2D(Mover->GetActorLocation(), Enemy->GetActorLocation()) - Mover->GetSimpleCollisionRadius()
+						- Enemy->GetSimpleCollisionRadius();
+					ASSERT_THAT(IsTrue(Gap <= Tuning->Tuning.Orders.ArrivalTolerance + PositionSlack, *FString::Printf(TEXT("%.1f units short"), Gap)));
 				});
 		}
 

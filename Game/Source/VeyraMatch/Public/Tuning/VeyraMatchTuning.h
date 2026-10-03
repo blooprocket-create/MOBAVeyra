@@ -363,6 +363,13 @@ struct FVeyraOrdersTuning
 
 	UPROPERTY()
 	double ArrivalTolerance = 0.0;
+
+	/** How far a Vanguard looks for enemy and neutral units to steer around, and how much of the steering it takes (ADR-062 §3). */
+	UPROPERTY()
+	double AvoidanceConsiderationRadius = 0.0;
+
+	UPROPERTY()
+	double AvoidanceWeight = 0.0;
 };
 
 /** The slot a developer match ranks up for each participant at level 1. */
