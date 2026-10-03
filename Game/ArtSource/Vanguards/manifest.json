@@ -1,0 +1,919 @@
+{
+  "generatorVersion": 1,
+  "blender": "5.2.1 LTS",
+  "kitSha256": "aad2bdb32da3129fc23998a5b6e7cb8be546d5a2fa72e4ccc2a17a6f8797a8fe",
+  "assets": [
+    {
+      "id": "angeru",
+      "name": "SK_Angeru",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Angeru.fbx",
+      "sha256": "c827ba43523c072ab647267c898e000a90dabb36695d3f11587a89d66d6c50b6",
+      "triangles": 1452,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 125.5,
+      "capsuleHalfHeightCm": 66,
+      "melee": true,
+      "runStrideCm": 125.26,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "bryn",
+      "name": "SK_Bryn",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Bryn.fbx",
+      "sha256": "93e2a9fde3072df8cacd521932c333da19411eab5706f858522e098e3b7c768f",
+      "triangles": 1452,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 163.82,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 163.54,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "celandrine",
+      "name": "SK_Celandrine",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Celandrine.fbx",
+      "sha256": "cf1568057643691cd0b3bf618f6667123361e3809a4e21665d0bc596cd864090",
+      "triangles": 1920,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 181.7,
+      "capsuleHalfHeightCm": 88,
+      "melee": false,
+      "runStrideCm": 155.28,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "eudora",
+      "name": "SK_Eudora",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Eudora.fbx",
+      "sha256": "7d92ae932f081be4d623b2d4c89adb8016b695faf06a4bd09f14697c03683bc5",
+      "triangles": 1644,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 167.46,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 167.17,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "gorraveth",
+      "name": "SK_Gorraveth",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Gorraveth.fbx",
+      "sha256": "47b09cd645ea42ed1690892135b71ae5434d2b862d836d765f68d16319c5dcda",
+      "triangles": 1596,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 221.73,
+      "capsuleHalfHeightCm": 110,
+      "melee": true,
+      "runStrideCm": 218.54,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "kade",
+      "name": "SK_Kade",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Kade.fbx",
+      "sha256": "245de5be3db01aef3b8e5999fe78f50c85ed0f75fb03372371a73de563ce9fb5",
+      "triangles": 1452,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 172.95,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 172.62,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "marek",
+      "name": "SK_Marek",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Marek.fbx",
+      "sha256": "3fe6d7a12c5a31ffad45581423f5d04ccbc801db6eb243884ef867cdfa988f4e",
+      "triangles": 2928,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 172.95,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 172.62,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "mavra",
+      "name": "SK_Mavra",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Mavra.fbx",
+      "sha256": "65bfdb1f6628063433015f24b93727d74eea1fb9f4057d5b598b96ab9ab6c849",
+      "triangles": 1716,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 165.55,
+      "capsuleHalfHeightCm": 88,
+      "melee": false,
+      "runStrideCm": 165.23,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "mimzi",
+      "name": "SK_Mimzi",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Mimzi.fbx",
+      "sha256": "9c5eac1c9c9cf418bf4dde5bdb93bd1881a43813db8a4956e6fb364f63526b1e",
+      "triangles": 2736,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 131.67,
+      "capsuleHalfHeightCm": 70,
+      "melee": false,
+      "runStrideCm": 98.51,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "neris",
+      "name": "SK_Neris",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Neris.fbx",
+      "sha256": "9ebb726d87e4642eabbb70cc9c0bba6d11ceffce88d2e04a6826960bd553d12d",
+      "triangles": 1692,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 170.31,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 130.39,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "patch",
+      "name": "SK_Patch",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Patch.fbx",
+      "sha256": "2798b1c7f7d4456e91f32ce987bd40371d8487320fd13c568e9b03d0107f2e31",
+      "triangles": 1620,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 114.19,
+      "capsuleHalfHeightCm": 70,
+      "melee": true,
+      "runStrideCm": 77.09,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "qazharr",
+      "name": "SK_Qazharr",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Qazharr.fbx",
+      "sha256": "b82fbef1cb913d6fc33d3b1a22b603ade9ab143c20c372d715298bba3fce0ffc",
+      "triangles": 1500,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 188.04,
+      "capsuleHalfHeightCm": 95,
+      "melee": true,
+      "runStrideCm": 192.67,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "raska",
+      "name": "SK_Raska",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Raska.fbx",
+      "sha256": "f27c9e6f88df8a9b1c7829b8416153dd3feee463412be82cb12e983f73bb5687",
+      "triangles": 1860,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 180.64,
+      "capsuleHalfHeightCm": 95,
+      "melee": true,
+      "runStrideCm": 180.3,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "sylra",
+      "name": "SK_Sylra",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Sylra.fbx",
+      "sha256": "bd053df961306b9e42f9fd7f134199f4d387da07af200c72275c8607f860e82f",
+      "triangles": 1524,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 168.84,
+      "capsuleHalfHeightCm": 88,
+      "melee": false,
+      "runStrideCm": 165.23,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "tavi",
+      "name": "SK_Tavi",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Tavi.fbx",
+      "sha256": "4de84df39a55923cf7f345332f5fee3dcf9785267091d5a1d1939601a8b076dc",
+      "triangles": 1764,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 115.18,
+      "capsuleHalfHeightCm": 66,
+      "melee": true,
+      "runStrideCm": 103.14,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "vera",
+      "name": "SK_Vera",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Vera.fbx",
+      "sha256": "cef6310764d1125f93326f6bc9a4c9cc5b888f798aeaf1a9e5e0274ec1976521",
+      "triangles": 1632,
+      "triangleBudget": 9000,
+      "bones": 26,
+      "heightCm": 167.62,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 162.99,
+      "upperBodyBone": "spine_01",
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    }
+  ]
+}
