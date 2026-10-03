@@ -1,0 +1,85 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Attacks/VeyraBasicAttackTypes.h"
+#include "Content/VeyraContentId.h"
+#include "Misc/Optional.h"
+#include "Teams/VeyraTeam.h"
+#include "UObject/WeakObjectPtrTemplates.h"
+#include "VeyraAbilityTypes.h"
+
+class AActor;
+
+/** A moment of a fight a client shows (ADR-063 §1). */
+enum class EVeyraCombatCueKind : uint8
+{
+	/** An attack began its windup. */
+	AttackWindup,
+	/** An attack committed: a melee attack lands now, a ranged one looses its projectile. */
+	AttackCommit,
+	/** A unit lost Health or shields. */
+	Hit,
+	/** A cast began its windup. */
+	CastWindup,
+	/** A cast committed, whatever phases follow it. */
+	CastCommit,
+	/** A unit died. */
+	Death,
+};
+
+/** One cue, as the presentation's views take it. */
+struct FVeyraCombatCue
+{
+	EVeyraCombatCueKind Kind = EVeyraCombatCueKind::Hit;
+
+	/** Whose moment it is: the attacker, the caster, the unit hit or the unit that died. */
+	TWeakObjectPtr<const AActor> Unit;
+
+	/** An attack's target. */
+	TWeakObjectPtr<const AActor> Target;
+
+	/** A cast's ability, and where it was aimed. */
+	FVeyraContentId Ability;
+	FVector Location = FVector::ZeroVector;
+
+	/** A hit's Health and shields lost. */
+	double Amount = 0.0;
+};
+
+/** What a client saw of one unit at one moment: everything a cue is read from. */
+struct FVeyraUnitSighting
+{
+	bool bAlive = false;
+
+	/** Health and every shield together, and Max Health. */
+	double Vitality = 0.0;
+	double MaxHealth = 0.0;
+
+	EVeyraAttackPhase AttackPhase = EVeyraAttackPhase::None;
+	double AttackPhaseEndsAt = 0.0;
+	TWeakObjectPtr<const AActor> AttackTarget;
+
+	EVeyraCastPhase CastPhase = EVeyraCastPhase::None;
+	int32 CastId = 0;
+	FVeyraContentId CastAbility;
+	FVector CastLocation = FVector::ZeroVector;
+
+	/** The latest committed cast (UVeyraCastStateComponent::GetLastCommit). */
+	int32 CommitSerial = 0;
+	FVeyraContentId CommitAbility;
+	FVector CommitLocation = FVector::ZeroVector;
+};
+
+/** Reading a fight's moments from the state a client already receives (ADR-063 §1). */
+namespace VeyraCombatCues
+{
+	/**
+	 * The cues between two sightings of Unit, in the order they happen: a hit, then a death, or else the attack's and
+	 * the cast's. A new windup or backswing is told apart from the old by its phase end; a lost Max Health is not a hit.
+	 */
+	VEYRAUI_API TArray<FVeyraCombatCue> Between(const AActor& Unit, const FVeyraUnitSighting& Before, const FVeyraUnitSighting& Now);
+
+	/** What this client sees of Unit now, as Viewer's side; unset for anything but a unit with vitals. */
+	VEYRAUI_API TOptional<FVeyraUnitSighting> Sight(const AActor& Unit, EVeyraTeam Viewer);
+}

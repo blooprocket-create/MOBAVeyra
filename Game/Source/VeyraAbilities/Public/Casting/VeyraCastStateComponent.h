@@ -38,6 +38,31 @@ struct FVeyraCastState
 };
 
 /**
+ * The caster's latest committed cast, as every machine that sees the caster knows it (ADR-063 §1). A cast that
+ * commits with no channel or recovery, or with no windup, changes no other state a client sees.
+ */
+USTRUCT()
+struct FVeyraCastCommit
+{
+	GENERATED_BODY()
+
+	/** Counts the caster's commits; each commit changes it. */
+	UPROPERTY()
+	int32 Serial = 0;
+
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	/** Where it was aimed: its ground point, or the caster's position. */
+	UPROPERTY()
+	FVector Location = FVector::ZeroVector;
+
+	/** The direction it faced, on the ground. */
+	UPROPERTY()
+	FVector Direction = FVector::ForwardVector;
+};
+
+/**
  * The cast that holds a combatant, if any: its windup, channel or recovery (ADR-008 §4). It lives
  * beside the Ability System Component; a participant's replicates behind the fog, to those who see
  * it (ADR-016 §3).
@@ -61,7 +86,13 @@ public:
 	/** Server only: no cast holds the caster now. */
 	void Clear();
 
+	/** Server only: a cast of Ability, aimed at Location facing Direction, has committed. */
+	void NoteCommitted(const FVeyraContentId& Ability, const FVector& Location, const FVector& Direction);
+
 	const FVeyraCastState& GetState() const { return State; }
+
+	/** The latest committed cast; its Serial is 0 before the first. */
+	const FVeyraCastCommit& GetLastCommit() const { return LastCommit; }
 
 	/** Whether a cast holds the caster, so another cast is refused. */
 	bool IsBusy() const { return State.Phase != EVeyraCastPhase::None; }
@@ -75,4 +106,7 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_State)
 	FVeyraCastState State;
+
+	UPROPERTY(Replicated)
+	FVeyraCastCommit LastCommit;
 };

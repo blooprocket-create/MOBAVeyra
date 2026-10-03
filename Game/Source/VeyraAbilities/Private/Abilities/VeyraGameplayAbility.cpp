@@ -506,6 +506,11 @@ void UVeyraGameplayAbility::OnWindupEnded()
 	}
 
 	NoteCastCommitted(*Caster, Run.Cast.Ability, Run.Cast.TargetActor.Get());
+	// Every machine that sees the caster learns of the commit, whatever phases follow (ADR-063 §1).
+	if (UVeyraCastStateComponent* CastState = FindBesideAbilitySystem<UVeyraCastStateComponent>(*Caster))
+	{
+		CastState->NoteCommitted(Run.Cast.Ability, Run.Cast.Point, Run.Cast.Direction);
+	}
 
 	// Committed, it is past its windup: an interruption its own delivery brings about, as a caster's own Stasis, ends
 	// nothing that is delivering (ADR-050 §4).
