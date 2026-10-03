@@ -125,7 +125,7 @@ func run(log *slog.Logger) error {
 	}
 	accounts := account.NewService(store.Account(), vanguards, time.Now)
 
-	matches, err := newMatchService(cfg, store, svc)
+	matches, err := newMatchService(cfg, store, svc, log)
 	if err != nil {
 		return err
 	}
@@ -437,7 +437,7 @@ func draftTiming(d config.DraftPick) selection.Timing {
 }
 
 // newMatchService builds the match service with the configured allocator.
-func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Service) (*match.Service, error) {
+func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Service, log *slog.Logger) (*match.Service, error) {
 	var allocator match.Allocator = noAllocator{}
 	settings := match.Settings{
 		Modes: map[string]match.Mode{},
@@ -481,6 +481,8 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 			HostIP:         d.HostIP,
 			ServerArgs:     d.ServerArgs,
 			StopTimeout:    d.StopTimeout,
+			LogDirectory:   d.LogDirectory,
+			Log:            log,
 		})
 		if err != nil {
 			return nil, err

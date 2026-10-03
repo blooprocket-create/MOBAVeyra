@@ -2,11 +2,13 @@ package docker
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -104,6 +106,20 @@ func (f *fakeEngine) handler(t *testing.T) http.Handler {
 		f.containers[r.PathValue("name")] = "exited"
 		w.WriteHeader(http.StatusNoContent)
 	})
+	mux.HandleFunc("GET /v1.44/containers/{name}/logs", func(w http.ResponseWriter, r *http.Request) {
+		f.record("logs")
+		f.mu.Lock()
+		_, ok := f.containers[r.PathValue("name")]
+		f.mu.Unlock()
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		// As the Engine writes a container's output without a TTY: framed by stream.
+		_, _ = w.Write(frame(1, "VeyraHandoff: took the assignment\n"))
+		_, _ = w.Write(frame(2, "LogNet: a warning\n"))
+		_, _ = w.Write(frame(1, "The match ended (host ended).\n"))
+	})
 	mux.HandleFunc("DELETE /v1.44/containers/{name}", func(w http.ResponseWriter, r *http.Request) {
 		f.record("delete force=" + r.URL.Query().Get("force"))
 		f.mu.Lock()
@@ -116,6 +132,13 @@ func (f *fakeEngine) handler(t *testing.T) http.Handler {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	return mux
+}
+
+// frame is one chunk of a container's log as the Engine streams it without a TTY.
+func frame(stream byte, text string) []byte {
+	header := []byte{stream, 0, 0, 0, 0, 0, 0, 0}
+	binary.BigEndian.PutUint32(header[4:], uint32(len(text)))
+	return append(header, text...)
 }
 
 // serveOnSocket serves the fake engine on a Unix socket, as Docker does.
@@ -238,6 +261,60 @@ func TestStatusAndRemove(t *testing.T) {
 	last := engine.calls[len(engine.calls)-2:]
 	if last[0] != "stop t=10" || last[1] != "delete force=1" {
 		t.Fatalf("calls %v: want a graceful stop, then a forced delete", engine.calls)
+	}
+}
+
+func TestRemoveKeepsTheServersLogWhenAsked(t *testing.T) {
+	engine := newFakeEngine()
+	cfg := testConfig(serveOnSocket(t, engine))
+	cfg.LogDirectory = filepath.Join(t.TempDir(), "matches")
+	a, _ := New(cfg)
+	ctx := context.Background()
+	const id = "6f1c2d3e-0000-4000-8000-000000000001"
+	if err := a.Start(ctx, match.ServerSpec{MatchID: id, HostPort: 7780, Assignment: []byte(testAssignment)}); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	<-engine.stdinDone
+	if err := a.Remove(ctx, id); err != nil {
+		t.Fatalf("Remove: %v", err)
+	}
+	kept, err := os.ReadFile(filepath.Join(cfg.LogDirectory, id+".log"))
+	if err != nil {
+		t.Fatalf("the log was not kept: %v", err)
+	}
+	// Both streams, in order, without the Engine's frame headers (ADR-062 §4).
+	if string(kept) != "VeyraHandoff: took the assignment\nLogNet: a warning\nThe match ended (host ended).\n" {
+		t.Fatalf("kept log %q", kept)
+	}
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
+	if got := strings.Join(engine.calls[len(engine.calls)-3:], ","); got != "stop t=10,logs,delete force=1" {
+		t.Fatalf("calls %v: the log is read after the stop and before the delete", engine.calls)
+	}
+}
+
+func TestALogThatCannotBeKeptNeverKeepsTheContainer(t *testing.T) {
+	engine := newFakeEngine()
+	cfg := testConfig(serveOnSocket(t, engine))
+	// A file where the folder should be: the log cannot be written.
+	blocked := filepath.Join(t.TempDir(), "matches")
+	if err := os.WriteFile(blocked, []byte("not a folder"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg.LogDirectory = blocked
+	a, _ := New(cfg)
+	ctx := context.Background()
+	if err := a.Start(ctx, match.ServerSpec{MatchID: "m-2", HostPort: 7781, Assignment: []byte(testAssignment)}); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	<-engine.stdinDone
+	if err := a.Remove(ctx, "m-2"); err != nil {
+		t.Fatalf("Remove must still succeed: %v", err)
+	}
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
+	if _, ok := engine.containers["veyra-match-m-2"]; ok {
+		t.Fatal("the container was kept because its log was not")
 	}
 }
 

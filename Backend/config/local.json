@@ -211,7 +211,8 @@
       "publicHost": "127.0.0.1",
       "backendUrl": "http://backend:8080",
       "serverArgs": ["-port=7777", "-log", "-stdout", "-FullStdOutLogOutput", "-LogCmds=LogVeyraAbilities Verbose"],
-      "stopTimeout": "10s"
+      "stopTimeout": "10s",
+      "logDirectory": "/var/log/veyra/matches"
     }
   },
   "favorites": {
