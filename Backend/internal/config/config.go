@@ -326,6 +326,9 @@ type DockerAllocator struct {
 	// the switch that tells it to read its assignment from standard input.
 	ServerArgs  []string
 	StopTimeout time.Duration
+	// LogDirectory, when set, is where each match server's log is kept before
+	// its container is removed (ADR-062 §4); empty keeps none.
+	LogDirectory string
 }
 
 // Party configures party rules (Parties & Social Bible §1).
@@ -572,11 +575,12 @@ type fileDockerConfig struct {
 		Min *int `json:"min"`
 		Max *int `json:"max"`
 	} `json:"hostPorts"`
-	HostIP      *string   `json:"hostIp"`
-	PublicHost  *string   `json:"publicHost"`
-	BackendURL  *string   `json:"backendUrl"`
-	ServerArgs  []string  `json:"serverArgs"`
-	StopTimeout *Duration `json:"stopTimeout"`
+	HostIP       *string   `json:"hostIp"`
+	PublicHost   *string   `json:"publicHost"`
+	BackendURL   *string   `json:"backendUrl"`
+	ServerArgs   []string  `json:"serverArgs"`
+	StopTimeout  *Duration `json:"stopTimeout"`
+	LogDirectory *string   `json:"logDirectory"`
 }
 
 var (
@@ -1318,5 +1322,12 @@ func parseDocker(f *fileDockerConfig, missing func(string), positive func(string
 		d.ServerArgs = append(d.ServerArgs, arg)
 	}
 	d.StopTimeout = positive(prefix+"stopTimeout", f.StopTimeout)
+	// Optional: where match servers' logs are kept, inside the backend's container.
+	if f.LogDirectory != nil {
+		d.LogDirectory = *f.LogDirectory
+		if !strings.HasPrefix(d.LogDirectory, "/") || strings.TrimSpace(d.LogDirectory) != d.LogDirectory {
+			problem(prefix + "logDirectory must be an absolute path, such as /var/log/veyra/matches")
+		}
+	}
 	return &d
 }

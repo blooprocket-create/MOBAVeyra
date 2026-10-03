@@ -77,7 +77,9 @@
   "orders": {
     "maxPerSecond": 20,
     "destinationProjectionExtent": 200,
-    "arrivalTolerance": 10
+    "arrivalTolerance": 10,
+    "avoidanceConsiderationRadius": 300,
+    "avoidanceWeight": 0.5
   },
   "developerMatch": {
     "vanguards": ["cairn"],

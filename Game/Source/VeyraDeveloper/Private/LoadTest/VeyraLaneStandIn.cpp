@@ -4,6 +4,7 @@
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
 
 namespace
 {
@@ -19,7 +20,7 @@ AVeyraLaneStandIn::AVeyraLaneStandIn(const FObjectInitializer& ObjectInitializer
 	PrimaryActorTick.bCanEverTick = true;
 	GetCapsuleComponent()->InitCapsuleSize(CapsuleRadius, CapsuleHalfHeight);
 	// Stand-ins walk through each other and through Vanguards, so a crowded lane never jams.
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	VeyraUnitCollision::SetResponseToUnits(*GetCapsuleComponent(), ECR_Ignore);
 	bUseControllerRotationYaw = false;
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();

@@ -262,6 +262,7 @@ func TestParseRejects(t *testing.T) {
 		"no server args":            {`["-port=7777", "-log"]`, `[]`, "serverArgs is required"},
 		"blank server arg":          {`["-port=7777", "-log"]`, `["-port=7777", " "]`, "must not contain blank"},
 		"map in server args":        {`["-port=7777", "-log"]`, `["/Game/Maps/L_Play", "-log"]`, "serverArgs must not name a map"},
+		"relative log directory":    {`"stopTimeout": "10s"`, `"stopTimeout": "10s", "logDirectory": "logs/matches"`, "logDirectory must be an absolute path"},
 		"no maps": {`,
     "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}`, ``, "matches.maps is required"},
 		"no development map":   {`, "development": "/Game/Maps/L_Dev"`, ``, "matches.maps.development is required"},

@@ -11,6 +11,7 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Movement/VeyraMovementFields.h"
 #include "Movement/VeyraMovementRules.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "NavigationSystem.h"
 #include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -74,14 +75,23 @@ void UVeyraMovementComponent::RefreshBody()
 	const bool bPassesThrough = (Statuses && Statuses->Has(EVeyraStatusKind::Ghosted)) || IsAttached() || IsRiding();
 	if (bPassesThrough != PassThroughFrom.IsSet())
 	{
+		// Units sit on a side's channel or the pawn channel (ADR-062 §1): it passes through all of them.
 		if (bPassesThrough)
 		{
-			PassThroughFrom = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
-			Capsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+			TArray<ECollisionResponse, TInlineAllocator<3>> Before;
+			for (const ECollisionChannel Channel : VeyraUnitCollision::Channels)
+			{
+				Before.Add(Capsule->GetCollisionResponseToChannel(Channel));
+			}
+			PassThroughFrom = MoveTemp(Before);
+			VeyraUnitCollision::SetResponseToUnits(*Capsule, ECR_Ignore);
 		}
 		else
 		{
-			Capsule->SetCollisionResponseToChannel(ECC_Pawn, PassThroughFrom.GetValue());
+			for (int32 Index = 0; Index < UE_ARRAY_COUNT(VeyraUnitCollision::Channels); ++Index)
+			{
+				Capsule->SetCollisionResponseToChannel(VeyraUnitCollision::Channels[Index], PassThroughFrom.GetValue()[Index]);
+			}
 			PassThroughFrom.Reset();
 		}
 	}
@@ -704,7 +714,7 @@ AActor* UVeyraMovementComponent::FindCollision(const FVector& From, const FVecto
 	}
 	TArray<FHitResult> Hits;
 	const FCollisionQueryParams Params(SCENE_QUERY_STAT(VeyraDisplacementCollision), /*bTraceComplex*/ false, CharacterOwner);
-	World->SweepMultiByObjectType(Hits, From, To, FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn),
+	World->SweepMultiByObjectType(Hits, From, To, FQuat::Identity, VeyraUnitCollision::AllUnits(),
 		FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight()), Params);
 	Hits.Sort([](const FHitResult& A, const FHitResult& B) { return A.Time < B.Time; });
 	for (const FHitResult& Hit : Hits)
@@ -745,7 +755,7 @@ AActor* UVeyraMovementComponent::FindEnemyContact(const FVector& From, const FVe
 	}
 	TArray<FHitResult> Hits;
 	const FCollisionQueryParams Params(SCENE_QUERY_STAT(VeyraDashContact), /*bTraceComplex*/ false, CharacterOwner);
-	World->SweepMultiByObjectType(Hits, From, To, FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn),
+	World->SweepMultiByObjectType(Hits, From, To, FQuat::Identity, VeyraUnitCollision::AllUnits(),
 		FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight()), Params);
 	Hits.Sort([](const FHitResult& A, const FHitResult& B) { return A.Time < B.Time; });
 	for (const FHitResult& Hit : Hits)

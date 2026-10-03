@@ -256,6 +256,12 @@ const FVeyraContentId& IndicatorBoundary()
 	return Id;
 }
 
+const FVeyraContentId& ClickMarkers()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_click_markers"));
+	return Id;
+}
+
 const FVeyraContentId& ChatTextSize()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("communication_chat_text_size"));
@@ -526,6 +532,7 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.LoadingContent = VeyraLoadingModel::ParseContent(Store->Get(LoadingContent()));
 	Preferences.PlayReminder = Store->Get(PlayReminder());
 	Preferences.IndicatorThickness = Store->Get(IndicatorBoundary()) == Thick ? Hud.IndicatorThickThickness : Hud.IndicatorThickness;
+	Preferences.bClickMarkers = Store->IsOn(ClickMarkers());
 	const FString Size = Store->Get(ChatTextSize());
 	Preferences.ChatFontSize = Size == Large ? Hud.ChatLargeFontSize : Size == ExtraLarge ? Hud.ChatExtraLargeFontSize : Hud.ChatFontSize;
 	const FString Backdrop = Store->Get(ChatBackdrop());

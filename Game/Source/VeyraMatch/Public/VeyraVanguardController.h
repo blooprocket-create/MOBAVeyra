@@ -105,6 +105,9 @@ private:
 	/** A rider's move order ends at its closest approach to a destination inside its turning circle. */
 	void UpdateRideArrival();
 
+	/** A move order to where a body that blocks the Vanguard stands ends on reaching that body (ADR-062 §3). */
+	void UpdateOccupiedArrival();
+
 	/** The nearest a rider has come to its destination since it came within its turning circle. */
 	TOptional<double> RideClosest;
 	void StopForAttack();

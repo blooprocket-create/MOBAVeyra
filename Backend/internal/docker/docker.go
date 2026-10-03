@@ -9,15 +9,21 @@
 package docker
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -34,6 +40,16 @@ const (
 	labelMatchID = "veyra.match-id"
 )
 
+// A kept log's folder is readable by the host's user; the Engine's log frames
+// carry an 8-byte header.
+const (
+	logDirectoryMode = 0o755
+	frameHeaderSize  = 8
+)
+
+// matchIDPattern is what a kept log's file is named after: a match ID.
+var matchIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9-]{0,63}$`)
+
 // Config is the allocator's validated configuration.
 type Config struct {
 	// Endpoint is unix:///path/to/docker.sock or tcp://host:port.
@@ -47,6 +63,11 @@ type Config struct {
 	HostIP         string
 	ServerArgs     []string
 	StopTimeout    time.Duration
+	// LogDirectory, when set, is where each match server's log is saved, as
+	// <match ID>.log, before its container is removed (ADR-062 §4).
+	LogDirectory string
+	// Log reports what could not be saved; nil means the default logger.
+	Log *slog.Logger
 }
 
 // Allocator implements match.Allocator on the Docker Engine API.
@@ -222,12 +243,92 @@ func (a *Allocator) Remove(ctx context.Context, matchID string) error {
 	if err != nil {
 		return fmt.Errorf("stop %s: %w", name, err)
 	}
+	// Its log goes with the container, so it is kept first. A log that cannot be
+	// kept never keeps the container: the reaper would try again forever.
+	if a.cfg.LogDirectory != "" {
+		if err := a.keepLog(ctx, name, matchID); err != nil {
+			a.logger().Warn("could not keep a match server's log", "match", matchID, "err", err)
+		}
+	}
 	deleteCtx, cancelDelete := context.WithTimeout(ctx, a.cfg.RequestTimeout)
 	defer cancelDelete()
 	if err := a.call(deleteCtx, http.MethodDelete, "/containers/"+name+"?force=1", nil, http.StatusNoContent, http.StatusNotFound); err != nil {
 		return fmt.Errorf("delete %s: %w", name, err)
 	}
 	return nil
+}
+
+func (a *Allocator) logger() *slog.Logger {
+	if a.cfg.Log != nil {
+		return a.cfg.Log
+	}
+	return slog.Default()
+}
+
+// keepLog saves a container's output to LogDirectory/<match ID>.log. A
+// container that is already gone has no log to keep.
+func (a *Allocator) keepLog(ctx context.Context, name, matchID string) error {
+	// Match IDs are the backend's own UUIDs; anything else never names a file.
+	if !matchIDPattern.MatchString(matchID) {
+		return fmt.Errorf("match ID %q is not a file name", matchID)
+	}
+	logCtx, cancel := context.WithTimeout(ctx, a.cfg.RequestTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(logCtx, http.MethodGet, a.base+"/containers/"+name+"/logs?stdout=1&stderr=1", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return apiError(resp)
+	}
+	if err := os.MkdirAll(a.cfg.LogDirectory, logDirectoryMode); err != nil {
+		return err
+	}
+	file, err := os.Create(filepath.Join(a.cfg.LogDirectory, matchID+".log"))
+	if err != nil {
+		return err
+	}
+	if err := demultiplex(file, resp.Body); err != nil {
+		file.Close()
+		return err
+	}
+	return file.Close()
+}
+
+// demultiplex copies a container's log stream to w. Without a TTY the Engine
+// frames each chunk with an 8-byte header: the stream (0 stdin, 1 stdout,
+// 2 stderr), three zero bytes, then the chunk's length, big-endian. A stream
+// that does not start with such a header is copied as it is.
+func demultiplex(w io.Writer, r io.Reader) error {
+	reader := bufio.NewReader(r)
+	for {
+		header, err := reader.Peek(frameHeaderSize)
+		if errors.Is(err, io.EOF) && len(header) == 0 {
+			return nil
+		}
+		if err != nil && !errors.Is(err, io.EOF) {
+			return err
+		}
+		if len(header) < frameHeaderSize || header[0] > 2 || header[1] != 0 || header[2] != 0 || header[3] != 0 {
+			_, err := io.Copy(w, reader)
+			return err
+		}
+		size := int64(binary.BigEndian.Uint32(header[4:frameHeaderSize]))
+		if _, err := reader.Discard(frameHeaderSize); err != nil {
+			return err
+		}
+		if _, err := io.CopyN(w, reader, size); err != nil {
+			return err
+		}
+	}
 }
 
 // call makes one API request and checks its status.

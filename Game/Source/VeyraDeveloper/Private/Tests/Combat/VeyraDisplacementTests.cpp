@@ -8,6 +8,7 @@
 #include "Greybox/VeyraGreyboxLayout.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "VeyraCombatVerbs.h"
@@ -173,15 +174,28 @@ namespace VeyraCombatTests
 		TEST_METHOD(GhostedPassesThroughUnitsAndBodyScaleWidensTheBody)
 		{
 			UCapsuleComponent* Capsule = CastChecked<ACharacter>(Movement->GetOwner())->GetCapsuleComponent();
-			const ECollisionResponse Before = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
+			// A side's body, so it ignores its own side's channel: a ghost must pass every unit channel, then get each back.
+			VeyraUnitCollision::ApplySide(*Capsule, EVeyraTeam::A);
+			TArray<ECollisionResponse> Before;
+			for (const ECollisionChannel Channel : VeyraUnitCollision::Channels)
+			{
+				Before.Add(Capsule->GetCollisionResponseToChannel(Channel));
+			}
 			const float Width = Capsule->GetUnscaledCapsuleRadius();
 			FVeyraStatusSpec Ghost;
 			Ghost.Id = FVeyraContentId::FromText(TEXT("ghost")).GetValue();
 			Ghost.Kind = EVeyraStatusKind::Ghosted;
 			Ghost.DurationSeconds = 60.0;
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Ghost)));
-			ASSERT_THAT(IsTrue(Capsule->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Ignore));
-			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Ghost.Id) && Capsule->GetCollisionResponseToChannel(ECC_Pawn) == Before));
+			for (const ECollisionChannel Channel : VeyraUnitCollision::Channels)
+			{
+				ASSERT_THAT(IsTrue(Capsule->GetCollisionResponseToChannel(Channel) == ECR_Ignore, TEXT("a ghost passes every unit")));
+			}
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Ghost.Id)));
+			for (int32 Index = 0; Index < Before.Num(); ++Index)
+			{
+				ASSERT_THAT(IsTrue(Capsule->GetCollisionResponseToChannel(VeyraUnitCollision::Channels[Index]) == Before[Index], TEXT("each response comes back")));
+			}
 
 			constexpr double Scale = 1.5;
 			FVeyraStatusSpec Big;

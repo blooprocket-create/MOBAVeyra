@@ -61,6 +61,8 @@ services:
     user: "0:0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # Each match server's log, kept here before its container goes (ADR-062 §4).
+      - ./Game/Saved/MatchLogs:/var/log/veyra/matches
     environment:
       VEYRA_DATABASE_URL: postgres://veyra:veyra-local-only@postgres:5432/veyra?sslmode=disable
     ports:

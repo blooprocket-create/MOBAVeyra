@@ -291,6 +291,26 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
 	float IndicatorThickThickness = 0.0f;
 
+	/**
+	 * The mark a local order leaves at once where it went (ADR-062 §6): how long it shows, in seconds, the ring's radius
+	 * as it starts and as it ends, in units (past the edge of a unit an attack names), and its colours for a move and for
+	 * an Attack Move or an attack.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
+	float OrderMarkSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "1"))
+	float OrderMarkStartRadius = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "1"))
+	float OrderMarkEndRadius = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
+	FLinearColor OrderMoveColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
+	FLinearColor OrderAttackColor = FLinearColor::Transparent;
+
 	/** How far above the ground telegraphs are drawn, in units, so the floor does not hide them. */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
 	float TelegraphLift = 0.0f;

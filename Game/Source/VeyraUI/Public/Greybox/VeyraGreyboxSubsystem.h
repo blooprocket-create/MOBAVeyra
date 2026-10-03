@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Greybox/VeyraOrderMarks.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Shapes/VeyraShapes.h"
 #include "Subsystems/WorldSubsystem.h"
@@ -93,6 +94,9 @@ public:
 
 	/** What the last refresh telegraphed. */
 	const TArray<FVeyraTelegraph>& GetTelegraphs() const { return Telegraphs; }
+
+	/** The ring the last refresh drew for the local player's last order, while it shows (ADR-062 §6). */
+	const TOptional<FVeyraOrderMarkRing>& GetOrderMarkRing() const { return OrderMarkRing; }
 
 	/** The server's gameplay time as this machine knows it; it stands still while the match is paused. */
 	double GetServerNow() const;
@@ -205,6 +209,10 @@ private:
 
 	/** The chains between companions and their owners, joining the telegraphs' lines (ADR-034 §7). */
 	void DrawChains();
+
+	/** The local player's last order's mark, joining the telegraphs' lines while it shows. */
+	void DrawOrderMark();
+	TOptional<FVeyraOrderMarkRing> OrderMarkRing;
 
 	/** A projected Echo's tether circle and stream (ADR-050 §7). */
 	void DrawEchoTethers();

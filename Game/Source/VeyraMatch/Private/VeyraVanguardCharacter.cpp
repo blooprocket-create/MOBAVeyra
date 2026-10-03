@@ -9,6 +9,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Input/VeyraCameraSettings.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
+#include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 
@@ -101,10 +103,21 @@ void AVeyraVanguardCharacter::OnPlayerStateChanged(APlayerState* NewPlayerState,
 		}
 	}
 
-	// Only the server moves Vanguards, so only its movement follows the participant.
+	// The body collides by its participant's side (ADR-062 §1); binding the combatant below then lays any
+	// pass-through, such as Ghosted, over it.
+	VeyraUnitCollision::ApplySide(*GetCapsuleComponent(), VeyraTeams::TeamOf(NewPlayerState));
+
+	// Only the server moves Vanguards, so only its movement follows the participant. It steers around
+	// enemy and neutral units on its way, and its allies make way for it (ADR-062 §3).
 	if (HasAuthority())
 	{
-		GetVeyraMovement()->BindCombatant(NewAbilitySystem);
+		UVeyraMovementComponent* Movement = GetVeyraMovement();
+		const FVeyraOrdersTuning& Orders = UVeyraMatchTuningSubsystem::Get().Orders;
+		Movement->AvoidanceConsiderationRadius = static_cast<float>(Orders.AvoidanceConsiderationRadius);
+		Movement->AvoidanceWeight = static_cast<float>(Orders.AvoidanceWeight);
+		Movement->SetAvoidanceEnabled(true);
+		VeyraUnitCollision::ApplyAvoidanceGroups(*Movement, VeyraTeams::TeamOf(NewPlayerState), VeyraUnitCollision::EAvoidanceRole::Vanguard);
+		Movement->BindCombatant(NewAbilitySystem);
 	}
 	ApplyVanguardBody();
 }

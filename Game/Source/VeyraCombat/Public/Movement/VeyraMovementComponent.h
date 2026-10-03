@@ -230,8 +230,11 @@ private:
 	void OnFollowedStatusesChanged();
 	void RefreshBody();
 
-	/** While it passes through units, the response to them it had before; unset otherwise. */
-	TOptional<ECollisionResponse> PassThroughFrom;
+	/**
+	 * While it passes through units, its response to each unit channel before (VeyraUnitCollision::Channels,
+	 * in order); unset otherwise.
+	 */
+	TOptional<TArray<ECollisionResponse, TInlineAllocator<3>>> PassThroughFrom;
 
 	/** The BodyScale its radius carries now; 1 for none. */
 	double AppliedBodyScale = 1.0;

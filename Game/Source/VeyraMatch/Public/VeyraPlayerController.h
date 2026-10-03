@@ -8,6 +8,7 @@
 #include "Input/VeyraCastInput.h"
 #include "Input/VeyraCursorPicks.h"
 #include "Input/VeyraInputSettings.h"
+#include "Input/VeyraOrderMark.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Progression/VeyraProgressionTypes.h"
 #include "Templates/Function.h"
@@ -268,6 +269,9 @@ public:
 	/** Owning client: the indicator the player sees, while a cast waits or Show Cast Range previews one (ADR-041 §1). */
 	const TOptional<FVeyraCastIndicator>& GetCastIndicator() const { return CastInput.GetIndicator(); }
 
+	/** Owning client: the player's last move, Attack Move or attack order, which the presentation marks at once (ADR-062 §6). */
+	const TOptional<FVeyraOrderMark>& GetOrderMark() const { return OrderMark; }
+
 	/** Owning client: hides a waiting cast or a preview, and whether one showed. Escape asks this before the menu opens. */
 	bool CancelPendingCast();
 
@@ -434,6 +438,11 @@ private:
 
 	/** Owning client: the unit the latest attack order named, until a move order replaces it. */
 	TWeakObjectPtr<AActor> OrderedAttackTarget;
+
+	/** Owning client: records the order just given for its mark. */
+	void MarkOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target);
+
+	TOptional<FVeyraOrderMark> OrderMark;
 
 	/** Owning client: the zoom keys' presses this frame move the player's zoom level, which persists (ADR-052 §3). */
 	void TickZoom();
