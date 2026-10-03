@@ -375,6 +375,22 @@ public:
 	FName EffectColorParameter;
 
 	/**
+	 * The shop at each side's fountain (ADR-063 §6): ShopOffset units from its team start toward the battleground's
+	 * centre, ShopRadius wide and ShopHeight tall, in ShopColor. The player's own side's opens the shop when clicked.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Shop")
+	FLinearColor ShopColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Shop", meta = (ClampMin = "0"))
+	float ShopOffset = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Shop", meta = (ClampMin = "1"))
+	float ShopRadius = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Shop", meta = (ClampMin = "1"))
+	float ShopHeight = 0.0f;
+
+	/**
 	 * The fight's sounds (ADR-063 §5), synthesised placeholders built by BuildCueSounds.ps1: a hit's impact, an attack's
 	 * swing, a cast's, a death's, and the click of the player's own order. Each but the click is heard from where it
 	 * happens: whole within SoundAudibleRadius of the camera's focus, fading out over SoundFalloffDistance beyond it, at

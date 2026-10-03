@@ -30,6 +30,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
+#include "Greybox/VeyraFountainShop.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraUnitArtSet.h"
@@ -58,7 +59,9 @@
 #include "Units/VeyraUnit.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "VeyraGameState.h"
+#include "Match/VeyraMatchMenuSubsystem.h"
 #include "VeyraPlayerController.h"
+#include "VeyraTeamStart.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraUILog.h"
 
@@ -265,6 +268,70 @@ void UVeyraGreyboxSubsystem::PlaySound(const FVeyraCombatCue& Cue)
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Unit->GetActorLocation(), FRotator::ZeroRotator, Volume, /*PitchMultiplier*/ 1.0f,
 			/*StartTime*/ 0.0f, CueAttenuation, CueConcurrency);
 	}
+}
+
+TArray<AVeyraFountainShop*> UVeyraGreyboxSubsystem::GetShops() const
+{
+	TArray<AVeyraFountainShop*> Standing;
+	for (const TWeakObjectPtr<AVeyraFountainShop>& Shop : Shops)
+	{
+		if (AVeyraFountainShop* Each = Shop.Get())
+		{
+			Standing.Add(Each);
+		}
+	}
+	return Standing;
+}
+
+void UVeyraGreyboxSubsystem::RefreshShops()
+{
+	if (!bReady || !Shops.IsEmpty())
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (TActorIterator<AVeyraTeamStart> It(GetWorld()); It; ++It)
+	{
+		const AVeyraTeamStart& Start = **It;
+		// In front of the fountain, toward the battleground's centre, on its floor.
+		const FVector From = Start.GetActorLocation();
+		const FVector Toward = FVector(-From.X, -From.Y, 0.0).GetSafeNormal();
+		const FVector Floor = GroundUnder(From + Toward * Settings.ShopOffset) - FVector::UpVector * Settings.TelegraphLift;
+		FActorSpawnParameters Spawn;
+		Spawn.ObjectFlags |= RF_Transient;
+		AVeyraFountainShop* Shop = GetWorld()->SpawnActor<AVeyraFountainShop>(Floor, FRotator::ZeroRotator, Spawn);
+		if (!Shop)
+		{
+			continue;
+		}
+		Shop->SetTeam(Start.GetVeyraTeam());
+		Shop->Build(*BodyMesh, *ProjectileMesh, *ShapeMaterial, Settings.ColorParameter, Settings.ShopColor, Settings.ShopRadius, Settings.ShopHeight);
+		Shops.Add(Shop);
+	}
+}
+
+bool UVeyraGreyboxSubsystem::HoverShop(AVeyraFountainShop* Under, EVeyraTeam Viewer, bool bClicked)
+{
+	// Only the player's own side's shop answers them; a viewer on no side has none.
+	AVeyraFountainShop* Own = Under && Viewer != EVeyraTeam::None && Under->GetTeam() == Viewer ? Under : nullptr;
+	if (AVeyraFountainShop* Was = HoveredShop.Get(); Was && Was != Own)
+	{
+		Was->SetOutlined(false, AllyStencil);
+	}
+	HoveredShop = Own;
+	if (!Own)
+	{
+		return false;
+	}
+	Own->SetOutlined(true, AllyStencil);
+	// The shop opens as its key opens it: browsing is the player's anywhere, buying the server's to allow (ADR-012 §11).
+	UGameInstance* Game = GetWorld()->GetGameInstance();
+	UVeyraMatchMenuSubsystem* Menus = Game ? Game->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
+	if (bClicked && Menus && !Menus->IsShopOpen())
+	{
+		Menus->ToggleShop();
+	}
+	return true;
 }
 
 void UVeyraGreyboxSubsystem::RefreshSound()
@@ -547,6 +614,17 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawOrderMark();
 	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
 	ShowHover(Local ? Local->GetHoveredUnit() : nullptr);
+	RefreshShops();
+	if (AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
+	{
+		FHitResult Under;
+		Player->GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Under);
+		// The player's own shop takes the hand cursor over the controller's choice, which this frame has already made.
+		if (HoverShop(Cast<AVeyraFountainShop>(Under.GetActor()), GetViewerTeam(), Player->WasInputKeyJustPressed(Player->GetKeys().SelectKey)))
+		{
+			Player->CurrentMouseCursor = EMouseCursor::Hand;
+		}
+	}
 	RefreshHoverPass();
 	RefreshSound();
 	RefreshCombatText();

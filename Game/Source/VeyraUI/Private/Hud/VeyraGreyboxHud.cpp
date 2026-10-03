@@ -10,6 +10,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GlobalRenderResources.h"
+#include "Greybox/VeyraFountainShop.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraCombatTextModel.h"
@@ -431,6 +432,22 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 		if (VeyraUnits::KindOf(*It).IsSet())
 		{
 			DrawOverheadBars(Canvas, Greybox, Settings, Preferences, Targeted, **It, Now);
+		}
+	}
+	// The player's own fountain shop says what it is, so nobody needs telling there is one (ADR-063 §6).
+	for (const AVeyraFountainShop* Shop : Greybox.GetShops())
+	{
+		const FVector OnScreen = Shop->GetTeam() == Greybox.GetViewerTeam()
+			? Canvas.Project(Shop->GetActorLocation() + FVector::UpVector * (Shop->GetHeight() + Settings.BarLift))
+			: FVector::ZeroVector;
+		if (OnScreen.Z > 0.0)
+		{
+			const FString Label = TEXT("Shop");
+			const float Scale = Preferences.HudScales.OverheadBars;
+			float Width = 0.0f;
+			float Height = 0.0f;
+			Canvas.TextSize(HudFont(), Label, Width, Height, Scale, Scale);
+			DrawHudText(Canvas, Scale, FVector2D(OnScreen.X - Width / 2.0f, OnScreen.Y - Height), Label, Settings.ShopColor);
 		}
 	}
 	DrawCombatText(Canvas, Settings, Preferences, VeyraCombatTextView::Describe(Greybox.GetCombatText(), FPlatformTime::Seconds(), Preferences.CombatText));

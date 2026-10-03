@@ -103,6 +103,16 @@ public:
 	/** The sound a cue of Kind plays (ADR-063 §5): a hit's impact, an attack's swing, a cast's, a death's; null for the rest. */
 	class USoundBase* SoundFor(EVeyraCombatCueKind Kind) const;
 
+	/** The shops drawn at the fountains, one by each side's team start, once the world has them (ADR-063 §6). */
+	TArray<class AVeyraFountainShop*> GetShops() const;
+
+	/**
+	 * Takes Under, the shop under the local player's cursor or null, for a player on side Viewer: their own side's is
+	 * outlined, and opens the shop when bClicked. Returns whether Under is their own. The refresh calls this with the
+	 * viewer's side; tests call it directly.
+	 */
+	bool HoverShop(class AVeyraFountainShop* Under, EVeyraTeam Viewer, bool bClicked);
+
 	/**
 	 * Plays Cue's effect where it happens, in its unit's side colour; a cast's flashes toward its aim. Niagara skips one
 	 * no viewer could see, as most of a battleground's hits are, and plays none where nothing renders.
@@ -344,6 +354,12 @@ private:
 
 	TWeakObjectPtr<class APlayerController> ListeningFrom;
 	double ClickedFor = -1.0;
+
+	/** Stands a shop by each team start the world has, once. */
+	void RefreshShops();
+
+	TArray<TWeakObjectPtr<class AVeyraFountainShop>> Shops;
+	TWeakObjectPtr<class AVeyraFountainShop> HoveredShop;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> GroundMesh;

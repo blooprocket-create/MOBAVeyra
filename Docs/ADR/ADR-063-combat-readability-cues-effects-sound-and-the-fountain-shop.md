@@ -40,10 +40,10 @@ The code:
 - **Projectiles** already replicate and are drawn from their launch data. Their trail and impact are drawn from the projectile and the hit cue.
 
 ### 2. Bodies show what happens to them
-- **A generated unit material** replaces the engine's basic shape material for bodies: side colour, a rim light, and an emissive hit flash.
+- **The hit flash** is a generated additive overlay material, brightest at the silhouette, drawn over whichever of a unit's body or art shows. Kit art keeps its own materials.
 - **Motion:** during a windup the body leans toward its target, it snaps forward at the commit, it recoils from a hit, and it collapses at death.
 - **Presentation only:** these are offsets of the drawn mesh. The capsule, collision and movement never change.
-- **Accessibility:** Reduce Flashing turns the hit flash into a steady tint that fades (§4.2).
+- **Accessibility:** under Reduce Flashing the hit flash starts weaker and only fades, with no sharp peak (§4.2).
 
 ### 3. Hover outlines
 - **The outline:** the unit under the cursor is outlined in its side's colour from the player's colour vision (§4.1). Allies, enemies and neutral units differ by colour, and enemies also by a thicker line.
@@ -51,24 +51,29 @@ The code:
 - **The cursor** changes to the attack cursor over an enemy the player can attack.
 
 ### 4. Effects
-- **Niagara is enabled.** A few systems, parameterised by colour, scale and count, cover the cues: impact burst, cast flash, death burst, projectile trail and a shop beacon.
+- **Niagara is enabled.** Three systems cover the cues: an impact for a hit, a flash toward a cast's aim, and a burst for a death.
+  - Each copies an engine burst template, with every particle's base colour linked to one user colour. One system therefore serves every side, in the side colour of its unit.
+  - Niagara skips an effect no viewer could see, and the effects are pooled.
 - **A generator builds them:** a commandlet in VeyraDeveloper's editor build, as the map and art commandlets are. It is deterministic and seeded, so the systems are regenerated rather than hand-edited.
 - **ADR-001: a narrow approval.** The generator uses the engine's Niagara editing utilities, which Epic marks Experimental.
   - They run only at authoring time, in the editor. The systems they write are ordinary Niagara assets, and no client or server build loads the utilities.
   - This record approves them for this generator only. Any other use of an Experimental feature needs its own decision.
   - If an engine update breaks them, the generated systems remain valid and only the generator is repaired. Nothing at runtime changes.
   - If they can't build an effect the cues need, that effect falls back to meshes with dynamic materials.
-- **Reduced particles** (§4.2) lowers counts. It never removes what a projectile, a danger zone or crowd control needs to read.
+- **Reduced particles** (§4.2) is deferred. Today's effects are short bursts, and none hides a projectile, a danger zone or crowd control.
 
 ### 5. Sound
 - **A seeded generator** synthesises the cue sounds: swings, impacts, casts, deaths and a click. Unreal imports them as sound assets.
-- **Playback:** the cue subsystem plays them at their location, so nothing is heard that isn't seen (§4.3).
-- **Volume:** a gameplay-effect volume joins the Audio settings.
+- **Playback:** each plays where its cue happens, so nothing is heard that isn't seen (§4.3).
+  - The listener is the camera's focus on the ground, not the camera above it.
+  - A sound is heard whole within a radius of the focus and fades beyond it. At most a set number play at once, and the quietest gives way.
+  - The player's own orders click.
+- **Volume:** Gameplay Effects Volume joins the Audio settings.
 
 ### 6. The fountain shop
 - **A shop stands at each side's fountain:** a structure drawn by the presentation at the team start with a presentation offset. It needs no layout change.
-- **Its look:** a mesh from the structure-kit generator, a Niagara beacon and a label.
-- **Use:** hovering outlines it, and clicking it opens the shop screen, as the shop key does. Buying stays fountain-only on the server.
+- **Its look:** a gold pillar of the engine's basic shapes, with a "Shop" label over the player's own. A generated mesh and a beacon effect are follow-ups.
+- **Use:** only the player's own side's shop answers. Hovering outlines it, and clicking it opens the shop screen, as the shop key does. Buying stays fountain-only on the server.
 
 ### 7. Ownership
 - **Gameplay** owns the state cues are read from, and the committed-cast record.
@@ -86,3 +91,5 @@ Skeletal characters and animation, the map's lighting and environment, and every
 5. The cue sounds are synthesised placeholders, to be replaced by authored audio.
 6. The shop is a presentation structure at the team start, not a layout entry.
 7. The Niagara editing utilities are approved for the effect generator only (§4).
+8. The listener stands at the camera's focus, and Gameplay Effects Volume is 80% by default (§5).
+9. The shop's look, and its place in front of the fountain toward the battleground's centre (§6).

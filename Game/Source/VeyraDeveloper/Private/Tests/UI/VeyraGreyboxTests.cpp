@@ -12,6 +12,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
+#include "Greybox/VeyraFountainShop.h"
+#include "VeyraTeamStart.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "Sound/SoundBase.h"
@@ -254,6 +256,30 @@ namespace VeyraAbilitiesTests
 				ASSERT_THAT(IsTrue(Effect->GetExposedParameters().IndexOf(Color) != INDEX_NONE, *Effect->GetName()));
 			}
 		}
+		TEST_METHOD(AShopStandsByEachFountainAndOnlyTheOwnSidesAnswers)
+		{
+			// ADR-063 §6. Fixture value: where each side's team start stands, mirrored about the centre.
+			const FVector StartAt(-4000.0, -3000.0, 0.0);
+			for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+			{
+				Spawner.SpawnActorAt<AVeyraTeamStart>(Team == EVeyraTeam::A ? StartAt : -StartAt, FRotator::ZeroRotator).SetVeyraTeam(Team);
+			}
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const TArray<AVeyraFountainShop*> Shops = Presentation.GetShops();
+			ASSERT_THAT(AreEqual(Shops.Num(), 2));
+			AVeyraFountainShop* Own = Shops[0]->GetTeam() == EVeyraTeam::A ? Shops[0] : Shops[1];
+			AVeyraFountainShop* Enemy = Own == Shops[0] ? Shops[1] : Shops[0];
+			ASSERT_THAT(IsTrue(Enemy->GetTeam() == EVeyraTeam::B));
+			// In front of its fountain, toward the centre.
+			ASSERT_THAT(IsNear(FVector::Dist2D(Own->GetActorLocation(), StartAt), static_cast<double>(Settings.ShopOffset), Tolerance));
+			ASSERT_THAT(IsTrue(Own->GetActorLocation().Size2D() < StartAt.Size2D()));
+			ASSERT_THAT(IsTrue(Presentation.HoverShop(Own, EVeyraTeam::A, /*bClicked*/ false) && Own->IsOutlined(), TEXT("the player's own answers")));
+			ASSERT_THAT(IsFalse(Presentation.HoverShop(Enemy, EVeyraTeam::A, false), TEXT("the other side's does not")));
+			ASSERT_THAT(IsTrue(!Enemy->IsOutlined() && !Own->IsOutlined(), TEXT("and the outline left with the cursor")));
+			ASSERT_THAT(IsFalse(Presentation.HoverShop(Own, EVeyraTeam::None, false), TEXT("a viewer on no side has no shop")));
+		}
+
 		TEST_METHOD(AHitFlashesTheBodyUntilItFades)
 		{
 			FArchetypeTestWorld World{ Spawner };

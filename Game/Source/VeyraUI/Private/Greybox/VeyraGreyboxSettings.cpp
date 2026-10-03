@@ -82,6 +82,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("EndingColor"), EndingColor },
 		{ TEXT("OrderMoveColor"), OrderMoveColor },
 		{ TEXT("HitFlashColor"), HitFlashColor },
+		{ TEXT("ShopColor"), ShopColor },
 		{ TEXT("OrderAttackColor"), OrderAttackColor },
 		{ TEXT("ChatBackdropColor"), ChatBackdropColor },
 		{ TEXT("ChatHighContrastBackdropColor"), ChatHighContrastBackdropColor },
@@ -149,6 +150,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(!EffectColorParameter.IsNone(), TEXT("EffectColorParameter"), TEXT("the effects' colour parameter is required."));
 	Require(!ImpactSound.IsNull() && !SwingSound.IsNull() && !CastSound.IsNull() && !DeathSound.IsNull() && !ClickSound.IsNull(), TEXT("ImpactSound"),
 		TEXT("the generated impact, swing, cast, death and click sounds are required."));
+	Require(ShopOffset >= 0.0f && ShopRadius >= 1.0f && ShopHeight > ShopRadius * 2.0f, TEXT("ShopHeight"),
+		TEXT("the shop needs a radius of at least 1 and must stand taller than it is wide."));
 	Require(SoundAudibleRadius >= 1.0f && SoundFalloffDistance >= 1.0f && MaxCueSounds >= 1, TEXT("SoundAudibleRadius"),
 		TEXT("the sounds' audible radius, falloff and the most at once must each be at least 1."));
 	Require(!HoverEnemyColorParameter.IsNone() && !HoverAllyColorParameter.IsNone() && !HoverNeutralColorParameter.IsNone()
