@@ -11,6 +11,7 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Cues/VeyraCombatCueSubsystem.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
@@ -65,6 +66,7 @@ namespace VeyraAbilitiesTests
 		static constexpr int32 FlightSteps = 5;
 		static constexpr int32 CircleSegments = 24;
 		static constexpr double Tolerance = 1.0;
+		static constexpr double HitAmount = 50.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -180,6 +182,35 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(ArtProblems.IsEmpty(), FString::Join(ArtProblems, TEXT(" "))));
 			const FVeyraUnitArt* Spire = Structures->Find(TEXT("laneSpire"));
 			ASSERT_THAT(IsTrue(Spire->Intact->GetMaterialIndex(Structures->FluxSlot) != INDEX_NONE, TEXT("the meshes have the Flux slot")));
+			// The generated hit flash takes its colour and strength (ADR-063 §2).
+			const UMaterialInterface* Flash = Settings.HitFlashMaterial.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Flash, TEXT("run BuildPresentationMaterials.ps1")));
+			float Strength = 0.0f;
+			ASSERT_THAT(IsTrue(Flash->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.HitFlashColorParameter), Unused)
+				&& Flash->GetScalarParameterValue(FHashedMaterialParameterInfo(Settings.HitFlashStrengthParameter), Strength)));
+		}
+
+		TEST_METHOD(AHitFlashesTheBodyUntilItFades)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(CastRange, 0.0, 0.0));
+			UVeyraCombatCueSubsystem* Cues = Spawner.GetWorld().GetSubsystem<UVeyraCombatCueSubsystem>();
+			ASSERT_THAT(IsNotNull(Cues));
+			// The first sighting raises nothing; the next, after the hit, raises it.
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			Cues->Refresh();
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(Enemy) == 0.0f));
+			FVeyraRawDamageEvent Hit;
+			Hit.Components.Add({ EVeyraDamageType::TrueDamage, HitAmount });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Hit)));
+			Cues->Refresh();
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(Enemy) > 0.0f, TEXT("the body flashes at once")));
+			ASSERT_THAT(IsTrue(Presentation.FindBody(Enemy)->GetOverlayMaterial() != nullptr));
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(*Caster) == 0.0f, TEXT("the dealer is not hit")));
+			Wait(FMath::CeilToInt32(GetDefault<UVeyraGreyboxSettings>()->HitFlashSeconds / StepSeconds) + 1);
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(Enemy) == 0.0f && Presentation.FindBody(Enemy)->GetOverlayMaterial() == nullptr, TEXT("then it fades")));
 		}
 
 		TEST_METHOD(OnlyClientsLoadThePresentation)

@@ -11,6 +11,7 @@
 #include "Casting/VeyraCastTelegraphs.h"
 #include "Components/LineBatchComponent.h"
 #include "Companions/VeyraCompanion.h"
+#include "Cues/VeyraCombatCueSubsystem.h"
 #include "Echoes/VeyraEcho.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Components/StaticMeshComponent.h"
@@ -41,6 +42,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Structures/VeyraStructure.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Terrain/VeyraTerrainWall.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -148,16 +150,110 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{
 			Problems.Add(FString::Printf(TEXT("ShapeMaterial: %s does not load."), *Settings.ShapeMaterial.ToString()));
 		}
+		HitFlashMaterial = Settings.HitFlashMaterial.LoadSynchronous();
+		if (!HitFlashMaterial)
+		{
+			Problems.Add(FString::Printf(TEXT("HitFlashMaterial: %s does not load; run BuildPresentationMaterials.ps1."), *Settings.HitFlashMaterial.ToString()));
+		}
 	}
 	for (const FString& Problem : Problems)
 	{
 		UE_LOG(LogVeyraUI, Error, TEXT("The grey-box presentation is off: %s"), *Problem);
 	}
 	bReady = Problems.IsEmpty();
+	// Bodies answer the fight's moments (ADR-063 §2).
+	if (UVeyraCombatCueSubsystem* Cues = Collection.InitializeDependency<UVeyraCombatCueSubsystem>())
+	{
+		CueHandle = Cues->OnCue.AddUObject(this, &UVeyraGreyboxSubsystem::OnCombatCue);
+	}
+}
+
+void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
+{
+	if (FBody* Body = Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr)
+	{
+		VeyraBodyFeedback::Note(Body->Feedback, Cue, GetWorld()->GetRealTimeSeconds(), GetServerNow());
+	}
+}
+
+float UVeyraGreyboxSubsystem::GetFlashOf(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	const UMaterialInstanceDynamic* Flash = Body && Body->Flashing.IsValid() ? Body->Flash.Get() : nullptr;
+	float Strength = 0.0f;
+	if (Flash)
+	{
+		Flash->GetScalarParameterValue(FHashedMaterialParameterInfo(GetDefault<UVeyraGreyboxSettings>()->HitFlashStrengthParameter), Strength);
+	}
+	return Strength;
+}
+
+void UVeyraGreyboxSubsystem::ApplyBodyPose(const APawn& Unit, FBody& Body, bool bReduceFlashing)
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	if (VeyraTargeting::IsAlive(&Unit))
+	{
+		VeyraBodyFeedback::NoteAlive(Body.Feedback);
+	}
+	const FVeyraBodyPose Pose = VeyraBodyFeedback::PoseAt(Body.Feedback, GetWorld()->GetRealTimeSeconds(), bReduceFlashing, Settings);
+	UStaticMeshComponent* Shape = Body.Mesh.Get();
+	UStaticMeshComponent* Art = Body.Art.IsValid() && Body.Art->IsVisible() ? Body.Art.Get() : nullptr;
+	const USceneComponent* Root = Unit.GetRootComponent();
+	// A structure stands still; it only flashes.
+	if (Root && !Unit.IsA<AVeyraStructure>())
+	{
+		// The pose moves on the ground, whichever way the unit faces.
+		const FVector Local = Root->GetComponentTransform().InverseTransformVectorNoScale(Pose.Offset);
+		float Radius = 0.0f;
+		float HalfHeight = 0.0f;
+		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+		if (Shape)
+		{
+			// Squashed from the ground up: its foot stays where it stands.
+			FVector Scale = Shape->GetRelativeScale3D();
+			Scale.Z *= Pose.HeightShare;
+			Shape->SetRelativeScale3D(Scale);
+			Shape->SetRelativeLocation(Shape->GetRelativeLocation() + Local - FVector(0.0, 0.0, HalfHeight * (1.0 - Pose.HeightShare)));
+		}
+		if (Art)
+		{
+			// Art that has its own fallen form keeps it whole.
+			const double Height = Body.Feedback.DiedAt ? 1.0 : Pose.HeightShare;
+			Art->SetRelativeScale3D(FVector(1.0, 1.0, Height));
+			Art->SetRelativeLocation(Art->GetRelativeLocation() + Local);
+		}
+	}
+	// The flash lies over whatever shows, and is taken off once it has faded.
+	UStaticMeshComponent* Shown = Art ? Art : Shape;
+	if (UStaticMeshComponent* Was = Body.Flashing.Get(); Was && (Was != Shown || Pose.Flash <= 0.0))
+	{
+		Was->SetOverlayMaterial(nullptr);
+		Body.Flashing.Reset();
+	}
+	if (!Shown || Pose.Flash <= 0.0 || !HitFlashMaterial)
+	{
+		return;
+	}
+	if (!Body.Flash.IsValid())
+	{
+		Body.Flash = UMaterialInstanceDynamic::Create(HitFlashMaterial, this);
+		Body.Flash->SetVectorParameterValue(Settings.HitFlashColorParameter, Settings.HitFlashColor);
+	}
+	Body.Flash->SetScalarParameterValue(Settings.HitFlashStrengthParameter, static_cast<float>(Pose.Flash));
+	if (Body.Flashing.Get() != Shown)
+	{
+		Shown->SetOverlayMaterial(Body.Flash.Get());
+		Body.Flashing = Shown;
+	}
 }
 
 void UVeyraGreyboxSubsystem::Deinitialize()
 {
+	if (UVeyraCombatCueSubsystem* Cues = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatCueSubsystem>() : nullptr)
+	{
+		Cues->OnCue.Remove(CueHandle);
+	}
+	CueHandle.Reset();
 	if (AHUD* Hud = OverlayHud.Get(); Hud && HudOverlay.IsValid())
 	{
 		Hud->RemovePostRenderedActor(HudOverlay.Get());
@@ -517,6 +613,7 @@ void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh
 void UVeyraGreyboxSubsystem::RefreshBodies()
 {
 	const FName ColorParameter = GetDefault<UVeyraGreyboxSettings>()->ColorParameter;
+	const bool bReduceFlashing = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).bReduceFlashing;
 	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
 	{
 		APawn& Unit = **It;
@@ -561,6 +658,7 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			RefreshFluxbornArt(*Fluxborn, *Body);
 		}
+		ApplyBodyPose(Unit, *Body, bReduceFlashing);
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();

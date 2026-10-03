@@ -81,6 +81,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
 		{ TEXT("EndingColor"), EndingColor },
 		{ TEXT("OrderMoveColor"), OrderMoveColor },
+		{ TEXT("HitFlashColor"), HitFlashColor },
 		{ TEXT("OrderAttackColor"), OrderAttackColor },
 		{ TEXT("ChatBackdropColor"), ChatBackdropColor },
 		{ TEXT("ChatHighContrastBackdropColor"), ChatHighContrastBackdropColor },
@@ -142,6 +143,15 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(TelegraphThickness > 0.0f, TEXT("TelegraphThickness"), TEXT("must be above 0."));
 	Require(CircleSegments >= 3, TEXT("CircleSegments"), TEXT("must be at least 3."));
 	Require(OrderMarkSeconds > 0.0f, TEXT("OrderMarkSeconds"), TEXT("must be above 0."));
+	Require(!HitFlashMaterial.IsNull(), TEXT("HitFlashMaterial"), TEXT("the generated hit flash material is required."));
+	Require(!HitFlashColorParameter.IsNone() && !HitFlashStrengthParameter.IsNone(), TEXT("HitFlashColorParameter"),
+		TEXT("the hit flash material's colour and strength parameters are required."));
+	Require(HitFlashSeconds > 0.0f && RecoilSeconds > 0.0f && SnapSeconds > 0.0f && CollapseSeconds > 0.0f, TEXT("HitFlashSeconds"),
+		TEXT("the flash, recoil, snap and collapse each take some time."));
+	Require(ReducedFlashStrength > 0.0f && ReducedFlashStrength < 1.0f, TEXT("ReducedFlashStrength"), TEXT("must be above 0 and below 1: a weaker flash, not none."));
+	Require(RecoilSquash >= 0.0f && RecoilSquash < 1.0f, TEXT("RecoilSquash"), TEXT("must be from 0 to below 1."));
+	Require(CollapsedHeightShare > 0.0f && CollapsedHeightShare < 1.0f, TEXT("CollapsedHeightShare"), TEXT("must be above 0 and below 1."));
+	Require(LeanDistance >= 0.0f && SnapDistance >= 0.0f, TEXT("LeanDistance"), TEXT("must not be negative."));
 	Require(OrderMarkEndRadius >= 1.0f && OrderMarkStartRadius > OrderMarkEndRadius, TEXT("OrderMarkStartRadius"),
 		TEXT("an order's mark closes: its end radius must be at least 1 unit and its start radius above that."));
 	Require(OutlineMarkerRadius >= 1.0f, TEXT("OutlineMarkerRadius"), TEXT("must be at least 1 unit."));

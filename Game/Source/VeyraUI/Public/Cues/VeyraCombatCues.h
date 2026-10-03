@@ -45,6 +45,9 @@ struct FVeyraCombatCue
 
 	/** A hit's Health and shields lost. */
 	double Amount = 0.0;
+
+	/** When an attack's windup ends, in the server's world time. */
+	double EndsAt = 0.0;
 };
 
 /** What a client saw of one unit at one moment: everything a cue is read from. */

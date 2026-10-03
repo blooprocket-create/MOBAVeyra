@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "generator": "Game/Scripts/BuildPresentationMaterials.py",
+  "generatorVersion": 1,
+  "destination": "/Game/Veyra/UI/Presentation",
+  "materials": [
+    {
+      "name": "M_VeyraHitFlash",
+      "kind": "overlayFlash",
+      "purpose": "ADR-063 §2: the hit flash, drawn as an overlay over any unit's body or art; additive and unlit, brightest at the silhouette.",
+      "colorParameter": "FlashColor",
+      "strengthParameter": "FlashStrength",
+      "defaultColor": [1.0, 1.0, 1.0, 1.0],
+      "rimFloor": 0.35,
+      "rimExponent": 2.0
+    }
+  ]
+}

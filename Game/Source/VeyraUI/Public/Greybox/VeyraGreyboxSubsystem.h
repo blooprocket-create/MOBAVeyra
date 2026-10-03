@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Greybox/VeyraBodyFeedback.h"
 #include "Greybox/VeyraOrderMarks.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Shapes/VeyraShapes.h"
@@ -83,6 +84,9 @@ public:
 	/** The body drawn for Unit, once it has one. */
 	UStaticMeshComponent* FindBody(const AActor& Unit) const;
 
+	/** The hit flash's strength over Unit's body now, from 0 to 1 (ADR-063 §2). */
+	float GetFlashOf(const AActor& Unit) const;
+
 	/** A structure's art, once drawn; null for any other unit. */
 	UStaticMeshComponent* FindArt(const AActor& Unit) const;
 
@@ -152,7 +156,23 @@ private:
 		TWeakObjectPtr<UStaticMesh> ArtMesh;
 		TWeakObjectPtr<UMaterialInstanceDynamic> ArtFlux;
 		FLinearColor ArtShown = FLinearColor::Transparent;
+
+		/** What its cues have it doing, and the hit flash's overlay, once it has flashed (ADR-063 §2). */
+		FVeyraBodyFeedbackState Feedback;
+		TWeakObjectPtr<UMaterialInstanceDynamic> Flash;
+		TWeakObjectPtr<UStaticMeshComponent> Flashing;
 	};
+
+	/** Notes a cue in its unit's body. */
+	void OnCombatCue(const struct FVeyraCombatCue& Cue);
+
+	/**
+	 * Draws Unit's body in its pose: leaning, snapping, squashed or collapsed, and flashing over whichever of its body
+	 * and art shows. Structures only flash. After the body and art are placed for the frame.
+	 */
+	void ApplyBodyPose(const APawn& Unit, FBody& Body, bool bReduceFlashing);
+
+	FDelegateHandle CueHandle;
 
 	struct FProjectileVisual
 	{
@@ -237,6 +257,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInterface> ShapeMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> HitFlashMaterial;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> GroundMesh;

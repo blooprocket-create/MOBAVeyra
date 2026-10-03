@@ -50,7 +50,9 @@ TArray<FVeyraCombatCue> Between(const AActor& Unit, const FVeyraUnitSighting& Be
 	const bool bNewAttackPhase = Now.AttackPhase != Before.AttackPhase || Now.AttackPhaseEndsAt != Before.AttackPhaseEndsAt;
 	if (bNewAttackPhase && Now.AttackPhase == EVeyraAttackPhase::Windup)
 	{
-		Add(EVeyraCombatCueKind::AttackWindup).Target = Now.AttackTarget;
+		FVeyraCombatCue& Cue = Add(EVeyraCombatCueKind::AttackWindup);
+		Cue.Target = Now.AttackTarget;
+		Cue.EndsAt = Now.AttackPhaseEndsAt;
 	}
 	else if (bNewAttackPhase && Now.AttackPhase == EVeyraAttackPhase::Backswing)
 	{
