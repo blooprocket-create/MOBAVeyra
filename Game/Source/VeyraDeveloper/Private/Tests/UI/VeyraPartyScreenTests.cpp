@@ -120,6 +120,61 @@ namespace VeyraPartyScreenTests
 			ASSERT_THAT(IsFalse(Model.Friends[0].bOffersPartyInvite || Model.Friends[0].bOffersJoinParty));
 		}
 
+		TEST_METHOD(FriendsShowTheirStatusAvailableFirstAndOnlyThoseWhoCanAnswerAreInvited)
+		{
+			using VeyraBackendProtocol::EPresence;
+			// ADR-061 §2, §6: DevTwo offline, DevThree online, DevFour in a match.
+			FVeyraClientSnapshot Snapshot = ShellSnapshot(NoParty);
+			Snapshot.Social.Friends.Friends.Add({ InviteId, TEXT("DevThree") });
+			Snapshot.Social.Friends.Friends.Add({ LobbyId, TEXT("DevFour") });
+			Snapshot.Social.Friends.Presence = { { FriendId, EPresence::Offline }, { InviteId, EPresence::Online }, { LobbyId, EPresence::InMatch } };
+			FVeyraSocialPermissions Permissions;
+			Permissions.bCanInviteToParty = true;
+			const FVeyraFriendsModel Model = VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions);
+			ASSERT_THAT(IsTrue(Model.Friends.Num() == 3));
+			// Who can play now first, who is away last.
+			ASSERT_THAT(AreEqual(Model.Friends[0].Name.ToString(), FString(TEXT("DevThree"))));
+			ASSERT_THAT(AreEqual(Model.Friends[1].Name.ToString(), FString(TEXT("DevFour"))));
+			ASSERT_THAT(AreEqual(Model.Friends[2].Name.ToString(), FString(TEXT("DevTwo"))));
+			ASSERT_THAT(AreEqual(Model.Friends[0].Status.ToString(), FString(TEXT("Online"))));
+			ASSERT_THAT(AreEqual(Model.Friends[1].Status.ToString(), FString(TEXT("In Match"))));
+			ASSERT_THAT(AreEqual(Model.Friends[2].Status.ToString(), FString(TEXT("Offline"))));
+			ASSERT_THAT(IsTrue(Model.Friends[0].bOffersPartyInvite, TEXT("an online friend is invited")));
+			ASSERT_THAT(IsFalse(Model.Friends[1].bOffersPartyInvite || Model.Friends[2].bOffersPartyInvite, TEXT("nor one in a match, nor one away")));
+
+			// From a backend without presence, as before: no status, every friend invited.
+			Snapshot.Social.Friends.Presence.Reset();
+			const FVeyraFriendsModel Unknown = VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions);
+			ASSERT_THAT(IsTrue(Unknown.Friends[0].Status.IsEmpty() && Unknown.Friends[0].bOffersPartyInvite && Unknown.Friends[2].bOffersPartyInvite));
+			ASSERT_THAT(IsFalse(Unknown.bOffersAppearOffline, TEXT("nor Appear Offline")));
+
+			// An invitation to a friend who shows offline says only that, whatever the reason (ADR-061 §5).
+			Snapshot.Social.Feedback = TEXT("invitee_offline");
+			Snapshot.Social.FeedbackName = TEXT("DevTwo");
+			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions).Feedback.ToString(), FString(TEXT("DevTwo is offline."))));
+
+			// A friend's status change, and the player's own setting, rebuild the panel.
+			const FString Shown = VeyraShellModels::Signature(Snapshot);
+			Snapshot.Social.Friends.Presence = { { FriendId, EPresence::Online } };
+			ASSERT_THAT(IsTrue(VeyraShellModels::Signature(Snapshot) != Shown, TEXT("a status")));
+			const FString Again = VeyraShellModels::Signature(Snapshot);
+			Snapshot.Social.Presence = VeyraBackendProtocol::FSelfPresence{ EPresence::Online, true };
+			ASSERT_THAT(IsTrue(VeyraShellModels::Signature(Snapshot) != Again, TEXT("Appear Offline")));
+		}
+
+		TEST_METHOD(AppearOfflineIsOneToggleInTheFriendsPanel)
+		{
+			ASSERT_THAT(IsTrue(ShowShell(NoParty)));
+			ASSERT_THAT(IsNull(Button(VeyraShellModels::AppearOfflineLabel(false)), TEXT("not before the setting is read")));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/presence"), 200, TEXT("{\"status\":\"online\",\"appearOffline\":false}"))));
+			ASSERT_THAT(IsTrue(Press(VeyraShellModels::AppearOfflineLabel(false))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/presence"), 200, TEXT("{\"status\":\"online\",\"appearOffline\":true}"))));
+			// On, the toggle offers the way back.
+			ASSERT_THAT(IsNull(Button(VeyraShellModels::AppearOfflineLabel(false))));
+			ASSERT_THAT(IsTrue(Press(VeyraShellModels::AppearOfflineLabel(true))));
+			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("PUT"), TEXT("/v1/me/presence"))->Body, FString(TEXT("{\"appearOffline\":false}"))));
+		}
+
 		TEST_METHOD(EveryPartyAndSocialChangeRebuildsTheScreen)
 		{
 			const FVeyraClientSnapshot Before = ShellSnapshot(PartyOfTwoBody(TEXT("idle"), true));

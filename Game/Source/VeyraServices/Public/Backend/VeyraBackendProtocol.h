@@ -466,6 +466,32 @@ namespace VeyraBackendProtocol
 		bool operator==(const FJoinableParty&) const = default;
 	};
 
+	/**
+	 * How an account shows to the player (ADR-061 §2). Unknown is a backend that does not say, or a status
+	 * this game does not know, which shows nothing rather than failing the friends list.
+	 */
+	enum class EPresence : uint8
+	{
+		Unknown,
+		Offline,
+		Online,
+		InQueue,
+		InSelect,
+		InMatch,
+	};
+
+	/** Reads a status as the backend names it: "offline", "online", "in_queue", "in_select" or "in_match". */
+	VEYRASERVICES_API EPresence PresenceFromName(const FString& Name);
+
+	/** One friend's status, as the player sees it. */
+	struct FFriendPresence
+	{
+		FString AccountId;
+		EPresence Status = EPresence::Unknown;
+
+		bool operator==(const FFriendPresence&) const = default;
+	};
+
 	/** The player's friends and friend requests, as GET /v1/friends reports them (Parties & Social Bible §1), each by name. */
 	struct FFriends
 	{
@@ -476,14 +502,34 @@ namespace VeyraBackendProtocol
 		TArray<FAccount> Outgoing;
 		/** The friends whose party the player may join directly, sorted by account. Empty from a backend that does not report them. */
 		TArray<FJoinableParty> JoinableParties;
+		/** Each friend's status, sorted by account (ADR-061 §2). Empty from a backend that does not report presence. */
+		TArray<FFriendPresence> Presence;
 
 		/** The party AccountId's line offers to join, or null. */
 		VEYRASERVICES_API const FString* JoinablePartyOf(const FString& AccountId) const;
+
+		/** AccountId's status; Unknown when the backend did not say. */
+		VEYRASERVICES_API EPresence PresenceOf(const FString& AccountId) const;
 
 		bool operator==(const FFriends&) const = default;
 	};
 
 	VEYRASERVICES_API bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem);
+
+	/** The player's own presence, as GET and PUT /v1/me/presence report it (ADR-061 §3). */
+	struct FSelfPresence
+	{
+		EPresence Status = EPresence::Unknown;
+		/** Whether the player appears offline to friends outside their party. */
+		bool bAppearOffline = false;
+
+		bool operator==(const FSelfPresence&) const = default;
+	};
+
+	VEYRASERVICES_API bool ParseSelfPresence(const FString& Body, FSelfPresence& Out, FString& OutProblem);
+
+	/** The body of PUT /v1/me/presence. */
+	VEYRASERVICES_API FString BuildAppearOfflineBody(bool bAppearOffline);
 
 	/**
 	 * Reads the answer to POST /v1/friends/requests: "requested", or "friends" when the other player had

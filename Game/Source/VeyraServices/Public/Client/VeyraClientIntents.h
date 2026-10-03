@@ -115,6 +115,8 @@ public:
 	virtual bool UnblockPlayer(const FString& AccountId) = 0;
 	/** Blocks the player called DisplayName, found by their name first: from a player menu, which names players and never their accounts. */
 	virtual bool BlockByName(const FString& DisplayName) = 0;
+	/** Turns Appear Offline on or off (ADR-061 §3). */
+	virtual bool SetAppearOffline(bool bAppearOffline) = 0;
 	/** Withdraws the friend request the player sent AccountId. */
 	virtual bool CancelFriendRequest(const FString& AccountId) = 0;
 	/** Reads the Collection: every released Vanguard, with the player's ownership and Mastery of each. */
