@@ -10,6 +10,7 @@
 #include "Slots/VeyraAbilitySlot.h"
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Tuning/VeyraVanguardsTuning.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Teams/VeyraTeam.h"
 #include "Teams/VeyraTeam.h"
@@ -34,6 +35,15 @@ struct FVeyraHudVitals
 	EVeyraResourceFamily Family = EVeyraResourceFamily::Mana;
 };
 
+/** Where a status stands for its bearer, which the player's own status row groups by (Proposal 53; ADR-059 §4). */
+enum class EVeyraStatusGroup : uint8
+{
+	Beneficial,
+	Harmful,
+	/** Harmful, and crowd control: distinct within the harmful group. */
+	CrowdControl,
+};
+
 /** A status on a unit, with the time it has left. */
 struct FVeyraHudStatus
 {
@@ -42,6 +52,9 @@ struct FVeyraHudStatus
 	double RemainingSeconds = 0.0;
 	/** Its stacks, as Cadence's or Hex's count (ADR-018 §2). */
 	int32 Stacks = 1;
+	EVeyraStatusGroup Group = EVeyraStatusGroup::Beneficial;
+	/** When it was applied among the unit's statuses: a later one is higher. */
+	int32 Sequence = 0;
 };
 
 /** One ability slot on the player's panel. */
@@ -292,6 +305,19 @@ namespace VeyraHud
 	 * below ten either tenths or, without bTenths, whole seconds too.
 	 */
 	VEYRAUI_API FString CooldownLabel(double Seconds, bool bTenths);
+
+	/**
+	 * Statuses as the player's own row shows them (Proposal 53; ADR-059 §4): the beneficial first, then the harmful, each group
+	 * ordered by Sort; By Category also sets crowd control apart, first among the harmful, and orders each group by kind.
+	 * Ties go by application order.
+	 */
+	VEYRAUI_API TArray<FVeyraHudStatus> OrderOwnStatuses(TArray<FVeyraHudStatus> Statuses, EVeyraStatusSort Sort);
+
+	/** The mark that tells a status's group without colour: + beneficial, - harmful, ! crowd control. */
+	VEYRAUI_API FString StatusMark(EVeyraStatusGroup Group);
+
+	/** A status chip's text: its mark, its name, its stacks, and with bDuration the seconds it has left. */
+	VEYRAUI_API FString StatusChipText(const FVeyraHudStatus& Status, bool bDuration);
 
 	/**
 	 * The outline of a cooldown's sweep over a square tile of Side at TopLeft: the part still to wait, from where ElapsedShare

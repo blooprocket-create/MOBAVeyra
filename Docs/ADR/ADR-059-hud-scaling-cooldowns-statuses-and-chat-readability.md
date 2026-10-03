@@ -57,7 +57,8 @@ Every slot shows a clear ready state whatever the options: a ready ability, Flux
   - Crowd control stands apart within the harmful group.
 - **Harmful:** `VeyraStatuses::IsHarmful(Kind, Magnitude)` in Combat decides whether a status harms its bearer: crowd control, the reductions, damage over time, and the stat kinds with negative magnitudes. It is a description of a status, never a change to one.
 - **Status Sorting:** **By Category** (the default), **By Remaining Duration** or **By Application Order**. Sorting only rearranges the row.
-- **High-Contrast Statuses** (Off by default): opaque chips with a strong outline, plus marks that need no colour: **+** for beneficial, **−** for harmful, **!** for crowd control.
+- **Marks:** every chip carries a mark that needs no colour: **+** for beneficial, **-** for harmful, **!** for crowd control.
+- **High-Contrast Statuses** (Off by default): opaque chips with a strong outline.
 - **Status Durations** (On by default): the seconds left on each of the player's own statuses. Other units keep their overhead lines as they are; no setting reveals a hidden status.
 
 ### 5. Chat text size everywhere (Proposal 66)

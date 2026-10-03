@@ -104,6 +104,20 @@ namespace VeyraInterfacePreferencesTests
 			ASSERT_THAT(IsTrue(!Display.bNumbers && !Display.bSweep && !Display.bTenths));
 		}
 
+		// ADR-059 §4: By Category, durations on and the standard chips, until the player chooses otherwise.
+		TEST_METHOD(TheStatusRowFollowsThePlayersChoices)
+		{
+			FVeyraSettingsStore Store(Registry);
+			ASSERT_THAT(IsTrue(Resolve(HudSettings(), &Store).Statuses == FVeyraStatusDisplay()));
+			Store.Set(StatusSort(), TEXT("ByRemainingDuration"));
+			Store.Set(StatusHighContrast(), VeyraSettings::On());
+			Store.Set(StatusDurations(), VeyraSettings::Off());
+			const FVeyraStatusDisplay Display = Resolve(HudSettings(), &Store).Statuses;
+			ASSERT_THAT(IsTrue(Display.Sort == EVeyraStatusSort::ByRemainingDuration && Display.bHighContrast && !Display.bDurations));
+			Store.Set(StatusSort(), TEXT("ByApplicationOrder"));
+			ASSERT_THAT(IsTrue(Resolve(HudSettings(), &Store).Statuses.Sort == EVeyraStatusSort::ByApplicationOrder));
+		}
+
 		TEST_METHOD(TheReadoutsShowOnlyWhatThePlayerAskedFor)
 		{
 			FVeyraInterfacePreferences Preferences;

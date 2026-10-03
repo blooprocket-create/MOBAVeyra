@@ -552,6 +552,69 @@ namespace
 		}
 	}
 
+	/**
+	 * The player's own statuses in a row just above the deck at DeckTopLeft (Proposals 38, 43, 53; ADR-059 §4): the beneficial,
+	 * then the harmful, as Display orders them, each chip marked so its group reads without colour. Those that do not fit
+	 * across the deck are counted at the row's end.
+	 */
+	void DrawStatusRow(const FPainter& Paint, const FVeyraStatusDisplay& Display, const AVeyraPlayerState& Participant, double Now, const FVector2D& DeckTopLeft,
+		float DeckWidth)
+	{
+		const UVeyraGreyboxSettings& Settings = Paint.Settings;
+		const TArray<FVeyraHudStatus> Statuses = VeyraHud::OrderOwnStatuses(VeyraHud::StatusesOf(Participant, Now, Participant.GetVeyraTeam()), Display.Sort);
+		if (Statuses.IsEmpty())
+		{
+			return;
+		}
+		const FSlateFontInfo Font = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
+		const FVector2D Pad(Paint.S(6.0f), Paint.S(3.0f));
+		const float Gap = Paint.S(Settings.DeckGap) / 2.0f;
+		// Before Slate measures (a server, a test), a row is its type's size and a little.
+		constexpr float RowOverType = 1.35f;
+		const float TextHeight = FMath::Max(static_cast<float>(Paint.Measure(TEXT("Ag"), Font).Y), Font.Size * RowOverType);
+		const float Height = TextHeight + Pad.Y * 2.0f;
+		const float Y = DeckTopLeft.Y - Height - Gap;
+		const float Right = DeckTopLeft.X + DeckWidth;
+		float X = DeckTopLeft.X;
+		int32 Unshown = 0;
+		bool bHarmfulStarted = false;
+		for (const FVeyraHudStatus& Status : Statuses)
+		{
+			const bool bHarmful = Status.Group != EVeyraStatusGroup::Beneficial;
+			// A wider gap where the harmful begin.
+			if (bHarmful && !bHarmfulStarted && X > DeckTopLeft.X)
+			{
+				X += Gap * 2.0f;
+			}
+			bHarmfulStarted |= bHarmful;
+			const FString Text = VeyraHud::StatusChipText(Status, Display.bDurations);
+			const FVector2D Size(static_cast<float>(Paint.Measure(Text, Font).X) + Pad.X * 2.0f, Height);
+			if (X + Size.X > Right)
+			{
+				++Unshown;
+				continue;
+			}
+			const FVector2D At(X, Y);
+			const FLinearColor Edge = bHarmful ? Settings.WarningColor : Settings.HudAccentColor;
+			if (Display.bHighContrast)
+			{
+				Paint.Rect(At, Size, Settings.HudSurfaceColor.CopyWithNewOpacity(1.0f));
+				Paint.Outline(At, Size, Edge, Paint.S(2.0f));
+			}
+			else
+			{
+				Paint.Surface(At, Size);
+				Paint.Outline(At, Size, Edge.CopyWithNewOpacity(0.6f));
+			}
+			Paint.Text(At + Pad, Text, Font, Status.Group == EVeyraStatusGroup::CrowdControl ? Settings.WarningColor : Settings.TextColor, !Display.bHighContrast);
+			X += Size.X + Gap;
+		}
+		if (Unshown > 0)
+		{
+			Paint.Text(FVector2D(X, Y + Pad.Y), FString::Printf(TEXT("+%d"), Unshown), Font, Settings.DescriptionColor, true);
+		}
+	}
+
 	/** A painter like Like at Scale pixels per designed unit: one of the deck's sections, or the team panels (ADR-059 §1). */
 	FPainter PainterAt(const FPainter& Like, float Scale)
 	{
@@ -564,8 +627,9 @@ namespace
 	 * The deck along the bottom, measured as Deck and placed at TopLeft, each section at its own scale (ADR-059 §1); returns
 	 * its top edge, and what the cursor rests on.
 	 */
-	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns, const AVeyraPlayerState& Participant,
-		const UVeyraInputSettings& Input, const FString& ShopKey, const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
+	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns,
+		const FVeyraStatusDisplay& Statuses, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey,
+		const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
@@ -804,6 +868,9 @@ namespace
 		const FSlateFontInfo ShopFont = Items.Font(TEXT("Bold"), Settings.HudSmallFontSize);
 		Items.Text(FVector2D(ItemsLeft + Deck.ItemsWidth - Items.Measure(Shop, ShopFont).X, GoldY + Items.S(2.0f)), Shop, ShopFont, Settings.DescriptionColor);
 
+		// The player's own statuses just above the deck (ADR-059 §4).
+		DrawStatusRow(Frame, Statuses, Participant, Now, TopLeft, Deck.Size.X);
+
 		// Recalling: the channel over the deck, filling toward home (ADR-012 §8).
 		const float DeckCentre = TopLeft.X + Deck.Size.X / 2.0f;
 		if (Player.bRecalling)
@@ -879,7 +946,7 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const UVeyraMatchMenuSubsystem* Screens = World.GetGameInstance() ? World.GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
 	const FString ShopKey = KeyName(Screens ? Screens->GetKeys().ShopKey : GetDefault<UVeyraUIInputSettings>()->ShopKey);
 	const float DeckTop =
-		DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
+		DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
 	if (Player)
 	{
 		DrawChat(Paint, Preferences, Layout.Chat, *Player, GameState, Side, Screens && Screens->IsChatOpen());

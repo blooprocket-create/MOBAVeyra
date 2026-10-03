@@ -86,6 +86,27 @@ struct FVeyraCooldownDisplay
 	bool operator==(const FVeyraCooldownDisplay&) const = default;
 };
 
+/** How the player's own status row orders each group (Proposal 53; ADR-059 §4). Helpful and harmful effects always stay apart. */
+enum class EVeyraStatusSort : uint8
+{
+	/** Crowd control apart, first among the harmful; each group by kind. */
+	ByCategory,
+	ByRemainingDuration,
+	ByApplicationOrder,
+};
+
+/** The player's own status row as they set it (Proposals 38, 43, 53; ADR-059 §4). */
+struct FVeyraStatusDisplay
+{
+	EVeyraStatusSort Sort = EVeyraStatusSort::ByCategory;
+	/** Opaque chips with a strong outline. */
+	bool bHighContrast = false;
+	/** The seconds left on each. */
+	bool bDurations = true;
+
+	bool operator==(const FVeyraStatusDisplay&) const = default;
+};
+
 /** The HUD, the minimap and the in-match controls as the player set them (Settings Bible §3; ADR-024 §6). */
 struct FVeyraInterfacePreferences
 {
@@ -109,6 +130,8 @@ struct FVeyraInterfacePreferences
 	FVector2D SafeArea = FVector2D::ZeroVector;
 	/** The player's own cooldowns' numbers, sweep and precision (ADR-059 §3). */
 	FVeyraCooldownDisplay Cooldowns;
+	/** The player's own status row (ADR-059 §4). */
+	FVeyraStatusDisplay Statuses;
 	/** The minimap's side and its icons' sides, in pixels. */
 	float MinimapSize = 0.0f;
 	float MinimapVanguardIcon = 0.0f;
@@ -170,6 +193,9 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& CooldownNumbers();
 	VEYRAUI_API const FVeyraContentId& CooldownSweep();
 	VEYRAUI_API const FVeyraContentId& CooldownPrecision();
+	VEYRAUI_API const FVeyraContentId& StatusSort();
+	VEYRAUI_API const FVeyraContentId& StatusHighContrast();
+	VEYRAUI_API const FVeyraContentId& StatusDurations();
 	VEYRAUI_API const FVeyraContentId& MinimapScale();
 	VEYRAUI_API const FVeyraContentId& MinimapIconScale();
 	VEYRAUI_API const FVeyraContentId& MinimapClickMovesCamera();

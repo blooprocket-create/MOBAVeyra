@@ -42,6 +42,10 @@ namespace
 	/** Cooldown Precision's option that shows whole seconds (Proposal 44). */
 	const TCHAR* const Whole = TEXT("Whole");
 
+	/** Status Sorting's options other than By Category (Proposal 53). */
+	const TCHAR* const ByRemainingDuration = TEXT("ByRemainingDuration");
+	const TCHAR* const ByApplicationOrder = TEXT("ByApplicationOrder");
+
 	/** Whether a bar shows under Visibility. */
 	bool Shows(EVeyraBarVisibility Visibility, const FVeyraBarFacts& Facts)
 	{
@@ -141,6 +145,24 @@ const FVeyraContentId& CooldownSweep()
 const FVeyraContentId& CooldownPrecision()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("interface_cooldown_precision"));
+	return Id;
+}
+
+const FVeyraContentId& StatusSort()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_status_sort"));
+	return Id;
+}
+
+const FVeyraContentId& StatusHighContrast()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_status_high_contrast"));
+	return Id;
+}
+
+const FVeyraContentId& StatusDurations()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_status_durations"));
 	return Id;
 }
 
@@ -479,6 +501,12 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.Cooldowns.bNumbers = Store->IsOn(CooldownNumbers());
 	Preferences.Cooldowns.bSweep = Store->IsOn(CooldownSweep());
 	Preferences.Cooldowns.bTenths = Store->Get(CooldownPrecision()) != Whole;
+	const FString Sort = Store->Get(StatusSort());
+	Preferences.Statuses.Sort = Sort == ByRemainingDuration ? EVeyraStatusSort::ByRemainingDuration
+		: Sort == ByApplicationOrder						? EVeyraStatusSort::ByApplicationOrder
+															: EVeyraStatusSort::ByCategory;
+	Preferences.Statuses.bHighContrast = Store->IsOn(StatusHighContrast());
+	Preferences.Statuses.bDurations = Store->IsOn(StatusDurations());
 	const float MinimapShare = Share(*Store, MinimapScale());
 	const float IconShare = Share(*Store, MinimapIconScale());
 	Preferences.MinimapSize = Hud.MinimapSize * MinimapShare;

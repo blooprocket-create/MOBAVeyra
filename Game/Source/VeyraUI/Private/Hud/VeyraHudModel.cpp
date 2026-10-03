@@ -100,7 +100,12 @@ TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNo
 			{
 				continue;
 			}
-			Statuses.Add(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow), Entry.Stacks });
+			FVeyraHudStatus& Status = Statuses.Add_GetRef(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow), Entry.Stacks });
+			// Combat says what harms its bearer (ADR-059 §4).
+			Status.Group = VeyraStatuses::IsCrowdControl(Entry.Kind)		  ? EVeyraStatusGroup::CrowdControl
+				: VeyraStatuses::IsHarmful(Entry.Kind, Entry.Magnitude) ? EVeyraStatusGroup::Harmful
+																		: EVeyraStatusGroup::Beneficial;
+			Status.Sequence = Entry.Sequence;
 		}
 	}
 	return Statuses;
@@ -115,6 +120,64 @@ FString VeyraHud::CooldownLabel(double Seconds, bool bTenths)
 		return FString::FromInt(FMath::CeilToInt32(Seconds));
 	}
 	return FString::Printf(TEXT("%.1f"), Seconds);
+}
+
+TArray<FVeyraHudStatus> VeyraHud::OrderOwnStatuses(TArray<FVeyraHudStatus> Statuses, EVeyraStatusSort Sort)
+{
+	// Beneficial and harmful stay apart; By Category also sets crowd control apart, first among the harmful.
+	const auto Rank = [Sort](EVeyraStatusGroup Group) {
+		if (Group == EVeyraStatusGroup::Beneficial)
+		{
+			return 0;
+		}
+		return Sort == EVeyraStatusSort::ByCategory && Group == EVeyraStatusGroup::Harmful ? 2 : 1;
+	};
+	Statuses.StableSort([&Rank, Sort](const FVeyraHudStatus& A, const FVeyraHudStatus& B) {
+		if (Rank(A.Group) != Rank(B.Group))
+		{
+			return Rank(A.Group) < Rank(B.Group);
+		}
+		if (Sort == EVeyraStatusSort::ByRemainingDuration && A.RemainingSeconds != B.RemainingSeconds)
+		{
+			return A.RemainingSeconds < B.RemainingSeconds;
+		}
+		if (Sort == EVeyraStatusSort::ByCategory && A.Kind != B.Kind)
+		{
+			return A.Kind < B.Kind;
+		}
+		return A.Sequence < B.Sequence;
+	});
+	return Statuses;
+}
+
+FString VeyraHud::StatusMark(EVeyraStatusGroup Group)
+{
+	switch (Group)
+	{
+	case EVeyraStatusGroup::Harmful:
+		return TEXT("-");
+	case EVeyraStatusGroup::CrowdControl:
+		return TEXT("!");
+	case EVeyraStatusGroup::Beneficial:
+		break;
+	}
+	return TEXT("+");
+}
+
+FString VeyraHud::StatusChipText(const FVeyraHudStatus& Status, bool bDuration)
+{
+	// A mark with no effect of its own is known by its ID, as a Hex is; every other status by its kind.
+	const FString Raw = Status.Kind == EVeyraStatusKind::Counter ? Status.Id.ToString() : StaticEnum<EVeyraStatusKind>()->GetNameStringByValue(static_cast<int64>(Status.Kind));
+	FString Text = StatusMark(Status.Group) + TEXT(" ") + FName::NameToDisplayString(Raw, false);
+	if (Status.Stacks > 1)
+	{
+		Text += FString::Printf(TEXT(" x%d"), Status.Stacks);
+	}
+	if (bDuration && Status.RemainingSeconds > 0.0)
+	{
+		Text += TEXT(" ") + CooldownLabel(Status.RemainingSeconds, true);
+	}
+	return Text;
 }
 
 TArray<FVector2D> VeyraHud::SweepOutline(const FVector2D& TopLeft, float Side, double ElapsedShare)
