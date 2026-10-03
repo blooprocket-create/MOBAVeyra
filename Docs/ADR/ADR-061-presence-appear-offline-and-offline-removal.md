@@ -29,8 +29,8 @@ The thresholds are open.
 
 ### 1. The backend owns presence
 - **Ownership:** a new `presence` domain keeps each account's last-seen time and Appear Offline setting in Postgres (migration 0030). Presence persists across restarts and needs no single-instance assumption.
-- **Being seen:** every signed-in request marks the account seen, at most once every `presence.touchEvery` per account, so the shell's own polling keeps a player online.
-- **Clients:** the client also reads `GET /v1/me/presence` every `PresencePollIntervalSeconds` in every signed-in state, which keeps a player seen on screens that poll nothing else.
+- **Being seen:** every signed-in request marks the account seen, at most once every `presence.touchEvery` per account.
+- **Clients:** the client needs no heartbeat of its own. Its chat is read in every signed-in state but Reconnect-only ([ADR-046](ADR-046-party-direct-select-postmatch-chat.md) §6), the results screen included. Reconnect-only means a live match, which presence reads from the match itself. The client reads `GET /v1/me/presence` beside its friends list.
 
 ### 2. Status
 A friend's status is the first that applies:
@@ -65,12 +65,12 @@ A party invitation to a friend who shows `offline` to the inviter, whether reall
 
 ### 6. The client
 - **Friends:** the friends list carries each friend's status. The friends panel shows it on every card and sorts available friends first.
-- **Invite:** offered only to friends who are `online` or `in_queue`.
+- **Invite:** offered only to friends who are `online` or `in_queue`, or to any friend from a backend that reports no presence.
 - **Appear Offline:** a toggle in the friends panel, saying what it does.
 - **Refusals:** `invitee_offline` has its text.
 
 ### 7. Provisional answers where canon is open
-1. `presence.offlineAfter` 30 s; `presence.touchEvery` 5 s; `presence.sweepInterval` 5 s; `presence.postMatchGrace` 2 minutes; the client's presence poll every 10 s.
+1. `presence.offlineAfter` 30 s; `presence.touchEvery` 5 s; `presence.sweepInterval` 5 s; `presence.postMatchGrace` 2 minutes.
 2. Statuses `in_queue` and `in_select` are shown to friends, as `in_match` is.
 3. Invitations to really offline friends are refused, the same as to friends appearing offline.
 

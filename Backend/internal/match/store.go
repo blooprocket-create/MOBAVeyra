@@ -1,6 +1,9 @@
 package match
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Tx is one storage transaction. A match is locked when loaded and stays
 // locked until the transaction ends.
@@ -49,4 +52,8 @@ type Store interface {
 	// HistoryModes returns the modes of the account's completed matches,
 	// sorted: every mode its history can be filtered by.
 	HistoryModes(ctx context.Context, accountID string) ([]string, error)
+	// LastEnded returns when the most recent finished match of each of
+	// accounts ended, ended or failed alike; an account that never finished
+	// one is absent.
+	LastEnded(ctx context.Context, accountIDs []string) (map[string]time.Time, error)
 }

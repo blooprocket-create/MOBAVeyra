@@ -62,6 +62,8 @@ type Store interface {
 	PartiesOf(ctx context.Context, accountIDs []string) (map[string]Party, error)
 	// InvitesFor lists unexpired invites addressed to the account.
 	InvitesFor(ctx context.Context, accountID string, now time.Time) ([]Invite, error)
+	// MembersIn lists the members of every party in one of statuses.
+	MembersIn(ctx context.Context, statuses []Status) ([]string, error)
 }
 
 // SocialGraph answers the friendship and block questions party rules need.
@@ -94,6 +96,13 @@ type Restrictions interface {
 	Remaining(ctx context.Context, accountIDs []string) (map[string]time.Duration, error)
 }
 
+// Presence says whether an account shows offline to another: offline, or
+// appearing so to anyone outside its party (ADR-061 §3, §5). The presence
+// package implements it.
+type Presence interface {
+	ShowsOffline(ctx context.Context, viewer, accountID string) (bool, error)
+}
+
 // Settings are the validated party settings.
 type Settings struct {
 	Rules          Rules
@@ -108,6 +117,7 @@ type Service struct {
 	social       SocialGraph
 	activity     Activity
 	restrictions Restrictions
+	presence     Presence
 	settings     Settings
 	now          func() time.Time
 }
@@ -126,6 +136,47 @@ func (s *Service) SetActivity(a Activity) { s.activity = a }
 // Until it is set, no member is restricted.
 func (s *Service) SetRestrictions(r Restrictions) { s.restrictions = r }
 
+// SetPresence connects what says who shows offline, whom Invite refuses.
+// Until it is set, every invitee counts as present.
+func (s *Service) SetPresence(p Presence) { s.presence = p }
+
+// SweepableMembers lists the members of Idle and Queued parties: those an
+// offline sweep may remove (ADR-061 §4). Match Found and champion select
+// handle an absent player themselves.
+func (s *Service) SweepableMembers(ctx context.Context) ([]string, error) {
+	return s.store.MembersIn(ctx, []Status{Idle, Queued})
+}
+
+// RemoveOffline takes a member who went offline out of their party, as
+// leaving does: a queue is cancelled, readiness reset and leadership passed
+// on (Parties & Social Bible §1–§2, §4). A party that moved on to Match Found
+// or champion select meanwhile keeps them. It reports whether it removed them.
+func (s *Service) RemoveOffline(ctx context.Context, accountID string) (bool, error) {
+	removed := false
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		id, err := tx.PartyIDOf(accountID)
+		if errors.Is(err, ErrNotInParty) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		p, err := tx.LockParty(id)
+		if errors.Is(err, ErrPartyNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if p.Status != Idle && p.Status != Queued {
+			return nil
+		}
+		removed = true
+		return s.removeAndSave(tx, &p, accountID)
+	})
+	return removed, err
+}
+
 // Restricted returns how long each restricted member of p cannot queue yet;
 // a free member is absent (ADR-060 §3).
 func (s *Service) Restricted(ctx context.Context, p Party) (map[string]time.Duration, error) {
@@ -138,6 +189,12 @@ func (s *Service) Restricted(ctx context.Context, p Party) (map[string]time.Dura
 // Get returns the actor's party.
 func (s *Service) Get(ctx context.Context, actor string) (Party, error) {
 	return s.store.PartyOf(ctx, actor)
+}
+
+// PartiesOf returns the party of each of accounts that has one, keyed by
+// account, in a bounded number of reads.
+func (s *Service) PartiesOf(ctx context.Context, accountIDs []string) (map[string]Party, error) {
+	return s.store.PartiesOf(ctx, accountIDs)
 }
 
 // QueuedFor returns how long the party has been in matchmaking, by the
@@ -332,6 +389,18 @@ func (s *Service) Invite(ctx context.Context, actor, invitee string) (Invite, er
 	}
 	if err := s.checkSocial(ctx, actor, invitee); err != nil {
 		return Invite{}, err
+	}
+	// Never to a player who shows offline to the inviter, really or by Appear
+	// Offline: one refusal for both keeps Appear Offline private (ADR-061 §5).
+	// It comes first, so a player appearing offline in a match is not revealed.
+	if s.presence != nil {
+		offline, err := s.presence.ShowsOffline(ctx, actor, invitee)
+		if err != nil {
+			return Invite{}, err
+		}
+		if offline {
+			return Invite{}, ErrInviteeOffline
+		}
 	}
 	// Never to a player in a live match, nor kept for later (ADR-060 §4).
 	if s.activity != nil {
