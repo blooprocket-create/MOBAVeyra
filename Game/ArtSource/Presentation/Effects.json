@@ -22,6 +22,11 @@
       "name": "NS_VeyraDeathBurst",
       "purpose": "ADR-063 §4: a unit dying; a larger, slower burst in its side colour.",
       "template": "/Niagara/DefaultAssets/Templates/Systems/SimpleExplosion.SimpleExplosion"
+    },
+    {
+      "name": "NS_VeyraTrail",
+      "purpose": "ADR-063 §4: a projectile's trail; a ribbon left where it flies, in its side colour.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/LocationBasedRibbon.LocationBasedRibbon"
     }
   ]
 }

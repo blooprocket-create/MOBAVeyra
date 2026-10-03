@@ -11,6 +11,7 @@
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "Misc/SecureHash.h"
+#include "NiagaraEmitter.h"
 #include "NiagaraExternalSystemEditorUtilities.h"
 #include "NiagaraSystem.h"
 #include "NiagaraTypes.h"
@@ -28,10 +29,12 @@ namespace
 	/** The generator version this code is; the spec must name it. */
 	constexpr int32 GeneratorVersion = 1;
 
+	/** One system of the spec: its name, and the engine system or emitter template it starts from. */
 	struct FEffectSpec
 	{
 		FString Name;
 		FString Template;
+		FString Emitter;
 	};
 
 	/** The input every particle starts its colour from: a module's own "Color", as the templates' Initialize Particle has. */
@@ -117,9 +120,11 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 	{
 		const TSharedPtr<FJsonObject> Object = Value->AsObject();
 		FEffectSpec& Effect = Effects.AddDefaulted_GetRef();
-		if (!Object || !Object->TryGetStringField(TEXT("name"), Effect.Name) || !Object->TryGetStringField(TEXT("template"), Effect.Template))
+		const bool bTemplate = Object && Object->TryGetStringField(TEXT("template"), Effect.Template);
+		const bool bEmitter = Object && Object->TryGetStringField(TEXT("emitter"), Effect.Emitter);
+		if (!Object || !Object->TryGetStringField(TEXT("name"), Effect.Name) || bTemplate == bEmitter)
 		{
-			UE_LOG(LogVeyraEffects, Error, TEXT("%s: each system needs a name and a template."), *SpecFile);
+			UE_LOG(LogVeyraEffects, Error, TEXT("%s: each system needs a name and either a system template or an emitter template."), *SpecFile);
 			return 1;
 		}
 	}
@@ -127,6 +132,22 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 	const FString Saved = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Effects"));
 	IFileManager::Get().MakeDirectory(*Saved, /*Tree*/ true);
 	const bool bDescribe = FParse::Param(*Params, TEXT("Describe"));
+	// -Only=A,B builds just those systems; without it, every one.
+	FString OnlyList;
+	TArray<FString> Only;
+	if (FParse::Value(*Params, TEXT("Only="), OnlyList))
+	{
+		OnlyList.ParseIntoArray(Only, TEXT(","));
+		for (const FString& Name : Only)
+		{
+			if (!Effects.ContainsByPredicate([&Name](const FEffectSpec& Effect) { return Effect.Name == Name; }))
+			{
+				UE_LOG(LogVeyraEffects, Error, TEXT("-Only names %s, which the spec does not."), *Name);
+				return 1;
+			}
+		}
+		Effects.RemoveAll([&Only](const FEffectSpec& Effect) { return !Only.Contains(Effect.Name); });
+	}
 	const FNiagaraTypeDefinition ColorType = FNiagaraTypeDefinition::GetColorDef();
 	const FName UserColor(*(TEXT("User.") + ColorName));
 	const TSharedRef<FJsonObject> Report = MakeShared<FJsonObject>();
@@ -136,11 +157,18 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 	TArray<TSharedPtr<FJsonValue>> Built;
 	for (const FEffectSpec& Effect : Effects)
 	{
-		UNiagaraSystem* Template = LoadObject<UNiagaraSystem>(nullptr, *Effect.Template);
-		if (!Template)
+		// A system template is copied whole; an emitter template becomes the one emitter of an empty system.
+		UNiagaraSystem* Template = Effect.Template.IsEmpty() ? nullptr : LoadObject<UNiagaraSystem>(nullptr, *Effect.Template);
+		UNiagaraEmitter* EmitterTemplate = Effect.Emitter.IsEmpty() ? nullptr : LoadObject<UNiagaraEmitter>(nullptr, *Effect.Emitter);
+		if (!Template && !EmitterTemplate)
 		{
-			UE_LOG(LogVeyraEffects, Error, TEXT("%s: its template %s does not load."), *Effect.Name, *Effect.Template);
+			UE_LOG(LogVeyraEffects, Error, TEXT("%s: its template %s%s does not load."), *Effect.Name, *Effect.Template, *Effect.Emitter);
 			return 1;
+		}
+		if (bDescribe && !Template)
+		{
+			UE_LOG(LogVeyraEffects, Display, TEXT("VEYRA_EFFECT_DESCRIBED: %s starts from an emitter template, described once built."), *Effect.Name);
+			continue;
 		}
 		if (bDescribe)
 		{
@@ -186,8 +214,13 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		{
 			return 1;
 		}
-		// One colour, the side's, set by the presentation as it spawns the system.
 		FNiagaraExternalEditContext Edit(System);
+		if (EmitterTemplate)
+		{
+			FNiagaraExt_EmitterTopology Added;
+			UNiagaraExternalEditUtilities::AddEmitter(EmitterTemplate, FName(*Effect.Name), Added, Edit);
+		}
+		// One colour, the side's, set by the presentation as it spawns the system.
 		FNiagaraExt_UserVariable Color;
 		Color.Name = UserColor;
 		Color.Type = ColorType;
@@ -242,7 +275,7 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		}
 		const TSharedRef<FJsonObject> Entry = MakeShared<FJsonObject>();
 		Entry->SetStringField(TEXT("asset"), System->GetPathName());
-		Entry->SetStringField(TEXT("template"), Effect.Template);
+		Entry->SetStringField(TEXT("template"), Template ? Effect.Template : Effect.Emitter);
 		Entry->SetNumberField(TEXT("linkedColorInputs"), Linked);
 		Built.Add(MakeShared<FJsonValueObject>(Entry));
 		UE_LOG(LogVeyraEffects, Display, TEXT("VEYRA_EFFECT: %s (%d colour input(s) linked to %s)"), *System->GetPathName(), Linked, *UserColor.ToString());

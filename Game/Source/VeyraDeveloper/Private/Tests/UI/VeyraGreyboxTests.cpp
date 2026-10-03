@@ -250,7 +250,7 @@ namespace VeyraAbilitiesTests
 			}
 			// Each generated system takes the side colour the presentation gives it.
 			const FNiagaraVariableBase Color(FNiagaraTypeDefinition::GetColorDef(), FName(TEXT("User.") + Settings.EffectColorParameter.ToString()));
-			for (const UNiagaraSystem* Effect : { Settings.ImpactEffect.Get(), Settings.CastEffect.Get(), Settings.DeathEffect.Get() })
+			for (const UNiagaraSystem* Effect : { Settings.ImpactEffect.Get(), Settings.CastEffect.Get(), Settings.DeathEffect.Get(), Settings.TrailEffect.Get() })
 			{
 				ASSERT_THAT(IsNotNull(Effect, TEXT("run BuildEffects.ps1")));
 				ASSERT_THAT(IsTrue(Effect->GetExposedParameters().IndexOf(Color) != INDEX_NONE, *Effect->GetName()));
@@ -278,6 +278,33 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsFalse(Presentation.HoverShop(Enemy, EVeyraTeam::A, false), TEXT("the other side's does not")));
 			ASSERT_THAT(IsTrue(!Enemy->IsOutlined() && !Own->IsOutlined(), TEXT("and the outline left with the cursor")));
 			ASSERT_THAT(IsFalse(Presentation.HoverShop(Own, EVeyraTeam::None, false), TEXT("a viewer on no side has no shop")));
+		}
+
+		TEST_METHOD(AMeleeCommitSwingsAnArcThatFadesAndARangedOneNone)
+		{
+			// ADR-063 §2. Fixture values: a target at arm's length, and one far beyond any melee reach.
+			constexpr double Near = 150.0;
+			constexpr double Far = 3000.0;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Close = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraVanguardCharacter& Distant = World.Spawn(EVeyraTeam::B, FVector(0.0, Far, 0.0));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			UVeyraCombatCueSubsystem* Cues = Spawner.GetWorld().GetSubsystem<UVeyraCombatCueSubsystem>();
+			FVeyraCombatCue Commit;
+			Commit.Kind = EVeyraCombatCueKind::AttackCommit;
+			Commit.Unit = Caster;
+			Commit.Target = &Distant;
+			Cues->OnCue.Broadcast(Commit);
+			ASSERT_THAT(IsTrue(Presentation.GetSwingArcs().IsEmpty(), TEXT("a ranged attack swings no arc")));
+			Commit.Target = &Close;
+			Cues->OnCue.Broadcast(Commit);
+			ASSERT_THAT(AreEqual(Presentation.GetSwingArcs().Num(), 1));
+			const FVeyraSwingArc& Swing = Presentation.GetSwingArcs()[0];
+			ASSERT_THAT(IsTrue(Swing.Direction.Equals(FVector::ForwardVector, Tolerance), TEXT("toward its target")));
+			ASSERT_THAT(IsNear(Swing.Radius, Near + Close.GetSimpleCollisionRadius(), Tolerance, TEXT("to the target's far edge")));
+			ASSERT_THAT(IsTrue(Swing.Color.Equals(Presentation.SideColorOf(*Caster))));
+			Wait(FMath::CeilToInt32(GetDefault<UVeyraGreyboxSettings>()->SwingArcSeconds / StepSeconds) + 1);
+			ASSERT_THAT(IsTrue(RefreshedGreybox().GetSwingArcs().IsEmpty(), TEXT("then it fades")));
 		}
 
 		TEST_METHOD(AHitFlashesTheBodyUntilItFades)

@@ -188,9 +188,10 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ImpactEffect = Settings.ImpactEffect.LoadSynchronous();
 		CastEffect = Settings.CastEffect.LoadSynchronous();
 		DeathEffect = Settings.DeathEffect.LoadSynchronous();
-		if (!ImpactEffect || !CastEffect || !DeathEffect)
+		TrailEffect = Settings.TrailEffect.LoadSynchronous();
+		if (!ImpactEffect || !CastEffect || !DeathEffect || !TrailEffect)
 		{
-			Problems.Add(TEXT("ImpactEffect: the impact, cast and death effects do not all load; run BuildEffects.ps1."));
+			Problems.Add(TEXT("ImpactEffect: the impact, cast, death and trail effects do not all load; run BuildEffects.ps1."));
 		}
 		HoverOutlineMaterial = Settings.HoverOutlineMaterial.LoadSynchronous();
 		if (!HoverOutlineMaterial)
@@ -233,6 +234,52 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	}
 	PlayEffect(Cue);
 	PlaySound(Cue);
+	NoteSwing(Cue);
+}
+
+void UVeyraGreyboxSubsystem::NoteSwing(const FVeyraCombatCue& Cue)
+{
+	const AActor* Attacker = Cue.Unit.Get();
+	const AActor* Target = Cue.Target.Get();
+	if (Cue.Kind != EVeyraCombatCueKind::AttackCommit || !Attacker || !Target)
+	{
+		return;
+	}
+	// A swing only where the attack reaches across: a ranged attack shows its projectile's trail instead.
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const double Apart = FVector::Dist2D(Attacker->GetActorLocation(), Target->GetActorLocation());
+	const double TargetRadius = Target->GetSimpleCollisionRadius();
+	if (Apart - Attacker->GetSimpleCollisionRadius() - TargetRadius > Settings.SwingArcReach)
+	{
+		return;
+	}
+	SwingArcs.Add(FVeyraSwingArc{ Attacker, (Target->GetActorLocation() - Attacker->GetActorLocation()).GetSafeNormal2D(), Apart + TargetRadius,
+		GetWorld()->GetRealTimeSeconds(), SideColorOf(*Attacker) });
+}
+
+void UVeyraGreyboxSubsystem::DrawSwingArcs()
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const double Now = GetWorld()->GetRealTimeSeconds();
+	SwingArcs.RemoveAll([&Settings, Now](const FVeyraSwingArc& Swing) { return !Swing.Attacker.IsValid() || Now - Swing.At >= Settings.SwingArcSeconds; });
+	if (!TelegraphLines)
+	{
+		return;
+	}
+	for (const FVeyraSwingArc& Swing : SwingArcs)
+	{
+		FVeyraShape Arc;
+		Arc.Kind = EVeyraShapeKind::Sector;
+		Arc.Radius = Swing.Radius;
+		Arc.ArcDegrees = Settings.SwingArcDegrees;
+		FLinearColor Color = Swing.Color;
+		Color.A *= static_cast<float>(1.0 - (Now - Swing.At) / Settings.SwingArcSeconds);
+		const FVeyraPlacedShape OnGround{ Arc, GroundUnder(Swing.Attacker->GetActorLocation()), Swing.Direction };
+		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
+		{
+			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+		}
+	}
 }
 
 USoundBase* UVeyraGreyboxSubsystem::SoundFor(EVeyraCombatCueKind Kind) const
@@ -612,6 +659,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawChains();
 	DrawEchoTethers();
 	DrawOrderMark();
+	DrawSwingArcs();
 	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
 	ShowHover(Local ? Local->GetHoveredUnit() : nullptr);
 	RefreshShops();
@@ -1167,6 +1215,17 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 			// Clients receive launch data only and never move the actor, so the drawing places the sphere.
 			Mesh->SetUsingAbsoluteLocation(true);
 			Visual = &Projectiles.Add(&Projectile, FProjectileVisual{ Mesh, Projectile.GetLaunchedFrom(), Projectile.GetLaunchedAt() });
+			// A trail follows the sphere in its side's colour, at its own size whatever the sphere's (ADR-063 §4).
+			if (TrailEffect)
+			{
+				Visual->Trail = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailEffect, Mesh, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+					EAttachLocation::SnapToTarget, /*bAutoDestroy*/ true);
+				if (UNiagaraComponent* Trail = Visual->Trail.Get())
+				{
+					Trail->SetUsingAbsoluteScale(true);
+					Trail->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, ColorOfSide(Projectile.GetVeyraTeam()));
+				}
+			}
 		}
 
 		FVector Location = Projectile.GetLineLocationAt(Now);

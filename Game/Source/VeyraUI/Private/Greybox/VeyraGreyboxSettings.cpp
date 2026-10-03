@@ -146,7 +146,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(OrderMarkSeconds > 0.0f, TEXT("OrderMarkSeconds"), TEXT("must be above 0."));
 	Require(!HitFlashMaterial.IsNull(), TEXT("HitFlashMaterial"), TEXT("the generated hit flash material is required."));
 	Require(!HoverOutlineMaterial.IsNull(), TEXT("HoverOutlineMaterial"), TEXT("the generated hover outline material is required."));
-	Require(!ImpactEffect.IsNull() && !CastEffect.IsNull() && !DeathEffect.IsNull(), TEXT("ImpactEffect"), TEXT("the generated impact, cast and death effects are required."));
+	Require(!ImpactEffect.IsNull() && !CastEffect.IsNull() && !DeathEffect.IsNull() && !TrailEffect.IsNull(), TEXT("ImpactEffect"),
+		TEXT("the generated impact, cast, death and trail effects are required."));
+	Require(SwingArcReach > 0.0f && SwingArcDegrees > 0.0f && SwingArcDegrees <= 360.0f && SwingArcSeconds > 0.0f, TEXT("SwingArcReach"),
+		TEXT("a swing needs a reach, an arc of up to 360 degrees and some time to fade."));
 	Require(!EffectColorParameter.IsNone(), TEXT("EffectColorParameter"), TEXT("the effects' colour parameter is required."));
 	Require(!ImpactSound.IsNull() && !SwingSound.IsNull() && !CastSound.IsNull() && !DeathSound.IsNull() && !ClickSound.IsNull(), TEXT("ImpactSound"),
 		TEXT("the generated impact, swing, cast, death and click sounds are required."));

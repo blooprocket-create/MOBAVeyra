@@ -42,6 +42,7 @@ The code:
 ### 2. Bodies show what happens to them
 - **The hit flash** is a generated additive overlay material, brightest at the silhouette, drawn over whichever of a unit's body or art shows. Kit art keeps its own materials.
 - **Motion:** during a windup the body leans toward its target, it snaps forward at the commit, it recoils from a hit, and it collapses at death.
+- **Swings:** a melee attack's commit sweeps a short arc from the attacker to its target's far edge, fading, in the attacker's side colour. Ranged attacks show their projectile's trail instead.
 - **Presentation only:** these are offsets of the drawn mesh. The capsule, collision and movement never change.
 - **Accessibility:** under Reduce Flashing the hit flash starts weaker and only fades, with no sharp peak (§4.2).
 
@@ -51,8 +52,8 @@ The code:
 - **The cursor** changes to the attack cursor over an enemy the player can attack.
 
 ### 4. Effects
-- **Niagara is enabled.** Three systems cover the cues: an impact for a hit, a flash toward a cast's aim, and a burst for a death.
-  - Each copies an engine burst template, with every particle's base colour linked to one user colour. One system therefore serves every side, in the side colour of its unit.
+- **Niagara is enabled.** Four systems cover the cues: an impact for a hit, a flash toward a cast's aim, a burst for a death, and a ribbon trail behind each projectile.
+  - Each copies an engine template (a whole system, or an emitter in an empty system), with every particle's base colour linked to one user colour. One system therefore serves every side, in the side colour of its unit.
   - Niagara skips an effect no viewer could see, and the effects are pooled.
 - **A generator builds them:** a commandlet in VeyraDeveloper's editor build, as the map and art commandlets are. It is deterministic and seeded, so the systems are regenerated rather than hand-edited.
 - **ADR-001: a narrow approval.** The generator uses the engine's Niagara editing utilities, which Epic marks Experimental.

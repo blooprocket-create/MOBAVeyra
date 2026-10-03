@@ -40,6 +40,20 @@ enum class EVeyraTelegraphSource : uint8
 	Indicator,
 };
 
+/** A melee attack's swing as this machine draws it: an arc from its attacker toward its target, fading (ADR-063 §2). */
+struct FVeyraSwingArc
+{
+	TWeakObjectPtr<const AActor> Attacker;
+
+	/** Toward the target on the ground, and how far the arc reaches: to the target's far edge. */
+	FVector Direction = FVector::ForwardVector;
+	double Radius = 0.0;
+
+	/** When it was struck, in this machine's real seconds, and in whose colour. */
+	double At = 0.0;
+	FLinearColor Color = FLinearColor::Transparent;
+};
+
 /** One telegraphed shape, as this machine draws it. */
 struct FVeyraTelegraph
 {
@@ -133,6 +147,9 @@ public:
 
 	/** The ring the last refresh drew for the local player's last order, while it shows (ADR-062 §6). */
 	const TOptional<FVeyraOrderMarkRing>& GetOrderMarkRing() const { return OrderMarkRing; }
+
+	/** The melee swings still showing (ADR-063 §2). */
+	const TArray<FVeyraSwingArc>& GetSwingArcs() const { return SwingArcs; }
 
 	/** The server's gameplay time as this machine knows it; it stands still while the match is paused. */
 	double GetServerNow() const;
@@ -234,6 +251,9 @@ private:
 		/** A homing projectile's drawn position, stepped toward its target in server time. */
 		FVector Position = FVector::ZeroVector;
 		double PresentedAt = 0.0;
+
+		/** Its trail, following the sphere (ADR-063 §4). */
+		TWeakObjectPtr<class UNiagaraComponent> Trail;
 	};
 
 	void RefreshBodies();
@@ -287,6 +307,11 @@ private:
 	void DrawOrderMark();
 	TOptional<FVeyraOrderMarkRing> OrderMarkRing;
 
+	/** Notes a melee swing at an attack's commit; draws and forgets the swings, joining the telegraphs' lines. */
+	void NoteSwing(const struct FVeyraCombatCue& Cue);
+	void DrawSwingArcs();
+	TArray<FVeyraSwingArc> SwingArcs;
+
 	/** A projected Echo's tether circle and stream (ADR-050 §7). */
 	void DrawEchoTethers();
 
@@ -323,6 +348,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<class UNiagaraSystem> DeathEffect;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> TrailEffect;
 
 	/** The fight's sounds (ADR-063 §5), how far they carry and how many play at once. */
 	UPROPERTY(Transient)

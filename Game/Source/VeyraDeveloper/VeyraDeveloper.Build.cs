@@ -51,9 +51,9 @@ public class VeyraDeveloper : ModuleRules
 				"ImageWrapper",
 				"LevelEditor",
 				"UnrealEd",
-				// The effects commandlet builds Niagara systems from engine templates (ADR-063 §4).
+				// The effects commandlet builds Niagara systems from engine templates (ADR-063 §4); an editor is
+				// never a server, so Niagara itself comes with the presentation tests below.
 				"JsonUtilities",
-				"Niagara",
 				"NiagaraCore",
 				"NiagaraEditor",
 			});
@@ -67,10 +67,7 @@ public class VeyraDeveloper : ModuleRules
 			PrivateDependencyModuleNames.Add("UMG");
 			PrivateDependencyModuleNames.Add("VeyraUI");
 			// The presentation tests check the fight's effects, which are Niagara systems (ADR-063 §4).
-			if (!PrivateDependencyModuleNames.Contains("Niagara"))
-			{
-				PrivateDependencyModuleNames.Add("Niagara");
-			}
+			PrivateDependencyModuleNames.Add("Niagara");
 			PrivateDefinitions.Add("WITH_VEYRA_UI=1");
 		}
 		else

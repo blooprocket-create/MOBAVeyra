@@ -374,6 +374,24 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Effects")
 	FName EffectColorParameter;
 
+	/** A projectile's trail, a ribbon following its drawn sphere in its side's colour. */
+	UPROPERTY(Config, EditAnywhere, Category = "Effects")
+	TSoftObjectPtr<class UNiagaraSystem> TrailEffect;
+
+	/**
+	 * A melee attack's swing (ADR-063 §2): when an attack commits with its target no more than SwingArcReach beyond the
+	 * attacker's edge, an arc of SwingArcDegrees sweeps from the attacker to the target's far edge, fading over
+	 * SwingArcSeconds, in the attacker's side colour. Ranged attacks show their projectile's trail instead.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Effects", meta = (ClampMin = "0"))
+	float SwingArcReach = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Effects", meta = (ClampMin = "1", ClampMax = "360"))
+	float SwingArcDegrees = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Effects", meta = (ClampMin = "0"))
+	float SwingArcSeconds = 0.0f;
+
 	/**
 	 * The shop at each side's fountain (ADR-063 §6): ShopOffset units from its team start toward the battleground's
 	 * centre, ShopRadius wide and ShopHeight tall, in ShopColor. The player's own side's opens the shop when clicked.
