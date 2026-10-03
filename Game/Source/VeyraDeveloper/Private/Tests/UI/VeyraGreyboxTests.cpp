@@ -12,6 +12,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
@@ -221,6 +223,26 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsFalse(AllyBody->bRenderCustomDepth, TEXT("and leaves with the cursor")));
 		}
 
+		TEST_METHOD(EachMomentPlaysItsEffectAndEachEffectTakesItsSidesColour)
+		{
+			// Which effect each moment plays (ADR-063 §4). A test runs where nothing renders, and Niagara plays nothing there.
+			const UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Presentation.EffectFor(EVeyraCombatCueKind::Hit) == Settings.ImpactEffect.Get()));
+			ASSERT_THAT(IsTrue(Presentation.EffectFor(EVeyraCombatCueKind::CastCommit) == Settings.CastEffect.Get()));
+			ASSERT_THAT(IsTrue(Presentation.EffectFor(EVeyraCombatCueKind::Death) == Settings.DeathEffect.Get()));
+			for (const EVeyraCombatCueKind Bodily : { EVeyraCombatCueKind::AttackWindup, EVeyraCombatCueKind::AttackCommit, EVeyraCombatCueKind::CastWindup })
+			{
+				ASSERT_THAT(IsNull(Presentation.EffectFor(Bodily), TEXT("the body shows it, with no effect")));
+			}
+			// Each generated system takes the side colour the presentation gives it.
+			const FNiagaraVariableBase Color(FNiagaraTypeDefinition::GetColorDef(), FName(TEXT("User.") + Settings.EffectColorParameter.ToString()));
+			for (const UNiagaraSystem* Effect : { Settings.ImpactEffect.Get(), Settings.CastEffect.Get(), Settings.DeathEffect.Get() })
+			{
+				ASSERT_THAT(IsNotNull(Effect, TEXT("run BuildEffects.ps1")));
+				ASSERT_THAT(IsTrue(Effect->GetExposedParameters().IndexOf(Color) != INDEX_NONE, *Effect->GetName()));
+			}
+		}
 		TEST_METHOD(AHitFlashesTheBodyUntilItFades)
 		{
 			FArchetypeTestWorld World{ Spawner };

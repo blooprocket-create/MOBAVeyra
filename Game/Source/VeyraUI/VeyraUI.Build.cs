@@ -50,6 +50,8 @@ public class VeyraUI : ModuleRules
 			"VeyraFlux",
 			// The grey-box draws the battleground's lanes, river and bases from its layout.
 			"VeyraWorld",
+			// The fight's effects are Niagara systems (ADR-063 §4).
+			"Niagara",
 		});
 
 		// What players read about Vanguards, abilities and passives (VeyraContentText).

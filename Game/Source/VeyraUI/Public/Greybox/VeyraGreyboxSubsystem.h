@@ -97,6 +97,15 @@ public:
 	/** The custom-depth stencil Unit's outline is drawn with: its side's as the viewer sees it, enemy, ally or neutral. */
 	int32 HoverStencilOf(const AActor& Unit) const;
 
+	/** The effect a cue of Kind plays (ADR-063 §4): a hit's impact, a cast's flash, a death's burst; null for the rest. */
+	class UNiagaraSystem* EffectFor(EVeyraCombatCueKind Kind) const;
+
+	/**
+	 * Plays Cue's effect where it happens, in its unit's side colour; a cast's flashes toward its aim. Niagara skips one
+	 * no viewer could see, as most of a battleground's hits are, and plays none where nothing renders.
+	 */
+	class UNiagaraComponent* PlayEffect(const struct FVeyraCombatCue& Cue);
+
 	/** A structure's art, once drawn; null for any other unit. */
 	UStaticMeshComponent* FindArt(const AActor& Unit) const;
 
@@ -173,7 +182,7 @@ private:
 		TWeakObjectPtr<UStaticMeshComponent> Flashing;
 	};
 
-	/** Notes a cue in its unit's body. */
+	/** Notes a cue in its unit's body, and plays its effect. */
 	void OnCombatCue(const struct FVeyraCombatCue& Cue);
 
 	/**
@@ -291,6 +300,16 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInterface> HitFlashMaterial;
+
+	/** The fight's effects (ADR-063 §4). */
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> ImpactEffect;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> CastEffect;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> DeathEffect;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> GroundMesh;

@@ -43,6 +43,9 @@
 #include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Structures/VeyraStructure.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Terrain/VeyraTerrainWall.h"
@@ -157,6 +160,13 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{
 			Problems.Add(FString::Printf(TEXT("HitFlashMaterial: %s does not load; run BuildPresentationMaterials.ps1."), *Settings.HitFlashMaterial.ToString()));
 		}
+		ImpactEffect = Settings.ImpactEffect.LoadSynchronous();
+		CastEffect = Settings.CastEffect.LoadSynchronous();
+		DeathEffect = Settings.DeathEffect.LoadSynchronous();
+		if (!ImpactEffect || !CastEffect || !DeathEffect)
+		{
+			Problems.Add(TEXT("ImpactEffect: the impact, cast and death effects do not all load; run BuildEffects.ps1."));
+		}
 		HoverOutlineMaterial = Settings.HoverOutlineMaterial.LoadSynchronous();
 		if (!HoverOutlineMaterial)
 		{
@@ -196,6 +206,47 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	{
 		VeyraBodyFeedback::Note(Body->Feedback, Cue, GetWorld()->GetRealTimeSeconds(), GetServerNow());
 	}
+	PlayEffect(Cue);
+}
+
+UNiagaraSystem* UVeyraGreyboxSubsystem::EffectFor(EVeyraCombatCueKind Kind) const
+{
+	switch (Kind)
+	{
+	case EVeyraCombatCueKind::Hit:
+		return ImpactEffect;
+	case EVeyraCombatCueKind::CastCommit:
+		return CastEffect;
+	case EVeyraCombatCueKind::Death:
+		return DeathEffect;
+	case EVeyraCombatCueKind::AttackWindup:
+	case EVeyraCombatCueKind::AttackCommit:
+	case EVeyraCombatCueKind::CastWindup:
+		break;
+	}
+	return nullptr;
+}
+
+UNiagaraComponent* UVeyraGreyboxSubsystem::PlayEffect(const FVeyraCombatCue& Cue)
+{
+	const AActor* Unit = Cue.Unit.Get();
+	UNiagaraSystem* Effect = EffectFor(Cue.Kind);
+	if (!Unit || !Effect || !bReady)
+	{
+		return nullptr;
+	}
+	// A cast flashes from its caster toward where it was aimed; the rest where their unit stands.
+	const FVector At = Unit->GetActorLocation();
+	const FVector Toward = Cue.Kind == EVeyraCombatCueKind::CastCommit ? (Cue.Location - At).GetSafeNormal2D() : FVector::ZeroVector;
+	const FRotator Facing = Toward.IsZero() ? Unit->GetActorRotation() : Toward.Rotation();
+	// Pooled: a battleground's waves raise many hits a second.
+	UNiagaraComponent* Played = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, At, Facing, FVector::OneVector, /*bAutoDestroy*/ true,
+		/*bAutoActivate*/ true, ENCPoolMethod::AutoRelease);
+	if (Played)
+	{
+		Played->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, SideColorOf(*Unit));
+	}
+	return Played;
 }
 
 float UVeyraGreyboxSubsystem::GetFlashOf(const AActor& Unit) const

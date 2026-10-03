@@ -145,6 +145,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(OrderMarkSeconds > 0.0f, TEXT("OrderMarkSeconds"), TEXT("must be above 0."));
 	Require(!HitFlashMaterial.IsNull(), TEXT("HitFlashMaterial"), TEXT("the generated hit flash material is required."));
 	Require(!HoverOutlineMaterial.IsNull(), TEXT("HoverOutlineMaterial"), TEXT("the generated hover outline material is required."));
+	Require(!ImpactEffect.IsNull() && !CastEffect.IsNull() && !DeathEffect.IsNull(), TEXT("ImpactEffect"), TEXT("the generated impact, cast and death effects are required."));
+	Require(!EffectColorParameter.IsNone(), TEXT("EffectColorParameter"), TEXT("the effects' colour parameter is required."));
 	Require(!HoverEnemyColorParameter.IsNone() && !HoverAllyColorParameter.IsNone() && !HoverNeutralColorParameter.IsNone()
 			&& !HoverEnemyStencilParameter.IsNone() && !HoverAllyStencilParameter.IsNone() && !HoverNeutralStencilParameter.IsNone(),
 		TEXT("HoverEnemyColorParameter"), TEXT("the hover outline's three colour and three stencil parameters are required."));
