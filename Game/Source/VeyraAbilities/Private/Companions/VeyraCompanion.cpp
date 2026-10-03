@@ -16,6 +16,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Stats/VeyraEquipmentStats.h"
@@ -59,7 +60,7 @@ AVeyraCompanion::AVeyraCompanion(const FObjectInitializer& ObjectInitializer)
 	// It follows in its owner's footsteps, so a solid body would stand in the way of every turn back:
 	// ghosted, it passes through units and never traps an ally (Combat Bible §24; ADR-034 §4). Terrain
 	// still stops it, and it is gathered and hit as any unit is.
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	VeyraUnitCollision::SetResponseToUnits(*GetCapsuleComponent(), ECR_Ignore);
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;

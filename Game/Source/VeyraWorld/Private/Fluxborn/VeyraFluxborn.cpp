@@ -16,6 +16,7 @@
 #include "Fluxborn/VeyraFluxbornController.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -108,6 +109,8 @@ void AVeyraFluxborn::Configure(const FVeyraContentId& InKind, EVeyraTeam InTeam,
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraFluxborn, Team, this);
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraFluxborn, Lane, this);
 	ApplyBody();
+	// It collides by side: allied units pass through it, enemies are blocked (ADR-062 §1).
+	VeyraUnitCollision::ApplySide(*GetCapsuleComponent(), Team);
 }
 
 bool AVeyraFluxborn::InitializeStats(double HealthMultiplier, double DamageMultiplier)

@@ -6,6 +6,7 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "Terrain/VeyraTerrainWall.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
@@ -76,7 +77,7 @@ void UVeyraTerrainSubsystem::MoveOut(const FVeyraWallRequest& Request) const
 	UWorld& World = *GetWorld();
 	const FVector Facing = Request.Facing.GetSafeNormal2D();
 	TArray<FOverlapResult> Overlaps;
-	World.OverlapMultiByObjectType(Overlaps, Request.Centre, Facing.ToOrientationQuat(), FCollisionObjectQueryParams(ECC_Pawn),
+	World.OverlapMultiByObjectType(Overlaps, Request.Centre, Facing.ToOrientationQuat(), VeyraUnitCollision::AllUnits(),
 		FCollisionShape::MakeBox(FVector(Request.Thickness / 2.0, Request.Length / 2.0, Request.HalfHeight)));
 	TSet<APawn*> Moved;
 	for (const FOverlapResult& Overlap : Overlaps)

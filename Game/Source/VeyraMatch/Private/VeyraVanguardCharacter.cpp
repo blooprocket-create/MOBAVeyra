@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Input/VeyraCameraSettings.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 
@@ -100,6 +101,10 @@ void AVeyraVanguardCharacter::OnPlayerStateChanged(APlayerState* NewPlayerState,
 			NewAbilitySystem->InitAbilityActorInfo(NewPlayerState, this);
 		}
 	}
+
+	// The body collides by its participant's side (ADR-062 §1); binding the combatant below then lays any
+	// pass-through, such as Ghosted, over it.
+	VeyraUnitCollision::ApplySide(*GetCapsuleComponent(), VeyraTeams::TeamOf(NewPlayerState));
 
 	// Only the server moves Vanguards, so only its movement follows the participant.
 	if (HasAuthority())

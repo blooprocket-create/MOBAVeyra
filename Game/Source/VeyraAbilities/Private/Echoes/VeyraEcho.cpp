@@ -15,6 +15,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraUnitCollision.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -32,7 +33,7 @@ AVeyraEcho::AVeyraEcho(const FObjectInitializer& ObjectInitializer)
 	bUseControllerRotationYaw = false;
 
 	// A projection passes through units, as a companion does, and never traps one; terrain still stops it.
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	VeyraUnitCollision::SetResponseToUnits(*GetCapsuleComponent(), ECR_Ignore);
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
