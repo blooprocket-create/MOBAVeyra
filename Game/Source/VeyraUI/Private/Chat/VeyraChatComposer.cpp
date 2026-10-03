@@ -17,6 +17,7 @@
 #include "Hud/VeyraChatLogModel.h"
 #include "Hud/VeyraHudLayout.h"
 #include "Settings/VeyraInterfacePreferences.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Slots/VeyraAbilitySlot.h"
@@ -41,7 +42,8 @@ bool UVeyraChatComposer::Initialize()
 
 		// Styled as the Settings search is, so the client's fields look alike.
 		Field = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-		VeyraShellStyle::StyleTextField(*Field, Style.Spacing / 2.0f);
+		VeyraShellStyle::StyleChatField(*Field, Style.Spacing / 2.0f);
+		SizedForChat = VeyraShellLook::ScaledChatFontSize(Style.BodyFontSize);
 		Field->SetHintText(LOCTEXT("Hint", "Enter sends, Tab switches Team and All, Escape closes"));
 		Field->OnTextChanged.AddUniqueDynamic(this, &UVeyraChatComposer::HandleTextChanged);
 		UHorizontalBoxSlot* FieldSlot = Row->AddChildToHorizontalBox(Field);
@@ -139,6 +141,14 @@ void UVeyraChatComposer::Place()
 	{
 		return;
 	}
+	// Chat Text Size reaches the composer at once, as it does every chat (SET-66; ADR-059 §5).
+	VeyraShellLook::FollowPlayer(this);
+	const int32 ChatSize = VeyraShellLook::ScaledChatFontSize(GetDefault<UVeyraShellStyleSettings>()->BodyFontSize);
+	if (Field && ChatSize != SizedForChat)
+	{
+		VeyraShellStyle::StyleChatField(*Field, GetDefault<UVeyraShellStyleSettings>()->Spacing / 2.0f);
+		SizedForChat = ChatSize;
+	}
 	Player->ViewportClient->GetViewportSize(Viewport);
 	if (Viewport.IsNearlyZero())
 	{
@@ -158,6 +168,11 @@ void UVeyraChatComposer::Place()
 	const float DpiScale = UWidgetLayoutLibrary::GetViewportScale(this);
 	SetDesiredSizeInViewport(DpiScale > 0.0f ? Frame.InputSize / DpiScale : Frame.InputSize);
 	SetPositionInViewport(Frame.InputTopLeft, /*bRemoveDPIScale*/ true);
+}
+
+int32 UVeyraChatComposer::GetFieldFontSize() const
+{
+	return Field ? Field->GetWidgetStyle().TextStyle.Font.Size : 0;
 }
 
 void UVeyraChatComposer::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

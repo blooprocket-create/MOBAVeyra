@@ -92,6 +92,12 @@ namespace VeyraShellStyle
 	 */
 	void StyleTextField(UEditableTextBox& Box, float Padding);
 
+	/** Styles Box as a chat's entry field: StyleTextField's look, its text at Chat Text Size (SET-66; ADR-059 §5). */
+	void StyleChatField(UEditableTextBox& Box, float Padding);
+
+	/** Sizes a chat line in Role at Chat Text Size, on top of the look's text size. */
+	void SizeForChat(UTextBlock& Block, EVeyraShellText Role);
+
 	/**
 	 * A new white gradient texture, opaque at Gradient's dark edge; the image that shows it tints it.
 	 * Its holder keeps it alive.

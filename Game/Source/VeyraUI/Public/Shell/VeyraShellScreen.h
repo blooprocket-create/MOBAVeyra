@@ -149,6 +149,9 @@ public:
 
 	/** The shown roster's search and tab: the Collection's, or champion select's. */
 	const FString& GetRosterSearch() const;
+
+	/** The shown chat panel's entry field's type size, at the player's Chat Text Size (ADR-059 §5); 0 with no chat shown. */
+	int32 GetChatFieldFontSize() const;
 	EVeyraRosterTab GetRosterTab() const;
 
 	/** The label of a roster tab's button: "Show Owned". */

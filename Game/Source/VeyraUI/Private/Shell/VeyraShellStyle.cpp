@@ -43,7 +43,8 @@ namespace
 	constexpr int32 GradientTexels = 256;
 }
 
-FSlateFontInfo FontFor(EVeyraShellText Role)
+/** Role's font in the look: at Interface Text Size, and for a chat (bChat) at Chat Text Size on top (ADR-059 §5). */
+FSlateFontInfo FontIn(EVeyraShellText Role, bool bChat)
 {
 	const UVeyraShellStyleSettings& Style = Settings();
 	const TCHAR* Typeface = TEXT("Regular");
@@ -92,10 +93,20 @@ FSlateFontInfo FontFor(EVeyraShellText Role)
 		break;
 	}
 	// The player's Interface Text Size; layouts reflow around it (SET-62).
-	Size = VeyraShellLook::ScaledFontSize(Size);
+	Size = bChat ? VeyraShellLook::ScaledChatFontSize(Size) : VeyraShellLook::ScaledFontSize(Size);
 	FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle(Typeface, Size);
 	Font.LetterSpacing = Tracking;
 	return Font;
+}
+
+FSlateFontInfo FontFor(EVeyraShellText Role)
+{
+	return FontIn(Role, /*bChat*/ false);
+}
+
+void SizeForChat(UTextBlock& Block, EVeyraShellText Role)
+{
+	Block.SetFont(FontIn(Role, /*bChat*/ true));
 }
 
 UTextBlock* MakeText(UWidgetTree& Tree, const FText& Text, EVeyraShellText Role)
@@ -176,6 +187,14 @@ void StyleTextField(UEditableTextBox& Box, float Padding)
 	FieldStyle.SetFocusedForegroundColor(FSlateColor(Style.TextColor));
 	FieldStyle.SetPadding(FMargin(Padding));
 	FieldStyle.SetFont(FontFor(EVeyraShellText::Body));
+	Box.SetWidgetStyle(FieldStyle);
+}
+
+void StyleChatField(UEditableTextBox& Box, float Padding)
+{
+	StyleTextField(Box, Padding);
+	FEditableTextBoxStyle FieldStyle = Box.GetWidgetStyle();
+	FieldStyle.SetFont(FontIn(EVeyraShellText::Body, /*bChat*/ true));
 	Box.SetWidgetStyle(FieldStyle);
 }
 
