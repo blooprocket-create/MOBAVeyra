@@ -96,6 +96,15 @@ namespace VeyraBackendProtocol
 	/** Reads the Vanguards a player may pick. False, with the problem, if it is not that. */
 	VEYRASERVICES_API bool ParseVanguardAccess(const FString& Body, FVanguardAccess& Out, FString& OutProblem);
 
+	/**
+	 * Reads the answer to GET, PUT or DELETE /v1/me/favorites: the player's favorite Vanguards in the order marked
+	 * (ADR-058 §5). False, with the problem, if it is not that.
+	 */
+	VEYRASERVICES_API bool ParseFavorites(const FString& Body, TArray<FString>& Out, FString& OutProblem);
+
+	/** PUT or DELETE /v1/me/favorites/{vanguardId}, for a Vanguard's content ID. */
+	VEYRASERVICES_API FString FavoritePath(const FString& VanguardId);
+
 	/** Where a champion select is (ADR-010 §8). */
 	enum class ESelectState : uint8
 	{
@@ -368,6 +377,11 @@ namespace VeyraBackendProtocol
 		FString DisplayName;
 		bool bReady = false;
 		bool bLeader = false;
+		/**
+		 * How long the member cannot queue yet after leaving a matchmade champion select, in seconds, as last read; 0 when
+		 * free (ADR-060 §3). It holds the whole party back.
+		 */
+		double RestrictedSeconds = 0.0;
 	};
 
 	/** Who may join a party without an invitation (Parties & Social Bible §1). The leader's to choose. */
@@ -395,6 +409,9 @@ namespace VeyraBackendProtocol
 		VEYRASERVICES_API const FPartyMember* Find(const FString& AccountId) const;
 		/** Whether every member is Ready. */
 		VEYRASERVICES_API bool AllReady() const;
+
+		/** The member who cannot queue yet the longest, which holds the party back (ADR-060 §3); null when every member is free. */
+		VEYRASERVICES_API const FPartyMember* RestrictedMember() const;
 	};
 
 	/**

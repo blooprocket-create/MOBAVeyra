@@ -132,6 +132,12 @@ namespace VeyraShopModel
 	/** An item's stats as the shop lists them, such as "+20 Physical Power, +150 Health". Empty for none. */
 	VEYRAUI_API FText DescribeStats(const FVeyraItemStatsTuning& Stats);
 
+	/**
+	 * Whether Item answers the shop's search (SET-58; ADR-058 §1): its name or one of its stats, as the shop lists them,
+	 * contains Search, ignoring case and the space around it. An empty search finds every item.
+	 */
+	VEYRAUI_API bool MatchesSearch(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item, const FString& Search);
+
 	/** Why the shop refuses, in the player's words. */
 	VEYRAUI_API FText DescribeRefusal(EVeyraShopRefusal Refusal);
 

@@ -92,6 +92,8 @@ void UVeyraShellScreen::BuildChatPanel(const FVeyraChatPanelModel& Model, UPanel
 	const float WrapAt = Style.FriendsPanelWidth - Style.Spacing * 4.0f;
 	const auto AddLine = [this, Lines, WrapAt](const FText& Text, EVeyraShellText Role) {
 		UTextBlock* Block = AddText(*Lines, Text, ChatRole(Role));
+		// At the player's Chat Text Size, as every chat is (SET-66; ADR-059 §5).
+		VeyraShellStyle::SizeForChat(*Block, Role);
 		Block->SetAutoWrapText(false);
 		Block->SetWrapTextAt(WrapAt);
 	};
@@ -118,6 +120,7 @@ void UVeyraShellScreen::BuildChatPanel(const FVeyraChatPanelModel& Model, UPanel
 	ChatBoxTarget = Model.Target;
 	ChatBoxKey = ChatDraftKey(Model.Kind, Model.Target);
 	ChatBox = MakeTextField(Model.Hint, ChatDrafts.FindRef(ChatBoxKey), Model.bCanSend);
+	VeyraShellStyle::StyleChatField(*ChatBox, ChatStyle().ButtonPadding);
 	ChatBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleChatChanged);
 	ChatBox->OnTextCommitted.AddUniqueDynamic(this, &UVeyraShellScreen::HandleChatCommitted);
 	UHorizontalBox* Composer = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -139,6 +142,11 @@ void UVeyraShellScreen::BuildChatPanel(const FVeyraChatPanelModel& Model, UPanel
 	{
 		AddText(Parent, Model.Notice, ChatRole(EVeyraShellText::Small));
 	}
+}
+
+int32 UVeyraShellScreen::GetChatFieldFontSize() const
+{
+	return ChatBox ? ChatBox->GetWidgetStyle().TextStyle.Font.Size : 0;
 }
 
 void UVeyraShellScreen::BuildPostMatchChat(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)

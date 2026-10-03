@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"math"
 	"net/http"
 	"time"
 
@@ -32,6 +33,9 @@ type memberJSON struct {
 	DisplayName string `json:"displayName"`
 	Ready       bool   `json:"ready"`
 	Leader      bool   `json:"leader"`
+	// RestrictedSeconds is how long the member cannot queue yet after leaving
+	// a matchmade champion select, in whole seconds; 0 when free (ADR-060 §3).
+	RestrictedSeconds float64 `json:"restrictedSeconds"`
 }
 
 type partyJSON struct {
@@ -62,13 +66,18 @@ func (s *Server) partyJSON(ctx context.Context, p party.Party) (partyJSON, error
 	if err != nil {
 		return partyJSON{}, err
 	}
+	restricted, err := s.Party.Restricted(ctx, p)
+	if err != nil {
+		return partyJSON{}, err
+	}
 	out := partyJSON{ID: p.ID, Mode: p.Mode, Privacy: string(p.Privacy), Status: string(p.Status), QueuedSeconds: s.Party.QueuedFor(p).Seconds()}
 	for _, m := range p.Members {
 		out.Members = append(out.Members, memberJSON{
-			AccountID:   m.AccountID,
-			DisplayName: accounts[m.AccountID].DisplayName,
-			Ready:       m.Ready,
-			Leader:      m.AccountID == p.LeaderID,
+			AccountID:         m.AccountID,
+			DisplayName:       accounts[m.AccountID].DisplayName,
+			Ready:             m.Ready,
+			Leader:            m.AccountID == p.LeaderID,
+			RestrictedSeconds: math.Ceil(restricted[m.AccountID].Seconds()),
 		})
 	}
 	return out, nil

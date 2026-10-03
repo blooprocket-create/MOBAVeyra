@@ -384,6 +384,13 @@ namespace VeyraStatuses
 	VEYRACOMBAT_API bool IsCrowdControl(EVeyraStatusKind Kind);
 
 	/**
+	 * Whether a status of Kind and Magnitude harms its bearer (ADR-059 §4): crowd control, damage over time, Weaken, Magic
+	 * Resist reduction, a source's reach or companion turned on it, Sounded, and a signed change below 0. A unit's own
+	 * choices (Planted, Dormant, Stasis) and a mark with no effect of its own do not. It describes a status; it changes none.
+	 */
+	VEYRACOMBAT_API bool IsHarmful(EVeyraStatusKind Kind, double Magnitude);
+
+	/**
 	 * A reducible duration after Tenacity: DurationSeconds times TenacityRetained, but never below
 	 * FloorSeconds, and never longer than it started (§8).
 	 */

@@ -35,12 +35,16 @@ struct FVeyraCollectionCard
 	bool bCanBuyWithRefinedFlux = false;
 	int64 PriceFlux = 0;
 	int64 PriceRefinedFlux = 0;
+	/** What the roster's search and tabs read (ADR-058 §2–§3). */
+	bool bOwned = false;
+	bool bRotation = false;
+	bool bFavorite = false;
 };
 
 struct FVeyraCollectionModel
 {
 	bool bLoaded = false;
-	/** What came of the last purchase; empty for none. */
+	/** What came of the last purchase or favorite; empty for none. */
 	FText Feedback;
 	/** The balances to spend, or empty before they are read. */
 	FText Balance;
@@ -71,6 +75,9 @@ namespace VeyraProgressionModels
 
 	/** "Buy Bryn for 3,000 Flux": a Buy action, before its confirmation. */
 	VEYRAUI_API FText BuyLabel(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency, int64 Price);
+
+	/** "Add Bryn to Favorites", or "Remove Bryn from Favorites" for a favorite: an opened card's toggle (ADR-058 §3). */
+	VEYRAUI_API FText FavoriteLabel(const FString& VanguardId, bool bFavorite);
 
 	/** "Confirm Buy Bryn for 3,000 Flux": the confirmation's own action. */
 	VEYRAUI_API FText ConfirmBuyLabel(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency, int64 Price);

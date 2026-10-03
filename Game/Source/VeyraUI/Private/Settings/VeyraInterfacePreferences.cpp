@@ -39,6 +39,13 @@ namespace
 	const TCHAR* const Reduced = TEXT("Reduced");
 	const TCHAR* const Uniform = TEXT("Uniform");
 
+	/** Cooldown Precision's option that shows whole seconds (Proposal 44). */
+	const TCHAR* const Whole = TEXT("Whole");
+
+	/** Status Sorting's options other than By Category (Proposal 53). */
+	const TCHAR* const ByRemainingDuration = TEXT("ByRemainingDuration");
+	const TCHAR* const ByApplicationOrder = TEXT("ByApplicationOrder");
+
 	/** Whether a bar shows under Visibility. */
 	bool Shows(EVeyraBarVisibility Visibility, const FVeyraBarFacts& Facts)
 	{
@@ -60,6 +67,102 @@ namespace
 const FVeyraContentId& HudScale()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("interface_hud_scale"));
+	return Id;
+}
+
+const FVeyraContentId& AbilityBarScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_ability_bar_scale"));
+	return Id;
+}
+
+const FVeyraContentId& VitalsScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_vitals_scale"));
+	return Id;
+}
+
+const FVeyraContentId& ItemScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_item_scale"));
+	return Id;
+}
+
+const FVeyraContentId& SpellScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_spell_scale"));
+	return Id;
+}
+
+const FVeyraContentId& TeamPanelScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_team_panel_scale"));
+	return Id;
+}
+
+const FVeyraContentId& ChatScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_chat_scale"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_scale"));
+	return Id;
+}
+
+const FVeyraContentId& OverheadBarScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_overhead_bar_scale"));
+	return Id;
+}
+
+const FVeyraContentId& SafeAreaHorizontal()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_safe_area_horizontal"));
+	return Id;
+}
+
+const FVeyraContentId& SafeAreaVertical()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_safe_area_vertical"));
+	return Id;
+}
+
+const FVeyraContentId& CooldownNumbers()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_cooldown_numbers"));
+	return Id;
+}
+
+const FVeyraContentId& CooldownSweep()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_cooldown_sweep"));
+	return Id;
+}
+
+const FVeyraContentId& CooldownPrecision()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_cooldown_precision"));
+	return Id;
+}
+
+const FVeyraContentId& StatusSort()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_status_sort"));
+	return Id;
+}
+
+const FVeyraContentId& StatusHighContrast()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_status_high_contrast"));
+	return Id;
+}
+
+const FVeyraContentId& StatusDurations()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_status_durations"));
 	return Id;
 }
 
@@ -386,6 +489,24 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 		return Preferences;
 	}
 	Preferences.HudScale = Share(*Store, HudScale());
+	Preferences.HudScales.AbilityBar = Share(*Store, AbilityBarScale());
+	Preferences.HudScales.Vitals = Share(*Store, VitalsScale());
+	Preferences.HudScales.Items = Share(*Store, ItemScale());
+	Preferences.HudScales.Spells = Share(*Store, SpellScale());
+	Preferences.HudScales.TeamPanels = Share(*Store, TeamPanelScale());
+	Preferences.HudScales.Chat = Share(*Store, ChatScale());
+	Preferences.HudScales.CombatText = Share(*Store, CombatTextScale());
+	Preferences.HudScales.OverheadBars = Share(*Store, OverheadBarScale());
+	Preferences.SafeArea = FVector2D(Share(*Store, SafeAreaHorizontal()), Share(*Store, SafeAreaVertical()));
+	Preferences.Cooldowns.bNumbers = Store->IsOn(CooldownNumbers());
+	Preferences.Cooldowns.bSweep = Store->IsOn(CooldownSweep());
+	Preferences.Cooldowns.bTenths = Store->Get(CooldownPrecision()) != Whole;
+	const FString Sort = Store->Get(StatusSort());
+	Preferences.Statuses.Sort = Sort == ByRemainingDuration ? EVeyraStatusSort::ByRemainingDuration
+		: Sort == ByApplicationOrder						? EVeyraStatusSort::ByApplicationOrder
+															: EVeyraStatusSort::ByCategory;
+	Preferences.Statuses.bHighContrast = Store->IsOn(StatusHighContrast());
+	Preferences.Statuses.bDurations = Store->IsOn(StatusDurations());
 	const float MinimapShare = Share(*Store, MinimapScale());
 	const float IconShare = Share(*Store, MinimapIconScale());
 	Preferences.MinimapSize = Hud.MinimapSize * MinimapShare;

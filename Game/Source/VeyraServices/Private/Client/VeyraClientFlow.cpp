@@ -334,12 +334,16 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("UnblockPlayer");
 	case EVeyraClientIntent::CancelFriendRequest:
 		return TEXT("CancelFriendRequest");
+	case EVeyraClientIntent::BlockByName:
+		return TEXT("BlockByName");
 	case EVeyraClientIntent::ResolveSettingsConflict:
 		return TEXT("ResolveSettingsConflict");
 	case EVeyraClientIntent::LoadCollection:
 		return TEXT("LoadCollection");
 	case EVeyraClientIntent::PurchaseVanguard:
 		return TEXT("PurchaseVanguard");
+	case EVeyraClientIntent::SetFavoriteVanguard:
+		return TEXT("SetFavoriteVanguard");
 	case EVeyraClientIntent::SendChatMessage:
 		return TEXT("SendChatMessage");
 	case EVeyraClientIntent::OpenDirectChat:
@@ -562,9 +566,14 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::UnblockPlayer:
 	case EVeyraClientIntent::CancelFriendRequest:
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
+	// A player menu opens in the shell's Match History, the lobby and the results (ADR-047 §5; ADR-060 §5).
+	case EVeyraClientIntent::BlockByName:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;
 	// The Collection is the ordinary client's, as Match History is: not through Match Found, a select or Reconnect-only.
+	// Favorites change there too, never from champion select (ADR-058 §4).
 	case EVeyraClientIntent::LoadCollection:
 	case EVeyraClientIntent::PurchaseVanguard:
+	case EVeyraClientIntent::SetFavoriteVanguard:
 		return State == EVeyraClientState::Shell;
 	// Chat goes on through every signed-in state but Reconnect-only, which offers nothing but Reconnect (ADR-046 §6;
 	// UX-17). Which conversation is open where is the intent's own check.
@@ -646,7 +655,9 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	case EVeyraClientIntent::FindMatch:
 	{
 		const VeyraBackendProtocol::FModeInfo* Mode = Party.IsSet() ? FindMode(Party->Mode) : nullptr;
-		return LeadsIdleParty() && Mode && Mode->bEnabled && Mode->bMatchmade && Party->Members.Num() <= Mode->HumanPlayersPerTeam && Party->AllReady();
+		return LeadsIdleParty() && Mode && Mode->bEnabled && Mode->bMatchmade && Party->Members.Num() <= Mode->HumanPlayersPerTeam && Party->AllReady()
+			// A member who left a matchmade select holds the party back (ADR-060 §3).
+			&& !Party->RestrictedMember();
 	}
 	case EVeyraClientIntent::CancelQueue:
 		return Party.IsSet() && Party->Status == EPartyStatus::Queued && Leads(Snapshot);
@@ -738,6 +749,9 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 		return !Snapshot.Social.Friends.Outgoing.IsEmpty();
 	case EVeyraClientIntent::PurchaseVanguard:
 		// From the Collection as read, so the player saw the price they confirm.
+		return Snapshot.Collection.bLoaded;
+	case EVeyraClientIntent::SetFavoriteVanguard:
+		// From the Collection's cards (ADR-058 §3).
 		return Snapshot.Collection.bLoaded;
 	default:
 		return true;
@@ -1034,6 +1048,7 @@ void FVeyraClientFlow::EnterShell(const FString& Notice)
 	PollSocial();
 	// The level and balances, which a match just played may have changed (ADR-045 §7).
 	ReadProgression();
+	ReadFavorites();
 }
 
 void FVeyraClientFlow::LoadModes()
@@ -1968,6 +1983,40 @@ bool FVeyraClientFlow::BlockPlayer(const FString& AccountId)
 	return true;
 }
 
+bool FVeyraClientFlow::BlockByName(const FString& DisplayName)
+{
+	const FString Name = DisplayName.TrimStartAndEnd();
+	if (!CanIssue(EVeyraClientIntent::BlockByName) || Name.IsEmpty() || Name == Snapshot.DisplayName)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("blocking %s."), *Name));
+	SetBusy(true);
+	// A player menu names players, never their accounts: find the account first, as a friend request does.
+	Call(EVerb::Get, VeyraBackendProtocol::AccountLookupPath(Name), FString(), [this, Name](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FAccount Account;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			SetBusy(false);
+			ShowSocialFeedback(RefusalCode(Response), Name);
+			return;
+		}
+		if (!VeyraBackendProtocol::ParseAccount(Response.Body, Account, Problem))
+		{
+			SetBusy(false);
+			ShowBadAnswer(TEXT("the account"), Problem, nullptr);
+			return;
+		}
+		CallSocial(EVerb::Put, BlockPath(Account.Id), FString(), Account.DisplayName, [this, Blocked = Account.DisplayName](const FVeyraBackendResponse&) {
+			ShowSocialFeedback(PlayerBlockedFeedback, Blocked);
+			// A block takes a party-mate out of the party (Parties & Social Bible §6).
+			RefreshParty();
+		});
+	});
+	return true;
+}
+
 bool FVeyraClientFlow::UnblockPlayer(const FString& AccountId)
 {
 	const VeyraBackendProtocol::FAccount* Player = FindAccount(Snapshot.Social.Blocked, AccountId);
@@ -2126,6 +2175,8 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 	}
 	Snapshot.AvailableVanguards.Reset();
 	Snapshot.ReleasedVanguards.Reset();
+	Snapshot.OwnedVanguards.Reset();
+	Snapshot.RotationVanguards.Reset();
 	Log(FString::Printf(TEXT("in champion select %s (%s)."), *Select.Id, *Select.Mode));
 	ApplySelect(Select);
 	if (Snapshot.State != EVeyraClientState::Selecting)
@@ -2133,6 +2184,8 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 		return;
 	}
 	LoadAvailableVanguards();
+	// A select resumed after sign-in never passed through the shell: its Favorites tab reads them here.
+	ReadFavorites();
 	After(Config.SelectPollIntervalSeconds, [this] { PollSelect(); });
 }
 
@@ -2178,6 +2231,8 @@ void FVeyraClientFlow::LoadAvailableVanguards()
 		}
 		Snapshot.AvailableVanguards = MoveTemp(Access.Available);
 		Snapshot.ReleasedVanguards = MoveTemp(Access.Released);
+		Snapshot.OwnedVanguards = MoveTemp(Access.Owned);
+		Snapshot.RotationVanguards = MoveTemp(Access.Rotation);
 		Broadcast();
 	});
 }

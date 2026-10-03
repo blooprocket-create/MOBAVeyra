@@ -113,12 +113,16 @@ public:
 	/** Blocks AccountId: a friend, or a player whose friend request waits. */
 	virtual bool BlockPlayer(const FString& AccountId) = 0;
 	virtual bool UnblockPlayer(const FString& AccountId) = 0;
+	/** Blocks the player called DisplayName, found by their name first: from a player menu, which names players and never their accounts. */
+	virtual bool BlockByName(const FString& DisplayName) = 0;
 	/** Withdraws the friend request the player sent AccountId. */
 	virtual bool CancelFriendRequest(const FString& AccountId) = 0;
 	/** Reads the Collection: every released Vanguard, with the player's ownership and Mastery of each. */
 	virtual bool LoadCollection() = 0;
 	/** Buys VanguardId with Currency. The screen asks the player to confirm the price first. */
 	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) = 0;
+	/** Marks VanguardId a favorite, or unmarks it (ADR-058 §5). The backend decides; a refusal shows in the Collection. */
+	virtual bool SetFavoriteVanguard(const FString& VanguardId, bool bFavorite) = 0;
 	/**
 	 * Sends Text to a conversation of Kind (ADR-046): the party, the friend Target, the player's side in
 	 * champion select, or the results screen's post-match chat, whose first message opts the player in.

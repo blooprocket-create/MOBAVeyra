@@ -35,6 +35,9 @@ public:
 	void SwitchChannel();
 
 	FString GetTyped() const;
+
+	/** Its field's type size, at the player's Chat Text Size (ADR-059 §5). */
+	int32 GetFieldFontSize() const;
 	void SetTyped(const FString& Text);
 
 	/** Sends the typed line, as Enter does, and closes. */
@@ -71,6 +74,8 @@ private:
 	TFunction<void()> Close;
 	EVeyraChatChannel Channel = EVeyraChatChannel::Team;
 	int32 MaxCharacters = 0;
-	/** The screen it was last placed for, so it moves only when that changes. */
-	FVector2D PlacedFor = FVector2D::ZeroVector;
+	/** The chat type size its field was last styled at, so Chat Text Size restyles it only when it changes. */
+	int32 SizedForChat = 0;
+	/** Where it was last placed, so it moves only when the screen or the player's HUD settings move it. */
+	FBox2D PlacedAt = FBox2D(ForceInit);
 };

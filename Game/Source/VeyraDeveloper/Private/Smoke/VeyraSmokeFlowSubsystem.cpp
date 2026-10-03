@@ -105,6 +105,9 @@ namespace
 	// How the coordinator explains a match found that did not go ahead.
 	const TCHAR* const DeclinedNotice = TEXT("match_found_declined");
 	const TCHAR* const RequeuedNotice = TEXT("match_found_requeued");
+	// How it explains a champion select a player left (ADR-060): to the leaver, and to everyone else.
+	const TCHAR* const YouLeftNotice = TEXT("you_left");
+	const TCHAR* const LeftNotice = TEXT("left");
 	// The labels of the buttons the script clicks, as the shell and the menu show them.
 	const TCHAR* const PlayLabel = TEXT("Play");
 	const TCHAR* const PracticeLabel = TEXT("Practice");
@@ -114,6 +117,7 @@ namespace
 	const TCHAR* const AcceptLabel = TEXT("Accept");
 	const TCHAR* const DeclineLabel = TEXT("Decline");
 	const TCHAR* const LockInLabel = TEXT("Lock In");
+	const TCHAR* const LeaveSelectLabel = TEXT("Leave");
 	const TCHAR* const BanLabel = TEXT("Ban");
 	const TCHAR* const ContinueLabel = TEXT("Continue");
 	const TCHAR* const EndCustomMatchLabel = TEXT("End Custom Match");
@@ -160,6 +164,8 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("casual"), EScript::Casual },
 		{ TEXT("decline"), EScript::Decline },
 		{ TEXT("requeue"), EScript::Requeue },
+		{ TEXT("dodge"), EScript::Dodge },
+		{ TEXT("dodged"), EScript::Dodged },
 		{ TEXT("opponent"), EScript::Opponent },
 		{ TEXT("customhost"), EScript::CustomHost },
 		{ TEXT("customguest"), EScript::CustomGuest },
@@ -179,7 +185,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	});
 	if (!Known)
 	{
-		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost, customguest, settingschange, settingscheck, ")
+		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, dodge, dodged, opponent, customhost, customguest, settingschange, settingscheck, ")
 										  TEXT("partyleader, partymember, collection, chatleader, chatmember, profileowner, profileviewer or rename, not \"%s\""), *Mode));
 		return;
 	}
@@ -340,8 +346,9 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		}
 		else if (Script == EScript::Collection && bSawResults)
 		{
-			Finish(true, FString::Printf(TEXT("opened the Collection, bought %s for %lld Flux through its confirmation, saw it owned, practised with it, ")
-										 TEXT("ended the match as its host and saw its verified result and rewards"), *BoughtVanguard, static_cast<long long>(BoughtPrice)));
+			Finish(true, FString::Printf(TEXT("opened the Collection, bought %s for %lld Flux through its confirmation, saw it owned, marked it a favorite, ")
+										 TEXT("found it under champion select's Favorites tab, practised with it, ended the match as its host and saw its verified result and rewards"),
+				*BoughtVanguard, static_cast<long long>(BoughtPrice)));
 		}
 		else if (bSawResults && !TickHistory(Flow))
 		{
@@ -389,6 +396,16 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 			Finish(false, TEXT("the match found went ahead, but this script expected a player to decline it"));
 			break;
 		}
+		if (Script == EScript::Dodge)
+		{
+			// It never locks, so the select cannot start its match before it leaves.
+			if (!bLeftSelect && Flow.CanIssue(EVeyraClientIntent::LeaveSelect) && !Capture(TEXT("ChampionSelect")) && Click(LeaveSelectLabel))
+			{
+				bLeftSelect = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving champion select with %.0f s on the timer."), Flow.GetRemainingPickSeconds());
+			}
+			break;
+		}
 		if (Flow.CanIssue(EVeyraClientIntent::BanVanguard))
 		{
 			TickBan(Snapshot);
@@ -407,7 +424,11 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 				Finish(false, TEXT("the wanted Vanguard is not available"));
 				break;
 			}
-			if (Snapshot.Select.FindYou()->Hover != Pick)
+			if (Script == EScript::Collection && !bCheckedFavorites)
+			{
+				TickFavoritesTab(Snapshot, Pick);
+			}
+			else if (Snapshot.Select.FindYou()->Hover != Pick)
 			{
 				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: hovering %s with %.0f s on the timer."), *Pick, Flow.GetRemainingPickSeconds());
 				Click(VanguardLabel(Pick));
@@ -490,6 +511,32 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 		else if (Party.IsSet() && Party->Status == EPartyStatus::Idle)
 		{
 			Finish(true, TEXT("accepted the match found, was queued again in its place when the other player declined, and left the queue"));
+		}
+		return;
+	}
+	if (Script == EScript::Dodge && bLeftSelect)
+	{
+		TickDodgeShell(Flow);
+		return;
+	}
+	if (Script == EScript::Dodged && bAnswered)
+	{
+		// Not at fault: the party is back in the queue in its place (Match Flow Bible §2).
+		if (Snapshot.Notice != LeftNotice)
+		{
+			Finish(false, FString::Printf(TEXT("after the other player left champion select, the shell's notice is \"%s\""), *Snapshot.Notice));
+		}
+		else if (!bCancelledQueue)
+		{
+			if (Party.IsSet() && Party->Status == EPartyStatus::Queued && Flow.CanIssue(EVeyraClientIntent::CancelQueue) && Click(CancelQueueLabel))
+			{
+				bCancelledQueue = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: back in the queue after the other player left champion select; leaving it."));
+			}
+		}
+		else if (Party.IsSet() && Party->Status == EPartyStatus::Idle)
+		{
+			Finish(true, TEXT("accepted the match found and picked; when the other player left champion select it was queued again in its place, and left the queue"));
 		}
 		return;
 	}
@@ -594,6 +641,62 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 	{
 		bFoundMatch = true;
 		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: Ready; finding a match."));
+	}
+}
+
+void UVeyraSmokeFlowSubsystem::TickDodgeShell(IVeyraClientIntents& Flow)
+{
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	const TOptional<VeyraBackendProtocol::FParty>& Party = Snapshot.Party;
+	if (!Party.IsSet())
+	{
+		return;
+	}
+	if (!bReadLeftNotice)
+	{
+		// The leaver's party left the queue, Not Ready, and the notice says why (ADR-060 §3).
+		if (Snapshot.Notice != YouLeftNotice)
+		{
+			Finish(false, FString::Printf(TEXT("after leaving champion select, the shell's notice is \"%s\""), *Snapshot.Notice));
+		}
+		else if (Party->Status == EPartyStatus::Idle)
+		{
+			bReadLeftNotice = true;
+		}
+		return;
+	}
+	const VeyraBackendProtocol::FPartyMember* You = Party->Find(Snapshot.AccountId);
+	if (!You)
+	{
+		return;
+	}
+	if (!You->bReady)
+	{
+		if (!bReadiedAgain && Flow.CanIssue(EVeyraClientIntent::SetReady) && Click(ReadyLabel))
+		{
+			bReadiedAgain = true;
+		}
+		return;
+	}
+	const VeyraBackendProtocol::FPartyMember* Held = Party->RestrictedMember();
+	if (!bSawRestriction)
+	{
+		// Ready, yet held back: only the restriction stands between the party and the queue.
+		if (!Held || Held->AccountId != Snapshot.AccountId || Flow.CanIssue(EVeyraClientIntent::FindMatch))
+		{
+			Finish(false, TEXT("after leaving champion select and readying again, nothing held the party back from the queue"));
+		}
+		else if (!Capture(TEXT("Dodged")))
+		{
+			bSawRestriction = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: held out of the queue for %.0f s after leaving champion select."), Held->RestrictedSeconds);
+		}
+		return;
+	}
+	if (!Held && Flow.CanIssue(EVeyraClientIntent::FindMatch) && !Capture(TEXT("Unrestricted")))
+	{
+		Finish(true, TEXT("queued, accepted the match found and left champion select; was told why, held out of the queue with the time left showing, ")
+						 TEXT("and offered Find Match again once the restriction ended"));
 	}
 }
 
@@ -2644,6 +2747,26 @@ void UVeyraSmokeFlowSubsystem::TickCollection(IVeyraClientIntents& Flow)
 			Finish(false, FString::Printf(TEXT("%s is owned, but not by this purchase (%s, %s)"), *BoughtVanguard, *Collection.Feedback, *Entry->Source));
 			return;
 		}
+		// Marks it a favorite from its open card (ADR-058 §3). An earlier run's mark is taken back first, so the route
+		// runs both ways whatever the account kept.
+		if (!bMarkedFavorite)
+		{
+			const bool bFavorite = Snapshot.FavoriteVanguards.Contains(BoughtVanguard);
+			if (bFavorite && bAskedFavorite)
+			{
+				bMarkedFavorite = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s is a favorite."), *BoughtVanguard);
+			}
+			else if (bFavorite)
+			{
+				Click(VeyraProgressionModels::FavoriteLabel(BoughtVanguard, true).ToString());
+			}
+			else
+			{
+				bAskedFavorite = Click(VeyraProgressionModels::FavoriteLabel(BoughtVanguard, false).ToString());
+			}
+			return;
+		}
 		if (!Capture(TEXT("Purchased")))
 		{
 			// The select that follows offers it only because it is owned now (Bible §4: visibility is not permission).
@@ -2675,6 +2798,38 @@ void UVeyraSmokeFlowSubsystem::TickCollection(IVeyraClientIntents& Flow)
 	}
 #else
 	Finish(false, TEXT("the Collection script needs the shell's UI"));
+#endif
+}
+
+void UVeyraSmokeFlowSubsystem::TickFavoritesTab(const FVeyraClientSnapshot& Snapshot, const FString& Pick)
+{
+#if WITH_VEYRA_UI
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	const UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	// The select reads the favorites as it opens; the tab waits for them.
+	if (!Screen || !Snapshot.FavoriteVanguards.Contains(Pick))
+	{
+		return;
+	}
+	if (Screen->GetRosterTab() != EVeyraRosterTab::Favorites)
+	{
+		Click(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Favorites).ToString());
+		return;
+	}
+	// The favorite shows and a Vanguard that is not one does not; narrowing changes nothing the player may pick.
+	const FString* NotFavorite = Snapshot.AvailableVanguards.FindByPredicate([&Snapshot](const FString& Id) { return !Snapshot.FavoriteVanguards.Contains(Id); });
+	if (!Screen->IsRosterCardShown(Pick) || (NotFavorite && Screen->IsRosterCardShown(*NotFavorite)))
+	{
+		Finish(false, FString::Printf(TEXT("champion select's Favorites tab does not narrow the bench to the favorites, %s among them"), *Pick));
+		return;
+	}
+	if (!Capture(TEXT("Favorites")))
+	{
+		bCheckedFavorites = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: champion select's Favorites tab shows %s."), *Pick);
+	}
+#else
+	bCheckedFavorites = true;
 #endif
 }
 

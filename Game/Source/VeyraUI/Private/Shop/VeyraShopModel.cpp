@@ -14,6 +14,7 @@
 #include "Tuning/VeyraItemsTuning.h"
 #include "Rules/VeyraMatchRules.h"
 #include "Shell/VeyraShellModels.h"
+#include "Text/VeyraContentText.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraGameState.h"
 
@@ -172,6 +173,21 @@ FText DescribeStats(const FVeyraItemStatsTuning& Stats)
 	Add(Stats.CritChance * Percent, LOCTEXT("CritChance", "+{0}% Crit Chance"));
 	Add(Stats.MagicPowerFraction * Percent, LOCTEXT("MagicPowerFraction", "+{0}% Magic Power"));
 	return FText::Join(LOCTEXT("StatSeparator", ", "), Lines);
+}
+
+bool MatchesSearch(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item, const FString& Search)
+{
+	const FString Wanted = Search.TrimStartAndEnd();
+	if (Wanted.IsEmpty())
+	{
+		return true;
+	}
+	if (VeyraContentText::ItemName(Item).ToString().Contains(Wanted, ESearchCase::IgnoreCase))
+	{
+		return true;
+	}
+	const FVeyraItemDefinition* Definition = Tuning.Items.Find(Item);
+	return Definition && DescribeStats(Definition->Stats).ToString().Contains(Wanted, ESearchCase::IgnoreCase);
 }
 
 TArray<FVeyraContentId> BuildsInto(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item)

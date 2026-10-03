@@ -92,6 +92,10 @@ struct FVeyraSelectCardModel
 	bool bTaken = false;
 	/** Banned in the draft: neither team may pick it (UX 29). */
 	bool bBanned = false;
+	/** What the roster's search and tabs read (ADR-058 §4): they narrow what shows, never what may be picked. */
+	bool bOwned = false;
+	bool bRotation = false;
+	bool bFavorite = false;
 };
 
 /** One Flux Spell a slot may take, or none (Pre-Game Client UX Bible 36; ADR-015 §5). */
