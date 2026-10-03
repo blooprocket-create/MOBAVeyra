@@ -7,6 +7,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/VeyraCameraRig.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Casting/VeyraCastTelegraphs.h"
 #include "Components/LineBatchComponent.h"
@@ -155,6 +157,26 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{
 			Problems.Add(FString::Printf(TEXT("HitFlashMaterial: %s does not load; run BuildPresentationMaterials.ps1."), *Settings.HitFlashMaterial.ToString()));
 		}
+		HoverOutlineMaterial = Settings.HoverOutlineMaterial.LoadSynchronous();
+		if (!HoverOutlineMaterial)
+		{
+			Problems.Add(FString::Printf(TEXT("HoverOutlineMaterial: %s does not load; run BuildPresentationMaterials.ps1."), *Settings.HoverOutlineMaterial.ToString()));
+		}
+		else
+		{
+			// The stencils are the generated material's own, so the pass and the bodies agree.
+			const TPair<FName, int32*> Stencils[] = { { Settings.HoverEnemyStencilParameter, &EnemyStencil }, { Settings.HoverAllyStencilParameter, &AllyStencil },
+				{ Settings.HoverNeutralStencilParameter, &NeutralStencil } };
+			for (const TPair<FName, int32*>& Stencil : Stencils)
+			{
+				float Value = 0.0f;
+				if (!HoverOutlineMaterial->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(Stencil.Key), Value) || Value < 1.0f)
+				{
+					Problems.Add(FString::Printf(TEXT("HoverOutlineMaterial: no stencil in its %s parameter."), *Stencil.Key.ToString()));
+				}
+				*Stencil.Value = FMath::RoundToInt32(Value);
+			}
+		}
 	}
 	for (const FString& Problem : Problems)
 	{
@@ -186,6 +208,91 @@ float UVeyraGreyboxSubsystem::GetFlashOf(const AActor& Unit) const
 		Flash->GetScalarParameterValue(FHashedMaterialParameterInfo(GetDefault<UVeyraGreyboxSettings>()->HitFlashStrengthParameter), Strength);
 	}
 	return Strength;
+}
+
+void UVeyraGreyboxSubsystem::ShowHover(const AActor* NewHovered)
+{
+	if (const AActor* Was = Hovered.Get(); Was && Was != NewHovered)
+	{
+		SetOutlined(*Was, false);
+	}
+	Hovered = NewHovered;
+	// Every frame: the unit's art may change under the cursor, as a structure falls.
+	if (NewHovered)
+	{
+		SetOutlined(*NewHovered, true);
+	}
+}
+
+int32 UVeyraGreyboxSubsystem::HoverStencilOf(const AActor& Unit) const
+{
+	const EVeyraTeam Team = VeyraTeams::TeamOf(&Unit);
+	if (Team == EVeyraTeam::None)
+	{
+		return NeutralStencil;
+	}
+	const EVeyraTeam ViewerTeam = GetViewerTeam();
+	const EVeyraTeam Allies = ViewerTeam == EVeyraTeam::None ? EVeyraTeam::A : ViewerTeam;
+	return Team == Allies ? AllyStencil : EnemyStencil;
+}
+
+void UVeyraGreyboxSubsystem::SetOutlined(const AActor& Unit, bool bOutlined) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	if (!Body)
+	{
+		return;
+	}
+	const int32 Stencil = HoverStencilOf(Unit);
+	for (UStaticMeshComponent* Shape : { Body->Mesh.Get(), Body->Art.Get() })
+	{
+		if (!Shape)
+		{
+			continue;
+		}
+		if (Shape->bRenderCustomDepth != bOutlined)
+		{
+			Shape->SetRenderCustomDepth(bOutlined);
+		}
+		if (bOutlined && Shape->CustomDepthStencilValue != Stencil)
+		{
+			Shape->SetCustomDepthStencilValue(Stencil);
+		}
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshHoverPass()
+{
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	UCameraComponent* Camera = Rig ? Rig->GetCamera() : nullptr;
+	if (!Camera || !HoverOutlineMaterial)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	if (!HoverOutline)
+	{
+		HoverOutline = UMaterialInstanceDynamic::Create(HoverOutlineMaterial, this);
+	}
+	if (HoverCamera.Get() != Camera)
+	{
+		Camera->PostProcessSettings.AddBlendable(HoverOutline, 0.0f);
+		HoverCamera = Camera;
+	}
+	// The player's own side colours, as their colour vision gives them (Settings Bible §4.1).
+	const FVeyraSideColors& Colors = GetSideColors();
+	HoverOutline->SetVectorParameterValue(Settings.HoverEnemyColorParameter, Colors.Enemy);
+	HoverOutline->SetVectorParameterValue(Settings.HoverAllyColorParameter, Colors.Ally);
+	HoverOutline->SetVectorParameterValue(Settings.HoverNeutralColorParameter, Colors.Neutral);
+	// The pass costs nothing while it weighs nothing: only while something is hovered.
+	for (FWeightedBlendable& Blendable : Camera->PostProcessSettings.WeightedBlendables.Array)
+	{
+		if (Blendable.Object == HoverOutline)
+		{
+			Blendable.Weight = Hovered.IsValid() ? 1.0f : 0.0f;
+		}
+	}
 }
 
 void UVeyraGreyboxSubsystem::ApplyBodyPose(const APawn& Unit, FBody& Body, bool bReduceFlashing)
@@ -303,6 +410,9 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawChains();
 	DrawEchoTethers();
 	DrawOrderMark();
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	ShowHover(Local ? Local->GetHoveredUnit() : nullptr);
+	RefreshHoverPass();
 	RefreshCombatText();
 	RefreshFogOfWar();
 	RefreshWarnings();

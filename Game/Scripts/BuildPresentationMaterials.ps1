@@ -7,9 +7,13 @@
     Game/ArtSource/Presentation/PresentationMaterials.json and writes each material under
     /Game/Veyra/UI/Presentation. Regenerate rather than hand-edit them. An existing material is a binary
     asset: acquire its Git LFS lock before rebuilding it (ADR-006 section 9).
+.PARAMETER Materials
+    Builds only the materials named, as the spec names them; without it, every material.
 #>
 [CmdletBinding()]
 param(
+    [ValidatePattern('^[A-Za-z0-9_]+$')]
+    [string[]]$Materials,
     [string]$EngineRoot
 )
 $ErrorActionPreference = 'Stop'
@@ -22,7 +26,8 @@ New-Item -ItemType Directory -Force -Path $saved | Out-Null
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
 $script = Join-Path $PSScriptRoot 'BuildPresentationMaterials.py'
 $log = Join-Path $saved 'BuildPresentationMaterials.log'
-& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' '-nosound' "-ABSLOG=$log" *> (Join-Path $saved 'BuildPresentationMaterials-console.log')
+[string[]]$only = if ($Materials) { "-VeyraOnly=$($Materials -join ',')" } else { @() }
+& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' '-nosound' "-ABSLOG=$log" @only *> (Join-Path $saved 'BuildPresentationMaterials-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath $log -SimpleMatch 'VEYRA_PRESENTATION_MATERIALS_PASSED' -Quiet)) {
     throw "The presentation materials were not built. See $log"
 }

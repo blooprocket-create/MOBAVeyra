@@ -1192,6 +1192,8 @@ void AVeyraPlayerController::PlayerTick(float DeltaTime)
 	{
 		TickPings();
 		TickCastInput();
+		// The cursor tells an enemy that a click would attack (ADR-063 §3).
+		CurrentMouseCursor = FindEnemyUnderCursor() ? EMouseCursor::Crosshairs : EMouseCursor::Default;
 	}
 	if (IsLocalController() && CameraRig)
 	{
@@ -1315,12 +1317,17 @@ TArray<const AActor*> AVeyraPlayerController::GetTargetedUnits() const
 			Targeted.Add(Attacked);
 		}
 	}
-	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
-	if (!Under.IsEmpty())
+	if (const AActor* Hovered = GetHoveredUnit())
 	{
-		Targeted.Add(Under[0].Actor);
+		Targeted.Add(Hovered);
 	}
 	return Targeted;
+}
+
+const AActor* AVeyraPlayerController::GetHoveredUnit() const
+{
+	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
+	return Under.IsEmpty() ? nullptr : Under[0].Actor;
 }
 
 void AVeyraPlayerController::ClientCombatText_Implementation(const FVeyraCombatTextLine& Line)

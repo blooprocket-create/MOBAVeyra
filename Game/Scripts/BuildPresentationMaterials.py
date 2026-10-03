@@ -56,18 +56,105 @@ def build_overlay_flash(material, spec):
     EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
 
 
-BUILDERS = {"overlayFlash": build_overlay_flash}
+OUTLINE_HLSL = """
+// The hovered unit's outline (ADR-063, section 3): a pixel outside every stencilled shape, near one, takes that shape's colour.
+// An enemy's reach wins over an ally's or a neutral's; reaches grow with the view's height past ReferenceHeight.
+float3 Base = Scene.rgb;
+if (Stencil.r > 0.5)
+{
+    return Base;
+}
+float2 UV = GetDefaultSceneTextureUV(Parameters, {stencil});
+float2 Texel = View.BufferSizeAndInvSize.zw;
+float Scale = max(View.ViewSizeAndInvSize.y / ReferenceHeight.r, 1.0);
+float EnemyReach = EnemyThickness.r * Scale;
+float OtherReach = OtherThickness.r * Scale;
+int Reach = (int)ceil(max(EnemyReach, OtherReach));
+float Found = 0.0;
+[loop] for (int X = -Reach; X <= Reach; ++X)
+{
+    [loop] for (int Y = -Reach; Y <= Reach; ++Y)
+    {
+        float Distance = length(float2(X, Y));
+        float Kind = round(SceneTextureLookup(UV + float2(X, Y) * Texel, {stencil}, false).r);
+        if (Kind == EnemyStencil.r && Distance <= EnemyReach)
+        {
+            Found = Kind;
+        }
+        else if (Kind > 0.5 && Found == 0.0 && Distance <= OtherReach)
+        {
+            Found = Kind;
+        }
+    }
+}
+if (Found == EnemyStencil.r) return EnemyColor.rgb;
+if (Found == AllyStencil.r) return AllyColor.rgb;
+if (Found == NeutralStencil.r) return NeutralColor.rgb;
+return Base;
+"""
+
+
+def custom_input(name):
+    entry = unreal.CustomInput()
+    entry.set_editor_property("input_name", name)
+    return entry
+
+
+def build_post_process_outline(material, spec):
+    """A post-process pass, after tonemapping, that outlines custom-depth stencilled shapes by their stencil."""
+    stencils = spec["stencils"]
+    assert len(set(stencils.values())) == 3 and all(1 <= value <= 255 for value in stencils.values()), "Three distinct stencils, 1-255"
+    assert spec["thicknessPixels"]["enemy"] >= spec["thicknessPixels"]["other"] > 0.0 and spec["referenceHeight"] > 0.0
+    material.set_editor_property("material_domain", unreal.MaterialDomain.MD_POST_PROCESS)
+    material.set_editor_property("blendable_location", unreal.BlendableLocation.BL_SCENE_COLOR_AFTER_TONEMAPPING)
+    # The engine's own ids for the scene textures, not numbers copied by hand.
+    stencil_id = int(unreal.SceneTextureId.PPI_CUSTOM_STENCIL.value)
+    scene = expression(material, unreal.MaterialExpressionSceneTexture, -1200, -400, scene_texture_id=unreal.SceneTextureId.PPI_POST_PROCESS_INPUT0)
+    stencil = expression(material, unreal.MaterialExpressionSceneTexture, -1200, -250, scene_texture_id=unreal.SceneTextureId.PPI_CUSTOM_STENCIL)
+    inputs = [("Scene", scene, "Color"), ("Stencil", stencil, "Color")]
+    y = -100
+    for side in ("enemy", "ally", "neutral"):
+        node = expression(material, unreal.MaterialExpressionVectorParameter, -1200, y, parameter_name=spec["colorParameters"][side],
+                          default_value=unreal.LinearColor(1.0, 1.0, 1.0, 1.0))
+        inputs.append((side.title() + "Color", node, "RGB"))
+        y += 150
+    for side in ("enemy", "ally", "neutral"):
+        node = expression(material, unreal.MaterialExpressionScalarParameter, -1200, y, parameter_name=spec["stencilParameters"][side],
+                          default_value=float(stencils[side]))
+        inputs.append((side.title() + "Stencil", node, ""))
+        y += 100
+    for name, value in (("EnemyThickness", spec["thicknessPixels"]["enemy"]), ("OtherThickness", spec["thicknessPixels"]["other"]),
+                        ("ReferenceHeight", spec["referenceHeight"])):
+        node = expression(material, unreal.MaterialExpressionScalarParameter, -1200, y, parameter_name=name, default_value=float(value))
+        inputs.append((name, node, ""))
+        y += 100
+    custom = expression(material, unreal.MaterialExpressionCustom, -600, 0,
+                        code=OUTLINE_HLSL.replace("{stencil}", str(stencil_id)), description="VeyraHoverOutline",
+                        output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT3,
+                        inputs=[custom_input(name) for name, _, _ in inputs])
+    for name, node, output in inputs:
+        EDIT.connect_material_expressions(node, output, custom, name)
+    EDIT.connect_material_property(custom, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+
+
+BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline}
+
+# -VeyraOnly=A,B builds just those materials; without it, every one.
+ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)
+SELECTED = [spec for spec in SPEC["materials"] if ONLY is None or spec["name"] in ONLY]
+assert ONLY is None or len(SELECTED) == len(ONLY), "Unknown material in -VeyraOnly: " + ",".join(ONLY)
 
 # Validate the whole spec, and that no target is locked against writing, before changing any asset.
 destination_disk = GAME / "Content" / DEST.removeprefix("/Game/")
 for spec in SPEC["materials"]:
     assert spec["kind"] in BUILDERS, "Unknown material kind: " + spec["kind"]
+for spec in SELECTED:
     target = destination_disk / (spec["name"] + ".uasset")
     if target.exists() and getattr(target.stat(), "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_READONLY:
         raise RuntimeError("Acquire the Git LFS lock before rebuilding: " + str(target))
 
 RESULTS = []
-for spec in SPEC["materials"]:
+for spec in SELECTED:
     path = DEST + "/" + spec["name"]
     material = unreal.load_asset(path) if unreal.EditorAssetLibrary.does_asset_exist(path) else None
     if not material:

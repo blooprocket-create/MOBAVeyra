@@ -188,6 +188,37 @@ namespace VeyraAbilitiesTests
 			float Strength = 0.0f;
 			ASSERT_THAT(IsTrue(Flash->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.HitFlashColorParameter), Unused)
 				&& Flash->GetScalarParameterValue(FHashedMaterialParameterInfo(Settings.HitFlashStrengthParameter), Strength)));
+			// The generated hover outline takes each side's colour and names each side's stencil (ADR-063 §3).
+			const UMaterialInterface* Outline = Settings.HoverOutlineMaterial.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Outline, TEXT("run BuildPresentationMaterials.ps1")));
+			for (const FName& Parameter : { Settings.HoverEnemyColorParameter, Settings.HoverAllyColorParameter, Settings.HoverNeutralColorParameter })
+			{
+				ASSERT_THAT(IsTrue(Outline->GetVectorParameterValue(FHashedMaterialParameterInfo(Parameter), Unused), *Parameter.ToString()));
+			}
+			for (const FName& Parameter : { Settings.HoverEnemyStencilParameter, Settings.HoverAllyStencilParameter, Settings.HoverNeutralStencilParameter })
+			{
+				float Stencil = 0.0f;
+				ASSERT_THAT(IsTrue(Outline->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(Parameter), Stencil) && Stencil >= 1.0f, *Parameter.ToString()));
+			}
+		}
+
+		TEST_METHOD(TheHoveredUnitAloneIsOutlinedInItsSidesStencil)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(CastRange, 0.0, 0.0));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const int32 EnemyStencil = Presentation.HoverStencilOf(Enemy);
+			const int32 AllyStencil = Presentation.HoverStencilOf(*Caster);
+			ASSERT_THAT(IsTrue(EnemyStencil > 0 && AllyStencil > 0 && EnemyStencil != AllyStencil, TEXT("each side has its own stencil")));
+			Presentation.ShowHover(&Enemy);
+			const UStaticMeshComponent* EnemyBody = Presentation.FindBody(Enemy);
+			const UStaticMeshComponent* AllyBody = Presentation.FindBody(*Caster);
+			ASSERT_THAT(IsTrue(EnemyBody->bRenderCustomDepth && EnemyBody->CustomDepthStencilValue == EnemyStencil));
+			ASSERT_THAT(IsFalse(AllyBody->bRenderCustomDepth));
+			Presentation.ShowHover(Caster);
+			ASSERT_THAT(IsTrue(!EnemyBody->bRenderCustomDepth && AllyBody->bRenderCustomDepth && AllyBody->CustomDepthStencilValue == AllyStencil, TEXT("the outline moves")));
+			Presentation.ShowHover(nullptr);
+			ASSERT_THAT(IsFalse(AllyBody->bRenderCustomDepth, TEXT("and leaves with the cursor")));
 		}
 
 		TEST_METHOD(AHitFlashesTheBodyUntilItFades)

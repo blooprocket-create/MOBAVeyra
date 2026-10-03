@@ -87,6 +87,16 @@ public:
 	/** The hit flash's strength over Unit's body now, from 0 to 1 (ADR-063 §2). */
 	float GetFlashOf(const AActor& Unit) const;
 
+	/**
+	 * Outlines Hovered, and no other unit, in its side's colour (ADR-063 §3): its drawn body and art write their side's
+	 * stencil to custom depth, and the outline pass shows while anything is hovered. The refresh calls this with the
+	 * unit under the local player's cursor; tests call it directly.
+	 */
+	void ShowHover(const AActor* Hovered);
+
+	/** The custom-depth stencil Unit's outline is drawn with: its side's as the viewer sees it, enemy, ally or neutral. */
+	int32 HoverStencilOf(const AActor& Unit) const;
+
 	/** A structure's art, once drawn; null for any other unit. */
 	UStaticMeshComponent* FindArt(const AActor& Unit) const;
 
@@ -173,6 +183,27 @@ private:
 	void ApplyBodyPose(const APawn& Unit, FBody& Body, bool bReduceFlashing);
 
 	FDelegateHandle CueHandle;
+
+	/** Shows the outline pass on the local camera, in the player's side colours, while anything is hovered. */
+	void RefreshHoverPass();
+
+	/** Turns Unit's drawn body and art's outline stencil on or off. */
+	void SetOutlined(const AActor& Unit, bool bOutlined) const;
+
+	TWeakObjectPtr<const AActor> Hovered;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> HoverOutlineMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> HoverOutline;
+
+	TWeakObjectPtr<class UCameraComponent> HoverCamera;
+
+	/** Each side's stencil, as the generated outline material's defaults give them. */
+	int32 EnemyStencil = 0;
+	int32 AllyStencil = 0;
+	int32 NeutralStencil = 0;
 
 	struct FProjectileVisual
 	{

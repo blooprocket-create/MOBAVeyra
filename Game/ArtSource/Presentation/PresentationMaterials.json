@@ -13,6 +13,16 @@
       "defaultColor": [1.0, 1.0, 1.0, 1.0],
       "rimFloor": 0.35,
       "rimExponent": 2.0
+    },
+    {
+      "name": "PP_VeyraHoverOutline",
+      "kind": "postProcessOutline",
+      "purpose": "ADR-063 §3: outlines the hovered unit from its custom-depth stencil, in its side's colour; enemies thicker. Applied as a blendable on the local camera.",
+      "colorParameters": { "enemy": "EnemyColor", "ally": "AllyColor", "neutral": "NeutralColor" },
+      "stencilParameters": { "enemy": "EnemyStencil", "ally": "AllyStencil", "neutral": "NeutralStencil" },
+      "stencils": { "enemy": 1, "ally": 2, "neutral": 3 },
+      "thicknessPixels": { "enemy": 3.0, "other": 2.0 },
+      "referenceHeight": 1080.0
     }
   ]
 }
