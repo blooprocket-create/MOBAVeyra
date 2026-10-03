@@ -4,7 +4,7 @@
 //! starts afresh.
 
 use crate::backend::{Backend, BackendError, LauncherSession};
-use crate::config::{LoadedConfig, LAUNCH_CODE_SWITCH};
+use crate::config::{LoadedConfig, BACKEND_URL_SWITCH, LAUNCH_CODE_SWITCH};
 use crate::handshake::{self, GameOutput, HandshakeError, Stage, Timing};
 use crate::manifest::GameBuild;
 use std::fmt;
@@ -151,6 +151,15 @@ fn keep_own_standard_handles() {
     // close-on-exec.
 }
 
+/// The game's arguments after the launch-code switch: the backend it is to use, the launcher's own (ADR-057 §5),
+/// then the configuration's game arguments, then `extra_arguments`.
+pub fn game_arguments(config: &LoadedConfig, extra_arguments: &[String]) -> Vec<String> {
+    let mut arguments = vec![format!("{BACKEND_URL_SWITCH}{}", config.config.backend.base_url)];
+    arguments.extend(config.config.game.arguments.iter().cloned());
+    arguments.extend_from_slice(extra_arguments);
+    arguments
+}
+
 /// Signs in as the development account `account`, starts `build` and hands it a launch code. The
 /// configuration's game arguments come first, then `extra_arguments`.
 pub fn sign_in_and_launch(
@@ -177,8 +186,7 @@ pub fn launch(
 ) -> Result<Launched, LaunchError> {
     let backend = Backend::new(&config.config.backend.base_url, config.http_timeout());
     progress(LaunchStage::StartingGame);
-    let mut arguments = config.config.game.arguments.clone();
-    arguments.extend_from_slice(extra_arguments);
+    let arguments = game_arguments(config, extra_arguments);
     let mut game = start_game(&build.executable, &arguments).map_err(|error| LaunchError::StartGame(error.kind()))?;
     let input = game.input.take().expect("the game's input is piped");
     let timing = Timing {
@@ -203,5 +211,28 @@ pub fn launch(
             game.stop();
             Err(LaunchError::Handshake(error))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{parse, GameSource};
+    use std::path::PathBuf;
+
+    #[test]
+    fn the_game_is_told_the_launchers_backend_before_its_other_arguments() {
+        let loaded = LoadedConfig {
+            config: parse(
+                r#"{"schemaVersion":2,"backend":{"baseUrl":"https://veyra.example"},"http":{"timeoutSeconds":1},
+                "launch":{"awaitReadySeconds":1,"awaitSignInSeconds":1},"game":{"buildManifest":"x","arguments":["-windowed"]}}"#,
+            )
+            .unwrap(),
+            game: GameSource::Packaged(PathBuf::from("x")),
+        };
+        assert_eq!(
+            game_arguments(&loaded, &["-extra".to_string()]),
+            ["-VeyraBackendUrl=https://veyra.example", "-windowed", "-extra"]
+        );
     }
 }
