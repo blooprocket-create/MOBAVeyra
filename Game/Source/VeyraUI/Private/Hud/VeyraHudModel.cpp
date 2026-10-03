@@ -106,6 +106,47 @@ TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNo
 	return Statuses;
 }
 
+FString VeyraHud::CooldownLabel(double Seconds, bool bTenths)
+{
+	// Tenths only below ten seconds (Proposal 44).
+	constexpr double TenthsBelow = 10.0;
+	if (!bTenths || Seconds >= TenthsBelow)
+	{
+		return FString::FromInt(FMath::CeilToInt32(Seconds));
+	}
+	return FString::Printf(TEXT("%.1f"), Seconds);
+}
+
+TArray<FVector2D> VeyraHud::SweepOutline(const FVector2D& TopLeft, float Side, double ElapsedShare)
+{
+	TArray<FVector2D> Points;
+	const double Elapsed = FMath::Clamp(ElapsedShare, 0.0, 1.0);
+	if (Elapsed >= 1.0 || Side <= 0.0f)
+	{
+		return Points;
+	}
+	const double Half = Side / 2.0;
+	const FVector2D Centre = TopLeft + FVector2D(Half);
+	// Where a ray from the centre, Turn of the way round clockwise from twelve o'clock, meets the square's edge.
+	const auto EdgeAt = [&Centre, Half](double Turn) {
+		const double Angle = Turn * UE_DOUBLE_TWO_PI;
+		const FVector2D Direction(FMath::Sin(Angle), -FMath::Cos(Angle));
+		return Centre + Direction * (Half / FMath::Max(FMath::Abs(Direction.X), FMath::Abs(Direction.Y)));
+	};
+	Points.Add(Centre);
+	Points.Add(EdgeAt(Elapsed));
+	// The square's corners still ahead: an eighth, three, five and seven eighths of the way round.
+	for (const double Corner : { 0.125, 0.375, 0.625, 0.875 })
+	{
+		if (Corner > Elapsed)
+		{
+			Points.Add(EdgeAt(Corner));
+		}
+	}
+	Points.Add(EdgeAt(1.0));
+	return Points;
+}
+
 TOptional<FVeyraHudStructure> VeyraHud::StructureOf(const AActor& Unit, double ServerNow)
 {
 	const AVeyraStructure* Structure = Cast<AVeyraStructure>(&Unit);
@@ -248,6 +289,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		{
 			Shown.Ability = Entry->Ability;
 			Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Loadout->CooldownIdOf(Entry->Ability), ServerNow) : 0.0;
+			Shown.CooldownTotal = Cooldowns ? Cooldowns->GetDurationSeconds(Loadout->CooldownIdOf(Entry->Ability)) : 0.0;
 			if (Attacks && Attacks->GetEmpowermentView().Ability == Entry->Ability)
 			{
 				Shown.EmpoweredSeconds = FMath::Max(0.0, Attacks->GetEmpowermentView().ExpiresAt - ServerNow);
@@ -293,9 +335,11 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 				Shown.Reserve = FMath::FloorToInt32(Held[Index].Reserve);
 			}
 			// An item's Active sits in its slot's loadout entry, and cools down under its own ID.
-			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr; Entry && Cooldowns)
+			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr)
 			{
-				Shown.CooldownSeconds = Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow);
+				Shown.bActive = true;
+				Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+				Shown.CooldownTotal = Cooldowns ? Cooldowns->GetDurationSeconds(Entry->Ability) : 0.0;
 			}
 		}
 		Player.PendingPurchases = Inventory->GetQueue().Num();
@@ -313,6 +357,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 			{
 				Shown.Spell = Entry->Ability;
 				Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+				Shown.CooldownTotal = Cooldowns ? Cooldowns->GetDurationSeconds(Entry->Ability) : 0.0;
 			}
 		}
 	}

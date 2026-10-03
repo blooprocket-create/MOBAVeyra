@@ -73,6 +73,19 @@ struct FVeyraHudScales
 	bool operator==(const FVeyraHudScales&) const = default;
 };
 
+/** How the player's own cooldowns show (Settings Bible §3.4, Proposal 44; ADR-059 §3). A ready slot always shows ready. */
+struct FVeyraCooldownDisplay
+{
+	/** The seconds left over a cooling tile. */
+	bool bNumbers = true;
+	/** A radial sweep of the time still to wait, rather than the whole tile shaded. */
+	bool bSweep = true;
+	/** Tenths of a second below ten seconds, rather than whole seconds. */
+	bool bTenths = true;
+
+	bool operator==(const FVeyraCooldownDisplay&) const = default;
+};
+
 /** The HUD, the minimap and the in-match controls as the player set them (Settings Bible §3; ADR-024 §6). */
 struct FVeyraInterfacePreferences
 {
@@ -94,6 +107,8 @@ struct FVeyraInterfacePreferences
 	FVeyraHudScales HudScales;
 	/** The safe area's margins, each a fraction of the viewport on its axis: X from the left and right, Y from the top and bottom (ADR-059 §2). */
 	FVector2D SafeArea = FVector2D::ZeroVector;
+	/** The player's own cooldowns' numbers, sweep and precision (ADR-059 §3). */
+	FVeyraCooldownDisplay Cooldowns;
 	/** The minimap's side and its icons' sides, in pixels. */
 	float MinimapSize = 0.0f;
 	float MinimapVanguardIcon = 0.0f;
@@ -152,6 +167,9 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& OverheadBarScale();
 	VEYRAUI_API const FVeyraContentId& SafeAreaHorizontal();
 	VEYRAUI_API const FVeyraContentId& SafeAreaVertical();
+	VEYRAUI_API const FVeyraContentId& CooldownNumbers();
+	VEYRAUI_API const FVeyraContentId& CooldownSweep();
+	VEYRAUI_API const FVeyraContentId& CooldownPrecision();
 	VEYRAUI_API const FVeyraContentId& MinimapScale();
 	VEYRAUI_API const FVeyraContentId& MinimapIconScale();
 	VEYRAUI_API const FVeyraContentId& MinimapClickMovesCamera();

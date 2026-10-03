@@ -170,11 +170,6 @@ namespace
 		return Key.GetDisplayName(false).ToString();
 	}
 
-	FString Seconds(double Value)
-	{
-		return Value >= 10.0 ? FString::Printf(TEXT("%d"), FMath::CeilToInt32(Value)) : FString::Printf(TEXT("%.1f"), Value);
-	}
-
 	/** Draws Icon whole in the square at At, Size across; false when there is none to draw. */
 	bool DrawIcon(const FPainter& Paint, UTexture2D* Icon, const FVector2D& At, float Size)
 	{
@@ -208,16 +203,42 @@ namespace
 		return Point.IsSet() && Point->X >= TopLeft.X && Point->Y >= TopLeft.Y && Point->X < TopLeft.X + Size.X && Point->Y < TopLeft.Y + Size.Y;
 	}
 
-	/** A cooling or locked slot's shade, filling as much of the tile as is left, with the seconds over it. */
-	void DrawCooldown(const FPainter& Paint, const FVector2D& TopLeft, float Side, double SecondsLeft)
+	/**
+	 * A cooling slot (ADR-059 §3): a sweep over the part still to wait, or with the sweep off the whole tile shaded, and the
+	 * seconds left over it as the player chose. Total is what the cooldown started with; without one the whole tile shades.
+	 */
+	void DrawCooldown(const FPainter& Paint, const FVeyraCooldownDisplay& Display, const FVector2D& TopLeft, float Side, double SecondsLeft, double Total)
 	{
 		if (SecondsLeft <= 0.0)
 		{
 			return;
 		}
-		Paint.Rect(TopLeft, FVector2D(Side), Paint.Settings.ShadeColor);
-		Paint.TextCentred(TopLeft + FVector2D(Side / 2.0f), Seconds(SecondsLeft), Paint.Font(TEXT("Bold"), Paint.Settings.HudHeadingFontSize), Paint.Settings.TextColor,
-			true);
+		if (Display.bSweep && Total > 0.0)
+		{
+			const TArray<FVector2D> Fan = VeyraHud::SweepOutline(TopLeft, Side, 1.0 - SecondsLeft / Total);
+			for (int32 Index = 2; Index < Fan.Num(); ++Index)
+			{
+				FCanvasTriangleItem Triangle(Fan[0], Fan[Index - 1], Fan[Index], GWhiteTexture);
+				Triangle.SetColor(Paint.Settings.ShadeColor);
+				Triangle.BlendMode = SE_BLEND_Translucent;
+				Paint.Canvas.DrawItem(Triangle);
+			}
+		}
+		else
+		{
+			Paint.Rect(TopLeft, FVector2D(Side), Paint.Settings.ShadeColor);
+		}
+		if (Display.bNumbers)
+		{
+			Paint.TextCentred(TopLeft + FVector2D(Side / 2.0f), VeyraHud::CooldownLabel(SecondsLeft, Display.bTenths),
+				Paint.Font(TEXT("Bold"), Paint.Settings.HudHeadingFontSize), Paint.Settings.TextColor, true);
+		}
+	}
+
+	/** A slot's outline: the accent when it is ready to use, so ready always shows whatever the cooldown options (ADR-059 §3). */
+	FLinearColor ReadyOutline(const UVeyraGreyboxSettings& Settings, bool bReady)
+	{
+		return bReady ? Settings.HudAccentColor.CopyWithNewOpacity(0.55f) : Settings.HudHairlineColor;
 	}
 
 	/** Kills each side has made, from its players' public scores. */
@@ -543,8 +564,8 @@ namespace
 	 * The deck along the bottom, measured as Deck and placed at TopLeft, each section at its own scale (ADR-059 §1); returns
 	 * its top edge, and what the cursor rests on.
 	 */
-	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input,
-		const FString& ShopKey, const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
+	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns, const AVeyraPlayerState& Participant,
+		const UVeyraInputSettings& Input, const FString& ShopKey, const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
@@ -635,10 +656,10 @@ namespace
 			{
 				Bar.Rect(At, FVector2D(Ability), Settings.ShadeColor);
 			}
-			DrawCooldown(Bar, At, Ability, bLearned ? Slot.CooldownSeconds : 0.0);
+			DrawCooldown(Bar, Cooldowns, At, Ability, bLearned ? Slot.CooldownSeconds : 0.0, Slot.CooldownTotal);
 			const bool bEmpowered = Slot.EmpoweredSeconds > 0.0;
 			const bool bReady = bLearned && Slot.CooldownSeconds <= 0.0;
-			Bar.Outline(At, FVector2D(Ability), bEmpowered ? Settings.EmpoweredColor : bReady ? Settings.HudAccentColor.CopyWithNewOpacity(0.55f) : Settings.HudHairlineColor,
+			Bar.Outline(At, FVector2D(Ability), bEmpowered ? Settings.EmpoweredColor : ReadyOutline(Settings, bReady),
 				bEmpowered ? Bar.S(2.0f) : 1.0f);
 			Bar.KeyCap(At, KeyName(Input.GetAbilityKey(Slot.Slot)));
 			// Its ranks as pips under it.
@@ -703,8 +724,8 @@ namespace
 			{
 				Spells.Rect(At, FVector2D(Deck.Spell), Settings.ShadeColor);
 			}
-			DrawCooldown(Spells, At, Deck.Spell, Spell.bLocked ? 0.0 : Spell.CooldownSeconds);
-			Spells.Outline(At, FVector2D(Deck.Spell), Settings.HudHairlineColor);
+			DrawCooldown(Spells, Cooldowns, At, Deck.Spell, Spell.bLocked ? 0.0 : Spell.CooldownSeconds, Spell.CooldownTotal);
+			Spells.Outline(At, FVector2D(Deck.Spell), ReadyOutline(Settings, !Spell.bLocked && Spell.Spell.IsValid() && Spell.CooldownSeconds <= 0.0));
 			Spells.KeyCap(At, KeyName(Input.GetAbilityKey(Spell.Slot)));
 			if (Spell.Spell.IsValid() && Contains(At, FVector2D(Deck.Spell), Mouse))
 			{
@@ -722,7 +743,7 @@ namespace
 			const FSlateFontInfo ToolFont = Spells.Font(TEXT("Bold"), Settings.HudSmallFontSize);
 			const FString Line = FString::Printf(TEXT("%s  %s"), *Key, *Label);
 			const double Waiting = bWard ? Player.VisionTool.NextChargeSeconds : Player.VisionTool.CooldownSeconds;
-			const FString Shown = Waiting > 0.0 ? FString::Printf(TEXT("%s  %ss"), *Line, *Seconds(Waiting)) : Line;
+			const FString Shown = Waiting > 0.0 ? FString::Printf(TEXT("%s  %ss"), *Line, *VeyraHud::CooldownLabel(Waiting, Cooldowns.bTenths)) : Line;
 			Spells.TextCentred(TopLeft + Deck.ToolAt + FVector2D(Deck.SpellsWidth / 2.0f, Deck.ToolLine / 2.0f), Shown, ToolFont, Settings.DescriptionColor);
 		}
 
@@ -765,13 +786,14 @@ namespace
 					Items.Text(At + FVector2D(Items.S(2.0f), Item - Items.S(16.0f)), FString::Printf(TEXT("R%d"), Held.Reserve.GetValue()),
 						Items.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
 				}
-				DrawCooldown(Items, At, Item, Held.CooldownSeconds);
+				DrawCooldown(Items, Cooldowns, At, Item, Held.CooldownSeconds, Held.CooldownTotal);
 				if (Contains(At, FVector2D(Item), Mouse))
 				{
 					Hover = FHover{ Name, FString::Printf(TEXT("Item   %s"), *KeyName(Input.GetAbilityKey(Held.Slot))), VeyraContentText::ItemDescription(Held.Item).ToString() };
 				}
 			}
-			Items.Outline(At, FVector2D(Item), Settings.HudHairlineColor);
+			// An item whose Active is ready shows ready, as an ability does.
+			Items.Outline(At, FVector2D(Item), ReadyOutline(Settings, Held.Item.IsValid() && Held.bActive && Held.CooldownSeconds <= 0.0));
 			Items.KeyCap(At, KeyName(Input.GetAbilityKey(Held.Slot)));
 		}
 		const FString Gold = FString::Printf(TEXT("%s"), *FText::AsNumber(Player.Gold).ToString());
@@ -857,7 +879,7 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const UVeyraMatchMenuSubsystem* Screens = World.GetGameInstance() ? World.GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
 	const FString ShopKey = KeyName(Screens ? Screens->GetKeys().ShopKey : GetDefault<UVeyraUIInputSettings>()->ShopKey);
 	const float DeckTop =
-		DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
+		DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
 	if (Player)
 	{
 		DrawChat(Paint, Preferences, Layout.Chat, *Player, GameState, Side, Screens && Screens->IsChatOpen());

@@ -39,6 +39,9 @@ namespace
 	const TCHAR* const Reduced = TEXT("Reduced");
 	const TCHAR* const Uniform = TEXT("Uniform");
 
+	/** Cooldown Precision's option that shows whole seconds (Proposal 44). */
+	const TCHAR* const Whole = TEXT("Whole");
+
 	/** Whether a bar shows under Visibility. */
 	bool Shows(EVeyraBarVisibility Visibility, const FVeyraBarFacts& Facts)
 	{
@@ -120,6 +123,24 @@ const FVeyraContentId& SafeAreaHorizontal()
 const FVeyraContentId& SafeAreaVertical()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("interface_safe_area_vertical"));
+	return Id;
+}
+
+const FVeyraContentId& CooldownNumbers()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_cooldown_numbers"));
+	return Id;
+}
+
+const FVeyraContentId& CooldownSweep()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_cooldown_sweep"));
+	return Id;
+}
+
+const FVeyraContentId& CooldownPrecision()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_cooldown_precision"));
 	return Id;
 }
 
@@ -455,6 +476,9 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.HudScales.CombatText = Share(*Store, CombatTextScale());
 	Preferences.HudScales.OverheadBars = Share(*Store, OverheadBarScale());
 	Preferences.SafeArea = FVector2D(Share(*Store, SafeAreaHorizontal()), Share(*Store, SafeAreaVertical()));
+	Preferences.Cooldowns.bNumbers = Store->IsOn(CooldownNumbers());
+	Preferences.Cooldowns.bSweep = Store->IsOn(CooldownSweep());
+	Preferences.Cooldowns.bTenths = Store->Get(CooldownPrecision()) != Whole;
 	const float MinimapShare = Share(*Store, MinimapScale());
 	const float IconShare = Share(*Store, MinimapIconScale());
 	Preferences.MinimapSize = Hud.MinimapSize * MinimapShare;

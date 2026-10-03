@@ -64,6 +64,9 @@ struct FVeyraHudSlot
 	/** Seconds until it is ready; 0 when it is. */
 	double CooldownSeconds = 0.0;
 
+	/** The seconds its current cooldown started with, which the sweep measures against; 0 when it has none (ADR-059 §3). */
+	double CooldownTotal = 0.0;
+
 	/** Seconds the empowerment it cast still waits for the next basic attack; 0 when none waits (Combat Bible §17). */
 	double EmpoweredSeconds = 0.0;
 };
@@ -87,8 +90,14 @@ struct FVeyraHudItemSlot
 	TOptional<int32> Current;
 	TOptional<int32> Reserve;
 
+	/** Whether it has an Active its key uses, which shows ready when it is (ADR-059 §3). */
+	bool bActive = false;
+
 	/** Seconds until its Active is ready; 0 when it is, or it has none. */
 	double CooldownSeconds = 0.0;
+
+	/** The seconds the Active's current cooldown started with; 0 when it has none. */
+	double CooldownTotal = 0.0;
 };
 
 /** A player's projected Echo on the HUD (ADR-050 §7): its Integrity, its formation and immunity, and what it may still cast. */
@@ -121,6 +130,9 @@ struct FVeyraHudSpellSlot
 
 	/** Seconds until it is ready; 0 when it is. */
 	double CooldownSeconds = 0.0;
+
+	/** The seconds its current cooldown started with; 0 when it has none. */
+	double CooldownTotal = 0.0;
 };
 
 /**
@@ -274,6 +286,19 @@ namespace VeyraHud
 	 * ServerNow, in server gameplay time.
 	 */
 	VEYRAUI_API TArray<FVeyraHudStatus> StatusesOf(const AActor& Unit, double ServerNow, EVeyraTeam Viewer);
+
+	/**
+	 * Seconds as a cooling tile shows them (Proposal 44; ADR-059 §3): whole seconds, rounded up, from ten seconds on, and
+	 * below ten either tenths or, without bTenths, whole seconds too.
+	 */
+	VEYRAUI_API FString CooldownLabel(double Seconds, bool bTenths);
+
+	/**
+	 * The outline of a cooldown's sweep over a square tile of Side at TopLeft: the part still to wait, from where ElapsedShare
+	 * of the way round has come (clockwise from twelve o'clock) back round to twelve. The tile's centre comes first, then the
+	 * edge points in order, so each two neighbours make a triangle with it. Empty once nothing is left to wait.
+	 */
+	VEYRAUI_API TArray<FVector2D> SweepOutline(const FVector2D& TopLeft, float Side, double ElapsedShare);
 
 	/** What Unit's bar says about it as a structure at ServerNow; nothing when it is not one. */
 	VEYRAUI_API TOptional<FVeyraHudStructure> StructureOf(const AActor& Unit, double ServerNow);

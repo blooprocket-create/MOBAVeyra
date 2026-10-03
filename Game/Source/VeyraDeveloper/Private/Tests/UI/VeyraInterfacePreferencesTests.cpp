@@ -92,6 +92,18 @@ namespace VeyraInterfacePreferencesTests
 			ASSERT_THAT(IsTrue(Store.Set(SafeAreaVertical(), TEXT("20")) == EVeyraSettingChange::InvalidValue));
 		}
 
+		// ADR-059 §3: numbers and the sweep on, tenths below ten seconds, until the player chooses otherwise.
+		TEST_METHOD(TheCooldownDisplayFollowsThePlayersChoices)
+		{
+			FVeyraSettingsStore Store(Registry);
+			ASSERT_THAT(IsTrue(Resolve(HudSettings(), &Store).Cooldowns == FVeyraCooldownDisplay()));
+			Store.Set(CooldownNumbers(), VeyraSettings::Off());
+			Store.Set(CooldownSweep(), VeyraSettings::Off());
+			Store.Set(CooldownPrecision(), TEXT("Whole"));
+			const FVeyraCooldownDisplay Display = Resolve(HudSettings(), &Store).Cooldowns;
+			ASSERT_THAT(IsTrue(!Display.bNumbers && !Display.bSweep && !Display.bTenths));
+		}
+
 		TEST_METHOD(TheReadoutsShowOnlyWhatThePlayerAskedFor)
 		{
 			FVeyraInterfacePreferences Preferences;
