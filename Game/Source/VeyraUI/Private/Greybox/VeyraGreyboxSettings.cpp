@@ -80,6 +80,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("OutlineColor"), OutlineColor },
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
 		{ TEXT("EndingColor"), EndingColor },
+		{ TEXT("OrderMoveColor"), OrderMoveColor },
+		{ TEXT("OrderAttackColor"), OrderAttackColor },
 		{ TEXT("ChatBackdropColor"), ChatBackdropColor },
 		{ TEXT("ChatHighContrastBackdropColor"), ChatHighContrastBackdropColor },
 		{ TEXT("CombatTextPhysicalColor"), CombatTextPhysicalColor },
@@ -139,6 +141,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(ChatFadeOutSeconds >= 0.0f, TEXT("ChatFadeOutSeconds"), TEXT("must not be negative."));
 	Require(TelegraphThickness > 0.0f, TEXT("TelegraphThickness"), TEXT("must be above 0."));
 	Require(CircleSegments >= 3, TEXT("CircleSegments"), TEXT("must be at least 3."));
+	Require(OrderMarkSeconds > 0.0f, TEXT("OrderMarkSeconds"), TEXT("must be above 0."));
+	Require(OrderMarkEndRadius >= 1.0f && OrderMarkStartRadius > OrderMarkEndRadius, TEXT("OrderMarkStartRadius"),
+		TEXT("an order's mark closes: its end radius must be at least 1 unit and its start radius above that."));
 	Require(OutlineMarkerRadius >= 1.0f, TEXT("OutlineMarkerRadius"), TEXT("must be at least 1 unit."));
 	Require(EchoStrainShare > 0.0f && EchoStrainShare < 1.0f, TEXT("EchoStrainShare"), TEXT("must be above 0 and below 1."));
 	Require(CombatTextShowSeconds > 0.0f, TEXT("CombatTextShowSeconds"), TEXT("must be above 0."));

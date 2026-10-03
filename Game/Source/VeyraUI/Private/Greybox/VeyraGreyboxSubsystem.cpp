@@ -206,6 +206,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawVisionMarks();
 	DrawChains();
 	DrawEchoTethers();
+	DrawOrderMark();
 	RefreshCombatText();
 	RefreshFogOfWar();
 	RefreshWarnings();
@@ -960,6 +961,31 @@ void UVeyraGreyboxSubsystem::DrawEchoTethers()
 			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
 		}
 		TelegraphLines->DrawLine(GroundUnder(Echo.GetAnchor()), GroundUnder(Echo.GetActorLocation()), Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+	}
+}
+
+void UVeyraGreyboxSubsystem::DrawOrderMark()
+{
+	OrderMarkRing.Reset();
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (!TelegraphLines || !Local || !Local->GetOrderMark())
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const bool bStill = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this)).bReduceUiAnimation;
+	OrderMarkRing = VeyraOrderMarks::Describe(Local->GetOrderMark().GetValue(), GetWorld()->GetRealTimeSeconds(), bStill, Settings);
+	if (!OrderMarkRing)
+	{
+		return;
+	}
+	FVeyraShape Circle;
+	Circle.Kind = EVeyraShapeKind::Circle;
+	Circle.Radius = OrderMarkRing->Radius;
+	const FVeyraPlacedShape OnGround{ Circle, GroundUnder(OrderMarkRing->Centre), FVector::ForwardVector };
+	for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
+	{
+		TelegraphLines->DrawLine(Segment.Start, Segment.End, OrderMarkRing->Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
 	}
 }
 

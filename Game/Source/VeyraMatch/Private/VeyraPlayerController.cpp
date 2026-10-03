@@ -52,24 +52,37 @@ AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectI
 void AVeyraPlayerController::IssueMoveOrder(const FVector& Destination)
 {
 	OrderedAttackTarget.Reset();
+	MarkOrder(EVeyraOrderMarkKind::Move, Destination, nullptr);
 	ServerIssueMoveOrder(Destination);
 }
 
 void AVeyraPlayerController::SteerMoveOrder(const FVector& Destination)
 {
+	MarkOrder(EVeyraOrderMarkKind::Move, Destination, nullptr);
 	ServerSteerMoveOrder(Destination);
 }
 
 void AVeyraPlayerController::IssueAttackOrder(AActor* Target)
 {
 	OrderedAttackTarget = Target;
+	MarkOrder(EVeyraOrderMarkKind::Attack, FVector::ZeroVector, Target);
 	ServerIssueAttackOrder(Target);
 }
 
 void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
 {
 	OrderedAttackTarget.Reset();
+	MarkOrder(EVeyraOrderMarkKind::AttackMove, Destination, nullptr);
 	ServerIssueAttackMoveOrder(Destination, ControlPreferences().AttackMoveTarget);
+}
+
+void AVeyraPlayerController::MarkOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target)
+{
+	// The click shows where it went at once, a round trip before the server answers (ADR-062 §6).
+	if (IsLocalController())
+	{
+		OrderMark = FVeyraOrderMark{ Kind, Location, Target, GetWorld()->GetRealTimeSeconds() };
+	}
 }
 
 bool AVeyraPlayerController::CancelPendingCast()

@@ -174,6 +174,25 @@ namespace VeyraNetTests
 				});
 		}
 
+		TEST_METHOD(AClickIsMarkedOnTheGroundAtOnce)
+		{
+			// The mark shows in the frame the order is given, a round trip before the server moves the Vanguard (ADR-062 §6).
+			const FVector Destination = FVector::ZeroVector;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenClient(TEXT("Order a move and look at once"), 0, [this, Destination](FState& State) {
+					LocalControllerOf(State.World)->IssueMoveOrder(Destination);
+					const UVeyraGreyboxSubsystem* Greybox = PresentationOf(State);
+					ASSERT_THAT(IsTrue(Greybox && Greybox->GetOrderMarkRing().IsSet()));
+					const FVeyraOrderMarkRing& Ring = Greybox->GetOrderMarkRing().GetValue();
+					ASSERT_THAT(IsTrue(FVector::Dist2D(Ring.Centre, Destination) <= PositionSlack));
+					ASSERT_THAT(IsTrue(Ring.Color.Equals(GetDefault<UVeyraGreyboxSettings>()->OrderMoveColor)));
+				})
+				.ThenClient(TEXT("The other player sees no mark of it"), 1, [this](FState& State) {
+					const UVeyraGreyboxSubsystem* Greybox = PresentationOf(State);
+					ASSERT_THAT(IsTrue(Greybox && !Greybox->GetOrderMarkRing().IsSet()));
+				});
+		}
+
 		TEST_METHOD(EachClientTelegraphsAWindupWhereTheServerWillLandIt)
 		{
 			Identify(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
