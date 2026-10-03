@@ -1,0 +1,12 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "Veyra World Tools",
+  "Description": "Reproducible editor world authoring from Veyra spatial contracts.",
+  "Category": "Veyra",
+  "CanContainContent": false,
+  "EnabledByDefault": true,
+  "Modules": [{ "Name": "VeyraWorldTools", "Type": "Editor", "LoadingPhase": "PostEngineInit" }],
+  "Plugins": [{ "Name": "Water", "Enabled": true }, { "Name": "PCG", "Enabled": true }]
+}

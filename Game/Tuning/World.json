@@ -1,9 +1,70 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "layout": {
     "provenance": "Provisional",
     "halfExtent": 9000,
-    "riverWidth": 1000,
+    "surface": { "minZ": -2000, "maxZ": 6000, "maxSlopeDegrees": 40 },
+    "terrain": {
+      "riverControls": [
+        {
+          "x": -10500,
+          "y": 10200,
+          "width": 1050
+        },
+        {
+          "x": -6900,
+          "y": 6750,
+          "width": 1100
+        },
+        {
+          "x": -4300,
+          "y": 4700,
+          "width": 1300
+        },
+        {
+          "x": -1900,
+          "y": 1600,
+          "width": 850
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "width": 1000
+        },
+        {
+          "x": 2200,
+          "y": -1850,
+          "width": 900
+        },
+        {
+          "x": 4600,
+          "y": -4800,
+          "width": 1400
+        },
+        {
+          "x": 6700,
+          "y": -6550,
+          "width": 1100
+        },
+        {
+          "x": 10300,
+          "y": -10600,
+          "width": 1000
+        }
+      ],
+      "riverSamplesPerSegment": 12,
+      "riverSurfaceZ": -120,
+      "riverBedZ": -180,
+      "riverFlowSpeed": 60,
+      "laneZ": 0,
+      "baseZ": 80,
+      "jungleZ": 280,
+      "bankBlend": 900,
+      "laneShoulder": 900,
+      "exteriorWidth": 2200,
+      "exteriorZ": 2400,
+      "wallFootingClearance": 40
+    },
     "lanes": [
       {
         "lane": "Top",
@@ -48,26 +109,20 @@
       { "center": { "x": 300, "y": -1000 }, "radius": 300 }
     ],
     "walls": [
-      { "center": { "x": -2247, "y": -5300 }, "facing": -164.2, "length": 1196, "thickness": 300 },
-      { "center": { "x": -2644, "y": -4341 }, "facing": -150.8, "length": 1196, "thickness": 300 },
-      { "center": { "x": -4341, "y": -2644 }, "facing": -119.2, "length": 1196, "thickness": 300 },
-      { "center": { "x": -5300, "y": -2247 }, "facing": -105.8, "length": 1196, "thickness": 300 },
-      { "center": { "x": -750, "y": -5550 }, "facing": 90.0, "length": 1900, "thickness": 600 },
-      { "center": { "x": -5550, "y": -750 }, "facing": 180.0, "length": 1900, "thickness": 600 },
-      { "center": { "x": 3300, "y": -5550 }, "facing": 90.0, "length": 2100, "thickness": 600 },
-      { "center": { "x": -5550, "y": 3300 }, "facing": 180.0, "length": 2100, "thickness": 600 },
-      { "center": { "x": -1200, "y": -2400 }, "facing": 135.0, "length": 1500, "thickness": 600 },
-      { "center": { "x": -2400, "y": -1200 }, "facing": 135.0, "length": 1500, "thickness": 600 },
-      { "center": { "x": 650, "y": -3500 }, "facing": 135.0, "length": 1300, "thickness": 800 },
-      { "center": { "x": -3500, "y": 650 }, "facing": 135.0, "length": 1300, "thickness": 800 },
-      { "center": { "x": 3200, "y": -4500 }, "facing": 135.0, "length": 1000, "thickness": 500 },
-      { "center": { "x": -4500, "y": 3200 }, "facing": 135.0, "length": 1000, "thickness": 500 },
-      { "center": { "x": -700, "y": -7250 }, "facing": 90.0, "length": 2400, "thickness": 500 },
-      { "center": { "x": -7250, "y": -700 }, "facing": 180.0, "length": 2400, "thickness": 500 },
-      { "center": { "x": 4900, "y": -7250 }, "facing": 90.0, "length": 1700, "thickness": 500 },
-      { "center": { "x": -7250, "y": 4900 }, "facing": 180.0, "length": 1700, "thickness": 500 },
-      { "center": { "x": 2400, "y": -8750 }, "facing": 90.0, "length": 2600, "thickness": 300 },
-      { "center": { "x": -8750, "y": 2400 }, "facing": 180.0, "length": 2600, "thickness": 300 }
+      { "center": { "x": -700, "y": -5500 }, "facing": 80, "length": 1550, "thickness": 600 },
+      { "center": { "x": -5500, "y": -700 }, "facing": 190, "length": 1550, "thickness": 600 },
+      { "center": { "x": 3300, "y": -5550 }, "facing": 100, "length": 1650, "thickness": 600 },
+      { "center": { "x": -5550, "y": 3300 }, "facing": 170, "length": 1650, "thickness": 600 },
+      { "center": { "x": -1150, "y": -2550 }, "facing": 128, "length": 1150, "thickness": 600 },
+      { "center": { "x": -2550, "y": -1150 }, "facing": 142, "length": 1150, "thickness": 600 },
+      { "center": { "x": 550, "y": -3500 }, "facing": 128, "length": 1000, "thickness": 700 },
+      { "center": { "x": -3500, "y": 550 }, "facing": 142, "length": 1000, "thickness": 700 },
+      { "center": { "x": 3150, "y": -4550 }, "facing": 125, "length": 800, "thickness": 500 },
+      { "center": { "x": -4550, "y": 3150 }, "facing": 145, "length": 800, "thickness": 500 },
+      { "center": { "x": -700, "y": -7550 }, "facing": 80, "length": 1800, "thickness": 650 },
+      { "center": { "x": -7550, "y": -700 }, "facing": 190, "length": 1800, "thickness": 650 },
+      { "center": { "x": 4900, "y": -7550 }, "facing": 100, "length": 1250, "thickness": 650 },
+      { "center": { "x": -7550, "y": 4900 }, "facing": 170, "length": 1250, "thickness": 650 }
     ],
     "wallHalfHeight": 250,
     "wallClearance": 150

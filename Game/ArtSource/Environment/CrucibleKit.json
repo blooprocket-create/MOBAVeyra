@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "seed": 48173,
+  "status": "First production pass; requires Unreal visual and performance validation",
+  "materials": [
+    {"name":"M_Veyra_Riverstone","color":[0.18,0.23,0.22,1],"roughness":0.86,"metallic":0},
+    {"name":"M_Veyra_WeatheredStone","color":[0.31,0.29,0.23,1],"roughness":0.82,"metallic":0},
+    {"name":"M_Veyra_Moss","color":[0.13,0.20,0.075,1],"roughness":0.93,"metallic":0},
+    {"name":"M_Veyra_Bark","color":[0.10,0.075,0.04,1],"roughness":0.9,"metallic":0},
+    {"name":"M_Veyra_Foliage","color":[0.12,0.23,0.07,1],"roughness":0.85,"metallic":0}
+  ],
+  "geometry":{"rockRings":8,"rockSegments":16,"bevelMetres":0.025,"bevelSegments":2,"uvMargin":0.02,"lightmapResolution":128},
+  "families":[
+    {"id":"Riverstone","kind":"rock","variants":4,"sizeMetres":[2.1,1.4,0.95],"material":0,"roughness":0.16},
+    {"id":"Shelf","kind":"rock","variants":4,"sizeMetres":[4.8,2.6,2.8],"material":1,"roughness":0.12},
+    {"id":"Cliff","kind":"rock","variants":3,"sizeMetres":[7.0,3.5,6.0],"material":1,"roughness":0.1},
+    {"id":"Shrub","kind":"shrub","variants":3,"sizeMetres":[1.0,0.85,0.65],"material":4,"roughness":0.18},
+    {"id":"Canopy","kind":"tree","variants":3,"sizeMetres":[4.0,3.5,7.0],"material":4,"roughness":0.12}
+  ]
+}

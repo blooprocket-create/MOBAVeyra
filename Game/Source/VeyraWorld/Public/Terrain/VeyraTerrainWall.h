@@ -31,10 +31,17 @@ public:
 	/** Server, once it has joined the world: it takes its shape and blocks. Every machine also forms it as play begins or its size arrives. */
 	void Form() { ApplyHalfExtent(); }
 
+	/** Server-authored map terrain uses the generated environment presentation. */
+	void SetMapTerrain(bool bValue);
+	bool IsMapTerrain() const { return bMapTerrain; }
+
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
+	UPROPERTY(Replicated)
+	bool bMapTerrain = false;
+
 	/** Shapes its body from HalfExtent and lets it block, on every machine. */
 	UFUNCTION()
 	void ApplyHalfExtent();

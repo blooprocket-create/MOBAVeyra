@@ -6,6 +6,108 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "backdoor", "fluxborn", "waves", "replication", "wildlife", "fluxWells"],
   "definitions": {
+    "terrain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "riverControls",
+        "riverSamplesPerSegment",
+        "riverSurfaceZ",
+        "riverBedZ",
+        "riverFlowSpeed",
+        "laneZ",
+        "baseZ",
+        "jungleZ",
+        "bankBlend",
+        "laneShoulder",
+        "exteriorWidth",
+        "exteriorZ",
+        "wallFootingClearance"
+      ],
+      "properties": {
+        "riverSurfaceZ": {
+          "type": "number",
+          "minimum": -1000000
+        },
+        "riverBedZ": {
+          "type": "number",
+          "minimum": -1000000
+        },
+        "riverFlowSpeed": {
+          "type": "number",
+          "minimum": 0
+        },
+        "laneZ": {
+          "type": "number",
+          "minimum": -1000000
+        },
+        "baseZ": {
+          "type": "number",
+          "minimum": -1000000
+        },
+        "jungleZ": {
+          "type": "number",
+          "minimum": -1000000
+        },
+        "bankBlend": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "laneShoulder": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "exteriorWidth": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "exteriorZ": {
+          "type": "number",
+          "minimum": -1000000
+        },
+        "wallFootingClearance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "riverSamplesPerSegment": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "riverControls": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "x",
+              "y",
+              "width"
+            ],
+            "properties": {
+              "x": {
+                "type": "number",
+                "minimum": -1000000
+              },
+              "y": {
+                "type": "number",
+                "minimum": -1000000
+              },
+              "width": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMinimum": true
+              }
+            }
+          }
+        }
+      }
+    },
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
       "type": "string",
@@ -179,17 +281,27 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [4]
+      "enum": [5]
     },
     "layout": {
       "description": "The grey-box battleground (Battleground Bible §2, macro shape ruled 2026-09-28): bases in opposite corners, top and bot lanes along the sides set in from the edge with outer jungle beyond, mid on the diagonal, the river across the other diagonal. Team A's half is authored; Team B's is its mirror across Y = -X.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "halfExtent", "riverWidth", "lanes", "base", "denseFog", "walls", "wallHalfHeight", "wallClearance"],
+      "required": ["provenance", "halfExtent", "surface", "terrain", "lanes", "base", "denseFog", "walls", "wallHalfHeight", "wallClearance"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "halfExtent": { "description": "The square floor reaches this far from the centre in each direction.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "riverWidth": { "description": "How wide the river is drawn along its diagonal.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "terrain": { "$ref": "#/definitions/terrain" },
+        "surface": {
+          "description": "World-owned ground search bounds and maximum walkable placement slope; provisional production terrain envelope.",
+          "type": "object", "additionalProperties": false,
+          "required": ["minZ", "maxZ", "maxSlopeDegrees"],
+          "properties": {
+            "minZ": { "type": "number", "minimum": -1000000 },
+            "maxZ": { "type": "number", "minimum": -1000000 },
+            "maxSlopeDegrees": { "type": "number", "minimum": 0, "maximum": 90, "exclusiveMaximum": true }
+          }
+        },
         "lanes": { "description": "Top, Mid and Bottom, once each.", "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/definitions/lane" } },
         "denseFog": {
           "description": "Team A's Dense Fog, the battleground's bush (Battleground Bible §11; Vision Bible §2; ADR-016 §4): circles wholly in Team A's half, at the spots ADR-016 §11 lists. Team B's is their mirror; circles that touch are one fog volume.",

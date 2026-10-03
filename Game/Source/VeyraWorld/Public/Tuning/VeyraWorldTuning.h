@@ -8,6 +8,7 @@
 #include "Damage/VeyraDamageTypes.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Tuning/VeyraTuningProvenance.h"
+#include "Tuning/VeyraTerrainTuning.h"
 #include "UObject/ObjectMacros.h"
 
 #include "VeyraWorldTuning.generated.h"
@@ -104,6 +105,22 @@ struct FVeyraFogLayout
 	double Radius = 0.0;
 };
 
+/** Validated vertical search bounds and walkable slope for terrain placement (ADR-040). */
+USTRUCT()
+struct FVeyraSurfaceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double MinZ = 0.0;
+
+	UPROPERTY()
+	double MaxZ = 0.0;
+
+	UPROPERTY()
+	double MaxSlopeDegrees = 0.0;
+};
+
 /**
  * One wall of Team A's half (ADR-043 §1): an oriented box of terrain standing on the floor, Length long
  * across the way it faces and Thickness deep along it. Team B's is its mirror. Grey-box geometry,
@@ -131,7 +148,7 @@ struct FVeyraWallLayout
 };
 
 /**
- * The battleground's grey-box layout (ADR-011 §12): the one source for the generated map and the
+ * The battleground's authoritative spatial layout (ADR-011 §12): the one source for the generated map and the
  * server's spawning. Team B's half is Team A's reflected across the river's diagonal, the line
  * Y = -X, which maps every lane onto itself and swaps the bases, so both teams' distances match.
  */
@@ -147,9 +164,11 @@ struct FVeyraBattlegroundLayout
 	UPROPERTY()
 	double HalfExtent = 0.0;
 
-	/** How wide the river is drawn along its diagonal, in units. */
 	UPROPERTY()
-	double RiverWidth = 0.0;
+	FVeyraSurfaceTuning Surface;
+
+	UPROPERTY()
+	FVeyraTerrainTuning Terrain;
 
 	UPROPERTY()
 	TArray<FVeyraLaneLayout> Lanes;
@@ -721,7 +740,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;

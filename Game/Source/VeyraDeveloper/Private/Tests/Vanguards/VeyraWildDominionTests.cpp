@@ -37,6 +37,7 @@ namespace VeyraVanguardsTests
 
 		BEFORE_EACH()
 		{
+			VeyraWorldTests::SpawnCompactGround(Spawner.GetWorld());
 			Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>()->SpawnStructures(VeyraWorldTests::CompactBattleground());
 			FArchetypeTestWorld World{ Spawner };
 			Moro = &World.Spawn(EVeyraTeam::A, FVector(OnLane, OnLane, 0.0));

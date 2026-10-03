@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Layout/VeyraLayout.h"
+#include "Layout/VeyraTerrainProfile.h"
 #include "Tuning/VeyraWorldTuning.h"
 
 namespace VeyraWorld
@@ -117,6 +118,41 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 {
 	TArray<FString> Problems;
 	const FVeyraBattlegroundLayout& Layout = Tuning.Layout;
+	if (!FMath::IsFinite(Layout.Surface.MinZ) || !FMath::IsFinite(Layout.Surface.MaxZ)
+		|| Layout.Surface.MinZ >= Layout.Surface.MaxZ || !FMath::IsFinite(Layout.Surface.MaxSlopeDegrees)
+		|| Layout.Surface.MaxSlopeDegrees < 0.0 || Layout.Surface.MaxSlopeDegrees >= 90.0)
+	{
+		Problems.Add(TEXT("/layout/surface: requires finite ascending height bounds and a slope in [0, 90) degrees"));
+	}
+
+
+	const auto& Terrain = Layout.Terrain;
+	for (const double Value : { Terrain.RiverSurfaceZ, Terrain.RiverBedZ, Terrain.RiverFlowSpeed,
+        Terrain.LaneZ, Terrain.BaseZ, Terrain.JungleZ, Terrain.BankBlend, Terrain.LaneShoulder,
+        Terrain.ExteriorWidth, Terrain.ExteriorZ, Terrain.WallFootingClearance })
+    {
+        if (!FMath::IsFinite(Value)) { Problems.Add(TEXT("/layout/terrain: all terrain values must be finite")); break; }
+    }
+    for (const double Height : { Terrain.RiverBedZ, Terrain.RiverSurfaceZ, Terrain.LaneZ, Terrain.BaseZ, Terrain.JungleZ, Terrain.ExteriorZ })
+    {
+        if (Height <= Layout.Surface.MinZ || Height >= Layout.Surface.MaxZ)
+        { Problems.Add(TEXT("/layout/terrain: every height must be inside surface query bounds")); break; }
+    }
+	if (Terrain.RiverControls.Num() < 2 || Terrain.RiverSamplesPerSegment < 1 || Terrain.RiverSamplesPerSegment > 64
+		|| Terrain.BankBlend <= 0.0 || Terrain.LaneShoulder <= 0.0 || Terrain.ExteriorWidth <= 0.0
+        || Terrain.WallFootingClearance < 0.0 || Terrain.RiverFlowSpeed < 0.0
+		|| Terrain.RiverBedZ >= Terrain.RiverSurfaceZ || Terrain.RiverSurfaceZ >= Terrain.LaneZ
+		|| Terrain.RiverBedZ <= Layout.Surface.MinZ || Terrain.ExteriorZ >= Layout.Surface.MaxZ)
+	{
+		Problems.Add(TEXT("/layout/terrain: requires a sampled river, positive transition widths, bed below water below lanes, and heights inside surface bounds"));
+	}
+	for (const auto& Control : Terrain.RiverControls)
+	{
+		if (!FMath::IsFinite(Control.X) || !FMath::IsFinite(Control.Y) || !FMath::IsFinite(Control.Width) || Control.Width <= 0.0)
+		{
+			Problems.Add(TEXT("/layout/terrain/riverControls: requires finite coordinates and positive full widths"));
+		}
+	}
 
 	// Canon's three Fluxways, each once (Battleground Bible §2).
 	for (const EVeyraLane Lane : { EVeyraLane::Top, EVeyraLane::Mid, EVeyraLane::Bottom })
@@ -294,7 +330,7 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 		{
 			Problems.Add(Pointer + TEXT("/center: the camp's leash must lie on the floor"));
 		}
-		if (VeyraLayout::DepthInTeamAHalf(Layout, Center) < Layout.RiverWidth / 2.0 + Reach)
+		if (VeyraLayout::DepthInTeamAHalf(Layout, Center) < Reach || VeyraTerrainProfile::RiverDistance(Layout.Terrain, Center) < Reach)
 		{
 			Problems.Add(Pointer + TEXT("/center: the camp must lie on Team A's half, its leash clear of the river"));
 		}
@@ -321,7 +357,7 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 		{
 			Problems.Add(Pointer + TEXT(": must lie on the floor"));
 		}
-		if (FMath::Abs(VeyraLayout::DepthInTeamAHalf(Layout, Site)) > Layout.RiverWidth / 2.0)
+		if (VeyraTerrainProfile::RiverDistance(Layout.Terrain, Site) > 0.0 || !Site.Equals(VeyraLayout::Mirror(Site), UE_DOUBLE_KINDA_SMALL_NUMBER))
 		{
 			Problems.Add(Pointer + TEXT(": must lie on the river, so both teams reach it alike"));
 		}

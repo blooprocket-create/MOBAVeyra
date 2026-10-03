@@ -19,7 +19,7 @@ namespace VeyraBattlegroundBuilder
 	FVeyraGreyboxLayout AsGreybox(const FVeyraBattlegroundLayout& Layout, const FVeyraGreyboxLayout& Greybox);
 
 	/** Each team's start at its fountain, facing the map's centre. Only the server uses them. */
-	void SpawnTeamStarts(UWorld& World, const FVeyraBattlegroundLayout& Layout);
+	bool SpawnTeamStarts(UWorld& World, const FVeyraBattlegroundLayout& Layout);
 
 	/** The floor, navigation bounds for a world already playing, and the team starts: what a network test needs. */
 	void SpawnRuntimeBattleground(UWorld& World, const FVeyraBattlegroundLayout& Layout, const FVeyraGreyboxLayout& Greybox, bool bServer);

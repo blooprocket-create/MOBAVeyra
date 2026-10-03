@@ -22,6 +22,10 @@ Runtime terrain already exists for Varkesh's Forge Divide (ADR-032):
 
 Every mover already paths on that navmesh. Vision has no line-of-sight test.
 
+## Author clarification (2026-10-02)
+
+The existing greybox wall shapes and layout are not approved canon. They are prototype geometry, not an artistic or level-design target for the production Crucible. Terrain sight blocking and fog of war remain required gameplay capabilities. The production terrain pass must validate both sides for fairness and keep the distinction between sight-blocking terrain and gameplay Dense Fog explicit.
+
 ## Decision
 
 ### 1. Walls are layout data (World: layout)

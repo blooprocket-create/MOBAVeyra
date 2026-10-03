@@ -37,7 +37,10 @@ void UVeyraTerrainSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-int32 UVeyraTerrainSubsystem::RaiseWall(const FVeyraWallRequest& Request)
+int32 UVeyraTerrainSubsystem::RaiseWall(const FVeyraWallRequest& Request) { return RaiseWallInternal(Request, false); }
+int32 UVeyraTerrainSubsystem::RaiseMapWall(const FVeyraWallRequest& Request) { return RaiseWallInternal(Request, true); }
+
+int32 UVeyraTerrainSubsystem::RaiseWallInternal(const FVeyraWallRequest& Request, bool bMapTerrain)
 {
 	UWorld* World = GetWorld();
 	const FVector Facing = Request.Facing.GetSafeNormal2D();
@@ -54,6 +57,7 @@ int32 UVeyraTerrainSubsystem::RaiseWall(const FVeyraWallRequest& Request)
 	{
 		return 0;
 	}
+	Wall->SetMapTerrain(bMapTerrain);
 	Wall->SetHalfExtent(FVector(Request.Thickness / 2.0, Request.Length / 2.0, Request.HalfHeight));
 	Wall->FinishSpawning(Where);
 	Wall->Form();

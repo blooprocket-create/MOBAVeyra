@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Layout/VeyraLayout.h"
+#include "Layout/VeyraTerrainProfile.h"
 
 #include "Algo/Reverse.h"
 #include "Tuning/VeyraWorldTuning.h"
@@ -160,8 +161,8 @@ bool IsJungle(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point)
 	{
 		return false;
 	}
-	// The river runs along the diagonal Y = -X.
-	if (FMath::Abs(Point.X + Point.Y) / UE_SQRT_2 <= Layout.RiverWidth / 2.0)
+	// Gameplay classification uses the same sampled banks as world authoring.
+	if (VeyraTerrainProfile::RiverDistance(Layout.Terrain, Point) <= 0.0)
 	{
 		return false;
 	}

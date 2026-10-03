@@ -62,8 +62,7 @@ namespace VeyraMinimapTests
 			ASSERT_THAT(IsTrue(View.Dots.IsEmpty(), TEXT("a world with no units has no dots")));
 			// The river crosses from corner to corner, and every wall of both halves stands on it (ADR-043 §4).
 			const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
-			ASSERT_THAT(IsTrue(View.River.Num() == 6 && View.River.Contains(FVector2D(1700.0, 860.0)) && View.River.Contains(FVector2D(1900.0, 1060.0)),
-				TEXT("from the top-left corner to the bottom-right")));
+			ASSERT_THAT(IsTrue(View.River.Num() > 6 && View.River.Num() % 3 == 0, TEXT("sampled river triangles")));
 			for (const FVector2D& Corner : View.River)
 			{
 				ASSERT_THAT(IsTrue(Corner.X >= 1700.0 - 1e-6 && Corner.X <= 1900.0 + 1e-6 && Corner.Y >= 860.0 - 1e-6 && Corner.Y <= 1060.0 + 1e-6, TEXT("cut to the map")));

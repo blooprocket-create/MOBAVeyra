@@ -40,7 +40,7 @@ namespace VeyraWorldTests
 
 			TMap<EVeyraTeam, FVector> Starts;
 			TArray<FBox> NavigationBounds;
-			TArray<FVector> FloorSizes;
+			int32 Landscapes = 0;
 			int32 Markers = 0;
 			for (const AActor* Actor : Map->PersistentLevel->Actors)
 			{
@@ -52,11 +52,10 @@ namespace VeyraWorldTests
 				{
 					NavigationBounds.Add(Bounds->GetBrushComponent()->CalcBounds(Bounds->GetActorTransform()).GetBox());
 				}
-				else if (const AStaticMeshActor* Ground = Cast<AStaticMeshActor>(Actor))
+				else if (Actor && Actor->ActorHasTag(TEXT("Veyra.AuthoredTerrain")))
 				{
-					const UStaticMesh* Mesh = Ground->GetStaticMeshComponent()->GetStaticMesh();
-					ASSERT_THAT(IsNotNull(Mesh));
-					FloorSizes.Add(Mesh->GetBoundingBox().GetSize() * Ground->GetActorScale3D());
+					ASSERT_THAT(IsTrue(Actor->GetClass()->GetFName() == TEXT("Landscape"), TEXT("continuous terrain is a Landscape")));
+					++Landscapes;
 				}
 				else if (Cast<AVeyraBattlegroundMarker>(Actor))
 				{
@@ -74,10 +73,9 @@ namespace VeyraWorldTests
 			}
 
 			ASSERT_THAT(AreEqual(1, NavigationBounds.Num()));
-			ASSERT_THAT(IsTrue(NavigationBounds[0].GetSize().Equals(VeyraGreybox::NavigationBoundsSize(Floor), Tolerance)));
+			ASSERT_THAT(IsTrue(NavigationBounds[0].GetSize().Equals(FVector(Layout.HalfExtent * 2.0, Layout.HalfExtent * 2.0, Layout.Surface.MaxZ - Layout.Surface.MinZ), Tolerance)));
 
-			ASSERT_THAT(AreEqual(1, FloorSizes.Num()));
-			ASSERT_THAT(IsTrue(FloorSizes[0].Equals(FVector(Floor.Floor.LengthX, Floor.Floor.WidthY, Floor.Floor.ThicknessZ), Tolerance)));
+			ASSERT_THAT(AreEqual(1, Landscapes));
 		}
 	};
 }

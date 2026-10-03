@@ -31,6 +31,7 @@
 #include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Layout/VeyraLayout.h"
+#include "Layout/VeyraTerrainProfile.h"
 #include "Ledger/VeyraFluxLedger.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Interfaces/IProjectManager.h"
@@ -367,6 +368,7 @@ namespace VeyraAbilitiesTests
 		{
 			ASSERT_THAT(IsNull(RefreshedGreybox().GetGround(), TEXT("a world with no battleground draws none")));
 			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
+			VeyraWorldTests::SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(VeyraWorldTests::CompactBattleground());
 			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
 
@@ -382,7 +384,7 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsNotNull(Ground));
 			TArray<UStaticMeshComponent*> Markings;
 			Ground->GetComponents(Markings);
-			ASSERT_THAT(AreEqual(1 + Stretches + 2 + VeyraLayout::DenseFog(Layout).Num(), Markings.Num()));
+			ASSERT_THAT(AreEqual(2 * (VeyraTerrainProfile::River(Layout.Terrain, false).Num() - 1) + Stretches + 2 + VeyraLayout::DenseFog(Layout).Num(), Markings.Num()));
 			for (const UStaticMeshComponent* Marking : Markings)
 			{
 				ASSERT_THAT(IsTrue(Marking->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Marking->CanEverAffectNavigation(),
@@ -439,6 +441,7 @@ namespace VeyraAbilitiesTests
 
 			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			const FVeyraBattlegroundLayout Layout = VeyraWorldTests::CompactBattleground();
+			VeyraWorldTests::SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(Layout);
 			AVeyraFluxborn* Strider = Battleground->SpawnFluxborn(FVeyraContentId::FromText(TEXT("strider")).GetValue(), EVeyraTeam::B, Layout.Lanes[0].Lane);
 			ASSERT_THAT(IsNotNull(Strider));

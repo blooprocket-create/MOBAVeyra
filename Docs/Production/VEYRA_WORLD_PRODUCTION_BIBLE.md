@@ -87,6 +87,9 @@ Final environment art must preserve that separation. A beautiful decorative towe
 
 ## 4. Protected competitive geometry
 
+**Production redesign authorization (author ruling, 2026-10-02):** the Battleground Bible section 2 opens the current spatial arrangement to redesign. Only three lanes, a river, inner jungle between the lanes, and outer jungle beyond top and bot are fixed spatial requirements. Existing coordinates and blocker layouts are prototype inputs, not canon. Terrain fairness, terrain sight blocking and fog of war remain required. During this pass, intentional layout edits belong in World.json and must be reported and validated; art generation must consume the resulting layout without silently changing it. The protection rules below apply to the selected gameplay layout and do not prohibit this explicitly authorized redesign.
+
+
 The following are protected and may not be altered by ordinary art dressing, Blender generation, PCG, foliage placement, water decoration, or lighting work:
 
 - lane/Fluxway centerlines;

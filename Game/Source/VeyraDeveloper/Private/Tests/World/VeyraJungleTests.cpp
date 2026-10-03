@@ -98,6 +98,7 @@ namespace VeyraWorldTests
 			WorldTuning->Tuning.Wildlife.Camps = { Camp };
 			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			ASSERT_THAT(IsNotNull(Battleground));
+			SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(CompactBattleground());
 			Jungle = Spawner.GetWorld().GetSubsystem<UVeyraJungleSubsystem>();
 			ASSERT_THAT(IsNotNull(Jungle));

@@ -171,6 +171,7 @@ namespace VeyraWorldTests
 		{
 			Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			ASSERT_THAT(IsNotNull(Battleground));
+			SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(CompactBattleground());
 			Spire = Battleground->FindStructure(EVeyraTeam::B, EVeyraStructureKind::LaneSpire, EVeyraLane::Mid, 0);
 			ASSERT_THAT(IsNotNull(Spire));

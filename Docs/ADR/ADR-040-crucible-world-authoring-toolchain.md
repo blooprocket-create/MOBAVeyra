@@ -179,3 +179,15 @@ Rejected. PCG is a constrained environment-production system, not the owner of l
 ### Hand-sculpt the final .umap and treat it as canon
 
 Rejected. It would make the binary map the hidden source of truth and break deterministic regeneration.
+
+## Implementation contract — first production pass (2026-10-02)
+
+The implementation lives in [`Game/Plugins/VeyraWorldTools`](../../Game/Plugins/VeyraWorldTools/README.md). Its sealed editor module registers `IVeyraWorldAuthoring`; the existing battleground commandlet consumes that optional service and refuses generation when it is absent. Production modules never query it or depend on it.
+
+`World.json` schema 5 adds validated surface-search limits and a terrain profile. Explicit river controls carry full widths and are sampled once by `FVeyraTerrainSampler` for dense authoring. The reflected channel is derived, never stored as a second layout. Height evaluation, river classification, Water splines and minimap ribbons consume this geometry. The old scalar diagonal `riverWidth` is removed. Runtime placement resolves world-static playable ground, excludes terrain-wall tops, checks slope, and refuses missing ground rather than substituting Z=0.
+
+The author's map ruling in Battleground section 2 supersedes preservation of the greybox's specific spatial design. This pass intentionally replaces its blocking arrangement with angled jungle shelves and curved banks, while deriving both teams' geometry from the same source. Lane count, river, inner jungle, outer jungle, terrain fairness and authoritative sight blocking remain requirements. Existing bases/objectives remain provisional selected anchors, not newly canonized coordinates.
+
+Landscape generation creates continuous collision ground and weighted lane, bank, jungle and exterior materials. Water disables landscape carving before editor actor-added callbacks run. PCG receives already constrained points, bakes them to ordinary non-colliding instances, verifies counts, and removes the generator components. Style profiles contain presentation parameters only. Generated cameras target layout-derived locations. Every pass still requires the complete World Validation Standard; implementing this contract does not by itself establish acceptance.
+
+The merged ADR-054 seen-ground grid remains Vision-owned. UI terrain-following fog tiles and ground telegraphs use World surface resolution. Presentation tessellation does not change sight-cell resolution, information replication or terrain occlusion.

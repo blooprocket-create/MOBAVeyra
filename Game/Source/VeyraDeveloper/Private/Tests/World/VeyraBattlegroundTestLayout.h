@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "Components/BoxComponent.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
 #include "Tuning/VeyraWorldTuning.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 
@@ -15,7 +18,9 @@ namespace VeyraWorldTests
 	{
 		FVeyraBattlegroundLayout Layout;
 		Layout.HalfExtent = 3000.0;
-		Layout.RiverWidth = 400.0;
+		Layout.Surface = UVeyraWorldTuningSubsystem::Get().Layout.Surface;
+		Layout.Terrain = UVeyraWorldTuningSubsystem::Get().Layout.Terrain;
+		Layout.Terrain.RiverControls = { { -3000.0, 3000.0, 400.0 }, { 3000.0, -3000.0, 400.0 } };
 		FVeyraLaneLayout& Lane = Layout.Lanes.AddDefaulted_GetRef();
 		Lane.Lane = EVeyraLane::Mid;
 		Lane.Points = { { -1500.0, -1500.0 }, { 1500.0, 1500.0 } };
@@ -30,6 +35,23 @@ namespace VeyraWorldTests
 		Layout.Base.PadRadius = 800.0;
 		Layout.Base.FountainRadius = 300.0;
 		return Layout;
+	}
+
+	/** Real collision ground for tests that previously relied on implicit Z=0. Fixture dimensions only. */
+	inline void SpawnCompactGround(UWorld& World)
+	{
+		const double HalfExtent = CompactBattleground().HalfExtent;
+		AActor* Floor = World.SpawnActor<AActor>();
+		UBoxComponent* Box = NewObject<UBoxComponent>(Floor);
+		Floor->SetRootComponent(Box);
+		Box->SetBoxExtent(FVector(HalfExtent, HalfExtent, 50.0));
+		Box->SetCollisionObjectType(ECC_WorldStatic);
+		Box->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Box->SetCollisionResponseToAllChannels(ECR_Block);
+		// These rule fixtures query ground but intentionally place combatants at arbitrary heights.
+		Box->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		Box->RegisterComponent();
+		Floor->SetActorLocation(FVector(0.0, 0.0, -50.0));
 	}
 
 	/** World tuning a test may change, starting from the committed one. Get() returns it while this object lives. */

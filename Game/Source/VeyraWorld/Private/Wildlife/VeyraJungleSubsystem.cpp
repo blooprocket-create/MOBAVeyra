@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Layout/VeyraLayout.h"
+#include "Terrain/VeyraSurfacePlacement.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraWildlifeRules.h"
 #include "TimerManager.h"
@@ -117,7 +118,12 @@ int32 UVeyraJungleSubsystem::SpawnCamp(int32 Index)
 	for (const FVector2D& Spot : VeyraWildlifeRules::Positions(Camp.Center, CampTuning.Count, CampTuning.Spacing))
 	{
 		// On the floor, facing out from the camp's heart.
-		const FVector Home(Spot, Species->CapsuleHalfHeight);
+		FVector Home;
+		if (!VeyraSurfacePlacement::Resolve(*World, Spot, Species->CapsuleHalfHeight, Tuning.Layout.Surface, Home))
+		{
+			UE_LOG(LogVeyraWorld, Error, TEXT("Wildlife placement has no playable surface at %s."), *Spot.ToString());
+			continue;
+		}
 		const FRotator Facing = (Spot - Camp.Center).IsNearlyZero() ? FRotator::ZeroRotator : FVector(Spot - Camp.Center, 0.0).Rotation();
 		AVeyraWildlife* Creature = World->SpawnActorDeferred<AVeyraWildlife>(AVeyraWildlife::StaticClass(), FTransform(Facing, Home), nullptr, nullptr,
 			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);

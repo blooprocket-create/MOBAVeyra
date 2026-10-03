@@ -42,6 +42,7 @@
 #include "Settings/VeyraDisplayRules.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Layout/VeyraLayout.h"
+#include "Layout/VeyraTerrainProfile.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Kismet/GameplayStatics.h"
@@ -54,6 +55,7 @@
 #include "Structures/VeyraStructure.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Terrain/VeyraTerrainWall.h"
+#include "Terrain/VeyraSurfacePlacement.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -93,6 +95,15 @@ bool UVeyraGreyboxSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 	// Presentation is for worlds someone watches: game and play-in-editor worlds, never a dedicated server's.
 	const UWorld* World = Cast<UWorld>(Outer);
 	return World && World->IsGameWorld() && World->GetNetMode() != NM_DedicatedServer && Super::ShouldCreateSubsystem(Outer);
+}
+
+void UVeyraGreyboxSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+	for (TActorIterator<AActor> It(&InWorld); It; ++It)
+	{
+		if (It->ActorHasTag(TEXT("Veyra.AuthoredTerrain"))) { bAuthoredTerrain = true; break; }
+	}
 }
 
 void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -738,10 +749,29 @@ void UVeyraGreyboxSubsystem::RefreshFogOfWar()
 	for (const FVeyraUnseenRun& Run : VeyraFogOfWar::UnseenRuns(*Ground))
 	{
 		const FBox2D Box = VeyraFogOfWar::BoundsOf(*Ground, Run);
-		const double Z = GroundUnder(FVector(Box.GetCenter(), 0.0)).Z - Settings.TelegraphLift + Settings.FogOfWarLift;
-		const int32 Base = Vertices.Num();
-		Vertices.Append({ FVector(Box.Min.X, Box.Min.Y, Z), FVector(Box.Max.X, Box.Min.Y, Z), FVector(Box.Max.X, Box.Max.Y, Z), FVector(Box.Min.X, Box.Max.Y, Z) });
-		Indices.Append({ Base, Base + 1, Base + 2, Base, Base + 2, Base + 3, Base, Base + 2, Base + 1, Base, Base + 3, Base + 2 });
+		const int32 Subdivisions = bAuthoredTerrain ? FMath::Max(1, FMath::CeilToInt(Ground->CellSize / Settings.FogOfWarSurfaceStep)) : 1;
+		const int32 Columns = (Run.Last - Run.First + 1) * Subdivisions;
+		const double Step = Ground->CellSize / Subdivisions;
+		auto Vertex = [&](double X, double Y) {
+			const FVector2D Point(X, Y);
+			double* Cached = FogSurfaceHeights.Find(Point);
+			if (!Cached)
+			{
+				Cached = &FogSurfaceHeights.Add(Point, GroundUnder(FVector(Point, 0.0)).Z - Settings.TelegraphLift);
+			}
+			return FVector(Point, *Cached + Settings.FogOfWarLift);
+		};
+		for (int32 Y = 0; Y < Subdivisions; ++Y)
+		{
+			for (int32 X = 0; X < Columns; ++X)
+			{
+				const FVector2D Low = Box.Min + FVector2D(X * Step, Y * Step);
+				const FVector2D High = Low + FVector2D(Step);
+				const int32 Base = Vertices.Num();
+				Vertices.Append({ Vertex(Low.X, Low.Y), Vertex(High.X, Low.Y), Vertex(High.X, High.Y), Vertex(Low.X, High.Y) });
+				Indices.Append({ Base, Base + 1, Base + 2, Base, Base + 2, Base + 3, Base, Base + 2, Base + 1, Base, Base + 3, Base + 2 });
+			}
+		}
 	}
 	if (!Vertices.IsEmpty())
 	{
@@ -1037,7 +1067,7 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 	for (TActorIterator<AVeyraTerrainWall> It(GetWorld()); It; ++It)
 	{
 		AVeyraTerrainWall& Wall = **It;
-		if (Wall.GetHalfExtent().GetMin() <= 0.0 || (Bodies.Contains(&Wall) && Bodies.FindChecked(&Wall).Mesh.IsValid()))
+		if ((bAuthoredTerrain && Wall.IsMapTerrain()) || Wall.GetHalfExtent().GetMin() <= 0.0 || (Bodies.Contains(&Wall) && Bodies.FindChecked(&Wall).Mesh.IsValid()))
 		{
 			continue;
 		}
@@ -1129,31 +1159,44 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 	GroundMarkings = Owner;
 
 	const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
-	// The river crosses the floor corner to corner along Y = -X (Battleground Bible §2).
-	const double Diagonal = Layout.HalfExtent * UE_DOUBLE_SQRT_2;
-	AddGroundMarking(*Owner, *GroundMesh, Settings.RiverColor, FVector2D::ZeroVector, -45.0, FVector2D(Diagonal, Layout.RiverWidth / 2.0), 1);
-	// Each stretch of road reaches a half width past its ends, so the bends join.
-	for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+	if (!bAuthoredTerrain)
 	{
-		for (int32 Index = 0; Index + 1 < Lane.Points.Num(); ++Index)
+		// Flat fixtures still show the authored river; production terrain supplies its own water.
+		for (const bool bMirror : { false, true })
 		{
-			const FVector2D From = VeyraLayout::ToVector(Lane.Points[Index]);
-			const FVector2D To = VeyraLayout::ToVector(Lane.Points[Index + 1]);
-			const FVector2D Along = To - From;
-			const double Yaw = FMath::RadiansToDegrees(FMath::Atan2(Along.Y, Along.X));
-			AddGroundMarking(*Owner, *GroundMesh, Settings.LaneColor, (From + To) / 2.0, Yaw, FVector2D((Along.Size() + Lane.Width) / 2.0, Lane.Width / 2.0), 2);
+			const auto Samples = VeyraTerrainProfile::River(Layout.Terrain, bMirror);
+			for (int32 I = 1; I < Samples.Num(); ++I)
+			{
+				const auto& A = Samples[I - 1];
+				const auto& B = Samples[I];
+				const FVector2D Along = B.Point - A.Point;
+				AddGroundMarking(*Owner, *GroundMesh, Settings.RiverColor, (A.Point + B.Point) / 2.0,
+					FMath::RadiansToDegrees(FMath::Atan2(Along.Y, Along.X)), FVector2D(Along.Size() / 2.0, (A.Width + B.Width) / 4.0), 1);
+			}
+		}
+		// Each stretch of road reaches a half width past its ends, so the bends join.
+		for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+		{
+			for (int32 Index = 0; Index + 1 < Lane.Points.Num(); ++Index)
+			{
+				const FVector2D From = VeyraLayout::ToVector(Lane.Points[Index]);
+				const FVector2D To = VeyraLayout::ToVector(Lane.Points[Index + 1]);
+				const FVector2D Along = To - From;
+				const double Yaw = FMath::RadiansToDegrees(FMath::Atan2(Along.Y, Along.X));
+				AddGroundMarking(*Owner, *GroundMesh, Settings.LaneColor, (From + To) / 2.0, Yaw, FVector2D((Along.Size() + Lane.Width) / 2.0, Lane.Width / 2.0), 2);
+			}
+		}
+		const FVector2D PrimeWell = VeyraLayout::ToVector(Layout.Base.PrimeWell);
+		PadMaterials.Reset();
+		PadsDrawnFor = GetViewerTeam();
+		for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+		{
+			UMaterialInstanceDynamic* Material =
+				AddGroundMarking(*Owner, *PadMesh, BaseColorOf(Team), VeyraLayout::ForTeam(PrimeWell, Team), 0.0, FVector2D(Layout.Base.PadRadius), 3);
+			PadMaterials.Add(Team, Material);
 		}
 	}
-	const FVector2D PrimeWell = VeyraLayout::ToVector(Layout.Base.PrimeWell);
-	PadMaterials.Reset();
-	PadsDrawnFor = GetViewerTeam();
-	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
-	{
-		UMaterialInstanceDynamic* Material =
-			AddGroundMarking(*Owner, *PadMesh, BaseColorOf(Team), VeyraLayout::ForTeam(PrimeWell, Team), 0.0, FVector2D(Layout.Base.PadRadius), 3);
-		PadMaterials.Add(Team, Material);
-	}
-	// The Dense Fog, the battleground's bush, on top: a player sees where it lies, not who is in it.
+	// Dense Fog is marked on top: a player sees where it lies, not who is in it.
 	for (const FVeyraFogPlacement& Fog : VeyraLayout::DenseFog(Layout))
 	{
 		AddGroundMarking(*Owner, *PadMesh, Settings.DenseFogColor, Fog.Center, 0.0, FVector2D(Fog.Radius), FogMarkingLayer);
@@ -1350,14 +1393,8 @@ FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const
 {
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const FVector Lift = FVector::UpVector * Settings.TelegraphLift;
-	FCollisionObjectQueryParams Ground;
-	Ground.AddObjectTypesToQuery(ECC_WorldStatic);
-	Ground.AddObjectTypesToQuery(ECC_WorldDynamic);
-	FHitResult Hit;
-	const FVector Start = Location + Lift;
-	const FVector End = Location - FVector::UpVector * Settings.GroundProbeDistance;
-	const bool bFound = GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, Ground, FCollisionQueryParams(SCENE_QUERY_STAT(VeyraGreyboxGround), false));
-	return (bFound ? FVector(Hit.ImpactPoint) : Location) + Lift;
+	FVector Surface;
+	return (VeyraSurfacePlacement::Resolve(*GetWorld(), FVector2D(Location), 0.0, UVeyraWorldTuningSubsystem::Get().Layout.Surface, Surface) ? Surface : Location) + Lift;
 }
 
 void UVeyraGreyboxSubsystem::DrawVisionMarks()
@@ -1499,7 +1536,7 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
 		{
 			// A lifetime of 0 keeps the line until the next refresh flushes it.
-			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Thickness, 0.0f);
+			TelegraphLines->DrawLine(GroundUnder(Segment.Start), GroundUnder(Segment.End), Color, SDPG_World, Thickness, 0.0f);
 		}
 	}
 }

@@ -10,6 +10,7 @@
 #include "Fluxborn/VeyraFluxbornController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Layout/VeyraLayout.h"
+#include "Terrain/VeyraSurfacePlacement.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraStructureRules.h"
 #include "Rules/VeyraWaveRules.h"
@@ -97,7 +98,13 @@ void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 		Structure->Configure(Placement);
 		// Its capsule stands on the floor.
-		const FVector Location(Placement.Location.X, Placement.Location.Y, Structure->GetTuning().CapsuleHalfHeight);
+		FVector Location;
+		if (!VeyraSurfacePlacement::Resolve(*World, Placement.Location, Structure->GetTuning().CapsuleHalfHeight, InLayout.Surface, Location))
+		{
+			UE_LOG(LogVeyraWorld, Error, TEXT("Structure placement has no playable surface at %s."), *Placement.Location.ToString());
+			Structure->Destroy();
+			continue;
+		}
 		Structure->FinishSpawning(FTransform(Location));
 		Structure->InitializeStats();
 		Structures.Add(Structure);
@@ -125,12 +132,16 @@ void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InL
 	{
 		FVeyraWallRequest Request;
 		// Standing on the floor.
-		Request.Centre = FVector(Box.Centre, InLayout.WallHalfHeight);
+		if (!VeyraSurfacePlacement::Resolve(*GetWorld(), Box.Centre, InLayout.WallHalfHeight, InLayout.Surface, Request.Centre))
+		{
+			UE_LOG(LogVeyraWorld, Error, TEXT("Map wall has no playable surface at %s."), *Box.Centre.ToString());
+			continue;
+		}
 		Request.Facing = FVector(Box.Facing, 0.0);
 		Request.Length = Box.Length;
 		Request.Thickness = Box.Thickness;
 		Request.HalfHeight = InLayout.WallHalfHeight;
-		Raised += Terrain && Terrain->RaiseWall(Request) != 0 ? 1 : 0;
+		Raised += Terrain && Terrain->RaiseMapWall(Request) != 0 ? 1 : 0;
 	}
 	if (Raised > 0)
 	{
@@ -182,7 +193,12 @@ AVeyraFluxborn* UVeyraBattlegroundSubsystem::SpawnFluxborn(const FVeyraContentId
 	Waypoints.Add(VeyraLayout::ForTeam(VeyraLayout::ToVector(Layout->Base.PrimeWell), VeyraTeams::Opposing(Team)));
 	// It spawns in front of its inhibitor, on the floor, facing up the lane.
 	const FVector2D SpawnPoint = VeyraLayout::ForTeam(VeyraLayout::PointAlong(LaneLayout->Points, LaneLayout->FluxbornSpawnDistance), Team);
-	const FVector Start(SpawnPoint, Definition->CapsuleHalfHeight);
+	FVector Start;
+	if (!VeyraSurfacePlacement::Resolve(*World, SpawnPoint, Definition->CapsuleHalfHeight, Layout->Surface, Start))
+	{
+		UE_LOG(LogVeyraWorld, Error, TEXT("Fluxborn placement has no playable surface at %s."), *SpawnPoint.ToString());
+		return nullptr;
+	}
 	const FRotator Facing = FVector(Waypoints[1] - Waypoints[0], 0.0).Rotation();
 
 	AVeyraFluxborn* Unit = World->SpawnActorDeferred<AVeyraFluxborn>(AVeyraFluxborn::StaticClass(), FTransform(Facing, Start), nullptr, nullptr,

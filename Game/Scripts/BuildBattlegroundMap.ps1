@@ -4,10 +4,9 @@
     Regenerates the battleground map from its layout.
 .DESCRIPTION
     Runs the VeyraBattlegroundMap commandlet headless. It reads the layout in Game/Tuning/World.json
-    (with the grey box's build settings in Game/Source/VeyraDeveloper/Greybox/Greybox.json) and saves
-    Game/Content/Veyra/World/Maps/L_Battleground.umap, replacing the file: the floor, each team's
-    start at its fountain, navigation bounds, a sun, and the marker that has the server spawn the
-    structures (ADR-011 §12). The editor must already be built (Build.ps1 -Target VeyraEditor).
+    and the VeyraWorldTools style profile, then replaces L_Battleground.umap with Landscape,
+    Water, baked PCG environment, review cameras, team starts, navigation bounds and the
+    server's battleground marker. The editor must already be built (Build.ps1 -Target VeyraEditor).
 
     The map is a lockable Git LFS file (ADR-006 §9): lock it before committing a new version.
     The log goes to Game/Saved/Logs/BuildBattlegroundMap.log.
@@ -41,16 +40,33 @@ $arguments = @(
     '-run=VeyraBattlegroundMap'
     "-ABSLOG=`"$logFile`""
     '-unattended'
-    '-nullrhi'
+    '-AllowCommandletRendering'
+    '-RenderOffscreen'
+    '-NoTextureStreaming'
     '-nosplash'
     '-nosound'
 ) -join ' '
 
 Write-Host 'Building the battleground map.'
-$process = Start-Process -FilePath $editor -ArgumentList $arguments -NoNewWindow -PassThru -Wait
+$process = Start-Process -FilePath $editor -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
 if ($process.ExitCode -ne 0) {
     Write-Host "The commandlet failed with exit code $($process.ExitCode). Log: $logFile"
     exit 1
 }
+$repoDir = Split-Path -Parent $gameDir
+$sourcePaths = @('Game/Tuning/World.json', 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json', 'Game/ArtSource/Environment/CrucibleKit.json')
+$inputs = @($sourcePaths | ForEach-Object {
+    @{ path = $_; sha256 = (Get-FileHash -LiteralPath (Join-Path $repoDir $_) -Algorithm SHA256).Hash.ToLowerInvariant() }
+})
+$regions = @(Get-ChildItem -LiteralPath (Join-Path $gameDir 'Saved/WorldGeneration/Regions') -Filter '*.json' | Sort-Object Name | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json })
+$map = Join-Path $gameDir 'Content/Veyra/World/Maps/L_Battleground.umap'
+$manifest = @{
+    generator = 'VeyraWorldTools'; version = 1; status = 'generated';
+    generatedUtc = [DateTime]::UtcNow.ToString('o');
+    inputs = $inputs; regions = $regions;
+    output = @{ path = 'Game/Content/Veyra/World/Maps/L_Battleground.umap'; sha256 = (Get-FileHash -LiteralPath $map -Algorithm SHA256).Hash.ToLowerInvariant() };
+    validation = 'Generation only; visual, navigation, performance and package acceptance are separate checks.'
+}
+$manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $gameDir 'Saved/WorldGeneration/manifest.json') -Encoding utf8
 Write-Host "Saved the battleground map. Log: $logFile"
 exit 0
