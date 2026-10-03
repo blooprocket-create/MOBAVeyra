@@ -1359,7 +1359,7 @@ else {
 
 if ($NetStatsSeconds -gt 0) {
     Write-Host 'Server network statistics:'
-    Select-String -LiteralPath $serverLogPath -Pattern 'VeyraNetStats: window=.*' | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
+    Select-String -LiteralPath $serverLogPath -Pattern 'VeyraNetStats: (window|client)=.*' | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
 }
 
 if ($PlayingBots -gt 0) {

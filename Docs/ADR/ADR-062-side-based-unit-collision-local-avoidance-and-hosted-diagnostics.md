@@ -53,8 +53,20 @@ Allies who overlap are pushed apart on the server, at a configured speed and onl
 When the Worker's recorded tunnel is gone, Cloudflare answers with an origin error (502, 520–530). The Worker treats those as the host being offline and shows the offline page.
 
 ### 6. The Docker path and smoothing
-- **Measuring:** the milestone measures a bot-filled battleground on the Docker server, on a native server and under emulated latency.
-- **What it decides:** the numbers decide whether the Docker path's UDP forwarding needs a change to ADR-057, and whether Vanguard replication or client smoothing needs retuning.
+- **Measuring:** the milestone measured a full 5v5 battleground (two clients and eight playing bots, 2026-10-03) on the Docker server and on a native server on the same PC, with network statistics every 10 s.
+
+| | Docker server | Native server |
+|---|---|---|
+| Server busy per frame, average (worst steady) | 1.3–3.3 ms (≈11 ms) | 2.0–5.0 ms (≈14 ms) |
+| Round trip per connection | 30–33 ms | 29–32 ms |
+| Jitter | 3–6.5 ms | 2–6.5 ms |
+| Packet loss | 0% | 0% |
+| Sent per client | ≤ 10 KB/s | ≤ 9.5 KB/s |
+
+- **The Docker path:** it adds nothing measurable, so ADR-057 stands.
+- **The server:** it uses about a tenth of its 33 ms frame with about 180 replicated actors, and bandwidth is far inside ADR-006 §5's budgets.
+- **The round trip** has a floor near 30 ms even on one machine: an order waits for the server's next 30 Hz tick, and so does its answer. A remote player's network round trip adds to that. Hosted logs now record each player's.
+- **The feel work** therefore targets what the player sees between a click and the server's answer (G5: instant click feedback), and the stop-and-slide near waves (§1–§3).
 - **No prediction:** movement prediction stays out of scope (ADR-009 §6).
 
 ### 7. Provisional answers where canon is open
