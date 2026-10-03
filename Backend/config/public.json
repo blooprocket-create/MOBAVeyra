@@ -157,6 +157,9 @@
   "settings": {
     "maxDocumentBytes": 32768
   },
+  "favorites": {
+    "maxPerAccount": 64
+  },
   "customLobby": {
     "enabled": true,
     "mode": "custom_game",
