@@ -291,6 +291,24 @@ namespace VeyraShellTests
 				FString(TEXT("Someone is still in a match, champion select or queue."))));
 		}
 
+		TEST_METHOD(ARestrictedMemberHoldsThePartyBackAndSaysForHowLong)
+		{
+			// ADR-060 §3: Find Match waits, and the party sees who holds it back and for how long.
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.State = EVeyraClientState::Shell;
+			Snapshot.AccountId = AccountId;
+			FString Problem;
+			TOptional<VeyraBackendProtocol::FParty> Party;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(PartyBody(TEXT("idle"), true), Party, Problem), Problem));
+			Party->Members[0].RestrictedSeconds = 125.0;
+			Snapshot.Party = Party;
+			const FString Status = VeyraShellModels::DescribeParty(Snapshot, true, true, false).Status.ToString();
+			ASSERT_THAT(AreEqual(Status, FString(TEXT("You left champion select and can't queue for 2:05."))));
+			ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Shell, EVeyraClientIntent::BlockByName)));
+			ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Results, EVeyraClientIntent::BlockByName)));
+			ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Selecting, EVeyraClientIntent::BlockByName)));
+		}
+
 		TEST_METHOD(PartyAndModeModels)
 		{
 			FVeyraClientSnapshot Snapshot;

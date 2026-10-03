@@ -377,6 +377,11 @@ namespace VeyraBackendProtocol
 		FString DisplayName;
 		bool bReady = false;
 		bool bLeader = false;
+		/**
+		 * How long the member cannot queue yet after leaving a matchmade champion select, in seconds, as last read; 0 when
+		 * free (ADR-060 §3). It holds the whole party back.
+		 */
+		double RestrictedSeconds = 0.0;
 	};
 
 	/** Who may join a party without an invitation (Parties & Social Bible §1). The leader's to choose. */
@@ -404,6 +409,9 @@ namespace VeyraBackendProtocol
 		VEYRASERVICES_API const FPartyMember* Find(const FString& AccountId) const;
 		/** Whether every member is Ready. */
 		VEYRASERVICES_API bool AllReady() const;
+
+		/** The member who cannot queue yet the longest, which holds the party back (ADR-060 §3); null when every member is free. */
+		VEYRASERVICES_API const FPartyMember* RestrictedMember() const;
 	};
 
 	/**

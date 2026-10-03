@@ -64,6 +64,7 @@ FVeyraPlayerMenuModel DescribeMenu(const FVeyraClientSnapshot& Snapshot, const F
 	Model.bOffersCommend = Can.bCanCommend && Player->bTeammate && Record.Commended.IsEmpty();
 	Model.bOffersReport = Can.bCanReport;
 	Model.bOffersProfile = Can.bCanViewProfile;
+	Model.bOffersBlock = Can.bCanBlock && !ConductAccountNamed(Snapshot.Social.Blocked, Name);
 	if (Record.Commended == Name)
 	{
 		Model.Notes.Add(LOCTEXT("Commended", "Commended"));

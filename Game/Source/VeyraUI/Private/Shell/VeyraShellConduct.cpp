@@ -14,6 +14,7 @@
 #include "Shell/VeyraConductModels.h"
 #include "Shell/VeyraProfileModels.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -40,6 +41,7 @@ void UVeyraShellScreen::TogglePlayerMenu(const FString& Name)
 {
 	OpenPlayerMenu = OpenPlayerMenu == Name ? FString() : Name;
 	ReportFormName.Reset();
+	BlockConfirmName.Reset();
 	ReportReason.Reset();
 	ReportDetailsDraft.Reset();
 	Refresh();
@@ -54,6 +56,7 @@ void UVeyraShellScreen::BuildPlayerMenu(const FVeyraClientSnapshot& Snapshot, co
 	Can.bCanCommend = Client->CanIssue(EVeyraClientIntent::CommendTeammate);
 	Can.bCanReport = Client->CanIssue(EVeyraClientIntent::ReportPlayer);
 	Can.bCanViewProfile = Client->CanIssue(EVeyraClientIntent::OpenProfile);
+	Can.bCanBlock = Client->CanIssue(EVeyraClientIntent::BlockByName);
 	const FVeyraPlayerMenuModel Model = VeyraConductModels::DescribeMenu(Snapshot, Name, Can);
 	UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing));
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
@@ -101,9 +104,35 @@ void UVeyraShellScreen::BuildPlayerMenu(const FVeyraClientSnapshot& Snapshot, co
 			Refresh();
 		});
 	}
+	// Block, from the player list (Parties & Social Bible §6; ADR-060 §5); it asks first, as the friends card does.
+	const bool bConfirmingBlock = Model.bOffersBlock && BlockConfirmName == Name;
+	if (Model.bOffersBlock && !bConfirmingBlock)
+	{
+		AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::BlockLabel(Name), LOCTEXT("MenuBlock", "Block"), [this, Name] {
+			BlockConfirmName = Name;
+			Refresh();
+		});
+	}
 	if (Actions->GetChildrenCount() > 0)
 	{
 		VeyraShellStyle::AddSpaced(*Rows, *Actions);
+	}
+	if (bConfirmingBlock)
+	{
+		AddText(*Rows, VeyraShellModels::ConfirmBlockPrompt(Name), ConductRole(EVeyraShellText::Muted));
+		UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		AddNamedButton(*Answers, EVeyraShellButtonKind::Primary, VeyraShellModels::ConfirmBlockLabel(Name), LOCTEXT("MenuConfirmBlock", "Block"),
+			[this, Name] {
+				BlockConfirmName.Reset();
+				Client->BlockByName(Name);
+				Refresh();
+			},
+			Client->CanIssue(EVeyraClientIntent::BlockByName));
+		AddNamedButton(*Answers, EVeyraShellButtonKind::Quiet, VeyraShellModels::CancelConfirmLabel(), LOCTEXT("MenuCancelBlock", "Cancel"), [this] {
+			BlockConfirmName.Reset();
+			Refresh();
+		});
+		VeyraShellStyle::AddSpaced(*Rows, *Answers);
 	}
 	VeyraShellStyle::AddSpaced(Parent, *Card);
 }
