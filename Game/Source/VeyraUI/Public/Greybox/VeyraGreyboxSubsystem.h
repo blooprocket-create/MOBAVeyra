@@ -136,6 +136,9 @@ public:
 	/** A structure's art, once drawn; null for any other unit. */
 	UStaticMeshComponent* FindArt(const AActor& Unit) const;
 
+	/** A Vanguard's generated, animated body, once drawn (ADR-064 §3); null for any other unit and a Vanguard without art. */
+	class USkeletalMeshComponent* FindSkin(const AActor& Unit) const;
+
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
 
@@ -206,10 +209,13 @@ private:
 		TWeakObjectPtr<UMaterialInstanceDynamic> ArtFlux;
 		FLinearColor ArtShown = FLinearColor::Transparent;
 
+		/** A Vanguard's generated body, which its animation moves; its body lies under its feet as a disc (ADR-064 §3). */
+		TWeakObjectPtr<class USkeletalMeshComponent> Skin;
+
 		/** What its cues have it doing, and the hit flash's overlay, once it has flashed (ADR-063 §2). */
 		FVeyraBodyFeedbackState Feedback;
 		TWeakObjectPtr<UMaterialInstanceDynamic> Flash;
-		TWeakObjectPtr<UStaticMeshComponent> Flashing;
+		TWeakObjectPtr<class UMeshComponent> Flashing;
 	};
 
 	/** Notes a cue in its unit's body, and plays its effect. */
@@ -263,6 +269,12 @@ private:
 
 	/** Dresses Unit in its kind's art, active or collapsed as it is, its Flux in its body's colour, once its kind is known and has art. */
 	void RefreshFluxbornArt(const class AVeyraFluxborn& Unit, FBody& Body);
+
+	/**
+	 * Dresses Unit in its Vanguard's generated body once its Vanguard is known and has art, and tells its animation what
+	 * it is doing. Its body becomes a disc under its feet, keeping its side's colour and its status tint.
+	 */
+	void RefreshVanguardArt(const class AVeyraVanguardCharacter& Unit, FBody& Body);
 
 	/**
 	 * Draws Mesh over Unit in place of its body, its pivot at the capsule's foot, and colours the art set's Flux
@@ -394,6 +406,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> PadMesh;
+
+	/** The Vanguards' generated bodies (ADR-064 §3), loaded with the settings. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UVeyraVanguardArtSet> VanguardArt;
 
 	/** The structure kit's and the Fluxborn kit's art sets, loaded with the settings. */
 	UPROPERTY(Transient)

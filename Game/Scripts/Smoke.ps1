@@ -509,7 +509,8 @@ if ($Handoff -or $Flow) {
     # A standard match pairs two accounts on opposite sides; a practice match is its host alone, on
     # the host's side. Standard players play the developer test Vanguard, whose Q the script casts;
     # the host plays a released Vanguard, as a player would, and with -Flow chooses it as the starter.
-    $PracticeVanguard = 'cairn'
+    # A starter with a generated, animated body (ADR-064), so its captures show one.
+    $PracticeVanguard = 'qazharr'
     # -Flow Casual: picks are unique in a matchmade select, so each player locks its own.
     $CasualVanguards = @('cairn', 'oriel')
     # -Flow Collection: the Flux the development route grants, enough for any one Vanguard (a fixture value).

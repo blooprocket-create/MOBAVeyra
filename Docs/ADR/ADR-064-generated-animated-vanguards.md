@@ -55,7 +55,8 @@
   - An attack's windup plays at the rate that ends it when the replicated windup ends, so a fast attacker swings fast.
   - Death plays and holds until the unit lives again. Recall loops while the unit recalls.
   - It holds no gameplay logic, and nothing reads it back.
-- **The swap:** the grey-box presentation replaces a Vanguard's cylinder with its skeletal mesh through the art set, as kit art replaces Fluxborn and structures. The capsule, its collision and its movement do not change.
+- **The swap:** the grey-box presentation dresses a Vanguard in its skeletal mesh through the art set, as kit art dresses Fluxborn and structures. The capsule, its collision and its movement do not change.
+  - The cylinder becomes a thin disc under the body's feet, in the colour it showed: the viewer's own, ally or enemy, tinted while stunned, slowed or Camouflaged. A body in its Vanguard's own colours still shows its side and its statuses.
 - **M52 carries over:** the hit flash overlay and the hover outline apply to the skeletal mesh. Where a body is animated, the lean, snap, recoil and collapse give way to its animation.
 - **Data:** the blend times and the speed at which Run takes over are validated grey-box presentation settings.
 
