@@ -4,6 +4,8 @@
 
 #include "Algo/Count.h"
 #include "Algo/Find.h"
+#include "Camera/VeyraCameraPreferences.h"
+#include "Camera/VeyraCameraRig.h"
 #include "Client/VeyraClientFlowSubsystem.h"
 #include "DevCommands/VeyraDevCommands.h"
 #include "Engine/GameInstance.h"
@@ -25,6 +27,9 @@
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
+#include "VeyraSettingsRegistry.h"
+#include "VeyraSettingsStore.h"
+#include "VeyraSettingsSubsystem.h"
 #include "VeyraVanguardCharacter.h"
 
 #if WITH_VEYRA_UI
@@ -1882,6 +1887,21 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	}
 	if (bReconnects && TickReconnect(*Controller, *World))
 	{
+		return;
+	}
+	// The fountain as the match goes live, with the shop standing by it (ADR-063 §6). A scripted client's cursor rests
+	// wherever the desktop left it, so the camera stops scrolling at the screen's edge and looks at the Vanguard first.
+	if (Script == EScript::Practice && !Captured.Contains(TEXT("Fountain")))
+	{
+		if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+		{
+			Settings->GetStore().Set(VeyraCameraPreferences::EdgeScroll(), VeyraSettings::Off(), /*bInLiveMatch*/ true);
+		}
+		if (AVeyraCameraRig* Rig = Controller->GetCameraRig())
+		{
+			Rig->CenterOn(Vanguard->GetActorLocation());
+		}
+		Capture(TEXT("Fountain"));
 		return;
 	}
 	// A party's members message each other with the composer's /msg before the siege (ADR-046 §6).

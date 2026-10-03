@@ -7,10 +7,13 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/VeyraCameraRig.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Casting/VeyraCastTelegraphs.h"
 #include "Components/LineBatchComponent.h"
 #include "Companions/VeyraCompanion.h"
+#include "Cues/VeyraCombatCueSubsystem.h"
 #include "Echoes/VeyraEcho.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Components/StaticMeshComponent.h"
@@ -27,6 +30,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
+#include "Greybox/VeyraFountainShop.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraUnitArtSet.h"
@@ -40,14 +44,24 @@
 #include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
+#include "Sound/SoundAttenuation.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundConcurrency.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Structures/VeyraStructure.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Terrain/VeyraTerrainWall.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "VeyraGameState.h"
+#include "Match/VeyraMatchMenuSubsystem.h"
 #include "VeyraPlayerController.h"
+#include "VeyraTeamStart.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraUILog.h"
 
@@ -148,16 +162,454 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{
 			Problems.Add(FString::Printf(TEXT("ShapeMaterial: %s does not load."), *Settings.ShapeMaterial.ToString()));
 		}
+		HitFlashMaterial = Settings.HitFlashMaterial.LoadSynchronous();
+		if (!HitFlashMaterial)
+		{
+			Problems.Add(FString::Printf(TEXT("HitFlashMaterial: %s does not load; run BuildPresentationMaterials.ps1."), *Settings.HitFlashMaterial.ToString()));
+		}
+		ImpactSound = Settings.ImpactSound.LoadSynchronous();
+		SwingSound = Settings.SwingSound.LoadSynchronous();
+		CastSound = Settings.CastSound.LoadSynchronous();
+		DeathSound = Settings.DeathSound.LoadSynchronous();
+		ClickSound = Settings.ClickSound.LoadSynchronous();
+		if (!ImpactSound || !SwingSound || !CastSound || !DeathSound || !ClickSound)
+		{
+			Problems.Add(TEXT("ImpactSound: the cue sounds do not all load; run BuildCueSounds.ps1."));
+		}
+		// Heard whole near the camera's focus and fading beyond, at most so many at once, the quietest giving way.
+		CueAttenuation = NewObject<USoundAttenuation>(this);
+		CueAttenuation->Attenuation.bAttenuate = true;
+		CueAttenuation->Attenuation.AttenuationShape = EAttenuationShape::Sphere;
+		CueAttenuation->Attenuation.AttenuationShapeExtents = FVector(Settings.SoundAudibleRadius, 0.0, 0.0);
+		CueAttenuation->Attenuation.FalloffDistance = Settings.SoundFalloffDistance;
+		CueConcurrency = NewObject<USoundConcurrency>(this);
+		CueConcurrency->Concurrency.MaxCount = Settings.MaxCueSounds;
+		CueConcurrency->Concurrency.ResolutionRule = EMaxConcurrentResolutionRule::StopQuietest;
+		ImpactEffect = Settings.ImpactEffect.LoadSynchronous();
+		CastEffect = Settings.CastEffect.LoadSynchronous();
+		DeathEffect = Settings.DeathEffect.LoadSynchronous();
+		TrailEffect = Settings.TrailEffect.LoadSynchronous();
+		if (!ImpactEffect || !CastEffect || !DeathEffect || !TrailEffect)
+		{
+			Problems.Add(TEXT("ImpactEffect: the impact, cast, death and trail effects do not all load; run BuildEffects.ps1."));
+		}
+		HoverOutlineMaterial = Settings.HoverOutlineMaterial.LoadSynchronous();
+		if (!HoverOutlineMaterial)
+		{
+			Problems.Add(FString::Printf(TEXT("HoverOutlineMaterial: %s does not load; run BuildPresentationMaterials.ps1."), *Settings.HoverOutlineMaterial.ToString()));
+		}
+		else
+		{
+			// The stencils are the generated material's own, so the pass and the bodies agree.
+			const TPair<FName, int32*> Stencils[] = { { Settings.HoverEnemyStencilParameter, &EnemyStencil }, { Settings.HoverAllyStencilParameter, &AllyStencil },
+				{ Settings.HoverNeutralStencilParameter, &NeutralStencil } };
+			for (const TPair<FName, int32*>& Stencil : Stencils)
+			{
+				float Value = 0.0f;
+				if (!HoverOutlineMaterial->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(Stencil.Key), Value) || Value < 1.0f)
+				{
+					Problems.Add(FString::Printf(TEXT("HoverOutlineMaterial: no stencil in its %s parameter."), *Stencil.Key.ToString()));
+				}
+				*Stencil.Value = FMath::RoundToInt32(Value);
+			}
+		}
 	}
 	for (const FString& Problem : Problems)
 	{
 		UE_LOG(LogVeyraUI, Error, TEXT("The grey-box presentation is off: %s"), *Problem);
 	}
 	bReady = Problems.IsEmpty();
+	// Bodies answer the fight's moments (ADR-063 §2).
+	if (UVeyraCombatCueSubsystem* Cues = Collection.InitializeDependency<UVeyraCombatCueSubsystem>())
+	{
+		CueHandle = Cues->OnCue.AddUObject(this, &UVeyraGreyboxSubsystem::OnCombatCue);
+	}
+}
+
+void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
+{
+	if (FBody* Body = Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr)
+	{
+		VeyraBodyFeedback::Note(Body->Feedback, Cue, GetWorld()->GetRealTimeSeconds(), GetServerNow());
+	}
+	PlayEffect(Cue);
+	PlaySound(Cue);
+	NoteSwing(Cue);
+}
+
+void UVeyraGreyboxSubsystem::NoteSwing(const FVeyraCombatCue& Cue)
+{
+	const AActor* Attacker = Cue.Unit.Get();
+	const AActor* Target = Cue.Target.Get();
+	if (Cue.Kind != EVeyraCombatCueKind::AttackCommit || !Attacker || !Target)
+	{
+		return;
+	}
+	// A swing only where the attack reaches across: a ranged attack shows its projectile's trail instead.
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const double Apart = FVector::Dist2D(Attacker->GetActorLocation(), Target->GetActorLocation());
+	const double TargetRadius = Target->GetSimpleCollisionRadius();
+	if (Apart - Attacker->GetSimpleCollisionRadius() - TargetRadius > Settings.SwingArcReach)
+	{
+		return;
+	}
+	SwingArcs.Add(FVeyraSwingArc{ Attacker, (Target->GetActorLocation() - Attacker->GetActorLocation()).GetSafeNormal2D(), Apart + TargetRadius,
+		GetWorld()->GetRealTimeSeconds(), SideColorOf(*Attacker) });
+}
+
+void UVeyraGreyboxSubsystem::DrawSwingArcs()
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const double Now = GetWorld()->GetRealTimeSeconds();
+	SwingArcs.RemoveAll([&Settings, Now](const FVeyraSwingArc& Swing) { return !Swing.Attacker.IsValid() || Now - Swing.At >= Settings.SwingArcSeconds; });
+	if (!TelegraphLines)
+	{
+		return;
+	}
+	for (const FVeyraSwingArc& Swing : SwingArcs)
+	{
+		FVeyraShape Arc;
+		Arc.Kind = EVeyraShapeKind::Sector;
+		Arc.Radius = Swing.Radius;
+		Arc.ArcDegrees = Settings.SwingArcDegrees;
+		FLinearColor Color = Swing.Color;
+		Color.A *= static_cast<float>(1.0 - (Now - Swing.At) / Settings.SwingArcSeconds);
+		const FVeyraPlacedShape OnGround{ Arc, GroundUnder(Swing.Attacker->GetActorLocation()), Swing.Direction };
+		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
+		{
+			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+		}
+	}
+}
+
+USoundBase* UVeyraGreyboxSubsystem::SoundFor(EVeyraCombatCueKind Kind) const
+{
+	switch (Kind)
+	{
+	case EVeyraCombatCueKind::Hit:
+		return ImpactSound;
+	case EVeyraCombatCueKind::AttackCommit:
+		return SwingSound;
+	case EVeyraCombatCueKind::CastCommit:
+		return CastSound;
+	case EVeyraCombatCueKind::Death:
+		return DeathSound;
+	case EVeyraCombatCueKind::AttackWindup:
+	case EVeyraCombatCueKind::CastWindup:
+		break;
+	}
+	return nullptr;
+}
+
+void UVeyraGreyboxSubsystem::PlaySound(const FVeyraCombatCue& Cue)
+{
+	const AActor* Unit = Cue.Unit.Get();
+	USoundBase* Sound = SoundFor(Cue.Kind);
+	if (!Unit || !Sound || !bReady)
+	{
+		return;
+	}
+	const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
+	if (Volume > 0.0f)
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Unit->GetActorLocation(), FRotator::ZeroRotator, Volume, /*PitchMultiplier*/ 1.0f,
+			/*StartTime*/ 0.0f, CueAttenuation, CueConcurrency);
+	}
+}
+
+TArray<AVeyraFountainShop*> UVeyraGreyboxSubsystem::GetShops() const
+{
+	TArray<AVeyraFountainShop*> Standing;
+	for (const TWeakObjectPtr<AVeyraFountainShop>& Shop : Shops)
+	{
+		if (AVeyraFountainShop* Each = Shop.Get())
+		{
+			Standing.Add(Each);
+		}
+	}
+	return Standing;
+}
+
+void UVeyraGreyboxSubsystem::RefreshShops()
+{
+	if (!bReady || !Shops.IsEmpty())
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (TActorIterator<AVeyraTeamStart> It(GetWorld()); It; ++It)
+	{
+		const AVeyraTeamStart& Start = **It;
+		// In front of the fountain, toward the battleground's centre, on its floor.
+		const FVector From = Start.GetActorLocation();
+		const FVector Toward = FVector(-From.X, -From.Y, 0.0).GetSafeNormal();
+		const FVector Floor = GroundUnder(From + Toward * Settings.ShopOffset) - FVector::UpVector * Settings.TelegraphLift;
+		FActorSpawnParameters Spawn;
+		Spawn.ObjectFlags |= RF_Transient;
+		AVeyraFountainShop* Shop = GetWorld()->SpawnActor<AVeyraFountainShop>(Floor, FRotator::ZeroRotator, Spawn);
+		if (!Shop)
+		{
+			continue;
+		}
+		Shop->SetTeam(Start.GetVeyraTeam());
+		Shop->Build(*BodyMesh, *ProjectileMesh, *ShapeMaterial, Settings.ColorParameter, Settings.ShopColor, Settings.ShopRadius, Settings.ShopHeight);
+		Shops.Add(Shop);
+	}
+}
+
+bool UVeyraGreyboxSubsystem::HoverShop(AVeyraFountainShop* Under, EVeyraTeam Viewer, bool bClicked)
+{
+	// Only the player's own side's shop answers them; a viewer on no side has none.
+	AVeyraFountainShop* Own = Under && Viewer != EVeyraTeam::None && Under->GetTeam() == Viewer ? Under : nullptr;
+	if (AVeyraFountainShop* Was = HoveredShop.Get(); Was && Was != Own)
+	{
+		Was->SetOutlined(false, AllyStencil);
+	}
+	HoveredShop = Own;
+	if (!Own)
+	{
+		return false;
+	}
+	Own->SetOutlined(true, AllyStencil);
+	// The shop opens as its key opens it: browsing is the player's anywhere, buying the server's to allow (ADR-012 §11).
+	UGameInstance* Game = GetWorld()->GetGameInstance();
+	UVeyraMatchMenuSubsystem* Menus = Game ? Game->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
+	if (bClicked && Menus && !Menus->IsShopOpen())
+	{
+		Menus->ToggleShop();
+	}
+	return true;
+}
+
+void UVeyraGreyboxSubsystem::RefreshSound()
+{
+	AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	if (!Local || !Rig || !bReady)
+	{
+		return;
+	}
+	if (ListeningFrom.Get() != Local)
+	{
+		Local->SetAudioListenerOverride(Rig->GetRootComponent(), FVector::ZeroVector, FRotator::ZeroRotator);
+		ListeningFrom = Local;
+	}
+	// The player's own order clicks once, at once, with its mark.
+	const TOptional<FVeyraOrderMark>& Mark = Local->GetOrderMark();
+	if (Mark && Mark->GivenAt != ClickedFor)
+	{
+		ClickedFor = Mark->GivenAt;
+		const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
+		if (Volume > 0.0f)
+		{
+			UGameplayStatics::PlaySound2D(GetWorld(), ClickSound, Volume);
+		}
+	}
+}
+
+UNiagaraSystem* UVeyraGreyboxSubsystem::EffectFor(EVeyraCombatCueKind Kind) const
+{
+	switch (Kind)
+	{
+	case EVeyraCombatCueKind::Hit:
+		return ImpactEffect;
+	case EVeyraCombatCueKind::CastCommit:
+		return CastEffect;
+	case EVeyraCombatCueKind::Death:
+		return DeathEffect;
+	case EVeyraCombatCueKind::AttackWindup:
+	case EVeyraCombatCueKind::AttackCommit:
+	case EVeyraCombatCueKind::CastWindup:
+		break;
+	}
+	return nullptr;
+}
+
+UNiagaraComponent* UVeyraGreyboxSubsystem::PlayEffect(const FVeyraCombatCue& Cue)
+{
+	const AActor* Unit = Cue.Unit.Get();
+	UNiagaraSystem* Effect = EffectFor(Cue.Kind);
+	if (!Unit || !Effect || !bReady)
+	{
+		return nullptr;
+	}
+	// A cast flashes from its caster toward where it was aimed; the rest where their unit stands.
+	const FVector At = Unit->GetActorLocation();
+	const FVector Toward = Cue.Kind == EVeyraCombatCueKind::CastCommit ? (Cue.Location - At).GetSafeNormal2D() : FVector::ZeroVector;
+	const FRotator Facing = Toward.IsZero() ? Unit->GetActorRotation() : Toward.Rotation();
+	// Pooled: a battleground's waves raise many hits a second.
+	UNiagaraComponent* Played = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, At, Facing, FVector::OneVector, /*bAutoDestroy*/ true,
+		/*bAutoActivate*/ true, ENCPoolMethod::AutoRelease);
+	if (Played)
+	{
+		Played->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, SideColorOf(*Unit));
+	}
+	return Played;
+}
+
+float UVeyraGreyboxSubsystem::GetFlashOf(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	const UMaterialInstanceDynamic* Flash = Body && Body->Flashing.IsValid() ? Body->Flash.Get() : nullptr;
+	float Strength = 0.0f;
+	if (Flash)
+	{
+		Flash->GetScalarParameterValue(FHashedMaterialParameterInfo(GetDefault<UVeyraGreyboxSettings>()->HitFlashStrengthParameter), Strength);
+	}
+	return Strength;
+}
+
+void UVeyraGreyboxSubsystem::ShowHover(const AActor* NewHovered)
+{
+	if (const AActor* Was = Hovered.Get(); Was && Was != NewHovered)
+	{
+		SetOutlined(*Was, false);
+	}
+	Hovered = NewHovered;
+	// Every frame: the unit's art may change under the cursor, as a structure falls.
+	if (NewHovered)
+	{
+		SetOutlined(*NewHovered, true);
+	}
+}
+
+int32 UVeyraGreyboxSubsystem::HoverStencilOf(const AActor& Unit) const
+{
+	const EVeyraTeam Team = VeyraTeams::TeamOf(&Unit);
+	if (Team == EVeyraTeam::None)
+	{
+		return NeutralStencil;
+	}
+	const EVeyraTeam ViewerTeam = GetViewerTeam();
+	const EVeyraTeam Allies = ViewerTeam == EVeyraTeam::None ? EVeyraTeam::A : ViewerTeam;
+	return Team == Allies ? AllyStencil : EnemyStencil;
+}
+
+void UVeyraGreyboxSubsystem::SetOutlined(const AActor& Unit, bool bOutlined) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	if (!Body)
+	{
+		return;
+	}
+	const int32 Stencil = HoverStencilOf(Unit);
+	for (UStaticMeshComponent* Shape : { Body->Mesh.Get(), Body->Art.Get() })
+	{
+		if (!Shape)
+		{
+			continue;
+		}
+		if (Shape->bRenderCustomDepth != bOutlined)
+		{
+			Shape->SetRenderCustomDepth(bOutlined);
+		}
+		if (bOutlined && Shape->CustomDepthStencilValue != Stencil)
+		{
+			Shape->SetCustomDepthStencilValue(Stencil);
+		}
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshHoverPass()
+{
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	UCameraComponent* Camera = Rig ? Rig->GetCamera() : nullptr;
+	if (!Camera || !HoverOutlineMaterial)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	if (!HoverOutline)
+	{
+		HoverOutline = UMaterialInstanceDynamic::Create(HoverOutlineMaterial, this);
+	}
+	if (HoverCamera.Get() != Camera)
+	{
+		Camera->PostProcessSettings.AddBlendable(HoverOutline, 0.0f);
+		HoverCamera = Camera;
+	}
+	// The player's own side colours, as their colour vision gives them (Settings Bible §4.1).
+	const FVeyraSideColors& Colors = GetSideColors();
+	HoverOutline->SetVectorParameterValue(Settings.HoverEnemyColorParameter, Colors.Enemy);
+	HoverOutline->SetVectorParameterValue(Settings.HoverAllyColorParameter, Colors.Ally);
+	HoverOutline->SetVectorParameterValue(Settings.HoverNeutralColorParameter, Colors.Neutral);
+	// The pass costs nothing while it weighs nothing: only while something is hovered.
+	for (FWeightedBlendable& Blendable : Camera->PostProcessSettings.WeightedBlendables.Array)
+	{
+		if (Blendable.Object == HoverOutline)
+		{
+			Blendable.Weight = Hovered.IsValid() ? 1.0f : 0.0f;
+		}
+	}
+}
+
+void UVeyraGreyboxSubsystem::ApplyBodyPose(const APawn& Unit, FBody& Body, bool bReduceFlashing)
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	if (VeyraTargeting::IsAlive(&Unit))
+	{
+		VeyraBodyFeedback::NoteAlive(Body.Feedback);
+	}
+	const FVeyraBodyPose Pose = VeyraBodyFeedback::PoseAt(Body.Feedback, GetWorld()->GetRealTimeSeconds(), bReduceFlashing, Settings);
+	UStaticMeshComponent* Shape = Body.Mesh.Get();
+	UStaticMeshComponent* Art = Body.Art.IsValid() && Body.Art->IsVisible() ? Body.Art.Get() : nullptr;
+	const USceneComponent* Root = Unit.GetRootComponent();
+	// A structure stands still; it only flashes.
+	if (Root && !Unit.IsA<AVeyraStructure>())
+	{
+		// The pose moves on the ground, whichever way the unit faces.
+		const FVector Local = Root->GetComponentTransform().InverseTransformVectorNoScale(Pose.Offset);
+		float Radius = 0.0f;
+		float HalfHeight = 0.0f;
+		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+		if (Shape)
+		{
+			// Squashed from the ground up: its foot stays where it stands.
+			FVector Scale = Shape->GetRelativeScale3D();
+			Scale.Z *= Pose.HeightShare;
+			Shape->SetRelativeScale3D(Scale);
+			Shape->SetRelativeLocation(Shape->GetRelativeLocation() + Local - FVector(0.0, 0.0, HalfHeight * (1.0 - Pose.HeightShare)));
+		}
+		if (Art)
+		{
+			// Art that has its own fallen form keeps it whole.
+			const double Height = Body.Feedback.DiedAt ? 1.0 : Pose.HeightShare;
+			Art->SetRelativeScale3D(FVector(1.0, 1.0, Height));
+			Art->SetRelativeLocation(Art->GetRelativeLocation() + Local);
+		}
+	}
+	// The flash lies over whatever shows, and is taken off once it has faded.
+	UStaticMeshComponent* Shown = Art ? Art : Shape;
+	if (UStaticMeshComponent* Was = Body.Flashing.Get(); Was && (Was != Shown || Pose.Flash <= 0.0))
+	{
+		Was->SetOverlayMaterial(nullptr);
+		Body.Flashing.Reset();
+	}
+	if (!Shown || Pose.Flash <= 0.0 || !HitFlashMaterial)
+	{
+		return;
+	}
+	if (!Body.Flash.IsValid())
+	{
+		Body.Flash = UMaterialInstanceDynamic::Create(HitFlashMaterial, this);
+		Body.Flash->SetVectorParameterValue(Settings.HitFlashColorParameter, Settings.HitFlashColor);
+	}
+	Body.Flash->SetScalarParameterValue(Settings.HitFlashStrengthParameter, static_cast<float>(Pose.Flash));
+	if (Body.Flashing.Get() != Shown)
+	{
+		Shown->SetOverlayMaterial(Body.Flash.Get());
+		Body.Flashing = Shown;
+	}
 }
 
 void UVeyraGreyboxSubsystem::Deinitialize()
 {
+	if (UVeyraCombatCueSubsystem* Cues = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatCueSubsystem>() : nullptr)
+	{
+		Cues->OnCue.Remove(CueHandle);
+	}
+	CueHandle.Reset();
 	if (AHUD* Hud = OverlayHud.Get(); Hud && HudOverlay.IsValid())
 	{
 		Hud->RemovePostRenderedActor(HudOverlay.Get());
@@ -207,6 +659,22 @@ void UVeyraGreyboxSubsystem::Refresh()
 	DrawChains();
 	DrawEchoTethers();
 	DrawOrderMark();
+	DrawSwingArcs();
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	ShowHover(Local ? Local->GetHoveredUnit() : nullptr);
+	RefreshShops();
+	if (AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
+	{
+		FHitResult Under;
+		Player->GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Under);
+		// The player's own shop takes the hand cursor over the controller's choice, which this frame has already made.
+		if (HoverShop(Cast<AVeyraFountainShop>(Under.GetActor()), GetViewerTeam(), Player->WasInputKeyJustPressed(Player->GetKeys().SelectKey)))
+		{
+			Player->CurrentMouseCursor = EMouseCursor::Hand;
+		}
+	}
+	RefreshHoverPass();
+	RefreshSound();
 	RefreshCombatText();
 	RefreshFogOfWar();
 	RefreshWarnings();
@@ -517,6 +985,7 @@ void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh
 void UVeyraGreyboxSubsystem::RefreshBodies()
 {
 	const FName ColorParameter = GetDefault<UVeyraGreyboxSettings>()->ColorParameter;
+	const bool bReduceFlashing = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).bReduceFlashing;
 	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
 	{
 		APawn& Unit = **It;
@@ -561,6 +1030,7 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			RefreshFluxbornArt(*Fluxborn, *Body);
 		}
+		ApplyBodyPose(Unit, *Body, bReduceFlashing);
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
@@ -745,6 +1215,17 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 			// Clients receive launch data only and never move the actor, so the drawing places the sphere.
 			Mesh->SetUsingAbsoluteLocation(true);
 			Visual = &Projectiles.Add(&Projectile, FProjectileVisual{ Mesh, Projectile.GetLaunchedFrom(), Projectile.GetLaunchedAt() });
+			// A trail follows the sphere in its side's colour, at its own size whatever the sphere's (ADR-063 §4).
+			if (TrailEffect)
+			{
+				Visual->Trail = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailEffect, Mesh, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+					EAttachLocation::SnapToTarget, /*bAutoDestroy*/ true);
+				if (UNiagaraComponent* Trail = Visual->Trail.Get())
+				{
+					Trail->SetUsingAbsoluteScale(true);
+					Trail->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, ColorOfSide(Projectile.GetVeyraTeam()));
+				}
+			}
 		}
 
 		FVector Location = Projectile.GetLineLocationAt(Now);

@@ -297,6 +297,9 @@ public:
 	 */
 	TArray<const AActor*> GetTargetedUnits() const;
 
+	/** Owning client: the nearest unit under the cursor, of any side, which the presentation outlines (ADR-063 §3). */
+	const AActor* GetHoveredUnit() const;
+
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

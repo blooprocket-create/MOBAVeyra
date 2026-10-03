@@ -11,6 +11,12 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Cues/VeyraCombatCueSubsystem.h"
+#include "Greybox/VeyraFountainShop.h"
+#include "VeyraTeamStart.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "Sound/SoundBase.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
@@ -65,6 +71,7 @@ namespace VeyraAbilitiesTests
 		static constexpr int32 FlightSteps = 5;
 		static constexpr int32 CircleSegments = 24;
 		static constexpr double Tolerance = 1.0;
+		static constexpr double HitAmount = 50.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -180,6 +187,147 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(ArtProblems.IsEmpty(), FString::Join(ArtProblems, TEXT(" "))));
 			const FVeyraUnitArt* Spire = Structures->Find(TEXT("laneSpire"));
 			ASSERT_THAT(IsTrue(Spire->Intact->GetMaterialIndex(Structures->FluxSlot) != INDEX_NONE, TEXT("the meshes have the Flux slot")));
+			// The generated hit flash takes its colour and strength (ADR-063 §2).
+			const UMaterialInterface* Flash = Settings.HitFlashMaterial.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Flash, TEXT("run BuildPresentationMaterials.ps1")));
+			float Strength = 0.0f;
+			ASSERT_THAT(IsTrue(Flash->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.HitFlashColorParameter), Unused)
+				&& Flash->GetScalarParameterValue(FHashedMaterialParameterInfo(Settings.HitFlashStrengthParameter), Strength)));
+			// The generated hover outline takes each side's colour and names each side's stencil (ADR-063 §3).
+			const UMaterialInterface* Outline = Settings.HoverOutlineMaterial.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Outline, TEXT("run BuildPresentationMaterials.ps1")));
+			for (const FName& Parameter : { Settings.HoverEnemyColorParameter, Settings.HoverAllyColorParameter, Settings.HoverNeutralColorParameter })
+			{
+				ASSERT_THAT(IsTrue(Outline->GetVectorParameterValue(FHashedMaterialParameterInfo(Parameter), Unused), *Parameter.ToString()));
+			}
+			for (const FName& Parameter : { Settings.HoverEnemyStencilParameter, Settings.HoverAllyStencilParameter, Settings.HoverNeutralStencilParameter })
+			{
+				float Stencil = 0.0f;
+				ASSERT_THAT(IsTrue(Outline->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(Parameter), Stencil) && Stencil >= 1.0f, *Parameter.ToString()));
+			}
+		}
+
+		TEST_METHOD(TheHoveredUnitAloneIsOutlinedInItsSidesStencil)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(CastRange, 0.0, 0.0));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const int32 EnemyStencil = Presentation.HoverStencilOf(Enemy);
+			const int32 AllyStencil = Presentation.HoverStencilOf(*Caster);
+			ASSERT_THAT(IsTrue(EnemyStencil > 0 && AllyStencil > 0 && EnemyStencil != AllyStencil, TEXT("each side has its own stencil")));
+			Presentation.ShowHover(&Enemy);
+			const UStaticMeshComponent* EnemyBody = Presentation.FindBody(Enemy);
+			const UStaticMeshComponent* AllyBody = Presentation.FindBody(*Caster);
+			ASSERT_THAT(IsTrue(EnemyBody->bRenderCustomDepth && EnemyBody->CustomDepthStencilValue == EnemyStencil));
+			ASSERT_THAT(IsFalse(AllyBody->bRenderCustomDepth));
+			Presentation.ShowHover(Caster);
+			ASSERT_THAT(IsTrue(!EnemyBody->bRenderCustomDepth && AllyBody->bRenderCustomDepth && AllyBody->CustomDepthStencilValue == AllyStencil, TEXT("the outline moves")));
+			Presentation.ShowHover(nullptr);
+			ASSERT_THAT(IsFalse(AllyBody->bRenderCustomDepth, TEXT("and leaves with the cursor")));
+		}
+
+		TEST_METHOD(EachMomentPlaysItsEffectAndEachEffectTakesItsSidesColour)
+		{
+			// Which effect each moment plays (ADR-063 §4). A test runs where nothing renders, and Niagara plays nothing there.
+			const UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Presentation.EffectFor(EVeyraCombatCueKind::Hit) == Settings.ImpactEffect.Get()));
+			ASSERT_THAT(IsTrue(Presentation.EffectFor(EVeyraCombatCueKind::CastCommit) == Settings.CastEffect.Get()));
+			ASSERT_THAT(IsTrue(Presentation.EffectFor(EVeyraCombatCueKind::Death) == Settings.DeathEffect.Get()));
+			for (const EVeyraCombatCueKind Bodily : { EVeyraCombatCueKind::AttackWindup, EVeyraCombatCueKind::AttackCommit, EVeyraCombatCueKind::CastWindup })
+			{
+				ASSERT_THAT(IsNull(Presentation.EffectFor(Bodily), TEXT("the body shows it, with no effect")));
+			}
+			// And the sound each moment makes (ADR-063 §5); a windup is silent.
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::Hit) == Settings.ImpactSound.Get()));
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::AttackCommit) == Settings.SwingSound.Get()));
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::CastCommit) == Settings.CastSound.Get()));
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::Death) == Settings.DeathSound.Get()));
+			ASSERT_THAT(IsTrue(!Presentation.SoundFor(EVeyraCombatCueKind::AttackWindup) && !Presentation.SoundFor(EVeyraCombatCueKind::CastWindup)));
+			for (const TSoftObjectPtr<USoundBase>* Sound : { &Settings.ImpactSound, &Settings.SwingSound, &Settings.CastSound, &Settings.DeathSound, &Settings.ClickSound })
+			{
+				ASSERT_THAT(IsNotNull(Sound->Get(), TEXT("run BuildCueSounds.ps1")));
+			}
+			// Each generated system takes the side colour the presentation gives it.
+			const FNiagaraVariableBase Color(FNiagaraTypeDefinition::GetColorDef(), FName(TEXT("User.") + Settings.EffectColorParameter.ToString()));
+			for (const UNiagaraSystem* Effect : { Settings.ImpactEffect.Get(), Settings.CastEffect.Get(), Settings.DeathEffect.Get(), Settings.TrailEffect.Get() })
+			{
+				ASSERT_THAT(IsNotNull(Effect, TEXT("run BuildEffects.ps1")));
+				ASSERT_THAT(IsTrue(Effect->GetExposedParameters().IndexOf(Color) != INDEX_NONE, *Effect->GetName()));
+			}
+		}
+		TEST_METHOD(AShopStandsByEachFountainAndOnlyTheOwnSidesAnswers)
+		{
+			// ADR-063 §6. Fixture value: where each side's team start stands, mirrored about the centre.
+			const FVector StartAt(-4000.0, -3000.0, 0.0);
+			for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+			{
+				Spawner.SpawnActorAt<AVeyraTeamStart>(Team == EVeyraTeam::A ? StartAt : -StartAt, FRotator::ZeroRotator).SetVeyraTeam(Team);
+			}
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const TArray<AVeyraFountainShop*> Shops = Presentation.GetShops();
+			ASSERT_THAT(AreEqual(Shops.Num(), 2));
+			AVeyraFountainShop* Own = Shops[0]->GetTeam() == EVeyraTeam::A ? Shops[0] : Shops[1];
+			AVeyraFountainShop* Enemy = Own == Shops[0] ? Shops[1] : Shops[0];
+			ASSERT_THAT(IsTrue(Enemy->GetTeam() == EVeyraTeam::B));
+			// In front of its fountain, toward the centre.
+			ASSERT_THAT(IsNear(FVector::Dist2D(Own->GetActorLocation(), StartAt), static_cast<double>(Settings.ShopOffset), Tolerance));
+			ASSERT_THAT(IsTrue(Own->GetActorLocation().Size2D() < StartAt.Size2D()));
+			ASSERT_THAT(IsTrue(Presentation.HoverShop(Own, EVeyraTeam::A, /*bClicked*/ false) && Own->IsOutlined(), TEXT("the player's own answers")));
+			ASSERT_THAT(IsFalse(Presentation.HoverShop(Enemy, EVeyraTeam::A, false), TEXT("the other side's does not")));
+			ASSERT_THAT(IsTrue(!Enemy->IsOutlined() && !Own->IsOutlined(), TEXT("and the outline left with the cursor")));
+			ASSERT_THAT(IsFalse(Presentation.HoverShop(Own, EVeyraTeam::None, false), TEXT("a viewer on no side has no shop")));
+		}
+
+		TEST_METHOD(AMeleeCommitSwingsAnArcThatFadesAndARangedOneNone)
+		{
+			// ADR-063 §2. Fixture values: a target at arm's length, and one far beyond any melee reach.
+			constexpr double Near = 150.0;
+			constexpr double Far = 3000.0;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Close = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraVanguardCharacter& Distant = World.Spawn(EVeyraTeam::B, FVector(0.0, Far, 0.0));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			UVeyraCombatCueSubsystem* Cues = Spawner.GetWorld().GetSubsystem<UVeyraCombatCueSubsystem>();
+			FVeyraCombatCue Commit;
+			Commit.Kind = EVeyraCombatCueKind::AttackCommit;
+			Commit.Unit = Caster;
+			Commit.Target = &Distant;
+			Cues->OnCue.Broadcast(Commit);
+			ASSERT_THAT(IsTrue(Presentation.GetSwingArcs().IsEmpty(), TEXT("a ranged attack swings no arc")));
+			Commit.Target = &Close;
+			Cues->OnCue.Broadcast(Commit);
+			ASSERT_THAT(AreEqual(Presentation.GetSwingArcs().Num(), 1));
+			const FVeyraSwingArc& Swing = Presentation.GetSwingArcs()[0];
+			ASSERT_THAT(IsTrue(Swing.Direction.Equals(FVector::ForwardVector, Tolerance), TEXT("toward its target")));
+			ASSERT_THAT(IsNear(Swing.Radius, Near + Close.GetSimpleCollisionRadius(), Tolerance, TEXT("to the target's far edge")));
+			ASSERT_THAT(IsTrue(Swing.Color.Equals(Presentation.SideColorOf(*Caster))));
+			Wait(FMath::CeilToInt32(GetDefault<UVeyraGreyboxSettings>()->SwingArcSeconds / StepSeconds) + 1);
+			ASSERT_THAT(IsTrue(RefreshedGreybox().GetSwingArcs().IsEmpty(), TEXT("then it fades")));
+		}
+
+		TEST_METHOD(AHitFlashesTheBodyUntilItFades)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(CastRange, 0.0, 0.0));
+			UVeyraCombatCueSubsystem* Cues = Spawner.GetWorld().GetSubsystem<UVeyraCombatCueSubsystem>();
+			ASSERT_THAT(IsNotNull(Cues));
+			// The first sighting raises nothing; the next, after the hit, raises it.
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			Cues->Refresh();
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(Enemy) == 0.0f));
+			FVeyraRawDamageEvent Hit;
+			Hit.Components.Add({ EVeyraDamageType::TrueDamage, HitAmount });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Hit)));
+			Cues->Refresh();
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(Enemy) > 0.0f, TEXT("the body flashes at once")));
+			ASSERT_THAT(IsTrue(Presentation.FindBody(Enemy)->GetOverlayMaterial() != nullptr));
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(*Caster) == 0.0f, TEXT("the dealer is not hit")));
+			Wait(FMath::CeilToInt32(GetDefault<UVeyraGreyboxSettings>()->HitFlashSeconds / StepSeconds) + 1);
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Presentation.GetFlashOf(Enemy) == 0.0f && Presentation.FindBody(Enemy)->GetOverlayMaterial() == nullptr, TEXT("then it fades")));
 		}
 
 		TEST_METHOD(OnlyClientsLoadThePresentation)

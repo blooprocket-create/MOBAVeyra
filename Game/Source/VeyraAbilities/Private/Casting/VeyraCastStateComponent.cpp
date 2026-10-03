@@ -33,6 +33,7 @@ void UVeyraCastStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCastStateComponent, State, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCastStateComponent, LastCommit, Params);
 }
 
 void UVeyraCastStateComponent::SetState(const FVeyraCastState& NewState)
@@ -45,6 +46,12 @@ void UVeyraCastStateComponent::SetState(const FVeyraCastState& NewState)
 void UVeyraCastStateComponent::Clear()
 {
 	SetState(FVeyraCastState());
+}
+
+void UVeyraCastStateComponent::NoteCommitted(const FVeyraContentId& Ability, const FVector& Location, const FVector& Direction)
+{
+	LastCommit = FVeyraCastCommit{ LastCommit.Serial + 1, Ability, Location, Direction };
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCastStateComponent, LastCommit, this);
 }
 
 void UVeyraCastStateComponent::OnRep_State()

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "generator": "Game/Source/VeyraDeveloper/Private/Effects/VeyraEffectsCommandlet.cpp",
+  "generatorVersion": 1,
+  "destination": "/Game/Veyra/UI/Presentation/Effects",
+  "userVariables": {
+    "color": "Color",
+    "scale": "Scale"
+  },
+  "systems": [
+    {
+      "name": "NS_VeyraImpact",
+      "purpose": "ADR-063 §4: a hit landing; a quick burst of sparks in the colour of the side that took it.",
+      "template": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst"
+    },
+    {
+      "name": "NS_VeyraCastFlash",
+      "purpose": "ADR-063 §4: a cast committing; a burst toward where it was aimed, in the caster's side colour.",
+      "template": "/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst.DirectionalBurst"
+    },
+    {
+      "name": "NS_VeyraDeathBurst",
+      "purpose": "ADR-063 §4: a unit dying; a larger, slower burst in its side colour.",
+      "template": "/Niagara/DefaultAssets/Templates/Systems/SimpleExplosion.SimpleExplosion"
+    },
+    {
+      "name": "NS_VeyraTrail",
+      "purpose": "ADR-063 §4: a projectile's trail; a ribbon left where it flies, in its side colour.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/LocationBasedRibbon.LocationBasedRibbon"
+    }
+  ]
+}

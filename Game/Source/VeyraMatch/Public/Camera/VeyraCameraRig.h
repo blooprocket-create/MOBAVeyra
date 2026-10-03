@@ -54,6 +54,9 @@ public:
 	/** The arm's length now, in units. */
 	double GetZoom() const;
 
+	/** The camera the local player views through, whose post-process passes the presentation may add to. */
+	UCameraComponent* GetCamera() const { return Camera; }
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> Root;

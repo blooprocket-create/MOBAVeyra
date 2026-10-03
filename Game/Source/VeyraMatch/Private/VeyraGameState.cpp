@@ -56,7 +56,8 @@ double AVeyraGameState::GetMatchClockSeconds() const
 	switch (Phase)
 	{
 	case EVeyraMatchPhase::Live:
-		return GetGameplayServerTime() - LiveStartServerTime;
+		// A client's estimate of the server's time can trail the replicated start a moment: never below 0.
+		return FMath::Max(0.0, GetGameplayServerTime() - LiveStartServerTime);
 	case EVeyraMatchPhase::Ended:
 		return MatchClockAtEnd;
 	default:

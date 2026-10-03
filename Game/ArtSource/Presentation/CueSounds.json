@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "generator": "Game/Scripts/GenerateCueSounds.py",
+  "generatorVersion": 1,
+  "purpose": "ADR-063 §5: placeholder cue sounds, synthesised from a seed, until authored audio replaces them.",
+  "sampleRate": 44100,
+  "seed": 20261003,
+  "destination": "/Game/Veyra/UI/Presentation/Audio",
+  "sounds": [
+    { "name": "S_VeyraImpact", "kind": "impact", "seconds": 0.14, "gain": 0.8, "thumpHz": 95.0, "noiseDecaySeconds": 0.035, "thumpDecaySeconds": 0.09 },
+    { "name": "S_VeyraSwing", "kind": "swing", "seconds": 0.16, "gain": 0.45, "smoothing": 0.18 },
+    { "name": "S_VeyraCast", "kind": "cast", "seconds": 0.28, "gain": 0.45, "fromHz": 420.0, "toHz": 1260.0, "vibratoHz": 18.0, "vibratoDepth": 0.04 },
+    { "name": "S_VeyraDeath", "kind": "death", "seconds": 0.55, "gain": 0.65, "fromHz": 320.0, "toHz": 70.0, "noiseShare": 0.25 },
+    { "name": "S_VeyraClick", "kind": "click", "seconds": 0.03, "gain": 0.3, "hz": 1900.0 }
+  ]
+}

@@ -262,6 +262,12 @@ const FVeyraContentId& ClickMarkers()
 	return Id;
 }
 
+const FVeyraContentId& EffectsVolume()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("audio_effects_volume"));
+	return Id;
+}
+
 const FVeyraContentId& ChatTextSize()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("communication_chat_text_size"));
@@ -533,6 +539,7 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.PlayReminder = Store->Get(PlayReminder());
 	Preferences.IndicatorThickness = Store->Get(IndicatorBoundary()) == Thick ? Hud.IndicatorThickThickness : Hud.IndicatorThickness;
 	Preferences.bClickMarkers = Store->IsOn(ClickMarkers());
+	Preferences.EffectsVolume = Share(*Store, EffectsVolume());
 	const FString Size = Store->Get(ChatTextSize());
 	Preferences.ChatFontSize = Size == Large ? Hud.ChatLargeFontSize : Size == ExtraLarge ? Hud.ChatExtraLargeFontSize : Hud.ChatFontSize;
 	const FString Backdrop = Store->Get(ChatBackdrop());

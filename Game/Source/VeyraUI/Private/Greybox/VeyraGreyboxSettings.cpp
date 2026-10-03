@@ -81,6 +81,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
 		{ TEXT("EndingColor"), EndingColor },
 		{ TEXT("OrderMoveColor"), OrderMoveColor },
+		{ TEXT("HitFlashColor"), HitFlashColor },
+		{ TEXT("ShopColor"), ShopColor },
 		{ TEXT("OrderAttackColor"), OrderAttackColor },
 		{ TEXT("ChatBackdropColor"), ChatBackdropColor },
 		{ TEXT("ChatHighContrastBackdropColor"), ChatHighContrastBackdropColor },
@@ -142,6 +144,30 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(TelegraphThickness > 0.0f, TEXT("TelegraphThickness"), TEXT("must be above 0."));
 	Require(CircleSegments >= 3, TEXT("CircleSegments"), TEXT("must be at least 3."));
 	Require(OrderMarkSeconds > 0.0f, TEXT("OrderMarkSeconds"), TEXT("must be above 0."));
+	Require(!HitFlashMaterial.IsNull(), TEXT("HitFlashMaterial"), TEXT("the generated hit flash material is required."));
+	Require(!HoverOutlineMaterial.IsNull(), TEXT("HoverOutlineMaterial"), TEXT("the generated hover outline material is required."));
+	Require(!ImpactEffect.IsNull() && !CastEffect.IsNull() && !DeathEffect.IsNull() && !TrailEffect.IsNull(), TEXT("ImpactEffect"),
+		TEXT("the generated impact, cast, death and trail effects are required."));
+	Require(SwingArcReach > 0.0f && SwingArcDegrees > 0.0f && SwingArcDegrees <= 360.0f && SwingArcSeconds > 0.0f, TEXT("SwingArcReach"),
+		TEXT("a swing needs a reach, an arc of up to 360 degrees and some time to fade."));
+	Require(!EffectColorParameter.IsNone(), TEXT("EffectColorParameter"), TEXT("the effects' colour parameter is required."));
+	Require(!ImpactSound.IsNull() && !SwingSound.IsNull() && !CastSound.IsNull() && !DeathSound.IsNull() && !ClickSound.IsNull(), TEXT("ImpactSound"),
+		TEXT("the generated impact, swing, cast, death and click sounds are required."));
+	Require(ShopOffset >= 0.0f && ShopRadius >= 1.0f && ShopHeight > ShopRadius * 2.0f, TEXT("ShopHeight"),
+		TEXT("the shop needs a radius of at least 1 and must stand taller than it is wide."));
+	Require(SoundAudibleRadius >= 1.0f && SoundFalloffDistance >= 1.0f && MaxCueSounds >= 1, TEXT("SoundAudibleRadius"),
+		TEXT("the sounds' audible radius, falloff and the most at once must each be at least 1."));
+	Require(!HoverEnemyColorParameter.IsNone() && !HoverAllyColorParameter.IsNone() && !HoverNeutralColorParameter.IsNone()
+			&& !HoverEnemyStencilParameter.IsNone() && !HoverAllyStencilParameter.IsNone() && !HoverNeutralStencilParameter.IsNone(),
+		TEXT("HoverEnemyColorParameter"), TEXT("the hover outline's three colour and three stencil parameters are required."));
+	Require(!HitFlashColorParameter.IsNone() && !HitFlashStrengthParameter.IsNone(), TEXT("HitFlashColorParameter"),
+		TEXT("the hit flash material's colour and strength parameters are required."));
+	Require(HitFlashSeconds > 0.0f && RecoilSeconds > 0.0f && SnapSeconds > 0.0f && CollapseSeconds > 0.0f, TEXT("HitFlashSeconds"),
+		TEXT("the flash, recoil, snap and collapse each take some time."));
+	Require(ReducedFlashStrength > 0.0f && ReducedFlashStrength < 1.0f, TEXT("ReducedFlashStrength"), TEXT("must be above 0 and below 1: a weaker flash, not none."));
+	Require(RecoilSquash >= 0.0f && RecoilSquash < 1.0f, TEXT("RecoilSquash"), TEXT("must be from 0 to below 1."));
+	Require(CollapsedHeightShare > 0.0f && CollapsedHeightShare < 1.0f, TEXT("CollapsedHeightShare"), TEXT("must be above 0 and below 1."));
+	Require(LeanDistance >= 0.0f && SnapDistance >= 0.0f, TEXT("LeanDistance"), TEXT("must not be negative."));
 	Require(OrderMarkEndRadius >= 1.0f && OrderMarkStartRadius > OrderMarkEndRadius, TEXT("OrderMarkStartRadius"),
 		TEXT("an order's mark closes: its end radius must be at least 1 unit and its start radius above that."));
 	Require(OutlineMarkerRadius >= 1.0f, TEXT("OutlineMarkerRadius"), TEXT("must be at least 1 unit."));

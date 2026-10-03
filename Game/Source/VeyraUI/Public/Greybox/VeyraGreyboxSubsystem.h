@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Greybox/VeyraBodyFeedback.h"
 #include "Greybox/VeyraOrderMarks.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Shapes/VeyraShapes.h"
@@ -37,6 +38,20 @@ enum class EVeyraTelegraphSource : uint8
 	LingeringAreaEnding,
 	/** The local player's indicator: where an ability would land, before it is cast (ADR-041 §2). */
 	Indicator,
+};
+
+/** A melee attack's swing as this machine draws it: an arc from its attacker toward its target, fading (ADR-063 §2). */
+struct FVeyraSwingArc
+{
+	TWeakObjectPtr<const AActor> Attacker;
+
+	/** Toward the target on the ground, and how far the arc reaches: to the target's far edge. */
+	FVector Direction = FVector::ForwardVector;
+	double Radius = 0.0;
+
+	/** When it was struck, in this machine's real seconds, and in whose colour. */
+	double At = 0.0;
+	FLinearColor Color = FLinearColor::Transparent;
 };
 
 /** One telegraphed shape, as this machine draws it. */
@@ -83,6 +98,41 @@ public:
 	/** The body drawn for Unit, once it has one. */
 	UStaticMeshComponent* FindBody(const AActor& Unit) const;
 
+	/** The hit flash's strength over Unit's body now, from 0 to 1 (ADR-063 §2). */
+	float GetFlashOf(const AActor& Unit) const;
+
+	/**
+	 * Outlines Hovered, and no other unit, in its side's colour (ADR-063 §3): its drawn body and art write their side's
+	 * stencil to custom depth, and the outline pass shows while anything is hovered. The refresh calls this with the
+	 * unit under the local player's cursor; tests call it directly.
+	 */
+	void ShowHover(const AActor* Hovered);
+
+	/** The custom-depth stencil Unit's outline is drawn with: its side's as the viewer sees it, enemy, ally or neutral. */
+	int32 HoverStencilOf(const AActor& Unit) const;
+
+	/** The effect a cue of Kind plays (ADR-063 §4): a hit's impact, a cast's flash, a death's burst; null for the rest. */
+	class UNiagaraSystem* EffectFor(EVeyraCombatCueKind Kind) const;
+
+	/** The sound a cue of Kind plays (ADR-063 §5): a hit's impact, an attack's swing, a cast's, a death's; null for the rest. */
+	class USoundBase* SoundFor(EVeyraCombatCueKind Kind) const;
+
+	/** The shops drawn at the fountains, one by each side's team start, once the world has them (ADR-063 §6). */
+	TArray<class AVeyraFountainShop*> GetShops() const;
+
+	/**
+	 * Takes Under, the shop under the local player's cursor or null, for a player on side Viewer: their own side's is
+	 * outlined, and opens the shop when bClicked. Returns whether Under is their own. The refresh calls this with the
+	 * viewer's side; tests call it directly.
+	 */
+	bool HoverShop(class AVeyraFountainShop* Under, EVeyraTeam Viewer, bool bClicked);
+
+	/**
+	 * Plays Cue's effect where it happens, in its unit's side colour; a cast's flashes toward its aim. Niagara skips one
+	 * no viewer could see, as most of a battleground's hits are, and plays none where nothing renders.
+	 */
+	class UNiagaraComponent* PlayEffect(const struct FVeyraCombatCue& Cue);
+
 	/** A structure's art, once drawn; null for any other unit. */
 	UStaticMeshComponent* FindArt(const AActor& Unit) const;
 
@@ -97,6 +147,9 @@ public:
 
 	/** The ring the last refresh drew for the local player's last order, while it shows (ADR-062 §6). */
 	const TOptional<FVeyraOrderMarkRing>& GetOrderMarkRing() const { return OrderMarkRing; }
+
+	/** The melee swings still showing (ADR-063 §2). */
+	const TArray<FVeyraSwingArc>& GetSwingArcs() const { return SwingArcs; }
 
 	/** The server's gameplay time as this machine knows it; it stands still while the match is paused. */
 	double GetServerNow() const;
@@ -152,7 +205,44 @@ private:
 		TWeakObjectPtr<UStaticMesh> ArtMesh;
 		TWeakObjectPtr<UMaterialInstanceDynamic> ArtFlux;
 		FLinearColor ArtShown = FLinearColor::Transparent;
+
+		/** What its cues have it doing, and the hit flash's overlay, once it has flashed (ADR-063 §2). */
+		FVeyraBodyFeedbackState Feedback;
+		TWeakObjectPtr<UMaterialInstanceDynamic> Flash;
+		TWeakObjectPtr<UStaticMeshComponent> Flashing;
 	};
+
+	/** Notes a cue in its unit's body, and plays its effect. */
+	void OnCombatCue(const struct FVeyraCombatCue& Cue);
+
+	/**
+	 * Draws Unit's body in its pose: leaning, snapping, squashed or collapsed, and flashing over whichever of its body
+	 * and art shows. Structures only flash. After the body and art are placed for the frame.
+	 */
+	void ApplyBodyPose(const APawn& Unit, FBody& Body, bool bReduceFlashing);
+
+	FDelegateHandle CueHandle;
+
+	/** Shows the outline pass on the local camera, in the player's side colours, while anything is hovered. */
+	void RefreshHoverPass();
+
+	/** Turns Unit's drawn body and art's outline stencil on or off. */
+	void SetOutlined(const AActor& Unit, bool bOutlined) const;
+
+	TWeakObjectPtr<const AActor> Hovered;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> HoverOutlineMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> HoverOutline;
+
+	TWeakObjectPtr<class UCameraComponent> HoverCamera;
+
+	/** Each side's stencil, as the generated outline material's defaults give them. */
+	int32 EnemyStencil = 0;
+	int32 AllyStencil = 0;
+	int32 NeutralStencil = 0;
 
 	struct FProjectileVisual
 	{
@@ -161,6 +251,9 @@ private:
 		/** A homing projectile's drawn position, stepped toward its target in server time. */
 		FVector Position = FVector::ZeroVector;
 		double PresentedAt = 0.0;
+
+		/** Its trail, following the sphere (ADR-063 §4). */
+		TWeakObjectPtr<class UNiagaraComponent> Trail;
 	};
 
 	void RefreshBodies();
@@ -214,6 +307,11 @@ private:
 	void DrawOrderMark();
 	TOptional<FVeyraOrderMarkRing> OrderMarkRing;
 
+	/** Notes a melee swing at an attack's commit; draws and forgets the swings, joining the telegraphs' lines. */
+	void NoteSwing(const struct FVeyraCombatCue& Cue);
+	void DrawSwingArcs();
+	TArray<FVeyraSwingArc> SwingArcs;
+
 	/** A projected Echo's tether circle and stream (ADR-050 §7). */
 	void DrawEchoTethers();
 
@@ -237,6 +335,59 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInterface> ShapeMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> HitFlashMaterial;
+
+	/** The fight's effects (ADR-063 §4). */
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> ImpactEffect;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> CastEffect;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> DeathEffect;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> TrailEffect;
+
+	/** The fight's sounds (ADR-063 §5), how far they carry and how many play at once. */
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> ImpactSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> SwingSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> CastSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> DeathSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> ClickSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundAttenuation> CueAttenuation;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundConcurrency> CueConcurrency;
+
+	/** Plays Cue's sound where it happens, at the player's gameplay effects volume. */
+	void PlaySound(const struct FVeyraCombatCue& Cue);
+
+	/** Hears from the camera's focus on the ground, not from the camera above it, and clicks for each new order of the player's. */
+	void RefreshSound();
+
+	TWeakObjectPtr<class APlayerController> ListeningFrom;
+	double ClickedFor = -1.0;
+
+	/** Stands a shop by each team start the world has, once. */
+	void RefreshShops();
+
+	TArray<TWeakObjectPtr<class AVeyraFountainShop>> Shops;
+	TWeakObjectPtr<class AVeyraFountainShop> HoveredShop;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> GroundMesh;
