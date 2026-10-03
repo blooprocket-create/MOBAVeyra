@@ -137,6 +137,11 @@ enum class EVeyraClientIntent : uint8
 	UnblockPlayer,
 	/** Withdraws a friend request the player sent. */
 	CancelFriendRequest,
+	/**
+	 * Blocks a player by display name, as the results' player menu names them (Parties & Social Bible §6; ADR-060 §5). The
+	 * shell, the lobby and the results.
+	 */
+	BlockByName,
 	/** Keeps this device's settings or the account's, when both changed (ADR-024 §1). Whenever the choice shows. */
 	ResolveSettingsConflict,
 	/** Reads the Collection: every released Vanguard, with the player's ownership and Mastery (ADR-045 §7). */

@@ -13,6 +13,7 @@ struct FVeyraPlayerMenuPermissions
 	bool bCanCommend = false;
 	bool bCanReport = false;
 	bool bCanViewProfile = false;
+	bool bCanBlock = false;
 };
 
 /**
@@ -33,6 +34,8 @@ struct FVeyraPlayerMenuModel
 	bool bOffersReport = false;
 	/** Their profile, over the screen (ADR-048 §5). */
 	bool bOffersProfile = false;
+	/** Unless already blocked (Parties & Social Bible §6; ADR-060 §5). */
+	bool bOffersBlock = false;
 	/** Report sent, Commended, and what came of the player's last request about them. */
 	TArray<FText> Notes;
 };

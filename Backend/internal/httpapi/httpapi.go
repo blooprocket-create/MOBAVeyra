@@ -15,6 +15,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/chat"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/conduct"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/dodges"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/favorites"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
@@ -78,8 +79,11 @@ type Deps struct {
 	// Favorites is optional; without it no favorite routes are registered
 	// (ADR-058 §5).
 	Favorites *favorites.Service
-	Modes     []ModeInfo
-	Ready     Pinger
+	// Dodges answers how long the player cannot queue after leaving a
+	// matchmade champion select (ADR-060 §3).
+	Dodges *dodges.Service
+	Modes  []ModeInfo
+	Ready  Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -131,6 +135,7 @@ func New(d Deps) http.Handler {
 	s.routeProfile(mux)
 	s.routeNames(mux)
 	s.routeFavorites(mux)
+	s.routeRestriction(mux)
 	return mux
 }
 
@@ -439,6 +444,8 @@ var errorStatus = []struct {
 
 	{favorites.ErrUnknownVanguard, http.StatusBadRequest, "unknown_vanguard"},
 	{favorites.ErrPlaying, http.StatusConflict, "playing"},
+	{party.ErrQueueRestricted, http.StatusConflict, "queue_restricted"},
+	{party.ErrInviteeInMatch, http.StatusConflict, "invitee_in_match"},
 	{favorites.ErrFull, http.StatusConflict, "favorites_full"},
 }
 

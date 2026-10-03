@@ -188,6 +188,8 @@ public:
 	virtual bool SetPartyPrivacy(VeyraBackendProtocol::EPartyPrivacy Privacy) override;
 	virtual bool BlockPlayer(const FString& AccountId) override;
 	virtual bool UnblockPlayer(const FString& AccountId) override;
+	/** Not the player themselves. */
+	virtual bool BlockByName(const FString& DisplayName) override;
 	virtual bool CancelFriendRequest(const FString& AccountId) override;
 	virtual bool LoadCollection() override;
 	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) override;

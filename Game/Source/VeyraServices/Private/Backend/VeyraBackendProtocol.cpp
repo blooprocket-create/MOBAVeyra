@@ -983,6 +983,19 @@ bool FParty::AllReady() const
 	return !Members.ContainsByPredicate([](const FPartyMember& Member) { return !Member.bReady; });
 }
 
+const FPartyMember* FParty::RestrictedMember() const
+{
+	const FPartyMember* Longest = nullptr;
+	for (const FPartyMember& Member : Members)
+	{
+		if (Member.RestrictedSeconds > 0.0 && (!Longest || Member.RestrictedSeconds > Longest->RestrictedSeconds))
+		{
+			Longest = &Member;
+		}
+	}
+	return Longest;
+}
+
 bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutProblem)
 {
 	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
@@ -1041,7 +1054,9 @@ bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutPr
 		FPartyMember Member;
 		if (!Value.IsValid() || !Value->TryGetObject(MemberObject) || !MemberObject->IsValid()
 			|| !StringField(**MemberObject, TEXT("accountId"), IdPattern, Member.AccountId) || !StringField(**MemberObject, TEXT("displayName"), Member.DisplayName)
-			|| Member.DisplayName.IsEmpty() || !BoolField(**MemberObject, TEXT("ready"), Member.bReady) || !BoolField(**MemberObject, TEXT("leader"), Member.bLeader))
+			|| Member.DisplayName.IsEmpty() || !BoolField(**MemberObject, TEXT("ready"), Member.bReady) || !BoolField(**MemberObject, TEXT("leader"), Member.bLeader)
+			// Absent from a backend without queue-dodge restrictions (ADR-060).
+			|| ((*MemberObject)->HasField(TEXT("restrictedSeconds")) && !DurationField(**MemberObject, TEXT("restrictedSeconds"), Member.RestrictedSeconds)))
 		{
 			OutProblem = TEXT("a member of the party is not in the expected format");
 			return false;

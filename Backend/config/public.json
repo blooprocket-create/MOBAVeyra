@@ -157,6 +157,9 @@
   "settings": {
     "maxDocumentBytes": 32768
   },
+  "dodges": {
+    "restriction": "5m"
+  },
   "favorites": {
     "maxPerAccount": 64
   },

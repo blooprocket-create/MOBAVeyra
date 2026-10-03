@@ -569,6 +569,8 @@ private:
 	VeyraBackendProtocol::FProfileSettings ProfileDraftBase;
 	bool bProfileDraftReady = false;
 	FString ReportFormName;
+	/** The player menu whose Block asks its question (ADR-060 §5); empty for none. The menu's own, as the report form is. */
+	FString BlockConfirmName;
 	FString ReportReason;
 	FString ReportDetailsDraft;
 
