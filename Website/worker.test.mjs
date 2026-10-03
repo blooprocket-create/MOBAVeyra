@@ -23,4 +23,12 @@ assert.equal((await call("/releases/channels/public.json", {}, {}))[0], 503);
 // A closed tunnel reads as offline, not as an error.
 globalThis.fetch = async () => { throw new TypeError("connection refused"); };
 assert.equal((await call("/v1/me"))[0], 503);
+// So does a tunnel Cloudflare can no longer reach, which it answers with its own origin errors (ADR-062 §5).
+for (const status of [502, 520, 530]) {
+  globalThis.fetch = async () => new Response("error code: " + status, { status });
+  assert.deepEqual(await call("/releases/channels/public.json"), [503, "Veyra's servers are offline.\n"]);
+}
+// The backend's own answers pass through untouched, errors included.
+globalThis.fetch = async () => new Response('{"error":"invalid_credentials"}', { status: 401 });
+assert.deepEqual(await call("/v1/me"), [401, '{"error":"invalid_credentials"}']);
 console.log("worker routing: all checks passed");

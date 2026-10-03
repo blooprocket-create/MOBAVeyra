@@ -10,6 +10,11 @@ const BACKEND_PATHS = ["/v1/", "/healthz", "/readyz"];
 // Match servers reach the backend inside Docker, never through here, so their routes are refused.
 const SERVER_PATHS = "/v1/server/";
 const RELEASES_PREFIX = "/releases";
+// What Cloudflare answers for an origin it cannot reach, such as a quick tunnel that closed (ADR-062 §5): a bad
+// gateway, and its own origin errors. The backend and the release store never send these themselves.
+const BAD_GATEWAY = 502;
+const ORIGIN_ERRORS_FIRST = 520;
+const ORIGIN_ERRORS_LAST = 530;
 
 function text(body, status) {
   return new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
@@ -21,12 +26,19 @@ async function forward(request, origin, path, search) {
     return text(OFFLINE, 503);
   }
   const target = new URL(path + search, origin);
+  let response;
   try {
-    return await fetch(new Request(target, request));
+    response = await fetch(new Request(target, request));
   } catch {
     // The tunnel it last recorded has closed: the host stopped.
     return text(OFFLINE, 503);
   }
+  const status = response.status;
+  if (status === BAD_GATEWAY || (status >= ORIGIN_ERRORS_FIRST && status <= ORIGIN_ERRORS_LAST)) {
+    // Cloudflare could not reach the tunnel: the host stopped, or its PC is off.
+    return text(OFFLINE, 503);
+  }
+  return response;
 }
 
 export default {
