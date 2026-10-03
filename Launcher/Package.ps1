@@ -5,22 +5,31 @@
 .DESCRIPTION
     Builds the launcher in release, draws Setup's bitmaps from the splash art that setup/art.json
     names (veyra-setup-art), and compiles setup/VeyraSetup.nsi with NSIS 3's makensis. Setup installs
-    the launcher with config/installed.json beside it as VeyraLauncher.json: a launcher that installs
-    the game from the local release server (compose.yaml's releases service) and signs in to the
-    local backend.
+    the launcher with a configuration beside it as VeyraLauncher.json, by -Config:
+    - installed (the default), config/installed.json: a launcher that installs the game from the local
+      release server (compose.yaml's releases service) and signs in to the local backend;
+    - public, config/public.json: the Setup players get, whose launcher installs, signs in and plays
+      through Veyra's public address (ADR-057), served while Game/Scripts/Host.ps1 runs on the host PC.
 
     Needs the Rust toolchain from rustup (stable, MSVC), as Check.ps1 does, and NSIS 3: makensis is
     looked for on PATH and then in the Program Files folders (winget install NSIS.NSIS).
 
     Setup goes to Launcher/target/setup/VeyraSetup-<version>.exe, the version being the launcher
-    workspace's (Cargo.toml).
+    workspace's (Cargo.toml), or VeyraSetup-<version>-public.exe with -Config public.
+.PARAMETER Config
+    The launcher configuration Setup installs: installed (default) or public.
 
     Exit codes: 0 Setup was built; 1 a step failed; 2 infrastructure error.
 .EXAMPLE
     ./Launcher/Package.ps1
+.EXAMPLE
+    ./Launcher/Package.ps1 -Config public
 #>
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet('installed', 'public')]
+    [string]$Config = 'installed'
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -65,7 +74,7 @@ $targetDir = Join-Path $PSScriptRoot 'target'
 $setupDir = Join-Path $targetDir 'setup'
 $payloadDir = Join-Path $setupDir 'payload'
 $artDir = Join-Path $setupDir 'art'
-$outFile = Join-Path $setupDir "VeyraSetup-$version.exe"
+$outFile = Join-Path $setupDir $(if ($Config -eq 'public') { "VeyraSetup-$version-public.exe" } else { "VeyraSetup-$version.exe" })
 
 Push-Location $PSScriptRoot
 try {
@@ -87,7 +96,7 @@ try {
     Remove-Item -LiteralPath $payloadDir -Recurse -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force -Path $payloadDir | Out-Null
     Copy-Item -LiteralPath (Join-Path $targetDir 'release\veyra-launcher.exe') -Destination $payloadDir
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'config\installed.json') -Destination (Join-Path $payloadDir 'VeyraLauncher.json')
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "config\$Config.json") -Destination (Join-Path $payloadDir 'VeyraLauncher.json')
 
     Write-Host "Compiling Veyra Setup $version."
     & $makensis /V2 /INPUTCHARSET UTF8 `

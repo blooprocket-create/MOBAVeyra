@@ -25,6 +25,10 @@
 # Game/Scripts/Publish.ps1 fills, to the launcher Setup installs.
 #
 #   docker compose up -d releases
+#
+# Game/Scripts/Host.ps1 runs the same services for a public test (ADR-057): the backend with
+# Backend/config/hosted.json, no development routes and match servers on every address, reached
+# only through Cloudflare tunnels to the 127.0.0.1 ports below.
 
 name: veyra
 
