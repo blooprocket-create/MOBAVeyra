@@ -291,6 +291,24 @@ namespace VeyraShellTests
 				FString(TEXT("Someone is still in a match, champion select or queue."))));
 		}
 
+		TEST_METHOD(ARestrictedMemberHoldsThePartyBackAndSaysForHowLong)
+		{
+			// ADR-060 §3: Find Match waits, and the party sees who holds it back and for how long.
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.State = EVeyraClientState::Shell;
+			Snapshot.AccountId = AccountId;
+			FString Problem;
+			TOptional<VeyraBackendProtocol::FParty> Party;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(PartyBody(TEXT("idle"), true), Party, Problem), Problem));
+			Party->Members[0].RestrictedSeconds = 125.0;
+			Snapshot.Party = Party;
+			const FString Status = VeyraShellModels::DescribeParty(Snapshot, true, true, false).Status.ToString();
+			ASSERT_THAT(AreEqual(Status, FString(TEXT("You left champion select and can't queue for 2:05."))));
+			ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Shell, EVeyraClientIntent::BlockByName)));
+			ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Results, EVeyraClientIntent::BlockByName)));
+			ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Selecting, EVeyraClientIntent::BlockByName)));
+		}
+
 		TEST_METHOD(PartyAndModeModels)
 		{
 			FVeyraClientSnapshot Snapshot;
@@ -597,10 +615,10 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
 			ShowScreen();
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::ChampionSelect));
-			// No navigation leaves a committed select (UX-4): the roster across the top, the one chat panel's Hide and
-			// Send beside the allies (UX-33), each Flux Spell slot's tile, and Lock In.
-			const TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Hide Chat"), TEXT("Send to Team Chat"),
-				TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In") };
+			// No navigation leaves a committed select (UX-4): the roster's tabs and the roster across the top, the one chat
+			// panel's Hide and Send beside the allies (UX-33), each Flux Spell slot's tile, and Lock In.
+			const TArray<FString> Expected = { TEXT("Show All"), TEXT("Show Owned"), TEXT("Show Free Rotation"), TEXT("Show Favorites"), TEXT("Cairn"),
+				TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Hide Chat"), TEXT("Send to Team Chat"), TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In") };
 			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == Expected, FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
 			ASSERT_THAT(IsFalse(Button(TEXT("Lock In"))->GetIsEnabled(), TEXT("nothing is hovered yet")));
 			FString Text = Screen->DescribeText();
@@ -614,6 +632,47 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Button(TEXT("Lock In"))->GetIsEnabled()));
 			Button(TEXT("Lock In"))->Press();
 			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/lock"))->Body, FString(TEXT("{\"vanguardId\":\"oriel\"}"))));
+		}
+
+		TEST_METHOD(TheRosterSearchesAndNarrowsAndStartsAfreshEachSelect)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/favorites"), 200, TEXT("{\"favorites\":[\"bryn\"]}"))));
+			ASSERT_THAT(IsTrue(Rig.Flow->StartPractice() && Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/practice"), 201, SelectBody(TEXT("picking")))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200,
+				TEXT("{\"owned\":[\"oriel\"],\"rotation\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],\"available\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],")
+				TEXT("\"starters\":[],\"released\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\",\"silt\"]}"))));
+			ShowScreen();
+			const auto Shown = [this](const TCHAR* Id) { return Screen->IsRosterCardShown(Id); };
+			// By name, ignoring case (UX-29).
+			Screen->SetRosterSearch(TEXT(" BR"));
+			ASSERT_THAT(IsTrue(Shown(TEXT("bryn")) && !Shown(TEXT("cairn")) && !Shown(TEXT("oriel")) && !Shown(TEXT("qazharr"))));
+			Screen->SetRosterSearch(FString());
+			// Owned wins over the rotation; the favorite read in the shell is the Favorites tab's (UX-30).
+			ASSERT_THAT(IsTrue(Screen->FindButton(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Owned)) != nullptr));
+			Screen->FindButton(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Owned))->Press();
+			ASSERT_THAT(IsTrue(Shown(TEXT("oriel")) && !Shown(TEXT("cairn")) && !Shown(TEXT("bryn"))));
+			Screen->FindButton(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::FreeRotation))->Press();
+			ASSERT_THAT(IsTrue(Shown(TEXT("cairn")) && Shown(TEXT("qazharr")) && Shown(TEXT("bryn")) && !Shown(TEXT("oriel"))));
+			Screen->FindButton(UVeyraShellScreen::RosterTabLabel(EVeyraRosterTab::Favorites))->Press();
+			ASSERT_THAT(IsTrue(Shown(TEXT("bryn")) && !Shown(TEXT("cairn")) && !Shown(TEXT("oriel"))));
+			// Narrowing never picks, hovers or bars anything: a hidden Vanguard may still be hovered.
+			ASSERT_THAT(IsTrue(Rig.Flow->CanIssue(EVeyraClientIntent::HoverVanguard) && Rig.Flow->HoverVanguard(TEXT("oriel"))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/hover"), 200, SelectBody(TEXT("picking"), TEXT("oriel")))));
+			ASSERT_THAT(IsTrue(Screen->GetRosterTab() == EVeyraRosterTab::Favorites, TEXT("a rebuild keeps the tab")));
+			Screen->SetRosterSearch(TEXT("cai"));
+
+			// The select ends and the next begins: its roster starts from All with no search (UX-29).
+			Rig.Advance(0.5);
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, SelectBody(TEXT("cancelled"), FString(), FString(), FString(), TEXT("timed_out")))));
+			ASSERT_THAT(IsTrue(Rig.Flow->GetSnapshot().State == EVeyraClientState::Shell));
+			ASSERT_THAT(IsTrue(Rig.Flow->StartPractice()));
+			const FString Next = SelectBody(TEXT("picking")).Replace(SelectId, TEXT("77777777-3333-4444-8555-666666666666"));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/practice"), 201, Next)));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody)));
+			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::ChampionSelect));
+			ASSERT_THAT(IsTrue(Screen->GetRosterSearch().IsEmpty() && Screen->GetRosterTab() == EVeyraRosterTab::All));
+			ASSERT_THAT(IsTrue(Shown(TEXT("cairn")) && Shown(TEXT("oriel")) && Shown(TEXT("bryn")) && Shown(TEXT("qazharr"))));
 		}
 
 		TEST_METHOD(ADraftBansFromTheBenchInThePlayersTurn)
@@ -678,8 +737,8 @@ namespace VeyraShellTests
 			// The spell picker: None and every roster spell, each described, and the slot's threshold.
 			Screen->FindButton(VeyraShellModels::SpellSlotTitle(1))->Press();
 			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), 1));
-			TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Hide Chat"), TEXT("Send to Team Chat"), TEXT("Flux Spell 1"),
-				TEXT("Flux Spell 2"), TEXT("Lock In"), TEXT("None") };
+			TArray<FString> Expected = { TEXT("Show All"), TEXT("Show Owned"), TEXT("Show Free Rotation"), TEXT("Show Favorites"), TEXT("Cairn"), TEXT("Qazharr"),
+				TEXT("Oriel"), TEXT("Bryn"), TEXT("Hide Chat"), TEXT("Send to Team Chat"), TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In"), TEXT("None") };
 			for (const FVeyraContentId& Spell : Roster)
 			{
 				Expected.Add(VeyraContentText::AbilityName(Spell).ToString());

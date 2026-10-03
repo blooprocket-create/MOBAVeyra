@@ -316,6 +316,13 @@ func (s *Service) Current(ctx context.Context, accountID string) (PlayerMatch, b
 	return out, true, nil
 }
 
+// LastEnded returns when each of accounts' most recent finished match ended,
+// for the grace a party gives a player returning from one (ADR-061 §4); an
+// account that never finished one is absent.
+func (s *Service) LastEnded(ctx context.Context, accountIDs []string) (map[string]time.Time, error) {
+	return s.store.LastEnded(ctx, accountIDs)
+}
+
 // ForParticipant returns a match, without its secrets, and the account's place
 // in it. A match the account did not play in is ErrMatchNotFound, so its
 // existence is not disclosed. Players read their verified result through it

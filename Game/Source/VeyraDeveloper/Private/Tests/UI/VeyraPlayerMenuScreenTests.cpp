@@ -8,6 +8,7 @@
 #include "Components/ActorTestSpawner.h"
 #include "Shell/VeyraConductModels.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Tests/Services/VeyraClientFlowTestRig.h"
 
@@ -148,6 +149,19 @@ namespace VeyraPlayerMenuScreenTests
 			ASSERT_THAT(IsTrue(Press(MenuLabel(TEXT("DevTwo")))));
 			ASSERT_THAT(IsTrue(Press(AddFriendLabel(TEXT("DevTwo")))));
 			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("GET"), VeyraBackendProtocol::AccountLookupPath(TEXT("DevTwo")))));
+		}
+
+		TEST_METHOD(BlockAsksFirstThenBlocksTheNamedPlayer)
+		{
+			// Parties & Social Bible §6; ADR-060 §5: Block from the player list, by the name it shows.
+			ASSERT_THAT(IsTrue(ShowResults(ScoredOutcomeBody())));
+			ASSERT_THAT(IsTrue(Press(MenuLabel(TEXT("DevTwo"))), TEXT("the menu opens")));
+			ASSERT_THAT(IsTrue(Press(VeyraShellModels::BlockLabel(TEXT("DevTwo"))), TEXT("Block is offered")));
+			ASSERT_THAT(IsNull(Rig.Backend.Find(TEXT("GET"), VeyraBackendProtocol::AccountLookupPath(TEXT("DevTwo"))), TEXT("nothing before the confirmation")));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(VeyraShellModels::ConfirmBlockPrompt(TEXT("DevTwo")).ToString()), TEXT("it asks first")));
+			ASSERT_THAT(IsTrue(Press(VeyraShellModels::ConfirmBlockLabel(TEXT("DevTwo"))), TEXT("the confirmation blocks")));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), VeyraBackendProtocol::AccountLookupPath(TEXT("DevTwo")), 200, AccountJson(FriendId, TEXT("DevTwo")))));
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("PUT"), FString(TEXT("/v1/blocks/")) + FriendId)));
 		}
 
 		TEST_METHOD(PlayAgainLeavesForPlayAndChangesNothing)

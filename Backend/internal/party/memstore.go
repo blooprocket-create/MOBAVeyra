@@ -2,6 +2,7 @@ package party
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -90,6 +91,19 @@ func (m *MemStore) InvitesFor(_ context.Context, accountID string, now time.Time
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
+	return out, nil
+}
+
+func (m *MemStore) MembersIn(_ context.Context, statuses []Status) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []string
+	for _, p := range m.state.parties {
+		if slices.Contains(statuses, p.Status) {
+			out = append(out, memberIDs(p)...)
+		}
+	}
+	sort.Strings(out)
 	return out, nil
 }
 

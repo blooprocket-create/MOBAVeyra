@@ -3,6 +3,7 @@
 #include "Shell/VeyraShellModels.h"
 
 #include "Algo/Count.h"
+#include "Algo/StableSort.h"
 #include "Shell/VeyraChatModels.h"
 #include "Shell/VeyraConductModels.h"
 #include "Shell/VeyraProfileModels.h"
@@ -226,7 +227,7 @@ FText DescribeNotice(const FString& Notice)
 	}
 	if (Notice == TEXT("you_left"))
 	{
-		return LOCTEXT("NoticeYouLeft", "You left champion select, which ended it for everyone. Your party left the queue.");
+		return LOCTEXT("NoticeYouLeft", "You left champion select, which ended it for everyone. Your party left the queue, and you can't queue again for a while.");
 	}
 	if (Notice == TEXT("match_found_declined"))
 	{
@@ -305,6 +306,10 @@ FText DescribeProblem(const FVeyraClientProblem& Problem)
 	if (Problem.Code == TEXT("member_busy"))
 	{
 		return LOCTEXT("ProblemMemberBusy", "Someone is still in a match, champion select or queue.");
+	}
+	if (Problem.Code == TEXT("queue_restricted"))
+	{
+		return LOCTEXT("ProblemQueueRestricted", "Someone in your party left champion select and can't queue yet.");
 	}
 	// The custom lobby's (ADR-021).
 	if (Problem.Code == TEXT("vanguard_taken"))
@@ -559,6 +564,12 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		}
 		Model.bCanChoose = bCanHover;
 	}
+	for (FVeyraSelectCardModel& Card : Model.Cards)
+	{
+		Card.bOwned = Snapshot.OwnedVanguards.Contains(Card.VanguardId);
+		Card.bRotation = Snapshot.RotationVanguards.Contains(Card.VanguardId);
+		Card.bFavorite = Snapshot.FavoriteVanguards.Contains(Card.VanguardId);
+	}
 	if (You && You->Locked.IsEmpty() && !You->Hover.IsEmpty())
 	{
 		Model.LockInVanguardId = You->Hover;
@@ -656,7 +667,16 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 	Model.bCanSetPrivacy = bLeader && Permissions.bCanSetPrivacy;
 	Model.bCanLeave = Permissions.bCanLeave;
 	Model.bQueued = Party.Status != EPartyStatus::Idle;
-	if (!Model.bQueued && !Party.Mode.IsEmpty())
+	const VeyraBackendProtocol::FPartyMember* Held = Party.RestrictedMember();
+	if (!Model.bQueued && Held)
+	{
+		// Who holds the party back, and for how long (ADR-060 §3).
+		const FText Time = FormatClock(FMath::CeilToInt(Held->RestrictedSeconds));
+		Model.Status = Held->AccountId == Snapshot.AccountId
+			? FText::Format(LOCTEXT("PartyYouRestricted", "You left champion select and can't queue for {0}."), Time)
+			: FText::Format(LOCTEXT("PartyMemberRestricted", "{0} left champion select and can't queue for {1}."), FText::FromString(Held->DisplayName), Time);
+	}
+	else if (!Model.bQueued && !Party.Mode.IsEmpty())
 	{
 		if (!Party.AllReady())
 		{
@@ -888,6 +908,67 @@ FText DeclinePartyInviteLabel(const FString& Name)
 FText JoinPartyLabel(const FString& Name)
 {
 	return FText::Format(LOCTEXT("JoinPartyLabel", "Join {0}'s Party"), FText::FromString(Name));
+}
+
+namespace
+{
+	using VeyraBackendProtocol::EPresence;
+
+	/** Whether Invite to Party is offered to a friend so shown: one who can answer it now (ADR-061 §6). */
+	bool IsInvitable(EPresence Presence)
+	{
+		return Presence == EPresence::Unknown || Presence == EPresence::Online || Presence == EPresence::InQueue;
+	}
+
+	/** The friends panel's order: who can play now, then who is busy, then who is away (ADR-061 §6). */
+	int32 AvailabilityRank(EPresence Presence)
+	{
+		switch (Presence)
+		{
+		case EPresence::Online:
+			return 0;
+		case EPresence::InQueue:
+			return 1;
+		case EPresence::InSelect:
+			return 2;
+		case EPresence::InMatch:
+			return 3;
+		case EPresence::Offline:
+			return 5;
+		default:
+			// A status this game does not know, or a backend that reports none.
+			return 4;
+		}
+	}
+}
+
+FText PresenceText(VeyraBackendProtocol::EPresence Presence)
+{
+	switch (Presence)
+	{
+	case EPresence::Online:
+		return LOCTEXT("PresenceOnline", "Online");
+	case EPresence::InQueue:
+		return LOCTEXT("PresenceInQueue", "In Queue");
+	case EPresence::InSelect:
+		return LOCTEXT("PresenceInSelect", "In Champion Select");
+	case EPresence::InMatch:
+		return LOCTEXT("PresenceInMatch", "In Match");
+	case EPresence::Offline:
+		return LOCTEXT("PresenceOffline", "Offline");
+	default:
+		return FText::GetEmpty();
+	}
+}
+
+FText AppearOfflineLabel(bool bAppearOffline)
+{
+	return bAppearOffline ? LOCTEXT("AppearOnline", "Appear Online") : LOCTEXT("AppearOffline", "Appear Offline");
+}
+
+FText AppearOfflineNote()
+{
+	return LOCTEXT("AppearOfflineNote", "You appear offline to friends outside your party.");
 }
 
 FText FriendCardLabel(const FString& Name)
@@ -1139,6 +1220,15 @@ FText DescribeSocialFeedback(const FString& Code, const FString& Name)
 	{
 		return FText::Format(LOCTEXT("SocialBusy", "{0} is in a match, champion select or queue."), Who);
 	}
+	if (Code == TEXT("invitee_in_match"))
+	{
+		return FText::Format(LOCTEXT("SocialInviteeInMatch", "{0} is in a match. Invite them once it ends."), Who);
+	}
+	if (Code == TEXT("invitee_offline"))
+	{
+		// Also a friend appearing offline, which no one may learn of (ADR-061 §5).
+		return FText::Format(LOCTEXT("SocialInviteeOffline", "{0} is offline."), Who);
+	}
 	if (Code == TEXT("already_in_lobby"))
 	{
 		return FText::Format(LOCTEXT("SocialInLobby", "{0} is already in a lobby."), Who);
@@ -1221,9 +1311,12 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 		FVeyraFriendModel FriendModel;
 		FriendModel.AccountId = Friend.Id;
 		FriendModel.Name = FText::FromString(Friend.DisplayName);
+		FriendModel.Presence = Social.Friends.PresenceOf(Friend.Id);
+		FriendModel.Status = PresenceText(FriendModel.Presence);
 		FriendModel.bOffersInvite = bInLobby && Snapshot.Lobby->HostAccountId == Snapshot.AccountId;
 		FriendModel.bCanInvite = FriendModel.bOffersInvite && bCanInvite && !Snapshot.Lobby->FindMember(Friend.Id);
-		FriendModel.bOffersPartyInvite = bInShell && !(Snapshot.Party.IsSet() && Snapshot.Party->Find(Friend.Id));
+		// Only a friend who can answer: online or queued, or any from a backend without presence (ADR-061 §6).
+		FriendModel.bOffersPartyInvite = bInShell && !(Snapshot.Party.IsSet() && Snapshot.Party->Find(Friend.Id)) && IsInvitable(FriendModel.Presence);
 		FriendModel.bCanPartyInvite = FriendModel.bOffersPartyInvite && Permissions.bCanInviteToParty;
 		FriendModel.bOffersJoinParty = bInShell && Social.Friends.JoinablePartyOf(Friend.Id) != nullptr;
 		FriendModel.bCanJoinParty = FriendModel.bOffersJoinParty && Permissions.bCanJoinFriendParty;
@@ -1236,6 +1329,11 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 		}
 		Model.Friends.Add(MoveTemp(FriendModel));
 	}
+	// Who can play now first, then who is busy, then who is away; by name within each (ADR-061 §6).
+	Algo::StableSortBy(Model.Friends, [](const FVeyraFriendModel& Friend) { return AvailabilityRank(Friend.Presence); });
+	Model.bOffersAppearOffline = Social.Presence.IsSet();
+	Model.bAppearOffline = Social.Presence.IsSet() && Social.Presence->bAppearOffline;
+	Model.bCanSetAppearOffline = Model.bOffersAppearOffline && Permissions.bCanSetAppearOffline;
 	for (const VeyraBackendProtocol::FAccount& To : Social.Friends.Outgoing)
 	{
 		const FText Name = FText::FromString(To.DisplayName);
@@ -1281,7 +1379,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		Text << TEXT("|settings conflict");
 	}
 	Text << TEXT("|starters:") << FString::Join(Snapshot.Starters, TEXT(",")) << TEXT("|available:") << FString::Join(Snapshot.AvailableVanguards, TEXT(","))
-		 << TEXT("|released:") << FString::Join(Snapshot.ReleasedVanguards, TEXT(","));
+		 << TEXT("|released:") << FString::Join(Snapshot.ReleasedVanguards, TEXT(",")) << TEXT("|owned:") << FString::Join(Snapshot.OwnedVanguards, TEXT(","))
+		 << TEXT("|rotation:") << FString::Join(Snapshot.RotationVanguards, TEXT(",")) << TEXT("|favorites:") << FString::Join(Snapshot.FavoriteVanguards, TEXT(","));
 	if (Snapshot.State == EVeyraClientState::Selecting)
 	{
 		const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
@@ -1317,7 +1416,9 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		for (const VeyraBackendProtocol::FPartyMember& Member : Party.Members)
 		{
 			Text << TEXT(";") << Member.AccountId << TEXT(":") << Member.DisplayName << TEXT(":") << (Member.bReady ? TEXT("ready") : TEXT("not ready"))
-				 << (Member.bLeader ? TEXT(":leader") : TEXT(""));
+				 << (Member.bLeader ? TEXT(":leader") : TEXT(""))
+			 // Each read's whole seconds, so the restriction's countdown shows (ADR-060 §3).
+			 << TEXT(":") << FMath::CeilToInt(Member.RestrictedSeconds);
 		}
 	}
 	if (Snapshot.State == EVeyraClientState::MatchFound)
@@ -1376,6 +1477,12 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	{
 		Text << TEXT(";blocked:") << Player.Id;
 	}
+	// Each friend's status, and the player's own Appear Offline (ADR-061).
+	for (const VeyraBackendProtocol::FFriendPresence& Shown : Social.Friends.Presence)
+	{
+		Text << TEXT(";presence:") << Shown.AccountId << TEXT(":") << static_cast<int32>(Shown.Status);
+	}
+	Text << TEXT(";self:") << (Social.Presence.IsSet() ? (Social.Presence->bAppearOffline ? TEXT("hidden") : TEXT("shown")) : TEXT("unread"));
 	// The account's level and balances, the Collection and a result's rewards (ADR-045 §8).
 	Text << VeyraProgressionModels::Signature(Snapshot);
 	// The shown match's conduct record and what came of the player's reports and commendation (ADR-047 §5).

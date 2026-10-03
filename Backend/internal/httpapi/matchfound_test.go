@@ -11,6 +11,7 @@ import (
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/catalog"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/dodges"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
@@ -33,6 +34,11 @@ func (c casualSeats) OpenCasual(ctx context.Context, mode string, seats []matchm
 type playing struct {
 	matches *match.Service
 	selects *selection.Service
+}
+
+func (p playing) InMatch(ctx context.Context, accountID string) (bool, error) {
+	_, in, err := p.matches.Current(ctx, accountID)
+	return in, err
 }
 
 func (p playing) Busy(ctx context.Context, accounts []string) (bool, error) {
@@ -93,7 +99,79 @@ func newMatchmakingTestServer(t *testing.T) (*httptest.Server, *matchmaking.Serv
 		SearchLimit:    1000,
 	}, time.Now, log)
 	d.Selection.SetMatchmaking(d.Matchmaking)
+	d.Dodges = dodges.NewService(dodges.NewMemStore(), dodgeRestriction, time.Now)
+	d.Selection.SetDodges(d.Dodges)
+	d.Party.SetRestrictions(d.Dodges)
 	return serve(t, d), d.Matchmaking
+}
+
+// dodgeRestriction is the test servers' restriction for leaving a select.
+const dodgeRestriction = 5 * time.Minute
+
+// queueToSelect queues one and two, matches them and accepts, opening their
+// Casual Select.
+func queueToSelect(t *testing.T, srv *httptest.Server, matchmaker *matchmaking.Service, one, two string) {
+	t.Helper()
+	for _, token := range []string{one, two} {
+		call(t, srv, "PUT", "/v1/party/mode", token, map[string]string{"mode": "casual_select"})
+		call(t, srv, "PUT", "/v1/party/ready", token, map[string]bool{"ready": true})
+		if status, body := call(t, srv, "POST", "/v1/party/queue", token, nil); status != http.StatusOK {
+			t.Fatalf("queue: %d %v", status, body)
+		}
+	}
+	if err := matchmaker.MatchOnce(context.Background()); err != nil {
+		t.Fatalf("MatchOnce: %v", err)
+	}
+	call(t, srv, "POST", "/v1/me/match-found/accept", one, nil)
+	call(t, srv, "POST", "/v1/me/match-found/accept", two, nil)
+}
+
+func TestADodgeHoldsTheLeaversPartyBackForAWhile(t *testing.T) {
+	srv, matchmaker := newMatchmakingTestServer(t)
+	one, _ := gameSession(t, srv, "DevOne")
+	two, _ := gameSession(t, srv, "DevTwo")
+	queueToSelect(t, srv, matchmaker, one, two)
+	if status, body := call(t, srv, "POST", "/v1/me/select/leave", two, nil); status != http.StatusOK {
+		t.Fatalf("leave: %d %v", status, body)
+	}
+	// The leaver, alone, is restricted (ADR-060 §1); the one left behind is not.
+	if _, mine := call(t, srv, "GET", "/v1/me/restriction", two, nil); mine["restrictedSeconds"].(float64) != dodgeRestriction.Seconds() {
+		t.Fatalf("the leaver: %v", mine)
+	}
+	if _, theirs := call(t, srv, "GET", "/v1/me/restriction", one, nil); theirs["restrictedSeconds"].(float64) != 0 {
+		t.Fatalf("the one left behind: %v", theirs)
+	}
+	_, p := call(t, srv, "GET", "/v1/party", two, nil)
+	member := p["party"].(map[string]any)["members"].([]any)[0].(map[string]any)
+	if member["restrictedSeconds"].(float64) != dodgeRestriction.Seconds() {
+		t.Fatalf("the party sees the member's time: %v", p)
+	}
+	// Ready again, the leaver's party still cannot queue.
+	call(t, srv, "PUT", "/v1/party/ready", two, map[string]bool{"ready": true})
+	if status, body := call(t, srv, "POST", "/v1/party/queue", two, nil); status != http.StatusConflict || body["error"] != "queue_restricted" {
+		t.Fatalf("queueing while restricted: %d %v", status, body)
+	}
+}
+
+func TestNoPartyInvitationReachesAPlayerInAMatch(t *testing.T) {
+	srv, matchmaker := newMatchmakingTestServer(t)
+	one, oneID := gameSession(t, srv, "DevOne")
+	two, _ := gameSession(t, srv, "DevTwo")
+	three, threeID := gameSession(t, srv, "DevThree")
+	call(t, srv, "POST", "/v1/friends/requests", three, map[string]string{"accountId": oneID})
+	if status, _ := call(t, srv, "POST", "/v1/friends/requests/"+threeID+"/accept", one, nil); status != http.StatusNoContent {
+		t.Fatalf("befriend: %d", status)
+	}
+	queueToSelect(t, srv, matchmaker, one, two)
+	call(t, srv, "POST", "/v1/me/select/lock", one, map[string]string{"vanguardId": "bryn"})
+	call(t, srv, "POST", "/v1/me/select/lock", two, map[string]string{"vanguardId": "cairn"})
+	// One plays a live match: an invitation is refused, not kept (ADR-060 §4).
+	if status, body := call(t, srv, "POST", "/v1/party/invites", three, map[string]string{"accountId": oneID}); status != http.StatusConflict || body["error"] != "invitee_in_match" {
+		t.Fatalf("an invitation into a match: %d %v", status, body)
+	}
+	if _, invites := call(t, srv, "GET", "/v1/party/invites", one, nil); len(invites["invites"].([]any)) != 0 {
+		t.Fatalf("nothing kept for later: %v", invites)
+	}
 }
 
 func TestQueueMatchFoundAndCasualSelectOverHTTP(t *testing.T) {

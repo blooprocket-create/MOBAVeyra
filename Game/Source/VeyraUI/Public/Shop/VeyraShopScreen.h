@@ -90,8 +90,26 @@ public:
 	/** The line that says why the server refused the last request; empty when none has been. */
 	FText GetMessage() const;
 
+	/**
+	 * Puts the keyboard in the search field, on the items tab, as Focus Shop Search does (SET-58; ADR-058 §1). While it
+	 * is there, typed keys never reach the match.
+	 */
+	void FocusSearch();
+
+	/** Gives the keyboard back to the match from the search field, as Escape does first; false when the field did not have it. */
+	bool LeaveSearch();
+
+	/** Whether the keyboard is in the search field. */
+	bool IsSearching() const;
+
+	/** Searches as though the player typed Search. For tests and scripts. */
+	void SetSearch(const FString& InSearch);
+	const FString& GetSearch() const { return Search; }
+
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 private:
 	enum class ETab : uint8
@@ -136,6 +154,12 @@ private:
 
 	UTextBlock& AddEyebrow(UPanelWidget& Parent, const FText& Text);
 
+	UFUNCTION()
+	void HandleSearchChanged(const FText& Text);
+
+	/** What the catalog is narrowed to; empty for every item. */
+	FString Search;
+
 	TWeakObjectPtr<AVeyraPlayerController> Controller;
 	TFunction<void()> Close;
 	FVeyraShopView View;
@@ -156,6 +180,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Catalog;
+
+	/** Built once, so it keeps the keyboard while the catalog is rebuilt around it. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UEditableTextBox> SearchBox;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Details;

@@ -278,6 +278,20 @@ func (s *PartyStore) PartiesOf(ctx context.Context, accountIDs []string) (map[st
 	return out, nil
 }
 
+func (s *PartyStore) MembersIn(ctx context.Context, statuses []party.Status) ([]string, error) {
+	names := make([]string, len(statuses))
+	for i, status := range statuses {
+		names[i] = string(status)
+	}
+	rows, err := querierFor(ctx, s.pool).Query(ctx, `SELECT m.account_id::text FROM party.members m
+		JOIN party.parties p ON p.id = m.party_id
+		WHERE p.status = ANY($1::text[]) ORDER BY m.account_id`, names)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
 func (s *PartyStore) InvitesFor(ctx context.Context, accountID string, now time.Time) ([]party.Invite, error) {
 	rows, err := querierFor(ctx, s.pool).Query(ctx, `SELECT `+inviteColumns+` FROM party.invites
 		WHERE invitee_id = $1::uuid AND expires_at > $2 ORDER BY created_at`, accountID, now)

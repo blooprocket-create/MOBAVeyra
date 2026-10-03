@@ -170,6 +170,10 @@ func TestPracticeMatchInPostgres(t *testing.T) {
 	if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {
 		t.Fatalf("ServerReady: %v", err)
 	}
+	// A match still going has not ended for anyone (ADR-061 §4).
+	if last, err := f.svc.LastEnded(ctx, []string{host, "not-a-uuid"}); err != nil || len(last) != 0 {
+		t.Fatalf("LastEnded while live: %v %v", last, err)
+	}
 	r := match.Result{EndReason: match.EndHostEnded, DurationSeconds: 30,
 		Participants: []match.ParticipantResult{{AccountID: host, Joined: true, ConnectedAtEnd: true}}}
 	if err := f.svc.ServerResult(ctx, cred, m.ID, r); err != nil {
@@ -178,6 +182,9 @@ func TestPracticeMatchInPostgres(t *testing.T) {
 	ended, p, err := f.svc.ForParticipant(ctx, host, m.ID)
 	if err != nil || ended.Result == nil || ended.Result.EndReason != match.EndHostEnded || p.VanguardID != "oriel" {
 		t.Fatalf("the host's view of the ended match: %+v %+v %v", ended, p, err)
+	}
+	if last, err := f.svc.LastEnded(ctx, []string{host}); err != nil || !last[host].Equal(ended.EndedAt) {
+		t.Fatalf("LastEnded: %v, want %v (%v)", last, ended.EndedAt, err)
 	}
 }
 

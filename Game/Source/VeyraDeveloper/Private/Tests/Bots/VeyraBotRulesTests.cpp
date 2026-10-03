@@ -47,6 +47,8 @@ namespace VeyraBotsTests
 			Tuning.Jungle.AbilityResourceFloor = 0.4;
 			Tuning.Warding.SpotReach = 500.0;
 			Tuning.Warding.SpotSpacing = 900.0;
+			Tuning.Defence.ThreatRadius = 1500.0;
+			Tuning.Defence.RecallDistance = 4000.0;
 			Difficulty.ThinkSeconds = 0.25;
 			Difficulty.ReactionSeconds = 0.5;
 			Difficulty.LastHitChance = 1.0;
@@ -644,6 +646,128 @@ namespace VeyraBotsTests
 			Slots[0].Item = ItemId(TEXT("test_haven"));
 			Slots[1] = FVeyraInventorySlot();
 			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_grip"))));
+		}
+
+		TEST_METHOD(ItCarriesItsConsumablesUntilTheirTimeWithoutTakingTheLastFreeSlot)
+		{
+			const FVeyraItemsTuning Items = TestCatalog();
+			FVeyraBotConsumablesTuning Consumables;
+			Consumables.Item = ItemId(TEXT("test_tonic"));
+			Consumables.BuyUntilSeconds = 1200.0;
+			const int32 Carried = 2;
+			TArray<FVeyraInventorySlot> Slots;
+			Slots.SetNum(Items.Shop.InventorySlots);
+			const auto Next = [&](double Gold, double MatchSeconds) {
+				return VeyraBotRules::NextConsumable(Items, Consumables, Carried, Slots, {}, FVeyraContentId(), Gold, MatchSeconds);
+			};
+			// It buys one while it carries fewer than its number and Gold affords one (ADR-056 §1).
+			ASSERT_THAT(IsTrue(Next(100.0, 0.0) == Consumables.Item));
+			ASSERT_THAT(IsFalse(Next(10.0, 0.0).IsSet(), TEXT("too poor")));
+			ASSERT_THAT(IsFalse(Next(100.0, Consumables.BuyUntilSeconds).IsSet(), TEXT("too late in the match")));
+			Slots[0].Item = Consumables.Item;
+			Slots[0].Count = 1;
+			ASSERT_THAT(IsTrue(Next(100.0, 0.0) == Consumables.Item, TEXT("one short")));
+			Slots[0].Count = Carried;
+			ASSERT_THAT(IsFalse(Next(100.0, 0.0).IsSet(), TEXT("carrying its number")));
+			// A new stack never takes the last free slot; topping up a held stack may.
+			Slots.Reset();
+			Slots.SetNum(Items.Shop.InventorySlots);
+			for (int32 Index = 0; Index < Slots.Num() - 1; ++Index)
+			{
+				Slots[Index].Item = ItemId(TEXT("test_grip"));
+				Slots[Index].Count = 1;
+			}
+			ASSERT_THAT(IsFalse(Next(100.0, 0.0).IsSet(), TEXT("one slot free")));
+			Slots[0].Item = Consumables.Item;
+			ASSERT_THAT(IsTrue(Next(100.0, 0.0) == Consumables.Item, TEXT("a held stack grows")));
+		}
+
+		TEST_METHOD(AHurtBotAwayFromItsFountainDrinks)
+		{
+			FVeyraBotConsumablesTuning Consumables;
+			Consumables.DrinkHealthFraction = 0.55;
+			const int32 Held = 3;
+			FVeyraBotView View = AliveAt(0.0, 0.5);
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(View, Consumables).IsSet(), TEXT("nothing to drink")));
+			View.ConsumableSlot = Held;
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextDrink(View, Consumables) == Held));
+			// Not at full enough Health to need it, at its fountain, recalling or dead.
+			FVeyraBotView Healthy = AliveAt(0.0, 0.6);
+			Healthy.ConsumableSlot = Held;
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(Healthy, Consumables).IsSet()));
+			for (bool FVeyraBotView::*Flag : { &FVeyraBotView::bAtFountain, &FVeyraBotView::bRecalling })
+			{
+				FVeyraBotView Busy = View;
+				Busy.*Flag = true;
+				ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(Busy, Consumables).IsSet()));
+			}
+			FVeyraBotView Dead = View;
+			Dead.bAlive = false;
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextDrink(Dead, Consumables).IsSet()));
+		}
+
+		TEST_METHOD(ItAnswersAThreatToItsBaseRecallingFromAfarAndStayingByIt)
+		{
+			const FVector Lane(1000.0, 0.0, 0.0);
+			FVeyraBotView View = AliveAt(0.0);
+			View.LaneHold = Lane;
+			ASSERT_THAT(IsTrue(Decide(View).Destination == Lane, TEXT("at peace, its lane")));
+			// Far from the threatened structure, and no enemy near: it recalls, its fountain being in its base (ADR-056 §2).
+			View.BaseThreat = FVeyraBotThreat{ FVector(-(Tuning.Defence.RecallDistance + Near), 0.0, 0.0), 1 };
+			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Recall));
+			// An enemy near: it walks instead, as it does when nearer.
+			FVeyraBotView Watched = View;
+			Watched.EnemyVanguards.Add(Unit(Near));
+			const FVeyraBotIntent Walk = Decide(Watched);
+			ASSERT_THAT(IsTrue(Walk.Action == EVeyraBotAction::Move && Walk.Destination == View.BaseThreat->Location));
+			View.BaseThreat->Location = FVector(-(Tuning.Defence.ThreatRadius + Near), 0.0, 0.0);
+			ASSERT_THAT(IsTrue(Decide(View).Destination == View.BaseThreat->Location));
+			// There, it stays by the structure: no Well, camp or lane draws it away.
+			View.BaseThreat->Location = FVector(-Tuning.Defence.ThreatRadius / 2.0, 0.0, 0.0);
+			View.Wells.Add(Unit(Near));
+			View.bJungle = true;
+			const FVeyraBotIntent Stay = Decide(View);
+			ASSERT_THAT(IsTrue(Stay.Action == EVeyraBotAction::Move && Stay.Destination == View.BaseThreat->Location, TEXT("by the structure")));
+		}
+
+		TEST_METHOD(ADeadBotBuysBackOnlyWhileItsBaseIsThreatenedAndItCanSpareTheGold)
+		{
+			FVeyraBotBuybackTuning Buyback;
+			Buyback.MinWaitSeconds = 20.0;
+			Buyback.ReserveGold = 300.0;
+			Difficulty.Buyback = EVeyraBotBuyback::WhenBaseThreatened;
+			FVeyraBotView Dead;
+			Dead.BaseThreat = FVeyraBotThreat{ FVector::ZeroVector, 1 };
+			Dead.RespawnWait = Buyback.MinWaitSeconds;
+			Dead.bBuybackAllowed = true;
+			Dead.BuybackCost = 1000.0;
+			Dead.Gold = Dead.BuybackCost + Buyback.ReserveGold;
+			ASSERT_THAT(IsTrue(VeyraBotRules::ShouldBuyBack(Dead, Difficulty, Buyback)));
+			// Each condition alone keeps it waiting (ADR-056 §3).
+			const auto Refuses = [&](TFunctionRef<void(FVeyraBotView&, FVeyraBotDifficultyTuning&)> Change) {
+				FVeyraBotView View = Dead;
+				FVeyraBotDifficultyTuning Behaviour = Difficulty;
+				Change(View, Behaviour);
+				return !VeyraBotRules::ShouldBuyBack(View, Behaviour, Buyback);
+			};
+			ASSERT_THAT(IsTrue(Refuses([](FVeyraBotView&, FVeyraBotDifficultyTuning& Behaviour) { Behaviour.Buyback = EVeyraBotBuyback::Never; }), TEXT("its difficulty never does")));
+			ASSERT_THAT(IsTrue(Refuses([](FVeyraBotView& View, FVeyraBotDifficultyTuning&) { View.BaseThreat.Reset(); }), TEXT("at peace")));
+			ASSERT_THAT(IsTrue(Refuses([](FVeyraBotView& View, FVeyraBotDifficultyTuning&) { View.RespawnWait -= 1.0; }), TEXT("back soon anyway")));
+			ASSERT_THAT(IsTrue(Refuses([](FVeyraBotView& View, FVeyraBotDifficultyTuning&) { View.bBuybackAllowed = false; }), TEXT("the economy refuses")));
+			ASSERT_THAT(IsTrue(Refuses([](FVeyraBotView& View, FVeyraBotDifficultyTuning&) { View.Gold -= 1.0; }), TEXT("it would break its reserve")));
+			ASSERT_THAT(IsTrue(Refuses([](FVeyraBotView& View, FVeyraBotDifficultyTuning&) { View.bAlive = true; }), TEXT("alive")));
+		}
+
+		TEST_METHOD(LateInAMatchTheLanersPushWhereTheMostEnemyStructuresHaveFallen)
+		{
+			const TArray<EVeyraLane> Order = { EVeyraLane::Mid, EVeyraLane::Bottom, EVeyraLane::Top };
+			TMap<EVeyraLane, int32> Fallen;
+			ASSERT_THAT(IsTrue(VeyraBotRules::GroupLane(Fallen, Order) == EVeyraLane::Mid, TEXT("nothing fallen: the first of the order")));
+			Fallen.Add(EVeyraLane::Top, 1);
+			ASSERT_THAT(IsTrue(VeyraBotRules::GroupLane(Fallen, Order) == EVeyraLane::Top, TEXT("the furthest gone (ADR-056 §4)")));
+			Fallen.Add(EVeyraLane::Bottom, 1);
+			ASSERT_THAT(IsTrue(VeyraBotRules::GroupLane(Fallen, Order) == EVeyraLane::Bottom, TEXT("a tie goes to the earlier in the order")));
+			ASSERT_THAT(IsTrue(VeyraBotRules::GroupLane(Fallen, {}) == EVeyraLane::Mid));
 		}
 
 		TEST_METHOD(TheLaneMeasuresDistanceAlongItsPath)

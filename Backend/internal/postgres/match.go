@@ -230,6 +230,40 @@ func (s *MatchStore) HistoryModes(ctx context.Context, accountID string) ([]stri
 	return pgx.CollectRows(rows, pgx.RowTo[string])
 }
 
+// LastEnded reads when each account's most recent finished match ended, in
+// one statement however many accounts are asked about.
+func (s *MatchStore) LastEnded(ctx context.Context, accountIDs []string) (map[string]time.Time, error) {
+	ids := make([]string, 0, len(accountIDs))
+	for _, id := range accountIDs {
+		if uuidPattern.MatchString(id) {
+			ids = append(ids, id)
+		}
+	}
+	out := map[string]time.Time{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := querierFor(ctx, s.pool).Query(ctx, `
+		SELECT p.account_id::text, max(m.ended_at)
+		FROM match.participants p
+		JOIN match.matches m ON m.id = p.match_id
+		WHERE p.account_id = ANY($1::uuid[]) AND m.ended_at IS NOT NULL
+		GROUP BY p.account_id`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var ended time.Time
+		if err := rows.Scan(&id, &ended); err != nil {
+			return nil, err
+		}
+		out[id] = ended
+	}
+	return out, rows.Err()
+}
+
 func deref(s *string) string {
 	if s == nil {
 		return ""

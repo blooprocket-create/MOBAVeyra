@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"sort"
+
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/presence"
 )
 
 func (s *Server) routeAccounts(mux *http.ServeMux) {
@@ -81,8 +83,22 @@ func (s *Server) listFriends(w http.ResponseWriter, r *http.Request, actor strin
 		}
 		out[l.key] = list
 	}
+	// Each friend's status as the player sees it (ADR-061 §2–§3).
+	status := map[string]string{}
+	if s.Presence != nil {
+		shown, err := s.Presence.StatusFor(ctx, actor, friends)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		for id, st := range shown {
+			status[id] = string(st)
+		}
+		out["presence"] = status
+	}
 	// The friends whose Public party the player may join directly, by account:
-	// the party to ask to join (Parties & Social Bible §1).
+	// the party to ask to join (Parties & Social Bible §1). A friend who shows
+	// offline offers none, which would show them online (ADR-061 §3).
 	joinable := map[string]string{}
 	if s.Party != nil {
 		found, err := s.Party.JoinableParties(ctx, actor, friends)
@@ -90,7 +106,11 @@ func (s *Server) listFriends(w http.ResponseWriter, r *http.Request, actor strin
 			s.fail(w, err)
 			return
 		}
-		joinable = found
+		for id, partyID := range found {
+			if s.Presence == nil || status[id] != string(presence.Offline) {
+				joinable[id] = partyID
+			}
+		}
 	}
 	out["joinableParties"] = joinable
 	writeJSON(w, http.StatusOK, out)

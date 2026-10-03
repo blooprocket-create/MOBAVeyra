@@ -56,14 +56,16 @@ Every route below needs `Authorization: Bearer <game session token>`. Accounts a
 
 | Endpoint | Body | What it does |
 |---|---|---|
-| `GET /v1/friends` | — | friends, incoming and outgoing requests |
+| `GET /v1/friends` | — | friends, incoming and outgoing requests, `joinableParties`, and `presence`: each friend's status as you see it, `in_match`, `in_select`, `in_queue`, `online` or `offline` (ADR-061) |
+| `GET /v1/me/presence` · `PUT /v1/me/presence` | `{"appearOffline": true}` | your own `status` and `appearOffline`; turn Appear Offline on or off |
 | `POST /v1/friends/requests` | `{"accountId"}` | send a request; if they already asked you, you become friends |
 | `POST /v1/friends/requests/{accountId}/accept` · `/decline` | — | answer a request |
 | `DELETE /v1/friends/requests/{accountId}` | — | withdraw your request |
 | `DELETE /v1/friends/{accountId}` | — | unfriend |
 | `GET /v1/blocks` · `PUT` / `DELETE /v1/blocks/{accountId}` | — | list, block, unblock |
 | `GET /v1/modes` | — | modes: whether each is enabled, its Play-page `category` (`ranked`, `casual` or `ai`; ADR-039 §6), its `humanPlayersPerTeam`, and its `matchmaking`, `casualSelect`, `coop` (humans against an enemy AI team) or `notImplemented` (not yet available) |
-| `GET /v1/party` | — | your party, or `{"party": null}`; its `status` is `idle`, `queued`, `found` (Match Found) or `selecting`, and `queuedSeconds` how long it has been in matchmaking |
+| `GET /v1/party` | — | your party, or `{"party": null}`; its `status` is `idle`, `queued`, `found` (Match Found) or `selecting`, `queuedSeconds` how long it has been in matchmaking, and each member's `restrictedSeconds` how long they cannot queue after leaving a select (0 when free) |
+| `GET /v1/me/restriction` | — | `restrictedSeconds`: how long you cannot queue after leaving a matchmade champion select, 0 when free (ADR-060) |
 | `PUT /v1/party/mode` | `{"mode"}` | leader picks a mode; creates a one-person party if you have none |
 | `PUT /v1/party/privacy` | `{"privacy": "public"\|"private"}` | leader only |
 | `PUT /v1/party/ready` | `{"ready": true}` | mark yourself Ready or not |
@@ -74,7 +76,7 @@ Every route below needs `Authorization: Bearer <game session token>`. Accounts a
 | `POST /v1/party/invites/{inviteId}/accept` · `/decline` | — | answer an invite |
 | `POST /v1/parties/{partyId}/join` | — | join a friend's Public party |
 
-Errors come back as `{"error": "<code>"}` with codes such as `not_leader`, `party_full`, `party_locked`, `not_all_ready`, `mode_not_available`, `blocked` and `not_friends`.
+Errors come back as `{"error": "<code>"}` with codes such as `not_leader`, `party_full`, `party_locked`, `not_all_ready`, `mode_not_available`, `blocked`, `not_friends`, `queue_restricted` (a member left a matchmade champion select and cannot queue yet), `invitee_in_match` (no party invitation reaches a player in a live match) and `invitee_offline` (the invitee shows offline to you).
 
 Rules the code enforces, from the Parties & Social Bible:
 
@@ -83,6 +85,10 @@ Rules the code enforces, from the Parties & Social Bible:
 - Adding a member or changing the mode resets everyone's Ready. Find Match needs a mode, everyone Ready, and a party no bigger than the mode's team.
 - Find Match locks the party: nobody can join, accept an invite into it, send an invite from it, change Ready or mode, or take over as leader, until matchmaking lets it go. Anyone leaving, being removed or blocked out takes the party out of matchmaking and resets Ready; a match found or champion select it was in is abandoned or cancelled. Only a mode whose `matchmaking` is `casualSelect` or `coop` can be queued.
 - Accepting an invite while in another party moves you, unless your current party is queued.
+- Leaving a matchmade champion select on purpose (Casual or Draft) restricts the leaver from queueing for `dodges.restriction`; a dodge while restricted starts it again (ADR-060). A select cancelled by a disconnect restricts no one, nor do custom and practice selects or a declined or missed Match Found. Find Match refuses any party holding a restricted member; the others may leave and queue without them. The restriction is no moderation sanction.
+- No party invitation reaches a player in a live match, nor is one kept for later; friend requests still go through.
+- Every signed-in request marks its account seen, written at most once every `presence.touchEvery` (ADR-061). An account not seen for `presence.offlineAfter` is offline unless a live match, a champion select or a queue says what it is doing. Appear Offline shows you offline to friends outside your party, refuses their invitations as if you were offline, and hides your Public party from their joinable list; your party still sees you. No invitation reaches a friend who shows offline to the inviter (`invitee_offline`), checked before the in-match rule so Appear Offline reveals nothing.
+- Every `presence.sweepInterval` the backend removes each member of an Idle or Queued party who has been offline for `presence.offlineAfter`, plays no live match, and whose last match ended more than `presence.postMatchGrace` ago. Removal is an ordinary departure: a queue is cancelled, Ready resets and leadership passes on. Coming back does not rejoin the party. A restarted backend gives everyone `presence.offlineAfter` to return first.
 - Blocks work in both directions: no friend requests, invites or shared party. Blocking ends the friendship and withdraws pending requests and every invite that would put the two players in one party, whoever sent it. The block and its party clean-up commit in one transaction.
 - Every change to a party runs in a database transaction with the party row locked, and each account can be in only one party (enforced by the database).
 
@@ -246,6 +252,18 @@ Each account has a public profile ([ADR-048](../Docs/ADR/ADR-048-player-profiles
 `POST /v1/dev/accounts/{name}/profile-reset` (local only, with `devLogin`) forgets a development account's choices, so scripted runs start from the defaults with the history private.
 
 The catalog is `profile` in `config/local.json` (ADR-048 §2, provisional): a neutral default, plus each released Vanguard's portrait as an icon and its hero art as a background.
+
+### Favorite Vanguards
+
+A player marks Vanguards as favorites in the Collection, and champion select shows them under its Favorites tab ([ADR-058](../Docs/ADR/ADR-058-search-filters-and-favorites.md) §5; `internal/favorites`). Favorites are account data, so they follow the player to any machine. Any released Vanguard may be one, owned or not.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/me/favorites` | `Bearer <game token>` | — | `favorites`: Vanguard IDs in the order marked |
+| `PUT /v1/me/favorites/{vanguardId}` | `Bearer <game token>` | — | `favorites` after marking it; marking a favorite again changes nothing. Refusals: `unknown_vanguard` (not released), `playing` (never during champion select or a match), `favorites_full` |
+| `DELETE /v1/me/favorites/{vanguardId}` | `Bearer <game token>` | — | `favorites` after unmarking it. Refusal: `playing` |
+
+The most an account keeps is `favorites.maxPerAccount` in `config/local.json`. Canon sets no limit, so the provisional value allows the whole released roster.
 
 ### Custom practice and champion select
 

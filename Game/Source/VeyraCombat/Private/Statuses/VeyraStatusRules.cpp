@@ -188,6 +188,30 @@ bool IsCrowdControl(EVeyraStatusKind Kind)
 	return IsTenacityReducible(Kind) || Kind == EVeyraStatusKind::Knockup;
 }
 
+bool IsHarmful(EVeyraStatusKind Kind, double Magnitude)
+{
+	if (IsCrowdControl(Kind))
+	{
+		return true;
+	}
+	if (IsChangeKind(Kind))
+	{
+		return Magnitude < 0.0;
+	}
+	switch (Kind)
+	{
+	case EVeyraStatusKind::DamageOverTime:
+	case EVeyraStatusKind::Weaken:
+	case EVeyraStatusKind::MagicResistReduction:
+	case EVeyraStatusKind::SourceAttackRange:
+	case EVeyraStatusKind::Sounded:
+	case EVeyraStatusKind::Designated:
+		return true;
+	default:
+		return false;
+	}
+}
+
 double ApplyTenacity(double DurationSeconds, double TenacityRetained, double FloorSeconds)
 {
 	const double Shortened = DurationSeconds * FMath::Clamp(TenacityRetained, 0.0, 1.0);

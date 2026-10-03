@@ -610,6 +610,24 @@ bool ParseVanguardAccess(const FString& Body, FVanguardAccess& Out, FString& Out
 	return true;
 }
 
+bool ParseFavorites(const FString& Body, TArray<FString>& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	TArray<FString> Favorites;
+	if (!Root.IsValid() || !StringArrayField(*Root, TEXT("favorites"), ContentIdPattern, Favorites))
+	{
+		OutProblem = TEXT("the answer does not list favorite Vanguards by their IDs");
+		return false;
+	}
+	Out = MoveTemp(Favorites);
+	return true;
+}
+
+FString FavoritePath(const FString& VanguardId)
+{
+	return TEXT("/v1/me/favorites/") + VanguardId;
+}
+
 const FSelectSeat* FSelect::FindYou() const
 {
 	return Seats.FindByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; });
@@ -965,6 +983,19 @@ bool FParty::AllReady() const
 	return !Members.ContainsByPredicate([](const FPartyMember& Member) { return !Member.bReady; });
 }
 
+const FPartyMember* FParty::RestrictedMember() const
+{
+	const FPartyMember* Longest = nullptr;
+	for (const FPartyMember& Member : Members)
+	{
+		if (Member.RestrictedSeconds > 0.0 && (!Longest || Member.RestrictedSeconds > Longest->RestrictedSeconds))
+		{
+			Longest = &Member;
+		}
+	}
+	return Longest;
+}
+
 bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutProblem)
 {
 	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
@@ -1023,7 +1054,9 @@ bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutPr
 		FPartyMember Member;
 		if (!Value.IsValid() || !Value->TryGetObject(MemberObject) || !MemberObject->IsValid()
 			|| !StringField(**MemberObject, TEXT("accountId"), IdPattern, Member.AccountId) || !StringField(**MemberObject, TEXT("displayName"), Member.DisplayName)
-			|| Member.DisplayName.IsEmpty() || !BoolField(**MemberObject, TEXT("ready"), Member.bReady) || !BoolField(**MemberObject, TEXT("leader"), Member.bLeader))
+			|| Member.DisplayName.IsEmpty() || !BoolField(**MemberObject, TEXT("ready"), Member.bReady) || !BoolField(**MemberObject, TEXT("leader"), Member.bLeader)
+			// Absent from a backend without queue-dodge restrictions (ADR-060).
+			|| ((*MemberObject)->HasField(TEXT("restrictedSeconds")) && !DurationField(**MemberObject, TEXT("restrictedSeconds"), Member.RestrictedSeconds)))
 		{
 			OutProblem = TEXT("a member of the party is not in the expected format");
 			return false;
@@ -1249,6 +1282,50 @@ const FString* FFriends::JoinablePartyOf(const FString& AccountId) const
 	return Found ? &Found->PartyId : nullptr;
 }
 
+EPresence PresenceFromName(const FString& Name)
+{
+	const TPair<const TCHAR*, EPresence> Names[] = {
+		{ TEXT("offline"), EPresence::Offline },
+		{ TEXT("online"), EPresence::Online },
+		{ TEXT("in_queue"), EPresence::InQueue },
+		{ TEXT("in_select"), EPresence::InSelect },
+		{ TEXT("in_match"), EPresence::InMatch },
+	};
+	for (const TPair<const TCHAR*, EPresence>& Known : Names)
+	{
+		if (Name.Equals(Known.Key, ESearchCase::CaseSensitive))
+		{
+			return Known.Value;
+		}
+	}
+	return EPresence::Unknown;
+}
+
+EPresence FFriends::PresenceOf(const FString& AccountId) const
+{
+	const FFriendPresence* Found = Presence.FindByPredicate([&AccountId](const FFriendPresence& Shown) { return Shown.AccountId == AccountId; });
+	return Found ? Found->Status : EPresence::Unknown;
+}
+
+bool ParseSelfPresence(const FString& Body, FSelfPresence& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	FString Status;
+	bool bAppearOffline = false;
+	if (!Root.IsValid() || !StringField(*Root, TEXT("status"), Status) || !BoolField(*Root, TEXT("appearOffline"), bAppearOffline))
+	{
+		OutProblem = TEXT("the player's presence is missing or not in the expected format");
+		return false;
+	}
+	Out = FSelfPresence{ PresenceFromName(Status), bAppearOffline };
+	return true;
+}
+
+FString BuildAppearOfflineBody(bool bAppearOffline)
+{
+	return WriteBody([bAppearOffline](TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>& Writer) { Writer.WriteValue(TEXT("appearOffline"), bAppearOffline); });
+}
+
 bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem)
 {
 	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
@@ -1283,6 +1360,28 @@ bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem)
 		}
 		// A map's order means nothing, and an unchanged list must compare equal.
 		Friends.JoinableParties.Sort([](const FJoinableParty& A, const FJoinableParty& B) { return A.AccountId < B.AccountId; });
+	}
+	// Presence may be absent, as from an older backend; present, each is a friend's account and status (ADR-061 §2).
+	if (Root->HasField(TEXT("presence")))
+	{
+		const FJsonObject* Shown = ObjectField(*Root, TEXT("presence"));
+		if (!Shown)
+		{
+			OutProblem = TEXT("the friends' presence is not an object");
+			return false;
+		}
+		for (const auto& Entry : Shown->Values)
+		{
+			const FString AccountId(Entry.Key);
+			FString Name;
+			if (!MatchesWhole(IdPattern, AccountId) || !Entry.Value.IsValid() || Entry.Value->Type != EJson::String || !Entry.Value->TryGetString(Name))
+			{
+				OutProblem = TEXT("a friend's presence is not an account and a status");
+				return false;
+			}
+			Friends.Presence.Add(FFriendPresence{ AccountId, PresenceFromName(Name) });
+		}
+		Friends.Presence.Sort([](const FFriendPresence& A, const FFriendPresence& B) { return A.AccountId < B.AccountId; });
 	}
 	Out = MoveTemp(Friends);
 	return true;

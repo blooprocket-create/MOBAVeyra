@@ -120,6 +120,12 @@ type Config struct {
 	Profile Profile
 	// Names is display-name changes and claims (ADR-049).
 	Names Names
+	// Favorites is favorite Vanguards (ADR-058 §5).
+	Favorites Favorites
+	// Dodges is queue-dodge restrictions (ADR-060).
+	Dodges Dodges
+	// Presence is who counts as online, and when an absent member leaves their party (ADR-061).
+	Presence Presence
 }
 
 // Vanguards configures the catalog of Vanguards players may own and pick
@@ -549,6 +555,9 @@ type fileConfig struct {
 	Conduct     *fileConduct     `json:"conduct"`
 	Profile     *fileProfile     `json:"profile"`
 	Names       *fileNames       `json:"names"`
+	Favorites   *fileFavorites   `json:"favorites"`
+	Dodges      *fileDodges      `json:"dodges"`
+	Presence    *filePresence    `json:"presence"`
 }
 
 type fileDockerConfig struct {
@@ -1208,6 +1217,9 @@ func Parse(raw []byte) (Config, error) {
 	c.Conduct = parseConduct(f.Conduct, missing, func(s string) { problems = append(problems, s) }, positive)
 	c.Profile = parseProfile(f.Profile, c.Vanguards.Released, missing, func(s string) { problems = append(problems, s) })
 	c.Names = parseNames(f.Names, missing, func(s string) { problems = append(problems, s) }, positive)
+	c.Favorites = parseFavorites(f.Favorites, missing, func(s string) { problems = append(problems, s) })
+	c.Dodges = parseDodges(f.Dodges, missing, positive)
+	c.Presence = parsePresence(f.Presence, missing, func(s string) { problems = append(problems, s) }, positive)
 
 	// A select waits for its match's creation, which waits for the allocator.
 	if d := c.Allocator.Docker; d != nil && c.Selection.StartingTimeout > 0 && c.Selection.StartingTimeout <= d.RequestTimeout {

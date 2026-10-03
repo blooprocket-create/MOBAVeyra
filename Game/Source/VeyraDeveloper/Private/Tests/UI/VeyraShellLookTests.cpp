@@ -4,6 +4,7 @@
 
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
+#include "Chat/VeyraChatComposer.h"
 #include "Components/ActorTestSpawner.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Loading/VeyraLoadingScreen.h"
@@ -50,6 +51,26 @@ namespace VeyraShellLookTests
 			Store.Set(VeyraInterfacePreferences::ReduceUiAnimation(), VeyraSettings::On());
 			const FVeyraShellLook Reduced = VeyraShellLook::For(VeyraInterfacePreferences::Resolve(Hud, &Store));
 			ASSERT_THAT(IsTrue(Reduced.bOpaquePanels && Reduced.bStillAnimation));
+		}
+
+		// SET-66; ADR-059 §5: Chat Text Size sizes every chat, on top of Interface Text Size, and the in-match composer too.
+		TEST_METHOD(ChatTextSizeReachesEveryChatOnTopOfTheTextSize)
+		{
+			FVeyraSettingsStore Store(Registry);
+			const UVeyraGreyboxSettings& Hud = *GetDefault<UVeyraGreyboxSettings>();
+			Store.Set(VeyraInterfacePreferences::ChatTextSize(), TEXT("ExtraLarge"));
+			const FVeyraShellLook Look = VeyraShellLook::For(VeyraInterfacePreferences::Resolve(Hud, &Store));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Look.ChatTextScale, static_cast<float>(Hud.ChatExtraLargeFontSize) / Hud.ChatFontSize) && Look.ChatTextScale > 1.0f));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Look.TextScale, 1.0f), TEXT("the menus' other text keeps its size")));
+			FVeyraShellLook Both = Look;
+			Both.TextScale = 1.2f;
+			VeyraShellLook::Use(Both);
+			ASSERT_THAT(AreEqual(FMath::RoundToInt32(20 * 1.2f * Both.ChatTextScale), VeyraShellLook::ScaledChatFontSize(20)));
+			ASSERT_THAT(AreEqual(24, VeyraShellLook::ScaledFontSize(20)));
+			// The in-match composer's field takes the chat's size as it is built.
+			const UVeyraChatComposer* Composer = CreateWidget<UVeyraChatComposer>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Composer));
+			ASSERT_THAT(AreEqual(VeyraShellLook::ScaledChatFontSize(GetDefault<UVeyraShellStyleSettings>()->BodyFontSize), Composer->GetFieldFontSize()));
 		}
 
 		TEST_METHOD(EnhancedFocusEdgesTextFieldsAndAScopedLookPassesBack)

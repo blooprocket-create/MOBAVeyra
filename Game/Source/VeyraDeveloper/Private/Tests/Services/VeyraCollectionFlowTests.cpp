@@ -4,6 +4,7 @@
 
 #if WITH_AUTOMATION_WORKER
 
+#include "Backend/VeyraBackendProtocol.h"
 #include "Backend/VeyraProgressionProtocol.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
@@ -187,7 +188,7 @@ namespace VeyraClientFlowTests
 
 		TEST_METHOD(TheCollectionIsTheShellsAlone)
 		{
-			for (const EVeyraClientIntent Intent : { EVeyraClientIntent::LoadCollection, EVeyraClientIntent::PurchaseVanguard })
+			for (const EVeyraClientIntent Intent : { EVeyraClientIntent::LoadCollection, EVeyraClientIntent::PurchaseVanguard, EVeyraClientIntent::SetFavoriteVanguard })
 			{
 				ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Shell, Intent), LexToString(Intent)));
 				for (const EVeyraClientState Elsewhere : { EVeyraClientState::Lobby, EVeyraClientState::MatchFound, EVeyraClientState::Selecting, EVeyraClientState::InMatch,
@@ -196,6 +197,87 @@ namespace VeyraClientFlowTests
 					ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(Elsewhere, Intent), LexToString(Intent)));
 				}
 			}
+		}
+	};
+
+	inline FString FavoritesAnswer(std::initializer_list<const TCHAR*> Vanguards)
+	{
+		TArray<FString> Quoted;
+		for (const TCHAR* Vanguard : Vanguards)
+		{
+			Quoted.Add(FString::Printf(TEXT("\"%s\""), Vanguard));
+		}
+		return FString::Printf(TEXT("{\"favorites\":[%s]}"), *FString::Join(Quoted, TEXT(",")));
+	}
+
+	// Veyra.Services.FavoritesFlow.*: favorite Vanguards (ADR-058 §5), read in the shell and champion select and
+	// changed from the Collection, driven through the fake backend.
+	TEST_CLASS(FavoritesFlow, "Veyra.Services")
+	{
+		FClientFlowTestRig Rig;
+		FFlowTestBackend& Backend = Rig.Backend;
+		TUniquePtr<FVeyraClientFlow>& Flow = Rig.Flow;
+
+		const FVeyraClientSnapshot& Snapshot() const { return Flow->GetSnapshot(); }
+
+		TEST_METHOD(TheShellReadsTheFavoritesAndKeepsThemThroughAFailedRead)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Snapshot().FavoriteVanguards.IsEmpty(), TEXT("before the read")));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/favorites"), 200, FavoritesAnswer({ TEXT("oriel"), TEXT("cairn") }))));
+			ASSERT_THAT(IsTrue(Snapshot().FavoriteVanguards == TArray<FString>({ TEXT("oriel"), TEXT("cairn") }), TEXT("in the order marked")));
+			// Practice and back: a backend without favorites changes nothing, and stops nothing.
+			ASSERT_THAT(IsTrue(Flow->StartPractice() && Backend.Answer(TEXT("POST"), TEXT("/v1/practice"), 201, SelectBody(TEXT("picking")))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/favorites"), 404, ErrorBody(TEXT("not_found")))));
+			ASSERT_THAT(IsTrue(Snapshot().FavoriteVanguards.Num() == 2 && !Snapshot().Problem.IsSet()));
+		}
+
+		TEST_METHOD(ChampionSelectReadsTheFavoritesAndWhatThePlayerOwnsAndBorrows)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell() && Flow->StartPractice()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/practice"), 201, SelectBody(TEXT("picking")))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200,
+				TEXT("{\"owned\":[\"oriel\"],\"rotation\":[\"cairn\",\"bryn\"],\"available\":[\"cairn\",\"oriel\",\"bryn\"],\"starters\":[],\"released\":[\"cairn\",\"oriel\",\"bryn\",\"silt\"]}"))));
+			ASSERT_THAT(IsTrue(Snapshot().OwnedVanguards == TArray<FString>({ TEXT("oriel") })));
+			ASSERT_THAT(IsTrue(Snapshot().RotationVanguards == TArray<FString>({ TEXT("cairn"), TEXT("bryn") })));
+			// The shell's read, then the select's own: the latest answer is what shows.
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/favorites"), 200, FavoritesAnswer({ TEXT("silt") }))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/favorites"), 200, FavoritesAnswer({ TEXT("silt"), TEXT("bryn") }))));
+			ASSERT_THAT(IsTrue(Snapshot().FavoriteVanguards == TArray<FString>({ TEXT("silt"), TEXT("bryn") })));
+			// Read-only here (ADR-058 §4).
+			ASSERT_THAT(IsFalse(Flow->SetFavoriteVanguard(TEXT("bryn"), false)));
+		}
+
+		TEST_METHOD(TheCollectionMarksAndUnmarksAFavoriteAndShowsARefusal)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::SetFavoriteVanguard), TEXT("nothing to mark before the Collection is read")));
+			ASSERT_THAT(IsTrue(Flow->LoadCollection() && Backend.Answer(TEXT("GET"), TEXT("/v1/me/collection"), 200, CollectionAnswer())));
+			ASSERT_THAT(IsFalse(Flow->SetFavoriteVanguard(TEXT("nobody"), true), TEXT("one the Collection does not list")));
+			// A Vanguard the player does not own may be a favorite too.
+			ASSERT_THAT(IsTrue(Flow->SetFavoriteVanguard(TEXT("bryn"), true)));
+			ASSERT_THAT(IsTrue(Snapshot().bBusy));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/favorites/bryn"), 200, FavoritesAnswer({ TEXT("oriel"), TEXT("bryn") }))));
+			ASSERT_THAT(IsTrue(!Snapshot().bBusy && Snapshot().FavoriteVanguards == TArray<FString>({ TEXT("oriel"), TEXT("bryn") })));
+			ASSERT_THAT(IsTrue(Flow->SetFavoriteVanguard(TEXT("oriel"), false)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("DELETE"), TEXT("/v1/me/favorites/oriel"), 409, ErrorBody(TEXT("playing")))));
+			ASSERT_THAT(AreEqual(Snapshot().Collection.Feedback, FString(TEXT("playing"))));
+			ASSERT_THAT(AreEqual(Snapshot().Collection.FeedbackVanguard, FString(TEXT("oriel"))));
+			ASSERT_THAT(IsTrue(!Snapshot().Problem.IsSet() && Snapshot().FavoriteVanguards.Num() == 2, TEXT("kept as they were")));
+		}
+
+		TEST_METHOD(ReadsTheFavoritesAnswerAndRefusesWhatIsNotOne)
+		{
+			TArray<FString> Favorites;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFavorites(FavoritesAnswer({ TEXT("cairn"), TEXT("oriel") }), Favorites, Problem)));
+			ASSERT_THAT(IsTrue(Favorites == TArray<FString>({ TEXT("cairn"), TEXT("oriel") })));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFavorites(FavoritesAnswer({}), Favorites, Problem) && Favorites.IsEmpty()));
+			for (const TCHAR* Bad : { TEXT("{}"), TEXT("{\"favorites\":[\"Not An Id\"]}"), TEXT("{\"favorites\":[7]}"), TEXT("{\"favorites\":null}") })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFavorites(Bad, Favorites, Problem), Bad));
+			}
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::FavoritePath(TEXT("bryn")), FString(TEXT("/v1/me/favorites/bryn"))));
 		}
 	};
 

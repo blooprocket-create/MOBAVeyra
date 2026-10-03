@@ -92,6 +92,10 @@ struct FVeyraSelectCardModel
 	bool bTaken = false;
 	/** Banned in the draft: neither team may pick it (UX 29). */
 	bool bBanned = false;
+	/** What the roster's search and tabs read (ADR-058 §4): they narrow what shows, never what may be picked. */
+	bool bOwned = false;
+	bool bRotation = false;
+	bool bFavorite = false;
 };
 
 /** One Flux Spell a slot may take, or none (Pre-Game Client UX Bible 36; ADR-015 §5). */
@@ -375,6 +379,9 @@ struct FVeyraFriendModel
 {
 	FString AccountId;
 	FText Name;
+	/** The friend's status as the player sees it (ADR-061 §2), and its words: "Online", "In Match" and the like, empty when unknown. */
+	VeyraBackendProtocol::EPresence Presence = VeyraBackendProtocol::EPresence::Unknown;
+	FText Status;
 	/** In the lobby, the host may invite a friend who is not in it yet. */
 	bool bOffersInvite = false;
 	bool bCanInvite = false;
@@ -406,6 +413,8 @@ struct FVeyraSocialPermissions
 	bool bCanCancelRequest = false;
 	/** Opening a friend's direct conversation (ADR-046 §6). */
 	bool bCanMessage = false;
+	/** Turning Appear Offline on or off (ADR-061 §3). */
+	bool bCanSetAppearOffline = false;
 };
 
 /** A friend request to the player, or an invitation into another player's lobby. */
@@ -443,6 +452,10 @@ struct FVeyraFriendsModel
 	TArray<FVeyraSocialRequestModel> Blocked;
 	bool bCanUnblock = false;
 	bool bCanAdd = false;
+	/** Appear Offline (ADR-061 §3): offered once the player's own presence is read; whether it is on, and whether it can change now. */
+	bool bOffersAppearOffline = false;
+	bool bAppearOffline = false;
+	bool bCanSetAppearOffline = false;
 };
 
 /** A title and a line of detail. */
@@ -560,6 +573,12 @@ namespace VeyraShellModels
 	VEYRAUI_API FText DeclinePartyInviteLabel(const FString& Name);
 	/** A friend's Public party: "Join DevOne's Party". */
 	VEYRAUI_API FText JoinPartyLabel(const FString& Name);
+	/** A friend's status in words (ADR-061 §2): "Online", "In Queue", "In Champion Select", "In Match", "Offline"; empty when unknown. */
+	VEYRAUI_API FText PresenceText(VeyraBackendProtocol::EPresence Presence);
+	/** The friends panel's toggle: "Appear Offline", or "Appear Online" while the player appears offline (ADR-061 §3). */
+	VEYRAUI_API FText AppearOfflineLabel(bool bAppearOffline);
+	/** What Appear Offline does, shown while it is on. */
+	VEYRAUI_API FText AppearOfflineNote();
 	/** The card that opens a friend's actions: "Friend DevTwo". */
 	VEYRAUI_API FText FriendCardLabel(const FString& Name);
 	VEYRAUI_API FText RemoveFriendLabel(const FString& Name);

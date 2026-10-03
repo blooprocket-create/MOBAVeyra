@@ -119,11 +119,14 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	ScoreboardAction->ValueType = EInputActionValueType::Boolean;
 	ChatAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	ChatAction->ValueType = EInputActionValueType::Boolean;
+	ShopSearchAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
+	ShopSearchAction->ValueType = EInputActionValueType::Boolean;
 	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
 	MenuMapping->MapKey(MenuAction, Keys.MatchMenuKey);
 	MenuMapping->MapKey(ShopAction, Keys.ShopKey);
 	MenuMapping->MapKey(ScoreboardAction, Keys.ScoreboardKey);
 	MenuMapping->MapKey(ChatAction, Keys.ChatKey);
+	MenuMapping->MapKey(ShopSearchAction, Keys.FocusShopSearchKey);
 	Input->AddMappingContext(MenuMapping, /*Priority*/ 1);
 	UEnhancedInputComponent* Component = NewObject<UEnhancedInputComponent>(Controller, NAME_None, RF_Transient);
 	Component->BindAction(MenuAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleMenu);
@@ -132,6 +135,7 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressScoreboardKey);
 	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::ReleaseScoreboardKey);
 	Component->BindAction(ChatAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressChatKey);
+	Component->BindAction(ShopSearchAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::FocusShopSearch);
 	Controller->PushInputComponent(Component);
 	MenuInput = Component;
 	BoundController = Controller;
@@ -174,7 +178,7 @@ void UVeyraMatchMenuSubsystem::RefreshKeys()
 	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
 	const UVeyraUIInputSettings& Keys = GetKeys();
 	const TPair<UInputAction*, FKey> Mapped[] = { { MenuAction, Keys.MatchMenuKey }, { ShopAction, Keys.ShopKey }, { ScoreboardAction, Keys.ScoreboardKey },
-		{ ChatAction, Keys.ChatKey } };
+		{ ChatAction, Keys.ChatKey }, { ShopSearchAction, Keys.FocusShopSearchKey } };
 	for (const TPair<UInputAction*, FKey>& Pair : Mapped)
 	{
 		if (Pair.Key && Pair.Value.IsValid())
@@ -227,6 +231,19 @@ void UVeyraMatchMenuSubsystem::ToggleShop()
 	else
 	{
 		OpenShop();
+	}
+}
+
+void UVeyraMatchMenuSubsystem::FocusShopSearch()
+{
+	// The shop opens if it is shut, and its search takes the keyboard (SET-58; ADR-058 §1).
+	if (!Shop)
+	{
+		OpenShop();
+	}
+	if (Shop)
+	{
+		Shop->FocusSearch();
 	}
 }
 

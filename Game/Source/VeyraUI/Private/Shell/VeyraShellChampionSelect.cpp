@@ -144,6 +144,13 @@ FText UVeyraShellScreen::AbilitiesLabel(bool bShowing)
 
 void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot)
 {
+	// The roster's search and tab start afresh as each selection session begins (UX-29; ADR-058 §4).
+	if (SearchedSelectId != Snapshot.Select.Id)
+	{
+		SearchedSelectId = Snapshot.Select.Id;
+		SelectSearch.Reset();
+		SelectTab = EVeyraRosterTab::All;
+	}
 	FVeyraSelectDraftPermissions Draft;
 	Draft.bCanBan = Client->CanIssue(EVeyraClientIntent::BanVanguard);
 	Draft.bCanOfferTrade = Client->CanIssue(EVeyraClientIntent::OfferTrade);
@@ -178,6 +185,12 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 {
 	const UVeyraShellStyleSettings& Settings = Style();
 	UVerticalBox* Header = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+
+	// The roster's search and tabs (UX-29, 30): they narrow the bench, never what may be banned or picked, and a
+	// favorite never hovers anything.
+	UHorizontalBox* Search = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddRosterSearch(*Search, { EVeyraRosterTab::All, EVeyraRosterTab::Owned, EVeyraRosterTab::FreeRotation, EVeyraRosterTab::Favorites });
+	Header->AddChildToVerticalBox(Search)->SetHorizontalAlignment(HAlign_Center);
 
 	// The roster as a bench: a portrait for each Vanguard the player may pick, the taken and banned
 	// ones disabled (UX 29). In the player's ban turn, every released Vanguard, to ban (ADR-042 §1).
@@ -218,7 +231,10 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 		{
 			Button->SetToolTipText(FText::Format(LOCTEXT("BannedTip", "{0} is banned."), Card.Name));
 		}
+		RosterCards.Add({ Button, Card.VanguardId, FVeyraRosterEntry{ Card.Name, Card.bOwned, Card.bRotation, Card.bFavorite } });
 	}
+	RosterNoMatch = AddLine(*WidgetTree, *Tiles, LOCTEXT("NoVanguardMatches", "No Vanguard matches."), EVeyraShellText::Muted);
+	ApplyRosterFilter();
 	Header->AddChildToVerticalBox(Bench)->SetHorizontalAlignment(HAlign_Center);
 
 	// The countdown between two draining bars, always in view (UX 31).

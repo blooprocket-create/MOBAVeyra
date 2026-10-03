@@ -138,14 +138,27 @@ struct FVeyraBotCamp
 	double SpawnsAt = 0.0;
 };
 
+/** An allied base structure under threat (ADR-056 §2). */
+struct FVeyraBotThreat
+{
+	/** Where the structure stands. */
+	FVector Location = FVector::ZeroVector;
+
+	/** How many enemy Vanguards its side sees near it. */
+	int32 Attackers = 0;
+};
+
 /**
  * What a bot knows at one decision (ADR-013 §4): read from the world by VeyraBotSenses, and plain
  * data, so the rules that decide from it are pure and tested without a world.
  */
 struct FVeyraBotView
 {
-	/** Match time, in seconds. */
+	/** World time, in seconds: the clock reaction times and memories run on. */
 	double Now = 0.0;
+
+	/** How long the match has run, in seconds, as its clock shows it: what buying windows and grouping go by (ADR-056). */
+	double MatchSeconds = 0.0;
 
 	bool bAlive = false;
 	bool bRecalling = false;
@@ -156,6 +169,20 @@ struct FVeyraBotView
 	/** Its Gold, and whether its build has a purchase that Gold affords now. */
 	double Gold = 0.0;
 	bool bPurchaseWaiting = false;
+
+	/** The inventory slot, from 0, that holds the consumable it carries (ADR-056 §1); unset while it holds none. */
+	TOptional<int32> ConsumableSlot;
+
+	/**
+	 * The allied base structure under the most threat (ADR-056 §2): an inhibitor, base tower or Prime Well with enemy
+	 * Vanguards its side sees within the defence's threat radius. Unset at peace. Known dead or alive.
+	 */
+	TOptional<FVeyraBotThreat> BaseThreat;
+
+	/** While dead (ADR-056 §3): seconds until it respawns, and what buying back would cost and whether it may now. */
+	double RespawnWait = 0.0;
+	double BuybackCost = 0.0;
+	bool bBuybackAllowed = false;
 
 	FVeyraBotUnit Self;
 

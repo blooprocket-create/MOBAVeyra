@@ -47,6 +47,8 @@ namespace
 	const TCHAR* const LaunchLobbyPath = TEXT("/v1/lobby/launch");
 	const TCHAR* const LobbyInvitesPath = TEXT("/v1/lobby/invites");
 	const TCHAR* const FriendsPath = TEXT("/v1/friends");
+	// The player's own presence and Appear Offline (ADR-061 §3).
+	const TCHAR* const PresencePath = TEXT("/v1/me/presence");
 	const TCHAR* const FriendRequestsPath = TEXT("/v1/friends/requests");
 	// The party's own members and settings, its invitations, and blocks (ADR-044).
 	const TCHAR* const PartyPrivacyPath = TEXT("/v1/party/privacy");
@@ -334,12 +336,18 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("UnblockPlayer");
 	case EVeyraClientIntent::CancelFriendRequest:
 		return TEXT("CancelFriendRequest");
+	case EVeyraClientIntent::BlockByName:
+		return TEXT("BlockByName");
+	case EVeyraClientIntent::SetAppearOffline:
+		return TEXT("SetAppearOffline");
 	case EVeyraClientIntent::ResolveSettingsConflict:
 		return TEXT("ResolveSettingsConflict");
 	case EVeyraClientIntent::LoadCollection:
 		return TEXT("LoadCollection");
 	case EVeyraClientIntent::PurchaseVanguard:
 		return TEXT("PurchaseVanguard");
+	case EVeyraClientIntent::SetFavoriteVanguard:
+		return TEXT("SetFavoriteVanguard");
 	case EVeyraClientIntent::SendChatMessage:
 		return TEXT("SendChatMessage");
 	case EVeyraClientIntent::OpenDirectChat:
@@ -561,10 +569,16 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::BlockPlayer:
 	case EVeyraClientIntent::UnblockPlayer:
 	case EVeyraClientIntent::CancelFriendRequest:
+	case EVeyraClientIntent::SetAppearOffline:
 		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
+	// A player menu opens in the shell's Match History, the lobby and the results (ADR-047 §5; ADR-060 §5).
+	case EVeyraClientIntent::BlockByName:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby || State == EVeyraClientState::Results;
 	// The Collection is the ordinary client's, as Match History is: not through Match Found, a select or Reconnect-only.
+	// Favorites change there too, never from champion select (ADR-058 §4).
 	case EVeyraClientIntent::LoadCollection:
 	case EVeyraClientIntent::PurchaseVanguard:
+	case EVeyraClientIntent::SetFavoriteVanguard:
 		return State == EVeyraClientState::Shell;
 	// Chat goes on through every signed-in state but Reconnect-only, which offers nothing but Reconnect (ADR-046 §6;
 	// UX-17). Which conversation is open where is the intent's own check.
@@ -646,7 +660,9 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	case EVeyraClientIntent::FindMatch:
 	{
 		const VeyraBackendProtocol::FModeInfo* Mode = Party.IsSet() ? FindMode(Party->Mode) : nullptr;
-		return LeadsIdleParty() && Mode && Mode->bEnabled && Mode->bMatchmade && Party->Members.Num() <= Mode->HumanPlayersPerTeam && Party->AllReady();
+		return LeadsIdleParty() && Mode && Mode->bEnabled && Mode->bMatchmade && Party->Members.Num() <= Mode->HumanPlayersPerTeam && Party->AllReady()
+			// A member who left a matchmade select holds the party back (ADR-060 §3).
+			&& !Party->RestrictedMember();
 	}
 	case EVeyraClientIntent::CancelQueue:
 		return Party.IsSet() && Party->Status == EPartyStatus::Queued && Leads(Snapshot);
@@ -736,8 +752,14 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 		return !Snapshot.Social.Blocked.IsEmpty();
 	case EVeyraClientIntent::CancelFriendRequest:
 		return !Snapshot.Social.Friends.Outgoing.IsEmpty();
+	case EVeyraClientIntent::SetAppearOffline:
+		// The panel shows the setting as read, which a backend without presence never gives.
+		return Snapshot.Social.Presence.IsSet();
 	case EVeyraClientIntent::PurchaseVanguard:
 		// From the Collection as read, so the player saw the price they confirm.
+		return Snapshot.Collection.bLoaded;
+	case EVeyraClientIntent::SetFavoriteVanguard:
+		// From the Collection's cards (ADR-058 §3).
 		return Snapshot.Collection.bLoaded;
 	default:
 		return true;
@@ -1034,6 +1056,7 @@ void FVeyraClientFlow::EnterShell(const FString& Notice)
 	PollSocial();
 	// The level and balances, which a match just played may have changed (ADR-045 §7).
 	ReadProgression();
+	ReadFavorites();
 }
 
 void FVeyraClientFlow::LoadModes()
@@ -1721,6 +1744,8 @@ void FVeyraClientFlow::PollSocial()
 void FVeyraClientFlow::ReadSocial(bool bThenPoll)
 {
 	const uint32 Sequence = ++SocialSequence;
+	// The player's own presence comes beside the lists, which never wait for it.
+	ReadSelfPresence();
 	const auto Next = [this, bThenPoll] {
 		if (bThenPoll)
 		{
@@ -1788,6 +1813,53 @@ void FVeyraClientFlow::ApplySocial(uint32 Sequence, FVeyraSocial Read)
 	Social.PartyInvites = MoveTemp(Read.PartyInvites);
 	Social.Blocked = MoveTemp(Read.Blocked);
 	Broadcast();
+}
+
+void FVeyraClientFlow::ReadSelfPresence()
+{
+	Probe(EVerb::Get, PresencePath, [this](const FVeyraBackendResponse& Response) {
+		if (Response.Status == NotFoundStatus)
+		{
+			// A backend without presence: there is nothing to show or change.
+			return;
+		}
+		VeyraBackendProtocol::FSelfPresence Read;
+		FString Problem;
+		if (!Response.IsSuccess() || !VeyraBackendProtocol::ParseSelfPresence(Response.Body, Read, Problem))
+		{
+			Log(FString::Printf(TEXT("could not read the player's presence: %s."), Response.IsSuccess() ? *Problem : *Response.Describe()));
+			return;
+		}
+		ApplySelfPresence(Read);
+	});
+}
+
+void FVeyraClientFlow::ApplySelfPresence(const VeyraBackendProtocol::FSelfPresence& Read)
+{
+	if (Snapshot.Social.Presence.IsSet() && *Snapshot.Social.Presence == Read)
+	{
+		return;
+	}
+	Snapshot.Social.Presence = Read;
+	Broadcast();
+}
+
+bool FVeyraClientFlow::SetAppearOffline(bool bAppearOffline)
+{
+	if (!CanIssue(EVeyraClientIntent::SetAppearOffline) || Snapshot.Social.Presence->bAppearOffline == bAppearOffline)
+	{
+		return false;
+	}
+	Log(bAppearOffline ? TEXT("appearing offline.") : TEXT("appearing online."));
+	CallSocial(EVerb::Put, PresencePath, VeyraBackendProtocol::BuildAppearOfflineBody(bAppearOffline), FString(), [this](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FSelfPresence Read;
+		FString Problem;
+		if (VeyraBackendProtocol::ParseSelfPresence(Response.Body, Read, Problem))
+		{
+			ApplySelfPresence(Read);
+		}
+	});
+	return true;
 }
 
 void FVeyraClientFlow::CallSocial(EVerb Verb, const FString& Path, const FString& Body, const FString& Name, TFunction<void(const FVeyraBackendResponse&)> OnSuccess)
@@ -1968,6 +2040,40 @@ bool FVeyraClientFlow::BlockPlayer(const FString& AccountId)
 	return true;
 }
 
+bool FVeyraClientFlow::BlockByName(const FString& DisplayName)
+{
+	const FString Name = DisplayName.TrimStartAndEnd();
+	if (!CanIssue(EVeyraClientIntent::BlockByName) || Name.IsEmpty() || Name == Snapshot.DisplayName)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("blocking %s."), *Name));
+	SetBusy(true);
+	// A player menu names players, never their accounts: find the account first, as a friend request does.
+	Call(EVerb::Get, VeyraBackendProtocol::AccountLookupPath(Name), FString(), [this, Name](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FAccount Account;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			SetBusy(false);
+			ShowSocialFeedback(RefusalCode(Response), Name);
+			return;
+		}
+		if (!VeyraBackendProtocol::ParseAccount(Response.Body, Account, Problem))
+		{
+			SetBusy(false);
+			ShowBadAnswer(TEXT("the account"), Problem, nullptr);
+			return;
+		}
+		CallSocial(EVerb::Put, BlockPath(Account.Id), FString(), Account.DisplayName, [this, Blocked = Account.DisplayName](const FVeyraBackendResponse&) {
+			ShowSocialFeedback(PlayerBlockedFeedback, Blocked);
+			// A block takes a party-mate out of the party (Parties & Social Bible §6).
+			RefreshParty();
+		});
+	});
+	return true;
+}
+
 bool FVeyraClientFlow::UnblockPlayer(const FString& AccountId)
 {
 	const VeyraBackendProtocol::FAccount* Player = FindAccount(Snapshot.Social.Blocked, AccountId);
@@ -2126,6 +2232,8 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 	}
 	Snapshot.AvailableVanguards.Reset();
 	Snapshot.ReleasedVanguards.Reset();
+	Snapshot.OwnedVanguards.Reset();
+	Snapshot.RotationVanguards.Reset();
 	Log(FString::Printf(TEXT("in champion select %s (%s)."), *Select.Id, *Select.Mode));
 	ApplySelect(Select);
 	if (Snapshot.State != EVeyraClientState::Selecting)
@@ -2133,6 +2241,8 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 		return;
 	}
 	LoadAvailableVanguards();
+	// A select resumed after sign-in never passed through the shell: its Favorites tab reads them here.
+	ReadFavorites();
 	After(Config.SelectPollIntervalSeconds, [this] { PollSelect(); });
 }
 
@@ -2178,6 +2288,8 @@ void FVeyraClientFlow::LoadAvailableVanguards()
 		}
 		Snapshot.AvailableVanguards = MoveTemp(Access.Available);
 		Snapshot.ReleasedVanguards = MoveTemp(Access.Released);
+		Snapshot.OwnedVanguards = MoveTemp(Access.Owned);
+		Snapshot.RotationVanguards = MoveTemp(Access.Rotation);
 		Broadcast();
 	});
 }

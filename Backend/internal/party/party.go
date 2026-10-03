@@ -61,6 +61,15 @@ var (
 	ErrModeUnavailable  = errors.New("the mode has no matchmaking yet")
 	ErrNotInQueue       = errors.New("the party is not where matchmaking expects it")
 	ErrMemberBusy       = errors.New("a member is in a match or champion select")
+	// ErrQueueRestricted refuses a party a member of which left a matchmade
+	// champion select and cannot queue yet (ADR-060 §3).
+	ErrQueueRestricted = errors.New("a member cannot queue yet")
+	// ErrInviteeInMatch refuses an invitation to a player in a live match,
+	// which is never kept for later (Parties, Social & Matchmaking Bible §4).
+	ErrInviteeInMatch = errors.New("the player is in a match")
+	// ErrInviteeOffline refuses an invitation to a player who shows offline
+	// to the inviter, really or by Appear Offline (ADR-061 §5).
+	ErrInviteeOffline = errors.New("the player is offline")
 )
 
 // Member is one party member.
@@ -103,6 +112,15 @@ type Rules struct {
 
 // IsMember reports whether accountID belongs to the party.
 func (p *Party) IsMember(accountID string) bool { return p.index(accountID) >= 0 }
+
+// MemberIDs returns the members' account IDs in party order.
+func (p *Party) MemberIDs() []string {
+	ids := make([]string, len(p.Members))
+	for i, m := range p.Members {
+		ids[i] = m.AccountID
+	}
+	return ids
+}
 
 func (p *Party) index(accountID string) int {
 	for i, m := range p.Members {

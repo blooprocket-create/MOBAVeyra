@@ -157,6 +157,18 @@
   "settings": {
     "maxDocumentBytes": 32768
   },
+  "favorites": {
+    "maxPerAccount": 64
+  },
+  "dodges": {
+    "restriction": "5m"
+  },
+  "presence": {
+    "offlineAfter": "30s",
+    "touchEvery": "5s",
+    "sweepInterval": "5s",
+    "postMatchGrace": "2m"
+  },
   "customLobby": {
     "enabled": true,
     "mode": "custom_game",

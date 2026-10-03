@@ -188,9 +188,15 @@ public:
 	virtual bool SetPartyPrivacy(VeyraBackendProtocol::EPartyPrivacy Privacy) override;
 	virtual bool BlockPlayer(const FString& AccountId) override;
 	virtual bool UnblockPlayer(const FString& AccountId) override;
+	/** Not the player themselves. */
+	virtual bool BlockByName(const FString& DisplayName) override;
+	/** Not to what it already is. */
+	virtual bool SetAppearOffline(bool bAppearOffline) override;
 	virtual bool CancelFriendRequest(const FString& AccountId) override;
 	virtual bool LoadCollection() override;
 	virtual bool PurchaseVanguard(const FString& VanguardId, VeyraBackendProtocol::ECurrency Currency) override;
+	/** Only a Vanguard in the Collection as read. */
+	virtual bool SetFavoriteVanguard(const FString& VanguardId, bool bFavorite) override;
 	/** Only a friend is on offer for a direct message; the select's chat in champion select, the post-match chat on the results screen. */
 	virtual bool SendChatMessage(VeyraBackendProtocol::EChatKind Kind, const FString& Target, const FString& Text) override;
 	/** Only a friend is on offer. */
@@ -300,12 +306,18 @@ private:
 	void ShowSocialFeedback(const FString& Code, const FString& Name);
 	/** Shows lists read by the social read numbered Sequence, unless a later read's were shown already. */
 	void ApplySocial(uint32 Sequence, FVeyraSocial Read);
+	/** Reads the player's own presence beside the friends; a backend without presence leaves it unset (ADR-061 §3). */
+	void ReadSelfPresence();
+	/** Shows the player's own presence, as read or as Appear Offline's change answered. */
+	void ApplySelfPresence(const VeyraBackendProtocol::FSelfPresence& Read);
 
 	// Account progression, the Collection and purchases (VeyraClientFlowProgression.cpp; ADR-045 §7).
 	/** Reads the account's level and balances once; a failed read keeps the last, and never stops the flow. */
 	void ReadProgression();
-	/** Shows what came of a purchase in the Collection, not as the screen's problem. */
+	/** Shows what came of a purchase or a favorite in the Collection, not as the screen's problem. */
 	void ShowCollectionFeedback(const FString& Code, const FString& VanguardId);
+	/** Reads the player's favorite Vanguards once; a failed read keeps the last, and never stops the flow (ADR-058 §5). */
+	void ReadFavorites();
 
 	// Reports and commendation (VeyraClientFlowConduct.cpp; ADR-047).
 	/** Opens MatchId's conduct record, empty for none, and reads it once; a failed read offers no report or commendation. */

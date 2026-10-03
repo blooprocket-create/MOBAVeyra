@@ -355,6 +355,7 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	Permissions.bCanUnblock = Client->CanIssue(EVeyraClientIntent::UnblockPlayer);
 	Permissions.bCanCancelRequest = Client->CanIssue(EVeyraClientIntent::CancelFriendRequest);
 	Permissions.bCanMessage = Client->CanIssue(EVeyraClientIntent::OpenDirectChat);
+	Permissions.bCanSetAppearOffline = Client->CanIssue(EVeyraClientIntent::SetAppearOffline);
 	const FVeyraFriendsModel Model = VeyraShellModels::DescribeFriends(Snapshot, Client->CanIssue(EVeyraClientIntent::SendFriendRequest),
 		Client->CanIssue(EVeyraClientIntent::AnswerFriendRequest), Client->CanIssue(EVeyraClientIntent::AcceptLobbyInvite),
 		Client->CanIssue(EVeyraClientIntent::DeclineLobbyInvite), Client->CanIssue(EVeyraClientIntent::InviteToLobby), Permissions);
@@ -374,6 +375,18 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 		Parent.AddChild(Width);
 	}
 	AddText(*Rows, LOCTEXT("FriendsEyebrow", "Friends"), LobbyRole(EVeyraShellText::Eyebrow));
+	// The player's own visibility (ADR-061 §3): one toggle, and what it does while it is on.
+	if (Model.bOffersAppearOffline)
+	{
+		const bool bAppearOffline = !Model.bAppearOffline;
+		AddKindButton(*Rows, EVeyraShellButtonKind::Quiet, VeyraShellModels::AppearOfflineLabel(Model.bAppearOffline),
+			[this, bAppearOffline] { Client->SetAppearOffline(bAppearOffline); }, Model.bCanSetAppearOffline)
+			->KeepLabelOnOneLine();
+		if (Model.bAppearOffline)
+		{
+			AddText(*Rows, VeyraShellModels::AppearOfflineNote(), LobbyRole(EVeyraShellText::Small));
+		}
+	}
 
 	// Add a friend by name (Parties & Social Bible §1). The field keeps what was typed across rebuilds.
 	FriendNameBox = MakeTextField(LOCTEXT("FriendNameHint", "A player's name"), FriendNameDraft, Model.bCanAdd);
@@ -541,6 +554,11 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 		bInviteOnLine = true;
 		AddNamedButton(*Line, EVeyraShellButtonKind::Secondary, VeyraShellModels::PartyInviteLabel(Name), LOCTEXT("InviteToParty", "Invite"),
 			[this, Id] { Client->InviteToParty(Id); }, Friend.bCanPartyInvite);
+	}
+	// Their status under the name (ADR-061 §2): who can play now, at a glance.
+	if (!Friend.Status.IsEmpty())
+	{
+		AddText(*Card, Friend.Status, LobbyRole(EVeyraShellText::Small));
 	}
 	if (bOpen)
 	{

@@ -436,6 +436,20 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	float DeckResourceHeight = 0.0f;
 
+	/** The rank pips under each ability, and the space between the Health and resource bars, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float DeckPipHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float DeckBarSpacing = 0.0f;
+
+	/**
+	 * The least the deck shrinks to, as a share of its size at the player's scales, when it cannot fit beside the minimap
+	 * inside the safe area (ADR-059 §2): the tested limit below which the HUD would no longer read.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0.1", ClampMax = "1"))
+	float DeckMinimumFit = 0.0f;
+
 	/** The HUD's type, at the reference height: headings, body, small labels and key caps, the clock, and a headline. */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	int32 HudHeadingFontSize = 0;
