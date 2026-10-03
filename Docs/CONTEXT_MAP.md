@@ -184,6 +184,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-061-presence-appear-offline-and-offline-removal.md](ADR/ADR-061-presence-appear-offline-and-offline-removal.md) — **Proposed** (accepted when the M50 pull request merges): friends' presence statuses, Appear Offline, offline members leaving pre-game parties after the post-match grace period, and invitations that need the invitee present.
 - [ADR-062-side-based-unit-collision-local-avoidance-and-hosted-diagnostics.md](ADR/ADR-062-side-based-unit-collision-local-avoidance-and-hosted-diagnostics.md) — **Proposed** (accepted when the M51 pull request merges): units collide by side, avoidance grouped by side and role, arrival at a blocking body, the click marker, hosted match logs and connection statistics, the offline page on origin errors.
 - [ADR-063-combat-readability-cues-effects-sound-and-the-fountain-shop.md](ADR/ADR-063-combat-readability-cues-effects-sound-and-the-fountain-shop.md) — **Proposed** (accepted when the M52 pull request merges): combat cues read from replicated state, body feedback, hover outlines, generated Niagara effects and sounds, and a clickable shop at each fountain.
+- [ADR-064-generated-animated-vanguards.md](ADR/ADR-064-generated-animated-vanguards.md) — **Proposed** (accepted when the M53 pull request merges): body archetypes, Blender-generated rigs and animations per Vanguard, the cue-driven C++ animation instance, the art set swap and motion blur off.
 
 ## Keeping the maps current
 
