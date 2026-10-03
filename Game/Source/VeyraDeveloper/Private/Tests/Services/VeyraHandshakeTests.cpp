@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Battleground/VeyraBattlegroundMapCommandlet.h"
+#include "Client/VeyraClientFlowSubsystem.h"
 #include "CQTest.h"
 
 #if WITH_AUTOMATION_WORKER
@@ -125,6 +126,23 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsTrue(Joined.Contains(UVeyraBattlegroundMapCommandlet::MapPackageName), Joined));
 			// Development matches still load the grey box.
 			ASSERT_THAT(IsTrue(Joined.Contains(TEXT("/Game/Veyra/Developer/Maps/L_Greybox")), Joined));
+		}
+	};
+
+	// Veyra.Services.BackendAddress.*: a game started by the launcher uses the launcher's backend, which
+	// -VeyraBackendUrl= names, over its own ini's (ADR-057 §5).
+	TEST_CLASS(BackendAddress, "Veyra.Services")
+	{
+		TEST_METHOD(TheLaunchersBackendComesFirstAndMustBeABaseUrl)
+		{
+			const FString Ini = TEXT("http://127.0.0.1:8080");
+			const TOptional<FString> Plain = UVeyraClientFlowSubsystem::BackendBaseUrlFor(TEXT("-VeyraLaunchCode=stdin"), Ini);
+			ASSERT_THAT(IsTrue(Plain.IsSet() && Plain.GetValue() == Ini, TEXT("without the switch, the ini's")));
+			const TOptional<FString> Public =
+				UVeyraClientFlowSubsystem::BackendBaseUrlFor(TEXT("-VeyraLaunchCode=stdin -VeyraBackendUrl=https://veyra.blooprocket.workers.dev -windowed"), Ini);
+			ASSERT_THAT(IsTrue(Public.IsSet() && Public.GetValue() == TEXT("https://veyra.blooprocket.workers.dev"), TEXT("the launcher's")));
+			ASSERT_THAT(IsFalse(UVeyraClientFlowSubsystem::BackendBaseUrlFor(TEXT("-VeyraBackendUrl=https://veyra.example/api"), Ini).IsSet(), TEXT("no path")));
+			ASSERT_THAT(IsFalse(UVeyraClientFlowSubsystem::BackendBaseUrlFor(TEXT("-VeyraBackendUrl=ftp://veyra.example"), Ini).IsSet()));
 		}
 	};
 }

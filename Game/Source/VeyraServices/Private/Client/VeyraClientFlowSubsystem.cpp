@@ -43,7 +43,9 @@ void UVeyraClientFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		LaunchCodeReader = MakeUnique<FVeyraPipeLineReader>(FVeyraPipeLineReader::ForStandardInput());
 	}
-	Backend = MakeUnique<FVeyraBackendClient>(Settings.BackendBaseUrl, Settings.RequestTimeoutSeconds);
+	// The launcher's backend, when it names one, else the ini's (ADR-057 §5); a bad one is the configuration problem above.
+	Backend = MakeUnique<FVeyraBackendClient>(BackendBaseUrlFor(FCommandLine::Get(), Settings.BackendBaseUrl).Get(Settings.BackendBaseUrl),
+		Settings.RequestTimeoutSeconds);
 	Flow = MakeUnique<FVeyraClientFlow>(*Backend, *this, FVeyraClientFlowConfig::FromSettings(Settings, BuildVersion));
 	Flow->SyncAccountSettings(*this);
 
@@ -78,6 +80,16 @@ void UVeyraClientFlowSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+TOptional<FString> UVeyraClientFlowSubsystem::BackendBaseUrlFor(const TCHAR* CommandLine, const FString& Configured)
+{
+	FString Named;
+	if (!FParse::Value(CommandLine, VeyraHandoff::BackendUrlSwitch, Named, /*bShouldStopOnSeparator*/ true))
+	{
+		return Configured;
+	}
+	return VeyraBackendProtocol::IsBaseUrl(Named) ? TOptional<FString>(Named) : TOptional<FString>();
+}
+
 FString UVeyraClientFlowSubsystem::FindConfigurationProblem(FString& OutBuildVersion) const
 {
 	FString Channel;
@@ -89,6 +101,10 @@ FString UVeyraClientFlowSubsystem::FindConfigurationProblem(FString& OutBuildVer
 	if (const TArray<FString> Problems = GetDefault<UVeyraServicesSettings>()->Validate(); !Problems.IsEmpty())
 	{
 		return TEXT("the Veyra Services settings are invalid: ") + FString::Join(Problems, TEXT("; "));
+	}
+	if (!BackendBaseUrlFor(FCommandLine::Get(), GetDefault<UVeyraServicesSettings>()->BackendBaseUrl).IsSet())
+	{
+		return TEXT("-VeyraBackendUrl names no base URL: http or https, a host and an optional port, with no path");
 	}
 	OutBuildVersion = GetDefault<UGeneralProjectSettings>()->ProjectVersion;
 	if (!VeyraBackendProtocol::IsBuildVersion(OutBuildVersion))
