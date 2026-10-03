@@ -60,9 +60,21 @@ Initialize-VeyraPlatformToolchain -Platform $Platform
 $packageDir = Join-Path $gameDir "Saved\Packages\$Target-$Platform"
 $logFile = Join-Path $gameDir "Saved\Logs\Package-$Target-$Platform.log"
 # A package holds one build: an earlier one, perhaps of another configuration, goes first, so nothing
-# stale is archived beside it or published from it.
-if (Test-Path -LiteralPath $packageDir) {
-    Remove-Item -LiteralPath $packageDir -Recurse -Force
+# stale is archived beside it or published from it. Windows can hold a just-closed file for a moment
+# (a scanner reading it), so the removal tries again before giving up.
+$clearAttempts = 5
+$clearRetrySeconds = 2
+for ($attempt = 1; Test-Path -LiteralPath $packageDir; $attempt++) {
+    try {
+        [System.IO.Directory]::Delete($packageDir, $true)
+    }
+    catch {
+        if ($attempt -ge $clearAttempts) {
+            Write-Host "Could not clear the earlier package at $packageDir`: $($_.Exception.Message)"
+            exit 1
+        }
+        Start-Sleep -Seconds $clearRetrySeconds
+    }
 }
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $logFile) | Out-Null
 
