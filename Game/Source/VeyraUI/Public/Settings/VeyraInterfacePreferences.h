@@ -160,6 +160,8 @@ struct FVeyraInterfacePreferences
 	FString PlayReminder;
 	/** The local player's indicator outline, in units: Standard or Thick (Settings Bible §3.3; ADR-041 §2). */
 	float IndicatorThickness = 0.0f;
+	/** A brief mark where each move, Attack Move or attack order goes (Settings Bible §3.3; ADR-062 §6). */
+	bool bClickMarkers = true;
 	/** The chat's type size (SET-66), its backdrop, clear for Transparent (SET-67), how long a line stays whole, and its timestamps (Settings Bible §5.2). */
 	int32 ChatFontSize = 0;
 	FLinearColor ChatBackdrop = FLinearColor::Transparent;
@@ -211,6 +213,7 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& LoadingContent();
 	VEYRAUI_API const FVeyraContentId& PlayReminder();
 	VEYRAUI_API const FVeyraContentId& IndicatorBoundary();
+	VEYRAUI_API const FVeyraContentId& ClickMarkers();
 	VEYRAUI_API const FVeyraContentId& ChatTextSize();
 	VEYRAUI_API const FVeyraContentId& ChatBackdrop();
 	VEYRAUI_API const FVeyraContentId& ChatFadeSeconds();

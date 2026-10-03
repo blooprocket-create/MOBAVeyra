@@ -44,6 +44,7 @@ namespace VeyraInterfacePreferencesTests
 				ASSERT_THAT(IsTrue(Preferences->PingSeconds == HudSettings().PingSeconds && Preferences->bMinimapClickMovesCamera && Preferences->bMinimapRightClickMoves));
 				ASSERT_THAT(IsTrue(!Preferences->bShowFps && !Preferences->bShowPing && !Preferences->bScoreboardToggles && Preferences->bConfineCursor));
 				ASSERT_THAT(IsTrue(Preferences->IndicatorThickness == HudSettings().IndicatorThickness, TEXT("Standard boundaries")));
+				ASSERT_THAT(IsTrue(Preferences->bClickMarkers, TEXT("click markers show")));
 			}
 		}
 
@@ -59,8 +60,10 @@ namespace VeyraInterfacePreferencesTests
 			Store.Set(ConfineCursor(), VeyraSettings::Off());
 			Store.Set(ShowFps(), VeyraSettings::On());
 			Store.Set(IndicatorBoundary(), TEXT("Thick"));
+			Store.Set(ClickMarkers(), VeyraSettings::Off());
 			const FVeyraInterfacePreferences Preferences = Resolve(HudSettings(), &Store);
 			ASSERT_THAT(IsTrue(Preferences.IndicatorThickness == HudSettings().IndicatorThickThickness && HudSettings().IndicatorThickThickness > HudSettings().IndicatorThickness));
+			ASSERT_THAT(IsFalse(Preferences.bClickMarkers));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.HudScale, 1.2f) && FMath::IsNearlyEqual(Preferences.MinimapSize, HudSettings().MinimapSize * 1.5f)));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.MinimapVanguardIcon, HudSettings().MinimapVanguardIcon * 0.5f) && Preferences.PingSeconds == 6.0f));
 			ASSERT_THAT(IsTrue(!Preferences.bMinimapRightClickMoves && Preferences.bScoreboardToggles && !Preferences.bConfineCursor && Preferences.bShowFps));

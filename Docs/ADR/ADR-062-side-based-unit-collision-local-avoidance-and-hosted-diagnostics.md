@@ -76,6 +76,7 @@ When the Worker's recorded tunnel is gone, Cloudflare answers with an origin err
   - The mark is a ring that closes on the ground ordered, or round the unit an attack names, and fades. Moves and attacks have different colours.
   - The grey-box presentation draws it from the order as the client gave it. It decides nothing, and the server never sees it.
   - Its look is presentation settings, kept with the grey-box's other settings. Under Reduce Interface Animation it stays still and only fades.
+  - Click markers are optional (Settings & Accessibility Bible §3.3): Interface settings' Click Markers turns them off.
 - **Smoothing:** no change.
   - Vanguards already replicate every server tick: the engine's default rate is above the 30 Hz tick. Fluxborn replicate every third tick (ADR-011 §7).
   - Clients draw both as simulated units, with the movement component's exponential smoothing between updates.
@@ -86,6 +87,7 @@ When the Worker's recorded tunnel is gone, Cloudflare answers with an origin err
 2. The avoidance settings and the statistics interval are provisional data.
 3. A move onto a body that blocks the Vanguard ends at that body's edge (§3).
 4. The click mark's look and timing are provisional presentation (§6).
+5. Click Markers is on by default: the canon makes them optional without naming a default, and the playtest asked for feedback on every click.
 
 ## Consequences
 - **Readability:** allies never trap each other, and enemies still body-block as the canon means.

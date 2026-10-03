@@ -973,8 +973,13 @@ void UVeyraGreyboxSubsystem::DrawOrderMark()
 		return;
 	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	const bool bStill = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this)).bReduceUiAnimation;
-	OrderMarkRing = VeyraOrderMarks::Describe(Local->GetOrderMark().GetValue(), GetWorld()->GetRealTimeSeconds(), bStill, Settings);
+	// The player may turn click markers off (Settings Bible §3.3).
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this));
+	if (!Preferences.bClickMarkers)
+	{
+		return;
+	}
+	OrderMarkRing = VeyraOrderMarks::Describe(Local->GetOrderMark().GetValue(), GetWorld()->GetRealTimeSeconds(), Preferences.bReduceUiAnimation, Settings);
 	if (!OrderMarkRing)
 	{
 		return;
