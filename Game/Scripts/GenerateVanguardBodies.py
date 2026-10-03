@@ -36,7 +36,7 @@ ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 ONLY = set(ARGS[ARGS.index("--only") + 1].split(",")) if "--only" in ARGS else None
 PREVIEW = "--preview" in ARGS
 # The poses a preview lines up, as (animation, time from 0 to 1).
-PREVIEW_POSES = [("Idle", 0.0), ("Run", 0.25), ("Run", 0.75), ("AttackWindup", 1.0), ("AttackStrike", 0.3),
+PREVIEW_POSES = [("Idle", 0.0), ("Run", 0.25), ("Run", 0.75), ("AttackWindup", 0.65), ("AttackWindup", 1.0),
                  ("Cast", 0.5), ("Hit", 0.5), ("Recall", 0.5), ("Death", 1.0)]
 
 # The humanoid skeleton: every humanoid has every bone, so all share one definition. A bone a body does not use (a
@@ -58,6 +58,10 @@ FOOT_HEEL_SHARE = 0.75
 FOOT_TOE_SHARE = 0.8
 # How far a running thigh swings either side of straight down, in degrees.
 RUN_THIGH_SWING = 35.0
+# The share of a melee windup spent drawing back; the rest sweeps through to the hit.
+MELEE_COCK_SHARE = 0.65
+# The share of the Cast animation that raises the hands to the release, held until a cast commits.
+CAST_RELEASE_SHARE = 0.4
 
 
 # ---------------------------------------------------------------------------------------------- the skeleton
@@ -151,6 +155,7 @@ class Body:
         self.bm = bmesh.new()
         self.deform = self.bm.verts.layers.deform.verify()
         self.color = self.bm.loops.layers.color.new("Col")
+        self.uv = self.bm.loops.layers.uv.new("UVMap")
         self.groups = {name: index for index, name in enumerate(bone_names)}
 
     def _finish(self, verts, bone, color, glow):
@@ -161,8 +166,12 @@ class Body:
             faces.update(vert.link_faces)
         rgba = (color[0], color[1], color[2], 1.0 if glow else 0.0)
         for face in faces:
+            # UVs project each face onto the plane it faces most, a metre to a tile, for later textures.
+            normal = [abs(component) for component in face.normal]
+            across = [axis for axis in range(3) if axis != normal.index(max(normal))]
             for loop in face.loops:
                 loop[self.color] = rgba
+                loop[self.uv].uv = (loop.vert.co[across[0]] / 100.0, loop.vert.co[across[1]] / 100.0)
 
     @staticmethod
     def _frame(start, end):
@@ -440,14 +449,21 @@ def humanoid_pose(name, t, melee, d):
             pose["lowerarm_" + side] = forward_swing(45)
         lift = d["height"] * 0.025 * abs(math.cos(t * tau))
     elif name in ("AttackWindup", "AttackStrike"):
-        # Melee: the chest turns right and the right arm cocks out and back, weapon up; the strike sweeps it
-        # forward across the body, then settles. Ranged: both arms raise to aim, hands level so the weapon points
-        # ahead; the release is a short recoil.
+        # The windup ends on the moment the attack commits, the strike follows through from it. Melee: the chest
+        # turns right and the right arm cocks out and back, weapon up, then sweeps forward across the body, landing
+        # as the windup ends; the strike settles back. Ranged: both arms raise to aim, hands level so the weapon
+        # points ahead; the strike is the release's recoil, then the arms lower.
         if name == "AttackWindup":
-            cock, sweep, settle, recoil = ease(t), 0.0, 0.0, 0.0
+            if melee:
+                cock = ease(min(1.0, t / MELEE_COCK_SHARE))
+                sweep = ease(max(0.0, (t - MELEE_COCK_SHARE) / (1.0 - MELEE_COCK_SHARE)))
+            else:
+                cock, sweep = ease(t), 0.0
+            settle, recoil = 0.0, 0.0
+        elif melee:
+            cock, sweep, settle, recoil = 1.0, 1.0, ease(t), 0.0
         else:
-            cock = 1.0
-            sweep = ease(min(1.0, t / 0.35))
+            cock, sweep = 1.0, 0.0
             settle = ease(max(0.0, (t - 0.35) / 0.65))
             recoil = math.sin(min(1.0, t / 0.4) * math.pi)
         hold = 1.0 - settle
@@ -465,7 +481,7 @@ def humanoid_pose(name, t, melee, d):
             # Turned a little right to aim, rocked back by the recoil.
             pose["spine_02"] = (0.0, forward_swing(-6 * recoil)[1], twist(-10 * cock * hold)[2])
     elif name == "Cast":
-        rise = ease(min(1.0, t / 0.4))
+        rise = ease(min(1.0, t / CAST_RELEASE_SHARE))
         fall = ease(max(0.0, (t - 0.6) / 0.4))
         k = rise * (1 - fall)
         for side, sign in (("l", 1), ("r", -1)):
@@ -649,7 +665,7 @@ def build(spec):
     return {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "triangles": triangles, "triangleBudget": budget,
             "bones": len(HUMANOID_BONES), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
-            "melee": melee, "runStrideCm": round(run_stride(dims), 2), "upperBodyBone": "spine_01", "animations": actions}
+            "melee": melee, "runStrideCm": round(run_stride(dims), 2), "upperBodyBone": "spine_01", "castReleaseShare": CAST_RELEASE_SHARE, "animations": actions}
 
 
 def main():

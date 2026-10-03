@@ -8,7 +8,7 @@
       "name": "SK_Angeru",
       "archetype": "humanoid",
       "file": "FBX/SK_Angeru.fbx",
-      "sha256": "c827ba43523c072ab647267c898e000a90dabb36695d3f11587a89d66d6c50b6",
+      "sha256": "d9cf7d0546b095276c07efff589cdbac5e8f92af4bdf9bc0e3d680ae60973745",
       "triangles": 1452,
       "triangleBudget": 9000,
       "bones": 26,
@@ -17,6 +17,7 @@
       "melee": true,
       "runStrideCm": 125.26,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -65,7 +66,7 @@
       "name": "SK_Bryn",
       "archetype": "humanoid",
       "file": "FBX/SK_Bryn.fbx",
-      "sha256": "93e2a9fde3072df8cacd521932c333da19411eab5706f858522e098e3b7c768f",
+      "sha256": "d1aa754695c22e9128311ee8a8be419827c73d86b5544d76204f73bc48af5062",
       "triangles": 1452,
       "triangleBudget": 9000,
       "bones": 26,
@@ -74,6 +75,7 @@
       "melee": false,
       "runStrideCm": 163.54,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -122,7 +124,7 @@
       "name": "SK_Celandrine",
       "archetype": "humanoid",
       "file": "FBX/SK_Celandrine.fbx",
-      "sha256": "cf1568057643691cd0b3bf618f6667123361e3809a4e21665d0bc596cd864090",
+      "sha256": "bc80468e00e6e9846faf31dc242f9f285bed8774c1825588b3a2cdc63c967820",
       "triangles": 1920,
       "triangleBudget": 9000,
       "bones": 26,
@@ -131,6 +133,7 @@
       "melee": false,
       "runStrideCm": 155.28,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -179,7 +182,7 @@
       "name": "SK_Eudora",
       "archetype": "humanoid",
       "file": "FBX/SK_Eudora.fbx",
-      "sha256": "7d92ae932f081be4d623b2d4c89adb8016b695faf06a4bd09f14697c03683bc5",
+      "sha256": "fb046b84985c4ec06a3e90bc0e8808dc03b5a5915224c6f68f029bf157eea1af",
       "triangles": 1644,
       "triangleBudget": 9000,
       "bones": 26,
@@ -188,6 +191,7 @@
       "melee": false,
       "runStrideCm": 167.17,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -236,7 +240,7 @@
       "name": "SK_Gorraveth",
       "archetype": "humanoid",
       "file": "FBX/SK_Gorraveth.fbx",
-      "sha256": "47b09cd645ea42ed1690892135b71ae5434d2b862d836d765f68d16319c5dcda",
+      "sha256": "fb0c19af9ae5a4a7b3777c6d9a68bb41552be647ca5cdb4e3044a4f001060c40",
       "triangles": 1596,
       "triangleBudget": 9000,
       "bones": 26,
@@ -245,6 +249,7 @@
       "melee": true,
       "runStrideCm": 218.54,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -293,7 +298,7 @@
       "name": "SK_Kade",
       "archetype": "humanoid",
       "file": "FBX/SK_Kade.fbx",
-      "sha256": "245de5be3db01aef3b8e5999fe78f50c85ed0f75fb03372371a73de563ce9fb5",
+      "sha256": "102ec9caf5cd020cbdb0845984784e3c6cde1556316d3f28c9e176cd2eb1a007",
       "triangles": 1452,
       "triangleBudget": 9000,
       "bones": 26,
@@ -302,6 +307,7 @@
       "melee": false,
       "runStrideCm": 172.62,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -350,7 +356,7 @@
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "3fe6d7a12c5a31ffad45581423f5d04ccbc801db6eb243884ef867cdfa988f4e",
+      "sha256": "6c1f7b6eb926cf0206b7ea647eeb19c9a4d3294de3742b2a61abb8ffb58436a7",
       "triangles": 2928,
       "triangleBudget": 9000,
       "bones": 26,
@@ -359,6 +365,7 @@
       "melee": false,
       "runStrideCm": 172.62,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -407,7 +414,7 @@
       "name": "SK_Mavra",
       "archetype": "humanoid",
       "file": "FBX/SK_Mavra.fbx",
-      "sha256": "65bfdb1f6628063433015f24b93727d74eea1fb9f4057d5b598b96ab9ab6c849",
+      "sha256": "41df1e5373beb7c468f7f3aa9cf54e568b80fa6e20f11efdeae9d6d21b55ae2a",
       "triangles": 1716,
       "triangleBudget": 9000,
       "bones": 26,
@@ -416,6 +423,7 @@
       "melee": false,
       "runStrideCm": 165.23,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -464,7 +472,7 @@
       "name": "SK_Mimzi",
       "archetype": "humanoid",
       "file": "FBX/SK_Mimzi.fbx",
-      "sha256": "9c5eac1c9c9cf418bf4dde5bdb93bd1881a43813db8a4956e6fb364f63526b1e",
+      "sha256": "bb95dc6437afaba53c868275130603ebf5f4cb01f4500451df64ae9175993e6f",
       "triangles": 2736,
       "triangleBudget": 9000,
       "bones": 26,
@@ -473,6 +481,7 @@
       "melee": false,
       "runStrideCm": 98.51,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -521,7 +530,7 @@
       "name": "SK_Neris",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris.fbx",
-      "sha256": "9ebb726d87e4642eabbb70cc9c0bba6d11ceffce88d2e04a6826960bd553d12d",
+      "sha256": "1a17fcab034c1f08067a030e01e0411bfbe16b8f568a69a7a1522fd486a98a26",
       "triangles": 1692,
       "triangleBudget": 9000,
       "bones": 26,
@@ -530,6 +539,7 @@
       "melee": false,
       "runStrideCm": 130.39,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -578,7 +588,7 @@
       "name": "SK_Patch",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch.fbx",
-      "sha256": "2798b1c7f7d4456e91f32ce987bd40371d8487320fd13c568e9b03d0107f2e31",
+      "sha256": "cf92f2515f41e1214db04013c6604a92c1f6fb2460af1eb5061ab94afcdd5a73",
       "triangles": 1620,
       "triangleBudget": 9000,
       "bones": 26,
@@ -587,6 +597,7 @@
       "melee": true,
       "runStrideCm": 77.09,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -635,7 +646,7 @@
       "name": "SK_Qazharr",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr.fbx",
-      "sha256": "b82fbef1cb913d6fc33d3b1a22b603ade9ab143c20c372d715298bba3fce0ffc",
+      "sha256": "a4555c7e8056b6dc8398c4acffa18080a58a01c22c9cb674f031b718a38be582",
       "triangles": 1500,
       "triangleBudget": 9000,
       "bones": 26,
@@ -644,6 +655,7 @@
       "melee": true,
       "runStrideCm": 192.67,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -692,7 +704,7 @@
       "name": "SK_Raska",
       "archetype": "humanoid",
       "file": "FBX/SK_Raska.fbx",
-      "sha256": "f27c9e6f88df8a9b1c7829b8416153dd3feee463412be82cb12e983f73bb5687",
+      "sha256": "5ea74502f052bc6f6a56c0a3d01cbf22631cdc7cea4128c771d1fe150605d48c",
       "triangles": 1860,
       "triangleBudget": 9000,
       "bones": 26,
@@ -701,6 +713,7 @@
       "melee": true,
       "runStrideCm": 180.3,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -749,7 +762,7 @@
       "name": "SK_Sylra",
       "archetype": "humanoid",
       "file": "FBX/SK_Sylra.fbx",
-      "sha256": "bd053df961306b9e42f9fd7f134199f4d387da07af200c72275c8607f860e82f",
+      "sha256": "c8b711613b435e06b9d32c633e5ad90cb17a3ddabf169e53d144f1eca5517593",
       "triangles": 1524,
       "triangleBudget": 9000,
       "bones": 26,
@@ -758,6 +771,7 @@
       "melee": false,
       "runStrideCm": 165.23,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -806,7 +820,7 @@
       "name": "SK_Tavi",
       "archetype": "humanoid",
       "file": "FBX/SK_Tavi.fbx",
-      "sha256": "4de84df39a55923cf7f345332f5fee3dcf9785267091d5a1d1939601a8b076dc",
+      "sha256": "97775449e0965819382b0166047dba60a512662c2b6a938f5ceffe04dd8b4d10",
       "triangles": 1764,
       "triangleBudget": 9000,
       "bones": 26,
@@ -815,6 +829,7 @@
       "melee": true,
       "runStrideCm": 103.14,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
@@ -863,7 +878,7 @@
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "cef6310764d1125f93326f6bc9a4c9cc5b888f798aeaf1a9e5e0274ec1976521",
+      "sha256": "e179984dca02cea40fe4832a80836fcb0ab9a7efda8523bcdfe409ddf698c706",
       "triangles": 1632,
       "triangleBudget": 9000,
       "bones": 26,
@@ -872,6 +887,7 @@
       "melee": false,
       "runStrideCm": 162.99,
       "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
       "animations": [
         {
           "name": "Idle",
