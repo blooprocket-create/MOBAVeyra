@@ -27,12 +27,13 @@ namespace VeyraVanguardBodyTests
 	// facing and footing, and the grey-box presentation dressing a Vanguard in its body in a client world.
 	TEST_CLASS(VanguardBodies, "Veyra.UI")
 	{
-		// Fixture values: centimetres of slack, how long a windup has left, and how far a body's height may stray from
-		// its capsule's (horns and hats stand above it).
+		// Fixture values: centimetres of slack, how long a windup has left, how far a body's height may stray from its
+		// capsule's (antlers, masts and hats stand above it), and how high a floating body may hover, as a share of its height.
 		static constexpr double Tolerance = 1.0;
 		static constexpr double WindupSeconds = 0.2;
 		static constexpr double LeastHeightShare = 0.5;
-		static constexpr double MostHeightShare = 1.15;
+		static constexpr double MostHeightShare = 1.4;
+		static constexpr double MostHoverShare = 0.2;
 
 		FActorTestSpawner Spawner;
 
@@ -98,13 +99,20 @@ namespace VeyraVanguardBodyTests
 			{
 				const USkeletalMesh& Mesh = *Entry.Value.Mesh;
 				const FString Id = Entry.Key.ToString();
-				// Unreal's +X ahead and +Y to the right: its left hand on the left, its knees ahead of its ankles.
+				// Unreal's +X ahead and +Y to the right: its left hand (or forefoot) on the left, its head above or ahead of its
+				// middle, and the knees of a body that has them ahead of its ankles.
 				ASSERT_THAT(IsTrue(BoneAt(Mesh, TEXT("hand_l")).Y < 0.0 && BoneAt(Mesh, TEXT("hand_r")).Y > 0.0, *Id));
-				ASSERT_THAT(IsTrue(BoneAt(Mesh, TEXT("calf_l")).X > BoneAt(Mesh, TEXT("foot_l")).X, *Id));
-				ASSERT_THAT(IsTrue(BoneAt(Mesh, TEXT("head")).Z > BoneAt(Mesh, TEXT("pelvis")).Z, *Id));
-				// Its root on the ground, under it.
+				const FVector Head = BoneAt(Mesh, TEXT("head"));
+				const FVector Middle = BoneAt(Mesh, TEXT("pelvis"));
+				ASSERT_THAT(IsTrue(Head.X + Head.Z > Middle.X + Middle.Z, *Id));
+				if (Mesh.GetRefSkeleton().FindBoneIndex(TEXT("calf_l")) != INDEX_NONE)
+				{
+					ASSERT_THAT(IsTrue(BoneAt(Mesh, TEXT("calf_l")).X > BoneAt(Mesh, TEXT("foot_l")).X, *Id));
+				}
+				// Its root on the ground under it; nothing below the ground, and a floating body near it.
 				ASSERT_THAT(IsTrue(BoneAt(Mesh, TEXT("root")).IsNearlyZero(Tolerance), *Id));
-				ASSERT_THAT(IsNear(Mesh.GetBounds().GetBox().Min.Z, 0.0, Tolerance * 2.0, *Id));
+				const FBox Bounds = Mesh.GetBounds().GetBox();
+				ASSERT_THAT(IsTrue(Bounds.Min.Z > -Tolerance * 2.0 && Bounds.Min.Z < Bounds.GetSize().Z * MostHoverShare, *Id));
 			}
 		}
 
