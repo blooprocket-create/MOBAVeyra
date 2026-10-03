@@ -13,7 +13,13 @@ namespace VeyraHandoff
 	/** -VeyraAssignment=stdin: a match server reads its assignment from standard input. */
 	inline constexpr const TCHAR* AssignmentSwitch = TEXT("VeyraAssignment=");
 
-	/** The one channel either switch accepts: a secret never goes on a command line. */
+	/**
+	 * -VeyraBackendUrl=<base URL>: the backend the launcher signed in to, which the game uses instead of its ini's
+	 * (ADR-057 §5). An address, not a secret, so it may go on the command line.
+	 */
+	inline constexpr const TCHAR* BackendUrlSwitch = TEXT("VeyraBackendUrl=");
+
+	/** The one channel either secret switch accepts: a secret never goes on a command line. */
 	inline constexpr const TCHAR* StandardInput = TEXT("stdin");
 
 	/** The engine's switch that runs each line of standard input as a console command and logs it. */

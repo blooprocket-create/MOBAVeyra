@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "backend": {
+    "baseUrl": "https://veyra.blooprocket.workers.dev"
+  },
+  "playerLogin": {
+    "firebase": {
+      "authUrl": "https://identitytoolkit.googleapis.com",
+      "apiKey": "AIzaSyCcZT7kXAiju0u-a6_Hhde08oiRA27IzXU"
+    }
+  },
+  "http": {
+    "timeoutSeconds": 10
+  },
+  "launch": {
+    "awaitReadySeconds": 180,
+    "awaitSignInSeconds": 30
+  },
+  "game": {
+    "install": {
+      "releasesUrl": "https://veyra.blooprocket.workers.dev/releases",
+      "channel": "public",
+      "defaultFolder": "Game",
+      "stateFile": "LauncherState.json",
+      "parallelDownloads": 4,
+      "downloadAttempts": 3,
+      "downloadTimeoutSeconds": 60
+    },
+    "arguments": []
+  }
+}

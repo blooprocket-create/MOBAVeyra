@@ -7,6 +7,7 @@
 #include "Engine/EngineBaseTypes.h"
 #include "Handoff/VeyraPipeLineReader.h"
 #include "Handoff/VeyraPipeLineWriter.h"
+#include "Misc/Optional.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Templates/UniquePtr.h"
 
@@ -41,6 +42,12 @@ public:
 	 * subsystems deinitialize in no set order, so a subsystem holding the client lets go of it here.
 	 */
 	FSimpleMulticastDelegate& OnClientEnding() { return ClientEnding; }
+
+	/**
+	 * The backend a game started with CommandLine uses (ADR-057 §5): the launcher's, by -VeyraBackendUrl=, when it
+	 * names one; else Configured, the ini's. A named one that is no base URL is unset, which the caller reports.
+	 */
+	static TOptional<FString> BackendBaseUrlFor(const TCHAR* CommandLine, const FString& Configured);
 
 private:
 	// IVeyraClientFlowHost

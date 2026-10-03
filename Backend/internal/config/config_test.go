@@ -300,6 +300,30 @@ func TestCommittedLocalConfigLoads(t *testing.T) {
 	}
 }
 
+// The committed public-test config loads, outside the local environment, with
+// Firebase sign-in and none of the development routes, and its match servers
+// listen on every address (ADR-057 §3).
+func TestCommittedPublicConfigLoadsWithoutDevelopmentRoutes(t *testing.T) {
+	_, file, _, _ := runtime.Caller(0)
+	path := filepath.Join(filepath.Dir(file), "..", "..", "config", "public.json")
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load(%s): %v", path, err)
+	}
+	if cfg.Environment == EnvironmentLocal {
+		t.Fatalf("environment = %q, want anything but %q", cfg.Environment, EnvironmentLocal)
+	}
+	if cfg.DevLogin.Enabled || cfg.Matches.DevCreate || cfg.Progression.DevGrant {
+		t.Fatalf("development routes enabled: login %v, match creation %v, grants %v", cfg.DevLogin.Enabled, cfg.Matches.DevCreate, cfg.Progression.DevGrant)
+	}
+	if cfg.PlayerLogin.Provider != "firebase" {
+		t.Fatalf("player login = %q, want firebase", cfg.PlayerLogin.Provider)
+	}
+	if cfg.Allocator.Docker == nil || cfg.Allocator.Docker.HostIP != "0.0.0.0" {
+		t.Fatalf("match servers must listen on every address for players outside this PC")
+	}
+}
+
 // No side the committed config lets the backend fill may be larger than the
 // match server's own cap, Game/Tuning/Match.json teams.maxTeamSize: the server
 // refuses such an assignment (UVeyraMatchHostSubsystem::SetAssignment), and
