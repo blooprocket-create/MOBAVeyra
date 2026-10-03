@@ -5,6 +5,7 @@
 #include "Content/VeyraContentId.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Loading/VeyraLoadingModel.h"
+#include "Math/Vector2D.h"
 #include "Misc/Optional.h"
 #include "Units/VeyraUnit.h"
 
@@ -47,6 +48,65 @@ struct FVeyraSideColors
 	bool operator==(const FVeyraSideColors& Other) const = default;
 };
 
+/**
+ * Each HUD component's own scale, multiplying HUD Scale (Settings Bible §3.1; ADR-059 §1): 1 is its designed size. A scale
+ * changes a component's size, never the anchor it keeps.
+ */
+struct FVeyraHudScales
+{
+	/** The portrait, the passive and the abilities. */
+	float AbilityBar = 1.0f;
+	/** Health and the resource under the abilities. */
+	float Vitals = 1.0f;
+	/** The items, Gold and the shop line. */
+	float Items = 1.0f;
+	/** The Flux Spells and the vision tool. */
+	float Spells = 1.0f;
+	/** The kill and clock strip, the Team Flux panel and the notices under the strip. */
+	float TeamPanels = 1.0f;
+	/** The chat log's and composer's dimensions; Chat Text Size sizes its type. */
+	float Chat = 1.0f;
+	float CombatText = 1.0f;
+	/** The bars, names and statuses over units. */
+	float OverheadBars = 1.0f;
+
+	bool operator==(const FVeyraHudScales&) const = default;
+};
+
+/** How the player's own cooldowns show (Settings Bible §3.4, Proposal 44; ADR-059 §3). A ready slot always shows ready. */
+struct FVeyraCooldownDisplay
+{
+	/** The seconds left over a cooling tile. */
+	bool bNumbers = true;
+	/** A radial sweep of the time still to wait, rather than the whole tile shaded. */
+	bool bSweep = true;
+	/** Tenths of a second below ten seconds, rather than whole seconds. */
+	bool bTenths = true;
+
+	bool operator==(const FVeyraCooldownDisplay&) const = default;
+};
+
+/** How the player's own status row orders each group (Proposal 53; ADR-059 §4). Helpful and harmful effects always stay apart. */
+enum class EVeyraStatusSort : uint8
+{
+	/** Crowd control apart, first among the harmful; each group by kind. */
+	ByCategory,
+	ByRemainingDuration,
+	ByApplicationOrder,
+};
+
+/** The player's own status row as they set it (Proposals 38, 43, 53; ADR-059 §4). */
+struct FVeyraStatusDisplay
+{
+	EVeyraStatusSort Sort = EVeyraStatusSort::ByCategory;
+	/** Opaque chips with a strong outline. */
+	bool bHighContrast = false;
+	/** The seconds left on each. */
+	bool bDurations = true;
+
+	bool operator==(const FVeyraStatusDisplay&) const = default;
+};
+
 /** The HUD, the minimap and the in-match controls as the player set them (Settings Bible §3; ADR-024 §6). */
 struct FVeyraInterfacePreferences
 {
@@ -64,6 +124,14 @@ struct FVeyraInterfacePreferences
 	bool bPerformanceWarning = true;
 	/** The HUD deck's size, as a multiple of its designed size. */
 	float HudScale = 1.0f;
+	/** Each component's scale on top of HUD Scale (ADR-059 §1). */
+	FVeyraHudScales HudScales;
+	/** The safe area's margins, each a fraction of the viewport on its axis: X from the left and right, Y from the top and bottom (ADR-059 §2). */
+	FVector2D SafeArea = FVector2D::ZeroVector;
+	/** The player's own cooldowns' numbers, sweep and precision (ADR-059 §3). */
+	FVeyraCooldownDisplay Cooldowns;
+	/** The player's own status row (ADR-059 §4). */
+	FVeyraStatusDisplay Statuses;
 	/** The minimap's side and its icons' sides, in pixels. */
 	float MinimapSize = 0.0f;
 	float MinimapVanguardIcon = 0.0f;
@@ -112,6 +180,22 @@ namespace VeyraInterfacePreferences
 {
 	/** The settings the interface reads, as the registry names them. */
 	VEYRAUI_API const FVeyraContentId& HudScale();
+	VEYRAUI_API const FVeyraContentId& AbilityBarScale();
+	VEYRAUI_API const FVeyraContentId& VitalsScale();
+	VEYRAUI_API const FVeyraContentId& ItemScale();
+	VEYRAUI_API const FVeyraContentId& SpellScale();
+	VEYRAUI_API const FVeyraContentId& TeamPanelScale();
+	VEYRAUI_API const FVeyraContentId& ChatScale();
+	VEYRAUI_API const FVeyraContentId& CombatTextScale();
+	VEYRAUI_API const FVeyraContentId& OverheadBarScale();
+	VEYRAUI_API const FVeyraContentId& SafeAreaHorizontal();
+	VEYRAUI_API const FVeyraContentId& SafeAreaVertical();
+	VEYRAUI_API const FVeyraContentId& CooldownNumbers();
+	VEYRAUI_API const FVeyraContentId& CooldownSweep();
+	VEYRAUI_API const FVeyraContentId& CooldownPrecision();
+	VEYRAUI_API const FVeyraContentId& StatusSort();
+	VEYRAUI_API const FVeyraContentId& StatusHighContrast();
+	VEYRAUI_API const FVeyraContentId& StatusDurations();
 	VEYRAUI_API const FVeyraContentId& MinimapScale();
 	VEYRAUI_API const FVeyraContentId& MinimapIconScale();
 	VEYRAUI_API const FVeyraContentId& MinimapClickMovesCamera();

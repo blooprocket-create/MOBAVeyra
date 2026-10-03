@@ -15,9 +15,12 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Hud/VeyraChatLogModel.h"
+#include "Hud/VeyraHudLayout.h"
 #include "Settings/VeyraInterfacePreferences.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "Widgets/SViewport.h"
 
 #define LOCTEXT_NAMESPACE "VeyraChatComposer"
@@ -39,7 +42,8 @@ bool UVeyraChatComposer::Initialize()
 
 		// Styled as the Settings search is, so the client's fields look alike.
 		Field = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
-		VeyraShellStyle::StyleTextField(*Field, Style.Spacing / 2.0f);
+		VeyraShellStyle::StyleChatField(*Field, Style.Spacing / 2.0f);
+		SizedForChat = VeyraShellLook::ScaledChatFontSize(Style.BodyFontSize);
 		Field->SetHintText(LOCTEXT("Hint", "Enter sends, Tab switches Team and All, Escape closes"));
 		Field->OnTextChanged.AddUniqueDynamic(this, &UVeyraChatComposer::HandleTextChanged);
 		UHorizontalBoxSlot* FieldSlot = Row->AddChildToHorizontalBox(Field);
@@ -137,18 +141,38 @@ void UVeyraChatComposer::Place()
 	{
 		return;
 	}
+	// Chat Text Size reaches the composer at once, as it does every chat (SET-66; ADR-059 §5).
+	VeyraShellLook::FollowPlayer(this);
+	const int32 ChatSize = VeyraShellLook::ScaledChatFontSize(GetDefault<UVeyraShellStyleSettings>()->BodyFontSize);
+	if (Field && ChatSize != SizedForChat)
+	{
+		VeyraShellStyle::StyleChatField(*Field, GetDefault<UVeyraShellStyleSettings>()->Spacing / 2.0f);
+		SizedForChat = ChatSize;
+	}
 	Player->ViewportClient->GetViewportSize(Viewport);
-	if (Viewport.IsNearlyZero() || Viewport == PlacedFor)
+	if (Viewport.IsNearlyZero())
 	{
 		return;
 	}
-	PlacedFor = Viewport;
-	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this));
-	const FVeyraChatFrame Frame = VeyraChatLog::FrameFor(Viewport, *GetDefault<UVeyraGreyboxSettings>(), Preferences.HudScale);
+	// Where the HUD's layout puts the chat: inside the safe area, above a deck that reaches under it (ADR-059 §1-§2).
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this));
+	const FVeyraChatFrame Frame = VeyraHudLayout::Arrange(Viewport, Settings, Preferences, UE_ARRAY_COUNT(VeyraAbilitySlots::All)).Chat;
+	const FBox2D Placed(Frame.InputTopLeft, Frame.InputTopLeft + Frame.InputSize);
+	if (Placed == PlacedAt)
+	{
+		return;
+	}
+	PlacedAt = Placed;
 	// The frame is in pixels; the viewport's sizes are in its own units, so the size loses the DPI scale as the position does.
 	const float DpiScale = UWidgetLayoutLibrary::GetViewportScale(this);
 	SetDesiredSizeInViewport(DpiScale > 0.0f ? Frame.InputSize / DpiScale : Frame.InputSize);
 	SetPositionInViewport(Frame.InputTopLeft, /*bRemoveDPIScale*/ true);
+}
+
+int32 UVeyraChatComposer::GetFieldFontSize() const
+{
+	return Field ? Field->GetWidgetStyle().TextStyle.Font.Size : 0;
 }
 
 void UVeyraChatComposer::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

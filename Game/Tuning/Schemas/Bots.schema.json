@@ -4,7 +4,7 @@
   "description": "How AI Vanguards play, owned by the Bots domain (ADR-013 §5). Canon leaves AI logic open (Modes & Access Bible §4) and names two behaviours, Beginner and Intermediate (Custom Matches Bible §3); every value here is a provisional answer for playtests. VeyraBots binds it to FVeyraBotsTuning and checks what the schema cannot express.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "senses", "positioning", "difficulties", "seats", "fluxSpells", "itemActives", "jungle", "warding", "vanguards"],
+  "required": ["schemaVersion", "senses", "positioning", "difficulties", "seats", "fluxSpells", "itemActives", "jungle", "warding", "consumables", "defence", "buyback", "grouping", "vanguards"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -25,7 +25,7 @@
       "description": "One behaviour (Custom Matches Bible §3). It changes how a bot plays, never the rules (Modes & Access Bible §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "thinkSeconds", "reactionSeconds", "lastHitChance", "lastHitLead", "pushChance", "castChance", "aim", "retreatHealthFraction", "fightHealthMargin", "shopRecallGold", "fluxbornTolerance"],
+      "required": ["provenance", "thinkSeconds", "reactionSeconds", "lastHitChance", "lastHitLead", "pushChance", "castChance", "aim", "retreatHealthFraction", "fightHealthMargin", "shopRecallGold", "fluxbornTolerance", "consumablesCarried", "buyback"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "thinkSeconds": { "description": "Seconds between a bot's decisions, on match time.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -38,7 +38,9 @@
         "retreatHealthFraction": { "description": "Below this fraction of Max Health the bot retreats, and recalls once it is safe.", "type": "number", "minimum": 0, "maximum": 1 },
         "fightHealthMargin": { "description": "The bot fights an enemy Vanguard only while its own Health fraction is at least the enemy's plus this margin.", "type": "number", "minimum": -1, "maximum": 1 },
         "shopRecallGold": { "description": "With this much Gold and its next purchase affordable, a bot recalls to shop when no enemy Vanguard is near.", "type": "number", "minimum": 0 },
-        "fluxbornTolerance": { "description": "The most Fluxborn of an enemy Vanguard's side within their aggression response range (World.json fluxborn.ai) of it when the bot starts a fight with it; with more, the hit would turn them on the bot (Battleground Bible §19).", "type": "integer", "minimum": 0 }
+        "fluxbornTolerance": { "description": "The most Fluxborn of an enemy Vanguard's side within their aggression response range (World.json fluxborn.ai) of it when the bot starts a fight with it; with more, the hit would turn them on the bot (Battleground Bible §19).", "type": "integer", "minimum": 0 },
+        "consumablesCarried": { "description": "How many of consumables.item the bot keeps in hand while it buys them (ADR-056 §1).", "type": "integer", "minimum": 0 },
+        "buyback": { "description": "Whether the bot buys back: Never, or WhenBaseThreatened as buyback describes (ADR-056 §3).", "type": "string", "enum": ["Never", "WhenBaseThreatened"] }
       }
     },
     "vanguard": {
@@ -84,7 +86,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [7]
+      "enum": [8]
     },
     "senses": {
       "description": "What a bot notices (ADR-013 §4).",
@@ -189,6 +191,57 @@
         },
         "spotReach": { "description": "How near a Dense Fog patch's centre a bot passes to ward it.", "type": "number", "minimum": 0 },
         "spotSpacing": { "description": "A patch an allied ward stands this near is warded already.", "type": "number", "minimum": 0 }
+      }
+    },
+    "consumables": {
+      "description": "How bots carry and drink a consumable (ADR-056 §1). How many each difficulty carries is its consumablesCarried.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "item", "drinkHealthFraction", "buyUntilSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "item": { "description": "The consumable bots carry: one Items.json sells and restores with.", "$ref": "#/definitions/contentId" },
+        "drinkHealthFraction": { "description": "Below this fraction of Max Health, away from its fountain, a bot drinks one.", "type": "number", "minimum": 0, "maximum": 1 },
+        "buyUntilSeconds": { "description": "After this much match time, in seconds, bots buy no more.", "type": "number", "minimum": 0 }
+      }
+    },
+    "defence": {
+      "description": "How bots answer threats to their base (ADR-056 §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "threatRadius", "recallDistance"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "threatRadius": { "description": "An enemy Vanguard this near an allied inhibitor, base tower or Prime Well threatens the base, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "recallDistance": { "description": "A bot farther than this from the threatened structure recalls to answer it when no enemy Vanguard is near, in units.", "type": "number", "minimum": 0 }
+      }
+    },
+    "buyback": {
+      "description": "When a bot whose difficulty buys back does so (ADR-056 §3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "minWaitSeconds", "reserveGold"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "minWaitSeconds": { "description": "A bot buys back only if it would otherwise wait at least this long to respawn, in seconds.", "type": "number", "minimum": 0 },
+        "reserveGold": { "description": "The Gold a bot keeps after buying back.", "type": "number", "minimum": 0 }
+      }
+    },
+    "grouping": {
+      "description": "How a side's laners push one lane together late in a match (ADR-056 §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "startSeconds", "laneOrder"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "startSeconds": { "description": "From this match time, in seconds, a side's laners push one lane.", "type": "number", "minimum": 0 },
+        "laneOrder": {
+          "description": "Every lane once, in the order that breaks a tie between lanes equally far gone.",
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string", "enum": ["Top", "Mid", "Bottom"] }
+        }
       }
     },
     "vanguards": {

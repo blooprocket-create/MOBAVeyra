@@ -100,10 +100,114 @@ TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNo
 			{
 				continue;
 			}
-			Statuses.Add(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow), Entry.Stacks });
+			FVeyraHudStatus& Status = Statuses.Add_GetRef(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow), Entry.Stacks });
+			// Combat says what harms its bearer (ADR-059 §4).
+			Status.Group = VeyraStatuses::IsCrowdControl(Entry.Kind)		  ? EVeyraStatusGroup::CrowdControl
+				: VeyraStatuses::IsHarmful(Entry.Kind, Entry.Magnitude) ? EVeyraStatusGroup::Harmful
+																		: EVeyraStatusGroup::Beneficial;
+			Status.Sequence = Entry.Sequence;
 		}
 	}
 	return Statuses;
+}
+
+FString VeyraHud::CooldownLabel(double Seconds, bool bTenths)
+{
+	// Tenths only below ten seconds (Proposal 44).
+	constexpr double TenthsBelow = 10.0;
+	if (!bTenths || Seconds >= TenthsBelow)
+	{
+		return FString::FromInt(FMath::CeilToInt32(Seconds));
+	}
+	return FString::Printf(TEXT("%.1f"), Seconds);
+}
+
+TArray<FVeyraHudStatus> VeyraHud::OrderOwnStatuses(TArray<FVeyraHudStatus> Statuses, EVeyraStatusSort Sort)
+{
+	// Beneficial and harmful stay apart; By Category also sets crowd control apart, first among the harmful.
+	const auto Rank = [Sort](EVeyraStatusGroup Group) {
+		if (Group == EVeyraStatusGroup::Beneficial)
+		{
+			return 0;
+		}
+		return Sort == EVeyraStatusSort::ByCategory && Group == EVeyraStatusGroup::Harmful ? 2 : 1;
+	};
+	Statuses.StableSort([&Rank, Sort](const FVeyraHudStatus& A, const FVeyraHudStatus& B) {
+		if (Rank(A.Group) != Rank(B.Group))
+		{
+			return Rank(A.Group) < Rank(B.Group);
+		}
+		if (Sort == EVeyraStatusSort::ByRemainingDuration && A.RemainingSeconds != B.RemainingSeconds)
+		{
+			return A.RemainingSeconds < B.RemainingSeconds;
+		}
+		if (Sort == EVeyraStatusSort::ByCategory && A.Kind != B.Kind)
+		{
+			return A.Kind < B.Kind;
+		}
+		return A.Sequence < B.Sequence;
+	});
+	return Statuses;
+}
+
+FString VeyraHud::StatusMark(EVeyraStatusGroup Group)
+{
+	switch (Group)
+	{
+	case EVeyraStatusGroup::Harmful:
+		return TEXT("-");
+	case EVeyraStatusGroup::CrowdControl:
+		return TEXT("!");
+	case EVeyraStatusGroup::Beneficial:
+		break;
+	}
+	return TEXT("+");
+}
+
+FString VeyraHud::StatusChipText(const FVeyraHudStatus& Status, bool bDuration)
+{
+	// A mark with no effect of its own is known by its ID, as a Hex is; every other status by its kind.
+	const FString Raw = Status.Kind == EVeyraStatusKind::Counter ? Status.Id.ToString() : StaticEnum<EVeyraStatusKind>()->GetNameStringByValue(static_cast<int64>(Status.Kind));
+	FString Text = StatusMark(Status.Group) + TEXT(" ") + FName::NameToDisplayString(Raw, false);
+	if (Status.Stacks > 1)
+	{
+		Text += FString::Printf(TEXT(" x%d"), Status.Stacks);
+	}
+	if (bDuration && Status.RemainingSeconds > 0.0)
+	{
+		Text += TEXT(" ") + CooldownLabel(Status.RemainingSeconds, true);
+	}
+	return Text;
+}
+
+TArray<FVector2D> VeyraHud::SweepOutline(const FVector2D& TopLeft, float Side, double ElapsedShare)
+{
+	TArray<FVector2D> Points;
+	const double Elapsed = FMath::Clamp(ElapsedShare, 0.0, 1.0);
+	if (Elapsed >= 1.0 || Side <= 0.0f)
+	{
+		return Points;
+	}
+	const double Half = Side / 2.0;
+	const FVector2D Centre = TopLeft + FVector2D(Half);
+	// Where a ray from the centre, Turn of the way round clockwise from twelve o'clock, meets the square's edge.
+	const auto EdgeAt = [&Centre, Half](double Turn) {
+		const double Angle = Turn * UE_DOUBLE_TWO_PI;
+		const FVector2D Direction(FMath::Sin(Angle), -FMath::Cos(Angle));
+		return Centre + Direction * (Half / FMath::Max(FMath::Abs(Direction.X), FMath::Abs(Direction.Y)));
+	};
+	Points.Add(Centre);
+	Points.Add(EdgeAt(Elapsed));
+	// The square's corners still ahead: an eighth, three, five and seven eighths of the way round.
+	for (const double Corner : { 0.125, 0.375, 0.625, 0.875 })
+	{
+		if (Corner > Elapsed)
+		{
+			Points.Add(EdgeAt(Corner));
+		}
+	}
+	Points.Add(EdgeAt(1.0));
+	return Points;
 }
 
 TOptional<FVeyraHudStructure> VeyraHud::StructureOf(const AActor& Unit, double ServerNow)
@@ -248,6 +352,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		{
 			Shown.Ability = Entry->Ability;
 			Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Loadout->CooldownIdOf(Entry->Ability), ServerNow) : 0.0;
+			Shown.CooldownTotal = Cooldowns ? Cooldowns->GetDurationSeconds(Loadout->CooldownIdOf(Entry->Ability)) : 0.0;
 			if (Attacks && Attacks->GetEmpowermentView().Ability == Entry->Ability)
 			{
 				Shown.EmpoweredSeconds = FMath::Max(0.0, Attacks->GetEmpowermentView().ExpiresAt - ServerNow);
@@ -293,9 +398,11 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 				Shown.Reserve = FMath::FloorToInt32(Held[Index].Reserve);
 			}
 			// An item's Active sits in its slot's loadout entry, and cools down under its own ID.
-			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr; Entry && Cooldowns)
+			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr)
 			{
-				Shown.CooldownSeconds = Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow);
+				Shown.bActive = true;
+				Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+				Shown.CooldownTotal = Cooldowns ? Cooldowns->GetDurationSeconds(Entry->Ability) : 0.0;
 			}
 		}
 		Player.PendingPurchases = Inventory->GetQueue().Num();
@@ -313,6 +420,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 			{
 				Shown.Spell = Entry->Ability;
 				Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+				Shown.CooldownTotal = Cooldowns ? Cooldowns->GetDurationSeconds(Entry->Ability) : 0.0;
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -27,7 +27,9 @@
       "retreatHealthFraction": 0.35,
       "fightHealthMargin": -0.1,
       "shopRecallGold": 900,
-      "fluxbornTolerance": 1
+      "fluxbornTolerance": 1,
+      "consumablesCarried": 2,
+      "buyback": "Never"
     },
     "intermediate": {
       "provenance": "Provisional",
@@ -41,7 +43,9 @@
       "retreatHealthFraction": 0.25,
       "fightHealthMargin": -0.2,
       "shopRecallGold": 800,
-      "fluxbornTolerance": 2
+      "fluxbornTolerance": 2,
+      "consumablesCarried": 3,
+      "buyback": "WhenBaseThreatened"
     }
   },
   "seats": [
@@ -66,7 +70,27 @@
     "spotReach": 500,
     "spotSpacing": 900
   },
-  "vanguards": {
+  "consumables": {
+    "provenance": "Provisional",
+    "item": "field_tonic",
+    "drinkHealthFraction": 0.55,
+    "buyUntilSeconds": 1200
+  },
+  "defence": {
+    "provenance": "Provisional",
+    "threatRadius": 1500,
+    "recallDistance": 4000
+  },
+  "buyback": {
+    "provenance": "Provisional",
+    "minWaitSeconds": 20,
+    "reserveGold": 300
+  },
+  "grouping": {
+    "provenance": "Provisional",
+    "startSeconds": 1500,
+    "laneOrder": ["Mid", "Bottom", "Top"]
+  },  "vanguards": {
     "cairn": {
       "provenance": "Provisional",
       "build": ["swift_boots", "siegeheart_core", "riverhold_bastion", "blackreef_bell", "colossus_temper"],
@@ -81,7 +105,7 @@
     },
     "qazharr": {
       "provenance": "Provisional",
-      "build": ["war_boots", "razorwheel_prime", "colossus_temper", "striker_assembly", "siege_frame"],
+      "build": ["war_boots", "razorwheel_prime", "colossus_temper", "oathpiercer", "siege_frame"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Top", "Jungle", "Mid"],
       "abilities": {
@@ -182,7 +206,7 @@
     },
     "korruk": {
       "provenance": "Provisional",
-      "build": ["war_boots", "sovereign_edge", "striker_assembly", "cycler_core", "razorwheel"],
+      "build": ["war_boots", "sovereign_edge", "cutline_mantle", "cycler_core", "razorwheel"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Mid", "Bottom", "Top"],
       "abilities": {
@@ -258,7 +282,7 @@
     },
     "moro": {
       "provenance": "Provisional",
-      "build": ["arcane_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_lens", "spellguard_plate"],
+      "build": ["arcane_boots", "crown_of_the_crucible", "memoryglass_reliquary", "nullglass_lens", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
       "roles": ["Jungle", "Mid"],
       "abilities": {
@@ -289,7 +313,7 @@
     },
     "tavi": {
       "provenance": "Provisional",
-      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "memoryglass_reliquary", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Jungle", "Mid"],
       "abilities": {
@@ -303,7 +327,7 @@
     },
     "angeru": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "blank_sigil"],
       "skillPriority": ["Q", "E", "W"],
       "roles": ["Jungle", "Mid", "Top"],
       "abilities": {

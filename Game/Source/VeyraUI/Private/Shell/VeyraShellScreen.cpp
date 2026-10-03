@@ -232,6 +232,7 @@ void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 	{
 		return;
 	}
+
 	if (Countdown && Shown == EVeyraShellScreen::ChampionSelect)
 	{
 		Countdown->SetText(VeyraShellModels::FormatCountdown(Client->GetRemainingPickSeconds()));
@@ -279,10 +280,10 @@ void UVeyraShellScreen::Refresh()
 			AnnounceMatchFound();
 		}
 	}
-	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|select chat %d|menu %s|form %s:%s|"),
+	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|card %s|confirm %d:%s|select chat %d|menu %s|form %s:%s|block %s|"),
 								  static_cast<int32>(Page), OpenSpellSlot, bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex,
 								  *BotDifficulty, *OpenCardId, static_cast<int32>(Confirm), *ConfirmId, bSelectChatHidden ? 1 : 0, *OpenPlayerMenu, *ReportFormName,
-								  *ReportReason) +
+								  *ReportReason, *BlockConfirmName) +
 		// The Profile page's choices before Save (ADR-048 §5).
 		FString::Printf(TEXT("profile draft %d:%s:%s:%s:%d|"), bProfileDraftReady ? 1 : 0, *ProfileDraft.Icon, *ProfileDraft.Background,
 			*ProfileDraft.FeaturedVanguardId, ProfileDraft.bShowMatchHistory ? 1 : 0) +
@@ -433,6 +434,11 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	// And for a player writing a report's details.
 	const bool bRefocusReport = ReportDetailsBox && ReportDetailsBox->HasKeyboardFocus();
 	ReportDetailsBox = nullptr;
+	// And for a player searching a roster (ADR-058 §2).
+	const bool bRefocusRosterSearch = RosterSearchBox && RosterSearchBox->HasKeyboardFocus();
+	RosterSearchBox = nullptr;
+	RosterCards.Reset();
+	RosterNoMatch = nullptr;
 	ReportDetailsCount = nullptr;
 	ChatScroll = nullptr;
 	ChatRecipient = nullptr;
@@ -487,6 +493,10 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		if (bRefocusReport && ReportDetailsBox)
 		{
 			ReportDetailsBox->SetKeyboardFocus();
+		}
+		if (bRefocusRosterSearch && RosterSearchBox)
+		{
+			RosterSearchBox->SetKeyboardFocus();
 		}
 		if (bRefocusName && NameBox)
 		{

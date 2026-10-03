@@ -22,6 +22,8 @@ struct FVeyraShellLook
 	bool bStillAnimation = false;
 	/** Keyboard focus drawn thick and high-contrast (Enhanced Keyboard Focus Indicator). */
 	bool bEnhancedFocus = false;
+	/** Chat Text Size's factor on every chat's text and entry fields, on top of TextScale (SET-66; ADR-059 §5). */
+	float ChatTextScale = 1.0f;
 
 	bool operator==(const FVeyraShellLook& Other) const = default;
 };
@@ -65,6 +67,9 @@ namespace VeyraShellLook
 
 	/** A menu font's Size in the current look: scaled by Interface Text Size, never under 1. */
 	VEYRAUI_API int32 ScaledFontSize(int32 Size);
+
+	/** A chat's font Size in the current look: scaled by Interface Text Size and Chat Text Size, never under 1 (ADR-059 §5). */
+	VEYRAUI_API int32 ScaledChatFontSize(int32 Size);
 
 	/** A panel's fill as the look draws it: opaque when panels are. */
 	VEYRAUI_API FLinearColor Panel(const FLinearColor& Fill);

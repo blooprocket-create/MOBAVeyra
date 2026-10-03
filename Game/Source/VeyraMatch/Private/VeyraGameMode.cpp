@@ -580,7 +580,15 @@ EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerState* Participa
 	{
 		return NoteActivityIfTaken(Participant, Echoes->CastFrom(*AbilitySystem, Slot, Target));
 	}
-	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility));
+	const EVeyraCastRejection Rejection =
+		NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility));
+	// A cast item Active has given benefit, so its purchase can no longer be undone (Item Bible §12), whoever cast it:
+	// a player or a bot (ADR-056 §5).
+	if (Rejection == EVeyraCastRejection::None && Participant && VeyraAbilitySlots::IsItemSlot(Slot))
+	{
+		UVeyraShopSubsystem::NoteActiveUsed(*Participant, VeyraAbilitySlots::ItemIndexOf(Slot));
+	}
+	return Rejection;
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerState* PlayerState)

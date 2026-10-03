@@ -20,6 +20,8 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/catalog"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/config"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/docker"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/dodges"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/favorites"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/firebaseauth"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
@@ -189,6 +191,10 @@ func run(log *slog.Logger) error {
 	selects.SetLobbies(lobbies)
 	busy := busyChecker(cfg, matches, selects, lobbies)
 	parties.SetActivity(busy)
+	// Leaving a matchmade select restricts the leaver, which holds back their party (ADR-060).
+	restrictions := dodges.NewService(store.Dodges(), cfg.Dodges.Restriction, time.Now)
+	selects.SetDodges(restrictions)
+	parties.SetRestrictions(restrictions)
 	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
 	for _, m := range cfg.Modes {
 		if m.Enabled && (m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop || m.Matchmaking == config.MatchmakingDraftPick) {
@@ -219,6 +225,8 @@ func run(log *slog.Logger) error {
 	conductService := newConductService(store.Conduct(), cfg.Conduct, matches)
 	// Profiles read levels, ownership and Mastery from progression, and blocks from social (ADR-048 §1).
 	profiles := newProfileService(store.Profile(), cfg.Profile, svc, progress, accounts, soc)
+	// Favorites read the released roster from the catalog, and champion select and matches from their services (ADR-058 §5).
+	favs := favorites.NewService(store.Favorites(), vanguards, favoriteActivity{matches: matches, selects: selects}, cfg.Favorites.MaxPerAccount)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
@@ -236,6 +244,8 @@ func run(log *slog.Logger) error {
 			Chat:           talk,
 			Conduct:        conductService,
 			Profile:        profiles,
+			Favorites:      favs,
+			Dodges:         restrictions,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,
@@ -274,6 +284,13 @@ type activity struct {
 	matches *match.Service
 	selects *selection.Service
 	lobbies *lobby.Service
+}
+
+// InMatch reports whether the account plays a live match, which no party
+// invitation may reach (ADR-060 §4).
+func (a activity) InMatch(ctx context.Context, accountID string) (bool, error) {
+	_, inMatch, err := a.matches.Current(ctx, accountID)
+	return inMatch, err
 }
 
 func (a activity) Busy(ctx context.Context, accounts []string) (bool, error) {

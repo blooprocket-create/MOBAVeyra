@@ -15,6 +15,8 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/chat"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/conduct"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/dodges"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/favorites"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
@@ -74,8 +76,14 @@ type Deps struct {
 	// Profile is optional; without it no profile routes are registered
 	// (ADR-048).
 	Profile *profile.Service
-	Modes   []ModeInfo
-	Ready   Pinger
+	// Favorites is optional; without it no favorite routes are registered
+	// (ADR-058 §5).
+	Favorites *favorites.Service
+	// Dodges answers how long the player cannot queue after leaving a
+	// matchmade champion select (ADR-060 §3).
+	Dodges *dodges.Service
+	Modes  []ModeInfo
+	Ready  Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -126,6 +134,8 @@ func New(d Deps) http.Handler {
 	s.routeConduct(mux)
 	s.routeProfile(mux)
 	s.routeNames(mux)
+	s.routeFavorites(mux)
+	s.routeRestriction(mux)
 	return mux
 }
 
@@ -431,6 +441,12 @@ var errorStatus = []struct {
 	{profile.ErrInvalidIcon, http.StatusBadRequest, "invalid_icon"},
 	{profile.ErrInvalidBackground, http.StatusBadRequest, "invalid_background"},
 	{profile.ErrNotOwned, http.StatusConflict, "not_owned"},
+
+	{favorites.ErrUnknownVanguard, http.StatusBadRequest, "unknown_vanguard"},
+	{favorites.ErrPlaying, http.StatusConflict, "playing"},
+	{party.ErrQueueRestricted, http.StatusConflict, "queue_restricted"},
+	{party.ErrInviteeInMatch, http.StatusConflict, "invitee_in_match"},
+	{favorites.ErrFull, http.StatusConflict, "favorites_full"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {

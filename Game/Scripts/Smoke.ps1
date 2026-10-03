@@ -83,6 +83,12 @@
     declines once the first has accepted. The decliner must be back in the shell out of the queue;
     the first must be queued again in its place, then leaves the queue. No match is created.
 
+    -Flow CasualDodge plays a champion select a player leaves (ADR-060): both clients queue and accept;
+    the second picks while the first leaves the select. The first must be told it left, ready up
+    again, find Find Match held back by its queue restriction, then be offered Find Match once the
+    restriction ends; the backend runs a short restriction for this. The second must be queued again
+    in its place, told a player left, and leaves the queue. No match is created.
+
     -Flow Custom plays a custom lobby to a win (ADR-021): the two clients become friends if they are
     not yet; the first opens a Custom Game from Play, invites the second, seats a bot on each side,
     picks a starting Gold and starts the game; the second joins from its invitation. In their champion
@@ -93,7 +99,8 @@
     -Flow Collection buys a Vanguard in the Collection (ADR-045 §8) with one packaged client. The script
     first takes back what the development account bought on earlier runs and grants it Flux through the
     backend's development routes. The client opens the Collection, picks a Vanguard it neither owns nor
-    borrows from the rotation, buys it with Flux through the confirmation, then practises with it, which a
+    borrows from the rotation, buys it with Flux through the confirmation, marks it a favorite from its card
+    (ADR-058 §3), and finds it under champion select's Favorites tab. It then practises with it, which a
     select allows only because it is owned now. Its verified result must carry rewards that say a practice
     match gives none.
 
@@ -189,7 +196,8 @@
     With -Handoff: a solo practice match that its host ends.
 .PARAMETER Flow
     Plays a path through the client-state coordinator: Practice, the solo path; Casual, a matchmade
-    1v1; CasualVictory, a matchmade 1v1 won by siege; CasualDecline, a declined match found; Custom, a
+    1v1; CasualVictory, a matchmade 1v1 won by siege; CasualDecline, a declined match found; CasualDodge,
+    a champion select a player leaves and the queue restriction that follows; Custom, a
     custom lobby with friends and bots won by siege; Settings, the Settings screen's changes kept across
     a restart; Collection, a Vanguard bought in the Collection and then played. Packaged clients and container only.
 .PARAMETER Launcher
@@ -259,7 +267,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Party', 'Settings', 'Collection', 'Chat', 'Profile', 'Rename')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'CasualDodge', 'Custom', 'Coop', 'Draft', 'Party', 'Settings', 'Collection', 'Chat', 'Profile', 'Rename')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -507,7 +515,10 @@ if ($Handoff -or $Flow) {
     $isCollection = $Flow -eq 'Collection'
     # The Collection flow buys a Vanguard, then practises with it.
     $isPractice = $Practice -or $Flow -in 'Practice', 'Collection'
-    $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Draft'
+    $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'CasualDodge', 'Draft'
+    # -Flow CasualDodge: the queue restriction its backend gives the player who leaves champion select, short
+    # enough for the script to watch it end (a fixture value; the committed config holds the real one, ADR-060 §6).
+    $DodgeRestriction = '30s'
     # -Flow Custom: a custom lobby the first client hosts and the second joins (ADR-021), won by siege.
     $isCustom = $Flow -eq 'Custom'
     # -Flow Coop: one player queues for co-op, accepts, picks and sieges to victory against the enemy AI team (ADR-039 §6).
@@ -533,8 +544,8 @@ if ($Handoff -or $Flow) {
     $RenameTo = 'DevNineRenamed'
     # Its bots, one on each side: side A's, then side B's. Neither is a Vanguard a player locks.
     $CustomBots = @('bryn', 'qazharr')
-    # Every run but a declined match found plays a match.
-    $expectsMatch = $Flow -notin 'CasualDecline', 'Settings', 'Chat', 'Profile', 'Rename'
+    # Every run but a declined match found or a left champion select plays a match.
+    $expectsMatch = $Flow -notin 'CasualDecline', 'CasualDodge', 'Settings', 'Chat', 'Profile', 'Rename'
     $playerCount = $(if ($isPractice -or $isSettings -or $isCoop -or $isRename) { 1 } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
     # The committed config's queues hold five humans a side (Modes Bible §1, §4). A smoke has one client a
@@ -588,7 +599,7 @@ if ($Handoff -or $Flow) {
     }
     $backendWasRunning = @(& docker compose --project-directory $repositoryDir ps --status running --services 2>$null) -contains 'backend'
     if ($smokeModeSize) {
-        Set-VeyraBackendConfig -RepositoryDir $repositoryDir -Mode $mode -HumansPerTeam $smokeModeSize
+        Set-VeyraBackendConfig -RepositoryDir $repositoryDir -Mode $mode -HumansPerTeam $smokeModeSize -DodgeRestriction $(if ($Flow -eq 'CasualDodge') { $DodgeRestriction } else { '' })
     }
     else {
         Set-VeyraBackendConfig -RepositoryDir $repositoryDir
@@ -764,6 +775,8 @@ if ($Handoff -or $Flow) {
                     elseif ($isCoop) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory', '-VeyraSmokeFlowSieges', "-VeyraSmokeFlowMode=$mode") }
                     elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
+                    # The first client, which renders with -Screenshot, is the one that leaves.
+                    elseif ($Flow -eq 'CasualDodge') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=dodge' } else { '-VeyraSmokeFlow=dodged', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)" })) }
                     elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
                     elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
                     else { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeWaitForEnd') })
@@ -971,6 +984,7 @@ if ($Handoff -or $Flow) {
                 'CasualReconnect' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'MatchMenu', 'Results' }
                 'CasualVictory' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'CasualDecline' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Requeued' }
+                'CasualDodge' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'Dodged', 'Unrestricted' }
                 'Custom' { 'Home', 'Play', 'Lobby', 'LobbyReady', 'ChampionSelect', 'Results' }
                 'Party' { 'Home', 'PartyFormed', 'PartyConfirm', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
@@ -1359,9 +1373,12 @@ if ($PlayingBots -gt 0) {
     $secured = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: Flux Well \d+ was secured by .*')
     $warded = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraVision: \S+ places a ward at ')
     $unwarded = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraVision: VeyraWard\S* is destroyed\.')
+    # ADR-056: consumables drunk and buybacks.
+    $drunk = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraItems: \S+ used \S+\.')
+    $boughtBack = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraMatch: \S+ bought back\.')
     $ended = Select-String -LiteralPath $serverLogPath -Pattern 'The match ended \(.*' | Select-Object -Last 1
-    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed, {5} camp(s) cleared, {6} Flux Well(s) secured, {7} ward(s) placed, {8} destroyed." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
-        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count, $cleared.Count, $secured.Count, $warded.Count, $unwarded.Count)
+    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed, {5} camp(s) cleared, {6} Flux Well(s) secured, {7} ward(s) placed, {8} destroyed, {9} consumable(s) drunk, {10} buyback(s)." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
+        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count, $cleared.Count, $secured.Count, $warded.Count, $unwarded.Count, $drunk.Count, $boughtBack.Count)
     $reports | Select-Object -Last 3 | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
     $fallen | Select-Object -First 12 | ForEach-Object { Write-Host "  $($_.Line -replace '^.*LogVeyraWorld: ', '')" }
     $secured | Select-Object -First 6 | ForEach-Object { Write-Host "  $($_.Matches[0].Value -replace '^LogVeyraWorld: ', '')" }

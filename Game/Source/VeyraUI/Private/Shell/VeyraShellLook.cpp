@@ -26,6 +26,9 @@ FVeyraShellLook For(const FVeyraInterfacePreferences& Preferences)
 	Look.bOpaquePanels = Preferences.bReduceTransparency;
 	Look.bStillAnimation = Preferences.bReduceUiAnimation;
 	Look.bEnhancedFocus = Preferences.bEnhancedFocus;
+	// Chat Text Size as a share of its Standard size, which the in-match log draws at (SET-66).
+	const int32 Standard = GetDefault<UVeyraGreyboxSettings>()->ChatFontSize;
+	Look.ChatTextScale = Standard > 0 && Preferences.ChatFontSize > 0 ? static_cast<float>(Preferences.ChatFontSize) / Standard : 1.0f;
 	return Look;
 }
 
@@ -52,6 +55,11 @@ void FollowPlayer(const UObject* WorldContext)
 int32 ScaledFontSize(int32 Size)
 {
 	return FMath::Max(1, FMath::RoundToInt32(Size * Shared().TextScale));
+}
+
+int32 ScaledChatFontSize(int32 Size)
+{
+	return FMath::Max(1, FMath::RoundToInt32(Size * Shared().TextScale * Shared().ChatTextScale));
 }
 
 FLinearColor Panel(const FLinearColor& Fill)

@@ -72,6 +72,25 @@ namespace VeyraCombatTests
 			UVeyraCombatTuningSubsystem::SetTestOverride(nullptr);
 		}
 
+		// ADR-059 §4: what harms a status's bearer, which the HUD groups apart from what helps it.
+		TEST_METHOD(CrowdControlReductionsAndLossesHarmTheirBearerAndOwnChoicesDoNot)
+		{
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Stun, EVeyraStatusKind::Slow, EVeyraStatusKind::Root, EVeyraStatusKind::Knockup, EVeyraStatusKind::Fear,
+					 EVeyraStatusKind::Blind, EVeyraStatusKind::Grounded, EVeyraStatusKind::DamageOverTime, EVeyraStatusKind::Weaken, EVeyraStatusKind::MagicResistReduction,
+					 EVeyraStatusKind::Sounded })
+			{
+				ASSERT_THAT(IsTrue(VeyraStatuses::IsHarmful(Kind, 0.2), *StaticEnum<EVeyraStatusKind>()->GetNameStringByValue(static_cast<int64>(Kind))));
+			}
+			// A signed change harms only when it takes away.
+			ASSERT_THAT(IsTrue(VeyraStatuses::IsHarmful(EVeyraStatusKind::MoveSpeed, -0.3) && !VeyraStatuses::IsHarmful(EVeyraStatusKind::MoveSpeed, 0.3)));
+			ASSERT_THAT(IsTrue(VeyraStatuses::IsHarmful(EVeyraStatusKind::AttackSpeed, -0.1) && !VeyraStatuses::IsHarmful(EVeyraStatusKind::HealthRegeneration, 1.0)));
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Tenacity, EVeyraStatusKind::DamageReduction, EVeyraStatusKind::SpellShield, EVeyraStatusKind::Unstoppable,
+					 EVeyraStatusKind::Planted, EVeyraStatusKind::Dormant, EVeyraStatusKind::Stasis, EVeyraStatusKind::Counter, EVeyraStatusKind::Invisible })
+			{
+				ASSERT_THAT(IsFalse(VeyraStatuses::IsHarmful(Kind, 0.2), *StaticEnum<EVeyraStatusKind>()->GetNameStringByValue(static_cast<int64>(Kind))));
+			}
+		}
+
 		TEST_METHOD(ARootStopsMovementAndMovingCastsButNotAttacksOrCasts)
 		{
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("root"), EVeyraStatusKind::Root, 0.0, LongSeconds))));

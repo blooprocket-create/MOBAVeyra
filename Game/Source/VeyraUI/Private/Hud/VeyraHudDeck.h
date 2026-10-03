@@ -12,6 +12,7 @@ class UFont;
 class UWorld;
 class UVeyraGreyboxSettings;
 struct FSlateFontInfo;
+struct FVeyraHudArrangement;
 struct FVeyraInterfacePreferences;
 
 /**
@@ -29,10 +30,11 @@ namespace VeyraHudDeck
 {
 	/**
 	 * Draws the deck, the top strip, Team Flux, the readouts the player asked for and the death shade for
-	 * Viewer, whose participant is Own, at the player's HUD scale.
+	 * Viewer, whose participant is Own, where Layout places them at the player's scales (ADR-059 §1-§2).
 	 */
 	void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font, const UWorld& World,
-		const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow, TConstArrayView<FString> Warnings);
+		const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow, TConstArrayView<FString> Warnings,
+		const FVeyraHudArrangement& Layout);
 
 	/** Draws Text large and centred a third of the way down, in Color: the match's end, for one. */
 	void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const FString& Text, const FLinearColor& Color);

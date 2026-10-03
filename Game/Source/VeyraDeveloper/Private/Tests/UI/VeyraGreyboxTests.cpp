@@ -494,6 +494,8 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(AreEqual(VeyraProgression::MaxRank(EVeyraAbilitySlot::Q, Progression), Q.MaxRank));
 			const double Cooldown = Participant.FindComponentByClass<UVeyraCooldownComponent>()->GetRemainingSeconds(Mortar, Now);
 			ASSERT_THAT(IsTrue(Cooldown > 0.0 && Q.CooldownSeconds == Cooldown, TEXT("the ledger's cooldown")));
+			// What it started with, which its sweep measures against (ADR-059 §3).
+			ASSERT_THAT(IsTrue(Q.CooldownTotal >= Q.CooldownSeconds && Q.CooldownTotal == Participant.FindComponentByClass<UVeyraCooldownComponent>()->GetDurationSeconds(Mortar)));
 			ASSERT_THAT(IsFalse(Player.Slots[1].Ability.IsValid() || Q.bCanRankUp, TEXT("W is empty, and no skill point is left")));
 			const TOptional<FVeyraHudVitals> Vitals = VeyraHud::VitalsOf(*Caster, EVeyraTeam::A);
 			ASSERT_THAT(IsTrue(Vitals.IsSet() && Player.Vitals.Health == Vitals->Health && Player.Vitals.MaxHealth == VeyraCombatTests::ExampleStats().MaxHealth));

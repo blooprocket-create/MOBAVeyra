@@ -13,14 +13,15 @@ namespace
 {
 	using VeyraBackendProtocol::ECurrency;
 
+	/** Owned, Free Rotation or Locked, Owned taking precedence over the rotation (UX-19; ADR-058 §3). */
 	FText StatusOf(const VeyraBackendProtocol::FCollectionEntry& Entry)
 	{
 		if (Entry.bOwned)
 		{
-			return Entry.Source == TEXT("starter") ? LOCTEXT("OwnedStarter", "Your starter") : LOCTEXT("Owned", "Owned");
+			return LOCTEXT("Owned", "Owned");
 		}
 		// Visible is not playable (Bible §4): only the rotation lends an unowned Vanguard.
-		return Entry.bRotation ? LOCTEXT("Rotation", "Free this week") : LOCTEXT("NotOwned", "Not owned");
+		return Entry.bRotation ? LOCTEXT("Rotation", "Free Rotation") : LOCTEXT("Locked", "Locked");
 	}
 
 	/** Why a match gave no account XP, as the player reads it (ADR-045 §3). */
@@ -75,7 +76,20 @@ namespace
 		{
 			return FText::Format(LOCTEXT("NotForSale", "{0} cannot be bought."), Name);
 		}
-		return FText::Format(LOCTEXT("PurchaseFailed", "The purchase of {0} did not go through ({1})."), Name, FText::FromString(Code));
+		// A favorite's refusals (ADR-058 §5).
+		if (Code == TEXT("favorites_full"))
+		{
+			return FText::Format(LOCTEXT("FavoritesFull", "You keep as many favorites as you can. Remove one to add {0}."), Name);
+		}
+		if (Code == TEXT("playing"))
+		{
+			return LOCTEXT("FavoritesWhilePlaying", "Favorites change outside champion select and matches.");
+		}
+		if (Code == TEXT("unknown_vanguard"))
+		{
+			return FText::Format(LOCTEXT("NotAFavorite", "{0} cannot be a favorite."), Name);
+		}
+		return FText::Format(LOCTEXT("CollectionFailed", "That did not go through for {0} ({1})."), Name, FText::FromString(Code));
 	}
 
 	int64 BalanceOf(const VeyraBackendProtocol::FProgression& Progression, ECurrency Currency)
@@ -126,8 +140,11 @@ FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, b
 		FVeyraCollectionCard& Card = Model.Cards.AddDefaulted_GetRef();
 		Card.VanguardId = Entry.VanguardId;
 		Card.Name = VeyraShellModels::VanguardNameOf(Entry.VanguardId);
-		Card.Status = StatusOf(Entry);
-		Card.MasteryShort = FText::Format(LOCTEXT("MasteryShort", "Mastery {0}"), FText::AsNumber(Entry.Mastery.Level));
+		Card.bFavorite = Snapshot.FavoriteVanguards.Contains(Entry.VanguardId);
+		Card.Status = Card.bFavorite ? FText::Format(LOCTEXT("FavoriteStatus", "{0} · Favorite"), StatusOf(Entry)) : StatusOf(Entry);
+		// The card shows the player's Mastery, or that they have none yet (UX-69).
+		Card.MasteryShort = Entry.Mastery.LifetimePoints > 0 ? FText::Format(LOCTEXT("MasteryShort", "Mastery {0}"), FText::AsNumber(Entry.Mastery.Level))
+															 : LOCTEXT("NoMastery", "No Mastery Progress");
 		// The player's own Mastery shows whether or not they can play the Vanguard now (Bible §4).
 		Card.Details = {
 			FText::Format(LOCTEXT("MasteryLevel", "Mastery Level {0}: {1} / {2} points to the next"), FText::AsNumber(Entry.Mastery.Level),
@@ -135,6 +152,8 @@ FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, b
 			FText::Format(LOCTEXT("MasteryLifetime", "{0} Mastery points in all"), FText::AsNumber(Entry.Mastery.LifetimePoints)),
 			FText::Format(LOCTEXT("MasteryEmote", "Mastery emote: tier {0}"), FText::AsNumber(Entry.Mastery.EmoteTier)),
 		};
+		Card.bOwned = Entry.bOwned;
+		Card.bRotation = Entry.bRotation;
 		Card.bPurchasable = Entry.bPurchasable;
 		Card.PriceFlux = Entry.PriceFlux;
 		Card.PriceRefinedFlux = Entry.PriceRefinedFlux;
@@ -205,6 +224,12 @@ FText BuyLabel(const FString& VanguardId, ECurrency Currency, int64 Price)
 	return FText::Format(LOCTEXT("Buy", "Buy {0} for {1}"), VeyraShellModels::VanguardNameOf(VanguardId), Amount(Currency, Price));
 }
 
+FText FavoriteLabel(const FString& VanguardId, bool bFavorite)
+{
+	const FText Name = VeyraShellModels::VanguardNameOf(VanguardId);
+	return bFavorite ? FText::Format(LOCTEXT("Unfavorite", "Remove {0} from Favorites"), Name) : FText::Format(LOCTEXT("Favorite", "Add {0} to Favorites"), Name);
+}
+
 FText ConfirmBuyLabel(const FString& VanguardId, ECurrency Currency, int64 Price)
 {
 	return FText::Format(LOCTEXT("ConfirmBuy", "Confirm Buy {0} for {1}"), VeyraShellModels::VanguardNameOf(VanguardId), Amount(Currency, Price));
@@ -235,6 +260,7 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		Text << TEXT(";") << Entry.VanguardId << TEXT(":") << (Entry.bOwned ? 1 : 0) << (Entry.bRotation ? 1 : 0) << (Entry.bPurchasable ? 1 : 0) << TEXT(":")
 			 << Entry.Mastery.Level << TEXT(":") << Entry.Mastery.LevelPoints << TEXT(":") << Entry.PriceFlux << TEXT(":") << Entry.PriceRefinedFlux;
 	}
+	Text << TEXT("|favorites:") << FString::Join(Snapshot.FavoriteVanguards, TEXT(","));
 	Text << TEXT("|rewardswait:") << static_cast<int32>(Snapshot.RewardsWait);
 	if (Snapshot.Result.IsSet() && Snapshot.Result->Rewards.IsSet())
 	{

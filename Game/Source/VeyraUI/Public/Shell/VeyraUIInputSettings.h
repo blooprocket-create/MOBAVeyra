@@ -35,4 +35,8 @@ public:
 	/** Opens the chat composer (ADR-029 §5); Enter by default. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey ChatKey;
+
+	/** Opens the shop with its search ready for typing, or focuses the search of the open shop (SET-58; ADR-058 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey FocusShopSearchKey;
 };

@@ -62,6 +62,8 @@ func (g socialGraph) BlockedAmong(ctx context.Context, accounts []string) (bool,
 // playing holds the accounts in a match or champion select.
 type playing map[string]bool
 
+func (p playing) InMatch(_ context.Context, accountID string) (bool, error) { return p[accountID], nil }
+
 func (p playing) Busy(_ context.Context, accounts []string) (bool, error) {
 	for _, a := range accounts {
 		if p[a] {

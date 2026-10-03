@@ -5,19 +5,20 @@
 #include "Backend/VeyraProgressionProtocol.h"
 #include "Misc/Guid.h"
 
-// Account progression, the Collection and purchases (ADR-045 §7). The backend owns every level, balance,
-// price and entitlement; the flow reads them and asks for purchases.
+// Account progression, the Collection, purchases (ADR-045 §7) and favorites (ADR-058 §5). The backend owns every
+// level, balance, price, entitlement and favorite; the flow reads them and asks for changes.
 
 namespace
 {
 	const TCHAR* const ProgressionPath = TEXT("/v1/me/progression");
 	const TCHAR* const CollectionPath = TEXT("/v1/me/collection");
 	const TCHAR* const PurchasesPath = TEXT("/v1/me/purchases");
+	const TCHAR* const FavoritesPath = TEXT("/v1/me/favorites");
 	/** The Collection's feedback after a purchase went through. */
 	const TCHAR* const PurchasedFeedback = TEXT("vanguard_purchased");
 
 	/** The backend's refusal code, or "http_<status>" when it gave none. */
-	FString PurchaseRefusalCode(const FVeyraBackendResponse& Response)
+	FString CollectionRefusalCode(const FVeyraBackendResponse& Response)
 	{
 		const FString Code = VeyraBackendProtocol::ParseErrorCode(Response.Body);
 		return Code.IsEmpty() ? FString::Printf(TEXT("http_%d"), Response.Status) : Code;
@@ -95,7 +96,7 @@ bool FVeyraClientFlow::PurchaseVanguard(const FString& VanguardId, VeyraBackendP
 		FString Problem;
 		if (!Response.IsSuccess())
 		{
-			ShowCollectionFeedback(PurchaseRefusalCode(Response), VanguardId);
+			ShowCollectionFeedback(CollectionRefusalCode(Response), VanguardId);
 		}
 		else if (!VeyraBackendProtocol::ParsePurchase(Response.Body, Progression, Problem))
 		{
@@ -108,6 +109,53 @@ bool FVeyraClientFlow::PurchaseVanguard(const FString& VanguardId, VeyraBackendP
 		}
 		// Ownership, and whether anything else can still be bought, are the backend's: read them again.
 		LoadCollection();
+	});
+	return true;
+}
+
+void FVeyraClientFlow::ReadFavorites()
+{
+	Probe(EVerb::Get, FavoritesPath, [this](const FVeyraBackendResponse& Response) {
+		TArray<FString> Favorites;
+		FString Problem;
+		// A backend without favorites, or a failed read, leaves the last read as it was.
+		if (!Response.IsSuccess() || !VeyraBackendProtocol::ParseFavorites(Response.Body, Favorites, Problem))
+		{
+			return;
+		}
+		Snapshot.FavoriteVanguards = MoveTemp(Favorites);
+		Broadcast();
+	});
+}
+
+bool FVeyraClientFlow::SetFavoriteVanguard(const FString& VanguardId, bool bFavorite)
+{
+	const bool bListed = Snapshot.Collection.Vanguards.ContainsByPredicate(
+		[&VanguardId](const VeyraBackendProtocol::FCollectionEntry& Candidate) { return Candidate.VanguardId == VanguardId; });
+	if (!CanIssue(EVeyraClientIntent::SetFavoriteVanguard) || !bListed)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("%s %s as a favorite."), bFavorite ? TEXT("marking") : TEXT("unmarking"), *VanguardId));
+	SetBusy(true);
+	Call(bFavorite ? EVerb::Put : EVerb::Delete, VeyraBackendProtocol::FavoritePath(VanguardId), FString(), [this, VanguardId](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		TArray<FString> Favorites;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			ShowCollectionFeedback(CollectionRefusalCode(Response), VanguardId);
+		}
+		else if (!VeyraBackendProtocol::ParseFavorites(Response.Body, Favorites, Problem))
+		{
+			ShowBadAnswer(TEXT("the favorites"), Problem, [this] { ReadFavorites(); });
+		}
+		else
+		{
+			// The answer is every favorite as the backend now keeps them.
+			Snapshot.FavoriteVanguards = MoveTemp(Favorites);
+			Broadcast();
+		}
 	});
 	return true;
 }

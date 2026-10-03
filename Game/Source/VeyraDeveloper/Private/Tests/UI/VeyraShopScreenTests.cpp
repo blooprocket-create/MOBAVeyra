@@ -14,6 +14,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraUIInputSettings.h"
 #include "Shop/VeyraShopModel.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Shop/VeyraShopSubsystem.h"
@@ -326,6 +327,51 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
 			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(*Participant, Spawner.GetWorld().GetTimeSeconds());
 			ASSERT_THAT(IsTrue(Player.Items[0].Charges.IsSet() && Player.Items[0].Charges.GetValue() == 0, TEXT("an empty one shows 0")));
+		}
+
+		TEST_METHOD(TheSearchMatchesNamesAndStatsIgnoringCase)
+		{
+			// By name, or by a stat the item gives, ignoring case and space; empty finds everything (SET-58; ADR-058 §1).
+			const FVeyraContentId Grip = ItemId(TEXT("test_grip"));
+			ASSERT_THAT(IsTrue(VeyraShopModel::MatchesSearch(Tuning, Grip, FString())));
+			ASSERT_THAT(IsTrue(VeyraShopModel::MatchesSearch(Tuning, Grip, UVeyraShopScreen::TileLabel(Grip).ToString().ToUpper())));
+			ASSERT_THAT(IsTrue(VeyraShopModel::MatchesSearch(Tuning, Grip, TEXT("  physical POWER "))));
+			ASSERT_THAT(IsFalse(VeyraShopModel::MatchesSearch(Tuning, Grip, TEXT("magic resist"))));
+		}
+
+		TEST_METHOD(TheSearchNarrowsTheCatalogAndSaysWhenNothingMatches)
+		{
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Participant;
+			UVeyraShopScreen* Screen = CreateWidget<UVeyraShopScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller, [] {});
+			const FText Grip = UVeyraShopScreen::TileLabel(ItemId(TEXT("test_grip")));
+			const FText Temper = UVeyraShopScreen::TileLabel(ItemId(TEXT("test_temper")));
+			ASSERT_THAT(IsTrue(Screen->FindButton(Grip) && Screen->FindButton(Temper), TEXT("every item without a search")));
+			Screen->SetSearch(Temper.ToString());
+			ASSERT_THAT(IsTrue(Screen->FindButton(Temper) && !Screen->FindButton(Grip), TEXT("only what answers")));
+			Screen->SetSearch(TEXT("physical power"));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(Grip), TEXT("by a stat it gives")));
+			Screen->SetSearch(TEXT("no such thing"));
+			ASSERT_THAT(IsTrue(!Screen->FindButton(Grip) && ShowsText(*Screen, TEXT("No item matches \"no such thing\"."))));
+			// Focus Shop Search brings the catalog back from the spells tab, the search still applied.
+			Screen->SetSearch(FString());
+			Screen->FindButton(UVeyraShopScreen::SpellsTabLabel())->Press();
+			ASSERT_THAT(IsNull(Screen->FindButton(Grip)));
+			Screen->FocusSearch();
+			ASSERT_THAT(IsTrue(Screen->FindButton(Grip) && Screen->FindButton(Temper)));
+		}
+
+		TEST_METHOD(FocusShopSearchHasItsOwnKey)
+		{
+			ASSERT_THAT(IsTrue(GetDefault<UVeyraUIInputSettings>()->FocusShopSearchKey == EKeys::L, TEXT("the default key")));
+			ASSERT_THAT(IsTrue(GetDefault<UVeyraUIInputSettings>()->Validate().IsEmpty()));
+			UVeyraUIInputSettings* Keys = NewObject<UVeyraUIInputSettings>();
+			Keys->FocusShopSearchKey = Keys->ShopKey;
+			ASSERT_THAT(IsTrue(FString::Join(Keys->Validate(), TEXT(" ")).Contains(TEXT("FocusShopSearchKey"))));
+			Keys->FocusShopSearchKey = FKey();
+			ASSERT_THAT(IsTrue(FString::Join(Keys->Validate(), TEXT(" ")).Contains(TEXT("FocusShopSearchKey"))));
 		}
 
 		TEST_METHOD(TheScreenOffersWhatTheModelAllowsAndShowsRefusals)

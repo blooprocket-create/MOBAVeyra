@@ -54,6 +54,15 @@ enum class EVeyraBotAim : uint8
 	Lead,
 };
 
+/** Whether a bot buys back (ADR-056 §3). */
+UENUM()
+enum class EVeyraBotBuyback : uint8
+{
+	Never,
+	/** While its base is under threat, as FVeyraBotBuybackTuning says. */
+	WhenBaseThreatened,
+};
+
 /** What a seat plays (ADR-013 §8.1; ADR-014 §7): a lane, or the jungle. */
 UENUM()
 enum class EVeyraBotRole : uint8
@@ -174,6 +183,13 @@ struct FVeyraBotDifficultyTuning
 	 */
 	UPROPERTY()
 	int32 FluxbornTolerance = 0;
+
+	/** How many of the consumable the bot keeps in hand while it still buys them (ADR-056 §1). */
+	UPROPERTY()
+	int32 ConsumablesCarried = 0;
+
+	UPROPERTY()
+	EVeyraBotBuyback Buyback = EVeyraBotBuyback::Never;
 };
 
 USTRUCT()
@@ -265,6 +281,82 @@ struct FVeyraBotWardingTuning
 	double SpotSpacing = 0.0;
 };
 
+/** How bots carry and drink a consumable (ADR-056 §1); how many each difficulty carries is its own. */
+USTRUCT()
+struct FVeyraBotConsumablesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The consumable bots carry: one the catalog sells and restores with. */
+	UPROPERTY()
+	FVeyraContentId Item;
+
+	/** Below this fraction of Max Health, away from its fountain, a bot drinks one. */
+	UPROPERTY()
+	double DrinkHealthFraction = 0.0;
+
+	/** After this much match time, in seconds, bots buy no more. */
+	UPROPERTY()
+	double BuyUntilSeconds = 0.0;
+};
+
+/** How bots answer threats to their base (ADR-056 §2). */
+USTRUCT()
+struct FVeyraBotDefenceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** An enemy Vanguard this near an allied inhibitor, base tower or Prime Well threatens the base, in units. */
+	UPROPERTY()
+	double ThreatRadius = 0.0;
+
+	/** A bot farther than this from the threatened structure recalls to answer it when no enemy Vanguard is near, in units. */
+	UPROPERTY()
+	double RecallDistance = 0.0;
+};
+
+/** When a bot whose difficulty buys back does so (ADR-056 §3). */
+USTRUCT()
+struct FVeyraBotBuybackTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** A bot buys back only if it would otherwise wait at least this long to respawn, in seconds. */
+	UPROPERTY()
+	double MinWaitSeconds = 0.0;
+
+	/** The Gold a bot keeps after buying back. */
+	UPROPERTY()
+	double ReserveGold = 0.0;
+};
+
+/** How a side's laners push one lane together late in a match (ADR-056 §4). */
+USTRUCT()
+struct FVeyraBotGroupingTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From this match time, in seconds, a side's laners push one lane. */
+	UPROPERTY()
+	double StartSeconds = 0.0;
+
+	/** Every lane once, in the order that breaks a tie between lanes equally far gone. */
+	UPROPERTY()
+	TArray<EVeyraLane> LaneOrder;
+};
+
 /** One bot seat: what it plays, and the starting Flux Spells it chooses (ADR-015 §8). */
 USTRUCT()
 struct FVeyraBotSeatTuning
@@ -286,7 +378,7 @@ struct FVeyraBotsTuning
 	GENERATED_BODY()
 
 	/** The Bots.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 7;
+	static constexpr int32 SchemaVersion = 8;
 
 	UPROPERTY()
 	FVeyraBotSensesTuning Senses;
@@ -314,6 +406,18 @@ struct FVeyraBotsTuning
 
 	UPROPERTY()
 	FVeyraBotWardingTuning Warding;
+
+	UPROPERTY()
+	FVeyraBotConsumablesTuning Consumables;
+
+	UPROPERTY()
+	FVeyraBotDefenceTuning Defence;
+
+	UPROPERTY()
+	FVeyraBotBuybackTuning Buyback;
+
+	UPROPERTY()
+	FVeyraBotGroupingTuning Grouping;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraBotVanguardTuning> Vanguards;

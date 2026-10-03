@@ -567,10 +567,6 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 	{
 		Rejection = GameMode ? GameMode->HandleCastOrder(GetPlayerState<AVeyraPlayerState>(), Slot, Target) : EVeyraCastRejection::WrongPhase;
 	}
-	if (Rejection == EVeyraCastRejection::None && Use == EVeyraItemUse::Active)
-	{
-		UVeyraShopSubsystem::NoteActiveUsed(*PlayerState, ItemIndex);
-	}
 	if (Rejection != EVeyraCastRejection::None)
 	{
 		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a cast from %s: %s."), *GetNameSafe(PlayerState), LexToString(Rejection));

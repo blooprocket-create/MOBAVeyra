@@ -51,6 +51,8 @@ protected:
 private:
 	void Shop(const FVeyraBotView& View, AVeyraGameMode& GameMode);
 	void RankUp(AVeyraGameMode& GameMode);
+	/** Drinks the consumable it carries when hurt (ADR-056 §1), beside whatever it decides. */
+	void Drink(const FVeyraBotView& View);
 	void Act(const FVeyraBotIntent& Intent, AVeyraGameMode& GameMode);
 
 	TWeakObjectPtr<AVeyraPlayerState> Bot;

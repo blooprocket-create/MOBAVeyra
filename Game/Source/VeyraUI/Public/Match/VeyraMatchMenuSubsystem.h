@@ -73,6 +73,9 @@ public:
 	/** The open shop, or null. */
 	UVeyraShopScreen* GetShop() const { return Shop; }
 
+	/** Opens the shop if it is shut, and puts the keyboard in its search, as Focus Shop Search does (SET-58; ADR-058 §1). */
+	void FocusShopSearch();
+
 	/** Shows the scoreboard, and hides it. */
 	void ShowScoreboard();
 	void HideScoreboard();
@@ -148,6 +151,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> ShopAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> ShopSearchAction;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVeyraShopScreen> Shop;
