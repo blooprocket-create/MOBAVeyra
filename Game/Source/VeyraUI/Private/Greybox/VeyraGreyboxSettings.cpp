@@ -126,6 +126,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(ChannelBarHeight >= 1.0f, TEXT("ChannelBarHeight"), TEXT("must be at least 1 pixel."));
 	Require(ChannelBarLift >= 0.0f, TEXT("ChannelBarLift"), TEXT("must not be negative."));
 	Require(HudMargin >= 0.0f, TEXT("HudMargin"), TEXT("must not be negative."));
+	Require(DeckPipHeight >= 1.0f, TEXT("DeckPipHeight"), TEXT("must be at least 1 unit."));
+	Require(DeckBarSpacing >= 0.0f, TEXT("DeckBarSpacing"), TEXT("must not be negative."));
+	Require(DeckMinimumFit > 0.0f && DeckMinimumFit <= 1.0f, TEXT("DeckMinimumFit"), TEXT("must be above 0 and at most 1."));
 	Require(ChatWidth >= 1.0f, TEXT("ChatWidth"), TEXT("must be at least 1 pixel."));
 	Require(ChatInputHeight >= 1.0f, TEXT("ChatInputHeight"), TEXT("must be at least 1 pixel."));
 	Require(ChatBottomOffset >= 0.0f, TEXT("ChatBottomOffset"), TEXT("must not be negative."));

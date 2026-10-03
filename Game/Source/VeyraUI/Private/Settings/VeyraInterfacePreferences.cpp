@@ -63,6 +63,66 @@ const FVeyraContentId& HudScale()
 	return Id;
 }
 
+const FVeyraContentId& AbilityBarScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_ability_bar_scale"));
+	return Id;
+}
+
+const FVeyraContentId& VitalsScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_vitals_scale"));
+	return Id;
+}
+
+const FVeyraContentId& ItemScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_item_scale"));
+	return Id;
+}
+
+const FVeyraContentId& SpellScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_spell_scale"));
+	return Id;
+}
+
+const FVeyraContentId& TeamPanelScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_team_panel_scale"));
+	return Id;
+}
+
+const FVeyraContentId& ChatScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_chat_scale"));
+	return Id;
+}
+
+const FVeyraContentId& CombatTextScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_scale"));
+	return Id;
+}
+
+const FVeyraContentId& OverheadBarScale()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_overhead_bar_scale"));
+	return Id;
+}
+
+const FVeyraContentId& SafeAreaHorizontal()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_safe_area_horizontal"));
+	return Id;
+}
+
+const FVeyraContentId& SafeAreaVertical()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_safe_area_vertical"));
+	return Id;
+}
+
 const FVeyraContentId& MinimapScale()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("interface_minimap_scale"));
@@ -386,6 +446,15 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 		return Preferences;
 	}
 	Preferences.HudScale = Share(*Store, HudScale());
+	Preferences.HudScales.AbilityBar = Share(*Store, AbilityBarScale());
+	Preferences.HudScales.Vitals = Share(*Store, VitalsScale());
+	Preferences.HudScales.Items = Share(*Store, ItemScale());
+	Preferences.HudScales.Spells = Share(*Store, SpellScale());
+	Preferences.HudScales.TeamPanels = Share(*Store, TeamPanelScale());
+	Preferences.HudScales.Chat = Share(*Store, ChatScale());
+	Preferences.HudScales.CombatText = Share(*Store, CombatTextScale());
+	Preferences.HudScales.OverheadBars = Share(*Store, OverheadBarScale());
+	Preferences.SafeArea = FVector2D(Share(*Store, SafeAreaHorizontal()), Share(*Store, SafeAreaVertical()));
 	const float MinimapShare = Share(*Store, MinimapScale());
 	const float IconShare = Share(*Store, MinimapIconScale());
 	Preferences.MinimapSize = Hud.MinimapSize * MinimapShare;

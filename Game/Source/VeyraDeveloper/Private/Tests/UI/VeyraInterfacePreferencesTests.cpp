@@ -66,6 +66,32 @@ namespace VeyraInterfacePreferencesTests
 			ASSERT_THAT(IsTrue(!Preferences.bMinimapRightClickMoves && Preferences.bScoreboardToggles && !Preferences.bConfineCursor && Preferences.bShowFps));
 		}
 
+		// ADR-059 §1–§2: each component's scale on top of HUD Scale, and the safe area's margins as fractions of the screen.
+		TEST_METHOD(EachHudComponentTakesItsOwnScaleAndTheSafeAreaItsMargins)
+		{
+			FVeyraSettingsStore Store(Registry);
+			const FVeyraInterfacePreferences Designed = Resolve(HudSettings(), &Store);
+			ASSERT_THAT(IsTrue(Designed.HudScales == FVeyraHudScales() && Designed.SafeArea.IsZero(), TEXT("each at its designed size, with no margin")));
+			Store.Set(AbilityBarScale(), TEXT("150"));
+			Store.Set(VitalsScale(), TEXT("125"));
+			Store.Set(ItemScale(), TEXT("75"));
+			Store.Set(SpellScale(), TEXT("90"));
+			Store.Set(TeamPanelScale(), TEXT("110"));
+			Store.Set(ChatScale(), TEXT("80"));
+			Store.Set(CombatTextScale(), TEXT("140"));
+			Store.Set(OverheadBarScale(), TEXT("120"));
+			Store.Set(SafeAreaHorizontal(), TEXT("4"));
+			Store.Set(SafeAreaVertical(), TEXT("10"));
+			const FVeyraHudScales Scales = Resolve(HudSettings(), &Store).HudScales;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Scales.AbilityBar, 1.5f) && FMath::IsNearlyEqual(Scales.Vitals, 1.25f) && FMath::IsNearlyEqual(Scales.Items, 0.75f)
+				&& FMath::IsNearlyEqual(Scales.Spells, 0.9f) && FMath::IsNearlyEqual(Scales.TeamPanels, 1.1f) && FMath::IsNearlyEqual(Scales.Chat, 0.8f)
+				&& FMath::IsNearlyEqual(Scales.CombatText, 1.4f) && FMath::IsNearlyEqual(Scales.OverheadBars, 1.2f)));
+			ASSERT_THAT(IsTrue(Resolve(HudSettings(), &Store).SafeArea.Equals(FVector2D(0.04, 0.1))));
+			// The registry keeps each within its tested limits.
+			ASSERT_THAT(IsTrue(Store.Set(ItemScale(), TEXT("200")) == EVeyraSettingChange::InvalidValue && FMath::IsNearlyEqual(Resolve(HudSettings(), &Store).HudScales.Items, 0.75f)));
+			ASSERT_THAT(IsTrue(Store.Set(SafeAreaVertical(), TEXT("20")) == EVeyraSettingChange::InvalidValue));
+		}
+
 		TEST_METHOD(TheReadoutsShowOnlyWhatThePlayerAskedFor)
 		{
 			FVeyraInterfacePreferences Preferences;

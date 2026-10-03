@@ -8,6 +8,7 @@
 #include "Shell/VeyraShellButton.h"
 
 class UBorder;
+class UEditableTextBox;
 class UImage;
 class UPanelWidget;
 class UTextBlock;
@@ -89,7 +90,7 @@ namespace VeyraShellStyle
 	 * Styles Box as every text field of the client is, in the current look: a raised field, its fill opaque when panels
 	 * are, and its focused edge the look's, the enhanced outline under Enhanced focus (ADR-055 §3). Padding is inside it.
 	 */
-	void StyleTextField(class UEditableTextBox& Box, float Padding);
+	void StyleTextField(UEditableTextBox& Box, float Padding);
 
 	/**
 	 * A new white gradient texture, opaque at Gradient's dark edge; the image that shows it tints it.

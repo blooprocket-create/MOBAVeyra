@@ -15,9 +15,11 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Hud/VeyraChatLogModel.h"
+#include "Hud/VeyraHudLayout.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "Widgets/SViewport.h"
 
 #define LOCTEXT_NAMESPACE "VeyraChatComposer"
@@ -138,13 +140,20 @@ void UVeyraChatComposer::Place()
 		return;
 	}
 	Player->ViewportClient->GetViewportSize(Viewport);
-	if (Viewport.IsNearlyZero() || Viewport == PlacedFor)
+	if (Viewport.IsNearlyZero())
 	{
 		return;
 	}
-	PlacedFor = Viewport;
-	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this));
-	const FVeyraChatFrame Frame = VeyraChatLog::FrameFor(Viewport, *GetDefault<UVeyraGreyboxSettings>(), Preferences.HudScale);
+	// Where the HUD's layout puts the chat: inside the safe area, above a deck that reaches under it (ADR-059 §1-§2).
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this));
+	const FVeyraChatFrame Frame = VeyraHudLayout::Arrange(Viewport, Settings, Preferences, UE_ARRAY_COUNT(VeyraAbilitySlots::All)).Chat;
+	const FBox2D Placed(Frame.InputTopLeft, Frame.InputTopLeft + Frame.InputSize);
+	if (Placed == PlacedAt)
+	{
+		return;
+	}
+	PlacedAt = Placed;
 	// The frame is in pixels; the viewport's sizes are in its own units, so the size loses the DPI scale as the position does.
 	const float DpiScale = UWidgetLayoutLibrary::GetViewportScale(this);
 	SetDesiredSizeInViewport(DpiScale > 0.0f ? Frame.InputSize / DpiScale : Frame.InputSize);

@@ -71,6 +71,6 @@ private:
 	TFunction<void()> Close;
 	EVeyraChatChannel Channel = EVeyraChatChannel::Team;
 	int32 MaxCharacters = 0;
-	/** The screen it was last placed for, so it moves only when that changes. */
-	FVector2D PlacedFor = FVector2D::ZeroVector;
+	/** Where it was last placed, so it moves only when the screen or the player's HUD settings move it. */
+	FBox2D PlacedAt = FBox2D(ForceInit);
 };
