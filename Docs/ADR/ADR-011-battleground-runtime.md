@@ -181,7 +181,7 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
 
   Ties break by distance, then by a stable ID. A valid current target is kept unless a better rank is on offer, so a Fluxborn arriving draws it from a Vanguard it attacked for want of one.
 - **The aggro router.** One World subscriber to Combat's hostile-damage event notifies the towers and Fluxborn near the victim, rather than each unit subscribing.
-- **Collision.** Blocking collision (Combat §24), with the movement component's avoidance among Fluxborn; the radius and weight are data.
+- **Collision.** Blocking collision (Combat §24), with the movement component's avoidance among Fluxborn; the radius and weight are data. Superseded by [ADR-062](ADR-062-side-based-unit-collision-local-avoidance-and-hosted-diagnostics.md) §1–§3: units collide by side, and crowd avoidance steers them.
 - **Replication** (amends ADR-006 §5):
   - Fluxborn and structures replicate at whole fractions of the 30 Hz server tick, set in `World.json` as "every N server ticks";
   - push model;
