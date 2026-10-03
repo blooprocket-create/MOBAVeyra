@@ -100,6 +100,9 @@ public:
 	/** The effect a cue of Kind plays (ADR-063 §4): a hit's impact, a cast's flash, a death's burst; null for the rest. */
 	class UNiagaraSystem* EffectFor(EVeyraCombatCueKind Kind) const;
 
+	/** The sound a cue of Kind plays (ADR-063 §5): a hit's impact, an attack's swing, a cast's, a death's; null for the rest. */
+	class USoundBase* SoundFor(EVeyraCombatCueKind Kind) const;
+
 	/**
 	 * Plays Cue's effect where it happens, in its unit's side colour; a cast's flashes toward its aim. Niagara skips one
 	 * no viewer could see, as most of a battleground's hits are, and plays none where nothing renders.
@@ -310,6 +313,37 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<class UNiagaraSystem> DeathEffect;
+
+	/** The fight's sounds (ADR-063 §5), how far they carry and how many play at once. */
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> ImpactSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> SwingSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> CastSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> DeathSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> ClickSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundAttenuation> CueAttenuation;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundConcurrency> CueConcurrency;
+
+	/** Plays Cue's sound where it happens, at the player's gameplay effects volume. */
+	void PlaySound(const struct FVeyraCombatCue& Cue);
+
+	/** Hears from the camera's focus on the ground, not from the camera above it, and clicks for each new order of the player's. */
+	void RefreshSound();
+
+	TWeakObjectPtr<class APlayerController> ListeningFrom;
+	double ClickedFor = -1.0;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> GroundMesh;

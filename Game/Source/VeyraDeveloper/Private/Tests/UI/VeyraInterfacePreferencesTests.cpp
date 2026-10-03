@@ -61,7 +61,9 @@ namespace VeyraInterfacePreferencesTests
 			Store.Set(ShowFps(), VeyraSettings::On());
 			Store.Set(IndicatorBoundary(), TEXT("Thick"));
 			Store.Set(ClickMarkers(), VeyraSettings::Off());
+			Store.Set(EffectsVolume(), TEXT("40"));
 			const FVeyraInterfacePreferences Preferences = Resolve(HudSettings(), &Store);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.EffectsVolume, 0.4f), TEXT("the fight's sounds at 40%")));
 			ASSERT_THAT(IsTrue(Preferences.IndicatorThickness == HudSettings().IndicatorThickThickness && HudSettings().IndicatorThickThickness > HudSettings().IndicatorThickness));
 			ASSERT_THAT(IsFalse(Preferences.bClickMarkers));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.HudScale, 1.2f) && FMath::IsNearlyEqual(Preferences.MinimapSize, HudSettings().MinimapSize * 1.5f)));

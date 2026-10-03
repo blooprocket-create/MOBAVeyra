@@ -14,6 +14,7 @@
 #include "Cues/VeyraCombatCueSubsystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "Sound/SoundBase.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
@@ -234,6 +235,16 @@ namespace VeyraAbilitiesTests
 			for (const EVeyraCombatCueKind Bodily : { EVeyraCombatCueKind::AttackWindup, EVeyraCombatCueKind::AttackCommit, EVeyraCombatCueKind::CastWindup })
 			{
 				ASSERT_THAT(IsNull(Presentation.EffectFor(Bodily), TEXT("the body shows it, with no effect")));
+			}
+			// And the sound each moment makes (ADR-063 §5); a windup is silent.
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::Hit) == Settings.ImpactSound.Get()));
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::AttackCommit) == Settings.SwingSound.Get()));
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::CastCommit) == Settings.CastSound.Get()));
+			ASSERT_THAT(IsTrue(Presentation.SoundFor(EVeyraCombatCueKind::Death) == Settings.DeathSound.Get()));
+			ASSERT_THAT(IsTrue(!Presentation.SoundFor(EVeyraCombatCueKind::AttackWindup) && !Presentation.SoundFor(EVeyraCombatCueKind::CastWindup)));
+			for (const TSoftObjectPtr<USoundBase>* Sound : { &Settings.ImpactSound, &Settings.SwingSound, &Settings.CastSound, &Settings.DeathSound, &Settings.ClickSound })
+			{
+				ASSERT_THAT(IsNotNull(Sound->Get(), TEXT("run BuildCueSounds.ps1")));
 			}
 			// Each generated system takes the side colour the presentation gives it.
 			const FNiagaraVariableBase Color(FNiagaraTypeDefinition::GetColorDef(), FName(TEXT("User.") + Settings.EffectColorParameter.ToString()));

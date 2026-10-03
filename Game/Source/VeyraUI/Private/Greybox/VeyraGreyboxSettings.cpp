@@ -147,6 +147,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(!HoverOutlineMaterial.IsNull(), TEXT("HoverOutlineMaterial"), TEXT("the generated hover outline material is required."));
 	Require(!ImpactEffect.IsNull() && !CastEffect.IsNull() && !DeathEffect.IsNull(), TEXT("ImpactEffect"), TEXT("the generated impact, cast and death effects are required."));
 	Require(!EffectColorParameter.IsNone(), TEXT("EffectColorParameter"), TEXT("the effects' colour parameter is required."));
+	Require(!ImpactSound.IsNull() && !SwingSound.IsNull() && !CastSound.IsNull() && !DeathSound.IsNull() && !ClickSound.IsNull(), TEXT("ImpactSound"),
+		TEXT("the generated impact, swing, cast, death and click sounds are required."));
+	Require(SoundAudibleRadius >= 1.0f && SoundFalloffDistance >= 1.0f && MaxCueSounds >= 1, TEXT("SoundAudibleRadius"),
+		TEXT("the sounds' audible radius, falloff and the most at once must each be at least 1."));
 	Require(!HoverEnemyColorParameter.IsNone() && !HoverAllyColorParameter.IsNone() && !HoverNeutralColorParameter.IsNone()
 			&& !HoverEnemyStencilParameter.IsNone() && !HoverAllyStencilParameter.IsNone() && !HoverNeutralStencilParameter.IsNone(),
 		TEXT("HoverEnemyColorParameter"), TEXT("the hover outline's three colour and three stencil parameters are required."));

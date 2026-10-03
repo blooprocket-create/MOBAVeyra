@@ -1,0 +1,36 @@
+{
+  "generatorVersion": 1,
+  "specSha256": "bdf24e549ba9235b1be6fc8d884a077d424ca9e94b27725eae789c6a4bbadcc8",
+  "sounds": [
+    {
+      "name": "S_VeyraImpact",
+      "file": "Audio/S_VeyraImpact.wav",
+      "sha256": "5cd0252ffdf77b82801a81f993b37effcc0795ba45d2a605edb75d94d66b8fe1",
+      "samples": 6174
+    },
+    {
+      "name": "S_VeyraSwing",
+      "file": "Audio/S_VeyraSwing.wav",
+      "sha256": "df4baa1be14352cfc86fba27399252d496efaa557c8773bca80a716ec242db68",
+      "samples": 7056
+    },
+    {
+      "name": "S_VeyraCast",
+      "file": "Audio/S_VeyraCast.wav",
+      "sha256": "7290128eb2e2d16e24eb2a2807963da1c9291c10bbe754c311cbafd97b1ed3cf",
+      "samples": 12348
+    },
+    {
+      "name": "S_VeyraDeath",
+      "file": "Audio/S_VeyraDeath.wav",
+      "sha256": "139efbbb880946b725ef6586456431d0390c748a8bf23ae46dc8dcdbd36b1c18",
+      "samples": 24255
+    },
+    {
+      "name": "S_VeyraClick",
+      "file": "Audio/S_VeyraClick.wav",
+      "sha256": "af199bf6d9ce4c34fb88b5d9f9f5cf5066fe757abab1ceffaaef3b92c21d0207",
+      "samples": 1323
+    }
+  ]
+}

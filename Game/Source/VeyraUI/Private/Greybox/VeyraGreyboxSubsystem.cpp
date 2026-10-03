@@ -43,7 +43,11 @@
 #include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
+#include "Sound/SoundAttenuation.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundConcurrency.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Structures/VeyraStructure.h"
@@ -160,6 +164,24 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{
 			Problems.Add(FString::Printf(TEXT("HitFlashMaterial: %s does not load; run BuildPresentationMaterials.ps1."), *Settings.HitFlashMaterial.ToString()));
 		}
+		ImpactSound = Settings.ImpactSound.LoadSynchronous();
+		SwingSound = Settings.SwingSound.LoadSynchronous();
+		CastSound = Settings.CastSound.LoadSynchronous();
+		DeathSound = Settings.DeathSound.LoadSynchronous();
+		ClickSound = Settings.ClickSound.LoadSynchronous();
+		if (!ImpactSound || !SwingSound || !CastSound || !DeathSound || !ClickSound)
+		{
+			Problems.Add(TEXT("ImpactSound: the cue sounds do not all load; run BuildCueSounds.ps1."));
+		}
+		// Heard whole near the camera's focus and fading beyond, at most so many at once, the quietest giving way.
+		CueAttenuation = NewObject<USoundAttenuation>(this);
+		CueAttenuation->Attenuation.bAttenuate = true;
+		CueAttenuation->Attenuation.AttenuationShape = EAttenuationShape::Sphere;
+		CueAttenuation->Attenuation.AttenuationShapeExtents = FVector(Settings.SoundAudibleRadius, 0.0, 0.0);
+		CueAttenuation->Attenuation.FalloffDistance = Settings.SoundFalloffDistance;
+		CueConcurrency = NewObject<USoundConcurrency>(this);
+		CueConcurrency->Concurrency.MaxCount = Settings.MaxCueSounds;
+		CueConcurrency->Concurrency.ResolutionRule = EMaxConcurrentResolutionRule::StopQuietest;
 		ImpactEffect = Settings.ImpactEffect.LoadSynchronous();
 		CastEffect = Settings.CastEffect.LoadSynchronous();
 		DeathEffect = Settings.DeathEffect.LoadSynchronous();
@@ -207,6 +229,68 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 		VeyraBodyFeedback::Note(Body->Feedback, Cue, GetWorld()->GetRealTimeSeconds(), GetServerNow());
 	}
 	PlayEffect(Cue);
+	PlaySound(Cue);
+}
+
+USoundBase* UVeyraGreyboxSubsystem::SoundFor(EVeyraCombatCueKind Kind) const
+{
+	switch (Kind)
+	{
+	case EVeyraCombatCueKind::Hit:
+		return ImpactSound;
+	case EVeyraCombatCueKind::AttackCommit:
+		return SwingSound;
+	case EVeyraCombatCueKind::CastCommit:
+		return CastSound;
+	case EVeyraCombatCueKind::Death:
+		return DeathSound;
+	case EVeyraCombatCueKind::AttackWindup:
+	case EVeyraCombatCueKind::CastWindup:
+		break;
+	}
+	return nullptr;
+}
+
+void UVeyraGreyboxSubsystem::PlaySound(const FVeyraCombatCue& Cue)
+{
+	const AActor* Unit = Cue.Unit.Get();
+	USoundBase* Sound = SoundFor(Cue.Kind);
+	if (!Unit || !Sound || !bReady)
+	{
+		return;
+	}
+	const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
+	if (Volume > 0.0f)
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Unit->GetActorLocation(), FRotator::ZeroRotator, Volume, /*PitchMultiplier*/ 1.0f,
+			/*StartTime*/ 0.0f, CueAttenuation, CueConcurrency);
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshSound()
+{
+	AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	if (!Local || !Rig || !bReady)
+	{
+		return;
+	}
+	if (ListeningFrom.Get() != Local)
+	{
+		Local->SetAudioListenerOverride(Rig->GetRootComponent(), FVector::ZeroVector, FRotator::ZeroRotator);
+		ListeningFrom = Local;
+	}
+	// The player's own order clicks once, at once, with its mark.
+	const TOptional<FVeyraOrderMark>& Mark = Local->GetOrderMark();
+	if (Mark && Mark->GivenAt != ClickedFor)
+	{
+		ClickedFor = Mark->GivenAt;
+		const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
+		if (Volume > 0.0f)
+		{
+			UGameplayStatics::PlaySound2D(GetWorld(), ClickSound, Volume);
+		}
+	}
 }
 
 UNiagaraSystem* UVeyraGreyboxSubsystem::EffectFor(EVeyraCombatCueKind Kind) const
@@ -464,6 +548,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
 	ShowHover(Local ? Local->GetHoveredUnit() : nullptr);
 	RefreshHoverPass();
+	RefreshSound();
 	RefreshCombatText();
 	RefreshFogOfWar();
 	RefreshWarnings();
