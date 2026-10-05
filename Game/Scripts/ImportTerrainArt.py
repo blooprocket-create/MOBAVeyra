@@ -265,6 +265,9 @@ def build_water(textures):
     if not material:
         material = TOOLS.create_asset("M_CrucibleWater", DEST, unreal.Material, unreal.MaterialFactoryNew())
     EDIT.delete_all_material_expressions(material)
+    # Custom output nodes can outlive the bulk delete: a material may hold only one water output.
+    for expression in EDIT.get_material_expressions(material):
+        EDIT.delete_material_expression(material, expression)
     material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_SINGLE_LAYER_WATER)
     material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_OPAQUE)
     g = Graph(material)

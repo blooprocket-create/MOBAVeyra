@@ -17,7 +17,7 @@
   "vistaAmplitude": 1800,
   "vistaWavelength": 4000,
   "vistaRise": 1500,
-  "wetBand": 60,
+  "wetBand": 25,
   "bankBand": 350,
   "sunPitch": -48,
   "sunYaw": -35,
