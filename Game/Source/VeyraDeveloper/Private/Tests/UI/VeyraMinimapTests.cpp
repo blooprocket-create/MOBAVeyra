@@ -67,7 +67,7 @@ namespace VeyraMinimapTests
 			{
 				ASSERT_THAT(IsTrue(Corner.X >= 1700.0 - 1e-6 && Corner.X <= 1900.0 + 1e-6 && Corner.Y >= 860.0 - 1e-6 && Corner.Y <= 1060.0 + 1e-6, TEXT("cut to the map")));
 			}
-			ASSERT_THAT(AreEqual(View.Walls.Num(), Layout.Walls.Num() * 2));
+			ASSERT_THAT(AreEqual(View.Walls.Num(), VeyraLayout::Walls(Layout).Num()));
 			const FVeyraTerrainBox First = VeyraLayout::Walls(Layout)[0];
 			ASSERT_THAT(IsTrue(View.Walls[0].Corners.Num() == 4
 				&& View.Walls[0].Corners[0].Equals(VeyraMinimap::ToMap(Frame, FVector(First.Corners()[0], 0.0)))));

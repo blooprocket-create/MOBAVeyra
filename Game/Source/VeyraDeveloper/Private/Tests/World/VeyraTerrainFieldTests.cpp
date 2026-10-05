@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Algo/MaxElement.h"
 #include "CQTest.h"
 
 #if WITH_AUTOMATION_WORKER
@@ -73,11 +74,13 @@ namespace VeyraWorldTests
 				const double Island = Field.Height(VeyraLayout::ToVector(Site));
 				ASSERT_THAT(IsTrue(Island > Tuning.Layout.River.SurfaceZ && Island <= Terrain.IslandZ + HeightSlack));
 			}
-			// A base's Prime Well stands on its pad, a wall on its ridge.
+			// A base's Prime Well stands on its pad, a wall on its ridge: at its spine's thickest, the crest.
 			ASSERT_THAT(IsNear(Field.Height(VeyraLayout::ToVector(Tuning.Layout.Base.PrimeWell)), Terrain.BaseZ, HeightSlack));
-			for (const FVeyraTerrainBox& Wall : VeyraLayout::Walls(Tuning.Layout))
+			for (const FVeyraWallShape& Wall : VeyraLayout::WallShapes(Tuning.Layout))
 			{
-				ASSERT_THAT(IsNear(Field.Height(Wall.Centre), Terrain.RidgeZ, HeightSlack));
+				const FVeyraCurveSample* Thickest = Algo::MaxElementBy(Wall.Spine, &FVeyraCurveSample::Width);
+				ASSERT_THAT(IsTrue(Thickest && Thickest->Width / 2.0 > Terrain.RidgeSkirt, TEXT("every wall is broad enough somewhere to reach its crest")));
+				ASSERT_THAT(IsNear(Field.Height(Thickest->Point), Terrain.RidgeZ, HeightSlack));
 			}
 			// Beyond the floor's corner, away from the river, the rim rises.
 			const double Beyond = Tuning.Layout.HalfExtent + Terrain.BoundaryWidth;
@@ -190,6 +193,16 @@ namespace VeyraWorldTests
 			Broken = Committed();
 			Broken.Layout.Terrain.JungleRise = 1.0;
 			ASSERT_THAT(IsTrue(FString::Join(VeyraWorld::Validate(Broken), TEXT(" | ")).Contains(TEXT("steeper than surface.maxSlopeDegrees"))));
+			// The shore's shelf and a camp's clearing are shares, so out of range they are refused.
+			for (double FVeyraTerrainTuning::* Share : { &FVeyraTerrainTuning::UnderwaterShelfShare, &FVeyraTerrainTuning::ClearingFadeShare })
+			{
+				Broken = Committed();
+				Broken.Layout.Terrain.*Share = 0.0;
+				ASSERT_THAT(IsTrue(FString::Join(VeyraWorld::Validate(Broken), TEXT(" | ")).Contains(TEXT("underwaterShelfShare must be above 0"))));
+			}
+			Broken = Committed();
+			Broken.Layout.Terrain.ClearingCoreShare = -0.1;
+			ASSERT_THAT(IsTrue(FString::Join(VeyraWorld::Validate(Broken), TEXT(" | ")).Contains(TEXT("clearingCoreShare at least 0"))));
 		}
 	};
 }

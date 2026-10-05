@@ -33,19 +33,9 @@ UVeyraBattlegroundMapCommandlet::UVeyraBattlegroundMapCommandlet()
 int32 UVeyraBattlegroundMapCommandlet::Main(const FString& /*Params*/)
 {
 #if WITH_EDITOR
-	FVeyraGreyboxLayout Greybox;
-	const VeyraTuning::FErrors Errors = VeyraGreybox::LoadLayout(Greybox);
-	for (const FString& Error : Errors)
-	{
-		UE_LOG(LogVeyraBattlegroundMap, Error, TEXT("Greybox.json: %s"), *Error);
-	}
-	if (!Errors.IsEmpty())
-	{
-		return 1;
-	}
-	// World.json loaded with the engine; a broken file has already failed the start-up.
+	// World.json loaded with the engine; a broken file has already failed the start-up. The production battleground's
+	// ground is the authored terrain the generator builds, so the grey box's floor plays no part here.
 	const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
-	const FVeyraGreyboxLayout Floor = VeyraBattlegroundBuilder::AsGreybox(Layout, Greybox);
 
 	UPackage* Package = CreatePackage(MapPackageName);
 	// This generator reconstructs every export; no previous map contents are retained.

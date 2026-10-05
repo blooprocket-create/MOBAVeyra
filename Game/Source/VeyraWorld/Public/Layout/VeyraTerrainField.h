@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Layout/VeyraRiver.h"
-#include "Terrain/VeyraTerrainBox.h"
+#include "Layout/VeyraLayout.h"
 
 struct FVeyraWorldTuning;
 
@@ -18,8 +18,9 @@ struct FVeyraTerrainRelief
 	double Amplitude = 0.0;
 	double Wavelength = 0.0;
 
-	/** How far a ridge's crest rises and falls along it. */
+	/** How far a ridge's crest rises and falls along it, over this share of the jungle's wavelength. */
 	double CrestAmplitude = 0.0;
+	double CrestWavelengthShare = 0.0;
 
 	int32 Seed = 0;
 };
@@ -67,7 +68,10 @@ private:
 	const FVeyraWorldTuning& Tuning;
 	FVeyraTerrainRelief Relief;
 	const FVeyraRiverShape& River;
-	TArray<FVeyraTerrainBox> Walls;
+	TArray<FVeyraWallShape> Walls;
+
+	/** Each wall's footprint's bounds, so a point far from it skips it. */
+	TArray<FBox2D> WallBounds;
 	TArray<FVector2D> Pads;
 	TArray<TPair<FVector2D, double>> Clearings;
 	TArray<FVector2D> Wells;

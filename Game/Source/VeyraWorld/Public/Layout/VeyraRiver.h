@@ -3,16 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Layout/VeyraWidthCurve.h"
 
 struct FVeyraBattlegroundLayout;
 struct FVeyraRiverLayout;
 
 /** One sample of a river channel's centreline: where it passes and how wide its water is there. */
-struct FVeyraRiverSample
-{
-	FVector2D Point = FVector2D::ZeroVector;
-	double Width = 0.0;
-};
+using FVeyraRiverSample = FVeyraCurveSample;
 
 /** One channel of the whole river, sampled densely along its centreline (ADR-040 §6). */
 struct FVeyraRiverChannel

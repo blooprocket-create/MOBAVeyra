@@ -107,3 +107,24 @@ The existing greybox wall shapes and layout are not approved canon. They are pro
 
 - **ADR-016:** its open item "Terrain line of sight" is decided here.
 - **ADR-011:** the layout gains `walls` and `wallClearance`.
+
+## Amendment (2026-10-05): natural walls
+
+The author ruled on 2026-10-05 that the walls must be "natural shaped walls that aren't all the same size, that flow well and provide actual competitive usage": impassable terrain as it would occur in a jungle, not placed rectangles. §1 changes as follows. §2–§6 keep working unchanged on the boxes a wall derives.
+
+- **A wall is a ridge along a curve.** `layout.walls` lists, for Team A's half, `{name, points}`. Each point is `{x, y, width}`. The spine is a Catmull-Rom curve through the points, sampled `layout.wallSamplesPerSegment` times a span. Its thickness changes linearly between points, and its ends are rounded. Walls may overlap, so one massif can bend, branch and swell. Team B's walls are the rotation. `name` is for designers only.
+- **One curve, two readings** (`FVeyraWallShape`, VeyraWorld):
+  - The ridge is the band's rounded signed distance (`VeyraWidthCurve`, which the river's channels share). The terrain field raises the cliff within it, and the dressing follows it.
+  - What blocks and hides is a chain of boxes (`Boxes`), one per sample span. Each is as thick as the span's thicker end, mitred where the spine turns so the outside of every bend stays closed, and squared past each tip so the rounded end stands inside.
+  - Collision, navigation obstacles, sight blocking and the minimap consume the boxes through `VeyraLayout::Walls`, as before. A test checks that every point inside a ridge lies in some box, and that no box corner reaches further past the ridge than a square end does.
+- **Validation.** It refuses a wall with fewer than two distinct points or a width that isn't above 0. It also refuses a spine that turns a right angle or more between samples, where the mitres would no longer close. Every box keeps the existing clearances from lanes, camps, Wells, structures, the fountain, Dense Fog, the river and the dividing line.
+- **The design.** Each of Team A's two jungle quadrants is built from:
+  - lane-side massifs broken by three gates, with brush in the gate mouths;
+  - a central massif with lobes, splitting a lane corridor from a mid corridor;
+  - a pocketed inner den;
+  - a mid-side ridge with gank gaps;
+  - outcrops in the outer strips.
+
+  Widths run from 240 at Blink-able tips (Blink's range is 400) to 980. The skittermaw camp moved inward into a den, and three Dense Fog circles moved to sit in the gate mouths. All of it is provisional and checked by `ValidateBattleground.ps1`: equivalent routes for both teams differ by at most 1 unit.
+- **The look.** The ridge crest is 620 high on 260 jungle ground, low enough that the gameplay camera sees over it. Slate cliff faces stand along both edges and close round the ends, the terrain's moss shows between them, boulders lie at the foot, and shrubs and small trees grow on the crown where it is broad. Nothing is placed where walls overlap.
+- **Known gap.** A tip's square collision corner reaches up to (√2 − 1) × half the tip's width past the rounded cliff: about 50 units at the narrowest tips.

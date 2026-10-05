@@ -6,9 +6,51 @@
 #include "Algo/Reverse.h"
 #include "Tuning/VeyraWorldTuning.h"
 
-namespace VeyraLayout
+double FVeyraWallShape::DepthInside(const FVector2D& Point) const
 {
-FVector2D ToVector(const FVeyraMapPoint& Point)
+	return -VeyraWidthCurve::SignedDistance(Spine, Point);
+}
+
+TArray<FVeyraTerrainBox> FVeyraWallShape::Boxes() const
+{
+	// Its spine's distinct points: a span with no length has no direction to stand along.
+	TArray<FVeyraCurveSample> Points;
+	for (const FVeyraCurveSample& Sample : Spine)
+	{
+		if (Points.IsEmpty() || !Points.Last().Point.Equals(Sample.Point, UE_DOUBLE_KINDA_SMALL_NUMBER))
+		{
+			Points.Add(Sample);
+		}
+	}
+	TArray<FVeyraTerrainBox> Out;
+	if (Points.Num() < 2)
+	{
+		return Out;
+	}
+	const auto Direction = [&Points](int32 Span) { return (Points[Span + 1].Point - Points[Span].Point).GetSafeNormal(); };
+	// Where the spine turns from From to To, how far past the joint a box must reach, in its half-thicknesses, for its
+	// edge to meet the next box's on the outside of the bend: the tangent of half the turn.
+	const auto Mitre = [](const FVector2D& From, const FVector2D& To) {
+		return FMath::Abs(FVector2D::CrossProduct(From, To)) / (1.0 + FVector2D::DotProduct(From, To));
+	};
+	for (int32 Span = 0; Span + 1 < Points.Num(); ++Span)
+	{
+		const FVector2D& From = Points[Span].Point;
+		const FVector2D& To = Points[Span + 1].Point;
+		const FVector2D Along = Direction(Span);
+		const double Thickness = FMath::Max(Points[Span].Width, Points[Span + 1].Width);
+		const double Half = Thickness / 2.0;
+		// Past each end of the spine by half its thickness, so its rounded tip stands inside; else to the mitre.
+		const double Back = Span == 0 ? Half : Half * Mitre(Direction(Span - 1), Along);
+		const double Ahead = Span + 2 == Points.Num() ? Half : Half * Mitre(Along, Direction(Span + 1));
+		// A box faces across its thickness: here across the span.
+		Out.Add({ (From + To) / 2.0 + Along * ((Ahead - Back) / 2.0), FVector2D(-Along.Y, Along.X), FVector2D::Distance(From, To) + Back + Ahead, Thickness });
+	}
+	return Out;
+}
+
+namespace VeyraLayout
+{FVector2D ToVector(const FVeyraMapPoint& Point)
 {
 	return FVector2D(Point.X, Point.Y);
 }
@@ -108,23 +150,46 @@ TArray<FVeyraFogPlacement> DenseFog(const FVeyraBattlegroundLayout& Layout)
 	return Fog;
 }
 
-FVeyraTerrainBox Wall(const FVeyraWallLayout& Wall, EVeyraTeam Team)
+FVeyraWallShape WallShape(const FVeyraBattlegroundLayout& Layout, int32 Index, EVeyraTeam Team)
 {
-	const double Radians = FMath::DegreesToRadians(Wall.Facing);
-	const FVector2D Facing(FMath::Cos(Radians), FMath::Sin(Radians));
-	// A direction turns as a point does: the rotation about the centre is linear.
-	return { ForTeam(ToVector(Wall.Center), Team), Team == EVeyraTeam::B ? Rotate(Facing) : Facing, Wall.Length, Wall.Thickness };
+	FVeyraWallShape Shape;
+	Shape.Team = Team;
+	Shape.Index = Index;
+	if (!Layout.Walls.IsValidIndex(Index))
+	{
+		return Shape;
+	}
+	// The rotation is linear, so the curve through rotated points is the rotated curve.
+	TArray<FVector2D> Points;
+	TArray<double> Widths;
+	for (const FVeyraWallPoint& Point : Layout.Walls[Index].Points)
+	{
+		Points.Add(ForTeam(FVector2D(Point.X, Point.Y), Team));
+		Widths.Add(Point.Width);
+	}
+	Shape.Spine = VeyraWidthCurve::Sample(Points, Widths, Layout.WallSamplesPerSegment);
+	return Shape;
+}
+
+TArray<FVeyraWallShape> WallShapes(const FVeyraBattlegroundLayout& Layout)
+{
+	TArray<FVeyraWallShape> Out;
+	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+	{
+		for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
+		{
+			Out.Add(WallShape(Layout, Index, Team));
+		}
+	}
+	return Out;
 }
 
 TArray<FVeyraTerrainBox> Walls(const FVeyraBattlegroundLayout& Layout)
 {
 	TArray<FVeyraTerrainBox> Out;
-	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+	for (const FVeyraWallShape& Shape : WallShapes(Layout))
 	{
-		for (const FVeyraWallLayout& Entry : Layout.Walls)
-		{
-			Out.Add(Wall(Entry, Team));
-		}
+		Out.Append(Shape.Boxes());
 	}
 	return Out;
 }

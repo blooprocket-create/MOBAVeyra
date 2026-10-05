@@ -324,52 +324,153 @@ namespace VeyraWorldBuild
 			Made.Family = Family;
 			return Made;
 		};
-		const TArray<FVeyraTerrainBox> AllWalls = VeyraLayout::Walls(Layout);
-		const TArray<FVeyraTerrainBox> TeamAWalls(AllWalls.GetData(), Layout.Walls.Num());
-
-		// Each wall: slate cliffs along its length, covering its ridge, and trees on its top.
+		// Each wall: slate cliff faces along both its edges, turning with it and closing round its ends, the terrain's mossy
+		// ridge showing between them; boulders fallen at its foot to break its outline; shrubs and the odd small tree on its
+		// crown where it is broad, low enough that the camera sees over it. Team B's are the rotation (Place).
 		{
 			FRandomStream Random(Seed + 1);
 			FRegion& Cliffs = Region(TEXT("Wall_Cliffs"), TEXT("Cliff"));
+			FRegion& Edges = Region(TEXT("Wall_Boulders"), TEXT("Boulder"));
+			FRegion& Crowns = Region(TEXT("Wall_Shrubs"), TEXT("Shrub"));
 			FRegion& Trees = Region(TEXT("Wall_Trees"), TEXT("Tree"));
 			const FVector Cliff = Size(TEXT("Cliff"));
-			const double Span = Dress.Number(TEXT("cliffSpan"));
-			const FVector2D Height = Dress.Range(TEXT("cliffHeightScale"));
-			for (const FVeyraTerrainBox& Wall : TeamAWalls)
+			const double Span = Dress.Number(TEXT("wallCliffSpan"));
+			const double Depth = Dress.Number(TEXT("wallCliffDepth"));
+			const double Inset = Dress.Number(TEXT("wallCliffInset"));
+			const FVector2D Height = Dress.Range(TEXT("wallCliffHeightScale"));
+			const FVector2D BoulderScale = Dress.Range(TEXT("wallBoulderScale"));
+			const FVector2D ShrubScale = Dress.Range(TEXT("wallCrownShrubScale"));
+			const FVector2D TreeScale = Dress.Range(TEXT("wallCrownTreeScale"));
+			TArray<FVeyraWallShape> Shapes;
+			for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
 			{
-				const FVector2D Along(-Wall.Facing.Y, Wall.Facing.X);
-				const int32 Count = FMath::Max(1, FMath::CeilToInt(Wall.Length / Span));
-				const double Step = Wall.Length / Count;
-				TOptional<double> Foot;
-				for (const FVector2D& Corner : Wall.Corners())
-				{
-					const TOptional<double> Z = Dress.Ground(Corner + (Corner - Wall.Centre).GetSafeNormal() * 60.0);
-					Foot = Z.IsSet() ? TOptional<double>(Foot.IsSet() ? FMath::Min(Foot.GetValue(), Z.GetValue()) : Z.GetValue()) : Foot;
-				}
-				if (!Foot.IsSet())
+				Shapes.Add(VeyraLayout::WallShape(Layout, Index, EVeyraTeam::A));
+			}
+			for (int32 Index = 0; Index < Shapes.Num(); ++Index)
+			{
+				const FVeyraWallShape& Shape = Shapes[Index];
+				const TArray<FVeyraCurveSample>& Spine = Shape.Spine;
+				if (Spine.Num() < 2)
 				{
 					continue;
 				}
-				for (int32 Index = 0; Index < Count; ++Index)
+				// Where walls overlap, as a lobe on a massif, the edge inside the other is no edge: nothing stands there.
+				const auto InsideAnother = [&Shapes, Index](const FVector2D& Point) {
+					for (int32 Other = 0; Other < Shapes.Num(); ++Other)
+					{
+						if (Other != Index && Shapes[Other].DepthInside(Point) > 0.0)
+						{
+							return true;
+						}
+					}
+					return false;
+				};
+				TArray<double> Reached = { 0.0 };
+				for (int32 Sample = 1; Sample < Spine.Num(); ++Sample)
 				{
-					const FVector2D Point = Wall.Centre + Along * ((Index + 0.5) * Step - Wall.Length / 2.0);
-					const FVector Scale(Step * Dress.Number(TEXT("cliffOverlap")) / Cliff.X, Wall.Thickness * Dress.Number(TEXT("cliffThicknessCover")) / Cliff.Y,
-						Random.FRandRange(Height.X, Height.Y));
+					Reached.Add(Reached.Last() + FVector2D::Distance(Spine[Sample - 1].Point, Spine[Sample].Point));
+				}
+				const double Length = Reached.Last();
+				// The spine Distance along it: where it passes, how wide it is, and which way it runs.
+				const auto At = [&Spine, &Reached](double Distance, FVector2D& OutPoint, double& OutWidth, FVector2D& OutAlong) {
+					int32 Segment = 1;
+					while (Segment < Spine.Num() - 1 && Reached[Segment] < Distance)
+					{
+						++Segment;
+					}
+					const double Gap = FMath::Max(Reached[Segment] - Reached[Segment - 1], UE_DOUBLE_KINDA_SMALL_NUMBER);
+					const double T = FMath::Clamp((Distance - Reached[Segment - 1]) / Gap, 0.0, 1.0);
+					OutPoint = FMath::Lerp(Spine[Segment - 1].Point, Spine[Segment].Point, T);
+					OutWidth = FMath::Lerp(Spine[Segment - 1].Width, Spine[Segment].Width, T);
+					OutAlong = (Spine[Segment].Point - Spine[Segment - 1].Point).GetSafeNormal();
+				};
+				// A cliff face standing at Point, running along Along: its foot on the lower ground outside it.
+				const auto Face = [&](const FVector2D& Point, const FVector2D& Along, const FVector2D& Out, double Run, double Deep) {
+					const FVector2D Outside = Point + Out * (Deep / 2.0 + Dress.Number(TEXT("wallFootReach")));
+					const TOptional<double> Foot = Dress.Ground(Outside);
+					if (!Foot.IsSet() || InsideAnother(Outside))
+					{
+						return;
+					}
+					const FVector Scale(Run * Dress.Number(TEXT("cliffOverlap")) / Cliff.X, Deep / Cliff.Y, Random.FRandRange(Height.X, Height.Y));
 					Dress.Place(Cliffs, Random, Kit[TEXT("Cliff")].Num(), Point, YawOf(Along) + Random.FRandRange(-6.0, 6.0) + (Random.FRand() < 0.5 ? 180.0 : 0.0),
 						Scale, Dress.Number(TEXT("cliffSink")), Foot);
-				}
-				const int32 Crowns = FMath::Max(1, FMath::FloorToInt(Wall.Length / Dress.Number(TEXT("wallTreeSpacing"))));
-				const FVector2D TreeScale = Dress.Range(TEXT("treeScale"));
-				for (int32 Index = 0; Index < Crowns; ++Index)
+				};
+				const int32 Count = FMath::Max(1, FMath::CeilToInt(Length / Span));
+				const double Step = Length / Count;
+				for (int32 Piece = 0; Piece < Count; ++Piece)
 				{
-					const FVector2D Point = Wall.Centre + Along * (((Index + 0.5) / Crowns - 0.5) * Wall.Length * 0.8)
-						+ Wall.Facing * Random.FRandRange(-0.2, 0.2) * Wall.Thickness;
-					Dress.Place(Trees, Random, Kit[TEXT("Tree")].Num(), Point, Random.FRandRange(0.0, 360.0), FVector(Random.FRandRange(TreeScale.X, TreeScale.Y)),
-						Dress.Number(TEXT("treeSink")));
+					FVector2D Point;
+					double Width = 0.0;
+					FVector2D Along;
+					At((Piece + 0.5) * Step, Point, Width, Along);
+					const FVector2D Across(-Along.Y, Along.X);
+					// Each edge's face stands just inside it; a wall too thin for two faces is one, across its whole width.
+					const double Deep = FMath::Min(Depth, Width);
+					const double Offset = FMath::Max(Width / 2.0 - Deep / 2.0 - Inset, 0.0);
+					for (const double Side : { -1.0, 1.0 })
+					{
+						if (Offset <= 0.0 && Side > 0.0)
+						{
+							break;
+						}
+						Face(Point + Across * Side * Offset, Along, Across * Side, Step, Offset > 0.0 ? Deep : Width);
+					}
+				}
+				// Its ends, closed by a face across each.
+				for (const bool bStart : { true, false })
+				{
+					const FVeyraCurveSample& End = bStart ? Spine[0] : Spine.Last();
+					const FVector2D Inward = bStart ? (Spine[1].Point - Spine[0].Point).GetSafeNormal() : (Spine[Spine.Num() - 2].Point - Spine.Last().Point).GetSafeNormal();
+					const double Deep = FMath::Min(Depth, End.Width);
+					Face(End.Point + Inward * (Deep / 2.0), FVector2D(-Inward.Y, Inward.X), -Inward, End.Width, Deep);
+				}
+				// Boulders fallen at both edges.
+				for (double Distance = 0.0; Distance <= Length; Distance += Dress.Number(TEXT("wallBoulderSpacing")))
+				{
+					FVector2D Point;
+					double Width = 0.0;
+					FVector2D Along;
+					At(Distance, Point, Width, Along);
+					for (const double Side : { -1.0, 1.0 })
+					{
+						if (Random.FRand() < Dress.Number(TEXT("wallBoulderChance")))
+						{
+							const FVector2D Edge = Point + FVector2D(-Along.Y, Along.X) * Side * Width / 2.0 * Dress.Number(TEXT("wallBoulderReach"));
+							if (InsideAnother(Edge))
+							{
+								continue;
+							}
+							Dress.Place(Edges, Random, Kit[TEXT("Boulder")].Num(), Edge, Random.FRandRange(0.0, 360.0),
+								FVector(Random.FRandRange(BoulderScale.X, BoulderScale.Y)), Dress.Number(TEXT("wallBoulderSink")));
+						}
+					}
+				}
+				// Its crown, where it is broad: shrubs, and now and then a small tree.
+				for (double Distance = Dress.Number(TEXT("wallCrownSpacing")) / 2.0; Distance < Length; Distance += Dress.Number(TEXT("wallCrownSpacing")))
+				{
+					FVector2D Point;
+					double Width = 0.0;
+					FVector2D Along;
+					At(Distance, Point, Width, Along);
+					if (Width < Dress.Number(TEXT("wallCrownMinWidth")))
+					{
+						continue;
+					}
+					const FVector2D Crown = Point + FVector2D(-Along.Y, Along.X) * Random.FRandRange(-0.2, 0.2) * Width;
+					if (Random.FRand() < Dress.Number(TEXT("wallCrownTreeChance")))
+					{
+						Dress.Place(Trees, Random, Kit[TEXT("Tree")].Num(), Crown, Random.FRandRange(0.0, 360.0), FVector(Random.FRandRange(TreeScale.X, TreeScale.Y)),
+							Dress.Number(TEXT("treeSink")));
+					}
+					else
+					{
+						Dress.Place(Crowns, Random, Kit[TEXT("Shrub")].Num(), Crown, Random.FRandRange(0.0, 360.0), FVector(Random.FRandRange(ShrubScale.X, ShrubScale.Y)),
+							Dress.Number(TEXT("treeSink")));
+					}
 				}
 			}
 		}
-
 		// The floor's edge: a cliff line along the rim, open where the river leaves, and forest across the vista.
 		{
 			FRandomStream Random(Seed + 2);

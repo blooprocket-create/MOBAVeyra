@@ -111,6 +111,17 @@ struct FVeyraTerrainTuning
 	UPROPERTY()
 	double BankWidth = 0.0;
 
+	/** Under the water, the share of a bank's run over which the bed rises to the waterline: the shore's shelf. */
+	UPROPERTY()
+	double UnderwaterShelfShare = 0.0;
+
+	/** The share of a camp's leash radius that stays level as its clearing, and the share beyond it over which the ground returns. */
+	UPROPERTY()
+	double ClearingCoreShare = 0.0;
+
+	UPROPERTY()
+	double ClearingFadeShare = 0.0;
+
 	/** The run of a ridge's cliff face, rising from its wall's edge inward: the whole cliff stands within the wall. */
 	UPROPERTY()
 	double RidgeSkirt = 0.0;

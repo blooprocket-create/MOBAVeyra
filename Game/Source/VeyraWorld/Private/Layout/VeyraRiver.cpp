@@ -26,27 +26,14 @@ namespace
 	 */
 	TArray<FVeyraRiverSample> Sample(TConstArrayView<FVeyraRiverPoint> Controls, int32 SamplesPerSegment)
 	{
-		TArray<FVeyraRiverSample> Samples;
-		const int32 Count = Controls.Num();
-		if (Count < 2 || SamplesPerSegment < 1)
+		TArray<FVector2D> Points;
+		TArray<double> Widths;
+		for (const FVeyraRiverPoint& Control : Controls)
 		{
-			return Samples;
+			Points.Add(PointOf(Control));
+			Widths.Add(Control.Width);
 		}
-		const auto At = [&Controls, Count](int32 Index) { return PointOf(Controls[FMath::Clamp(Index, 0, Count - 1)]); };
-		for (int32 Index = 0; Index < Count - 1; ++Index)
-		{
-			const FVector2D From = At(Index);
-			const FVector2D To = At(Index + 1);
-			const FVector2D FromTangent = (At(Index + 1) - At(Index - 1)) / 2.0;
-			const FVector2D ToTangent = (At(Index + 2) - At(Index)) / 2.0;
-			for (int32 Step = 0; Step < SamplesPerSegment; ++Step)
-			{
-				const double T = static_cast<double>(Step) / SamplesPerSegment;
-				Samples.Add({ FMath::CubicInterp(From, FromTangent, To, ToTangent, T), FMath::Lerp(Controls[Index].Width, Controls[Index + 1].Width, T) });
-			}
-		}
-		Samples.Add({ At(Count - 1), Controls.Last().Width });
-		return Samples;
+		return VeyraWidthCurve::Sample(Points, Widths, SamplesPerSegment);
 	}
 
 	bool SamePoints(TConstArrayView<FVeyraRiverPoint> A, TConstArrayView<FVeyraRiverPoint> B)
@@ -108,18 +95,7 @@ FVeyraRiverShape::FVeyraRiverShape(const FVeyraRiverLayout& River)
 
 double FVeyraRiverShape::SignedDistance(const FVeyraRiverChannel& Channel, const FVector2D& Point)
 {
-	double Nearest = TNumericLimits<double>::Max();
-	const TArray<FVeyraRiverSample>& Samples = Channel.Samples;
-	for (int32 Index = 1; Index < Samples.Num(); ++Index)
-	{
-		const FVeyraRiverSample& A = Samples[Index - 1];
-		const FVeyraRiverSample& B = Samples[Index];
-		const FVector2D Delta = B.Point - A.Point;
-		const double LengthSquared = Delta.SizeSquared();
-		const double T = LengthSquared > UE_DOUBLE_SMALL_NUMBER ? FMath::Clamp(FVector2D::DotProduct(Point - A.Point, Delta) / LengthSquared, 0.0, 1.0) : 0.0;
-		Nearest = FMath::Min(Nearest, FVector2D::Distance(Point, A.Point + Delta * T) - FMath::Lerp(A.Width, B.Width, T) / 2.0);
-	}
-	return Nearest;
+	return VeyraWidthCurve::SignedDistance(Channel.Samples, Point);
 }
 
 double FVeyraRiverShape::SignedDistance(const FVector2D& Point) const

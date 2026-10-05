@@ -75,6 +75,7 @@ namespace VeyraWorldBuild
 		Style.TryGetNumberField(TEXT("reliefAmplitude"), Relief.Amplitude);
 		Style.TryGetNumberField(TEXT("reliefWavelength"), Relief.Wavelength);
 		Style.TryGetNumberField(TEXT("crestAmplitude"), Relief.CrestAmplitude);
+		Style.TryGetNumberField(TEXT("crestWavelengthShare"), Relief.CrestWavelengthShare);
 		Relief.Seed = static_cast<int32>(Style.GetNumberField(TEXT("seed")));
 		return Relief;
 	}

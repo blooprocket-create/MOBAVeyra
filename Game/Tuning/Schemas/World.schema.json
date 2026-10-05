@@ -10,7 +10,7 @@
       "description": "The battleground's ground levels and the runs between them (ADR-040 §3), in world units: they decide its slopes, so how it is walked.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["laneZ", "baseZ", "jungleZ", "islandZ", "ridgeZ", "laneShoulder", "jungleRise", "bankWidth", "ridgeSkirt", "boundaryZ", "boundaryWidth", "wallFootingClearance"],
+      "required": ["laneZ", "baseZ", "jungleZ", "islandZ", "ridgeZ", "laneShoulder", "jungleRise", "bankWidth", "underwaterShelfShare", "clearingCoreShare", "clearingFadeShare", "ridgeSkirt", "boundaryZ", "boundaryWidth", "wallFootingClearance"],
       "properties": {
         "laneZ": { "description": "Each lane's road.", "type": "number", "minimum": -1000000 },
         "baseZ": { "description": "Each base's pad.", "type": "number", "minimum": -1000000 },
@@ -20,6 +20,9 @@
         "laneShoulder": { "description": "How far beside a road the ground stays at the road's level.", "type": "number", "minimum": 0 },
         "jungleRise": { "description": "The run over which ground climbs from a road, a pad or a clearing to the jungle.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "bankWidth": { "description": "The run from the water's edge to the top of its bank.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "underwaterShelfShare": { "description": "Under the water, the share of a bank's run over which the bed rises to the waterline: the shore's shelf.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+        "clearingCoreShare": { "description": "The share of a camp's leash radius that stays level as its clearing.", "type": "number", "minimum": 0 },
+        "clearingFadeShare": { "description": "The share of a camp's leash radius beyond its clearing over which the ground returns to the jungle.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "ridgeSkirt": { "description": "The run of a ridge's cliff face, rising from its wall's edge inward: the whole cliff stands within the wall.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "boundaryZ": { "description": "The rim beyond the floor's edge.", "type": "number", "minimum": -1000000 },
         "boundaryWidth": { "description": "The run of the rim's face.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -237,13 +240,13 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [6]
+      "enum": [7]
     },
     "layout": {
       "description": "The grey-box battleground (Battleground Bible §2, macro shape ruled 2026-09-28): bases in opposite corners, top and bot lanes along the sides set in from the edge with outer jungle beyond, mid on the diagonal, the river curving across the other. Team A's half is authored; Team B's is its rotation half a turn about the centre (author ruling 2026-10-05).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "halfExtent", "surface", "terrain", "river", "lanes", "base", "denseFog", "walls", "wallHalfHeight", "wallClearance"],
+      "required": ["provenance", "halfExtent", "surface", "terrain", "river", "lanes", "base", "denseFog", "walls", "wallSamplesPerSegment", "wallHalfHeight", "wallClearance"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "halfExtent": { "description": "The square floor reaches this far from the centre in each direction.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -275,21 +278,34 @@
           }
         },
         "walls": {
-          "description": "Team A's walls (ADR-043 §1): oriented boxes of terrain wholly in Team A's half, clear of the lanes, camps, Flux Wells, structures, the fountain and Dense Fog by wallClearance. Team B's are their mirror. They block movement, paths, forced moves, line projectiles and sight.",
+          "description": "Team A's walls (ADR-043 §1, as amended 2026-10-05): ridges of impassable terrain along smooth curves, each as thick at its points as their widths, rounded at its ends, wholly in Team A's half and clear of the lanes, camps, Flux Wells, structures, the fountain and Dense Fog by wallClearance. Walls may overlap, so a massif can bend and branch. Team B's are their rotation. They block movement, paths, forced moves, line projectiles and sight.",
           "type": "array",
           "minItems": 0,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["center", "facing", "length", "thickness"],
+            "required": ["name", "points"],
             "properties": {
-              "center": { "$ref": "#/definitions/point" },
-              "facing": { "description": "The way the wall faces, in degrees from +X toward +Y: its thickness runs along it and its length across it.", "type": "number", "minimum": -360, "maximum": 360 },
-              "length": { "description": "In units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-              "thickness": { "description": "In units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              "name": { "description": "What designers call it; play never reads it.", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9 ,.'-]*$" },
+              "points": {
+                "description": "The spine's control points, in order: a Catmull-Rom curve passes through them.",
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["x", "y", "width"],
+                  "properties": {
+                    "x": { "type": "number", "minimum": -1000000 },
+                    "y": { "type": "number", "minimum": -1000000 },
+                    "width": { "description": "The wall's full thickness at this point, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                  }
+                }
+              }
             }
           }
         },
+        "wallSamplesPerSegment": { "description": "How finely each wall's curve is sampled between two of its points: what blocks and hides is one box to each sample's span.", "type": "integer", "minimum": 1 },
         "wallHalfHeight": { "description": "Half of every wall's height: taller than any body it blocks.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "wallClearance": { "description": "How far every wall keeps from a lane's road, a camp's creatures, a Flux Well's radius, a structure's body, the fountain and Dense Fog.", "type": "number", "minimum": 0 },
         "base": {

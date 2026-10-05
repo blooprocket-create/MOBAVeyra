@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Algo/Accumulate.h"
 #include "CQTest.h"
 #include "Engine/Engine.h"
 #include "Layout/VeyraLayout.h"
@@ -238,25 +239,71 @@ namespace VeyraWorldTests
 
 		TEST_METHOD(WallsLieInTeamAsHalfAndTeamBsAreTheirRotation)
 		{
-			// The battleground's walls (ADR-043 §1): Team A's, then their rotations.
+			// The battleground's walls (ADR-043 §1): Team A's, then their rotations, sample for sample and box for box.
 			const FVeyraBattlegroundLayout& Layout = Committed();
 			ASSERT_THAT(IsFalse(Layout.Walls.IsEmpty()));
-			const TArray<FVeyraTerrainBox> Walls = VeyraLayout::Walls(Layout);
-			ASSERT_THAT(AreEqual(Walls.Num(), Layout.Walls.Num() * 2));
+			const TArray<FVeyraWallShape> Shapes = VeyraLayout::WallShapes(Layout);
+			ASSERT_THAT(AreEqual(Shapes.Num(), Layout.Walls.Num() * 2));
 			for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
 			{
-				const FVeyraTerrainBox& A = Walls[Index];
-				const FVeyraTerrainBox& B = Walls[Index + Layout.Walls.Num()];
-				for (const FVector2D& Corner : A.Corners())
+				const FVeyraWallShape& A = Shapes[Index];
+				const FVeyraWallShape& B = Shapes[Index + Layout.Walls.Num()];
+				ASSERT_THAT(IsTrue(A.Team == EVeyraTeam::A && B.Team == EVeyraTeam::B && A.Index == Index && B.Index == Index));
+				ASSERT_THAT(IsTrue(A.Spine.Num() > 1 && A.Spine.Num() == B.Spine.Num()));
+				for (int32 Sample = 0; Sample < A.Spine.Num(); ++Sample)
 				{
-					ASSERT_THAT(IsTrue(VeyraLayout::DepthInTeamAHalf(Layout, Corner) > 0.0));
+					ASSERT_THAT(IsTrue(B.Spine[Sample].Point.Equals(VeyraLayout::Rotate(A.Spine[Sample].Point), Tolerance) && B.Spine[Sample].Width == A.Spine[Sample].Width));
 				}
-				ASSERT_THAT(IsTrue(B.Centre.Equals(VeyraLayout::Rotate(A.Centre), Tolerance) && B.Facing.Equals(VeyraLayout::Rotate(A.Facing), Tolerance)));
-				ASSERT_THAT(IsTrue(B.Length == A.Length && B.Thickness == A.Thickness));
-				// Each corner of Team B's wall is the rotation of one of Team A's.
-				for (const FVector2D& Corner : B.Corners())
+				const TArray<FVeyraTerrainBox> BoxesA = A.Boxes();
+				const TArray<FVeyraTerrainBox> BoxesB = B.Boxes();
+				ASSERT_THAT(AreEqual(BoxesA.Num(), BoxesB.Num()));
+				for (int32 Box = 0; Box < BoxesA.Num(); ++Box)
 				{
-					ASSERT_THAT(IsTrue(A.DistanceTo(VeyraLayout::Rotate(Corner)) < 1e-3));
+					for (const FVector2D& Corner : BoxesA[Box].Corners())
+					{
+						ASSERT_THAT(IsTrue(VeyraLayout::DepthInTeamAHalf(Layout, Corner) > 0.0));
+					}
+					ASSERT_THAT(IsTrue(BoxesB[Box].Centre.Equals(VeyraLayout::Rotate(BoxesA[Box].Centre), Tolerance)));
+				}
+			}
+			ASSERT_THAT(AreEqual(VeyraLayout::Walls(Layout).Num(), Algo::TransformAccumulate(Shapes, [](const FVeyraWallShape& Shape) { return Shape.Boxes().Num(); }, 0)));
+		}
+
+		TEST_METHOD(AWallsBoxesHoldItsRidgeAndCloseItsBends)
+		{
+			// A wall that bends and narrows: whatever lies within its ridge lies in one of its boxes, so nothing stands or
+			// sees through the cliff the terrain raises, and no box reaches past the ridge by more than a square end holding
+			// a rounded tip does.
+			FVeyraBattlegroundLayout Layout;
+			Layout.WallSamplesPerSegment = 4;
+			Layout.Walls = { { TEXT("Test"), { { -2000.0, 0.0, 300.0 }, { -1000.0, 400.0, 800.0 }, { 0.0, 0.0, 600.0 }, { 600.0, -700.0, 250.0 } } } };
+			const FVeyraWallShape Shape = VeyraLayout::WallShape(Layout, 0, EVeyraTeam::A);
+			const TArray<FVeyraTerrainBox> Boxes = Shape.Boxes();
+			ASSERT_THAT(AreEqual(Boxes.Num(), (Layout.Walls[0].Points.Num() - 1) * Layout.WallSamplesPerSegment));
+			double Thickest = 0.0;
+			for (const FVeyraCurveSample& Sample : Shape.Spine)
+			{
+				Thickest = FMath::Max(Thickest, Sample.Width);
+			}
+			const FBox2D Around(FVector2D(-2600.0, -1300.0), FVector2D(1200.0, 1000.0));
+			for (double X = Around.Min.X; X <= Around.Max.X; X += 37.0)
+			{
+				for (double Y = Around.Min.Y; Y <= Around.Max.Y; Y += 37.0)
+				{
+					const FVector2D Point(X, Y);
+					if (Shape.DepthInside(Point) > 0.0)
+					{
+						ASSERT_THAT(IsTrue(Boxes.ContainsByPredicate([&Point](const FVeyraTerrainBox& Box) { return Box.DistanceTo(Point) == 0.0; }),
+							*FString::Printf(TEXT("inside the ridge at %s but in no box"), *Point.ToString())));
+					}
+				}
+			}
+			const double SquareEnd = (UE_DOUBLE_SQRT_2 - 1.0) * Thickest / 2.0;
+			for (const FVeyraTerrainBox& Box : Boxes)
+			{
+				for (const FVector2D& Corner : Box.Corners())
+				{
+					ASSERT_THAT(IsTrue(Shape.DepthInside(Corner) >= -SquareEnd - Tolerance, *FString::Printf(TEXT("a box's corner at %s strays from the ridge"), *Corner.ToString())));
 				}
 			}
 		}
@@ -266,13 +313,18 @@ namespace VeyraWorldTests
 			FVeyraWorldTuning Broken = UVeyraWorldTuningSubsystem::Get();
 			const FVeyraMapPoint Camp = Broken.Wildlife.Camps[0].Center;
 			const double Edge = Broken.Layout.HalfExtent;
+			const FVeyraMapPoint River = RiverInTeamAsHalf();
+			const auto Straight = [](const FVector2D& Centre, double Width) {
+				return FVeyraWallLayout{ TEXT("Test"), { { Centre.X - 150.0, Centre.Y, Width }, { Centre.X + 150.0, Centre.Y, Width } } };
+			};
 			Broken.Layout.Walls = {
-				{ { 0.0, 0.0 }, 0.0, 300.0, 100.0 },         // across the dividing line
-				{ { -2000.0, -2000.0 }, 45.0, 300.0, 100.0 }, // on the mid lane
-				{ Camp, 0.0, 300.0, 100.0 },                  // on a camp
-				{ { -Edge, -1000.0 }, 0.0, 300.0, 100.0 },    // off the floor's edge
-				{ { -3000.0, -6000.0 }, 0.0, 0.0, 100.0 },    // no length
-				{ RiverInTeamAsHalf(), 0.0, 300.0, 100.0 },   // in the river's water
+				Straight({ 0.0, 0.0 }, 100.0),                 // across the dividing line
+				Straight({ -2000.0, -2000.0 }, 100.0),         // on the mid lane
+				Straight({ Camp.X, Camp.Y }, 100.0),           // on a camp
+				Straight({ -Edge, -1000.0 }, 100.0),           // off the floor's edge
+				{ TEXT("Test"), { { -3000.0, -6000.0, 0.0 }, { -2700.0, -6000.0, 0.0 } } }, // no width
+				Straight({ River.X, River.Y }, 100.0),         // in the river's water
+				{ TEXT("Test"), { { -3000.0, -4500.0, 100.0 }, { -2600.0, -4500.0, 100.0 }, { -3000.0, -4450.0, 100.0 } } }, // doubling back
 			};
 			Broken.Layout.WallHalfHeight = 0.0;
 			const TArray<FString> Problems = VeyraWorld::Validate(Broken);
@@ -283,10 +335,14 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/1: the wall must keep wallClearance from the EVeyraLane::Mid lane's road")), All));
 			ASSERT_THAT(IsTrue(Mentions(*FString::Printf(TEXT("/layout/walls/2: the wall must keep wallClearance from what stands at (%.0f, %.0f)"), Camp.X, Camp.Y)), All));
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/3: the wall must lie on the floor")), All));
-			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/4: a wall needs a length and a thickness")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/4: a wall needs at least two distinct points, each with a width above 0")), All));
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/5: the wall must keep wallClearance from the river's water")), All));
-		}
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/walls/6: the wall's curve must turn less than a right angle between samples")), All));
 
+			FVeyraWorldTuning Unsampled = UVeyraWorldTuningSubsystem::Get();
+			Unsampled.Layout.WallSamplesPerSegment = 0;
+			ASSERT_THAT(IsTrue(VeyraWorld::Validate(Unsampled).Contains(TEXT("/layout/wallSamplesPerSegment: walls need at least one sample a span"))));
+		}
 		TEST_METHOD(DenseFogLiesInTeamAsHalfAndTeamBsIsItsRotation)
 		{
 			// The battleground's bush (Battleground Bible §11): Team A's circles, then their rotations.

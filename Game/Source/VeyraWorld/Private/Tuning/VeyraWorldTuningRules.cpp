@@ -76,22 +76,93 @@ namespace
 			Keeps.Add({ VeyraLayout::ToVector(Fog.Center), Fog.Radius });
 		}
 
+		if (!Layout.Walls.IsEmpty() && Layout.WallSamplesPerSegment < 1)
+		{
+			Problems.Add(TEXT("/layout/wallSamplesPerSegment: walls need at least one sample a span"));
+			return;
+		}
+		const FVeyraRiverShape& River = VeyraRiver::ShapeOf(Layout);
 		for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
 		{
 			const FVeyraWallLayout& Entry = Layout.Walls[Index];
 			const FString Pointer = FString::Printf(TEXT("/layout/walls/%d"), Index);
-			if (Entry.Length <= 0.0 || Entry.Thickness <= 0.0)
+			bool bWellFormed = Entry.Points.Num() >= 2;
+			for (int32 Point = 0; Point < Entry.Points.Num() && bWellFormed; ++Point)
 			{
-				Problems.Add(Pointer + TEXT(": a wall needs a length and a thickness"));
+				const FVeyraWallPoint& Here = Entry.Points[Point];
+				bWellFormed = FMath::IsFinite(Here.X) && FMath::IsFinite(Here.Y) && FMath::IsFinite(Here.Width) && Here.Width > 0.0
+					&& (Point == 0 || FVector2D(Here.X, Here.Y) != FVector2D(Entry.Points[Point - 1].X, Entry.Points[Point - 1].Y));
+			}
+			if (!bWellFormed)
+			{
+				Problems.Add(Pointer + TEXT(": a wall needs at least two distinct points, each with a width above 0"));
 				continue;
 			}
-			const FVeyraTerrainBox Box = VeyraLayout::Wall(Entry, EVeyraTeam::A);
+			const FVeyraWallShape Shape = VeyraLayout::WallShape(Layout, Index, EVeyraTeam::A);
+			// Its boxes are mitred at each bend, which closes the bend's outside only while it turns less than a right angle.
+			bool bGentle = true;
+			for (int32 Sample = 1; Sample + 1 < Shape.Spine.Num() && bGentle; ++Sample)
+			{
+				const FVector2D In = (Shape.Spine[Sample].Point - Shape.Spine[Sample - 1].Point).GetSafeNormal();
+				const FVector2D Out = (Shape.Spine[Sample + 1].Point - Shape.Spine[Sample].Point).GetSafeNormal();
+				bGentle = FVector2D::DotProduct(In, Out) > 0.0;
+			}
+			if (!bGentle)
+			{
+				Problems.Add(Pointer + TEXT(": the wall's curve must turn less than a right angle between samples"));
+				continue;
+			}
+
+			// Each of its boxes, what stands for it in play, keeps the same clearances; each problem is told once.
 			bool bOnFloor = true;
 			bool bInTeamAsHalf = true;
-			for (const FVector2D& Corner : Box.Corners())
+			bool bDry = true;
+			TSet<FString> Told;
+			const auto Tell = [&](const FString& Problem) {
+				if (!Told.Contains(Problem))
+				{
+					Told.Add(Problem);
+					Problems.Add(Problem);
+				}
+			};
+			for (const FVeyraTerrainBox& Box : Shape.Boxes())
 			{
-				bOnFloor &= FMath::Abs(Corner.X) <= Layout.HalfExtent && FMath::Abs(Corner.Y) <= Layout.HalfExtent;
-				bInTeamAsHalf &= VeyraLayout::DepthInTeamAHalf(Layout, Corner) > 0.0;
+				for (const FVector2D& Corner : Box.Corners())
+				{
+					bOnFloor &= FMath::Abs(Corner.X) <= Layout.HalfExtent && FMath::Abs(Corner.Y) <= Layout.HalfExtent;
+					bInTeamAsHalf &= VeyraLayout::DepthInTeamAHalf(Layout, Corner) > 0.0;
+				}
+				for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+				{
+					for (int32 Point = 1; Point < Lane.Points.Num(); ++Point)
+					{
+						const double Apart = Box.DistanceToSegment(VeyraLayout::ToVector(Lane.Points[Point - 1]), VeyraLayout::ToVector(Lane.Points[Point]));
+						if (Apart < Lane.Width / 2.0 + Clearance)
+						{
+							Tell(Pointer + FString::Printf(TEXT(": the wall must keep wallClearance from the %s lane's road"), *UEnum::GetValueAsString(Lane.Lane)));
+							break;
+						}
+					}
+				}
+				for (const TPair<FVector2D, double>& Keep : Keeps)
+				{
+					if (Box.DistanceTo(Keep.Key) < Keep.Value + Clearance)
+					{
+						Tell(Pointer + FString::Printf(TEXT(": the wall must keep wallClearance from what stands at (%.0f, %.0f): a camp, a Flux Well, a structure, the fountain or Dense Fog"),
+							Keep.Key.X, Keep.Key.Y));
+					}
+				}
+				// The terrain field raises a ridge on every wall, which must stand on dry ground.
+				const FVector2D Across(-Box.Facing.Y, Box.Facing.X);
+				for (int32 Along = 0; Along <= WallProbeSteps && bDry; ++Along)
+				{
+					for (int32 Deep = 0; Deep <= WallProbeSteps && bDry; ++Deep)
+					{
+						const double U = (static_cast<double>(Along) / WallProbeSteps - 0.5) * Box.Length;
+						const double V = (static_cast<double>(Deep) / WallProbeSteps - 0.5) * Box.Thickness;
+						bDry = River.SignedDistance(Box.Centre + Across * U + Box.Facing * V) >= Clearance;
+					}
+				}
 			}
 			if (!bOnFloor)
 			{
@@ -101,46 +172,12 @@ namespace
 			{
 				Problems.Add(Pointer + TEXT(": the wall must lie wholly in Team A's half; Team B's is its rotation"));
 			}
-			for (const FVeyraLaneLayout& Lane : Layout.Lanes)
-			{
-				for (int32 Point = 1; Point < Lane.Points.Num(); ++Point)
-				{
-					const double Apart = Box.DistanceToSegment(VeyraLayout::ToVector(Lane.Points[Point - 1]), VeyraLayout::ToVector(Lane.Points[Point]));
-					if (Apart < Lane.Width / 2.0 + Clearance)
-					{
-						Problems.Add(Pointer + FString::Printf(TEXT(": the wall must keep wallClearance from the %s lane's road"), *UEnum::GetValueAsString(Lane.Lane)));
-						break;
-					}
-				}
-			}
-			for (const TPair<FVector2D, double>& Keep : Keeps)
-			{
-				if (Box.DistanceTo(Keep.Key) < Keep.Value + Clearance)
-				{
-					Problems.Add(Pointer + FString::Printf(TEXT(": the wall must keep wallClearance from what stands at (%.0f, %.0f): a camp, a Flux Well, a structure, the fountain or Dense Fog"),
-						Keep.Key.X, Keep.Key.Y));
-				}
-			}
-			// The terrain field raises a ridge on every wall, which must stand on dry ground.
-			const FVeyraRiverShape& River = VeyraRiver::ShapeOf(Layout);
-			const FVector2D Across(-Box.Facing.Y, Box.Facing.X);
-			bool bDry = true;
-			for (int32 Along = 0; Along <= WallProbeSteps && bDry; ++Along)
-			{
-				for (int32 Deep = 0; Deep <= WallProbeSteps && bDry; ++Deep)
-				{
-					const double U = (static_cast<double>(Along) / WallProbeSteps - 0.5) * Box.Length;
-					const double V = (static_cast<double>(Deep) / WallProbeSteps - 0.5) * Box.Thickness;
-					bDry = River.SignedDistance(Box.Centre + Across * U + Box.Facing * V) >= Clearance;
-				}
-			}
 			if (!bDry)
 			{
 				Problems.Add(Pointer + TEXT(": the wall must keep wallClearance from the river's water"));
 			}
 		}
 	}
-
 	/** The ground's levels (ADR-040 §3): finite, inside the surface search, in order, and their nominal slopes walkable. */
 	void ValidateTerrain(const FVeyraBattlegroundLayout& Layout, TArray<FString>& Problems)
 	{
@@ -166,6 +203,12 @@ namespace
 		if (!FMath::IsFinite(Terrain.LaneShoulder) || Terrain.LaneShoulder < 0.0 || !FMath::IsFinite(Terrain.WallFootingClearance) || Terrain.WallFootingClearance < 0.0)
 		{
 			Problems.Add(TEXT("/layout/terrain: laneShoulder and wallFootingClearance must be finite and at least 0"));
+		}
+		// The shore's shelf and a camp's clearing are shares of a run and a leash.
+		if (!FMath::IsFinite(Terrain.UnderwaterShelfShare) || Terrain.UnderwaterShelfShare <= 0.0 || Terrain.UnderwaterShelfShare > 1.0
+			|| !FMath::IsFinite(Terrain.ClearingCoreShare) || Terrain.ClearingCoreShare < 0.0 || !FMath::IsFinite(Terrain.ClearingFadeShare) || Terrain.ClearingFadeShare <= 0.0)
+		{
+			Problems.Add(TEXT("/layout/terrain: underwaterShelfShare must be above 0 and at most 1, clearingCoreShare at least 0 and clearingFadeShare above 0"));
 		}
 		if (Terrain.RidgeZ <= Terrain.JungleZ || Terrain.BoundaryZ <= Terrain.JungleZ || Terrain.IslandZ <= Layout.River.SurfaceZ)
 		{

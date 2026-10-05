@@ -121,30 +121,41 @@ struct FVeyraSurfaceTuning
 	double MaxSlopeDegrees = 0.0;
 };
 
+/** One control point of a wall's spine: where it passes, and how thick the wall is there. */
+USTRUCT()
+struct FVeyraWallPoint
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double X = 0.0;
+
+	UPROPERTY()
+	double Y = 0.0;
+
+	/** The wall's full thickness here, in units; above 0. */
+	UPROPERTY()
+	double Width = 0.0;
+};
+
 /**
- * One wall of Team A's half (ADR-043 §1): an oriented box of terrain standing on the floor, Length long
- * across the way it faces and Thickness deep along it. Team B's is its rotation. The terrain field raises a ridge on
- * it.
+ * One wall of Team A's half (ADR-043 §1, as amended 2026-10-05): a ridge of impassable terrain along a smooth curve
+ * through its points, as thick at each as its width, the thickness changing steadily between them and its ends rounded.
+ * Walls may overlap, so one massif can bend, branch and swell. Team B's is its rotation. The terrain field raises a
+ * ridge on it.
  */
 USTRUCT()
 struct FVeyraWallLayout
 {
 	GENERATED_BODY()
 
+	/** What designers call it; play never reads it. */
 	UPROPERTY()
-	FVeyraMapPoint Center;
+	FString Name;
 
-	/** The way it faces, in degrees from +X toward +Y. */
+	/** Its spine's control points, at least two, in order. */
 	UPROPERTY()
-	double Facing = 0.0;
-
-	/** In units; above 0. */
-	UPROPERTY()
-	double Length = 0.0;
-
-	/** In units; above 0. */
-	UPROPERTY()
-	double Thickness = 0.0;
+	TArray<FVeyraWallPoint> Points;
 };
 
 /**
@@ -187,6 +198,13 @@ struct FVeyraBattlegroundLayout
 	/** Team A's walls (ADR-043 §1); Team B's are their rotation. */
 	UPROPERTY()
 	TArray<FVeyraWallLayout> Walls;
+
+	/**
+	 * How finely each wall's curve is sampled between two of its points. What blocks and hides is one box to each
+	 * sample's span, so finer follows a curve closer with more boxes.
+	 */
+	UPROPERTY()
+	int32 WallSamplesPerSegment = 0;
 
 	/** Half of every wall's height, in units: taller than any body it blocks. */
 	UPROPERTY()
@@ -744,7 +762,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 6;
+	static constexpr int32 SchemaVersion = 7;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;

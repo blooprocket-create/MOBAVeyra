@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "VeyraWorldBuild.h"
+#include "Algo/MaxElement.h"
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
@@ -173,6 +174,15 @@ namespace VeyraWorldBuild
 		if (!Layout.DenseFog.IsEmpty())
 		{
 			Play(TEXT("DenseFog"), VeyraLayout::ToVector(Layout.DenseFog[0].Center));
+		}
+		// Each of Team A's walls where it is thickest, as a player meets it.
+		for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
+		{
+			const FVeyraWallShape Wall = VeyraLayout::WallShape(Layout, Index, EVeyraTeam::A);
+			if (const FVeyraCurveSample* Thickest = Algo::MaxElementBy(Wall.Spine, &FVeyraCurveSample::Width))
+			{
+				Play(FString::Printf(TEXT("Wall_%02d"), Index), Thickest->Point);
+			}
 		}
 		// The camp farthest from the centre: the outer jungle, and the densest foliage to benchmark.
 		const FVeyraCampTuning* Outer = nullptr;

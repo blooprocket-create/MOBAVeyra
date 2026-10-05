@@ -14,37 +14,27 @@ namespace
 		return Clamped * Clamped * (3.0 - 2.0 * Clamped);
 	}
 
-	/** Under the water, the bed rises to the waterline over this share of a bank's run: the shore's underwater shelf. */
-	constexpr double UnderwaterShelfShare = 0.25;
-
-	/** How much of a camp's leash radius stays level as its clearing, and how far beyond it the ground returns. */
-	constexpr double ClearingCoreShare = 0.5;
-	constexpr double ClearingFadeShare = 0.8;
-
-	/** A ridge's crest swells over a shorter span than the jungle does. */
-	constexpr double CrestWavelengthShare = 0.35;
 
 	/** Offsets the relief's noise by its seed: any fixed irrational-looking step keeps seeds apart. */
 	const FVector2D SeedStep(17.31, -9.77);
 
-	/** How deep inside Box Point lies, from its nearest edge: negative outside it. */
-	double DepthInside(const FVeyraTerrainBox& Box, const FVector2D& Point)
-	{
-		const FVector2D Local = Point - Box.Centre;
-		const FVector2D Across(-Box.Facing.Y, Box.Facing.X);
-		const double Inside = FMath::Min(Box.Thickness / 2.0 - FMath::Abs(FVector2D::DotProduct(Local, Box.Facing)),
-			Box.Length / 2.0 - FMath::Abs(FVector2D::DotProduct(Local, Across)));
-		return Inside > 0.0 ? Inside : -Box.DistanceTo(Point);
-	}
 }
 
 FVeyraTerrainField::FVeyraTerrainField(const FVeyraWorldTuning& InTuning, const FVeyraTerrainRelief& InRelief)
 	: Tuning(InTuning)
 	, Relief(InRelief)
 	, River(VeyraRiver::ShapeOf(InTuning.Layout))
-	, Walls(VeyraLayout::Walls(InTuning.Layout))
+	, Walls(VeyraLayout::WallShapes(InTuning.Layout))
 {
 	const FVeyraBattlegroundLayout& Layout = Tuning.Layout;
+	for (const FVeyraWallShape& Wall : Walls)
+	{
+		FBox2D& Bounds = WallBounds.Add_GetRef(FBox2D(ForceInit));
+		for (const FVeyraCurveSample& Sample : Wall.Spine)
+		{
+			Bounds += FBox2D(Sample.Point - FVector2D(Sample.Width / 2.0), Sample.Point + FVector2D(Sample.Width / 2.0));
+		}
+	}
 	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
 	{
 		Pads.Add(VeyraLayout::ForTeam(VeyraLayout::ToVector(Layout.Base.PrimeWell), Team));
@@ -81,8 +71,8 @@ double FVeyraTerrainField::Ground(const FVector2D& Point, FVeyraTerrainSample& O
 	double Swell = 1.0;
 	for (const TPair<FVector2D, double>& Clearing : Clearings)
 	{
-		const double Beyond = FVector2D::Distance(Point, Clearing.Key) - Clearing.Value * ClearingCoreShare;
-		Swell = FMath::Min(Swell, Smooth(Beyond / (Clearing.Value * ClearingFadeShare)));
+		const double Beyond = FVector2D::Distance(Point, Clearing.Key) - Clearing.Value * Terrain.ClearingCoreShare;
+		Swell = FMath::Min(Swell, Smooth(Beyond / (Clearing.Value * Terrain.ClearingFadeShare)));
 	}
 	const double Jungle = Terrain.JungleZ + Swell * ReliefAt(Point, Relief.Wavelength, Relief.Amplitude);
 
@@ -126,7 +116,7 @@ FVeyraTerrainSample FVeyraTerrainField::Sample(const FVector2D& Point) const
 	Out.WaterDistance = River.SignedDistance(Point);
 	if (Out.WaterDistance < 0.0)
 	{
-		const double Shelf = Terrain.BankWidth * UnderwaterShelfShare;
+		const double Shelf = Terrain.BankWidth * Terrain.UnderwaterShelfShare;
 		Height = FMath::Lerp(Water.BedZ, Water.SurfaceZ, Smooth((Out.WaterDistance + Shelf) / Shelf));
 	}
 	else
@@ -138,14 +128,17 @@ FVeyraTerrainSample FVeyraTerrainField::Sample(const FVector2D& Point) const
 	// rises within the wall's footprint, so all of it stands inside the wall's collision and the ground around a wall
 	// stays as walkable as it was.
 	double Inside = -TNumericLimits<double>::Max();
-	for (const FVeyraTerrainBox& Wall : Walls)
+	for (int32 Index = 0; Index < Walls.Num(); ++Index)
 	{
-		Inside = FMath::Max(Inside, DepthInside(Wall, Point));
+		if (WallBounds[Index].IsInside(Point))
+		{
+			Inside = FMath::Max(Inside, Walls[Index].DepthInside(Point));
+		}
 	}
 	Out.Ridge = Smooth(Inside / Terrain.RidgeSkirt);
 	if (Out.Ridge > 0.0)
 	{
-		const double Crest = Terrain.RidgeZ + ReliefAt(Point, Relief.Wavelength * CrestWavelengthShare, Relief.CrestAmplitude);
+		const double Crest = Terrain.RidgeZ + ReliefAt(Point, Relief.Wavelength * Relief.CrestWavelengthShare, Relief.CrestAmplitude);
 		Height = FMath::Lerp(Height, Crest, Out.Ridge);
 	}
 
