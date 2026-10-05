@@ -7,6 +7,6 @@
   "Category": "Veyra",
   "CanContainContent": false,
   "EnabledByDefault": true,
-  "Modules": [{ "Name": "VeyraWorldTools", "Type": "Editor", "LoadingPhase": "PostEngineInit" }],
+  "Modules": [{ "Name": "VeyraWorldTools", "Type": "Editor", "LoadingPhase": "Default" }],
   "Plugins": [{ "Name": "PCG", "Enabled": true }]
 }

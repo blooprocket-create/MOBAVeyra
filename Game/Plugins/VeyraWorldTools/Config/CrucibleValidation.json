@@ -1,0 +1,40 @@
+{
+  "description": "The Crucible's navigation, collision and fairness checks (ADR-040; World Validation Standard gates 6, 7 and 8), run by Game/Scripts/ValidateBattleground.ps1 on the generated map with the server's own structures and walls. Routes are named by Team A's anchors; Team B walks each one's half-turn rotation, with the same navigation agent. Anchors: Fountain, PrimeWell, BaseTower.<index>, Spire.<lane>.<order> (0 outermost), Inhibitor.<lane>, Camp.<species>, FluxWell.<site>, Crossing.<lane> (where the lane runs deepest into the river). Tolerances are provisional review values (Battleground Bible §2 terrain fairness): a failure is a finding to fix in the layout or the generator, not a number to widen.",
+  "provenance": "Provisional",
+  "map": "/Game/Veyra/World/Maps/L_Battleground",
+  "report": "Saved/WorldGeneration/Validation.json",
+  "anchorReach": 600,
+  "groundSampleSpacing": 50,
+  "terrainSampleSpacing": 200,
+  "tolerances": {
+    "routeLengthFraction": 0.02,
+    "routeLengthUnits": 100,
+    "climbUnits": 40,
+    "heightUnits": 4,
+    "laneDetourFraction": 0.12
+  },
+  "routes": [
+    { "from": "Fountain", "to": "Spire.Top.0" },
+    { "from": "Fountain", "to": "Spire.Mid.0" },
+    { "from": "Fountain", "to": "Spire.Bottom.0" },
+    { "from": "Fountain", "to": "Camp.ashfang" },
+    { "from": "Fountain", "to": "Camp.stonehorn" },
+    { "from": "Fountain", "to": "Camp.skittermaw" },
+    { "from": "Fountain", "to": "Camp.miremother" },
+    { "from": "Fountain", "to": "Camp.razorback" },
+    { "from": "Fountain", "to": "Camp.gloomwing" },
+    { "from": "Fountain", "to": "FluxWell.0" },
+    { "from": "Fountain", "to": "FluxWell.1" },
+    { "from": "Spire.Top.0", "to": "Crossing.Top" },
+    { "from": "Spire.Mid.0", "to": "Crossing.Mid" },
+    { "from": "Spire.Bottom.0", "to": "Crossing.Bottom" },
+    { "from": "Spire.Top.0", "to": "FluxWell.0" },
+    { "from": "Spire.Mid.0", "to": "FluxWell.0" },
+    { "from": "Spire.Mid.0", "to": "FluxWell.1" },
+    { "from": "Spire.Bottom.0", "to": "FluxWell.1" },
+    { "from": "Crossing.Top", "to": "FluxWell.0" },
+    { "from": "Crossing.Bottom", "to": "FluxWell.1" },
+    { "from": "Camp.ashfang", "to": "FluxWell.0" },
+    { "from": "Camp.skittermaw", "to": "FluxWell.1" }
+  ]
+}

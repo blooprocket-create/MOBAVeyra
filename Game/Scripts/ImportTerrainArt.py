@@ -23,6 +23,7 @@ SAVED = GAME / "Saved" / "TerrainArt"
 DEST = "/Game/Veyra/World/Environment/Terrain"
 PROFILE_PATH = SOURCE / "TerrainTextures.json"
 PROFILE = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+LOOK = PROFILE["material"]
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
 assert MANIFEST["profileSha256"] == hashlib.sha256(PROFILE_PATH.read_bytes()).hexdigest(), "Regenerate the textures after profile changes."
 
@@ -121,8 +122,8 @@ def build_material(textures):
     vertex_normal = g.node(unreal.MaterialExpressionVertexNormalWS, 0)
     up = g.node(unreal.MaterialExpressionComponentMask, 1, r=False, g=False, b=True, a=False)
     g.link(vertex_normal, "", up, "")
-    steep_from = g.scalar(2, "CliffNormalZFull", 0.62, "Cliffs")
-    steep_to = g.scalar(2, "CliffNormalZNone", 0.82, "Cliffs")
+    steep_from = g.scalar(2, "CliffNormalZFull", LOOK["cliffNormalZFull"], "Cliffs")
+    steep_to = g.scalar(2, "CliffNormalZNone", LOOK["cliffNormalZNone"], "Cliffs")
     flatness = g.node(unreal.MaterialExpressionSmoothStep, 3)
     g.link(steep_from, "", flatness, "Min")
     g.link(steep_to, "", flatness, "Max")
@@ -153,7 +154,7 @@ def build_material(textures):
     rock_normal = g.node(unreal.MaterialExpressionLinearInterpolate, 7)
     g.link(slate["normal"], "RGB", rock_normal, "A")
     g.link(flat_normal, "", rock_normal, "B")
-    softened = g.scalar(6, "CliffNormalFlatten", 0.5, "Cliffs")
+    softened = g.scalar(6, "CliffNormalFlatten", LOOK["cliffNormalFlatten"], "Cliffs")
     g.link(softened, "", rock_normal, "Alpha")
     normal_out = g.node(unreal.MaterialExpressionLinearInterpolate, 8)
     g.link(blends["Normal"], "", normal_out, "A")
@@ -168,16 +169,16 @@ def build_material(textures):
     macro_tile = g.scalar(2, "MacroTileSize", PROFILE["macroTileMetres"] * 100.0, "Variation")
     macro_uv = g.op(unreal.MaterialExpressionDivide, 3, plan, macro_tile)
     macro = sample(g, 4, textures["T_Crucible_Macro"], macro_uv, unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
-    dark = g.scalar(6, "MacroDarkest", 0.82, "Variation")
-    light = g.scalar(6, "MacroBrightest", 1.12, "Variation")
+    dark = g.scalar(6, "MacroDarkest", LOOK["macroDarkest"], "Variation")
+    light = g.scalar(6, "MacroBrightest", LOOK["macroBrightest"], "Variation")
     brightness = g.node(unreal.MaterialExpressionLinearInterpolate, 7)
     g.link(dark, "", brightness, "A")
     g.link(light, "", brightness, "B")
     g.link(macro, "R", brightness, "Alpha")
     cool = g.node(unreal.MaterialExpressionVectorParameter, 6, parameter_name="MacroCool", group="Variation",
-                  default_value=unreal.LinearColor(0.94, 1.0, 1.04, 1.0))
+                  default_value=unreal.LinearColor(*LOOK["macroCool"], 1.0))
     warm = g.node(unreal.MaterialExpressionVectorParameter, 6, parameter_name="MacroWarm", group="Variation",
-                  default_value=unreal.LinearColor(1.06, 1.0, 0.92, 1.0))
+                  default_value=unreal.LinearColor(*LOOK["macroWarm"], 1.0))
     tint = g.node(unreal.MaterialExpressionLinearInterpolate, 7)
     g.link(cool, "RGB", tint, "A")
     g.link(warm, "RGB", tint, "B")
@@ -210,8 +211,8 @@ def build_material(textures):
     g.link(water_level, "", dryness, "Min")
     g.link(wet_top, "", dryness, "Max")
     g.link(height, "", dryness, "Value")
-    wet_darkening = g.scalar(8, "WetDarkening", 0.62, "Water")
-    wet_roughness = g.scalar(8, "WetRoughness", 0.22, "Water")
+    wet_darkening = g.scalar(8, "WetDarkening", LOOK["wetDarkening"], "Water")
+    wet_roughness = g.scalar(8, "WetRoughness", LOOK["wetRoughness"], "Water")
     darkening = g.node(unreal.MaterialExpressionLinearInterpolate, 9)
     g.link(wet_darkening, "", darkening, "A")
     one = g.node(unreal.MaterialExpressionConstant, 8, r=1.0)

@@ -26,7 +26,9 @@ class UNetDriver;
  * enemy's cast has hit its own Vanguard, asks the server to end the match (ADR-007 §8) and waits for
  * the end; with -VeyraSmokeWaitForEnd it only waits for the end. It logs "VeyraSmoke: PASS" or
  * "VeyraSmoke: FAIL", which is its result, and quits; with -VeyraSmokeStay=<seconds> a passing client
- * stays connected that long first. A failed connection or travel fails it at once.
+ * stays connected that long first. A failed connection or travel fails it at once. With -VeyraSmokeFrameTimes a client
+ * that stays records each frame's time, game-thread, render-thread and GPU time while it stays, and logs their median,
+ * 95th and 99th percentiles before it quits (World Validation Standard §23).
  *
  * With -VeyraSmokeKit it plays any Vanguard's whole kit instead of one Q:
  * - it takes developer levels up to the first ultimate rank and ranks every ability (ADR-008 §6);
@@ -146,6 +148,20 @@ private:
 	double CastRange = 0.0;
 	double PausedRealTime = 0.0;
 	double StaySeconds = 0.0;
+
+	/** -VeyraSmokeFrameTimes: each frame's times while the client stays, in milliseconds. */
+	struct FFrameTimes
+	{
+		TArray<double> Frame;
+		TArray<double> Game;
+		TArray<double> Render;
+		TArray<double> Gpu;
+	};
+	bool bMeasureFrames = false;
+	FFrameTimes FrameTimes;
+	FTSTicker::FDelegateHandle FrameHandle;
+	void RecordFrame(float DeltaSeconds);
+	void LogFrameTimes() const;
 	TWeakObjectPtr<const AVeyraPlayerState> Enemy;
 	FTSTicker::FDelegateHandle TickHandle;
 };

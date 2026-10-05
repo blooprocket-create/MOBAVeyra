@@ -127,11 +127,8 @@ namespace VeyraWorldBuild
 		Instance->PostEditChange();
 		Ground->LandscapeMaterial = Instance;
 
-		// The painted layers. Every layer keeps the least weight a weightmap holds everywhere, so none is ever unused in a
-		// component: dropping an unused layer's weightmap re-merges the Landscape through a render path the pinned engine
-		// crashes on in a commandlet world (ADR-040; the engine stays unmodified). A 1/255 share is invisible.
+		// The painted layers. Cliff is never painted: the material lays rock on whatever is steep.
 		const TArray<FName> Names = { TEXT("Jungle"), TEXT("Lane"), TEXT("Bank"), TEXT("Cliff") };
-		constexpr int32 Least = 1;
 		TArray<FLandscapeImportLayerInfo> Layers;
 		for (const FName& Name : Names)
 		{
@@ -164,17 +161,23 @@ namespace VeyraWorldBuild
 				// the rim and the vista stay jungle, overgrown; the material lays rock on whatever is steep.
 				const double Bank = 1.0 - Smooth(Sample.WaterDistance / BankBand);
 				const double Road = (1.0 - Bank) * FMath::Max(Sample.Road, Sample.Pad);
-				const int32 Spare = 255 - Least * static_cast<int32>(Names.Num());
-				const int32 B = FMath::Clamp(FMath::RoundToInt(Bank * Spare), 0, Spare);
-				const int32 R = FMath::Clamp(FMath::RoundToInt(Road * Spare), 0, Spare - B);
-				Layers[0].LayerData[Index] = static_cast<uint8>(Least + Spare - B - R);
-				Layers[1].LayerData[Index] = static_cast<uint8>(Least + R);
-				Layers[2].LayerData[Index] = static_cast<uint8>(Least + B);
-				Layers[3].LayerData[Index] = static_cast<uint8>(Least);
+				const int32 B = FMath::Clamp(FMath::RoundToInt(Bank * 255.0), 0, 255);
+				const int32 R = FMath::Clamp(FMath::RoundToInt(Road * 255.0), 0, 255 - B);
+				Layers[0].LayerData[Index] = static_cast<uint8>(255 - B - R);
+				Layers[1].LayerData[Index] = static_cast<uint8>(R);
+				Layers[2].LayerData[Index] = static_cast<uint8>(B);
+				Layers[3].LayerData[Index] = 0;
 			}
 		}
 		TMap<FGuid, TArray<uint16>> HeightData;
 		HeightData.Add(FGuid(), MoveTemp(Heights));
+		// The Landscape knows its layers before they are painted. Import registers the components before it declares their
+		// layers, and the engine's fix-up treats a weightmap of a layer the Landscape does not know as unused: it deletes it
+		// and re-merges every component through a render path the pinned engine crashes on in a commandlet world.
+		for (const FLandscapeImportLayerInfo& Layer : Layers)
+		{
+			Ground->AddTargetLayer(Layer.LayerName, FLandscapeTargetLayerSettings(Layer.LayerInfo), /*bPostEditChange*/ false);
+		}
 		TMap<FGuid, TArray<FLandscapeImportLayerInfo>> LayerData;
 		LayerData.Add(FGuid(), MoveTemp(Layers));
 		// The same Landscape identity every generation, from the profile's seed, so regenerating changes only what changed.

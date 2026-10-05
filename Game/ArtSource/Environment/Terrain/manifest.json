@@ -1,5 +1,5 @@
 {
-  "profileSha256": "1172167db9859eddf7b3737ccf55fa140587acd404fae8a1ff850ae694f6f4ff",
+  "profileSha256": "5d5075501013a32c48bb464dd460f7009b2e5937f5f9ebc23b27da45008f5e22",
   "size": 2048,
   "files": [
     {
@@ -24,19 +24,19 @@
       "name": "T_Crucible_Moss_BaseColor.png",
       "layer": "Moss",
       "tileMetres": 5.0,
-      "sha256": "75f03f09b3ee29100879971442cce343152e1439c5c96e0a1e99cbad06de0466"
+      "sha256": "c22919f1c102258a48aef32d4674ad2a4e17ae52dbd90e2f5124ac3f8098ede5"
     },
     {
       "name": "T_Crucible_Moss_Normal.png",
       "layer": "Moss",
       "tileMetres": 5.0,
-      "sha256": "0b80133d9589f7d4902a33418516f363b9b06521450840bcfdec425e4382d433"
+      "sha256": "139df6103de09143d10b62c935afabdf6d139f68cd68928fa3517fc197f35a93"
     },
     {
       "name": "T_Crucible_Moss_ORMH.png",
       "layer": "Moss",
       "tileMetres": 5.0,
-      "sha256": "fcd85a8683fb193528d429ecd8f0d30933100227935f94d2f4ed3b6fef22558c"
+      "sha256": "d9974d1a6a8da5fff6ea8660fbb4538bba0699412185f3d76519acc841e745ce"
     },
     {
       "name": "T_Crucible_Shore_BaseColor.png",

@@ -65,7 +65,8 @@
     "vistaTreeSpacing": 950,
     "jungle": [
       { "family": "Shrub", "spacing": 650, "chance": 0.42, "radius": 110, "scale": [0.75, 1.25], "sink": 10 },
-      { "family": "Fern", "spacing": 380, "chance": 0.45, "radius": 70, "scale": [0.8, 1.25], "sink": 2 },
+      { "family": "Fern", "spacing": 300, "chance": 0.5, "radius": 70, "scale": [0.8, 1.25], "sink": 2 },
+      { "family": "Grass", "spacing": 200, "chance": 0.6, "radius": 50, "scale": [1.0, 1.5], "sink": 1 },
       { "family": "Boulder", "spacing": 1100, "chance": 0.3, "radius": 120, "scale": [0.55, 1.05], "sink": 25 }
     ],
     "shoreClearance": 120,
@@ -79,6 +80,8 @@
     "ruinChance": 0.4,
     "ruinOffset": 260,
     "steleRing": 110,
+    "steleCount": 3,
+    "steleJitterRadians": 0.3,
     "basePillarSpacing": 1100,
     "basePillarInset": 260
   }}

@@ -4,6 +4,7 @@
   "seed": 48173,
   "size": 2048,
   "macroTileMetres": 60.0,
+  "material": { "description": "M_CrucibleTerrain's look: its large-scale variation, where the ground is steep enough for rock, and the water's edge.", "macroDarkest": 0.82, "macroBrightest": 1.12, "macroCool": [0.94, 1.0, 1.04], "macroWarm": [1.06, 1.0, 0.92], "cliffNormalZFull": 0.62, "cliffNormalZNone": 0.82, "cliffNormalFlatten": 0.5, "wetDarkening": 0.68, "wetRoughness": 0.38 },
   "overgrowth": { "description": "Moss patches over paving and pads, where the variation map's third channel runs high.", "from": 0.58, "to": 0.72, "strength": 0.5 },
   "water": {
     "description": "The river's look (M_CrucibleWater, Single Layer Water): a clear teal that reads as water even where it is shallow, its ripples flowing downstream, foam along the shore.",
@@ -44,7 +45,9 @@
       "moss": [0.14, 0.21, 0.085],
       "mossLight": [0.29, 0.34, 0.15],
       "litter": [0.40, 0.26, 0.12],
-      "mossCover": 0.5,
+      "mossCover": 0.74,
+      "litterShare": 0.15,
+      "litterStrength": 0.55,
       "roughness": [0.86, 0.97],
       "normalStrength": 2.2
     },

@@ -161,10 +161,11 @@ def moss(spec, size, rng):
     moss_col = moss_col * (0.75 + 0.35 * cushions[..., None] + 0.15 * fine[..., None])
     albedo = mix(soil, moss_col, moss_mask)
     litter_f1, _, litter_ids = cellular(size, 80, rng, stretch=(1.0, 2.4))
-    litter = (1.0 - smoothstep(0.1, 0.2, litter_f1)) * (per_cell(litter_ids, 80, rng, 1.0) > 0.1)
+    # Leaf litter on a share of the cells: per_cell spreads -1..1, so the share keeps the cells above 1 - 2 * share.
+    litter = (1.0 - smoothstep(0.1, 0.2, litter_f1)) * (per_cell(litter_ids, 80, rng, 1.0) > 1.0 - 2.0 * spec["litterShare"])
     litter = litter * (1 - moss_mask * 0.75)
     leaf = np.asarray(spec["litter"])[None, None, :] * (1.0 + per_cell(litter_ids, 80, rng, 0.45)[..., None])
-    albedo = mix(albedo, leaf, litter * 0.9)
+    albedo = mix(albedo, leaf, litter * spec["litterStrength"])
     stones_f1, _, stone_ids = cellular(size, 24, rng)
     stones = np.sqrt(np.clip(1 - (stones_f1 / 0.22) ** 2, 0, 1)) * (per_cell(stone_ids, 24, rng, 1.0) > 0.6) * (1 - moss_mask)
     albedo = mix(albedo, np.asarray([0.36, 0.34, 0.30])[None, None, :] * (0.7 + 0.4 * stones[..., None]), smoothstep(0.0, 0.2, stones))

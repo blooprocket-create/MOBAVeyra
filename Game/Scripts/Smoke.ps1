@@ -188,6 +188,11 @@
 .PARAMETER Screenshot
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
     With -Flow, the client renders in a window and saves each screen it passes, as Flow-<screen>.png.
+.PARAMETER PerfSeconds
+    Without -Flow or -Handoff: the second client renders at 1920x1080 in a window, uncapped, and
+    stays this long in the match after its script, recording each frame. Its median, 95th and 99th
+    percentile frame, game-thread, render-thread and GPU times are printed at the end (World
+    Validation Standard §23). Run it on the machine whose numbers you report.
 .PARAMETER MatchDisplay
     With -Flow: how a rendering client's match takes the screen (UVeyraDisplaySettings). Windowed by
     default, so smoke runs never cover the screen; BorderlessFullscreen or Fullscreen checks that the
@@ -262,6 +267,9 @@ param(
 
     [switch]$Screenshot,
 
+    [ValidateRange(0, 600)]
+    [int]$PerfSeconds = 0,
+
     [ValidateSet('Windowed', 'BorderlessFullscreen', 'Fullscreen')]
     [string]$MatchDisplay = 'Windowed',
 
@@ -299,6 +307,8 @@ $SmokeVanguard = 'test_vanguard'
 # -Screenshot: the rendering client's window, and how long it stays after its script so the
 # screenshot it asked for is drawn and saved.
 $ScreenshotWindow = @('-windowed', '-ResX=1280', '-ResY=720')
+# -PerfSeconds: the measured client's window, and its frame rate left uncapped.
+$PerfWindow = @('-windowed', '-ResX=1920', '-ResY=1080', '-ExecCmds="t.MaxFPS 0,r.VSync 0"')
 $ScreenshotStaySeconds = 5
 $ScreenshotName = 'Greybox.png'
 $SlotKeys = 'q', 'w', 'e', 'r'
@@ -336,6 +346,10 @@ if ($PlayingBots -gt 0) {
 # The editor server's map and options; compose.yaml gives the container the same ones.
 $MapUrl = $(if ($Map -eq 'Battleground') { '/Game/Veyra/World/Maps/L_Battleground' } else { '/Game/Veyra/Developer/Maps/L_Greybox' })
 $EditorServerArguments = @("${MapUrl}?VeyraExpectedPlayers=$clientCount$urlOptions",'-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
+if ($PerfSeconds -gt 0 -and ($Flow -or $Handoff)) {
+    Write-Host '-PerfSeconds measures a direct match; not with -Flow or -Handoff.'
+    exit $ExitInfrastructure
+}
 if ($Flow -and $PSBoundParameters.ContainsKey('Map')) {
     Write-Host '-Flow always plays on the battleground; -Map applies to direct and -Handoff matches.'
     exit $ExitInfrastructure
@@ -1238,8 +1252,9 @@ Write-Host 'The server is ready.'
 
 $screenshotPath = Join-Path $reportDir $ScreenshotName
 $clientProcesses = foreach ($index in 1..$clientCount) {
-    # With -Screenshot the second client renders; the first, which checks the pause, stays headless.
-    $renders = $Screenshot -and $index -eq 2
+    # With -Screenshot or -PerfSeconds the second client renders; the first, which checks the pause, stays headless.
+    $measures = $PerfSeconds -gt 0 -and $index -eq 2
+    $renders = ($Screenshot -or $measures) -and $index -eq 2
     $clientArguments = $clientPrefix + @(
         '-VeyraSmoke'
         "-VeyraVanguard=$(if ($kitMode) { $Vanguards[$index - 1] } else { $SmokeVanguard })"
@@ -1248,14 +1263,17 @@ $clientProcesses = foreach ($index in 1..$clientCount) {
         '-unattended'
         "-ABSLOG=`"$(Join-Path $reportDir "Client$index.log")`""
     )
-    $clientArguments += $(if ($renders) { $ScreenshotWindow + "-VeyraSmokeScreenshot=`"$screenshotPath`"" } else { '-nullrhi' })
+    $clientArguments += $(if ($measures) { $PerfWindow + '-VeyraSmokeFrameTimes' } elseif ($renders) { $ScreenshotWindow } else { @('-nullrhi') })
+    if ($renders -and $Screenshot) {
+        $clientArguments += "-VeyraSmokeScreenshot=`"$screenshotPath`""
+    }
     if ($kitMode) {
         $clientArguments += '-VeyraSmokeKit'
     }
     elseif ($index -eq 1) {
         $clientArguments += '-VeyraSmokePause'
     }
-    $stay = $(if ($renders) { [Math]::Max($ClientStaySeconds, $ScreenshotStaySeconds) } else { $ClientStaySeconds })
+    $stay = $(if ($measures) { [Math]::Max($ClientStaySeconds, $PerfSeconds) } elseif ($renders) { [Math]::Max($ClientStaySeconds, $ScreenshotStaySeconds) } else { $ClientStaySeconds })
     if ($stay -gt 0) {
         $clientArguments += "-VeyraSmokeStay=$stay"
     }
@@ -1266,7 +1284,7 @@ $clientProcesses = foreach ($index in 1..$clientCount) {
 
 $failed = $false
 foreach ($process in $clientProcesses) {
-    if (-not $process.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes) + [TimeSpan]::FromSeconds([Math]::Max($ClientStaySeconds, $ScreenshotStaySeconds)))) {
+    if (-not $process.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes) + [TimeSpan]::FromSeconds([Math]::Max([Math]::Max($ClientStaySeconds, $ScreenshotStaySeconds), $PerfSeconds)))) {
         $process.Kill($true)
         $failed = $true
     }
@@ -1283,6 +1301,16 @@ foreach ($process in $clientProcesses) {
     Write-Host ("Client {0}: exit code {1}; {2}" -f $index, $(if ($process.HasExited) { $process.ExitCode } else { 'killed' }), $(if ($verdict) { $verdict.Matches[0].Value } else { 'no verdict logged' }))
     if (-not $process.HasExited -or $process.ExitCode -ne 0 -or -not $verdict -or $verdict.Matches[0].Value -notmatch 'PASS') {
         $failed = $true
+    }
+    if ($PerfSeconds -gt 0 -and $index -eq 2) {
+        $frames = if (Test-Path -LiteralPath $log) { Select-String -LiteralPath $log -Pattern 'VeyraSmoke: frame times .*' | Select-Object -Last 1 } else { $null }
+        if ($frames) {
+            Write-Host "Client ${index}: $($frames.Matches[0].Value)"
+        }
+        else {
+            Write-Host "Client $index logged no frame times."
+            $failed = $true
+        }
     }
     # The grey-box presentation logs an error and stays off when its settings or assets are missing,
     # as in a package that did not cook them (ADR-008 §1).

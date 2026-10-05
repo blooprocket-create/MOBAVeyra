@@ -306,7 +306,7 @@ namespace VeyraWorldBuild
 		const int32 Seed = static_cast<int32>(Style.GetNumberField(TEXT("seed")));
 		const double Timeout = Style.GetNumberField(TEXT("pcgTimeoutSeconds"));
 		TMap<FString, TArray<UStaticMesh*>> Kit;
-		for (const TCHAR* Family : { TEXT("Cliff"), TEXT("Boulder"), TEXT("Pillar"), TEXT("Block"), TEXT("Stele"), TEXT("Tree"), TEXT("Shrub"), TEXT("Fern"), TEXT("Reeds") })
+		for (const TCHAR* Family : { TEXT("Cliff"), TEXT("Boulder"), TEXT("Pillar"), TEXT("Block"), TEXT("Stele"), TEXT("Tree"), TEXT("Shrub"), TEXT("Fern"), TEXT("Reeds"), TEXT("Grass") })
 		{
 			TArray<UStaticMesh*> Meshes = Variants(Family);
 			if (Meshes.IsEmpty())
@@ -408,7 +408,7 @@ namespace VeyraWorldBuild
 			});
 		}
 
-		// The jungle's floor: shrubs, ferns and boulders, only where dressing may stand and the ground is jungle.
+		// The jungle's floor: shrubs, ferns, grass and boulders, only where dressing may stand and the ground is jungle.
 		{
 			FRandomStream Random(Seed + 3);
 			for (const TSharedPtr<FJsonValue>& Value : Profile.GetArrayField(TEXT("jungle")))
@@ -519,19 +519,25 @@ namespace VeyraWorldBuild
 				FRegion& Into = Random.FRand() < 0.65 ? Pillars : Blocks;
 				Dress.Place(Into, Random, Kit[Into.Family].Num(), Spot, FMath::RadiansToDegrees(Angle) + 90.0, FVector(Random.FRandRange(0.95, 1.25)), 0.0);
 			}
+			// Steles round each Well: one of each pair of sites the half turn swaps, since Place sets the other's. The
+			// sites may stand on the line between the halves, so the pair, not the half, decides which.
 			const double Ring = Tuning.FluxWells.Radius + Dress.Number(TEXT("steleRing"));
+			const int32 SteleCount = static_cast<int32>(Dress.Number(TEXT("steleCount")));
+			const double SteleJitter = Dress.Number(TEXT("steleJitterRadians"));
+			TArray<FVector2D> Dressed;
 			for (const FVeyraMapPoint& Site : Tuning.FluxWells.Sites)
 			{
 				const FVector2D Well = VeyraLayout::ToVector(Site);
-				if (VeyraLayout::DepthInTeamAHalf(Layout, Well) <= 0.0)
+				if (Dressed.ContainsByPredicate([&Well](const FVector2D& Other) { return Other.Equals(VeyraLayout::Rotate(Well), 1.0); }))
 				{
 					continue;
 				}
-				for (int32 Index = 0; Index < 3; ++Index)
+				Dressed.Add(Well);
+				for (int32 Index = 0; Index < SteleCount; ++Index)
 				{
-					const double Angle = UE_TWO_PI * Index / 3.0 + Random.FRandRange(-0.3, 0.3);
+					const double Angle = UE_TWO_PI * Index / SteleCount + Random.FRandRange(-SteleJitter, SteleJitter);
 					const FVector2D Spot = Well + FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)) * Ring;
-					if (Dress.River.SignedDistance(Spot) < 80.0)
+					if (Dress.River.SignedDistance(Spot) < Dress.Number(TEXT("shoreClearance")))
 					{
 						continue;
 					}

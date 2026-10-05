@@ -72,6 +72,12 @@ public:
 
 	const TArray<TObjectPtr<AVeyraStructure>>& GetStructures() const { return Structures; }
 
+	/**
+	 * Server: raises the layout's walls as terrain, for the whole match. SpawnStructures does this; world validation
+	 * raises them alone, to measure routes on the server's own ground (ADR-040).
+	 */
+	void RaiseWalls(const FVeyraBattlegroundLayout& InLayout);
+
 	/** The layout the structures were spawned from, whose lanes the Fluxborn walk; null before they spawn. */
 	const FVeyraBattlegroundLayout* GetLayout() const { return Layout.GetPtrOrNull(); }
 
@@ -139,8 +145,6 @@ public:
 	void UpdateBackdoorProtection(double Seconds);
 
 private:
-	/** Server: raises the layout's walls as terrain, for the whole match. */
-	void RaiseWalls(const FVeyraBattlegroundLayout& InLayout);
 
 	void OnDeath(const FVeyraDeathEvent& Death);
 	void OnFluxbornDied(AVeyraFluxborn& Fluxborn, const FVeyraDeathEvent& Death);
