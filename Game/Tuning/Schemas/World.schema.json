@@ -20,7 +20,7 @@
         "laneShoulder": { "description": "How far beside a road the ground stays at the road's level.", "type": "number", "minimum": 0 },
         "jungleRise": { "description": "The run over which ground climbs from a road, a pad or a clearing to the jungle.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "bankWidth": { "description": "The run from the water's edge to the top of its bank.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "ridgeSkirt": { "description": "The run of a ridge's cliff face beyond its wall.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "ridgeSkirt": { "description": "The run of a ridge's cliff face, rising from its wall's edge inward: the whole cliff stands within the wall.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "boundaryZ": { "description": "The rim beyond the floor's edge.", "type": "number", "minimum": -1000000 },
         "boundaryWidth": { "description": "The run of the rim's face.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "wallFootingClearance": { "description": "How far a wall's collision reaches below the lowest ground under it.", "type": "number", "minimum": 0 }

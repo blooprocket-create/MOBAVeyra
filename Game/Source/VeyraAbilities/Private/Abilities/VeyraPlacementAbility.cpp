@@ -53,9 +53,9 @@ FVeyraChannelPlan UVeyraPlacementAbility::Deliver(const FVeyraCast& Cast)
 	{
 		Last->EndMarker(EVeyraMarkerEndReason::Replaced);
 	}
-	// On the ground nearest its point, standing as its caster stands (ADR-031 §4).
-	const FVector Ground = VeyraCombat::NearestGround(*World, Cast.Point);
-	const FTransform Where(Body->GetActorRotation(), FVector(Ground.X, Ground.Y, Body->GetActorLocation().Z));
+	// On the ground nearest its point, standing as its caster stands (ADR-031 §4): the point is as high above its ground
+	// as the caster's body is above the caster's, and stays so (ADR-040 §4).
+	const FTransform Where(Body->GetActorRotation(), VeyraCombat::NearestGround(*World, Cast.Point));
 	FVeyraMarkerSpec Spec;
 	Spec.Id = Cast.Ability;
 	Spec.LifetimeSeconds = Placement->Marker.LifetimeSeconds;

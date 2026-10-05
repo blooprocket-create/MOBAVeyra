@@ -17,6 +17,7 @@
 #include "Structures/VeyraStructure.h"
 #include "Structures/VeyraStructureAttackComponent.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraGround.h"
 #include "Terrain/VeyraRuntimeTerrain.h"
 #include "Terrain/VeyraTerrainSubsystem.h"
 #include "TimerManager.h"
@@ -130,17 +131,36 @@ void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InL
 	int32 Raised = 0;
 	for (const FVeyraTerrainBox& Box : VeyraLayout::Walls(InLayout))
 	{
-		FVeyraWallRequest Request;
-		// Standing on the floor.
-		if (!VeyraSurfacePlacement::Resolve(*GetWorld(), Box.Centre, InLayout.WallHalfHeight, InLayout.Surface, Request.Centre))
+		// It stands on uneven ground, a ridge's cliff within it (ADR-040 §3): it reaches from below the lowest ground
+		// under it, so nothing passes beneath at its foot, to its height above the highest, so nothing stands on it.
+		const FVector2D Across(-Box.Facing.Y, Box.Facing.X);
+		TOptional<FVector2D> Heights;
+		for (int32 Along = -1; Along <= 1; ++Along)
+		{
+			for (int32 Deep = -1; Deep <= 1; ++Deep)
+			{
+				const FVector2D Point = Box.Centre + Across * (Along * Box.Length / 2.0) + Box.Facing * (Deep * Box.Thickness / 2.0);
+				FHitResult Ground;
+				if (VeyraGround::Find(*GetWorld(), Point, InLayout.Surface.MaxZ, InLayout.Surface.MinZ, Ground))
+				{
+					const double Z = Ground.ImpactPoint.Z;
+					Heights = Heights.IsSet() ? FVector2D(FMath::Min(Heights->X, Z), FMath::Max(Heights->Y, Z)) : FVector2D(Z, Z);
+				}
+			}
+		}
+		if (!Heights.IsSet())
 		{
 			UE_LOG(LogVeyraWorld, Error, TEXT("Map wall has no playable surface at %s."), *Box.Centre.ToString());
 			continue;
 		}
+		const double Bottom = Heights->X - InLayout.Terrain.WallFootingClearance;
+		const double Top = Heights->Y + InLayout.WallHalfHeight * 2.0;
+		FVeyraWallRequest Request;
+		Request.Centre = FVector(Box.Centre, (Bottom + Top) / 2.0);
 		Request.Facing = FVector(Box.Facing, 0.0);
 		Request.Length = Box.Length;
 		Request.Thickness = Box.Thickness;
-		Request.HalfHeight = InLayout.WallHalfHeight;
+		Request.HalfHeight = (Top - Bottom) / 2.0;
 		Raised += Terrain && Terrain->RaiseMapWall(Request) != 0 ? 1 : 0;
 	}
 	if (Raised > 0)

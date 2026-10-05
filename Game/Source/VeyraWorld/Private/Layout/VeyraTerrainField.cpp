@@ -26,6 +26,16 @@ namespace
 
 	/** Offsets the relief's noise by its seed: any fixed irrational-looking step keeps seeds apart. */
 	const FVector2D SeedStep(17.31, -9.77);
+
+	/** How deep inside Box Point lies, from its nearest edge: negative outside it. */
+	double DepthInside(const FVeyraTerrainBox& Box, const FVector2D& Point)
+	{
+		const FVector2D Local = Point - Box.Centre;
+		const FVector2D Across(-Box.Facing.Y, Box.Facing.X);
+		const double Inside = FMath::Min(Box.Thickness / 2.0 - FMath::Abs(FVector2D::DotProduct(Local, Box.Facing)),
+			Box.Length / 2.0 - FMath::Abs(FVector2D::DotProduct(Local, Across)));
+		return Inside > 0.0 ? Inside : -Box.DistanceTo(Point);
+	}
 }
 
 FVeyraTerrainField::FVeyraTerrainField(const FVeyraWorldTuning& InTuning, const FVeyraTerrainRelief& InRelief)
@@ -124,17 +134,19 @@ FVeyraTerrainSample FVeyraTerrainField::Sample(const FVector2D& Point) const
 		Height = FMath::Lerp(Water.SurfaceZ, Height, Smooth(Out.WaterDistance / Terrain.BankWidth));
 	}
 
-	// A ridge on every wall, raised after the river cut its banks so a wall by the water keeps its cliff.
-	double FromWall = TNumericLimits<double>::Max();
+	// A ridge on every wall, raised after the river cut its banks so a wall by the water keeps its cliff. Its cliff
+	// rises within the wall's footprint, so all of it stands inside the wall's collision and the ground around a wall
+	// stays as walkable as it was.
+	double Inside = -TNumericLimits<double>::Max();
 	for (const FVeyraTerrainBox& Wall : Walls)
 	{
-		FromWall = FMath::Min(FromWall, Wall.DistanceTo(Point));
+		Inside = FMath::Max(Inside, DepthInside(Wall, Point));
 	}
-	Out.Ridge = 1.0 - Smooth(FromWall / Terrain.RidgeSkirt);
+	Out.Ridge = Smooth(Inside / Terrain.RidgeSkirt);
 	if (Out.Ridge > 0.0)
 	{
 		const double Crest = Terrain.RidgeZ + ReliefAt(Point, Relief.Wavelength * CrestWavelengthShare, Relief.CrestAmplitude);
-		Height = FMath::Lerp(Crest, Height, Smooth(FromWall / Terrain.RidgeSkirt));
+		Height = FMath::Lerp(Height, Crest, Out.Ridge);
 	}
 
 	// The rim beyond the floor's edge, open where the river runs through it.

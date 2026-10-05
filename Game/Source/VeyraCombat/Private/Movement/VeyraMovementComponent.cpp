@@ -16,6 +16,7 @@
 #include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraGround.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
@@ -462,7 +463,8 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 	}
 
 	// Terrain stops the path where the body last fits (§9). The body is swept raised by what it could
-	// step up, so the floor and small steps do not stop it; only static geometry does, not units.
+	// step up, so small steps do not stop it; only static geometry does, not units. The ground is not
+	// static geometry (ADR-040 §4): slopes never stop a path; the end of walkable ground does, below.
 	const float Radius = Capsule->GetScaledCapsuleRadius();
 	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
 	const float Lift = FMath::Min(MaxStepHeight, 2.0f * (HalfHeight - Radius));
@@ -497,15 +499,18 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 				*bOutStopped = true;
 			}
 		}
+		// The end stands on the ground there, as high above it as the body stands above its own, however far the
+		// ground rises or falls from the start.
+		End = VeyraGround::Carried(*World, Start, FVector2D(End));
 		const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
 		FNavLocation Walkable;
 		if (!Navigation->ProjectPointToNavigation(End - ToFeet, Walkable, FVector(Extent), NavData))
 		{
 			return Start;
 		}
-		End = FVector(Walkable.Location.X, Walkable.Location.Y, End.Z);
+		return VeyraGround::Carried(*World, Start, FVector2D(Walkable.Location));
 	}
-	return End;
+	return VeyraGround::Carried(*World, Start, FVector2D(End));
 }
 
 bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& Facing)
@@ -515,21 +520,23 @@ bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& F
 		return false;
 	}
 	const FVector From = UpdatedComponent->GetComponentLocation();
-	// Terrain between does not stop a blink; its end must be ground the body may stand on (§9).
-	FVector End(Destination.X, Destination.Y, UpdatedComponent->GetComponentLocation().Z);
+	// Terrain between does not stop a blink; its end must be ground the body may stand on (§9), however
+	// far it rises or falls from where the blink began (ADR-040 §4).
+	const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
+	const double HalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 0.0;
+	FVector End = VeyraGround::Carried(*GetWorld(), From, FVector2D(Destination));
 	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 	const ANavigationData* NavData = Navigation ? Navigation->GetDefaultNavDataInstance() : nullptr;
 	if (NavData)
 	{
-		const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
-		const FVector ToFeet(0.0, 0.0, Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 0.0);
+		const FVector ToFeet(0.0, 0.0, HalfHeight);
 		const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
 		FNavLocation Walkable;
 		if (!Navigation->ProjectPointToNavigation(End - ToFeet, Walkable, FVector(Extent), NavData))
 		{
 			return false;
 		}
-		End = FVector(Walkable.Location.X, Walkable.Location.Y, End.Z);
+		End = VeyraGround::Carried(*GetWorld(), From, FVector2D(Walkable.Location));
 	}
 	const FRotator Rotation = Facing.IsNearlyZero() ? CharacterOwner->GetActorRotation() : Facing.GetSafeNormal2D().Rotation();
 	if (!CharacterOwner->TeleportTo(End, Rotation))
@@ -598,12 +605,26 @@ void UVeyraMovementComponent::AdvanceForcedMove(float DeltaTime)
 		return;
 	}
 	// The path was cleared of terrain when it was planned, and forced movement passes through units,
-	// so the body moves along it without sweeping.
+	// so the body moves along it without sweeping. It covers the ground's plan at its speed and stands
+	// on the ground as it goes, up a slope or down into the river (ADR-040 §4).
 	const FVector Current = UpdatedComponent->GetComponentLocation();
 	const FVector ToEnd = ForcedMove->Destination - Current;
 	const double Step = ForcedMove->Speed * DeltaTime;
-	const bool bArrives = ToEnd.Size() <= Step;
-	FVector Next = bArrives ? ForcedMove->Destination : Current + ToEnd.GetSafeNormal() * Step;
+	const bool bArrives = ToEnd.Size2D() <= Step;
+	FVector Next = ForcedMove->Destination;
+	if (!bArrives)
+	{
+		const FVector Along = Current + ToEnd.GetSafeNormal2D() * Step;
+		// Short of arriving, the plan's remaining run is longer than this step, so above 0.
+		const double Share = Step / ToEnd.Size2D();
+		// As high above the ground there as the body is above its own; where there is no ground, the body keeps to
+		// the straight line between the path's ends.
+		const FVector OnLine(Along.X, Along.Y, Current.Z + ToEnd.Z * Share);
+		FVector Here;
+		FVector There;
+		const bool bOverGround = VeyraGround::Under(*GetWorld(), Current, Here) && VeyraGround::Under(*GetWorld(), OnLine, There);
+		Next = bOverGround ? There + FVector::UpVector * (Current.Z - Here.Z) : OnLine;
+	}
 
 	AActor* Contact = nullptr;
 	if (ForcedMove->Mode == EVeyraCustomMovementMode::Dashing && ForcedMove->Contact == EVeyraDashContact::StopAtFirstEnemy)

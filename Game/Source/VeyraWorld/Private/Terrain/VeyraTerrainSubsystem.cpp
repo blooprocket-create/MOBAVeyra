@@ -101,8 +101,9 @@ void UVeyraTerrainSubsystem::MoveOut(const FVeyraWallRequest& Request) const
 		const double Along = FVector::DotProduct(Here - Request.Centre, Facing);
 		const double Side = Along >= 0.0 ? 1.0 : -1.0;
 		const FVector Out = Here + Facing * (Side * (Request.Thickness / 2.0 + Radius + ClearanceUnits) - Along);
+		// Standing on the ground there, as high above it as the body stood above its own (ADR-040 §4).
 		const FVector Ground = VeyraCombat::NearestGround(World, Out);
-		Unit->TeleportTo(FVector(Ground.X, Ground.Y, Here.Z), Unit->GetActorRotation(), /*bIsATest*/ false, /*bNoCheck*/ true);
+		Unit->TeleportTo(Ground, Unit->GetActorRotation(), /*bIsATest*/ false, /*bNoCheck*/ true);
 		UE_LOG(LogVeyraWorld, Verbose, TEXT("A wall formed on %s, which moves out to %s."), *GetNameSafe(Unit), *Unit->GetActorLocation().ToString());
 	}
 }

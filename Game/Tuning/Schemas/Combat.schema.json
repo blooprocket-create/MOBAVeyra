@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "killCredit", "structures", "crit", "critBag", "attackSpeed", "pursuit", "tethers"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "ground", "crowdControl", "combatState", "attribution", "killCredit", "structures", "crit", "critBag", "attackSpeed", "pursuit", "tethers"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [6]
+      "enum": [7]
     },
     "resistance": {
       "description": "Armor and Magic Resistance mitigation (Combat Bible §3).",
@@ -114,6 +114,25 @@
         },
         "navigationExtent": {
           "description": "How far, in units and in each direction, the end of a forced movement may be moved to reach walkable ground. With none that close, the unit stays where it is.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "ground": {
+      "description": "The playable ground (ADR-040 §4): where a point's ground is looked for, around the height of the body or point it is asked for.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "searchHeight"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives no number, so it was drafted for playtesting.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "searchHeight": {
+          "description": "How far above and below a body or a point its ground is looked for, in units: more than the battleground's tallest climb between two points a unit can be moved between.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true

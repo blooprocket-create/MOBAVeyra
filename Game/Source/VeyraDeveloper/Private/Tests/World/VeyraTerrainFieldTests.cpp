@@ -106,7 +106,8 @@ namespace VeyraWorldTests
 
 		TEST_METHOD(WalkedGroundIsWalkable)
 		{
-			// Everywhere on the floor but a ridge's cliff, every slope is gentler than the surface allows a unit to stand on.
+			// Everywhere on the floor outside the walls, whose ridges' cliffs stand within them, every slope is gentler than
+			// the surface allows a unit to stand on.
 			const FVeyraWorldTuning& Tuning = Committed();
 			const FVeyraTerrainField Field(Tuning);
 			const double MaxSlope = Tuning.Layout.Surface.MaxSlopeDegrees;
@@ -114,7 +115,7 @@ namespace VeyraWorldTests
 			double Steepest = 0.0;
 			ForEachProbe(-SlopeSpan, [&](const FVector2D& Point) {
 				const bool bByARidge = Walls.ContainsByPredicate([&](const FVeyraTerrainBox& Wall) {
-					return Wall.DistanceTo(Point) < Tuning.Layout.Terrain.RidgeSkirt + SlopeSpan;
+					return Wall.DistanceTo(Point) < SlopeSpan;
 				});
 				if (bByARidge)
 				{

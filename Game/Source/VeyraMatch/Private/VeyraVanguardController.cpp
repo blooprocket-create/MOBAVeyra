@@ -15,19 +15,28 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Shapes/VeyraShapes.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraGround.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraMatchLog.h"
 
 namespace
 {
-	/** The walkable point nearest Destination within the tuned projection extent, if there is one. */
+	/**
+	 * The walkable point nearest Destination within the tuned projection extent, if there is one. A destination given
+	 * at some other height than its ground's, as a bot's spot at its own, is taken to the ground there first (ADR-040 §4).
+	 */
 	TOptional<FVector> ProjectOrderDestination(const UWorld* World, const FVector& Destination)
 	{
 		const FVeyraOrdersTuning& Orders = UVeyraMatchTuningSubsystem::Get().Orders;
 		const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+		FVector OnGround = Destination;
+		if (World)
+		{
+			VeyraGround::Under(*World, Destination, OnGround);
+		}
 		FNavLocation Walkable;
-		if (!Navigation || !Navigation->ProjectPointToNavigation(Destination, Walkable, FVector(Orders.DestinationProjectionExtent)))
+		if (!Navigation || !Navigation->ProjectPointToNavigation(OnGround, Walkable, FVector(Orders.DestinationProjectionExtent)))
 		{
 			return {};
 		}

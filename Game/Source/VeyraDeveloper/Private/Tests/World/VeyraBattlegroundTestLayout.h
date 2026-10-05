@@ -5,6 +5,8 @@
 #include "Components/BoxComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "Movement/VeyraUnitCollision.h"
+#include "Terrain/VeyraGround.h"
 #include "Tuning/VeyraWorldTuning.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 
@@ -48,11 +50,9 @@ namespace VeyraWorldTests
 		UBoxComponent* Box = NewObject<UBoxComponent>(Floor);
 		Floor->SetRootComponent(Box);
 		Box->SetBoxExtent(FVector(HalfExtent, HalfExtent, 50.0));
-		Box->SetCollisionObjectType(ECC_WorldStatic);
-		Box->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		Box->SetCollisionResponseToAllChannels(ECR_Block);
+		VeyraGround::MakeGround(*Box);
 		// These rule fixtures query ground but intentionally place combatants at arbitrary heights.
-		Box->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		VeyraUnitCollision::SetResponseToUnits(*Box, ECR_Ignore);
 		Box->RegisterComponent();
 		Floor->SetActorLocation(FVector(0.0, 0.0, -50.0));
 	}

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "resistance": {
     "mitigationConstant": 100
   },
@@ -21,6 +21,10 @@
   "forcedMovement": {
     "provenance": "Provisional",
     "navigationExtent": 100
+  },
+  "ground": {
+    "provenance": "Provisional",
+    "searchHeight": 3000
   },
   "crowdControl": {
     "provenance": "Canon",

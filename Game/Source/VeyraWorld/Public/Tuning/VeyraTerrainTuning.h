@@ -111,7 +111,7 @@ struct FVeyraTerrainTuning
 	UPROPERTY()
 	double BankWidth = 0.0;
 
-	/** The run of a ridge's cliff face beyond the wall it stands for. */
+	/** The run of a ridge's cliff face, rising from its wall's edge inward: the whole cliff stands within the wall. */
 	UPROPERTY()
 	double RidgeSkirt = 0.0;
 
