@@ -53,26 +53,26 @@
     "lanes": [
       {
         "lane": "Top",
-        "points": [{ "x": -2300, "y": -6500 }, { "x": 6500, "y": -6500 }, { "x": 6500, "y": 2300 }],
+        "points": [{ "x": -3700, "y": -6500 }, { "x": 6500, "y": -6500 }, { "x": 6500, "y": 3700 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [1200, 3200, 5500],
+        "spireDistances": [2600, 4600, 6900],
         "fluxbornSpawnDistance": 350
       },
       {
         "lane": "Mid",
-        "points": [{ "x": -3530, "y": -3530 }, { "x": 3530, "y": 3530 }],
+        "points": [{ "x": -4520, "y": -4520 }, { "x": 4520, "y": 4520 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [1000, 2200, 3400],
+        "spireDistances": [2400, 3600, 4800],
         "fluxbornSpawnDistance": 350
       },
       {
         "lane": "Bottom",
-        "points": [{ "x": -6500, "y": -2300 }, { "x": -6500, "y": 6500 }, { "x": 2300, "y": 6500 }],
+        "points": [{ "x": -6500, "y": -3700 }, { "x": -6500, "y": 6500 }, { "x": 3700, "y": 6500 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [1200, 3200, 5500],
+        "spireDistances": [2600, 4600, 6900],
         "fluxbornSpawnDistance": 350
       }
     ],
@@ -80,7 +80,7 @@
       "primeWell": { "x": -6500, "y": -6500 },
       "baseTowers": [{ "x": -5758, "y": -6252 }, { "x": -6252, "y": -5758 }],
       "fountain": { "x": -7800, "y": -7800 },
-      "padRadius": 4200,
+      "padRadius": 3100,
       "fountainRadius": 700
     },
     "denseFog": [

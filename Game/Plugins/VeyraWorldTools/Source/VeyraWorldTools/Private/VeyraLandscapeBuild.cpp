@@ -127,7 +127,11 @@ namespace VeyraWorldBuild
 		Instance->PostEditChange();
 		Ground->LandscapeMaterial = Instance;
 
+		// The painted layers. Every layer keeps the least weight a weightmap holds everywhere, so none is ever unused in a
+		// component: dropping an unused layer's weightmap re-merges the Landscape through a render path the pinned engine
+		// crashes on in a commandlet world (ADR-040; the engine stays unmodified). A 1/255 share is invisible.
 		const TArray<FName> Names = { TEXT("Jungle"), TEXT("Lane"), TEXT("Bank"), TEXT("Cliff") };
+		constexpr int32 Least = 1;
 		TArray<FLandscapeImportLayerInfo> Layers;
 		for (const FName& Name : Names)
 		{
@@ -156,18 +160,17 @@ namespace VeyraWorldBuild
 				const double Beyond = FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) - Rim;
 				const double Vista = Beyond > 0.0 ? Sample.Rim * Smooth(Beyond / VistaRise) * VistaAmplitude * Ridged(Point, VistaWavelength, Relief.Seed) : 0.0;
 				Heights[Index] = LandscapeDataAccess::GetTexHeight((Sample.Height + Vista) / ZScale);
-				// Weights in order of precedence: rock beyond the rim, then the water's shore, then roads and pads, the jungle
-				// the rest. Ridge and rim tops stay jungle, overgrown; the material lays rock on whatever is steep.
-				const double Cliff = Beyond > 0.0 ? Sample.Rim * Smooth(Beyond / VistaRise) : 0.0;
-				const double Bank = (1.0 - Cliff) * (1.0 - Smooth(Sample.WaterDistance / BankBand));
-				const double Road = (1.0 - Cliff - Bank) * FMath::Max(Sample.Road, Sample.Pad);
-				const uint8 C = static_cast<uint8>(FMath::RoundToInt(Cliff * 255.0));
-				const uint8 B = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(Bank * 255.0), 0, 255 - C));
-				const uint8 R = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(Road * 255.0), 0, 255 - C - B));
-				Layers[0].LayerData[Index] = 255 - C - B - R;
-				Layers[1].LayerData[Index] = R;
-				Layers[2].LayerData[Index] = B;
-				Layers[3].LayerData[Index] = C;
+				// Weights in order of precedence: the water's shore, then roads and pads, the jungle the rest. Ridge tops,
+				// the rim and the vista stay jungle, overgrown; the material lays rock on whatever is steep.
+				const double Bank = 1.0 - Smooth(Sample.WaterDistance / BankBand);
+				const double Road = (1.0 - Bank) * FMath::Max(Sample.Road, Sample.Pad);
+				const int32 Spare = 255 - Least * static_cast<int32>(Names.Num());
+				const int32 B = FMath::Clamp(FMath::RoundToInt(Bank * Spare), 0, Spare);
+				const int32 R = FMath::Clamp(FMath::RoundToInt(Road * Spare), 0, Spare - B);
+				Layers[0].LayerData[Index] = static_cast<uint8>(Least + Spare - B - R);
+				Layers[1].LayerData[Index] = static_cast<uint8>(Least + R);
+				Layers[2].LayerData[Index] = static_cast<uint8>(Least + B);
+				Layers[3].LayerData[Index] = static_cast<uint8>(Least);
 			}
 		}
 		TMap<FGuid, TArray<uint16>> HeightData;

@@ -34,6 +34,6 @@ $script = Join-Path $PSScriptRoot 'ImportEnvironmentMeshes.py'
 $log = Join-Path $saved 'Import.log'
 $validation = Join-Path $saved 'unreal-validation.json'
 if (Test-Path -LiteralPath $validation) { Remove-Item -LiteralPath $validation }
-& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" *> (Join-Path $saved 'Import-console.log')
+& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-AllowCommandletRendering' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" *> (Join-Path $saved 'Import-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $validation)) { throw "Environment import failed. See $log" }
 Write-Host "Environment meshes imported and validated. Preview and validation: $saved"

@@ -10,7 +10,12 @@ import hashlib
 import json
 from pathlib import Path
 
+import sys
+
 import unreal
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from veyra_material_graph import Graph, link_named, sample  # noqa: E402
 
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Environment" / "Terrain"
@@ -65,41 +70,6 @@ def import_texture(entry):
     return texture
 
 
-class Graph:
-    """A small helper over MaterialEditingLibrary that lays nodes out in columns."""
-
-    def __init__(self, material):
-        self.material = material
-        self.rows = {}
-
-    def node(self, cls, column, **props):
-        row = self.rows.get(column, 0)
-        self.rows[column] = row + 1
-        expression = EDIT.create_material_expression(self.material, cls, -2200 + column * 320, -1200 + row * 140)
-        for key, value in props.items():
-            expression.set_editor_property(key, value)
-        return expression
-
-    def scalar(self, column, name, value, group):
-        return self.node(unreal.MaterialExpressionScalarParameter, column, parameter_name=name, default_value=value, group=group)
-
-    def link(self, source, output, target, input_name):
-        assert EDIT.connect_material_expressions(source, output, target, input_name), f"{output} -> {input_name}"
-
-    def op(self, cls, column, a, b, a_out="", b_out=""):
-        expression = self.node(cls, column)
-        self.link(a, a_out, expression, "A")
-        self.link(b, b_out, expression, "B")
-        return expression
-
-
-def sample(graph, column, texture, uv, sampler_type):
-    expression = graph.node(unreal.MaterialExpressionTextureSample, column, texture=texture, sampler_type=sampler_type,
-                            sampler_source=unreal.SamplerSourceMode.SSM_WRAP_WORLD_GROUP_SETTINGS)
-    graph.link(uv, "", expression, "UVs")
-    return expression
-
-
 def build_material(textures):
     path = f"{DEST}/M_CrucibleTerrain"
     material = unreal.load_asset(path) if ASSETS.does_asset_exist(path) else None
@@ -131,6 +101,7 @@ def build_material(textures):
 
     specs = {layer["id"]: layer for layer in PROFILE["layers"]}
     slate = {}
+    bases = {}
     for name, layer in LANDSCAPE_LAYERS:
         tile = g.scalar(2, f"{layer}TileSize", specs[layer]["tileMetres"] * 100.0, "Tiling")
         uv = g.op(unreal.MaterialExpressionDivide, 3, plan, tile)
@@ -138,6 +109,7 @@ def build_material(textures):
         normal = sample(g, 4, textures[f"T_Crucible_{layer}_Normal"], uv, unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
         orm = sample(g, 4, textures[f"T_Crucible_{layer}_ORMH"], uv, unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
         g.link(base, "RGB", blends["BaseColor"], f"Layer {name}")
+        bases[layer] = base
         g.link(normal, "RGB", blends["Normal"], f"Layer {name}")
         g.link(orm, "RGB", blends["ORMH"], f"Layer {name}")
         for blend in blends.values():
@@ -213,6 +185,23 @@ def build_material(textures):
     varied = g.op(unreal.MaterialExpressionMultiply, 9, painted_and_rock, brightness)
     varied = g.op(unreal.MaterialExpressionMultiply, 9, varied, tint)
 
+    # Overgrowth: patches of moss over the old paving and the pads, from the variation map's third channel, so a
+    # broad stretch of stone never shows its tiling.
+    overgrowth = PROFILE["overgrowth"]
+    grow_from = g.scalar(8, "OvergrowthFrom", overgrowth["from"], "Variation")
+    grow_to = g.scalar(8, "OvergrowthTo", overgrowth["to"], "Variation")
+    patches = g.node(unreal.MaterialExpressionSmoothStep, 9)
+    g.link(grow_from, "", patches, "Min")
+    g.link(grow_to, "", patches, "Max")
+    g.link(macro, "B", patches, "Value")
+    strength = g.scalar(9, "OvergrowthStrength", overgrowth["strength"], "Variation")
+    patches = g.op(unreal.MaterialExpressionMultiply, 10, patches, strength)
+    overgrown = g.node(unreal.MaterialExpressionLinearInterpolate, 10)
+    g.link(varied, "", overgrown, "A")
+    g.link(bases["Moss"], "RGB", overgrown, "B")
+    g.link(patches, "", overgrown, "Alpha")
+    varied = overgrown
+
     # The water's edge: darker and glossier ground up to a band above the river's surface.
     water_level = g.scalar(6, "WaterLevel", 0.0, "Water")
     wet_band = g.scalar(6, "WetBand", 60.0, "Water")
@@ -246,14 +235,6 @@ def build_material(textures):
     assert not errors, f"{material.get_name()} does not compile: {errors}"
     ASSETS.save_loaded_asset(material)
     return material
-
-
-def link_named(g, source, output, target, names):
-    """Links to the first of `names` the target answers to: custom outputs name pins by property or display name."""
-    for name in names:
-        if EDIT.connect_material_expressions(source, output, target, name):
-            return
-    raise AssertionError(f"none of {names}")
 
 
 def build_water(textures):

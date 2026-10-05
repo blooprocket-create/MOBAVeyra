@@ -1,318 +1,609 @@
 {
-  "generator": "GenerateEnvironmentMeshes.v1",
+  "generator": "GenerateEnvironmentMeshes.v2",
   "blender": "5.2.1 LTS",
   "seed": 48173,
-  "profileSha256": "21cdca4385c8adf7449927b1b43348e26eb47720fab31a3e4739e2e20994c5d4",
+  "profileSha256": "a4ab402cc6093615243eb2082453982bf30373a3fd483dfe54ff492f17fcdaaa",
   "collision": "None; gameplay terrain is owned by World.json and VeyraWorld",
   "assets": [
     {
-      "name": "SM_Crucible_Riverstone_00",
-      "family": "Riverstone",
-      "seed": 48173,
-      "file": "FBX/SM_Crucible_Riverstone_00.fbx",
-      "sha256": "a9514b25629735af46da0c114258da7a4a10e14195ecad0847b79eeba56bbb44",
-      "geometrySha256": "30e4f7d5e625af6b7fb918feaf5007e7738c132e548586e206c78e90e0e647cc",
-      "triangles": 772,
-      "dimensionsCm": [
-        228.467,
-        147.337,
-        95.0
-      ],
-      "materialSlots": [
-        "M_Veyra_Riverstone"
-      ],
-      "uvChannels": 2
-    },
-    {
-      "name": "SM_Crucible_Riverstone_01",
-      "family": "Riverstone",
-      "seed": 48174,
-      "file": "FBX/SM_Crucible_Riverstone_01.fbx",
-      "sha256": "7e703026cc1b7c0f9ab9f8d68a893d7564f3e1d57b7a747570777820a353c62f",
-      "geometrySha256": "c89ed93f83b68ce6f8de72af1f6f8dd4bd1747276fadde8dd325a1439fa5d3b9",
-      "triangles": 878,
-      "dimensionsCm": [
-        227.671,
-        150.472,
-        95.0
-      ],
-      "materialSlots": [
-        "M_Veyra_Riverstone"
-      ],
-      "uvChannels": 2
-    },
-    {
-      "name": "SM_Crucible_Riverstone_02",
-      "family": "Riverstone",
-      "seed": 48175,
-      "file": "FBX/SM_Crucible_Riverstone_02.fbx",
-      "sha256": "54e837dca47a1f4599c1066d2246a4d27eecad9b72cf63a76bb22c9b074b5442",
-      "geometrySha256": "8ef716b9db1b2bd1c8f8db11a7e32a6029db015fa2aa50550b2776bf140cbd98",
-      "triangles": 794,
-      "dimensionsCm": [
-        223.132,
-        128.586,
-        95.0
-      ],
-      "materialSlots": [
-        "M_Veyra_Riverstone"
-      ],
-      "uvChannels": 2
-    },
-    {
-      "name": "SM_Crucible_Riverstone_03",
-      "family": "Riverstone",
-      "seed": 48176,
-      "file": "FBX/SM_Crucible_Riverstone_03.fbx",
-      "sha256": "3dc20969af71553313271ee69c1853abc74d4d08616aa1d9f231dd3a0cc820d1",
-      "geometrySha256": "45f97f4c2aa6eb6c47def457238413f2a15c598e92bb265dc582b5fbdabb8637",
-      "triangles": 888,
-      "dimensionsCm": [
-        231.61,
-        143.415,
-        95.0
-      ],
-      "materialSlots": [
-        "M_Veyra_Riverstone"
-      ],
-      "uvChannels": 2
-    },
-    {
-      "name": "SM_Crucible_Shelf_00",
-      "family": "Shelf",
-      "seed": 48273,
-      "file": "FBX/SM_Crucible_Shelf_00.fbx",
-      "sha256": "af4365beca665c5f9c36216769f867fc6c1853494b8d83e0e3a76263bf184ab9",
-      "geometrySha256": "2c40a8433370841e036f88db654b6ba04db3357abaccf0cf575edea4933c5e63",
-      "triangles": 680,
-      "dimensionsCm": [
-        488.372,
-        243.937,
-        280.0
-      ],
-      "materialSlots": [
-        "M_Veyra_WeatheredStone"
-      ],
-      "uvChannels": 2
-    },
-    {
-      "name": "SM_Crucible_Shelf_01",
-      "family": "Shelf",
-      "seed": 48274,
-      "file": "FBX/SM_Crucible_Shelf_01.fbx",
-      "sha256": "a1dc3a2df57b1b8470e8c4237611e7282ae94982ff17951db39627ff3c71512b",
-      "geometrySha256": "7b84311c1c9f4a4b82301367f98a2ac9d40d3405890a072c72beeb0306ccb54a",
-      "triangles": 596,
-      "dimensionsCm": [
-        477.039,
-        259.136,
-        280.0
-      ],
-      "materialSlots": [
-        "M_Veyra_WeatheredStone"
-      ],
-      "uvChannels": 2
-    },
-    {
-      "name": "SM_Crucible_Shelf_02",
-      "family": "Shelf",
-      "seed": 48275,
-      "file": "FBX/SM_Crucible_Shelf_02.fbx",
-      "sha256": "5637af5ee11e55ef37f29b3886642b8cd119d948b358649d9c29899aac140730",
-      "geometrySha256": "23c6241576cbf2772cc3e70698fde6dae30a1d8f1840b3712e227d226001c380",
-      "triangles": 582,
-      "dimensionsCm": [
-        484.629,
-        237.52,
-        280.0
-      ],
-      "materialSlots": [
-        "M_Veyra_WeatheredStone"
-      ],
-      "uvChannels": 2
-    },
-    {
-      "name": "SM_Crucible_Shelf_03",
-      "family": "Shelf",
-      "seed": 48276,
-      "file": "FBX/SM_Crucible_Shelf_03.fbx",
-      "sha256": "1f0abdfe96476eccab72f8fbfe1205e040c5e82a2b7be6168e31baebcc2985c8",
-      "geometrySha256": "0b7a27f739672adecd2bbf9007930c6e3a29a741ffc526d1d3579004609e14ca",
-      "triangles": 664,
-      "dimensionsCm": [
-        480.138,
-        262.775,
-        280.0
-      ],
-      "materialSlots": [
-        "M_Veyra_WeatheredStone"
-      ],
-      "uvChannels": 2
-    },
-    {
       "name": "SM_Crucible_Cliff_00",
       "family": "Cliff",
-      "seed": 48373,
+      "kind": "rock",
+      "seed": 48173,
       "file": "FBX/SM_Crucible_Cliff_00.fbx",
-      "sha256": "b0318ac61acfc9e50a7a00bf30140b20255d5ec1df41e8385ce990583edfb2a1",
-      "geometrySha256": "e2b3d5bf27aa58baed86edc05879425cf147ec32b21f8ac72c5c1031fca84ca5",
-      "triangles": 690,
+      "sha256": "f2f2c73a2ed31a53a94566881d8069f61842ff2aa7ad4cdca51ca9f3db1a08d3",
+      "geometrySha256": "610b390d8bd26e4421f04b9b77b1bb3f027b934615273429cf8cce8adf4ba08b",
+      "triangles": 13998,
       "dimensionsCm": [
-        697.095,
-        343.52,
-        600.0
+        729.8,
+        399.9,
+        481.7
       ],
       "materialSlots": [
-        "M_Veyra_WeatheredStone"
-      ],
-      "uvChannels": 2
+        "Rock"
+      ]
     },
     {
       "name": "SM_Crucible_Cliff_01",
       "family": "Cliff",
-      "seed": 48374,
+      "kind": "rock",
+      "seed": 48174,
       "file": "FBX/SM_Crucible_Cliff_01.fbx",
-      "sha256": "5cea79db9f6c9c571163ff4d18774460a42a60057c8a2c223fb848396e209dbe",
-      "geometrySha256": "ddfde4172b9593970f0f5e24580c1279bd326e490a7a7a69b1390c22ab8cfaa4",
-      "triangles": 554,
+      "sha256": "17c4dd5d7965ee956c1d73a9bb0fa9c2f1fe8bec22f61bf208fe4dfb98cab9ec",
+      "geometrySha256": "40895c661abcedd8d1e86648abdf63a4fdcde3da2de8e6cd1297e0380d85bbc0",
+      "triangles": 14000,
       "dimensionsCm": [
-        708.331,
-        353.906,
-        600.0
+        701.4,
+        367.5,
+        429.9
       ],
       "materialSlots": [
-        "M_Veyra_WeatheredStone"
-      ],
-      "uvChannels": 2
+        "Rock"
+      ]
     },
     {
       "name": "SM_Crucible_Cliff_02",
       "family": "Cliff",
-      "seed": 48375,
+      "kind": "rock",
+      "seed": 48175,
       "file": "FBX/SM_Crucible_Cliff_02.fbx",
-      "sha256": "631430751201afdc64446b0840798aa3e685f9e0919c9da5e43542eec4dbe634",
-      "geometrySha256": "58c297026f50c6d0ac07d245ff7eecf322bc30cff4007427a83d0ab61de3a80c",
-      "triangles": 580,
+      "sha256": "696f2792c617a67fad6f02c1fee8e04ab4fdee22cd7962e312ae685e0f2ee473",
+      "geometrySha256": "66368e160e8a869bdb213ac6d349979839b18f2d62558e020c6cad374c5108ed",
+      "triangles": 14000,
       "dimensionsCm": [
-        695.462,
-        337.079,
-        600.0
+        726.3,
+        383.0,
+        472.4
       ],
       "materialSlots": [
-        "M_Veyra_WeatheredStone"
+        "Rock"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Cliff_03",
+      "family": "Cliff",
+      "kind": "rock",
+      "seed": 48176,
+      "file": "FBX/SM_Crucible_Cliff_03.fbx",
+      "sha256": "ac9d457baed65f8f6926fc7103b985e823334d7f23636b727e74cd55c815eb5d",
+      "geometrySha256": "c3dc2973d8e786928ee799256425aaf1ebfc818dd6e071b3e60c291ab72b2ab1",
+      "triangles": 14000,
+      "dimensionsCm": [
+        646.0,
+        349.8,
+        456.2
       ],
-      "uvChannels": 2
+      "materialSlots": [
+        "Rock"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Boulder_00",
+      "family": "Boulder",
+      "kind": "rock",
+      "seed": 48273,
+      "file": "FBX/SM_Crucible_Boulder_00.fbx",
+      "sha256": "62c65a2a6386ead1f1c6d9f026bd2dcba5f369aad38689a124d34e1727ee730c",
+      "geometrySha256": "97062e5368efb152bf8a0fdce6c8aa86e9ab3b436bc1166e282abf9ad649e0f9",
+      "triangles": 5000,
+      "dimensionsCm": [
+        221.0,
+        177.6,
+        113.1
+      ],
+      "materialSlots": [
+        "Rock"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Boulder_01",
+      "family": "Boulder",
+      "kind": "rock",
+      "seed": 48274,
+      "file": "FBX/SM_Crucible_Boulder_01.fbx",
+      "sha256": "64b8517d4b4e1c8a22f1bd7e91f568cf75d4577cea1ffd899baf8eb32c3510c5",
+      "geometrySha256": "c1ca33d8247959cf1d7803023f6badc382e30feee33a631c072947775035c5b6",
+      "triangles": 5000,
+      "dimensionsCm": [
+        196.0,
+        173.2,
+        112.6
+      ],
+      "materialSlots": [
+        "Rock"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Boulder_02",
+      "family": "Boulder",
+      "kind": "rock",
+      "seed": 48275,
+      "file": "FBX/SM_Crucible_Boulder_02.fbx",
+      "sha256": "4063ac7f7e68b4a3fabf7b9a64e9eb3e050902ef4aace17cfb2bf1c4e6f38727",
+      "geometrySha256": "8ddfc85188e5998ae21d36b3207e8db6f07fe235180917ce59fb7a1eb1ba7fc3",
+      "triangles": 5000,
+      "dimensionsCm": [
+        198.1,
+        162.6,
+        110.4
+      ],
+      "materialSlots": [
+        "Rock"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Boulder_03",
+      "family": "Boulder",
+      "kind": "rock",
+      "seed": 48276,
+      "file": "FBX/SM_Crucible_Boulder_03.fbx",
+      "sha256": "985be95d75414edd958613b6c0ccf45eacc043e10f7760fbfd72f177bcd8c962",
+      "geometrySha256": "865fadf81ad98d5ce28cdd74348d45bb4ebc3d11c8d7fb8a7e3570277ec6155f",
+      "triangles": 5000,
+      "dimensionsCm": [
+        236.9,
+        186.6,
+        120.0
+      ],
+      "materialSlots": [
+        "Rock"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Pillar_00",
+      "family": "Pillar",
+      "kind": "pillar",
+      "seed": 48373,
+      "file": "FBX/SM_Crucible_Pillar_00.fbx",
+      "sha256": "8240d51850b6fddb27be103823bda190df15544486ddccdb1f1d3f5b2877f425",
+      "geometrySha256": "8b7ef06884a03ac1d94599ed37d3799f36cdbf2a9a1ba95244192331794f2644",
+      "triangles": 3212,
+      "dimensionsCm": [
+        116.5,
+        116.5,
+        242.0
+      ],
+      "materialSlots": [
+        "Ruin"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Pillar_01",
+      "family": "Pillar",
+      "kind": "pillar",
+      "seed": 48374,
+      "file": "FBX/SM_Crucible_Pillar_01.fbx",
+      "sha256": "8086bf13ed275eae8df5455918018261173447c1b7be354e695fa0f0adb01add",
+      "geometrySha256": "a0862740b2ad5e14ce889735ebefc722c69946794ee698eb495e9c0afeefe1b4",
+      "triangles": 5264,
+      "dimensionsCm": [
+        109.9,
+        110.1,
+        378.9
+      ],
+      "materialSlots": [
+        "Ruin"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Pillar_02",
+      "family": "Pillar",
+      "kind": "pillar",
+      "seed": 48375,
+      "file": "FBX/SM_Crucible_Pillar_02.fbx",
+      "sha256": "e1e8b2b425160d960f14062158b87b4664b338fbd757ee8f23508edb5c844182",
+      "geometrySha256": "03907670e725915ce0a9c3b6aea2a2406e63d7fff486495d709ea63100a0f09d",
+      "triangles": 4250,
+      "dimensionsCm": [
+        126.2,
+        109.8,
+        340.4
+      ],
+      "materialSlots": [
+        "Ruin"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Block_00",
+      "family": "Block",
+      "kind": "block",
+      "seed": 48473,
+      "file": "FBX/SM_Crucible_Block_00.fbx",
+      "sha256": "3e5554e05a0d7cf1f82e9bc338680d3be1a1345370fadaab23f916b24e723fd7",
+      "geometrySha256": "41b5bc074871e875041792741515b4afec324d4925c041967bba3f6b9ca8a600",
+      "triangles": 3000,
+      "dimensionsCm": [
+        166.3,
+        68.5,
+        71.5
+      ],
+      "materialSlots": [
+        "Ruin"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Block_01",
+      "family": "Block",
+      "kind": "block",
+      "seed": 48474,
+      "file": "FBX/SM_Crucible_Block_01.fbx",
+      "sha256": "04028b557ef7c56452232a241844752fbeb18a793dcd0f12e20ac8923bd63c8e",
+      "geometrySha256": "8158ee7b0071acefba3e344c617e7a3f40e89e4f490c4fdd7dad92e51870c44a",
+      "triangles": 3000,
+      "dimensionsCm": [
+        157.6,
+        87.1,
+        83.1
+      ],
+      "materialSlots": [
+        "Ruin"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Block_02",
+      "family": "Block",
+      "kind": "block",
+      "seed": 48475,
+      "file": "FBX/SM_Crucible_Block_02.fbx",
+      "sha256": "d6eca8851eed1a47f884c9557583a0643f20c49beaebf377cc42da2791decde8",
+      "geometrySha256": "2fc5a91a5f8c92b3818e5cd2a1f1936e800ef831a7270ce3c2bb29859bb7373d",
+      "triangles": 3000,
+      "dimensionsCm": [
+        146.6,
+        96.0,
+        72.3
+      ],
+      "materialSlots": [
+        "Ruin"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Block_03",
+      "family": "Block",
+      "kind": "block",
+      "seed": 48476,
+      "file": "FBX/SM_Crucible_Block_03.fbx",
+      "sha256": "9078a73913fbc593e719d3fbcf6ff3578cf50001432b916b361d3b786a10394e",
+      "geometrySha256": "eb483237719771aaead0050a11da446d0d3102b93ed790d14b517ce0e65b249d",
+      "triangles": 3000,
+      "dimensionsCm": [
+        142.1,
+        85.2,
+        85.7
+      ],
+      "materialSlots": [
+        "Ruin"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Stele_00",
+      "family": "Stele",
+      "kind": "stele",
+      "seed": 48573,
+      "file": "FBX/SM_Crucible_Stele_00.fbx",
+      "sha256": "2ad84fd9a6d586bff6cf8a20f4f4ff6b32532352fa66d4f8924b7f994b9e39f8",
+      "geometrySha256": "ae3d249917810ac321b2f8bbfb03ca3fdb2e42e010e0a6a6507b3c4e41755797",
+      "triangles": 3450,
+      "dimensionsCm": [
+        122.2,
+        44.4,
+        288.8
+      ],
+      "materialSlots": [
+        "Ruin",
+        "Glyph"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Stele_01",
+      "family": "Stele",
+      "kind": "stele",
+      "seed": 48574,
+      "file": "FBX/SM_Crucible_Stele_01.fbx",
+      "sha256": "37dfaf56c58558b89ee52c840d927f7286c1e3454e42a35790f3f12370cb3bad",
+      "geometrySha256": "cb8844218c6ab43cbe756fb78b8e7ec47f034d5be98d929b4e5eada56984c521",
+      "triangles": 3460,
+      "dimensionsCm": [
+        133.2,
+        43.9,
+        260.0
+      ],
+      "materialSlots": [
+        "Ruin",
+        "Glyph"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Stele_02",
+      "family": "Stele",
+      "kind": "stele",
+      "seed": 48575,
+      "file": "FBX/SM_Crucible_Stele_02.fbx",
+      "sha256": "34257a4eddc77d594fa6c3e78fdc874d776147e93c38961c515dde4c38e64e2f",
+      "geometrySha256": "6d21c9d6fc1585ea4bfa46b9b1672549df570e3512c6fd3e7596bc10e552a7b0",
+      "triangles": 3450,
+      "dimensionsCm": [
+        121.2,
+        45.2,
+        294.4
+      ],
+      "materialSlots": [
+        "Ruin",
+        "Glyph"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Tree_00",
+      "family": "Tree",
+      "kind": "tree",
+      "seed": 48673,
+      "file": "FBX/SM_Crucible_Tree_00.fbx",
+      "sha256": "78c9a3c06e8ed3c5a45da019de593933c3a0ea39117e9710b1ccb8d8bdab562c",
+      "geometrySha256": "c1dcbc3b8df0665389b4d0d102257fec3affe4f35f89bffd4739ca856ef0458f",
+      "triangles": 1356,
+      "dimensionsCm": [
+        782.2,
+        645.3,
+        810.2
+      ],
+      "materialSlots": [
+        "Bark",
+        "Leaves"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Tree_01",
+      "family": "Tree",
+      "kind": "tree",
+      "seed": 48674,
+      "file": "FBX/SM_Crucible_Tree_01.fbx",
+      "sha256": "5eb8a4df4d21666f52328e581ef555525b303e7a5a7e3e5d888e6eafa83cf3c3",
+      "geometrySha256": "c62109b0aef225dd0a4ffb3500c183361e9676772d0165a469260e62aac4c9c8",
+      "triangles": 1112,
+      "dimensionsCm": [
+        724.1,
+        609.9,
+        775.0
+      ],
+      "materialSlots": [
+        "Bark",
+        "Leaves"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Tree_02",
+      "family": "Tree",
+      "kind": "tree",
+      "seed": 48675,
+      "file": "FBX/SM_Crucible_Tree_02.fbx",
+      "sha256": "e9ece69d25c4ef9394ba24f97c19bf584880f05166739bbfc668c22d64689c4d",
+      "geometrySha256": "c088dbc8d63d3c1b0c184d56e474f5cc512da1bfbca757238d08c4bceb81edcf",
+      "triangles": 1116,
+      "dimensionsCm": [
+        758.4,
+        498.6,
+        677.4
+      ],
+      "materialSlots": [
+        "Bark",
+        "Leaves"
+      ]
     },
     {
       "name": "SM_Crucible_Shrub_00",
       "family": "Shrub",
-      "seed": 48473,
+      "kind": "shrub",
+      "seed": 48773,
       "file": "FBX/SM_Crucible_Shrub_00.fbx",
-      "sha256": "816d2067bb3d7334721f9f9f5f9d108194cad77e50d4961ed0591ff4c2cde388",
-      "geometrySha256": "76b5d5e5c1969ab464079b03c4ef20ecd20231513c6ec8d35fe061f4cedc8a66",
-      "triangles": 560,
+      "sha256": "acac5ed6e52aa7c72461733b8c4ac06fa61ce9fb41df7d4f1d80d18e7be6ea0b",
+      "geometrySha256": "fcf0f998796f2497b22d7df3b6292b3b385963f3b727119f762e18df6238dff1",
+      "triangles": 400,
       "dimensionsCm": [
-        85.252,
-        83.125,
-        58.223
+        214.2,
+        260.9,
+        129.9
       ],
       "materialSlots": [
-        "M_Veyra_Foliage"
-      ],
-      "uvChannels": 2
+        "Leaves"
+      ]
     },
     {
       "name": "SM_Crucible_Shrub_01",
       "family": "Shrub",
-      "seed": 48474,
+      "kind": "shrub",
+      "seed": 48774,
       "file": "FBX/SM_Crucible_Shrub_01.fbx",
-      "sha256": "08a8522de69b10af226e3490400b95cc90885cf0861153623a507ddea1d31f6c",
-      "geometrySha256": "5dafd6dbd9b58ab0317c9a389503075e01aa4e3f71d5e961c4a4525aee6d5039",
-      "triangles": 560,
+      "sha256": "1ac278f8213cb75e1d6de9805d3c4a28776c3ccb964f2157491d5f01a4b00fda",
+      "geometrySha256": "cf882af4a0c3c4a0626fcf61fd5cb093a2a56fe676fbf502e981ce7564233931",
+      "triangles": 400,
       "dimensionsCm": [
-        81.55,
-        74.919,
-        58.038
+        196.3,
+        210.1,
+        148.0
       ],
       "materialSlots": [
-        "M_Veyra_Foliage"
-      ],
-      "uvChannels": 2
+        "Leaves"
+      ]
     },
     {
       "name": "SM_Crucible_Shrub_02",
       "family": "Shrub",
-      "seed": 48475,
+      "kind": "shrub",
+      "seed": 48775,
       "file": "FBX/SM_Crucible_Shrub_02.fbx",
-      "sha256": "1f4bd1bc61363470c9495f914be67e93066694bddcc2384a51a738768496d835",
-      "geometrySha256": "c58ee6b43912e89d09d9640317be8b7a0140428ccc3c107be2cd99526b6b5364",
-      "triangles": 560,
+      "sha256": "f58d480514b5c444665f582b67ff81463567022e3880427325134268a670f3ef",
+      "geometrySha256": "97a8f7fe97a157181e866da496e37aa3c46e036507d4d90ec5b3d6c58edb3408",
+      "triangles": 480,
       "dimensionsCm": [
-        95.684,
-        82.891,
-        57.324
+        170.7,
+        151.4,
+        118.4
       ],
       "materialSlots": [
-        "M_Veyra_Foliage"
-      ],
-      "uvChannels": 2
+        "Leaves"
+      ]
     },
     {
-      "name": "SM_Crucible_Canopy_00",
-      "family": "Canopy",
-      "seed": 48573,
-      "file": "FBX/SM_Crucible_Canopy_00.fbx",
-      "sha256": "6021c588eda7e57a06bbc6e89a08c1feb55b9bf4fdb4e8741c8285d32eb8d61f",
-      "geometrySha256": "b9013d57c1a140fe0f290428b416477d595751430bc3b6a9646e797cf8ef11c4",
-      "triangles": 836,
+      "name": "SM_Crucible_Fern_00",
+      "family": "Fern",
+      "kind": "fern",
+      "seed": 48873,
+      "file": "FBX/SM_Crucible_Fern_00.fbx",
+      "sha256": "4e1cd7694529b8654098c47a2a501b3bbee4e28e98f87c4875dcfbaf214efaa3",
+      "geometrySha256": "9754fcb1dde9da8c678cc8a28fa6e9816f0d86ae1ed7ac7d8a518829d44da787",
+      "triangles": 162,
       "dimensionsCm": [
-        323.557,
-        315.328,
-        630.967
+        166.0,
+        159.5,
+        53.3
       ],
       "materialSlots": [
-        "M_Veyra_Bark",
-        "M_Veyra_Foliage"
-      ],
-      "uvChannels": 2
+        "Leaves"
+      ]
     },
     {
-      "name": "SM_Crucible_Canopy_01",
-      "family": "Canopy",
-      "seed": 48574,
-      "file": "FBX/SM_Crucible_Canopy_01.fbx",
-      "sha256": "a5e4c90dce56e03056dd0c1b4f2c1b965efe3f178b6a3925f56a28eeb05d5491",
-      "geometrySha256": "057af33ef6a2966aed10dcfe9ad862a5b95cc098a833735f8a51611152f610df",
-      "triangles": 836,
+      "name": "SM_Crucible_Fern_01",
+      "family": "Fern",
+      "kind": "fern",
+      "seed": 48874,
+      "file": "FBX/SM_Crucible_Fern_01.fbx",
+      "sha256": "69aec928e61453dbb3b049326049e12afc0ae7e81ff1dd93fb0a1e2d570b31c4",
+      "geometrySha256": "013fef335099c70041b1490b6be77f6bf2f9b85b0d6998cf46b39b91927efa73",
+      "triangles": 162,
       "dimensionsCm": [
-        354.053,
-        353.452,
-        616.707
+        173.1,
+        167.7,
+        50.6
       ],
       "materialSlots": [
-        "M_Veyra_Bark",
-        "M_Veyra_Foliage"
-      ],
-      "uvChannels": 2
+        "Leaves"
+      ]
     },
     {
-      "name": "SM_Crucible_Canopy_02",
-      "family": "Canopy",
-      "seed": 48575,
-      "file": "FBX/SM_Crucible_Canopy_02.fbx",
-      "sha256": "989ae45a5fdd2377e9b7d318723e78a302e57241ce11661e431d845fb758046e",
-      "geometrySha256": "3c33e261128ae5440b70eb1d0aec5009eb27bb23b4b58e2839d9d264d82830a6",
-      "triangles": 836,
+      "name": "SM_Crucible_Fern_02",
+      "family": "Fern",
+      "kind": "fern",
+      "seed": 48875,
+      "file": "FBX/SM_Crucible_Fern_02.fbx",
+      "sha256": "a8c3395983b0824ce5f676005a51ff1e1bcf7d0ad574c4de5233a95a72bd75b7",
+      "geometrySha256": "51ce8d2e293f099f0986bb3a106fd19323e8a371cc3bc23c0e722e62588b0857",
+      "triangles": 126,
       "dimensionsCm": [
-        354.303,
-        276.734,
-        636.175
+        175.9,
+        178.9,
+        64.0
       ],
       "materialSlots": [
-        "M_Veyra_Bark",
-        "M_Veyra_Foliage"
+        "Leaves"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Reeds_00",
+      "family": "Reeds",
+      "kind": "grass",
+      "seed": 48973,
+      "file": "FBX/SM_Crucible_Reeds_00.fbx",
+      "sha256": "92b08cc79a6ed0144d618d3980b6eac02203805eeac385dfe96a32e6d133ae3c",
+      "geometrySha256": "0d86bc80939fa37abe3da9649af5238c05418b18a2462d80ab4dbc30fda3e780",
+      "triangles": 160,
+      "dimensionsCm": [
+        162.2,
+        180.9,
+        142.8
       ],
-      "uvChannels": 2
+      "materialSlots": [
+        "Grass"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Reeds_01",
+      "family": "Reeds",
+      "kind": "grass",
+      "seed": 48974,
+      "file": "FBX/SM_Crucible_Reeds_01.fbx",
+      "sha256": "428fb5dc52d6229465952a1b9cb7fcaaf008c33a1af74386b2a66450dc0b962b",
+      "geometrySha256": "35cc2c9578589368d760312940de5fa9fc276756ea00d9a08ed2d5ba8a983179",
+      "triangles": 140,
+      "dimensionsCm": [
+        176.1,
+        164.0,
+        148.7
+      ],
+      "materialSlots": [
+        "Grass"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Reeds_02",
+      "family": "Reeds",
+      "kind": "grass",
+      "seed": 48975,
+      "file": "FBX/SM_Crucible_Reeds_02.fbx",
+      "sha256": "f106998e6a15627d2409961888fc33a697a24f30a669c72f029e64e1c3e1f2c9",
+      "geometrySha256": "f3690de254cc2617140ddb6f1c3591396ff23d35e53d9cd211642d09765d40ff",
+      "triangles": 195,
+      "dimensionsCm": [
+        155.4,
+        179.4,
+        149.2
+      ],
+      "materialSlots": [
+        "Grass"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Grass_00",
+      "family": "Grass",
+      "kind": "grass",
+      "seed": 49073,
+      "file": "FBX/SM_Crucible_Grass_00.fbx",
+      "sha256": "170ab5553f1761c8d6312e203256381a4c893ef35bd90fdf1bf1a5a88f7bc774",
+      "geometrySha256": "39e949b3d53e25d9d0104d3305c3dfa197bb43ced258848a50d25fb615bef6b7",
+      "triangles": 105,
+      "dimensionsCm": [
+        66.9,
+        67.6,
+        40.6
+      ],
+      "materialSlots": [
+        "Grass"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Grass_01",
+      "family": "Grass",
+      "kind": "grass",
+      "seed": 49074,
+      "file": "FBX/SM_Crucible_Grass_01.fbx",
+      "sha256": "1cebd1995d8d1ef4d8c1835591fa394c275fb16e202e20ac57ebc9fbe21bda5a",
+      "geometrySha256": "e2b8ef48d1144b597928febeb22b838833dfd24cd51938cb9eb76f39d6d2b066",
+      "triangles": 130,
+      "dimensionsCm": [
+        72.7,
+        68.4,
+        41.2
+      ],
+      "materialSlots": [
+        "Grass"
+      ]
+    },
+    {
+      "name": "SM_Crucible_Grass_02",
+      "family": "Grass",
+      "kind": "grass",
+      "seed": 49075,
+      "file": "FBX/SM_Crucible_Grass_02.fbx",
+      "sha256": "46675f3545878e5581d44fd72b88af78538183194b2684d142f40521af0f8197",
+      "geometrySha256": "9c67fd1f17ca514393c0bc12c7691c2fe3f7bc53f645e49bf54fd84778a68af0",
+      "triangles": 130,
+      "dimensionsCm": [
+        79.1,
+        73.6,
+        42.0
+      ],
+      "materialSlots": [
+        "Grass"
+      ]
     }
   ]
 }

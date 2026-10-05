@@ -4,6 +4,7 @@
   "seed": 48173,
   "size": 2048,
   "macroTileMetres": 60.0,
+  "overgrowth": { "description": "Moss patches over paving and pads, where the variation map's third channel runs high.", "from": 0.58, "to": 0.72, "strength": 0.5 },
   "water": {
     "description": "The river's look (M_CrucibleWater, Single Layer Water): a clear teal that reads as water even where it is shallow, its ripples flowing downstream, foam along the shore.",
     "tileMetres": 6.0,

@@ -1,20 +1,50 @@
 {
-  "version": 1,
+  "version": 2,
   "seed": 48173,
-  "status": "First production pass; requires Unreal visual and performance validation",
-  "materials": [
-    {"name":"M_Veyra_Riverstone","color":[0.18,0.23,0.22,1],"roughness":0.86,"metallic":0},
-    {"name":"M_Veyra_WeatheredStone","color":[0.31,0.29,0.23,1],"roughness":0.82,"metallic":0},
-    {"name":"M_Veyra_Moss","color":[0.13,0.20,0.075,1],"roughness":0.93,"metallic":0},
-    {"name":"M_Veyra_Bark","color":[0.10,0.075,0.04,1],"roughness":0.9,"metallic":0},
-    {"name":"M_Veyra_Foliage","color":[0.12,0.23,0.07,1],"roughness":0.85,"metallic":0}
-  ],
-  "geometry":{"rockRings":8,"rockSegments":16,"bevelMetres":0.025,"bevelSegments":2,"uvMargin":0.02,"lightmapResolution":128},
-  "families":[
-    {"id":"Riverstone","kind":"rock","variants":4,"sizeMetres":[2.1,1.4,0.95],"material":0,"roughness":0.16},
-    {"id":"Shelf","kind":"rock","variants":4,"sizeMetres":[4.8,2.6,2.8],"material":1,"roughness":0.12},
-    {"id":"Cliff","kind":"rock","variants":3,"sizeMetres":[7.0,3.5,6.0],"material":1,"roughness":0.1},
-    {"id":"Shrub","kind":"shrub","variants":3,"sizeMetres":[1.0,0.85,0.65],"material":4,"roughness":0.18},
-    {"id":"Canopy","kind":"tree","variants":3,"sizeMetres":[4.0,3.5,7.0],"material":4,"roughness":0.12}
+  "status": "Second production pass (ADR-040 C6): an overgrown highland ruin; requires Unreal gameplay-camera review",
+  "slots": {
+    "Rock": "Slate rock, world-aligned in the material, moss on what faces up",
+    "Ruin": "Pale weathered masonry, world-aligned in the material, moss on what faces up",
+    "Glyph": "Blue Flux glyphs carved into the old stone: emissive",
+    "Bark": "Tree bark",
+    "Leaves": "Foliage; vertex colour carries each mass's tint",
+    "Grass": "Grass and reeds; vertex colour carries the blade's tint and its height for the wind"
+  },
+  "look": {
+    "description": "The kit's materials (ImportEnvironmentMeshes.py): stone tints over the terrain's slate, moss on what faces up, glowing glyphs, foliage tints and a gentle wind.",
+    "stoneTileCm": 400,
+    "mossTileCm": 500,
+    "desaturate": 0.6,
+    "rockTint": [2.6, 2.75, 2.95],
+    "ruinTint": [10.5, 9.9, 8.9],
+    "barkTint": [3.2, 2.5, 1.8],
+    "stoneRoughness": 0.86,
+    "mossFrom": 0.55,
+    "mossTo": 0.82,
+    "glyphColor": [0.25, 0.65, 1.0],
+    "glyphStrength": 6.0,
+    "glyphPulseRate": 0.9,
+    "glyphPulseDepth": 0.25,
+    "leafColour": [0.55, 0.8, 0.45],
+    "grassRootColour": [0.35, 0.45, 0.3],
+    "grassTipColour": [0.9, 1.0, 0.65],
+    "foliageRoughness": 0.78,
+    "leafDetailTileCm": 160,
+    "windSpeed": 1.3,
+    "windSpread": 0.004,
+    "windAmplitude": 6.0
+  },
+  "preview": { "rock": [0.22, 0.24, 0.26], "ruin": [0.66, 0.63, 0.57], "glyph": [0.25, 0.65, 1.0], "bark": [0.20, 0.14, 0.09], "leaves": [0.20, 0.36, 0.12], "grass": [0.30, 0.45, 0.16] },
+  "families": [
+    { "id": "Cliff", "kind": "rock", "base": "block", "variants": 4, "sizeMetres": [7.0, 3.6, 5.0], "facets": 9, "voxelMetres": 0.08, "strata": 0.2, "strataPerMetre": 1.3, "roughness": 0.09, "triangles": 14000 },
+    { "id": "Boulder", "kind": "rock", "base": "round", "variants": 4, "sizeMetres": [2.2, 1.7, 1.3], "facets": 8, "voxelMetres": 0.05, "strata": 0.05, "strataPerMetre": 2.5, "roughness": 0.07, "triangles": 5000 },
+    { "id": "Pillar", "kind": "pillar", "variants": 3, "radiusMetres": 0.45, "heightMetres": [1.6, 4.2], "flutes": 16, "fluteDepth": 0.035, "triangles": 6000 },
+    { "id": "Block", "kind": "block", "variants": 4, "sizeMetres": [1.4, 0.8, 0.7], "voxelMetres": 0.04, "roughness": 0.015, "triangles": 3000 },
+    { "id": "Stele", "kind": "stele", "variants": 3, "sizeMetres": [1.2, 0.42, 2.8], "glyphStrokes": [5, 8], "triangles": 4000 },
+    { "id": "Tree", "kind": "tree", "variants": 3, "heightMetres": [7.5, 10.0], "trunkRadiusMetres": 0.42, "canopyRadiusMetres": [3.0, 4.2], "masses": [7, 11], "triangles": 9000 },
+    { "id": "Shrub", "kind": "shrub", "variants": 3, "radiusMetres": [0.7, 1.3], "masses": [4, 7], "triangles": 2500 },
+    { "id": "Fern", "kind": "fern", "variants": 3, "fronds": [7, 11], "lengthMetres": [0.6, 1.0], "triangles": 2500 },
+    { "id": "Reeds", "kind": "grass", "variants": 3, "blades": [28, 40], "heightMetres": [0.9, 1.5], "spreadMetres": 0.55, "triangles": 1500 },
+    { "id": "Grass", "kind": "grass", "variants": 3, "blades": [18, 26], "heightMetres": [0.22, 0.42], "spreadMetres": 0.3, "triangles": 600 }
   ]
 }
