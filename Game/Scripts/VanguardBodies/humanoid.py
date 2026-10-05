@@ -99,8 +99,10 @@ def layout(spec, capsule):
     return L, dims
 
 
-def body(spec, L, d):
-    body = Body([name for name, _ in BONES])
+def body(spec, L, d, bones=BONES):
+    """The figure of simple parts on L's bones. Another archetype's skeleton that holds these bones (a rider's) passes
+    its own bone list, so the parts weight to the right vertex groups."""
+    body = Body([name for name, _ in bones])
     features = set(spec["features"])
     skin, primary, secondary, hair, accent = spec["skin"], spec["primary"], spec["secondary"], spec["hair"], spec["accent"]
     metal = [0.62, 0.55, 0.42]

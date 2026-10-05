@@ -27,7 +27,11 @@
 ## Decision
 
 ### 1. Body archetypes
-- **Four archetypes:** Humanoid, Colossus, Beast and Construct. Each Vanguard has one (the table below).
+- **Five archetypes:** Humanoid, Rider, Colossus, Beast and Construct. Each Vanguard has one (the table below).
+- **Rider:** a humanoid seated on a mount that is half of its silhouette, such as Raska on Hound.
+  - The rider's chain and the mount's chain both hang from the root. A mount on wheels turns them as it rides, so the Run stride is one turn of a wheel.
+  - Wherever the mount moves the whole silhouette (a wheelie, a lunge, a jolt), the rider is posed to follow it. Being separate chains, a crash can throw the rider clear of a mount falling on its side.
+  - The mount fills the unit's footprint, so a rider keeps a figure's own shoulders rather than the capsule's.
 - **What an archetype defines:** a skeleton (bone names and hierarchy), a parametric body and a procedural animation set, in its generator.
 - **Each Vanguard's entry** in `Game/ArtSource/Vanguards/VanguardKit.json` gives its proportions, build, hair, features, props, colours and seed.
   - These are art parameters, read from its Visual language paragraph. They are never gameplay tuning.
@@ -36,7 +40,8 @@
 
 | Archetype | Vanguards |
 |---|---|
-| Humanoid | Raska, Kade, Patch, Tavi, Vera, Marek, Neris, Qazharr, Angeru, Sylra, Mavra, Bryn, Mimzi, Celandrine, Gorraveth, Eudora |
+| Humanoid | Kade, Patch, Tavi, Vera, Marek, Neris, Qazharr, Angeru, Sylra, Mavra, Bryn, Mimzi, Celandrine, Gorraveth, Eudora |
+| Rider | Raska (on Hound) |
 | Colossus | Silt, Relay, Varkesh, Cairn |
 | Beast | Korruk, Moro |
 | Construct | Torr, Oriel, Aurelisse |
@@ -71,7 +76,8 @@
 - **Validation:**
   - The generator checks the triangle budget and that the body stands on the ground.
   - The import checks source hashes, each body's height against the generator's, that every animation imported, and that it is on the body's skeleton.
-  - A preview renders each body in its key poses, front and side, for review.
+  - A preview renders each body in its key poses, front, side and from the gameplay camera's pitch, for review.
+- **One Vanguard at a time (author, 2026-10-05):** each Vanguard's silhouette is refined and validated on its own, against its Visual language paragraph and approved art. Its preview is reviewed, then it is imported and captured in a match at the gameplay camera before the next begins.
 
 ### 5. Fidelity and look
 - **The job:** the first pass is generated and stylised: broad, chunky and bright, so it reads from the match camera. Its job is readability: silhouette, motion and timing.
@@ -93,7 +99,7 @@ Final authored art, faces, cloth simulation, skins, LODs, and Fluxborn rigs (lat
 - A change to a generator rebuilds that archetype's assets, which needs the Git LFS locks on them.
 
 ### 9. Provisional answers where canon is open
-1. The four archetypes, and each Vanguard's.
+1. The five archetypes, and each Vanguard's.
 2. Each Vanguard's proportions, props and colours as read from its Visual language paragraph.
 3. The animation set and its timings.
 4. Blender 5.2 LTS, and FBX for characters.

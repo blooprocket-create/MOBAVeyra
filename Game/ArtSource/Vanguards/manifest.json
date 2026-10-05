@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "16c849abc7a666828c8a389e44e16e9ff2872c381d8086c041282ace2d689aed",
+  "kitSha256": "4565c45756c100dcb6344287989bc92c58082991afc357640c7eb3cadb1d64ce",
   "assets": [
     {
       "id": "angeru",
@@ -992,16 +992,16 @@
     {
       "id": "raska",
       "name": "SK_Raska",
-      "archetype": "humanoid",
+      "archetype": "rider",
       "file": "FBX/SK_Raska.fbx",
-      "sha256": "c48888b93d473dd0f445d21a0413b3d3aa37f4f25769d41aefa17fead308d3c3",
-      "triangles": 1860,
-      "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 180.64,
+      "sha256": "8e25e75d7b6fecf687a8bb86f11b6b0835cd9d4e13554ccf13909407a4e0a39f",
+      "triangles": 4624,
+      "triangleBudget": 16000,
+      "bones": 29,
+      "heightCm": 173.85,
       "capsuleHalfHeightCm": 95,
       "melee": true,
-      "runStrideCm": 180.3,
+      "runStrideCm": 213.21,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [

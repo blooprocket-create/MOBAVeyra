@@ -21,7 +21,7 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from VanguardBodies import beast, colossus, construct, humanoid  # noqa: E402
+from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
 from VanguardBodies.parts import local  # noqa: E402
 
 GENERATOR_VERSION = 1
@@ -31,7 +31,7 @@ SAVED = GAME / "Saved" / "VanguardKit"
 KIT_BYTES = (SOURCE / "VanguardKit.json").read_bytes()
 KIT = json.loads(KIT_BYTES)
 TUNING = json.loads((GAME / "Tuning" / "Vanguards.json").read_bytes())["vanguards"]
-ARCHETYPES = {"humanoid": humanoid, "colossus": colossus, "beast": beast, "construct": construct}
+ARCHETYPES = {"humanoid": humanoid, "colossus": colossus, "beast": beast, "construct": construct, "rider": rider}
 
 if not bpy.app.background:
     raise RuntimeError("Run in an isolated background Blender process.")
@@ -45,6 +45,8 @@ PREVIEW_DIR = Path(ARGS[ARGS.index("--preview-dir") + 1]) if "--preview-dir" in 
 # The poses a preview lines up, as (animation, time from 0 to 1).
 PREVIEW_POSES = [("Idle", 0.0), ("Run", 0.25), ("Run", 0.75), ("AttackWindup", 0.65), ("AttackWindup", 1.0),
                  ("Cast", 0.5), ("Hit", 0.5), ("Recall", 0.5), ("Death", 1.0)]
+# The gameplay camera's look down from the horizontal, in degrees (DefaultGame.ini, VeyraCameraSettings.PitchDegrees).
+GAMEPLAY_PITCH = 60.0
 
 
 # ---------------------------------------------------------------------------------------------- the skeleton
@@ -70,13 +72,20 @@ def rest_quaternions(armature):
     return {bone.name: bone.matrix_local.to_quaternion() for bone in armature.data.bones}
 
 
+def moved_bones(archetype):
+    """The bones an archetype's poses may move as well as turn: its lift bone, or the bones it names."""
+    return getattr(archetype, "MOVED_BONES", (archetype.LIFT_BONE,))
+
+
 def pose_rig(rig, rest, archetype, pose, lift):
-    """Poses every bone: its rotation about the armature's axes, and the archetype's lift bone raised by lift."""
+    """Poses every bone: its rotation about the armature's axes, and its moved bones' offsets about them. A pose's lift
+    is the lift bone's rise, or each moved bone's offset by name (a rider's mount and the rider it throws)."""
+    moved = lift if isinstance(lift, dict) else {archetype.LIFT_BONE: (0.0, 0.0, lift)}
     for bone in rig.pose.bones:
         bone.rotation_mode = "QUATERNION"
         bone.rotation_quaternion = local(rest[bone.name], pose.get(bone.name, (0.0, 0.0, 0.0)))
-        if bone.name == archetype.LIFT_BONE:
-            bone.location = rest[bone.name].inverted() @ Vector((0.0, 0.0, lift))
+        if bone.name in moved_bones(archetype):
+            bone.location = rest[bone.name].inverted() @ Vector(moved.get(bone.name, (0.0, 0.0, 0.0)))
 
 
 def animate(armature, spec, archetype, d, melee):
@@ -94,7 +103,7 @@ def animate(armature, spec, archetype, d, melee):
             pose_rig(armature, rest, archetype, *archetype.pose(name, t, melee, d))
             for bone in armature.pose.bones:
                 bone.keyframe_insert("rotation_quaternion", frame=frame + 1)
-                if bone.name == archetype.LIFT_BONE:
+                if bone.name in moved_bones(archetype):
                     bone.keyframe_insert("location", frame=frame + 1)
         action.use_fake_user = True
         actions.append({"name": name, "frames": frames + 1, "loop": clip["loop"]})
@@ -105,11 +114,11 @@ def animate(armature, spec, archetype, d, melee):
 
 def render_preview(name, armature, obj, archetype, d, melee):
     """Rows of the body in its animations' key poses, left to right, for review (not exported): one row turned
-    three-quarters toward the camera, one in profile."""
+    three-quarters toward the camera, one in profile, and one seen from the gameplay camera's pitch, as players see it."""
     scene = bpy.context.scene
     rest = rest_quaternions(armature)
     span = max(d["full"], d.get("length", 0.0))
-    gap = span * 0.9
+    gap = span * (0.9 if span == d["full"] else 1.15)
     armature.hide_render = obj.hide_render = True
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.display.shading.light = "STUDIO"
@@ -124,12 +133,16 @@ def render_preview(name, armature, obj, archetype, d, melee):
     camera.data.clip_end = span * 100
     # The camera looks back along -X, so +Y is its right.
     center = Vector((0.0, (len(PREVIEW_POSES) - 1) * gap / 2, d["full"] * 0.5))
-    camera.location = center + Vector((span * 20, 0.0, span * 3))
-    camera.rotation_euler = (center - camera.location).to_track_quat("-Z", "Y").to_euler()
     scene.render.resolution_x = 2400
-    scene.render.resolution_y = round(2400 * d["full"] * 1.3 / camera.data.ortho_scale)
     PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
-    for suffix, turn in (("", 35.0), ("_side", 90.0)):
+    for suffix, turn, elevation in (("", 35.0, math.degrees(math.atan2(3, 20))), ("_side", 90.0, math.degrees(math.atan2(3, 20))),
+                                    ("_game", 35.0, GAMEPLAY_PITCH)):
+        up = math.radians(elevation)
+        camera.location = center + Vector((math.cos(up), 0.0, math.sin(up))) * span * 20
+        camera.rotation_euler = (center - camera.location).to_track_quat("-Z", "Y").to_euler()
+        # Tall enough for the body's height and, seen from above, its depth.
+        extent = d["full"] * math.cos(up) + span * math.sin(up)
+        scene.render.resolution_y = round(2400 * max(d["full"], extent) * 1.3 / camera.data.ortho_scale)
         made = []
         for index, (clip, t) in enumerate(PREVIEW_POSES):
             rig = armature.copy()
