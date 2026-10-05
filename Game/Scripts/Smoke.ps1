@@ -193,6 +193,9 @@
     stays this long in the match after its script, recording each frame. Its median, 95th and 99th
     percentile frame, game-thread, render-thread and GPU times are printed at the end (World
     Validation Standard §23). Run it on the machine whose numbers you report.
+.PARAMETER PerfCommands
+    With -PerfSeconds: console commands the measured client runs at start, comma-separated, to compare
+    a change against the same match (for example ShowFlag.InstancedStaticMeshes 0).
 .PARAMETER MatchDisplay
     With -Flow: how a rendering client's match takes the screen (UVeyraDisplaySettings). Windowed by
     default, so smoke runs never cover the screen; BorderlessFullscreen or Fullscreen checks that the
@@ -270,6 +273,8 @@ param(
     [ValidateRange(0, 600)]
     [int]$PerfSeconds = 0,
 
+    [string]$PerfCommands = '',
+
     [ValidateSet('Windowed', 'BorderlessFullscreen', 'Fullscreen')]
     [string]$MatchDisplay = 'Windowed',
 
@@ -308,7 +313,7 @@ $SmokeVanguard = 'test_vanguard'
 # screenshot it asked for is drawn and saved.
 $ScreenshotWindow = @('-windowed', '-ResX=1280', '-ResY=720')
 # -PerfSeconds: the measured client's window, and its frame rate left uncapped.
-$PerfWindow = @('-windowed', '-ResX=1920', '-ResY=1080', '-ExecCmds="t.MaxFPS 0,r.VSync 0"')
+$PerfWindow = @('-windowed', '-ResX=1920', '-ResY=1080', "-ExecCmds=`"t.MaxFPS 0,r.VSync 0$(if ($PerfCommands) { ",$PerfCommands" })`"")
 $ScreenshotStaySeconds = 5
 $ScreenshotName = 'Greybox.png'
 $SlotKeys = 'q', 'w', 'e', 'r'

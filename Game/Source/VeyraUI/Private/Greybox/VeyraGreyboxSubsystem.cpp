@@ -630,6 +630,13 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 		TelegraphLines->UnregisterComponent();
 	}
 	TelegraphLines = nullptr;
+	// Registered with the world, not owned by an actor: the world's cleanup expects it gone.
+	if (FogOfWarSheet && FogOfWarSheet->IsRegistered())
+	{
+		FogOfWarSheet->UnregisterComponent();
+	}
+	FogOfWarSheet = nullptr;
+	FogOfWarDrawn = 0;
 	// Bodies and projectile spheres belong to their actors, which the world destroys with them.
 	Bodies.Reset();
 	Projectiles.Reset();
@@ -761,15 +768,24 @@ void UVeyraGreyboxSubsystem::RefreshFogOfWar()
 			}
 			return FVector(Point, *Cached + Settings.FogOfWarLift);
 		};
+		// The run's quads share their corners: a lattice of (Columns + 1) by (Subdivisions + 1) points. The line batcher
+		// rebuilds its meshes every frame, so every vertex saved is saved on each one.
+		const int32 Base = Vertices.Num();
+		const int32 Across = Columns + 1;
+		for (int32 Y = 0; Y <= Subdivisions; ++Y)
+		{
+			for (int32 X = 0; X <= Columns; ++X)
+			{
+				Vertices.Add(Vertex(Box.Min.X + X * Step, Box.Min.Y + Y * Step));
+			}
+		}
 		for (int32 Y = 0; Y < Subdivisions; ++Y)
 		{
 			for (int32 X = 0; X < Columns; ++X)
 			{
-				const FVector2D Low = Box.Min + FVector2D(X * Step, Y * Step);
-				const FVector2D High = Low + FVector2D(Step);
-				const int32 Base = Vertices.Num();
-				Vertices.Append({ Vertex(Low.X, Low.Y), Vertex(High.X, Low.Y), Vertex(High.X, High.Y), Vertex(Low.X, High.Y) });
-				Indices.Append({ Base, Base + 1, Base + 2, Base, Base + 2, Base + 3, Base, Base + 2, Base + 1, Base, Base + 3, Base + 2 });
+				const int32 Low = Base + Y * Across + X;
+				const int32 High = Low + Across;
+				Indices.Append({ Low, Low + 1, High + 1, Low, High + 1, High, Low, High + 1, Low + 1, Low, High, High + 1 });
 			}
 		}
 	}
