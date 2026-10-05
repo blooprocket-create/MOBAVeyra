@@ -54,11 +54,13 @@ if ($process.ExitCode -ne 0) {
     exit 1
 }
 $repoDir = Split-Path -Parent $gameDir
-$sourcePaths = @('Game/Tuning/World.json', 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json', 'Game/ArtSource/Environment/CrucibleKit.json')
+$sourcePaths = @('Game/Tuning/World.json', 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json', 'Game/ArtSource/Environment/CrucibleKit.json', 'Game/ArtSource/Environment/Terrain/TerrainTextures.json')
 $inputs = @($sourcePaths | ForEach-Object {
     @{ path = $_; sha256 = (Get-FileHash -LiteralPath (Join-Path $repoDir $_) -Algorithm SHA256).Hash.ToLowerInvariant() }
 })
-$regions = @(Get-ChildItem -LiteralPath (Join-Path $gameDir 'Saved/WorldGeneration/Regions') -Filter '*.json' | Sort-Object Name | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json })
+# Each dressing region's manifest, when the style profile dresses the map.
+$regionDir = Join-Path $gameDir 'Saved/WorldGeneration/Regions'
+$regions = @(if (Test-Path -LiteralPath $regionDir) { Get-ChildItem -LiteralPath $regionDir -Filter '*.json' | Sort-Object Name | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json } })
 $map = Join-Path $gameDir 'Content/Veyra/World/Maps/L_Battleground.umap'
 $manifest = @{
     generator = 'VeyraWorldTools'; version = 1; status = 'generated';
@@ -67,6 +69,7 @@ $manifest = @{
     output = @{ path = 'Game/Content/Veyra/World/Maps/L_Battleground.umap'; sha256 = (Get-FileHash -LiteralPath $map -Algorithm SHA256).Hash.ToLowerInvariant() };
     validation = 'Generation only; visual, navigation, performance and package acceptance are separate checks.'
 }
+New-Item -ItemType Directory -Force -Path (Join-Path $gameDir 'Saved/WorldGeneration') | Out-Null
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $gameDir 'Saved/WorldGeneration/manifest.json') -Encoding utf8
 Write-Host "Saved the battleground map. Log: $logFile"
 exit 0

@@ -8,5 +8,5 @@
   "CanContainContent": false,
   "EnabledByDefault": true,
   "Modules": [{ "Name": "VeyraWorldTools", "Type": "Editor", "LoadingPhase": "PostEngineInit" }],
-  "Plugins": [{ "Name": "Water", "Enabled": true }, { "Name": "PCG", "Enabled": true }]
+  "Plugins": [{ "Name": "PCG", "Enabled": true }]
 }

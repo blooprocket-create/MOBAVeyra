@@ -6,7 +6,7 @@ public class VeyraWorldTools : ModuleRules
     {
         PrivateDependencyModuleNames.AddRange(new string[] {
             "Core", "CoreUObject", "Engine", "UnrealEd", "Landscape", "LandscapeEditor",
-            "Json", "Projects", "AssetRegistry", "Water", "PCG", "NavigationSystem",
+            "Json", "Projects", "AssetRegistry", "MeshDescription", "StaticMeshDescription", "PCG", "NavigationSystem",
             "VeyraCore", "VeyraCombat", "VeyraWorld"
         });
     }

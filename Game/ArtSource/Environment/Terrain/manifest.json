@@ -1,0 +1,90 @@
+{
+  "profileSha256": "bf7c19e472a6a57928cd1c1e22484d9af777c1e65a8bf0ae8ab6aca7d48bac24",
+  "size": 2048,
+  "files": [
+    {
+      "name": "T_Crucible_Causeway_BaseColor.png",
+      "layer": "Causeway",
+      "tileMetres": 4.0,
+      "sha256": "1744f102c13f4b3305864a3d5c0a995512fd5cd0be51df6727efbe949899fc6e"
+    },
+    {
+      "name": "T_Crucible_Causeway_Normal.png",
+      "layer": "Causeway",
+      "tileMetres": 4.0,
+      "sha256": "c45014caed7c53d95f3594f15aed962f92648167e420a82baa2e0fa41e902ef8"
+    },
+    {
+      "name": "T_Crucible_Causeway_ORMH.png",
+      "layer": "Causeway",
+      "tileMetres": 4.0,
+      "sha256": "c6e422ec394d0a202fea200f3b8e8104952312861c807300b9a7c1340ebd65fc"
+    },
+    {
+      "name": "T_Crucible_Moss_BaseColor.png",
+      "layer": "Moss",
+      "tileMetres": 5.0,
+      "sha256": "75f03f09b3ee29100879971442cce343152e1439c5c96e0a1e99cbad06de0466"
+    },
+    {
+      "name": "T_Crucible_Moss_Normal.png",
+      "layer": "Moss",
+      "tileMetres": 5.0,
+      "sha256": "0b80133d9589f7d4902a33418516f363b9b06521450840bcfdec425e4382d433"
+    },
+    {
+      "name": "T_Crucible_Moss_ORMH.png",
+      "layer": "Moss",
+      "tileMetres": 5.0,
+      "sha256": "fcd85a8683fb193528d429ecd8f0d30933100227935f94d2f4ed3b6fef22558c"
+    },
+    {
+      "name": "T_Crucible_Shore_BaseColor.png",
+      "layer": "Shore",
+      "tileMetres": 2.5,
+      "sha256": "f57e951d56d117a5026962c6c644b65f1738e06ab0ab015c37a62d5c91d57290"
+    },
+    {
+      "name": "T_Crucible_Shore_Normal.png",
+      "layer": "Shore",
+      "tileMetres": 2.5,
+      "sha256": "0fdb28d85b7ef7d7048ab11999d5d0bfc0218eecf394deccb91b3071e69df77c"
+    },
+    {
+      "name": "T_Crucible_Shore_ORMH.png",
+      "layer": "Shore",
+      "tileMetres": 2.5,
+      "sha256": "f8d446ccdbd681a3008195585b004e3616b122abd91567495d7e0078fe7ce978"
+    },
+    {
+      "name": "T_Crucible_Slate_BaseColor.png",
+      "layer": "Slate",
+      "tileMetres": 6.0,
+      "sha256": "6711c46a6f1a7c21486b52c7aaf29341a2ac66873ffe5161779aced41d43f384"
+    },
+    {
+      "name": "T_Crucible_Slate_Normal.png",
+      "layer": "Slate",
+      "tileMetres": 6.0,
+      "sha256": "e0883a5b016bccf98a3fdcf85630c1d3bdefbd91cdbe554c4a3c024b6cf683bc"
+    },
+    {
+      "name": "T_Crucible_Slate_ORMH.png",
+      "layer": "Slate",
+      "tileMetres": 6.0,
+      "sha256": "d4ba9f50a1cc90d30348db99b3ec1f9e1a8ece85db958763344535da14be8ae3"
+    },
+    {
+      "name": "T_Crucible_Macro.png",
+      "layer": "Macro",
+      "tileMetres": 60.0,
+      "sha256": "de65d2b485dfcfd12c0d56028b1cc9cca812a2412c5bfae6799c39ddbc6a6cfb"
+    },
+    {
+      "name": "T_Crucible_WaterNormal.png",
+      "layer": "Water",
+      "tileMetres": 6.0,
+      "sha256": "16fdf9532bbe499cf0a9dd6fd026bf14eccf982f440e23078939e8cd06c872ed"
+    }
+  ]
+}

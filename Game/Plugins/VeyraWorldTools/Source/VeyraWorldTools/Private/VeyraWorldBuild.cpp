@@ -21,7 +21,11 @@ bool Generate(UWorld& World, FString& Error)
         return false;
     }
     const auto& Tuning = UVeyraWorldTuningSubsystem::Get();
-    if (!Landscape(World, Tuning, *Style, Error) || !River(World, Tuning, *Style, Error) || !Dressing(World, Tuning, *Style, Error)) { return false; }
+    if (!Landscape(World, Tuning, *Style, Error) || !River(World, Tuning, *Style, Error)) { return false; }
+    // The environment kit's dressing, while its generators are being rebuilt (ADR-040 C6), can be left out.
+    bool bDressing = true;
+    Style->TryGetBoolField(TEXT("dressing"), bDressing);
+    if (bDressing && !Dressing(World, Tuning, *Style, Error)) { return false; }
     ReviewScene(World, Tuning, *Style);
     return true;
 }

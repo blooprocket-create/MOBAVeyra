@@ -24,6 +24,9 @@ for name in ("ViewDistance", "AntiAliasing", "Shadow", "GlobalIllumination", "Re
     unreal.SystemLibrary.execute_console_command(WORLD, f"sg.{name}Quality {QUALITY}")
 unreal.SystemLibrary.execute_console_command(WORLD, "r.ScreenPercentage 100")
 unreal.SystemLibrary.execute_console_command(WORLD, "r.VSync 0")
+# Extra console commands for a diagnostic capture, separated by semicolons.
+for command in filter(None, os.environ.get("VEYRA_REVIEW_COMMANDS", "").split(";")):
+    unreal.SystemLibrary.execute_console_command(WORLD, command.strip())
 ACTORS = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 CAMERAS = sorted([a for a in ACTORS if isinstance(a, unreal.CameraActor) and "Veyra.ReviewCamera" in [str(t) for t in a.tags]], key=lambda a: a.get_actor_label())
 FILTER = os.environ.get("VEYRA_REVIEW_VIEWS", "")
