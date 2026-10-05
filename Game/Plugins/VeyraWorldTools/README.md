@@ -12,7 +12,7 @@ Authority: [ADR-040](../../../Docs/ADR/ADR-040-crucible-world-authoring-toolchai
 - `Game/Content/Veyra/World/Maps/L_Battleground.umap`: generated Landscape (on the playable-ground channel), layer weights, the river's surface, baked PCG instances, lights, review cameras, starts, navigation bounds and runtime marker. Never hand-patch the generated map.
 - `Game/Saved/WorldGeneration/manifest.json`: successful generation record with source and output hashes; generation is not acceptance.
 - `Game/Saved/WorldGeneration/Regions`: generated per-pass seed, mesh, count and normalized placement digest. These are evidence, not authoring inputs.
-- `Game/Saved/WorldGeneration/Validation.json`: the last validation report. It holds each route's length, climb and descent for both teams, each lane walked base to base, the terrain's half-turn height differences, every anchor's surface height, the walls' navigation and the presentation's collision.
+- `Game/Saved/WorldGeneration/Validation.json` and `Navigation.png`: the last validation report and its navigation map (from above, X to the right: walkable ground grey by height, walls red, the river tinted, Team A's routes blue and Team B's orange). The report holds each route's length, climb and descent for both teams, each lane walked base to base, the terrain's half-turn height differences, every anchor's surface height, the walls' navigation and the presentation's collision.
 
 The river is one curve through the centre, Team A's authored half joined to its rotation, with a side channel parting and rejoining it around each Flux Well so each Well stands on an island. `FVeyraRiverShape` samples every channel once; gameplay classification, the terrain field, the river's surface and the minimap use the same samples and full widths. The surface is one generated mesh clipped to the water (ADR-040 §6, as amended 2026-10-05), shaded by `M_CrucibleWater` (Single Layer Water); it has no collision and never affects navigation. The World-owned `FVeyraTerrainField` supplies the basin and banks, level roads, jungle shelves, base pads, Well islands, wall ridges and the rim beyond the floor; any style relief is averaged with its rotation. The Landscape import quantizes this surface using Unreal's height encoding. Generation enables commandlet rendering and finishes Landscape edit-layer composition before saving; a NullRHI-only save does not produce finished weight layers in the pinned engine.
 
@@ -33,6 +33,8 @@ git lfs lock Game/Content/Veyra/World/Maps/L_Battleground.umap
 ./Game/Scripts/CaptureBattleground.ps1 -Profile low
 ./Game/Scripts/Test.ps1 -Filter Veyra.World
 ```
+
+`CaptureBattleground.ps1 -Mode` selects the capture mode (World Validation Standard §13). `Lit`, the default, captures every named view as players see it. `Collision` shows what blocks a pawn. `Dressing` hides the terrain, leaving the generated instances. `Value` gives the lit views in luminance only. The navigation mode is the validator's map.
 
 An existing lock owned by the current account may be retained. Respect another owner's lock. The scripts resolve the source-built engine through the repository's normal engine association. `-ImportOnly` reuses the generated FBX kit. `-Views Overview,Mid_A,DenseFog` selects an initial capture subset; omit it for all named cameras.
 

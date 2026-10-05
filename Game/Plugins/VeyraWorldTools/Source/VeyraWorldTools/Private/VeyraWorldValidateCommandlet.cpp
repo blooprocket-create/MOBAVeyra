@@ -9,6 +9,7 @@
 #include "Dom/JsonObject.h"
 #include "EditorWorldUtils.h"
 #include "EngineUtils.h"
+#include "ImageUtils.h"
 #include "Interfaces/IPluginManager.h"
 #include "Layout/VeyraLayout.h"
 #include "Layout/VeyraRiver.h"
@@ -77,6 +78,9 @@ namespace
 
 		/** The steepest rise over run between two neighbouring ground samples. */
 		double SteepestGrade = 0.0;
+
+		/** The path's corners, for the navigation map. */
+		TArray<FVector2D> Corners;
 
 		TSharedRef<FJsonObject> ToJson() const
 		{
@@ -344,7 +348,10 @@ namespace
 				}
 				const FVector2D TeamA[] = { *From, *To };
 				const FVector2D TeamB[] = { VeyraLayout::Rotate(*From), VeyraLayout::Rotate(*To) };
-				Out.Add(MakeShared<FJsonValueObject>(Compare(FromName + TEXT(" > ") + ToName, Walk(TeamA), Walk(TeamB), {})));
+				const FWalk WalkA = Walk(TeamA);
+				const FWalk WalkB = Walk(TeamB);
+				Walked.Add({ WalkA.Corners, WalkB.Corners });
+				Out.Add(MakeShared<FJsonValueObject>(Compare(FromName + TEXT(" > ") + ToName, WalkA, WalkB, {})));
 			}
 			return Out;
 		}
@@ -358,9 +365,106 @@ namespace
 				const TArray<FVector2D> TeamA = VeyraLayout::Waypoints(Lane, EVeyraTeam::A);
 				TArray<FVector2D> TeamB;
 				Algo::Transform(TeamA, TeamB, [](const FVector2D& Point) { return VeyraLayout::Rotate(Point); });
-				Out.Add(MakeShared<FJsonValueObject>(Compare(TEXT("Lane.") + LaneName(Lane.Lane), Walk(TeamA), Walk(TeamB), VeyraLayout::Length(Lane.Points))));
+				const FWalk WalkA = Walk(TeamA);
+				const FWalk WalkB = Walk(TeamB);
+				Walked.Add({ WalkA.Corners, WalkB.Corners });
+				Out.Add(MakeShared<FJsonValueObject>(Compare(TEXT("Lane.") + LaneName(Lane.Lane), WalkA, WalkB, VeyraLayout::Length(Lane.Points))));
 			}
 			return Out;
+		}
+
+		/**
+		 * The navigation as the server builds it, from above (World Validation Standard §13, navigation mode), with X to
+		 * the right and Y up. Walkable ground is grey, lighter where higher; the obstacle area (the walls) is red; ground
+		 * off the navigation is near black; the river is tinted blue. Each walked route is drawn over it, Team A's in blue
+		 * and Team B's in orange.
+		 */
+		bool DrawMap(const FString& Filename, int32 Pixels, FString& Error) const
+		{
+			const double Span = Layout.HalfExtent * 2.0;
+			const double Step = Span / Pixels;
+			const double Depth = Layout.Surface.MaxZ - Layout.Surface.MinZ;
+			const auto Blend = [](const FColor& From, const FColor& To, double Share) {
+				const auto Channel = [Share](uint8 A, uint8 B) { return static_cast<uint8>(FMath::RoundToInt32(FMath::Lerp(static_cast<double>(A), static_cast<double>(B), Share))); };
+				return FColor(Channel(From.R, To.R), Channel(From.G, To.G), Channel(From.B, To.B));
+			};
+			// Each pixel's walkable height (unset off the navigation, or in the obstacle area), shaded between the lowest
+			// and highest walkable ground found, so the lanes, shelves and banks read.
+			TArray<TOptional<double>> Walkable;
+			TArray<bool> Obstacle;
+			Walkable.SetNum(Pixels * Pixels);
+			Obstacle.SetNumZeroed(Pixels * Pixels);
+			FVector2D Heights(TNumericLimits<double>::Max(), TNumericLimits<double>::Lowest());
+			for (int32 Row = 0; Row < Pixels; ++Row)
+			{
+				for (int32 Column = 0; Column < Pixels; ++Column)
+				{
+					const FVector2D Point(-Layout.HalfExtent + (Column + 0.5) * Step, Layout.HalfExtent - (Row + 0.5) * Step);
+					double Z = 0.0;
+					FNavLocation Location;
+					if (Ground(Point, Z) && Navigation->ProjectPointToNavigation(FVector(Point, Z), Location, FVector(Step / 2.0, Step / 2.0, Depth))
+						&& FVector2D::Distance(FVector2D(Location.Location), Point) <= Step)
+					{
+						const UClass* Area = Mesh->GetAreaClass(Mesh->GetPolyAreaID(Location.NodeRef));
+						if (Area && Area->IsChildOf(FNavigationSystem::GetDefaultObstacleArea()))
+						{
+							Obstacle[Row * Pixels + Column] = true;
+						}
+						else
+						{
+							Walkable[Row * Pixels + Column] = Z;
+							Heights = FVector2D(FMath::Min(Heights.X, Z), FMath::Max(Heights.Y, Z));
+						}
+					}
+				}
+			}
+			const double Relief = FMath::Max(Heights.Y - Heights.X, UE_KINDA_SMALL_NUMBER);
+			TArray<FColor> Image;
+			Image.SetNumUninitialized(Pixels * Pixels);
+			for (int32 Row = 0; Row < Pixels; ++Row)
+			{
+				for (int32 Column = 0; Column < Pixels; ++Column)
+				{
+					const int32 Index = Row * Pixels + Column;
+					const FVector2D Point(-Layout.HalfExtent + (Column + 0.5) * Step, Layout.HalfExtent - (Row + 0.5) * Step);
+					FColor Colour = Obstacle[Index] ? MapObstacle
+						: Walkable[Index].IsSet() ? Blend(MapLow, MapHigh, (*Walkable[Index] - Heights.X) / Relief)
+						: MapOffNavigation;
+					if (River.SignedDistance(Point) < 0.0)
+					{
+						Colour = Blend(Colour, MapWater, MapWaterTint);
+					}
+					Image[Index] = Colour;
+				}
+			}
+			const auto Plot = [&](TConstArrayView<FVector2D> Corners, const FColor& Colour) {
+				for (int32 Index = 1; Index < Corners.Num(); ++Index)
+				{
+					const double Length = FVector2D::Distance(Corners[Index - 1], Corners[Index]);
+					const int32 Steps = FMath::Max(1, FMath::CeilToInt32(Length / Step));
+					for (int32 Each = 0; Each <= Steps; ++Each)
+					{
+						const FVector2D Point = FMath::Lerp(Corners[Index - 1], Corners[Index], static_cast<double>(Each) / Steps);
+						const int32 Column = FMath::FloorToInt32((Point.X + Layout.HalfExtent) / Step);
+						const int32 Row = FMath::FloorToInt32((Layout.HalfExtent - Point.Y) / Step);
+						if (Column >= 0 && Column < Pixels && Row >= 0 && Row < Pixels)
+						{
+							Image[Row * Pixels + Column] = Colour;
+						}
+					}
+				}
+			};
+			for (const TPair<TArray<FVector2D>, TArray<FVector2D>>& Route : Walked)
+			{
+				Plot(Route.Key, MapTeamA);
+				Plot(Route.Value, MapTeamB);
+			}
+			if (!FImageUtils::SaveImageByExtension(*Filename, FImageView(Image.GetData(), Pixels, Pixels)))
+			{
+				Error = TEXT("Cannot write the navigation map ") + Filename;
+				return false;
+			}
+			return true;
 		}
 
 		int32 CountWalls() const
@@ -437,6 +541,10 @@ namespace
 					break;
 				}
 				Out.Length += Path->GetPathLength();
+				for (const FVector& Corner : Path->PathPoints)
+				{
+					Out.Corners.Add(FVector2D(Corner));
+				}
 				// The ground under the path, every ground sample spacing: what a unit walking it climbs and descends.
 				for (int32 Corner = 1; Corner < Path->PathPoints.Num(); ++Corner)
 				{
@@ -512,6 +620,16 @@ namespace
 			return Out;
 		}
 
+		// The navigation map's colours.
+		static inline const FColor MapOffNavigation = FColor(22, 22, 26);
+		static inline const FColor MapLow = FColor(70, 76, 70);
+		static inline const FColor MapHigh = FColor(215, 222, 210);
+		static inline const FColor MapObstacle = FColor(205, 55, 50);
+		static inline const FColor MapWater = FColor(40, 120, 175);
+		static constexpr double MapWaterTint = 0.45;
+		static inline const FColor MapTeamA = FColor(60, 150, 255);
+		static inline const FColor MapTeamB = FColor(255, 150, 40);
+
 		UWorld& World;
 		const FVeyraWorldTuning& Tuning;
 		const FVeyraBattlegroundLayout& Layout;
@@ -524,6 +642,9 @@ namespace
 		double GroundSpacing = 0.0;
 		double TerrainSpacing = 0.0;
 		TArray<FString> Findings;
+
+		/** Each route's walk for both teams, for the navigation map. */
+		TArray<TPair<TArray<FVector2D>, TArray<FVector2D>>> Walked;
 	};
 }
 
@@ -612,6 +733,15 @@ int32 UVeyraWorldValidateCommandlet::Main(const FString& /*Params*/)
 	Report->SetObjectField(TEXT("walls"), Validation.Walls());
 	Report->SetArrayField(TEXT("routes"), Validation.Routes(*Profile));
 	Report->SetArrayField(TEXT("lanes"), Validation.Lanes());
+	FString MapImage;
+	double MapPixels = 0.0;
+	if (!Profile->TryGetStringField(TEXT("navigationMap"), MapImage) || !Profile->TryGetNumberField(TEXT("navigationMapPixels"), MapPixels) || MapPixels < 1.0
+		|| !Validation.DrawMap(FPaths::ProjectDir() / MapImage, static_cast<int32>(MapPixels), Error))
+	{
+		UE_LOG(LogVeyraWorldValidate, Error, TEXT("%s"), Error.IsEmpty() ? TEXT("CrucibleValidation.json needs navigationMap and navigationMapPixels.") : *Error);
+		return 1;
+	}
+	Report->SetStringField(TEXT("navigationMap"), MapImage);
 
 	TArray<TSharedPtr<FJsonValue>> Findings;
 	for (const FString& Finding : Validation.GetFindings())

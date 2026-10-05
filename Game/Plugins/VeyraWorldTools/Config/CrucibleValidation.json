@@ -1,8 +1,10 @@
 {
-  "description": "The Crucible's navigation, collision and fairness checks (ADR-040; World Validation Standard gates 6, 7 and 8), run by Game/Scripts/ValidateBattleground.ps1 on the generated map with the server's own structures and walls. Routes are named by Team A's anchors; Team B walks each one's half-turn rotation, with the same navigation agent. Anchors: Fountain, PrimeWell, BaseTower.<index>, Spire.<lane>.<order> (0 outermost), Inhibitor.<lane>, Camp.<species>, FluxWell.<site>, Crossing.<lane> (where the lane runs deepest into the river). Tolerances are provisional review values (Battleground Bible §2 terrain fairness): a failure is a finding to fix in the layout or the generator, not a number to widen.",
+  "description": "The Crucible's navigation, collision and fairness checks (ADR-040; World Validation Standard gates 6, 7 and 8), run by Game/Scripts/ValidateBattleground.ps1 on the generated map with the server's own walls (structures stand in their own navigation holes; the layout check places them). It also draws the navigation map. Routes are named by Team A's anchors; Team B walks each one's half-turn rotation, with the same navigation agent. Anchors: Fountain, PrimeWell, BaseTower.<index>, Spire.<lane>.<order> (0 outermost), Inhibitor.<lane>, Camp.<species>, FluxWell.<site>, Crossing.<lane> (where the lane runs deepest into the river). Tolerances are provisional review values (Battleground Bible §2 terrain fairness): a failure is a finding to fix in the layout or the generator, not a number to widen.",
   "provenance": "Provisional",
   "map": "/Game/Veyra/World/Maps/L_Battleground",
   "report": "Saved/WorldGeneration/Validation.json",
+  "navigationMap": "Saved/WorldGeneration/Navigation.png",
+  "navigationMapPixels": 1024,
   "anchorReach": 600,
   "groundSampleSpacing": 50,
   "terrainSampleSpacing": 200,
