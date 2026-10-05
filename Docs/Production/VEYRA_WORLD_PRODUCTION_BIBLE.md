@@ -290,6 +290,8 @@ Prefer shader/Niagara techniques over general fluid simulation unless measured e
 
 ## 8. Large forms and environment hierarchy
 
+**Provisional look (author ruling, 2026-10-05): an overgrown highland ruin.** Pale weathered stone causeways carry the Fluxways; moss-green jungle shelves rise between them over dark slate cliffs; the river runs clear teal; blue Flux glyphs glow in the old stonework; a warm late-afternoon sun lights the field. It guides materials, the environment kit and lighting until art direction replaces it.
+
 The Crucible should be built in three visual layers.
 
 ### 8.1 Foundation assets

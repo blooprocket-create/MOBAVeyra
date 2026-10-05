@@ -31,7 +31,7 @@ The existing greybox wall shapes and layout are not approved canon. They are pro
 ### 1. Walls are layout data (World: layout)
 
 - **`layout.walls` lists oriented boxes:** `{center, facing, length, thickness}`, in Team A's half.
-  - Team B's are their mirror across y = −x, as every layout feature's is.
+  - Team B's are their mirror across y = −x, as every layout feature's is. (Amended 2026-10-05 by [ADR-040](ADR-040-crucible-world-authoring-toolchain.md): their rotation half a turn about the centre, facing turned too.)
   - The grey-box geometry is Veyra's own and Provisional.
 - **Validation:**
   - Each wall lies on the floor and wholly in Team A's half.

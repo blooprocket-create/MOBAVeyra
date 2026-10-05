@@ -31,7 +31,7 @@
 #include "Greybox/VeyraUnitArtSet.h"
 #include "Hud/VeyraHudModel.h"
 #include "Layout/VeyraLayout.h"
-#include "Layout/VeyraTerrainProfile.h"
+#include "Layout/VeyraRiver.h"
 #include "Ledger/VeyraFluxLedger.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Interfaces/IProjectManager.h"
@@ -384,7 +384,12 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsNotNull(Ground));
 			TArray<UStaticMeshComponent*> Markings;
 			Ground->GetComponents(Markings);
-			ASSERT_THAT(AreEqual(2 * (VeyraTerrainProfile::River(Layout.Terrain, false).Num() - 1) + Stretches + 2 + VeyraLayout::DenseFog(Layout).Num(), Markings.Num()));
+			int32 RiverStretches = 0;
+			for (const FVeyraRiverChannel& Channel : VeyraRiver::ShapeOf(Layout).GetChannels())
+			{
+				RiverStretches += Channel.Samples.Num() - 1;
+			}
+			ASSERT_THAT(AreEqual(RiverStretches + Stretches + 2 + VeyraLayout::DenseFog(Layout).Num(), Markings.Num()));
 			for (const UStaticMeshComponent* Marking : Markings)
 			{
 				ASSERT_THAT(IsTrue(Marking->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Marking->CanEverAffectNavigation(),

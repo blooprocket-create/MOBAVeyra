@@ -61,6 +61,7 @@ The terrain-fairness requirement remains binding: no starting side may receive a
 - Two spawned neutral Flux Well sites sit near the north/top and south/bot macro spaces.
 - Competitive distances should be balanced, but the final visual geometry does not need to be a literal mirror of the reference battleground's shape.
 - **Terrain fairness (author ruling, 2026-10-01):** neither team may gain an inherent competitive advantage from its starting side's terrain. Equivalent routes and combat spaces must preserve fair travel times, slopes and elevation transitions, chokepoints, crossings, objective access, cover, sightlines, collision, approach and escape options, and gameplay-camera readability. Visual asymmetry is allowed only where these gameplay conditions remain competitively equivalent. A terrain-induced side advantage blocks map acceptance.
+- **Symmetry and river (author ruling, 2026-10-05):** the prototype battleground is symmetric under a half turn about its centre: Team B's half is Team A's turned 180 degrees, so each lane, route, wall and objective has an equivalent on the other side, and top and bot trade places. The river follows a naturally curved course through the centre, and each Flux Well stands on an island in it, a side channel parting from the river and rejoining it around the Well.
 
 **DESIGN INTENT**
 

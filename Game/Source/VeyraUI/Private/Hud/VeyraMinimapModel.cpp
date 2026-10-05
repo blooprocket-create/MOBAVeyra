@@ -11,7 +11,7 @@
 #include "GameFramework/Pawn.h"
 #include "Hud/VeyraHudModel.h"
 #include "Layout/VeyraLayout.h"
-#include "Layout/VeyraTerrainProfile.h"
+#include "Layout/VeyraRiver.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -102,16 +102,16 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 		View.Fog = DescribeFog(Frame, *Ground);
 	}
 	const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
-	// Draw each sampled branch as triangles; a curved river is not a convex polygon.
+	// Draw each sampled channel as triangles; a curved river is not a convex polygon.
 	const double H = Frame.HalfExtent;
 	auto ToClippedMap = [&](FVector2D Point) {
 		Point.X = FMath::Clamp(Point.X, -H, H);
 		Point.Y = FMath::Clamp(Point.Y, -H, H);
 		return ToMap(Frame, FVector(Point, 0.0));
 	};
-	for (const bool bMirror : { false, true })
+	for (const FVeyraRiverChannel& Channel : VeyraRiver::ShapeOf(Layout).GetChannels())
 	{
-		const auto Samples = VeyraTerrainProfile::River(Layout.Terrain, bMirror);
+		const TArray<FVeyraRiverSample>& Samples = Channel.Samples;
 		for (int32 I = 1; I < Samples.Num(); ++I)
 		{
 			const auto& A = Samples[I - 1];

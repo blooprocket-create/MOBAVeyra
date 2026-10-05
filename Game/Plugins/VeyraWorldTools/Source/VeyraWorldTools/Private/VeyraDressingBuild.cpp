@@ -8,7 +8,8 @@
 #include "Elements/PCGCreatePoints.h"
 #include "Elements/PCGStaticMeshSpawner.h"
 #include "Layout/VeyraLayout.h"
-#include "Layout/VeyraTerrainProfile.h"
+#include "Layout/VeyraDressingRules.h"
+#include "Layout/VeyraTerrainField.h"
 #include "MeshSelectors/PCGMeshSelectorWeighted.h"
 #include "PCGComponent.h"
 #include "PCGGraph.h"
@@ -128,7 +129,7 @@ bool Bake(UWorld& World, const FString& Region, const FString& Family, const TAr
 bool Dressing(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObject& Style, FString& Error)
 {
     const auto& Layout = Tuning.Layout;
-    const FVeyraTerrainSampler Terrain(Tuning);
+    const FVeyraTerrainField Terrain(Tuning, ReliefOf(Style));
     const int32 Seed = static_cast<int32>(Style.GetNumberField(TEXT("seed")));
     const double Timeout = Style.GetNumberField(TEXT("pcgTimeoutSeconds"));
     const double Spacing = Style.GetNumberField(TEXT("wallMeshSpacing"));
@@ -151,7 +152,7 @@ bool Dressing(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObject&
     }
     if (!Bake(World, TEXT("Macro_WallShelves"), TEXT("Shelf"), WallPoints, Seed, Timeout, Error)) { return false; }
 
-    // Each scale is independently seeded and regenerated. Mirrored pairs protect competitive silhouettes.
+    // Each scale is independently seeded and regenerated. Rotated pairs keep both teams' silhouettes the same.
     const TArray<FString> Scales = { TEXT("macro"), TEXT("medium"), TEXT("micro") };
     for (int32 Level = 0; Level < Scales.Num(); ++Level)
     {
@@ -161,7 +162,7 @@ bool Dressing(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObject&
         const double Density = Style.GetNumberField(ScaleName + TEXT("Density"));
         const double Jitter = Style.GetNumberField(TEXT("pointJitterFraction"));
         if (Grid <= 0.0 || Density < 0.0 || Density > 1.0 || Jitter < 0.0 || Jitter >= 0.5) { Error = TEXT("Invalid dressing density/grid."); return false; }
-        const double Extent = Layout.HalfExtent + Layout.Terrain.ExteriorWidth;
+        const double Extent = Layout.HalfExtent + Layout.Terrain.BoundaryWidth;
         const FString Family = Level == 0 ? TEXT("Cliff") : Level == 1 ? TEXT("Shrub") : TEXT("Riverstone");
         UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, *(TEXT("/Game/Veyra/World/Environment/Meshes/SM_Crucible_") + Family + TEXT("_00")));
         if (!Mesh) { Error = TEXT("Missing dressing mesh: ") + Family; return false; }
@@ -176,17 +177,15 @@ bool Dressing(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObject&
                 if (Point.X + Point.Y >= -Radius * 2.0 || Random.FRand() > Density) { continue; }
                 const bool bExterior = FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) > Layout.HalfExtent + Radius;
                 if (Level == 0 && !bExterior) { continue; }
-                if (!VeyraTerrainProfile::AllowsDressing(Tuning, Point, Radius)) { continue; }
-                // Keep medium and micro out of the water and off blocking shelves.
-                if (!bExterior && Terrain.RiverDistance(Point) <= Radius) { continue; }
+                if (!bExterior && !VeyraDressing::Allows(Tuning, Point, Radius)) { continue; }
                 bool bWall = false;
                 for (const auto& Wall : VeyraLayout::Walls(Layout)) { bWall |= Wall.DistanceTo(Point) < Radius; }
                 if (bWall) { continue; }
                 const double Yaw = Random.FRandRange(0.0, 360.0);
-                for (const bool bMirror : { false, true })
+                for (const bool bRotated : { false, true })
                 {
-                    const FVector2D Position = bMirror ? VeyraLayout::Mirror(Point) : Point;
-                    Points.Add(FTransform(FRotator(0.0, bMirror ? -90.0 - Yaw : Yaw, 0.0), FVector(Position, Terrain.Height(Position)), FVector(MeshScale, bMirror ? -MeshScale : MeshScale, MeshScale)));
+                    const FVector2D Position = bRotated ? VeyraLayout::Rotate(Point) : Point;
+                    Points.Add(FTransform(FRotator(0.0, bRotated ? Yaw + 180.0 : Yaw, 0.0), FVector(Position, Terrain.Height(Position)), FVector(MeshScale)));
                 }
             }
         }

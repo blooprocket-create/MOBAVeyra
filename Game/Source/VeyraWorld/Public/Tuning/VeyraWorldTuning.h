@@ -28,7 +28,7 @@ struct FVeyraMapPoint
 
 /**
  * One Fluxway (Battleground Bible §2, §4) and Team A's structures on it (§5, §10). The lane runs from
- * Team A's base to Team B's; Team B's structures are Team A's mirrored (VeyraLayout::Mirror).
+ * Team A's base to Team B's; Team B's structures stand the same distances along it from Team B's end.
  */
 USTRUCT()
 struct FVeyraLaneLayout
@@ -62,7 +62,7 @@ struct FVeyraLaneLayout
 	double FluxbornSpawnDistance = 0.0;
 };
 
-/** Team A's base (Battleground Bible §3, §12, §18); Team B's is its mirror. */
+/** Team A's base (Battleground Bible §3, §12, §18); Team B's is its rotation (VeyraLayout::Rotate). */
 USTRUCT()
 struct FVeyraBaseLayout
 {
@@ -90,7 +90,7 @@ struct FVeyraBaseLayout
 
 /**
  * One Dense Fog circle of Team A's half (Battleground Bible §11, Vision Bible §2): the battleground's
- * bush. Team B's is its mirror; circles that touch are one fog volume.
+ * bush. Team B's is its rotation; circles that touch are one fog volume.
  */
 USTRUCT()
 struct FVeyraFogLayout
@@ -123,8 +123,8 @@ struct FVeyraSurfaceTuning
 
 /**
  * One wall of Team A's half (ADR-043 §1): an oriented box of terrain standing on the floor, Length long
- * across the way it faces and Thickness deep along it. Team B's is its mirror. Grey-box geometry,
- * Veyra's own.
+ * across the way it faces and Thickness deep along it. Team B's is its rotation. The terrain field raises a ridge on
+ * it.
  */
 USTRUCT()
 struct FVeyraWallLayout
@@ -149,8 +149,9 @@ struct FVeyraWallLayout
 
 /**
  * The battleground's authoritative spatial layout (ADR-011 §12): the one source for the generated map and the
- * server's spawning. Team B's half is Team A's reflected across the river's diagonal, the line
- * Y = -X, which maps every lane onto itself and swaps the bases, so both teams' distances match.
+ * server's spawning. Team B's half is Team A's rotated half a turn about the centre (author ruling 2026-10-05), which
+ * swaps the bases and maps the lanes onto each other, top onto bottom and mid onto itself, so both teams have the same
+ * battleground from their own side. The river through the centre is its own rotation.
  */
 USTRUCT()
 struct FVeyraBattlegroundLayout
@@ -171,16 +172,19 @@ struct FVeyraBattlegroundLayout
 	FVeyraTerrainTuning Terrain;
 
 	UPROPERTY()
+	FVeyraRiverLayout River;
+
+	UPROPERTY()
 	TArray<FVeyraLaneLayout> Lanes;
 
 	UPROPERTY()
 	FVeyraBaseLayout Base;
 
-	/** Team A's Dense Fog (ADR-016 §4, §11); Team B's is its mirror. */
+	/** Team A's Dense Fog (ADR-016 §4, §11); Team B's is its rotation. */
 	UPROPERTY()
 	TArray<FVeyraFogLayout> DenseFog;
 
-	/** Team A's walls (ADR-043 §1); Team B's are their mirror. */
+	/** Team A's walls (ADR-043 §1); Team B's are their rotation. */
 	UPROPERTY()
 	TArray<FVeyraWallLayout> Walls;
 
@@ -561,7 +565,7 @@ struct FVeyraWildlifeAiTuning
 	double HomeAcceptance = 0.0;
 };
 
-/** One of Team A's camps; Team B's is its mirror (Battleground Bible §7, §8, §17). */
+/** One of Team A's camps; Team B's is its rotation (Battleground Bible §7, §8, §17). */
 USTRUCT()
 struct FVeyraCampTuning
 {
@@ -685,7 +689,7 @@ struct FVeyraFluxWellsTuning
 	UPROPERTY()
 	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
 
-	/** Where each Well stands: on the river's diagonal, so each is its own mirror. */
+	/** Where each Well stands: on a river island (author ruling 2026-10-05); each site's rotation is another site. */
 	UPROPERTY()
 	TArray<FVeyraMapPoint> Sites;
 
@@ -740,7 +744,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;
@@ -790,9 +794,10 @@ namespace VeyraWorld
 {
 	/**
 	 * Problems with Tuning, each a JSON pointer and a message; empty when it is consistent: one lane
-	 * of each kind, each mirroring onto itself, its structures on Team A's half, every point on the
-	 * floor; each camp of a known species, on Team A's half with its leash on the floor and clear of
-	 * the river and every lane; each Flux Well on the river and clear of every lane.
+	 * of each kind, the lanes rotating onto each other, each lane's structures on its owner's half, every point on the
+	 * floor; a river whose main channel starts at the centre and leaves the floor, each island's channel joining it at both
+	 * ends; each camp of a known species, on Team A's half with its leash on the floor and clear of the water and every
+	 * lane; each Flux Well dry on its island and clear of every lane, the sites rotating onto each other.
 	 */
 	VEYRAWORLD_API TArray<FString> Validate(const FVeyraWorldTuning& Tuning);
 }

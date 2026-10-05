@@ -1,69 +1,54 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "layout": {
     "provenance": "Provisional",
     "halfExtent": 9000,
     "surface": { "minZ": -2000, "maxZ": 6000, "maxSlopeDegrees": 40 },
     "terrain": {
-      "riverControls": [
-        {
-          "x": -10500,
-          "y": 10200,
-          "width": 1050
-        },
-        {
-          "x": -6900,
-          "y": 6750,
-          "width": 1100
-        },
-        {
-          "x": -4300,
-          "y": 4700,
-          "width": 1300
-        },
-        {
-          "x": -1900,
-          "y": 1600,
-          "width": 850
-        },
-        {
-          "x": 0,
-          "y": 0,
-          "width": 1000
-        },
-        {
-          "x": 2200,
-          "y": -1850,
-          "width": 900
-        },
-        {
-          "x": 4600,
-          "y": -4800,
-          "width": 1400
-        },
-        {
-          "x": 6700,
-          "y": -6550,
-          "width": 1100
-        },
-        {
-          "x": 10300,
-          "y": -10600,
-          "width": 1000
-        }
-      ],
-      "riverSamplesPerSegment": 12,
-      "riverSurfaceZ": -120,
-      "riverBedZ": -180,
-      "riverFlowSpeed": 60,
       "laneZ": 0,
-      "baseZ": 80,
-      "jungleZ": 280,
-      "bankBlend": 900,
-      "laneShoulder": 900,
-      "exteriorWidth": 2200,
-      "exteriorZ": 2400,
+      "baseZ": 200,
+      "jungleZ": 260,
+      "islandZ": -150,
+      "ridgeZ": 800,
+      "laneShoulder": 250,
+      "jungleRise": 1000,
+      "bankWidth": 1200,
+      "ridgeSkirt": 200,
+      "boundaryZ": 2200,
+      "boundaryWidth": 800,
       "wallFootingClearance": 40
+    },
+    "river": {
+      "samplesPerSegment": 12,
+      "surfaceZ": -220,
+      "bedZ": -280,
+      "flowSpeed": 60,
+      "main": [
+        { "x": 0, "y": 0, "width": 950 },
+        { "x": 1379, "y": -601, "width": 1000 },
+        { "x": 2864, "y": -1237, "width": 950 },
+        { "x": 3955, "y": -2046, "width": 850 },
+        { "x": 4596, "y": -3323, "width": 950 },
+        { "x": 4879, "y": -4879, "width": 1050 },
+        { "x": 5480, "y": -5975, "width": 1000 },
+        { "x": 6500, "y": -6500, "width": 900 },
+        { "x": 7814, "y": -7036, "width": 1000 },
+        { "x": 9122, "y": -7849, "width": 1150 },
+        { "x": 10147, "y": -9369, "width": 1300 },
+        { "x": 11526, "y": -11102, "width": 1400 }
+      ],
+      "islands": [
+        {
+          "site": 0,
+          "channel": [
+            { "x": 2333, "y": -1202, "width": 420 },
+            { "x": 1980, "y": -2687, "width": 520 },
+            { "x": 2293, "y": -3707, "width": 600 },
+            { "x": 3147, "y": -4066, "width": 540 },
+            { "x": 4490, "y": -3854, "width": 420 }
+          ]
+        }
+      ]
     },
     "lanes": [
       {
@@ -100,25 +85,24 @@
     },
     "denseFog": [
       { "center": { "x": 1200, "y": -5600 }, "radius": 350 },
-      { "center": { "x": 5300, "y": -5900 }, "radius": 300 },
-      { "center": { "x": 2100, "y": -3500 }, "radius": 300 },
-      { "center": { "x": -5600, "y": 1200 }, "radius": 350 },
-      { "center": { "x": -5900, "y": 5300 }, "radius": 300 },
-      { "center": { "x": -3500, "y": 2100 }, "radius": 300 },
-      { "center": { "x": -1000, "y": 300 }, "radius": 300 },
-      { "center": { "x": 300, "y": -1000 }, "radius": 300 }
+      { "center": { "x": 4382, "y": -6106 }, "radius": 300 },
+      { "center": { "x": 1257, "y": -2831 }, "radius": 300 },
+      { "center": { "x": -5773, "y": 1100 }, "radius": 350 },
+      { "center": { "x": -5728, "y": 4172 }, "radius": 300 },
+      { "center": { "x": -4221, "y": 1047 }, "radius": 300 },
+      { "center": { "x": -1621, "y": -284 }, "radius": 300 },
+      { "center": { "x": 223, "y": -1064 }, "radius": 300 }
     ],
     "walls": [
       { "center": { "x": -700, "y": -5500 }, "facing": 80, "length": 1550, "thickness": 600 },
       { "center": { "x": -5500, "y": -700 }, "facing": 190, "length": 1550, "thickness": 600 },
       { "center": { "x": 3300, "y": -5550 }, "facing": 100, "length": 1650, "thickness": 600 },
-      { "center": { "x": -5550, "y": 3300 }, "facing": 170, "length": 1650, "thickness": 600 },
+      { "center": { "x": -5650, "y": 2800 }, "facing": 170, "length": 1650, "thickness": 400 },
       { "center": { "x": -1150, "y": -2550 }, "facing": 128, "length": 1150, "thickness": 600 },
       { "center": { "x": -2550, "y": -1150 }, "facing": 142, "length": 1150, "thickness": 600 },
       { "center": { "x": 550, "y": -3500 }, "facing": 128, "length": 1000, "thickness": 700 },
-      { "center": { "x": -3500, "y": 550 }, "facing": 142, "length": 1000, "thickness": 700 },
-      { "center": { "x": 3150, "y": -4550 }, "facing": 125, "length": 800, "thickness": 500 },
-      { "center": { "x": -4550, "y": 3150 }, "facing": 145, "length": 800, "thickness": 500 },
+      { "center": { "x": -3899, "y": 151 }, "facing": 142, "length": 1000, "thickness": 700 },
+      { "center": { "x": -5197, "y": 1803 }, "facing": 145, "length": 800, "thickness": 500 },
       { "center": { "x": -700, "y": -7550 }, "facing": 80, "length": 1800, "thickness": 650 },
       { "center": { "x": -7550, "y": -700 }, "facing": 190, "length": 1800, "thickness": 650 },
       { "center": { "x": 4900, "y": -7550 }, "facing": 100, "length": 1250, "thickness": 650 },
@@ -408,8 +392,8 @@
         "species": "ashfang",
         "count": 1,
         "center": {
-          "x": 1500,
-          "y": -4500
+          "x": 1303,
+          "y": -4697
         },
         "spawnSeconds": 55,
         "respawnSeconds": 150,
@@ -432,8 +416,8 @@
         "species": "skittermaw",
         "count": 3,
         "center": {
-          "x": -4500,
-          "y": 1500
+          "x": -5016,
+          "y": 985
         },
         "spawnSeconds": 55,
         "respawnSeconds": 150,

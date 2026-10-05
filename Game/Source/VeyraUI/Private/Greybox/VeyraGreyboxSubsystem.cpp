@@ -42,7 +42,7 @@
 #include "Settings/VeyraDisplayRules.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Layout/VeyraLayout.h"
-#include "Layout/VeyraTerrainProfile.h"
+#include "Layout/VeyraRiver.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Kismet/GameplayStatics.h"
@@ -1162,9 +1162,9 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 	if (!bAuthoredTerrain)
 	{
 		// Flat fixtures still show the authored river; production terrain supplies its own water.
-		for (const bool bMirror : { false, true })
+		for (const FVeyraRiverChannel& Channel : VeyraRiver::ShapeOf(Layout).GetChannels())
 		{
-			const auto Samples = VeyraTerrainProfile::River(Layout.Terrain, bMirror);
+			const TArray<FVeyraRiverSample>& Samples = Channel.Samples;
 			for (int32 I = 1; I < Samples.Num(); ++I)
 			{
 				const auto& A = Samples[I - 1];

@@ -11,7 +11,7 @@
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
 #include "Layout/VeyraLayout.h"
-#include "Layout/VeyraTerrainProfile.h"
+#include "Layout/VeyraTerrainField.h"
 #include "Tuning/VeyraWorldTuning.h"
 
 namespace VeyraWorldBuild
@@ -40,7 +40,7 @@ void ReviewScene(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObje
     Exposure->Settings.bOverride_AutoExposureBias = true;
     Exposure->Settings.AutoExposureBias = -Style.GetNumberField(TEXT("exposureEV100"));
 
-    const FVeyraTerrainSampler Terrain(Tuning);
+    const FVeyraTerrainField Terrain(Tuning, ReliefOf(Style));
     auto Camera = [&](const FString& Name, const FVector2D& Point, bool Reverse = false, bool Overview = false)
     {
         const double Height = Style.GetNumberField(Overview ? TEXT("overviewHeight") : TEXT("reviewHeight"));
@@ -71,15 +71,16 @@ void ReviewScene(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObje
     }
     for (int32 I = 0; I < Tuning.FluxWells.Sites.Num(); ++I) { Camera(FString::Printf(TEXT("FluxWell_%d"), I), VeyraLayout::ToVector(Tuning.FluxWells.Sites[I])); }
     if (!Tuning.Layout.DenseFog.IsEmpty()) { Camera(TEXT("DenseFog"), VeyraLayout::ToVector(Tuning.Layout.DenseFog[0].Center)); }
+    // The camp farthest from the centre: the outer jungle, and the densest foliage to benchmark.
+    const FVeyraCampTuning* Outer = nullptr;
     for (const auto& Camp : Tuning.Wildlife.Camps)
     {
-        const FVector2D Point = VeyraLayout::ToVector(Camp.Center);
-        if (FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) > Tuning.Layout.HalfExtent - Tuning.Layout.Terrain.ExteriorWidth)
-        {
-            Camera(TEXT("OuterJungle"), Point);
-            Camera(TEXT("FoliageBenchmark"), Point);
-            break;
-        }
+        if (!Outer || VeyraLayout::ToVector(Camp.Center).Size() > VeyraLayout::ToVector(Outer->Center).Size()) { Outer = &Camp; }
+    }
+    if (Outer)
+    {
+        Camera(TEXT("OuterJungle"), VeyraLayout::ToVector(Outer->Center));
+        Camera(TEXT("FoliageBenchmark"), VeyraLayout::ToVector(Outer->Center));
     }
     Camera(TEXT("CombatBenchmark"), FVector2D::ZeroVector);
 }

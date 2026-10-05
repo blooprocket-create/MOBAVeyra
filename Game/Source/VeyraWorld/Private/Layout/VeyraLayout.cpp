@@ -1,7 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Layout/VeyraLayout.h"
-#include "Layout/VeyraTerrainProfile.h"
+#include "Layout/VeyraRiver.h"
 
 #include "Algo/Reverse.h"
 #include "Tuning/VeyraWorldTuning.h"
@@ -13,9 +13,9 @@ FVector2D ToVector(const FVeyraMapPoint& Point)
 	return FVector2D(Point.X, Point.Y);
 }
 
-FVector2D Mirror(const FVector2D& Point)
+FVector2D Rotate(const FVector2D& Point)
 {
-	return FVector2D(-Point.Y, -Point.X);
+	return VeyraRiver::Rotate(Point);
 }
 
 double Length(TConstArrayView<FVeyraMapPoint> Points)
@@ -87,7 +87,7 @@ TArray<FVector2D> Waypoints(const FVeyraLaneLayout& Lane, EVeyraTeam Team)
 
 FVector2D ForTeam(const FVector2D& TeamAPoint, EVeyraTeam Team)
 {
-	return Team == EVeyraTeam::B ? Mirror(TeamAPoint) : TeamAPoint;
+	return Team == EVeyraTeam::B ? Rotate(TeamAPoint) : TeamAPoint;
 }
 
 FVector2D Fountain(const FVeyraBattlegroundLayout& Layout, EVeyraTeam Team)
@@ -112,8 +112,8 @@ FVeyraTerrainBox Wall(const FVeyraWallLayout& Wall, EVeyraTeam Team)
 {
 	const double Radians = FMath::DegreesToRadians(Wall.Facing);
 	const FVector2D Facing(FMath::Cos(Radians), FMath::Sin(Radians));
-	// A direction mirrors as a point does: the reflection across Y = -X is linear.
-	return { ForTeam(ToVector(Wall.Center), Team), Team == EVeyraTeam::B ? Mirror(Facing) : Facing, Wall.Length, Wall.Thickness };
+	// A direction turns as a point does: the rotation about the centre is linear.
+	return { ForTeam(ToVector(Wall.Center), Team), Team == EVeyraTeam::B ? Rotate(Facing) : Facing, Wall.Length, Wall.Thickness };
 }
 
 TArray<FVeyraTerrainBox> Walls(const FVeyraBattlegroundLayout& Layout)
@@ -136,15 +136,20 @@ TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layo
 	{
 		for (const FVeyraLaneLayout& Lane : Layout.Lanes)
 		{
+			// Each team's structures stand the same distances along the lane from its own end.
+			TArray<FVeyraMapPoint> Path = Lane.Points;
+			if (Team == EVeyraTeam::B)
+			{
+				Algo::Reverse(Path);
+			}
 			// Outer Spire first: the order the lane's structures must fall in.
 			const int32 Spires = Lane.SpireDistances.Num();
 			for (int32 Index = Spires - 1; Index >= 0; --Index)
 			{
-				const FVector2D OnLane = PointAlong(Lane.Points, Lane.InhibitorDistance + Lane.SpireDistances[Index]);
-				Placements.Add({ EVeyraStructureKind::LaneSpire, Team, Lane.Lane, Spires - 1 - Index, ForTeam(OnLane, Team) });
+				const FVector2D OnLane = PointAlong(Path, Lane.InhibitorDistance + Lane.SpireDistances[Index]);
+				Placements.Add({ EVeyraStructureKind::LaneSpire, Team, Lane.Lane, Spires - 1 - Index, OnLane });
 			}
-			const FVector2D Inhibitor = PointAlong(Lane.Points, Lane.InhibitorDistance);
-			Placements.Add({ EVeyraStructureKind::Inhibitor, Team, Lane.Lane, Spires, ForTeam(Inhibitor, Team) });
+			Placements.Add({ EVeyraStructureKind::Inhibitor, Team, Lane.Lane, Spires, PointAlong(Path, Lane.InhibitorDistance) });
 		}
 		for (int32 Index = 0; Index < Layout.Base.BaseTowers.Num(); ++Index)
 		{
@@ -161,12 +166,12 @@ bool IsJungle(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point)
 	{
 		return false;
 	}
-	// Gameplay classification uses the same sampled banks as world authoring.
-	if (VeyraTerrainProfile::RiverDistance(Layout.Terrain, Point) <= 0.0)
+	// Gameplay classification uses the same sampled river as world authoring.
+	if (VeyraRiver::ShapeOf(Layout).IsWater(Point))
 	{
 		return false;
 	}
-	// Each lane is its own mirror, so its one path is both teams' road.
+	// Each lane's one path is both teams' road.
 	for (const FVeyraLaneLayout& Lane : Layout.Lanes)
 	{
 		if (DistanceToPath(Lane.Points, Point) <= Lane.Width / 2.0)
@@ -184,17 +189,21 @@ bool IsJungle(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point)
 	return true;
 }
 
-bool MirrorsOntoItself(const FVeyraLaneLayout& Lane)
+bool RotatesOntoALane(const FVeyraLaneLayout& Lane, TConstArrayView<FVeyraLaneLayout> Lanes)
 {
 	const int32 Count = Lane.Points.Num();
-	for (int32 Index = 0; Index < Count; ++Index)
+	for (const FVeyraLaneLayout& Other : Lanes)
 	{
-		const FVector2D Mirrored = Mirror(ToVector(Lane.Points[Index]));
-		if (!Mirrored.Equals(ToVector(Lane.Points[Count - 1 - Index]), UE_DOUBLE_KINDA_SMALL_NUMBER))
+		bool bMatches = Other.Points.Num() == Count;
+		for (int32 Index = 0; bMatches && Index < Count; ++Index)
 		{
-			return false;
+			bMatches = Rotate(ToVector(Lane.Points[Index])).Equals(ToVector(Other.Points[Count - 1 - Index]), UE_DOUBLE_KINDA_SMALL_NUMBER);
+		}
+		if (bMatches)
+		{
+			return true;
 		}
 	}
-	return true;
+	return false;
 }
 }

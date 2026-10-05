@@ -12,7 +12,7 @@ namespace VeyraWorldTests
 {
 	/**
 	 * A battleground small enough for tests (ADR-011 §15): one mid lane with every structure kind
-	 * close together, Team B's the mirror of Team A's. Fixture values, not tuning.
+	 * close together, Team B's the rotation of Team A's. Fixture values, not tuning.
 	 */
 	inline FVeyraBattlegroundLayout CompactBattleground()
 	{
@@ -20,7 +20,10 @@ namespace VeyraWorldTests
 		Layout.HalfExtent = 3000.0;
 		Layout.Surface = UVeyraWorldTuningSubsystem::Get().Layout.Surface;
 		Layout.Terrain = UVeyraWorldTuningSubsystem::Get().Layout.Terrain;
-		Layout.Terrain.RiverControls = { { -3000.0, 3000.0, 400.0 }, { 3000.0, -3000.0, 400.0 } };
+		// A straight river from the centre off the floor, its rotation the other way; no islands.
+		Layout.River = UVeyraWorldTuningSubsystem::Get().Layout.River;
+		Layout.River.Main = { { 0.0, 0.0, 400.0 }, { 3200.0, -3200.0, 400.0 } };
+		Layout.River.Islands.Reset();
 		FVeyraLaneLayout& Lane = Layout.Lanes.AddDefaulted_GetRef();
 		Lane.Lane = EVeyraLane::Mid;
 		Lane.Points = { { -1500.0, -1500.0 }, { 1500.0, 1500.0 } };
