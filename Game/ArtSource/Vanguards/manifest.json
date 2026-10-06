@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "33e3d1baea18529d88c8aea140792ddec3c827e62fd4cd1e208fbfb2b2f9dde9",
+  "kitSha256": "de8b317cc3882221a93bab94dcd27105bcac2b8b14f21c7c3369d60eec15caa3",
   "assets": [
     {
       "id": "angeru",
@@ -1577,11 +1577,11 @@
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "83797c97725d5c0910013694c46a49cc2723a39692642de6d291fcc91e2bd49d",
-      "triangles": 1632,
+      "sha256": "2a2de1da7cad531c8edf8cb9801057bd8052e11b94eb291acc85f4cd6a34db7f",
+      "triangles": 2712,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 167.62,
+      "bones": 29,
+      "heightCm": 168.94,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 162.99,
@@ -1629,6 +1629,65 @@
           "loop": true
         }
       ]
+    },
+    {
+      "id": "vera",
+      "name": "SK_Vera_DigIn",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Vera_DigIn.fbx",
+      "sha256": "23dd05f46b647c811baa0d14aea4fdc1b554eaefbf5c4be088b41090663655f7",
+      "triangles": 2712,
+      "triangleBudget": 9000,
+      "bones": 29,
+      "heightCm": 168.94,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 162.99,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "status": "vera_dig_in_stance"
     }
   ]
 }

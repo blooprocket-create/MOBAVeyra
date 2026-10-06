@@ -127,7 +127,7 @@ def layout(spec, capsule):
     still = spec.get("stillPose")
     assert still in (None, "slumped"), ("Unknown still pose", still)
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
-            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle")}
+            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle"), "kneel": spec.get("kneel", False)}
     return L, dims
 
 
@@ -187,8 +187,12 @@ def body(spec, L, d, bones=BONES):
             body.limb("head", head_center + Vector((-head_radius * 0.2, sign * head_radius * 0.9, head_radius * 0.3)),
                       head_center + Vector((-head_radius * 0.5, sign * head_radius * 1.4, -head_radius * 1.6)), head_radius * 0.3, head_radius * 0.08, hair)
     if hair_style == "sideTail":
-        body.limb("head", head_center + Vector((-head_radius * 0.3, head_radius * 0.8, head_radius * 0.6)),
-                  head_center + Vector((-head_radius * 0.6, head_radius * 1.3, -head_radius * 0.6)), head_radius * 0.28, head_radius * 0.08, hair)
+        tie = head_center + Vector((-head_radius * 0.3, head_radius * 0.8, head_radius * 0.6))
+        body.limb("head", tie, head_center + Vector((-head_radius * 0.6, head_radius * 1.3, -head_radius * 0.6)), head_radius * 0.28, head_radius * 0.08, hair)
+        if spec.get("ribbon"):
+            for wing in (1, -1):
+                body.ball("head", tie + Vector((wing * head_radius * 0.22, head_radius * 0.05, head_radius * 0.1)), head_radius * 0.2, spec["ribbon"],
+                          scale=(1.3, 0.6, 0.8), segments=6)
     if hair_style == "bigTwinTails":
         # Two big, wild tails tied high and flaring out and back, streaked with the accent, each tied with a bow and a
         # bunny clip: from above, the widest thing about her.
@@ -311,6 +315,24 @@ def body(spec, L, d, bones=BONES):
             body.slab("spine_03", top.lerp(L["spine_03"][1], 0.35) + Vector((d["shoulder"] * 0.62, 0, 0)), low + Vector((d["hip"] * 0.98, other * d["hip"] * 0.6, 0)),
                       limb * 0.7, 1.5, [0.30, 0.18, 0.10])
         body.limb("pelvis", p1 - Vector((0, 0, d["torso"] * 0.05)), p1 + Vector((0, 0, d["torso"] * 0.05)), d["hip"] * 1.12, d["hip"] * 1.12, [0.30, 0.18, 0.10])
+    if "tornCoat" in features:
+        # The coat's hem torn to ribbons, its red lining showing through every rent: strips of different lengths
+        # hanging round the skirt, dark and red in turn.
+        lining = spec.get("lining", accent)
+        hem = p0 - Vector((0, 0, d["leg"] * 0.5))
+        for index in range(10):
+            angle = index / 10 * math.tau
+            out = Vector((math.cos(angle), math.sin(angle), 0))
+            top = hem + out * d["hip"] * 1.42
+            length = d["leg"] * random.uniform(0.12, 0.3)
+            body.slab("pelvis", top + Vector((0, 0, d["leg"] * 0.08)), top + out * d["hip"] * 0.08 - Vector((0, 0, length)), d["hip"] * 0.42, 1.2,
+                      lining if index % 3 == 1 else primary)
+    if "gauntlets" in features:
+        # Banded gauntlets on both forearms.
+        for side in ("l", "r"):
+            e0, e1 = L["lowerarm_" + side]
+            for band in range(3):
+                body.limb("lowerarm_" + side, e0.lerp(e1, 0.35 + band * 0.22), e0.lerp(e1, 0.47 + band * 0.22), limb * 1.25, limb * 1.25, [0.22, 0.21, 0.22], segments=8)
     if "spectralBear" in features:
         spectral_bear(body, spec, L, d)
     if "patches" in features:
@@ -490,9 +512,21 @@ def add_prop(body, prop, L, d, spec):
             for a, b in zip(arc, arc[1:]):
                 body.limb(bone, a, b, radius * 0.07, radius * 0.04, accent, glow=True, segments=5)
     elif kind == "siegeArm":
-        body.limb(bone, grip - forward * unit * 0.25, grip + forward * unit * 0.55, unit * 0.04, unit * 0.03, wood)
-        body.limb(bone, grip + forward * unit * 0.55, grip + forward * unit * 0.72, unit * 0.025, unit * 0.002, metal)
-        body.limb(bone, grip - forward * unit * 0.2, grip + forward * unit * 0.5, unit * 0.01, unit * 0.01, accent, glow=True)
+        # An enormous two-handed siege arm: a heavy dark timber stock bound with riveted iron, a thick barrel, a bladed
+        # spike running forward past the muzzle, a hot Flux line burning its length, and a pennant hung from the fore-end.
+        up = Vector((0, 0, 1))
+        iron = [0.20, 0.19, 0.19]
+        timber = [0.20, 0.12, 0.07]
+        body.slab(bone, grip - forward * unit * 0.28 - up * unit * 0.02, grip + forward * unit * 0.05, unit * 0.05, unit * 0.09, timber)
+        body.limb(bone, grip, grip + forward * unit * 0.5, unit * 0.045, unit * 0.04, iron, segments=8)
+        for share in (0.05, 0.18, 0.32, 0.46):
+            body.limb(bone, grip + forward * unit * (share - 0.012), grip + forward * unit * (share + 0.012), unit * 0.052, unit * 0.052, [0.32, 0.30, 0.28], segments=8)
+        body.limb(bone, grip + forward * unit * 0.5, grip + forward * unit * 0.72, unit * 0.03, unit * 0.003, [0.55, 0.53, 0.50], segments=4)
+        body.limb(bone, grip - forward * unit * 0.22 + up * unit * 0.04, grip + forward * unit * 0.5 + up * unit * 0.042, unit * 0.01, unit * 0.01, accent, glow=True, segments=5)
+        pennant = grip + forward * unit * 0.4 - up * unit * 0.05
+        body.slab(bone, pennant, pennant - up * unit * 0.18 - forward * unit * 0.05, unit * 0.12, 1.0, mix(accent, [0.3, 0.02, 0.02], 0.4))
+        body.box(bone, pennant - up * unit * 0.08 + Vector((0, unit * 0.001, 0)), (unit * 0.05, 1.5, unit * 0.05), [0.92, 0.90, 0.86],
+                 rotation=Euler((0, math.radians(45), 0)))
     elif kind == "chain":
         for index in range(7):
             angle = index * 0.9
@@ -676,6 +710,13 @@ def pose(name, t, melee, d):
         raise AssertionError("Unknown animation: " + name)
     if d.get("stance") == "aim":
         aim_pose(pose, name, t, melee)
+    if d.get("kneel") and name != "Death":
+        # Dug in: down on one knee, braced, whatever the upper body does.
+        pose["thigh_l"] = forward_swing(80)
+        pose["calf_l"] = forward_swing(-85)
+        pose["thigh_r"] = forward_swing(-10)
+        pose["calf_r"] = forward_swing(-90)
+        lift = -d["leg"] * 0.42
     pose.update(cape_pose(name, t))
     return pose, lift
 

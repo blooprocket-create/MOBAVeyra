@@ -101,8 +101,13 @@
       "hairStyle": "bigTwinTails", "hairStreak": [0.95, 0.50, 0.70], "boots": [0.10, 0.08, 0.09], "idle": "bouncy",
       "features": ["kneeGuards", "shorts", "hoodDown", "bunnyCharms", "heavyBoots", "bunnyBoots"], "props": [{ "kind": "ball", "hand": "right" }] },
     { "id": "vera", "archetype": "humanoid", "seed": 107, "heightShare": 0.92, "build": "lean", "headShare": 0.17,
-      "skin": [0.92, 0.84, 0.80], "primary": [0.07, 0.07, 0.08], "secondary": [0.60, 0.06, 0.06], "hair": [0.92, 0.92, 0.95], "accent": [1.00, 0.18, 0.10],
-      "hairStyle": "sideTail", "features": ["shoulderPlate", "coatSkirt"], "props": [{ "kind": "siegeArm", "hand": "both" }] },
+      "skin": [0.92, 0.84, 0.80], "primary": [0.07, 0.07, 0.08], "secondary": [0.18, 0.17, 0.18], "hair": [0.92, 0.92, 0.95], "accent": [1.00, 0.18, 0.10],
+      "lining": [0.60, 0.06, 0.06], "ribbon": [0.65, 0.06, 0.06], "boots": [0.16, 0.15, 0.16], "stance": "aim",
+      "hairStyle": "sideTail", "features": ["heavyShoulderPlate", "coatSkirt", "tornCoat", "gauntlets", "heavyBoots", "kneeGuards"],
+      "props": [{ "kind": "siegeArm", "hand": "both" }],
+      "statusBodies": [
+        { "status": "vera_dig_in_stance", "name": "DigIn", "body": { "kneel": true } }
+      ] },
     { "id": "marek", "archetype": "humanoid", "seed": 110, "heightShare": 0.95, "build": "lean", "headShare": 0.16,
       "skin": [0.82, 0.68, 0.58], "primary": [0.10, 0.07, 0.12], "secondary": [0.35, 0.15, 0.45], "hair": [0.10, 0.08, 0.07], "accent": [0.65, 0.25, 1.00],
       "hairStyle": "curly", "features": ["coatSkirt"], "props": [{ "kind": "chain", "hand": "right" }] },
