@@ -122,9 +122,12 @@ section 9. The existing LFS rules cover the FBX files.
   `SK_<Id>_<Name>`. A body shows the state the kit puts the Vanguard in: Raska fights on foot, and Hound arrives only
   with her rides, which hold `raska_ride_body` for their length. Neris always rides her wave (`waveBase`: a swell with a
   crescent crest on the cape bones). Breaking Wave and TIDEBREAKER (`neris_wave_body`, `neris_tidebreaker_body`) lift
-  her on a deeper, breaking one, and she stays her own size. Calm and Storm swap her slots rather than hold a status,
-  so the wave does not yet show them. When a unit holds several statuses with bodies, the status body with the highest
-  `priority` (inside its `body`) is worn, then the first by status ID.
+  her on a deeper, breaking one, and she stays her own size. When a unit holds several statuses with bodies, the
+  status body with the highest `priority` (inside its `body`) is worn, then the first by status ID.
+- **Stance bodies:** an entry of `statusBodies` may name a `stance` ability in place of a `status`. Its body is worn
+  while that stance's set is in the Vanguard's slots, which the loadout replicates to every machine (ADR-031 §3). Each
+  entry names exactly one. Neris's Storm (`neris_change_the_weather`) darkens her sea to slate, whitens its foam and
+  throws `NS_VeyraSpray` off the crest. Her rides keep `priority` 1, so she rides the wave in either weather.
 - **Moro** (`barkBody`): a dark fur trunk, with grey timber plates down the flanks of the haunch and shoulder, a
   shaggy cream ruff, and branching antlers with leaves. Wildlight runs as veins down each side of the back, where the
   camera sees it, as leaf panels on the flanks, as eyes at the shoulders and haunches, and as veins down the legs.
@@ -148,8 +151,9 @@ section 9. The existing LFS rules cover the FBX files.
   (`hood`), Veil cloth bound round his forearms and shins (`wrapBindings`), Blade House formal panels and a standing
   collar (`formalVest`), every house mark cut out (`cutInsignia`), a `crossedToken` at his hip, his long sword sheathed
   across his back with its hilt over his left shoulder, a dagger in his right hand and throwing `needles` in his left.
-  He shows Veil Stance, his own; Blade Stance swaps his slots rather than holding a status, so the body does not yet
-  draw the sword for it. Sylra holds a large `pilotLantern` out at arm's length (`lanternOut`: the arm raised forward
+  He shows Veil Stance, his own. In Blade Stance (`angeru_forsake_the_schools`) he holds the sword drawn in his right
+  hand (`longSword`: a cord grip, a round guard, a long blade in a slight upward curve with a pale edge), and the
+  scabbard on his back is empty (`swordBack` with `empty`). Sylra holds a large `pilotLantern` out at arm's length (`lanternOut`: the arm raised forward
   and out, the hand turned back so the lantern hangs plumb) under a `deepHood` that peaks behind and drapes her
   shoulders, her face in shadow but for a band of dark markings. Her grey-blue storm cloth is cut into ribbons at every
   hem (`ribbonHems`); her sleeves and gloves cover her arms (`sleeves`, `gloves`); her chained coat carries working

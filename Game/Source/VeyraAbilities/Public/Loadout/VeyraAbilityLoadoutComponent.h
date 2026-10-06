@@ -132,6 +132,15 @@ public:
 	/** Server only: what Slot stowed, if anything (ADR-031 §3). */
 	const FVeyraLoadoutEntry* FindStowed(EVeyraAbilitySlot Slot) const;
 
+	/**
+	 * The stance ability whose set its slots hold now, or None in its own set (ADR-031 §3). Unlike its slots, every
+	 * machine receives it, so its body can show the stance it is in (ADR-064 §1). The stance ability sets it.
+	 */
+	const FVeyraContentId& GetStance() const { return Stance; }
+
+	/** Server only: records the stance its slots hold, None for its own set. */
+	void SetStance(const FVeyraContentId& InStance);
+
 	/** Server: visits every ability it holds, its own, its stowed ones and its overrides', once each. */
 	void ForEachAbility(TFunctionRef<void(const FVeyraLoadoutEntry&)> Visit) const;
 
@@ -215,4 +224,8 @@ private:
 
 	UPROPERTY(Replicated)
 	int32 UnlockedSpellSlots = 0;
+
+	/** Every machine: the stance whose set its slots hold (GetStance). */
+	UPROPERTY(Replicated)
+	FVeyraContentId Stance;
 };

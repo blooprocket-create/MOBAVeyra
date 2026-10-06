@@ -33,6 +33,10 @@
   - Its kit entry lists them (`statusBodies`: status, name, the entries that differ), and each is generated and imported beside its own body.
   - The art set holds them by status ID. The presentation dresses the body for the statuses the unit's replicated ledger holds, so the swap follows gameplay and decides nothing.
   - A unit can hold several statuses that have bodies; the one with the highest `priority` in the kit is worn, and ties go by status ID. A brief burst outranks a state held all the while in some ground: Moro wears Wildstorm's storm (`moro_wildstorm_stride`, priority 1) over Wild Dominion's brighter Wildlight (`moro_wild_dominion_power`, refreshed while he is in the jungle).
+  - **A stance has a body too.** A kit entry may name a `stance` ability in place of a status. Its body is worn while that stance's set is in the Vanguard's slots, which the loadout replicates to every machine (ADR-031 §3).
+    - The presentation treats it as one more held key, so the same priority rule applies.
+    - Angeru draws his long sword in Blade Stance (`angeru_forsake_the_schools`), leaving the scabbard on his back empty.
+    - Neris's sea darkens and throws spray while Change the Weather holds her storm set. Her rides outrank it (priority 1), so she rides the wave in either weather.
 - **Companions:** a companion that is half of its Vanguard's pair (Nix, to Marek) has a body of its own, generated from the kit's `companions` section and fitted to its definition's capsule in `Abilities.json`. The art set holds it by companion ID (`CompanionArt`), and the presentation dresses it as it dresses a Vanguard, status bodies included (Nix's horned true form while `nix_true_form_size` lasts). A companion's statuses sit beside its own ability system.
 - **Bodies of particles:** a body made of something no mesh can show is drawn by an effect instead. Nix is smoke: only its bone mask is mesh, and its body is stylized smoke that Niagara pours off its skeleton's bones as it moves.
   - Each puff is a solid, sunlit blob with a ragged edge. It glows violet while young and erodes through holes as it ages.

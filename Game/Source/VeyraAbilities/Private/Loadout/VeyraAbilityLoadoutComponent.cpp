@@ -124,6 +124,20 @@ void UVeyraAbilityLoadoutComponent::GetLifetimeReplicatedProps(TArray<FLifetimeP
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, Entries, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, Overrides, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, UnlockedSpellSlots, Params);
+	// The stance shows on its holder's body, so every machine needs it; what each slot holds stays its owner's.
+	FDoRepLifetimeParams Public;
+	Public.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, Stance, Public);
+}
+
+void UVeyraAbilityLoadoutComponent::SetStance(const FVeyraContentId& InStance)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	if (Stance != InStance)
+	{
+		Stance = InStance;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Stance, this);
+	}
 }
 
 void UVeyraAbilityLoadoutComponent::SetUnlockedSpellSlots(int32 Count)

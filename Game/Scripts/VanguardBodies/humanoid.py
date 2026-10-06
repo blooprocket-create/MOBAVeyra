@@ -972,8 +972,10 @@ def add_prop(body, prop, L, d, spec):
         along = (tip - hilt).normalized()
         lacquer, fitting = [0.05, 0.05, 0.06], [0.74, 0.73, 0.70]
         body.limb("spine_03", hilt + along * unit * 0.01, tip, unit * 0.017, unit * 0.013, lacquer)
-        body.limb("spine_03", hilt - along * unit * 0.13, hilt, unit * 0.011, unit * 0.011, spec.get("grip", [0.30, 0.05, 0.05]), segments=6)
-        body.limb("spine_03", hilt - along * unit * 0.004, hilt + along * unit * 0.008, unit * 0.032, unit * 0.032, fitting, segments=10)
+        if not prop.get("empty"):
+            # Sheathed: its grip and guard stand over the shoulder. Drawn (empty), only the scabbard is left.
+            body.limb("spine_03", hilt - along * unit * 0.13, hilt, unit * 0.011, unit * 0.011, spec.get("grip", [0.30, 0.05, 0.05]), segments=6)
+            body.limb("spine_03", hilt - along * unit * 0.004, hilt + along * unit * 0.008, unit * 0.032, unit * 0.032, fitting, segments=10)
         for share in (0.04, 0.97):
             point = hilt.lerp(tip, share)
             body.limb("spine_03", point, point + along * unit * 0.015, unit * 0.02, unit * 0.02, fitting, segments=8)
@@ -1004,6 +1006,19 @@ def add_prop(body, prop, L, d, spec):
             body.limb("spine_03", point(0.05) + offset * radius * 1.4, point(0.45) + offset * radius * 1.1, radius * 0.28, radius * 0.28, iron, segments=6)
         body.box("spine_03", point(0.12) + up * radius * 1.5, (radius * 1.4, radius * 1.2, radius * 0.5), brass,
                  rotation=Vector((0, 0, 1)).rotation_difference(along).to_euler())
+    elif kind == "longSword":
+        # A long single-edged sword drawn in the hand: a cord-wrapped grip, a round guard, and a long blade sweeping
+        # forward in a slight curve, its edge down and pale.
+        up = Vector((0, 0, 1))
+        steel, edge, fitting = [0.62, 0.63, 0.66], [0.88, 0.89, 0.92], [0.74, 0.73, 0.70]
+        body.limb(bone, grip - forward * unit * 0.06, grip + forward * unit * 0.05, unit * 0.011, unit * 0.011, spec.get("grip", [0.30, 0.05, 0.05]), segments=6)
+        body.limb(bone, grip + forward * unit * 0.05, grip + forward * unit * 0.062, unit * 0.03, unit * 0.03, fitting, segments=10)
+        root = grip + forward * unit * 0.062
+        bend = root + forward * unit * 0.3 + up * unit * 0.008
+        tip = bend + forward * unit * 0.28 + up * unit * 0.035
+        for a, b, taper in ((root, bend, 1.0), (bend, tip, 0.6)):
+            body.slab(bone, a, b, unit * 0.007, unit * 0.034 * taper, steel)
+            body.slab(bone, a - up * unit * 0.015 * taper, b - up * unit * 0.015 * taper, unit * 0.008, unit * 0.006, edge)
     elif kind == "needles":
         # Thin throwing needles fanned between the fingers.
         steel = [0.80, 0.80, 0.84]

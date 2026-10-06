@@ -18,11 +18,13 @@ CONTENT_VERSION = 3
 
 
 def bodies_of(spec):
-    """A Vanguard's bodies, as (spec, status, name suffix): its own, then each it wears while it holds a status, built
-    from its own entry with the status body's entries over it (a rider's ride, ADR-064 §1)."""
+    """A Vanguard's bodies, as (spec, key, name suffix): its own, then each it wears while it holds a status or while a
+    stance's set is in its slots, built from its own entry with that body's entries over it (a rider's ride, ADR-064 §1).
+    The key is the status's ID, or the stance ability's (ADR-031 §3): each body names exactly one."""
     yield spec, None, ""
     for status_body in spec.get("statusBodies", []):
-        yield dict(spec, **status_body["body"]), status_body["status"], "_" + status_body["name"]
+        assert ("status" in status_body) != ("stance" in status_body), (spec["id"], status_body.get("name"), "a body is worn for a status or a stance, one of them")
+        yield dict(spec, **status_body["body"]), status_body.get("status", status_body.get("stance")), "_" + status_body["name"]
 
 
 def units(vanguards, companions):
