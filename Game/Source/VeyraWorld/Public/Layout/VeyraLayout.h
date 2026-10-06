@@ -96,6 +96,13 @@ namespace VeyraLayout
 	/** The lane's path as Team walks it toward the enemy base: forward for Team A, reversed for Team B. */
 	VEYRAWORLD_API TArray<FVector2D> Waypoints(const FVeyraLaneLayout& Lane, EVeyraTeam Team);
 
+	/**
+	 * Where Team's Fluxborn of Lane spawn: the lane's spawn distance along it from Team's own end, in front of the
+	 * team's inhibitor, as its structures stand. Never Team A's spawn rotated: the rotation carries the top lane onto
+	 * the bottom.
+	 */
+	VEYRAWORLD_API FVector2D FluxbornSpawnPoint(const FVeyraLaneLayout& Lane, EVeyraTeam Team);
+
 	/** Where Team's Vanguards start and respawn. */
 	VEYRAWORLD_API FVector2D Fountain(const FVeyraBattlegroundLayout& Layout, EVeyraTeam Team);
 

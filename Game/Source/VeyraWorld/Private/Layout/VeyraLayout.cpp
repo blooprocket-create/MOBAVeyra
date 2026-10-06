@@ -127,6 +127,16 @@ TArray<FVector2D> Waypoints(const FVeyraLaneLayout& Lane, EVeyraTeam Team)
 	return Path;
 }
 
+FVector2D FluxbornSpawnPoint(const FVeyraLaneLayout& Lane, EVeyraTeam Team)
+{
+	TArray<FVeyraMapPoint> Path = Lane.Points;
+	if (Team == EVeyraTeam::B)
+	{
+		Algo::Reverse(Path);
+	}
+	return PointAlong(Path, Lane.FluxbornSpawnDistance);
+}
+
 FVector2D ForTeam(const FVector2D& TeamAPoint, EVeyraTeam Team)
 {
 	return Team == EVeyraTeam::B ? Rotate(TeamAPoint) : TeamAPoint;

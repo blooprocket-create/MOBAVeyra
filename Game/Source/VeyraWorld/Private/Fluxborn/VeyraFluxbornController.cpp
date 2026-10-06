@@ -80,6 +80,17 @@ void AVeyraFluxbornController::Think()
 		return;
 	}
 
+	// Strayed beyond its leash, by a chase or a push, it lets its target go and walks back to its lane, however near the
+	// lane the target stands: a call for help cannot hold it out there (ADR-065 §2).
+	if (VeyraFluxbornRules::DistanceFromLane(Body->GetWaypoints(), FVector2D(Body->GetActorLocation())) > UVeyraWorldTuningSubsystem::Get().Fluxborn.Ai.LeashRange)
+	{
+		Claimant.Reset();
+		Target.Reset();
+		bResponding = false;
+		Walk(*Body);
+		return;
+	}
+
 	const FVeyraFluxbornDefinition* Definition = Body->GetDefinition();
 	const bool bSiege = Definition && Definition->Role == EVeyraFluxbornRole::Siege;
 	const FVeyraFluxbornChoice Choice = VeyraFluxbornRules::Choose(Target.Get(), bResponding, Claimant.Get(), bSiege, GatherCandidates());

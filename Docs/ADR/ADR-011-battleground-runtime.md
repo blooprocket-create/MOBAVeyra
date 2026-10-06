@@ -168,7 +168,7 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
   - walks its lane's waypoints (reversed for Team B), then on to the enemy's Prime Well;
   - spawns at its lane's `fluxbornSpawnDistance`, in front of the inhibitor; the layout's checks keep that point clear of every structure;
   - after a chase, resumes at the first waypoint ahead of it along the lane, never behind;
-  - engages only what lies within its leash of the lane's path, so a chase that would draw it away ends;
+  - engages only what lies within its leash of the lane's path, so a chase that would draw it away ends, and lets its target go once it strays beyond the leash itself (ADR-065 §2);
   - walks past structures whose prerequisites make them invulnerable (Battleground §18);
   - holds its order while crowd control locks movement, like the Vanguard controller.
 - **A fallen Fluxborn** loses its controller and collision at once, and its body is removed after `corpseSeconds`.
@@ -385,13 +385,13 @@ Every value below is designer-editable data; none is a constant in code. Each re
 | Area | Owner | Values |
 |---|---|---|
 | Layout | `World.json` | Floor 18000 × 18000. Top and bot lanes run 2500 in from the edges, leaving an outer jungle band beyond them. Lanes are 700 wide; the river is 1000 wide on the anti-diagonal. Each base is a quarter-disc about 4200 across around its lane corner, with the fountain in the map corner. Between the inhibitors, side lanes are about 17 500 long and mid about 10 500 |
-| Spire positions | `World.json` | Distance from the owning inhibitor: side lanes 1200 / 3200 / 5500 (the outer Spire before the lane's corner); mid 1000 / 2200 / 3400. Three per lane (Canon) |
+| Spire positions | `World.json` | Distance from the owning inhibitor: side lanes 900 / 3900 / 7300 (the outer Spire before the lane's corner); mid 800 / 2700 / 4600 (ADR-065 §3). Three per lane (Canon) |
 | Lane Spire and base tower | `World.json` | Health 3500 / 3000; Armor 60, Magic Resist 60; 150 Physical damage every 1.0 s; range 750; projectile speed 1200; reconsiders its target every 0.25 s; ramp +20% per shot, five stacks (Canon illustration) |
 | Inhibitor | `World.json` | Health 3000; rebuild 180 s (Canon); +1 Breaker per new wave in its lane while down |
 | Prime Well | `World.json` | Health 5500; regenerates 0.5% of Max Health per second while all inhibitors stand |
 | Backdoor protection | `World.json` | Radius 1100; maximum 66% damage reduction; ramp over 5 s; checked every 0.5 s |
 | Fluxborn | `World.json` | Strider: Health 450, Physical Power 12, 1.25 attacks/s, range 110. Spark: 290, 23, 0.67/s, range 550, projectile speed 650. Breaker: 900, 40, 0.5/s, range 300, Armor 30. Move speed 325 for all |
-| Fluxborn AI | `World.json` | Think every 0.25 s; acquisition 700 (the basic attack's acquisition radius); aggression response 700; leash 900 from the lane's path; waypoint acceptance 150; avoidance radius 200 and weight 0.5; bodies removed 1 s after death; spawn 350 along each lane, in front of the inhibitor |
+| Fluxborn AI | `World.json` | Think every 0.25 s; acquisition 700 (the basic attack's acquisition radius); aggression response 700; leash 550 from the lane's path, for the Fluxborn and its target (ADR-065 §2); waypoint acceptance 150; avoidance radius 200 and weight 0.5; bodies removed 1 s after death; spawn 350 along each lane, in front of the inhibitor |
 | Waves | `World.json` | First wave at 0:30 (Canon); every 30 s, 25 s from 14:00, 20 s from 30:00 (Canon); 3 Striders + 3 Sparks; a Breaker every 3rd wave, every 2nd from 30:00, walking behind the Striders; +1 Breaker in a lane whose enemy inhibitor is down; units leave the base 0.5 s apart. Each wave follows the last by the interval of the phase the last spawned in, so a phase boundary never duplicates or skips one |
 | Replication | `World.json` | Fluxborn every 3 server ticks (10 Hz); structures every 6 |
 | Team Flux | `Flux.json` | Lane Spire and base tower +25 permanent (Canon); inhibitor +25 for 180 s (Canon); every 25 active Flux gives +5% Health and +5% damage (Canon) |
