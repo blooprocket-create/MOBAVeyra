@@ -532,6 +532,12 @@ if ($Handoff -or $Flow) {
     $PracticeVanguard = 'qazharr'
     # -Flow Casual: picks are unique in a matchmade select, so each player locks its own.
     $CasualVanguards = @('cairn', 'oriel')
+    # The flows pick Vanguards that are owned or on the weekly rotation, and the rotation moves every week
+    # (ADR-039 §1). Its draw follows only its seed and the week's number, so the backend begins its first
+    # week the day before the run: every run sees that week's rotation, whatever the date. A day, not the
+    # moment of the run, because Docker's clock may trail the host's by seconds; a run is far shorter than a
+    # week (a fixture value).
+    $SmokeRotationEpoch = (Get-Date).ToUniversalTime().AddDays(-1).ToString('yyyy-MM-ddTHH:mm:ssZ')
     # -Flow Collection: the Flux the development route grants, enough for any one Vanguard (a fixture value).
     $CollectionGrantFlux = 10000
     $isCollection = $Flow -eq 'Collection'
@@ -621,10 +627,10 @@ if ($Handoff -or $Flow) {
     }
     $backendWasRunning = @(& docker compose --project-directory $repositoryDir ps --status running --services 2>$null) -contains 'backend'
     if ($smokeModeSize) {
-        Set-VeyraBackendConfig -RepositoryDir $repositoryDir -Mode $mode -HumansPerTeam $smokeModeSize -DodgeRestriction $(if ($Flow -eq 'CasualDodge') { $DodgeRestriction } else { '' })
+        Set-VeyraBackendConfig -RepositoryDir $repositoryDir -Mode $mode -HumansPerTeam $smokeModeSize -DodgeRestriction $(if ($Flow -eq 'CasualDodge') { $DodgeRestriction } else { '' }) -RotationEpoch $SmokeRotationEpoch
     }
     else {
-        Set-VeyraBackendConfig -RepositoryDir $repositoryDir
+        Set-VeyraBackendConfig -RepositoryDir $repositoryDir -RotationEpoch $SmokeRotationEpoch
     }
     Write-Host 'Starting the backend.'
     if ((Invoke-Compose -Arguments @('up', '--build', '--detach', '--wait', 'postgres', 'backend')) -ne 0) {
