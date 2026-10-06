@@ -81,6 +81,8 @@ struct FVeyraHudArrangement
 	FVeyraMinimapFrame Minimap;
 	/** The chat log and composer, raised above the deck where the deck reaches under them. */
 	FVeyraChatFrame Chat;
+	/** Where the selected unit's frame stands, at its fullest, whether or not a unit is selected (ADR-066 §3). */
+	FBox2D TargetFrame = FBox2D(ForceInit);
 };
 
 namespace VeyraHudLayout

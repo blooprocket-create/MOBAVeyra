@@ -30,6 +30,7 @@
 #include "VeyraSettingsRegistry.h"
 #include "VeyraSettingsStore.h"
 #include "VeyraSettingsSubsystem.h"
+#include "Targeting/VeyraTargeting.h"
 #include "VeyraVanguardCharacter.h"
 
 #if WITH_VEYRA_UI
@@ -1938,7 +1939,7 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	{
 		return;
 	}
-	if (Script == EScript::Practice && TickScoreboard(*Controller))
+	if (Script == EScript::Practice && (TickScoreboard(*Controller) || TickSelection(*Controller)))
 	{
 		return;
 	}
@@ -2244,6 +2245,40 @@ bool UVeyraSmokeFlowSubsystem::TickScoreboard(AVeyraPlayerController& /*Controll
 	Finish(false, TEXT("this build has no scoreboard"));
 	return true;
 #endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TickSelection(AVeyraPlayerController& Controller)
+{
+	if (bSelectionShown)
+	{
+		return false;
+	}
+	// The Select click's frame (ADR-066 §3): the nearest enemy Vanguard this client sees, or else the player's own.
+	if (!Controller.GetSelectedUnit())
+	{
+		AActor* Own = Controller.GetVanguard();
+		AActor* Picked = Own;
+		double Nearest = TNumericLimits<double>::Max();
+		for (TActorIterator<AVeyraVanguardCharacter> It(GetWorld()); It && Own; ++It)
+		{
+			const double Apart = FVector::Dist2D(It->GetActorLocation(), Own->GetActorLocation());
+			if (!It->IsHidden() && VeyraTargeting::AreHostile(Controller.PlayerState, *It) && Apart < Nearest)
+			{
+				Picked = *It;
+				Nearest = Apart;
+			}
+		}
+		Controller.SelectUnit(Picked);
+		return Picked != nullptr;
+	}
+	if (Capture(TEXT("Selected")))
+	{
+		return true;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: selected %s, whose frame showed; let go of it."), *GetNameSafe(Controller.GetSelectedUnit()));
+	Controller.SelectUnit(nullptr);
+	bSelectionShown = true;
+	return false;
 }
 
 bool UVeyraSmokeFlowSubsystem::TickRecall(AVeyraPlayerController& Controller, const AActor& Vanguard)

@@ -67,6 +67,16 @@ namespace VeyraCursorPickTests
 			ASSERT_THAT(IsTrue(VeyraCursorPicks::Ally(Under) == Friend));
 			ASSERT_THAT(IsNull(VeyraCursorPicks::Ally({ { Foe, EVeyraUnitKind::Vanguard, true } })));
 		}
+
+		TEST_METHOD(TheSelectClickSelectsTheNearestUnitOfAnySideOrANearestVanguard)
+		{
+			// Selection names a unit of any side, the nearest first; Target Vanguards Only looks past the rest (ADR-066 §2).
+			const TArray<FVeyraCursorUnit> Under = { { Tower, EVeyraUnitKind::Structure, false }, { Minion, EVeyraUnitKind::Fluxborn, true },
+				{ Foe, EVeyraUnitKind::Vanguard, true } };
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForSelect(Under, false) == Tower, TEXT("an allied structure as readily as anything")));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForSelect(Under, true) == Foe));
+			ASSERT_THAT(IsNull(VeyraCursorPicks::ForSelect({}, false), TEXT("open ground selects nothing")));
+		}
 	};
 
 	// Veyra.Abilities.AllyTargets.*: which abilities may name an allied unit, and so take the Self-Cast Modifier (ADR-041 §3).

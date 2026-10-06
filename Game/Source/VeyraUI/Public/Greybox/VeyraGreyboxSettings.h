@@ -135,6 +135,27 @@ public:
 		return Family == EVeyraResourceFamily::Focus ? FocusColor : Family == EVeyraResourceFamily::Charge ? ChargeColor : ResourceColor;
 	}
 
+	/**
+	 * The selected unit's frame (ADR-066 §3), in designed units at the team panels' scale: how far below the safe area's top
+	 * it starts, under Team Flux, and its width and fullest height, a Vanguard's.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Selection", meta = (ClampMin = "0"))
+	float TargetFrameTop = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Selection", meta = (ClampMin = "1"))
+	float TargetFrameWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Selection", meta = (ClampMin = "1"))
+	float TargetFrameHeight = 0.0f;
+
+	/** How far the ring under a selected unit stands outside its drawn body, in units (ADR-066 §2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Selection", meta = (ClampMin = "0"))
+	float SelectionRingMargin = 0.0f;
+
+	/** How strongly a ready ability its owner cannot afford is washed in its resource's colour, over the shade (ADR-066 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "0", ClampMax = "1"))
+	float UnaffordableTintOpacity = 0.0f;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor BarBackgroundColor = FLinearColor::Transparent;
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Feedback/VeyraKillFeedTypes.h"
+#include "Misc/Optional.h"
 
 /** A kill feed line as this client received it, stamped by its own clock. */
 struct FVeyraKillFeedArrival
@@ -49,4 +50,7 @@ namespace VeyraKillFeedView
 
 	/** A structure line's name for what fell, such as "top outer Spire" or "Prime Well". */
 	VEYRAUI_API FString StructureName(const FVeyraKillFeedLine& Line);
+
+	/** A structure's name from its kind, its lane if it has one, and its order along it, as StructureName names a fallen one. */
+	VEYRAUI_API FString StructureName(EVeyraStructureKind Kind, TOptional<EVeyraLane> Lane, int32 Order);
 }

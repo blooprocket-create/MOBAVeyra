@@ -4,7 +4,24 @@
 
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/VeyraAmbushAbility.h"
+#include "Abilities/VeyraAreaAbility.h"
+#include "Abilities/VeyraAttachAbility.h"
+#include "Abilities/VeyraBlinkAbility.h"
+#include "Abilities/VeyraCommandAbility.h"
+#include "Abilities/VeyraDashAbility.h"
+#include "Abilities/VeyraDismountAbility.h"
+#include "Abilities/VeyraEchoAbility.h"
+#include "Abilities/VeyraEmpoweredAttackAbility.h"
 #include "Abilities/VeyraGameplayAbility.h"
+#include "Abilities/VeyraPlacementAbility.h"
+#include "Abilities/VeyraRideAbility.h"
+#include "Abilities/VeyraSelfBuffAbility.h"
+#include "Abilities/VeyraSkillshotAbility.h"
+#include "Abilities/VeyraStanceAbility.h"
+#include "Abilities/VeyraTargetedDamageAbility.h"
+#include "Abilities/VeyraTetherAbility.h"
+#include "Abilities/VeyraVolleyAbility.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
@@ -100,6 +117,91 @@ int32 RankOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Abili
 double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
 {
 	return VeyraAbilityRules::ResourceCost(UVeyraAbilitiesTuningSubsystem::Get(), Ability, RankOf(Caster, Ability));
+}
+
+TSubclassOf<UVeyraGameplayAbility> ArchetypeOf(const FVeyraContentId& Ability)
+{
+	if (UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability))
+	{
+		return UVeyraTargetedDamageAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindArea(Ability))
+	{
+		return UVeyraAreaAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
+	{
+		return UVeyraSelfBuffAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindSkillshot(Ability))
+	{
+		return UVeyraSkillshotAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindDash(Ability))
+	{
+		return UVeyraDashAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindEmpoweredAttack(Ability))
+	{
+		return UVeyraEmpoweredAttackAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindVolley(Ability))
+	{
+		return UVeyraVolleyAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindTether(Ability))
+	{
+		return UVeyraTetherAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindAttach(Ability))
+	{
+		return UVeyraAttachAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindRide(Ability))
+	{
+		return UVeyraRideAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindAmbush(Ability))
+	{
+		return UVeyraAmbushAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindStance(Ability))
+	{
+		return UVeyraStanceAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindPlacement(Ability))
+	{
+		return UVeyraPlacementAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
+	{
+		return UVeyraBlinkAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
+	{
+		return UVeyraCommandAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindDismount(Ability))
+	{
+		return UVeyraDismountAbility::StaticClass();
+	}
+	if (UVeyraAbilitiesTuningSubsystem::FindEcho(Ability))
+	{
+		return UVeyraEchoAbility::StaticClass();
+	}
+	return nullptr;
+}
+
+bool CanAffordCast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+{
+	const TSubclassOf<UVeyraGameplayAbility> Archetype = ArchetypeOf(Ability);
+	return !Archetype || Archetype.GetDefaultObject()->CanAfford(Caster, Ability);
+}
+
+double CastCostOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+{
+	const TSubclassOf<UVeyraGameplayAbility> Archetype = ArchetypeOf(Ability);
+	return Archetype ? Archetype.GetDefaultObject()->CostNow(Caster, Ability) : 0.0;
 }
 
 void ShortenSoonestCooldown(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Seconds)

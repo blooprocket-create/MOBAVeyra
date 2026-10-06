@@ -5,6 +5,7 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
@@ -36,6 +37,8 @@ namespace VeyraNetTests
 		BEFORE_EACH()
 		{
 			IgnoreKnownIrisWarnings(*TestRunner);
+			SharedSpell = FVeyraContentId();
+			CoolingId = INDEX_NONE;
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
@@ -102,6 +105,58 @@ namespace VeyraNetTests
 					return Loadout && Loadout->GetUnlockedSpellSlots() == (Own->GetVeyraTeam() == EVeyraTeam::A ? 1 : 0);
 				});
 		}
+
+		TEST_METHOD(EveryPlayerSeesEachParticipantsFluxSpellsAndWhenTheyAreReady)
+		{
+			// Whoever selects a participant sees its Flux Spells, whether its team has unlocked them, and their cooldowns
+			// (ADR-066 §4); its other slots and cooldowns stay its own.
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Equip everyone with a spell, open Team A's slot, and start one of Team A's spells cooling"), [this](FState& State) {
+					SharedSpell = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster[0];
+					for (APlayerState* Participant : State.World->GetGameState()->PlayerArray)
+					{
+						AVeyraPlayerState* VeyraParticipant = Cast<AVeyraPlayerState>(Participant);
+						ASSERT_THAT(IsTrue(VeyraParticipant && VeyraParticipant->FindComponentByClass<UVeyraAbilityLoadoutComponent>()->Grant(
+							*VeyraParticipant->GetAbilitySystemComponent(), EVeyraAbilitySlot::Spell1, SharedSpell)));
+						if (VeyraParticipant->GetVeyraTeam() == EVeyraTeam::A && CoolingId == INDEX_NONE)
+						{
+							CoolingId = VeyraParticipant->GetPlayerId();
+							VeyraParticipant->FindComponentByClass<UVeyraCooldownComponent>()->StartCooldown(SharedSpell, SpellCooldownSeconds, EVeyraCooldownHaste::Fixed);
+						}
+					}
+					ASSERT_THAT(IsTrue(CoolingId != INDEX_NONE));
+					State.World->GetSubsystem<UVeyraTeamFluxSubsystem>()->Grant(EVeyraTeam::A, EVeyraFluxSource::LaneSpire);
+				})
+				.UntilClients(TEXT("Every machine sees every participant's spell, its unlock and its cooldown"), [this](FState& State) {
+					const double Now = State.World->GetGameState()->GetServerWorldTimeSeconds();
+					int32 Seen = 0;
+					for (const APlayerState* Participant : State.World->GetGameState()->PlayerArray)
+					{
+						const AVeyraPlayerState* VeyraParticipant = Cast<AVeyraPlayerState>(Participant);
+						const UVeyraAbilityLoadoutComponent* Loadout = VeyraParticipant ? VeyraParticipant->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+						const UVeyraCooldownComponent* Cooldowns = VeyraParticipant ? VeyraParticipant->FindComponentByClass<UVeyraCooldownComponent>() : nullptr;
+						if (!Loadout || !Cooldowns || Loadout->GetSharedSpells().IsEmpty() || Loadout->GetSharedSpells()[0] != SharedSpell
+							|| Loadout->GetUnlockedSpellSlots() != (VeyraParticipant->GetVeyraTeam() == EVeyraTeam::A ? 1 : 0))
+						{
+							return false;
+						}
+						const bool bCooling = Cooldowns->GetSharedRemainingSeconds(SharedSpell, Now) > 0.0;
+						if (bCooling != (VeyraParticipant->GetPlayerId() == CoolingId))
+						{
+							return false;
+						}
+						++Seen;
+					}
+					return Seen == MatchClientCount;
+				});
+		}
+
+		/** The spell every participant holds in the sharing test, and the participant whose spell cools. */
+		FVeyraContentId SharedSpell;
+		int32 CoolingId = INDEX_NONE;
+
+		/** Fixture value: a cooldown that outlasts the test. */
+		static constexpr double SpellCooldownSeconds = 600.0;
 	};
 }
 

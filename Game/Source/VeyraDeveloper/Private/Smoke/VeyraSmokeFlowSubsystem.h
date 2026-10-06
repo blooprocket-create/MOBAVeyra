@@ -246,6 +246,12 @@ private:
 	bool TickScoreboard(AVeyraPlayerController& Controller);
 
 	/**
+	 * Practice: selects the nearest enemy Vanguard the client sees, or the player's own, captures its frame and lets it go
+	 * (ADR-066 §3). True while it works.
+	 */
+	bool TickSelection(AVeyraPlayerController& Controller);
+
+	/**
 	 * Practice: opens the chat composer as the chat key does, sends a line to Team Chat, and waits until
 	 * the server delivers it back to the player, who is on their own side (ADR-029 §1). True while it waits.
 	 */
@@ -380,6 +386,8 @@ private:
 	bool bShopped = false;
 	/** Practice: whether the scoreboard was shown, checked and let go. */
 	bool bScoreboardChecked = false;
+	/** Practice: whether a unit was selected, its frame captured, and let go. */
+	bool bSelectionShown = false;
 	/** Practice: when the Team Chat line went, and whether it came back. */
 	double ChatSentAt = 0.0;
 	bool bChatChecked = false;

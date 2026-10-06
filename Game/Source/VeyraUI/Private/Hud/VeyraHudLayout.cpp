@@ -144,6 +144,10 @@ FVeyraHudArrangement Arrange(const FVector2D& Viewport, const UVeyraGreyboxSetti
 		Out.Chat.InputTopLeft.Y -= Raise;
 		Out.Chat.LogBottomLeft.Y -= Raise;
 	}
+
+	// The selected unit's frame in the top left, under Team Flux, at the team panels' scale (ADR-066 §3).
+	const FVector2D FrameTopLeft(Out.Inset.X + Settings.DeckGap * Out.TeamPanels, Out.Inset.Y + Settings.TargetFrameTop * Out.TeamPanels);
+	Out.TargetFrame = FBox2D(FrameTopLeft, FrameTopLeft + FVector2D(Settings.TargetFrameWidth, Settings.TargetFrameHeight) * Out.TeamPanels);
 	return Out;
 }
 }

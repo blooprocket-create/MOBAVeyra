@@ -3,9 +3,11 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "Templates/SubclassOf.h"
 #include "VeyraAbilityTypes.h"
 
 class UAbilitySystemComponent;
+class UVeyraGameplayAbility;
 
 /**
  * Abilities' verbs (ARCHITECTURE.md §1.10): the one way gameplay code casts an ability. Server only.
@@ -45,6 +47,19 @@ namespace VeyraAbilities
 
 	/** What Ability costs Caster at its rank now, before any reduction (Combat Bible §27). */
 	VEYRAABILITIES_API double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
+
+	/** The archetype class that runs Ability, from the map the Abilities tuning defines it in (ADR-008 §3); null for none. */
+	VEYRAABILITIES_API TSubclassOf<UVeyraGameplayAbility> ArchetypeOf(const FVeyraContentId& Ability);
+
+	/**
+	 * Server and the owner's client: whether Caster holds enough of its resource to cast Ability now, by the test the cast
+	 * validator refuses InsufficientResource by (ADR-066 §1). True for an ability its archetype does not define, or that
+	 * Caster has not learned.
+	 */
+	VEYRAABILITIES_API bool CanAffordCast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
+
+	/** What casting Ability would cost Caster now, as its Commit charges it (ADR-033 §3); 0 before it is learned. */
+	VEYRAABILITIES_API double CastCostOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
 
 	/** Server: the follow-up OpenedBy's cast opens in Caster's slot ends, if it is open there or waits in another stance (ADR-032 §5). */
 	VEYRAABILITIES_API void EndFollowUp(UAbilitySystemComponent& Caster, const FVeyraContentId& OpenedBy);

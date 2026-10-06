@@ -1582,6 +1582,7 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 	{
 		AddIndicator(*Local, Tuning);
 		AddAttackRange(*Local);
+		AddSelectionRing(*Local);
 	}
 }
 
@@ -1622,6 +1623,25 @@ void UVeyraGreyboxSubsystem::AddAttackRange(const AVeyraPlayerController& Local)
 	Ring.Kind = EVeyraShapeKind::Circle;
 	Ring.Radius = Reach.GetValue();
 	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, Body->GetActorLocation(), FVector::ForwardVector }, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
+}
+
+void UVeyraGreyboxSubsystem::AddSelectionRing(const AVeyraPlayerController& Local)
+{
+	const AActor* Selected = Local.GetSelectedUnit();
+	if (!Selected)
+	{
+		return;
+	}
+	// Just outside the body as it is drawn, larger than its capsule and easing after it (ADR-065 §11–§12).
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Selected->GetSimpleCollisionCylinder(Radius, HalfHeight);
+	FVeyraShape Ring;
+	Ring.Kind = EVeyraShapeKind::Circle;
+	Ring.Radius = Radius * Settings.VisualScaleOf(*Selected) + Settings.SelectionRingMargin;
+	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, VeyraDrawnBody::LocationOf(*Selected), FVector::ForwardVector }, EVeyraTelegraphSource::Selection,
+		VeyraTeams::TeamOf(Selected), 0.0 });
 }
 
 FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const

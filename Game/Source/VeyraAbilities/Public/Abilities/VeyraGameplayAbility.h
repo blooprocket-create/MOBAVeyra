@@ -83,6 +83,16 @@ public:
 	EVeyraCastRejection CheckCast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const;
 
 	/**
+	 * Whether Caster holds enough of its resource to cast Ability now: the test CheckCast refuses InsufficientResource by
+	 * (ADR-066 §1). True for an ability this archetype does not define or Caster has not learned, and for a recast that only
+	 * ends a lasting effect early, which is free. The HUD asks it of an archetype's default object for its owner's slots.
+	 */
+	bool CanAfford(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+
+	/** What Ability would cost Caster at its rank now (CostFor); 0 for one not learned or not this archetype's. */
+	double CostNow(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+
+	/**
 	 * Whether Ability's delivery can be repeated by another caster from where it stands, as an Echo repeats it (ADR-050
 	 * §5): it starts from its caster's position or its point, does not channel, and neither moves nor carries its caster.
 	 */
@@ -184,6 +194,9 @@ protected:
 	 * of the caster's current resource, times the share its cost reductions leave.
 	 */
 	double CostFor(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const;
+
+	/** Whether Caster holds Ability's cost at Rank now, and any least of the resource it needs (ADR-033 §3). */
+	bool HoldsEnough(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const;
 
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;

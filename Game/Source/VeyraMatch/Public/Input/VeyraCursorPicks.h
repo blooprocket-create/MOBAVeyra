@@ -33,6 +33,9 @@ namespace VeyraCursorPicks
 	 */
 	VEYRAMATCH_API AActor* ForCast(TConstArrayView<FVeyraCursorUnit> Under, bool bVanguardsOnly, bool bNamesAlly);
 
+	/** The unit the Select click selects (ADR-066 §2): the first of any side; with Target Vanguards Only, the first Vanguard. */
+	VEYRAMATCH_API AActor* ForSelect(TConstArrayView<FVeyraCursorUnit> Under, bool bVanguardsOnly);
+
 	/**
 	 * Whether Smart Self-Cast names Caster for a cast of CastRange (Settings Bible §1.5): unless the first allied
 	 * Vanguard under the cursor is a valid target for it, alive and within range, as the server judges it.
