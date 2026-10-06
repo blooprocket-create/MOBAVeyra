@@ -99,7 +99,8 @@ section 9. The existing LFS rules cover the FBX files.
 ## The other archetypes
 
 - **Companions:** the kit's `companions` section gives a companion that is half of a pair its own body (Nix: a
-  quadruped in a bone-white skull mask, and its horned true form), fitted to its capsule in `Abilities.json` and filed
+  quadruped in a bone-white skull mask, and its horned true form; Neris's Waterling: a little living wave, `waterBody`,
+  low on the ground with a foam crest leaning over its lit eyes), fitted to its capsule in `Abilities.json` and filed
   in the art set's `CompanionArt` by companion ID.
 - **Bodies of particles:** a body entry's `effect` (system, bones, colour) is drawn by Niagara where no mesh can show
   it. The `smokeBody` feature leaves only the mask as mesh, and `NS_VeyraSmokeBody` (`../Presentation/Effects.json`)

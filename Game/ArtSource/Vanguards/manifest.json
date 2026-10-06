@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "c91405f3920ca8d34a889c660dca58cf38c95bb605a8708dae8a35e8da766983",
+  "kitSha256": "3c90cc81223e421883e50b6cab239ac829a7d579fb8b3faa7ff5f85ac49b7023",
   "assets": [
     {
       "id": "angeru",
@@ -1168,6 +1168,80 @@
         "scale": 1.2
       },
       "status": "neris_wave_body"
+    },
+    {
+      "id": "neris_waterling",
+      "name": "SK_NerisWaterling",
+      "archetype": "beast",
+      "file": "FBX/SK_NerisWaterling.fbx",
+      "sha256": "836598b4362f72d431d680f57f10cc1924027e5227734f2e1b6c9ac5ffd288ce",
+      "triangles": 3684,
+      "triangleBudget": 12000,
+      "bones": 27,
+      "heightCm": 62.38,
+      "capsuleHalfHeightCm": 45,
+      "melee": true,
+      "runStrideCm": 73.8,
+      "upperBodyBone": "neck_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 16,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "edab63812c296450a177504fb8a37617dd08a79f74937bfb6507c4f5ad41caf6",
+      "effect": {
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "bones": [
+          "neck_01",
+          "tail_02"
+        ],
+        "color": [
+          0.8,
+          0.92,
+          1.0,
+          1.0
+        ],
+        "scale": 1.0
+      },
+      "companion": true
     },
     {
       "id": "oriel",
