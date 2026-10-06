@@ -102,8 +102,9 @@ def body(spec, L, d):
     # A body of smoke has no mesh for its trunk, neck, legs or tail: its effect pours them off its bones (the art
     # set's Effect), and only what is solid in it, its mask, eyes and claws, is built.
     smoke = "smokeBody" in features
-    # A body of water (a Waterling) has none either: water_body builds it whole, low on the ground.
-    bare = smoke or "waterBody" in features
+    # A body of water (a Waterling) has none either: water_body builds it whole, low on the ground; nor has a machine
+    # (Picket), which picket_body builds whole.
+    bare = smoke or "waterBody" in features or "machineBody" in features
     # The trunk: hips, belly and chest; a broad beast's wider than it is tall, built low over its legs.
     p0, p1 = L["pelvis"]
     if bare:
@@ -178,6 +179,8 @@ def body(spec, L, d):
                 body.limb("head", root, root + Vector((-trunk * 0.5, sign * trunk * 0.35, trunk * 0.75)), trunk * 0.11, trunk * 0.01, bone, segments=5)
     elif "waterBody" in features:
         water_body(body, spec, L, d)
+    elif "machineBody" in features:
+        picket_body(body, spec, L, d)
     elif "wedgeSkull" in features:
         # A heavy wedge-shaped skull of faceted plate, a single deep ocular burning in it.
         body.limb("head", h0, h1, trunk * 0.6, trunk * 0.18, detail, segments=5)
@@ -369,6 +372,92 @@ def water_body(body, spec, L, d):
         rise = tall * (0.22 - index * 0.06)
         body.blob(name, Vector((centre.x, 0, rise)), (Vector(((t1 - t0).length * 0.75, 0, 0)), Vector((0, trunk * (1.0 - index * 0.25), 0)), Vector((0, 0, rise))),
                   mix(water, foam, 0.12 * index), segments=10)
+
+
+def picket_body(body, spec, L, d):
+    """A four-legged work machine (Picket), equipment and never a creature: a riveted armoured chassis of brass-yellow
+    plate over black iron, a red gear stencilled on each flank and hazard stripes along its front, on four heavy legs,
+    each with a piston that telescopes as it bends, and broad foot pads; a turret on its front carrying a heavy rivet
+    cannon, a lens glowing in its muzzle and an ammunition drum at its side; and a wide directional steel shield. As a
+    gun platform the shield is folded flat across its back and the cannon trained ahead. Braced as a bulwark (its body's
+    bulwark entry), the shield stands raised across its front in three angled panels with a sight slit, and the
+    cannon is drawn back and down behind it. Primary is its plate, secondary its iron, detail its steel, accent the
+    lens."""
+    plate, iron, steel, lens = spec["primary"], spec["secondary"], spec["detail"], spec["accent"]
+    stencil, rivet = spec.get("stencil", [0.55, 0.12, 0.08]), mix(spec["primary"], [0.2, 0.2, 0.2], 0.4)
+    trunk, long, tall = d["trunk"], d["length"], d["height"]
+    bulwark = spec.get("bulwark", False)
+    # The chassis: an iron frame in three sections down the spine, plated on its flanks and top, rivets along the top.
+    p0, p1 = L["pelvis"]
+    for bone, start, end in (("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1), ("spine_01", *L["spine_01"]), ("spine_02", *L["spine_02"])):
+        centre, span = (start + end) / 2, (end - start).length * 1.15
+        body.box(bone, centre, (span, trunk * 1.6, trunk * 1.2), iron)
+        body.box(bone, centre + Vector((0, 0, trunk * 0.62)), (span * 0.95, trunk * 1.5, trunk * 0.06), plate)
+        for sign in (1, -1):
+            body.box(bone, centre + Vector((0, sign * trunk * 0.82, trunk * 0.05)), (span * 0.9, trunk * 0.06, trunk * 0.9), plate)
+            for index in range(3):
+                body.ball(bone, centre + Vector((span * (index - 1) * 0.35, sign * trunk * 0.7, trunk * 0.66)), trunk * 0.04, rivet, segments=5)
+    # A red gear stencilled on each flank, and hazard stripes along the front edge.
+    middle = L["spine_01"][0].lerp(L["spine_01"][1], 0.5)
+    for sign in (1, -1):
+        hub = middle + Vector((0, sign * trunk * 0.86, trunk * 0.05))
+        out = Vector((0, sign, 0))
+        body.limb("spine_01", hub, hub + out * trunk * 0.02, trunk * 0.28, trunk * 0.28, stencil, segments=10)
+        body.limb("spine_01", hub, hub + out * trunk * 0.03, trunk * 0.1, trunk * 0.1, plate, segments=8)
+        for tooth in range(8):
+            angle = tooth / 8 * math.tau
+            body.box("spine_01", hub + Vector((math.cos(angle) * trunk * 0.32, 0, math.sin(angle) * trunk * 0.32)), (trunk * 0.1, trunk * 0.03, trunk * 0.1), stencil,
+                     rotation=Euler((0, -angle, 0)))
+    front = L["spine_02"][1] + Vector((trunk * 0.25, 0, trunk * 0.45))
+    for stripe in range(6):
+        body.box("spine_02", front + Vector((0, (stripe - 2.5) * trunk * 0.26, 0)), (trunk * 0.05, trunk * 0.26, trunk * 0.18), [0.9, 0.75, 0.15] if stripe % 2 else iron)
+    # Four heavy legs: a plated upper, a piston cylinder on it whose rod rides the lower so it telescopes as the leg
+    # bends, a steel lower and a broad iron foot pad.
+    for side, sign in (("l", 1), ("r", -1)):
+        for upper, lower, foot in (LEGS, HIND):
+            u0, u1 = L[upper + "_" + side]
+            l0, l1 = L[lower + "_" + side]
+            f0, f1 = L[foot + "_" + side]
+            out = Vector((0, sign * trunk * 0.3, 0))
+            body.ball(upper + "_" + side, u0, trunk * 0.32, iron, segments=8)
+            body.slab(upper + "_" + side, u0, u1, trunk * 0.45, trunk * 0.35, plate)
+            body.ball(upper + "_" + side, u1, trunk * 0.22, iron, segments=8)
+            body.limb(upper + "_" + side, u0.lerp(u1, 0.25) + out, u1 + out, trunk * 0.1, trunk * 0.1, steel, segments=8)
+            body.limb(lower + "_" + side, l0 + out - (l1 - l0) * 0.1, l0.lerp(l1, 0.6) + out, trunk * 0.05, trunk * 0.05, [0.85, 0.85, 0.82], segments=6)
+            body.limb(lower + "_" + side, l0, l1, trunk * 0.17, trunk * 0.13, steel, segments=8)
+            body.box(foot + "_" + side, (f0 + f1) / 2, ((f1 - f0).length * 1.4, trunk * 0.55, trunk * 0.16), iron)
+    # The turret and its rivet cannon: trained ahead as a gun platform, drawn back and down behind a raised shield.
+    n0, n1 = L["neck_01"]
+    h0, h1 = L["head"]
+    body.limb("neck_01", n0 + Vector((0, 0, trunk * 0.5)), n1, trunk * 0.55, trunk * 0.5, iron, segments=10)
+    body.limb("neck_01", n1 - Vector((0, 0, trunk * 0.08)), n1, trunk * 0.6, trunk * 0.6, plate, segments=10)
+    aim = (h1 - h0).normalized()
+    if bulwark:
+        aim = (aim + Vector((0, 0, -1.2))).normalized()
+    reach = long * (0.12 if bulwark else 0.45)
+    body.box("head", h0 + aim * trunk * 0.2, (trunk * 1.0, trunk * 0.8, trunk * 0.65), plate, rotation=Vector((1, 0, 0)).rotation_difference(aim).to_euler())
+    muzzle = h0 + aim * (trunk * 0.5 + reach)
+    body.limb("head", h0 + aim * trunk * 0.5, muzzle, trunk * 0.2, trunk * 0.18, steel, segments=10)
+    body.limb("head", muzzle - aim * trunk * 0.15, muzzle + aim * trunk * 0.05, trunk * 0.27, trunk * 0.27, iron, segments=10)
+    body.ball("head", muzzle + aim * trunk * 0.03, trunk * 0.17, lens, glow=True, segments=10)
+    drum = h0 + aim * trunk * 0.1 + Vector((0, trunk * 0.5, -trunk * 0.05))
+    body.limb("head", drum, drum + Vector((0, trunk * 0.3, 0)), trunk * 0.32, trunk * 0.32, mix(plate, [0.6, 0.4, 0.1], 0.3), segments=10)
+    # The shield: folded flat across the back, or raised across the front in three angled panels with a sight slit.
+    if bulwark:
+        base = L["spine_02"][1] + Vector((trunk * 1.6, 0, -tall * 0.55))
+        height = tall * 1.3
+        for panel, turn in ((-1, 25), (0, 0), (1, -25)):
+            angle = math.radians(turn)
+            centre = base + Vector((-abs(panel) * trunk * 0.35, panel * trunk * 1.35, height * 0.5))
+            body.box("spine_02", centre, (trunk * 0.1, trunk * 1.4, height), steel, rotation=Euler((0, 0, angle)))
+            body.box("spine_02", centre + Vector((trunk * 0.06, 0, height * 0.46)), (trunk * 0.06, trunk * 1.4, height * 0.08), [0.9, 0.75, 0.15], rotation=Euler((0, 0, angle)))
+            for row in (-0.35, 0.0, 0.35):
+                body.ball("spine_02", centre + Vector((trunk * 0.07, 0, height * row)), trunk * 0.05, rivet, segments=5)
+        body.box("spine_02", base + Vector((trunk * 0.06, 0, height * 0.72)), (trunk * 0.06, trunk * 0.7, trunk * 0.1), [0.05, 0.05, 0.05])
+    else:
+        top = L["spine_01"][0] + Vector((0, 0, trunk * 0.72))
+        body.box("spine_01", top, (long * 0.5, trunk * 2.4, trunk * 0.1), steel)
+        body.box("spine_01", top + Vector((long * 0.24, 0, trunk * 0.03)), (trunk * 0.1, trunk * 2.4, trunk * 0.1), [0.9, 0.75, 0.15])
 
 
 def run_stride(d):

@@ -255,6 +255,10 @@
     { "id": "neris_waterling", "archetype": "beast", "seed": 611, "lengthShare": 1.7, "heightShare": 0.5, "trunkShare": 0.45, "hipShare": 0.8, "headShare": 0.22, "tailShare": 0.6, "build": "normal",
       "primary": [0.07, 0.30, 0.45], "secondary": [0.04, 0.16, 0.26], "accent": [0.45, 0.85, 1.00], "detail": [0.85, 0.94, 0.98],
       "features": ["waterBody", "lowHead"],
-      "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray", "color": [0.80, 0.92, 1.0, 1.0], "bones": ["neck_01", "tail_02"] } }
+      "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray", "color": [0.80, 0.92, 1.0, 1.0], "bones": ["neck_01", "tail_02"] } },
+    { "id": "eudora_picket", "archetype": "beast", "seed": 621, "lengthShare": 1.5, "heightShare": 0.6, "trunkShare": 0.36, "hipShare": 0.95, "headShare": 0.32, "tailShare": 0.1, "build": "heavy",
+      "primary": [0.72, 0.58, 0.28], "secondary": [0.16, 0.15, 0.15], "accent": [1.00, 0.45, 0.12], "detail": [0.50, 0.50, 0.52], "stencil": [0.55, 0.12, 0.08],
+      "features": ["machineBody"],
+      "statusBodies": [ { "status": "picket_bulwark", "name": "Bulwark", "body": { "bulwark": true } } ] }
   ]
 }

@@ -111,7 +111,15 @@ section 9. The existing LFS rules cover the FBX files.
 - **Companions:** the kit's `companions` section gives a companion that is half of a pair its own body (Nix: a
   quadruped in a bone-white skull mask, and its horned true form; Neris's Waterling: a little living wave, `waterBody`,
   low on the ground with a foam crest leaning over its lit eyes), fitted to its capsule in `Abilities.json` and filed
-  in the art set's `CompanionArt` by companion ID.
+  in the art set's `CompanionArt` by companion ID. Eudora's Picket is equipment, never a creature, and
+  `machineBody` builds it whole on the beast skeleton:
+  - **Chassis and legs:** a riveted chassis of brass-yellow plate over black iron, a red gear (`stencil`) on each
+    flank and hazard stripes along its front, on four heavy legs with broad foot pads. Each leg's piston cylinder
+    rides the upper leg and its rod the lower, so it telescopes as the leg bends.
+  - **Turret:** a rivet cannon with a lens glowing in its muzzle and an ammunition drum at its side.
+  - **Modes:** as a gun platform, its wide shield is folded flat across its back and the cannon is trained ahead.
+    Its Bulwark posture (`picket_bulwark`, a status body with `bulwark`) raises the shield across its front in three
+    angled panels with a sight slit, and draws the cannon back and down behind it.
 - **Bodies of particles:** a body entry's `effect` (system, bones, colour) is drawn by Niagara where no mesh can show
   it. The `smokeBody` feature leaves only the mask as mesh, and `NS_VeyraSmokeBody` (`../Presentation/Effects.json`)
   pours stylized smoke off the listed bones. The effect's scale is the body's `bodyScale`. Rebuild the system with
