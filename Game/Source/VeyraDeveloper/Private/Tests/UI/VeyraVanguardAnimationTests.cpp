@@ -94,6 +94,35 @@ namespace VeyraVanguardAnimationTests
 			ASSERT_THAT(IsTrue(State.Current.Clip == EVeyraVanguardClip::None, TEXT("played out, it gives way to locomotion")));
 		}
 
+		TEST_METHOD(ABodyFirstSeenMidWindupOrCastTakesUpWhatItIsSeenDoing)
+		{
+			// Seen for the first time already winding up (out of the fog, say): no cue came, yet it winds up, timed to land
+			// as the attack commits.
+			FVeyraVanguardAnimState State;
+			FVeyraVanguardAnimInputs WindingUp;
+			WindingUp.bAttackWindingUp = true;
+			WindingUp.AttackWindupSecondsLeft = WindupSeconds / 2.0f;
+			VeyraVanguardAnim::Advance(State, Step, WindingUp, Shape());
+			ASSERT_THAT(IsTrue(State.Current.Clip == EVeyraVanguardClip::AttackWindup, TEXT("the warning still shows")));
+			ASSERT_THAT(IsNear(State.Current.Rate, 2.0f, Slack, TEXT("timed to the commit it will meet")));
+			const float Position = State.Current.Position;
+			VeyraVanguardAnim::Advance(State, Step, WindingUp, Shape());
+			ASSERT_THAT(IsTrue(State.Current.Position > Position, TEXT("taken up once, then left to play")));
+			// Seen mid-cast, its hands rise to the release and hold there while the cast does.
+			FVeyraVanguardAnimState Casting;
+			FVeyraVanguardAnimInputs Held;
+			Held.bCastHeld = true;
+			Elapse(Casting, CastSeconds, Held);
+			ASSERT_THAT(IsTrue(Casting.Current.Clip == EVeyraVanguardClip::Cast));
+			ASSERT_THAT(IsNear(Casting.Current.Position, CastSeconds * CastReleaseShare, Slack));
+			// A dead body takes up neither.
+			FVeyraVanguardAnimState Dead;
+			FVeyraVanguardAnimInputs Gone = WindingUp;
+			Gone.bAlive = false;
+			VeyraVanguardAnim::Advance(Dead, Step, Gone, Shape());
+			ASSERT_THAT(IsTrue(Dead.Current.Clip == EVeyraVanguardClip::Death));
+		}
+
 		TEST_METHOD(AWindupFitsItsTimeWithinItsPlayRates)
 		{
 			FVeyraVanguardAnimState State;

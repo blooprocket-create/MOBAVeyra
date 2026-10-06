@@ -79,7 +79,7 @@ FVeyraVanguardAnimShape VeyraVanguardSkin::ShapeOf(const UVeyraGreyboxSettings& 
 	return Shape;
 }
 
-FVeyraVanguardAnimInputs VeyraVanguardSkin::InputsOf(const APawn& Unit, EVeyraTeam Viewer)
+FVeyraVanguardAnimInputs VeyraVanguardSkin::InputsOf(const APawn& Unit, EVeyraTeam Viewer, double ServerNow)
 {
 	FVeyraVanguardAnimInputs Inputs;
 	Inputs.GroundSpeed = static_cast<float>(Unit.GetVelocity().Size2D());
@@ -91,6 +91,7 @@ FVeyraVanguardAnimInputs VeyraVanguardSkin::InputsOf(const APawn& Unit, EVeyraTe
 	if (const TOptional<FVeyraUnitSighting> Sighting = VeyraCombatCues::Sight(Unit, Viewer))
 	{
 		Inputs.bAttackWindingUp = Sighting->AttackPhase == EVeyraAttackPhase::Windup;
+		Inputs.AttackWindupSecondsLeft = Inputs.bAttackWindingUp ? static_cast<float>(FMath::Max(0.0, Sighting->AttackPhaseEndsAt - ServerNow)) : 0.0f;
 		Inputs.bCastHeld = Sighting->CastPhase == EVeyraCastPhase::Windup || Sighting->CastPhase == EVeyraCastPhase::Channel;
 	}
 	return Inputs;

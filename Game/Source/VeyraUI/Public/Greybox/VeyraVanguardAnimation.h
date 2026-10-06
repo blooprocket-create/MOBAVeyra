@@ -79,6 +79,9 @@ struct FVeyraVanguardAnimInputs
 	/** Whether its attack is still winding up: a windup held for its commit gives way once it is not. */
 	bool bAttackWindingUp = false;
 
+	/** While it winds up, how long until its attack commits, in seconds. */
+	float AttackWindupSecondsLeft = 0.0f;
+
 	/** Whether a cast holds it, winding up or channelling: the hands stay at the release while one does. */
 	bool bCastHeld = false;
 };

@@ -37,3 +37,23 @@ def stale_assets(kit, vanguards, assets):
         for body_spec, status, _ in bodies_of(spec):
             current[(spec["id"], status)] = input_hash(kit, vanguards, body_spec)
     return [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status"))) != asset.get("inputSha256")]
+
+
+def stale_in(game):
+    """The stale bodies of the project whose Game folder is game: the manifest's against its kit and Vanguards.json."""
+    from pathlib import Path
+    game = Path(game)
+    source = game / "ArtSource" / "Vanguards"
+    kit = json.loads((source / "VanguardKit.json").read_text(encoding="utf-8"))
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    vanguards = json.loads((game / "Tuning" / "Vanguards.json").read_text(encoding="utf-8"))["vanguards"]
+    return stale_assets(kit, vanguards, manifest["assets"])
+
+
+if __name__ == "__main__":
+    # The import's preflight (BuildVanguardBodies.ps1): python inputs.py <Game folder>. Names the stale bodies and fails.
+    import sys
+    stale = stale_in(sys.argv[1])
+    if stale:
+        print("Regenerate these bodies (GenerateVanguardBodies.py): their inputs changed since they were built: " + ", ".join(stale))
+        sys.exit(1)

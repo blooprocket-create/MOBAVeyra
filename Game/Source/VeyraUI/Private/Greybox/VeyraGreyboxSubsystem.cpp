@@ -1044,7 +1044,7 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const AVeyraVanguardCharacter& U
 	Skin->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
 	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()))
 	{
-		Animation->SetInputs(VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam()));
+		Animation->SetInputs(VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow()));
 	}
 	// Its body lies under its feet as a disc, still showing its side and its status tint.
 	if (UStaticMeshComponent* Shape = Body.Mesh.Get())

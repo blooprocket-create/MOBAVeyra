@@ -80,6 +80,28 @@ class VanguardBodyInputs(unittest.TestCase):
         kit["vanguards"][0]["statusBodies"][0]["body"]["archetype"] = "humanoid"
         self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_a_Ride"])
 
+    def test_the_preflight_reads_a_project_and_fails_on_a_stale_body(self):
+        import json
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = Path(folder)
+            (game / "ArtSource" / "Vanguards").mkdir(parents=True)
+            (game / "Tuning").mkdir()
+            (game / "ArtSource" / "Vanguards" / "VanguardKit.json").write_text(json.dumps(KIT))
+            (game / "Tuning" / "Vanguards.json").write_text(json.dumps({"vanguards": VANGUARDS}))
+            manifest = game / "ArtSource" / "Vanguards" / "manifest.json"
+            manifest.write_text(json.dumps({"assets": built(KIT, VANGUARDS)}))
+            self.assertEqual(inputs.stale_in(game), [])
+            ok = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
+            self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
+            kit = copy.deepcopy(KIT)
+            kit["fps"] = 24
+            (game / "ArtSource" / "Vanguards" / "VanguardKit.json").write_text(json.dumps(kit))
+            stale = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
+            self.assertEqual(stale.returncode, 1)
+            self.assertIn("SK_a_Ride", stale.stdout)
+
     def test_a_body_without_a_recorded_input_hash_is_stale(self):
         assets = built(KIT, VANGUARDS)
         del assets[0]["inputSha256"]
