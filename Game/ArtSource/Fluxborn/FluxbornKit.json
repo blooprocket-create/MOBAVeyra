@@ -5,7 +5,7 @@
     {"name": "M_FluxbornStone", "color": [0.24, 0.30, 0.33, 1], "metallic": 0.05, "roughness": 0.8, "emission": 0},
     {"name": "M_FluxbornIron", "color": [0.055, 0.08, 0.095, 1], "metallic": 0.8, "roughness": 0.38, "emission": 0},
     {"name": "M_FluxbornAlloy", "color": [0.38, 0.23, 0.10, 1], "metallic": 0.75, "roughness": 0.36, "emission": 0},
-    {"name": "M_FluxbornFlux", "color": [0.068, 0.275, 0.658, 1], "metallic": 0.25, "roughness": 0.25, "emission": 2.0}
+    {"name": "M_FluxbornFlux", "color": [0.068, 0.275, 0.658, 1], "metallic": 0.25, "roughness": 0.25, "emission": 1.0}
   ],
   "assets": [
     {"id": "strider", "name": "Strider", "role": "Frontline", "visualHeightFraction": 1, "triangleBudget": 6500, "previewY": -1.45},

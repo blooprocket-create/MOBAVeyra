@@ -22,15 +22,18 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
-from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, generator_hash, input_hash,  # noqa: E402
-                                   pending_changed, pending_removed, pinned_blender, removed_assets, same_destination, stale_assets)
+from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash,  # noqa: E402
+                                   input_hash, pending_changed, pending_removed, pinned_blender, removed_assets, same_destination,
+                                   stale_assets, units)
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
 KIT_BYTES = (SOURCE / "VanguardKit.json").read_bytes()
 KIT = json.loads(KIT_BYTES)
-TUNING = json.loads((GAME / "Tuning" / "Vanguards.json").read_bytes())["vanguards"]
+# Every unit a body is fitted to: the Vanguards, and the companions that are the other half of a pair (as Nix).
+TUNING = units(json.loads((GAME / "Tuning" / "Vanguards.json").read_bytes())["vanguards"],
+               json.loads((GAME / "Tuning" / "Abilities.json").read_bytes()).get("companions", {}))
 ARCHETYPES = {"humanoid": humanoid, "colossus": colossus, "beast": beast, "construct": construct, "rider": rider}
 
 if not bpy.app.background:
@@ -168,8 +171,12 @@ def render_preview(name, armature, obj, archetype, d, melee):
     three-quarters toward the camera, one in profile, and one seen from the gameplay camera's pitch, as players see it."""
     scene = bpy.context.scene
     rest = rest_quaternions(armature)
-    span = max(d["full"], d.get("length", 0.0))
-    gap = span * (0.9 if span == d["full"] else 1.15)
+    # Framed on the body as built, so whatever towers over or reaches past its figure (a mount, a manifested spirit)
+    # stays in frame.
+    tall = max(d["full"], obj.dimensions.z)
+    span = max(tall, d.get("length", 0.0), obj.dimensions.x)
+    gap = span * (0.9 if span == tall else 1.15)
+    d = dict(d, full=tall)
     armature.hide_render = obj.hide_render = True
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.display.shading.light = "STUDIO"
@@ -316,7 +323,9 @@ def build(spec, status=None, suffix="", previous=None):
     heights = [vertex.co.z for vertex in mesh.vertices]
     height = max(heights) - min(heights)
     assert min(heights) > -GROUND_SLACK, (spec["id"], "the body sinks below the ground", min(heights))
-    assert not archetype.GROUNDED or min(heights) < dims["full"] * 0.02, (spec["id"], "the body does not stand on the ground", min(heights))
+    # A body of smoke stands on feet its effect pours, not on its mesh.
+    grounded = archetype.GROUNDED and "smokeBody" not in spec.get("features", [])
+    assert not grounded or min(heights) < dims["full"] * 0.02, (spec["id"], "the body does not stand on the ground", min(heights))
     (SOURCE / "FBX").mkdir(parents=True, exist_ok=True)
     path = SOURCE / "FBX" / (name + ".fbx")
     assert_covered(obj)
@@ -349,17 +358,29 @@ def build(spec, status=None, suffix="", previous=None):
              # and what it is, so a rebuild that changes nothing in it keeps it.
              "inputSha256": input_hash(KIT, TUNING, spec), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
              "contentSha256": content, "contentVersion": CONTENT_VERSION}
+    if spec.get("effect"):
+        # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
+        effect = spec["effect"]
+        missing = [bone for bone in effect["bones"] if bone not in dict(archetype.BONES)]
+        assert not missing, (spec["id"], "the effect pours from bones it lacks", missing)
+        # Sized as the body is grown (a larger form pours larger smoke).
+        asset["effect"] = {"system": effect["system"], "bones": effect["bones"], "color": effect["color"],
+                           "scale": spec.get("bodyScale", 1.0)}
     if status:
         asset["status"] = status
+        # Which status body wins when its unit holds several (the art set's Priority): a brief burst's over one held
+        # all the while in some ground.
+        if spec.get("priority"):
+            asset["priority"] = spec["priority"]
     return asset, not kept
 
 
 def main():
     assert set(KIT["archetypes"]) <= set(ARCHETYPES), ("Unknown archetypes", set(KIT["archetypes"]) - set(ARCHETYPES))
-    entries = [spec for spec in KIT["vanguards"] if ONLY is None or spec["id"] in ONLY]
-    assert ONLY is None or len(entries) == len(ONLY), "Unknown Vanguard in --only"
-    for spec in entries:
-        assert spec["id"] in TUNING, spec["id"] + " is no Vanguard in Vanguards.json"
+    selected = [spec for spec in entries(KIT) if ONLY is None or spec["id"] in ONLY]
+    assert ONLY is None or len(selected) == len(ONLY), "Unknown Vanguard or companion in --only"
+    for spec in selected:
+        assert spec["id"] in TUNING, spec["id"] + " is no Vanguard in Vanguards.json nor companion in Abilities.json"
         for body, status, _ in bodies_of(spec):
             assert body["archetype"] in KIT["archetypes"], (spec["id"], status, "has no archetype in the kit")
     manifest_path = SOURCE / "manifest.json"
@@ -370,9 +391,13 @@ def main():
                                              + ": move them in the editor and the manifest's destination with them, or delete them and the manifest and build afresh")
     previous = {(asset["id"], asset.get("status")): asset for asset in manifest["assets"]}
     kept = [asset for asset in manifest["assets"] if ONLY and asset["id"] not in ONLY]
-    results = [build(*body, previous=previous.get((spec["id"], body[1]))) for spec in entries for body in bodies_of(spec)]
+    results = [build(*body, previous=previous.get((spec["id"], body[1]))) for spec in selected for body in bodies_of(spec)]
     built = [asset for asset, _ in results]
     changed = sorted({asset["id"] for asset, fresh in results if fresh})
+    companions = {spec["id"] for spec in KIT.get("companions", [])}
+    for asset in built:
+        if asset["id"] in companions:
+            asset["companion"] = True
     manifest = {"generatorVersion": GENERATOR_VERSION, "blender": bpy.app.version_string, "destination": KIT["destination"],
                 "kitSha256": hashlib.sha256(KIT_BYTES).hexdigest(),
                 "assets": sorted(kept + built, key=lambda asset: (asset["id"], asset.get("status", "")))}

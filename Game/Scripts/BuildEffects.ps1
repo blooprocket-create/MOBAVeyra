@@ -4,8 +4,9 @@
     Builds the presentation's Niagara effects (ADR-063 section 4) from Game/ArtSource/Presentation/Effects.json.
 .DESCRIPTION
     Runs the VeyraEffects commandlet in the project's built editor. Each system is rebuilt from the engine
-    template its spec names, with every particle colour input linked to the spec's user colour. Regenerate
-    rather than hand-edit them. An existing system is a binary asset: acquire its Git LFS lock before
+    template its spec names, with every particle colour input linked to the spec's user colour and every
+    sprite and ribbon drawn with the spec's generated materials (BuildPresentationMaterials.ps1 builds them
+    first). Regenerate rather than hand-edit them. An existing system is a binary asset: acquire its Git LFS lock before
     rebuilding it (ADR-006 section 9).
 .PARAMETER Describe
     Changes nothing: writes each template's topology to Game/Saved/Effects, to write a spec against.

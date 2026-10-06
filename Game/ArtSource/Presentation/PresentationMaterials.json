@@ -1,18 +1,19 @@
 {
   "schemaVersion": 1,
   "generator": "Game/Scripts/BuildPresentationMaterials.py",
-  "generatorVersion": 1,
+  "generatorVersion": 2,
   "destination": "/Game/Veyra/UI/Presentation",
   "materials": [
     {
       "name": "M_VeyraHitFlash",
       "kind": "overlayFlash",
-      "purpose": "ADR-063 §2: the hit flash, drawn as an overlay over any unit's body or art; additive and unlit, brightest at the silhouette.",
+      "purpose": "ADR-063 §2: the hit flash, drawn as an overlay over any unit's body or art (static or skinned); additive and unlit, brightest at the silhouette, and as bright under any exposure.",
       "colorParameter": "FlashColor",
       "strengthParameter": "FlashStrength",
       "defaultColor": [1.0, 1.0, 1.0, 1.0],
       "rimFloor": 0.35,
-      "rimExponent": 2.0
+      "rimExponent": 2.0,
+      "glowGain": 1.5
     },
     {
       "name": "PP_VeyraHoverOutline",
@@ -23,6 +24,62 @@
       "stencils": { "enemy": 1, "ally": 2, "neutral": 3 },
       "thicknessPixels": { "enemy": 3.0, "other": 2.0 },
       "referenceHeight": 1080.0
+    },
+    {
+      "name": "M_VeyraSmoke",
+      "kind": "particleSmoke",
+      "purpose": "ADR-064 §1: a body of stylized smoke (Nix), drawn by particles; each puff a solid, ragged, sunlit blob that glows young and erodes through holes as it ages.",
+      "noiseScale": 0.03,
+      "ragged": 0.45,
+      "erosion": 1.1,
+      "glowFloor": 0.0,
+      "glowGain": 0.6,
+      "albedo": 0.05,
+      "clip": 0.02
+    },
+    {
+      "name": "M_VeyraEffectPuff",
+      "kind": "particleEffect",
+      "purpose": "ADR-063 §4: the puff every combat effect's sprites draw with; a solid, ragged ball that flares white-hot as it is born, cools into its side colour and darkens as it erodes away through holes, glowing alike under any exposure.",
+      "shape": "sprite",
+      "noiseScale": 0.04,
+      "ragged": 0.4,
+      "erosion": 1.0,
+      "clip": 0.02,
+      "albedo": 0.6,
+      "tailShade": 0.3,
+      "glowFloor": 0.0,
+      "glowGain": 3.0,
+      "glowFalloff": 2.0,
+      "coreWhiten": 0.85
+    },
+    {
+      "name": "M_VeyraEffectStrand",
+      "kind": "particleEffect",
+      "purpose": "ADR-063 §4: the strand every combat effect's ribbons draw with; the puff's look drawn along a ribbon, white-hot at its young head and fraying away from its old tail.",
+      "shape": "ribbon",
+      "noiseScale": 0.05,
+      "ragged": 0.35,
+      "erosion": 1.0,
+      "clip": 0.02,
+      "albedo": 0.6,
+      "tailShade": 0.3,
+      "glowFloor": 0.0,
+      "glowGain": 2.5,
+      "glowFalloff": 2.0,
+      "coreWhiten": 0.75
+    },
+    {
+      "name": "M_VeyraFoam",
+      "kind": "particleSmoke",
+      "purpose": "ADR-064 §1: the foam and spray a living wave throws (Neris), drawn by particles; each fleck a solid, ragged, sunlit white blob that erodes as it falls.",
+      "noiseScale": 0.06,
+      "ragged": 0.4,
+      "erosion": 1.1,
+      "glowFloor": 0.0,
+      "glowGain": 0.12,
+      "albedo": 0.85,
+      "clip": 0.02
     }
   ]
 }

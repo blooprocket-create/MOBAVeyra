@@ -158,6 +158,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(SwingArcReach > 0.0f && SwingArcDegrees > 0.0f && SwingArcDegrees <= 360.0f && SwingArcSeconds > 0.0f, TEXT("SwingArcReach"),
 		TEXT("a swing needs a reach, an arc of up to 360 degrees and some time to fade."));
 	Require(!EffectColorParameter.IsNone(), TEXT("EffectColorParameter"), TEXT("the effects' colour parameter is required."));
+	Require(!EffectScaleParameter.IsNone(), TEXT("EffectScaleParameter"), TEXT("the effects' scale parameter is required."));
 	Require(!ImpactSound.IsNull() && !SwingSound.IsNull() && !CastSound.IsNull() && !DeathSound.IsNull() && !ClickSound.IsNull(), TEXT("ImpactSound"),
 		TEXT("the generated impact, swing, cast, death and click sounds are required."));
 	Require(ShopOffset >= 0.0f && ShopRadius >= 1.0f && ShopHeight > ShopRadius * 2.0f, TEXT("ShopHeight"),

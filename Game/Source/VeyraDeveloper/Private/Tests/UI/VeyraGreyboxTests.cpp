@@ -15,6 +15,10 @@
 #include "Greybox/VeyraFountainShop.h"
 #include "VeyraTeamStart.h"
 #include "NiagaraComponent.h"
+#include "NiagaraEmitter.h"
+#include "NiagaraEmitterHandle.h"
+#include "NiagaraRibbonRendererProperties.h"
+#include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraSystem.h"
 #include "Sound/SoundBase.h"
 #include "Delivery/VeyraLingeringArea.h"
@@ -255,6 +259,31 @@ namespace VeyraAbilitiesTests
 			{
 				ASSERT_THAT(IsNotNull(Effect, TEXT("run BuildEffects.ps1")));
 				ASSERT_THAT(IsTrue(Effect->GetExposedParameters().IndexOf(Color) != INDEX_NONE, *Effect->GetName()));
+				// And draws its sprites and ribbons with the project's generated materials, never the engine's unlit defaults,
+				// which the Crucible's physical sun and manual exposure show black.
+				for (const FNiagaraEmitterHandle& Handle : Effect->GetEmitterHandles())
+				{
+					const FVersionedNiagaraEmitterData* Emitter = Handle.GetEmitterData();
+					ASSERT_THAT(IsNotNull(Emitter, *Handle.GetName().ToString()));
+					for (const UNiagaraRendererProperties* Renderer : Emitter->GetRenderers())
+					{
+						const UMaterialInterface* Material = nullptr;
+						if (const UNiagaraSpriteRendererProperties* Sprites = Cast<UNiagaraSpriteRendererProperties>(Renderer))
+						{
+							Material = Sprites->Material;
+						}
+						else if (const UNiagaraRibbonRendererProperties* Ribbons = Cast<UNiagaraRibbonRendererProperties>(Renderer))
+						{
+							Material = Ribbons->Material;
+						}
+						else
+						{
+							continue;
+						}
+						ASSERT_THAT(IsTrue(Material && Material->GetPathName().StartsWith(TEXT("/Game/")),
+							*FString::Printf(TEXT("%s's %s draws with %s; run BuildEffects.ps1"), *Effect->GetName(), *Handle.GetName().ToString(), *GetPathNameSafe(Material))));
+					}
+				}
 			}
 		}
 		TEST_METHOD(AShopStandsByEachFountainAndOnlyTheOwnSidesAnswers)

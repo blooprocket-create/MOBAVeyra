@@ -65,6 +65,15 @@ def write_fbx(game, assets):
 
 
 class VanguardBodyInputs(unittest.TestCase):
+    def test_a_body_worn_in_a_stance_is_keyed_by_the_stance_ability(self):
+        # A stance is no status, but its body is found the same way: by the stance ability's ID.
+        spec = {"id": "c", "archetype": "humanoid", "seed": 3, "features": [],
+                "statusBodies": [{"status": "c_ride", "name": "Ride", "body": {}}, {"stance": "c_forms", "name": "Blade", "body": {"seed": 4}}]}
+        self.assertEqual([(status, suffix) for _, status, suffix in inputs.bodies_of(spec)], [(None, ""), ("c_ride", "_Ride"), ("c_forms", "_Blade")])
+        for wrong in ({"name": "Neither", "body": {}}, {"status": "c_ride", "stance": "c_forms", "name": "Both", "body": {}}):
+            with self.assertRaises(AssertionError):
+                list(inputs.bodies_of(dict(spec, statusBodies=[wrong])))
+
     def test_a_full_build_is_current(self):
         self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS)), [])
 

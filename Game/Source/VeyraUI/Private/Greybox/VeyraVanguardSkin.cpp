@@ -2,6 +2,8 @@
 
 #include "Greybox/VeyraVanguardSkin.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Cues/VeyraCombatCues.h"
 #include "GameFramework/Pawn.h"
@@ -9,6 +11,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraVanguardArtSet.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
@@ -53,19 +56,25 @@ void VeyraVanguardSkin::Dress(USkeletalMeshComponent& Skin, const FVeyraVanguard
 
 const FVeyraVanguardBody& VeyraVanguardSkin::BodyOf(const APawn& Unit, const FVeyraVanguardArt& Art)
 {
-	// A Vanguard's statuses are its participant's, and their ledger reaches every machine for presentation.
-	const APlayerState* Participant = Unit.GetPlayerState();
-	const UVeyraStatusComponent* Statuses = Participant ? Participant->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
-	if (!Statuses || Art.StatusBodies.IsEmpty())
+	// A unit's statuses sit beside its ability system: a Vanguard's on its participant, a companion's on itself. Their
+	// ledger reaches every machine for presentation.
+	const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	const AActor* Holder = Abilities ? Abilities->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Holder ? Holder->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	// So does its stance: the stance ability whose set its slots hold, which every machine receives too (ADR-031 §3).
+	const UVeyraAbilityLoadoutComponent* Loadout = Holder ? Holder->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	if ((!Statuses && !Loadout) || Art.StatusBodies.IsEmpty())
 	{
 		return Art;
 	}
-	// A cooked build keeps one spelling per name, so status IDs compare ignoring case.
-	return Art.BodyFor([Statuses](FName Status) {
-		const FString Wanted = Status.ToString();
-		return Statuses->GetLedger().Entries.ContainsByPredicate([&Wanted](const FVeyraStatusEntry& Entry) {
-			return Entry.Id.ToString().Equals(Wanted, ESearchCase::IgnoreCase);
-		});
+	// A cooked build keeps one spelling per name, so IDs compare ignoring case.
+	const FString Stance = Loadout && Loadout->GetStance().IsValid() ? Loadout->GetStance().ToString() : FString();
+	return Art.BodyFor([Statuses, &Stance](FName Key) {
+		const FString Wanted = Key.ToString();
+		return (!Stance.IsEmpty() && Stance.Equals(Wanted, ESearchCase::IgnoreCase))
+			|| (Statuses && Statuses->GetLedger().Entries.ContainsByPredicate([&Wanted](const FVeyraStatusEntry& Entry) {
+				return Entry.Id.ToString().Equals(Wanted, ESearchCase::IgnoreCase);
+			}));
 	});
 }
 

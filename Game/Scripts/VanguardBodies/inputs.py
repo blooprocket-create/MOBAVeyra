@@ -18,16 +18,33 @@ CONTENT_VERSION = 3
 
 
 def bodies_of(spec):
-    """A Vanguard's bodies, as (spec, status, name suffix): its own, then each it wears while it holds a status, built
-    from its own entry with the status body's entries over it (a rider's ride, ADR-064 §1)."""
+    """A Vanguard's bodies, as (spec, key, name suffix): its own, then each it wears while it holds a status or while a
+    stance's set is in its slots, built from its own entry with that body's entries over it (a rider's ride, ADR-064 §1).
+    The key is the status's ID, or the stance ability's (ADR-031 §3): each body names exactly one."""
     yield spec, None, ""
     for status_body in spec.get("statusBodies", []):
-        yield dict(spec, **status_body["body"]), status_body["status"], "_" + status_body["name"]
+        assert ("status" in status_body) != ("stance" in status_body), (spec["id"], status_body.get("name"), "a body is worn for a status or a stance, one of them")
+        yield dict(spec, **status_body["body"]), status_body.get("status", status_body.get("stance")), "_" + status_body["name"]
 
 
-def body_name(vanguard_id, suffix):
-    """A body's asset name: SK_, its Vanguard's ID in title case, then its status body's suffix (SK_Raska_Hound)."""
-    return "SK_" + vanguard_id.title().replace("_", "") + suffix
+def units(vanguards, companions):
+    """Every unit a body is fitted to, by ID, as Vanguards.json shapes a Vanguard (its body's capsule and its basic
+    attack): the Vanguards, and the companions of Abilities.json, whose capsule sits on the definition itself."""
+    table = dict(vanguards)
+    for name, companion in companions.items():
+        table[name] = {"body": {"capsuleRadius": companion["capsuleRadius"], "capsuleHalfHeight": companion["capsuleHalfHeight"]},
+                       "basicAttack": companion["basicAttack"]}
+    return table
+
+
+def entries(kit):
+    """Every entry the kit generates bodies for: its Vanguards, then its companions."""
+    return list(kit["vanguards"]) + list(kit.get("companions", []))
+
+
+def body_name(unit_id, suffix):
+    """A body's asset name: SK_, its unit's ID in title case, then its status body's suffix (SK_Raska_Hound)."""
+    return "SK_" + unit_id.title().replace("_", "") + suffix
 
 
 def generator_hash(scripts):
@@ -60,7 +77,7 @@ def stale_assets(kit, vanguards, assets, generator=None, blender=None):
     manifest lacks (a partial build that kept a manifest from before the kit gave a Vanguard a new body); and, when
     given, one built by other generator code than generator or another Blender than blender."""
     current = {}
-    for spec in kit["vanguards"]:
+    for spec in entries(kit):
         for body_spec, status, suffix in bodies_of(spec):
             current[(spec["id"], status)] = (input_hash(kit, vanguards, body_spec), body_name(spec["id"], suffix))
     recorded = {(asset["id"], asset.get("status")) for asset in assets}
@@ -110,7 +127,9 @@ def stale_in(game):
     kit = json.loads((source / "VanguardKit.json").read_text(encoding="utf-8"))
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     vanguards = json.loads((game / "Tuning" / "Vanguards.json").read_text(encoding="utf-8"))["vanguards"]
-    stale = stale_assets(kit, vanguards, manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"))
+    abilities = game / "Tuning" / "Abilities.json"
+    companions = json.loads(abilities.read_text(encoding="utf-8")).get("companions", {}) if abilities.exists() else {}
+    stale = stale_assets(kit, units(vanguards, companions), manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"))
     if not pinned_blender(kit, manifest.get("blender")) or not same_destination(kit, manifest):
         stale = sorted(set(stale) | {asset["name"] for asset in manifest["assets"]})
     return stale

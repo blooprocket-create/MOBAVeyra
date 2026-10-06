@@ -57,6 +57,8 @@ FVeyraChannelPlan UVeyraStanceAbility::Deliver(const FVeyraCast& Cast)
 		const FVeyraContentId Next = bInStance ? Stowed->Ability : Held.Ability;
 		Loadout->SwapOwn(*Caster, Held.Slot, Next);
 	}
+	// Its body shows the stance on every machine (ADR-031 §3).
+	Loadout->SetStance(bInStance ? FVeyraContentId() : Cast.Ability);
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s %s %s (cast %d)."), *GetNameSafe(Caster->GetOwner()), bInStance ? TEXT("leaves") : TEXT("takes"),
 		*Cast.Ability.ToString(), Cast.CastId);
 	return FVeyraChannelPlan();

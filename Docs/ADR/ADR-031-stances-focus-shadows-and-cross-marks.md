@@ -77,6 +77,7 @@ None of the following exists yet:
   - Casting it installs those abilities; casting it again puts back the stowed ones.
   - It is a self-cast with a cast tuning like any other. Its cooldown is short, and §10 shortens it.
   - Angeru's own record lists his Veil Stance; Forsake the Schools lists the Blade one.
+- **Every machine sees the stance.** The loadout replicates which stance's set its slots hold to every machine: the stance ability's ID, or none while its own set is in them. The server sets it when the stance is cast, so the body can show it (Angeru's drawn blade, Neris's storm sea). What each slot holds stays its owner's. (Amended 2026-10-06 by [ADR-064](ADR-064-generated-animated-vanguards.md) §1.)
 
 ### 4. A marker placed at a point (Abilities)
 

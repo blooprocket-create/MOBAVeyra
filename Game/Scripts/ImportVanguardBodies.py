@@ -15,14 +15,15 @@ import unreal
 
 GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
 sys.path.insert(0, str(GAME / "Scripts"))
+from KitMaterials.spec import body_problems  # noqa: E402
 from VanguardBodies.inputs import stale_in  # noqa: E402
+from veyra_material_graph import unexposed  # noqa: E402
 
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
 KIT_BYTES = (SOURCE / "VanguardKit.json").read_bytes()
 KIT = json.loads(KIT_BYTES)
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text())
-VANGUARDS = json.loads((GAME / "Tuning" / "Vanguards.json").read_text())["vanguards"]
 DEST = KIT["destination"]
 MATERIAL_PATH = DEST + "/M_VeyraVanguardBody"
 # The generator's rest-pose take (GenerateVanguardBodies.py BIND_TAKE).
@@ -38,6 +39,8 @@ ONLY = next(([vanguard for vanguard in token.split("=", 1)[1].split(",") if vang
 # Vanguards.json give it today, by today's generator: a partial build cannot pass off a body made from an older kit.
 STALE = stale_in(GAME)
 assert not STALE, "Regenerate these bodies (GenerateVanguardBodies.py): their inputs changed since they were built: " + ", ".join(STALE)
+MATERIAL_PROBLEMS = body_problems(KIT)
+assert not MATERIAL_PROBLEMS, "VanguardKit.json: " + "; ".join(MATERIAL_PROBLEMS)
 assert DEST.startswith("/Game/Veyra/"), "Vanguard bodies live under /Game/Veyra"
 SELECTED = [asset for asset in MANIFEST["assets"] if ONLY is None or asset["id"] in ONLY]
 assert ONLY is None or len({asset["id"] for asset in SELECTED}) == len(ONLY), "Unknown Vanguard in -VeyraOnly"
@@ -75,7 +78,10 @@ for asset in SELECTED:
 
 def body_material():
     """The one material every generated body wears: vertex colour for colour, vertex alpha for glow. Its graph is rebuilt
-    on every import, so the generated asset always matches this definition."""
+    on every import, so the generated asset always matches this definition, and its values are the kit's bodyMaterial.
+    The glow ignores the scene's exposure, so witchfire and burning cores read the same under the Crucible's sun as
+    anywhere: glowGain is in multiples of what the exposure maps to white."""
+    values = KIT["bodyMaterial"]
     material = unreal.load_asset(MATERIAL_PATH) if unreal.EditorAssetLibrary.does_asset_exist(MATERIAL_PATH) else None
     if material:
         EDIT.delete_all_material_expressions(material)
@@ -87,17 +93,18 @@ def body_material():
     assert EDIT.connect_material_property(color, "", unreal.MaterialProperty.MP_BASE_COLOR), "base colour"
     glow = EDIT.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -800, 250)
     glow.set_editor_property("parameter_name", "GlowStrength")
-    glow.set_editor_property("default_value", 6.0)
+    glow.set_editor_property("default_value", values["glowGain"])
     masked = EDIT.create_material_expression(material, unreal.MaterialExpressionMultiply, -500, 150)
     assert EDIT.connect_material_expressions(color, "", masked, "A"), "glow colour"
     assert EDIT.connect_material_expressions(color, "A", masked, "B"), "glow mask"
-    emissive = EDIT.create_material_expression(material, unreal.MaterialExpressionMultiply, -250, 150)
-    assert EDIT.connect_material_expressions(masked, "", emissive, "A"), "masked glow"
-    assert EDIT.connect_material_expressions(glow, "", emissive, "B"), "glow strength"
+    gained = EDIT.create_material_expression(material, unreal.MaterialExpressionMultiply, -350, 150)
+    assert EDIT.connect_material_expressions(masked, "", gained, "A"), "masked glow"
+    assert EDIT.connect_material_expressions(glow, "", gained, "B"), "glow strength"
+    emissive = unexposed(material, gained, -150, 150)
     assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
     roughness = EDIT.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -800, 450)
     roughness.set_editor_property("parameter_name", "Roughness")
-    roughness.set_editor_property("default_value", 0.75)
+    roughness.set_editor_property("default_value", values["roughness"])
     assert EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS), "roughness"
     # Skinned meshes use it.
     material.set_editor_property("used_with_skeletal_mesh", True)
@@ -185,6 +192,14 @@ def fill_body(asset, body):
     body.set_editor_property("run_stride", asset["runStrideCm"])
     body.set_editor_property("cast_release_share", asset["castReleaseShare"])
     body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
+    body.set_editor_property("priority", asset.get("priority", 0))
+    if asset.get("effect"):
+        effect = unreal.load_asset(asset["effect"]["system"])
+        assert isinstance(effect, unreal.NiagaraSystem), (asset["name"], "its effect does not load; build it with BuildEffects.ps1", asset["effect"]["system"])
+        body.set_editor_property("effect", effect)
+        body.set_editor_property("effect_bones", [unreal.Name(bone) for bone in asset["effect"]["bones"]])
+        body.set_editor_property("effect_color", unreal.LinearColor(*asset["effect"]["color"]))
+        body.set_editor_property("effect_scale", asset["effect"]["scale"])
     return body
 
 
@@ -206,10 +221,13 @@ def write_art_set():
             status_bodies.setdefault(asset["id"], {})[unreal.Name(asset["status"])] = fill_body(asset, unreal.VeyraVanguardBody())
         else:
             entries[asset["id"]] = fill_body(asset, unreal.VeyraVanguardArt())
-    for vanguard, bodies in status_bodies.items():
-        assert vanguard in entries, vanguard + " has a status body but no body of its own"
-        entries[vanguard].set_editor_property("status_bodies", bodies)
-    art_set.set_editor_property("art", {unreal.Name(vanguard): entry for vanguard, entry in entries.items()})
+    for owner, bodies in status_bodies.items():
+        assert owner in entries, owner + " has a status body but no body of its own"
+        entries[owner].set_editor_property("status_bodies", bodies)
+    # Companions (the other half of a pair, as Nix) by companion ID, the Vanguards by Vanguard ID.
+    companions = {asset["id"] for asset in MANIFEST["assets"] if asset.get("companion")}
+    art_set.set_editor_property("art", {unreal.Name(owner): entry for owner, entry in entries.items() if owner not in companions})
+    art_set.set_editor_property("companion_art", {unreal.Name(owner): entry for owner, entry in entries.items() if owner in companions})
     assert unreal.EditorAssetLibrary.save_loaded_asset(art_set, only_if_is_dirty=False), "Save failed: " + path
     unreal.log("VEYRA_VANGUARD_ART_SET: " + path + " dresses " + ", ".join(sorted(entries)))
 
