@@ -1,8 +1,9 @@
-//! `veyra-publish`'s work (ADR-022 §3–§4): turning a packaged client into a release in a release
-//! store. Every file is cut into content-defined chunks (FastCDC), each chunk named by its SHA-256 and
-//! stored as a zstd frame; only chunks the store lacks are written. The manifest follows, then the
-//! channel moves to it. Everything goes in under a temporary name and is renamed into place, so a
-//! web server serving the store never serves half a file.
+//! `veyra-publish`'s work (ADR-022 §3–§4, §11): turning a packaged client into a release in a release
+//! store, and publishing the Veyra Setup a launcher updates itself with. Every file of a client is cut
+//! into content-defined chunks (FastCDC), each chunk named by its SHA-256 and stored as a zstd frame;
+//! only chunks the store lacks are written. The manifest follows, then the channel moves to it.
+//! Everything goes in under a temporary name and is renamed into place, so a web server serving the
+//! store never serves half a file.
 
 use fastcdc::v2020::{self, StreamCDC};
 use serde::Deserialize;
@@ -15,7 +16,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Mutex};
 use std::thread;
 use veyra_launcher_core::manifest;
-use veyra_launcher_core::release::{self, Channel, ReleaseChunk, ReleaseFile, ReleaseManifest, BUILD_MANIFEST_FILE_NAME};
+use veyra_launcher_core::release::{self, Channel, LauncherChannel, ReleaseChunk, ReleaseFile, ReleaseManifest, BUILD_MANIFEST_FILE_NAME};
 
 /// The publisher configuration format this tool reads.
 pub const SCHEMA_VERSION: u32 = 1;
@@ -166,6 +167,54 @@ pub fn publish(build: &Path, store: &Path, channel: &str, config: &PublishConfig
         chunks: manifest.files.iter().map(|file| file.chunks.len()).sum(),
         new_chunks,
         new_stored_bytes,
+    })
+}
+
+/// What publishing a Veyra Setup did.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PublishedSetup {
+    pub version: String,
+    /// The SHA-256 of Setup's bytes.
+    pub hash: String,
+    pub size: u64,
+}
+
+/// Publishes the Veyra Setup at `setup`, which installs launcher `version`, to `store`, and moves the
+/// launcher on `channel` to it (ADR-022 §11): Setup by its hash, the same file under the name a person
+/// downloads, then the launcher channel file, last, so a launcher never finds a channel naming a
+/// Setup the store does not hold yet.
+pub fn publish_setup(setup: &Path, version: &str, store: &Path, channel: &str) -> Result<PublishedSetup, PublishError> {
+    if !release::is_channel_name(channel) {
+        return Err(PublishError(format!(
+            "{channel} is not a channel name: 1 to 32 lowercase letters, digits or '-'"
+        )));
+    }
+    if !manifest::is_build_version(version) {
+        return Err(PublishError(format!("{version} is not a version")));
+    }
+    let bytes = fs::read(setup).map_err(failed(setup))?;
+    if bytes.is_empty() || bytes.len() as u64 > release::MAX_SETUP_BYTES {
+        return Err(PublishError(format!("{} must be 1 to {} bytes", setup.display(), release::MAX_SETUP_BYTES)));
+    }
+    let hash = release::sha256_hex(&bytes);
+    let staging = Staging::new(store);
+    staging.put(&release::setup_object(&hash), &bytes, false)?;
+    staging.put(&release::setup_download_object(version, channel), &bytes, true)?;
+    let launcher = LauncherChannel {
+        schema_version: release::LAUNCHER_CHANNEL_SCHEMA_VERSION,
+        version: version.to_string(),
+        setup: hash.clone(),
+        size: bytes.len() as u64,
+    };
+    staging.put(
+        &release::launcher_channel_object(channel),
+        &serde_json::to_vec_pretty(&launcher).expect("a launcher channel serialises"),
+        true,
+    )?;
+    Ok(PublishedSetup {
+        version: launcher.version,
+        hash,
+        size: launcher.size,
     })
 }
 

@@ -25,6 +25,7 @@ use veyra_launcher_core::install::{self, Mode, Progress, Target};
 use veyra_launcher_core::launch::{self, LaunchStage};
 use veyra_launcher_core::player::{self, SignIn};
 use veyra_launcher_core::secret::Secret;
+use veyra_launcher_core::update::{self, Check};
 use veyra_launcher_core::{game, manifest};
 
 /// The switch Setup's uninstaller starts the launcher with.
@@ -79,6 +80,18 @@ struct LaunchStatus {
     problem: Option<String>,
 }
 
+/// What the launcher's own update asks of the window (ADR-022 §11).
+#[derive(Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LauncherUpdate {
+    /// "current", or "ready": a checked Setup waits to be started, and the launcher then closes.
+    state: &'static str,
+    /// The launcher version the waiting Setup installs.
+    version: Option<String>,
+    /// Something the player should know that does not stop them playing.
+    note: Option<String>,
+}
+
 /// Where an install, update or repair is. The window asks for it while one runs.
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -101,6 +114,8 @@ struct Launcher {
     session: Mutex<Option<LauncherSession>>,
     /// Firebase's proof for a player who still has to choose a display name (player::SignIn).
     pending: Mutex<Option<Secret>>,
+    /// The checked Setup that updates the launcher, once one is downloaded (ADR-022 §11).
+    setup: Mutex<Option<PathBuf>>,
 }
 
 fn config_path() -> PathBuf {
@@ -137,6 +152,62 @@ fn sentence(problem: impl ToString) -> String {
 }
 
 // Network work runs off the window's thread (`async`), so a slow server never freezes the window.
+/// Whether the launcher should update itself first (ADR-022 §11). Only a launcher that installs the
+/// game from a release store does; one that starts a packaged build is a developer's. A store that
+/// does not answer leaves it as it is: the game's own check says so.
+#[tauri::command(async)]
+fn launcher_update(launcher: State<'_, Arc<Launcher>>) -> LauncherUpdate {
+    let current = LauncherUpdate {
+        state: "current",
+        ..LauncherUpdate::default()
+    };
+    let Ok(loaded) = load() else { return current };
+    let GameSource::Install(source) = &loaded.game else { return current };
+    let server = game::release_server(source);
+    let folder = update::update_folder();
+    match update::check(&server, &source.channel, update::VERSION, &folder) {
+        Ok(Check::Current) => {
+            update::clear(&folder);
+            current
+        }
+        Ok(Check::Failed(release)) => LauncherUpdate {
+            note: Some(format!(
+                "The launcher could not update itself to {}. Run Veyra Setup again to update it.",
+                release.version
+            )),
+            ..current
+        },
+        Ok(Check::Update(release)) => match update::download(&server, &release, &folder, source.download_attempts) {
+            Ok(waiting) => {
+                *launcher.setup.lock().unwrap() = Some(waiting);
+                LauncherUpdate {
+                    state: "ready",
+                    version: Some(release.version),
+                    note: None,
+                }
+            }
+            Err(problem) => LauncherUpdate {
+                note: Some(format!(
+                    "The launcher's update to {} could not be downloaded: {}",
+                    release.version,
+                    sentence(problem)
+                )),
+                ..current
+            },
+        },
+        Err(_) => current,
+    }
+}
+
+/// Starts the waiting Setup and closes the launcher, so Setup can replace it and open the new one.
+#[tauri::command]
+fn apply_launcher_update(app: AppHandle, launcher: State<'_, Arc<Launcher>>) -> Result<(), String> {
+    let waiting = launcher.setup.lock().unwrap().take().ok_or("No launcher update is waiting.")?;
+    update::start_setup(&waiting).map_err(|error| sentence(format!("Veyra Setup could not start ({error})")))?;
+    app.exit(0);
+    Ok(())
+}
+
 #[tauri::command(async)]
 fn game_status(launcher: State<'_, Arc<Launcher>>) -> GameStatus {
     let problem = |problem: String| GameStatus {
@@ -423,6 +494,8 @@ fn main() -> ExitCode {
         .plugin(tauri_plugin_dialog::init())
         .manage(Arc::new(Launcher::default()))
         .invoke_handler(tauri::generate_handler![
+            launcher_update,
+            apply_launcher_update,
             game_status,
             choose_folder,
             start_install,

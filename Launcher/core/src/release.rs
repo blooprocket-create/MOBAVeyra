@@ -7,7 +7,11 @@
 //! - `channels/<channel>.json`: the channel's current release, naming its manifest by hash;
 //! - `manifests/<sha256>.json`: a release manifest, addressed by the SHA-256 of its bytes;
 //! - `chunks/<first two hex digits>/<sha256>`: a zstd frame, addressed by the SHA-256 of the
-//!   uncompressed chunk.
+//!   uncompressed chunk;
+//! - `launcher/<channel>.json`: the launcher's own release on the channel, naming Veyra Setup by hash
+//!   (ADR-022 §11);
+//! - `setups/<sha256>.exe`: a Veyra Setup, addressed by the SHA-256 of its bytes; and
+//!   `setup/VeyraSetup-<version>-<channel>.exe`, the same file under the name a person downloads.
 
 use crate::manifest;
 use serde::{Deserialize, Serialize};
@@ -32,6 +36,13 @@ pub const MAX_MANIFEST_BYTES: u64 = 64 * 1024 * 1024;
 /// The largest channel file the format allows (64 KiB); it holds three short fields. A protocol limit.
 pub const MAX_CHANNEL_BYTES: u64 = 64 * 1024;
 
+/// The launcher channel format this launcher reads and writes (ADR-022 §11).
+pub const LAUNCHER_CHANNEL_SCHEMA_VERSION: u32 = 1;
+
+/// The largest Veyra Setup the format allows (256 MiB): Setup carries only the launcher, a few
+/// megabytes, so this bounds what a launcher holds in memory while it checks one. A protocol limit.
+pub const MAX_SETUP_BYTES: u64 = 256 * 1024 * 1024;
+
 /// The longest channel name.
 const MAX_CHANNEL_NAME_LENGTH: usize = 32;
 
@@ -54,6 +65,19 @@ pub struct Channel {
     pub build_version: String,
     /// The SHA-256 of the manifest file's bytes.
     pub manifest: String,
+}
+
+/// The launcher's own release on a channel (ADR-022 §11): the Veyra Setup that installs it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LauncherChannel {
+    pub schema_version: u32,
+    /// The launcher's version, its workspace's (Launcher/Cargo.toml).
+    pub version: String,
+    /// The SHA-256 of Setup's bytes; Setup is at `setup_object(setup)`.
+    pub setup: String,
+    /// Setup's size in bytes.
+    pub size: u64,
 }
 
 /// A release: every file of one build, each as an ordered list of chunks.
@@ -131,6 +155,44 @@ pub fn manifest_object(hash: &str) -> String {
 /// Where a chunk lives in a store: under the first two hex digits of its hash (`is_hash`).
 pub fn chunk_object(hash: &str) -> String {
     format!("chunks/{}/{hash}", hash.get(..2).unwrap_or_default())
+}
+
+/// Where a channel's launcher release lives in a store.
+pub fn launcher_channel_object(channel: &str) -> String {
+    format!("launcher/{channel}.json")
+}
+
+/// Where a Veyra Setup lives in a store, addressed by its hash.
+pub fn setup_object(hash: &str) -> String {
+    format!("setups/{hash}.exe")
+}
+
+/// Where a channel's Veyra Setup is kept under the name a person downloads.
+pub fn setup_download_object(version: &str, channel: &str) -> String {
+    format!("setup/VeyraSetup-{version}-{channel}.exe")
+}
+
+/// Parses and validates a launcher channel file.
+pub fn parse_launcher_channel(bytes: &[u8]) -> Result<LauncherChannel, Vec<String>> {
+    let channel: LauncherChannel = serde_json::from_slice(bytes).map_err(|error| vec![format!("it is not a launcher channel file: {error}")])?;
+    let mut problems = Vec::new();
+    if channel.schema_version != LAUNCHER_CHANNEL_SCHEMA_VERSION {
+        problems.push(format!("schemaVersion must be {LAUNCHER_CHANNEL_SCHEMA_VERSION}"));
+    }
+    if !manifest::is_build_version(&channel.version) {
+        problems.push("version is not a version".to_string());
+    }
+    if !is_hash(&channel.setup) {
+        problems.push("setup must be a SHA-256 in lowercase hex".to_string());
+    }
+    if channel.size == 0 || channel.size > MAX_SETUP_BYTES {
+        problems.push(format!("size must be 1 to {MAX_SETUP_BYTES} bytes"));
+    }
+    if problems.is_empty() {
+        Ok(channel)
+    } else {
+        Err(problems)
+    }
 }
 
 /// The largest zstd frame a chunk of `size` bytes may be stored as: zstd's own bound.
@@ -338,6 +400,25 @@ mod tests {
         assert!(!is_hash(&sha256_hex(b"").to_uppercase()));
         assert!(!is_hash("abc"));
         assert_eq!(chunk_object(&sha256_hex(b"abc")), format!("chunks/ba/{}", sha256_hex(b"abc")));
+    }
+
+    #[test]
+    fn a_launcher_channel_is_strict_and_names_setup_by_hash() {
+        let hash = sha256_hex(b"setup");
+        let good = format!(r#"{{ "schemaVersion": 1, "version": "0.2.0", "setup": "{hash}", "size": 5 }}"#);
+        let channel = parse_launcher_channel(good.as_bytes()).expect("a launcher channel");
+        assert_eq!(channel.version, "0.2.0");
+        assert_eq!(setup_object(&channel.setup), format!("setups/{hash}.exe"));
+        assert_eq!(launcher_channel_object("public"), "launcher/public.json");
+        assert_eq!(setup_download_object("0.2.0", "public"), "setup/VeyraSetup-0.2.0-public.exe");
+        check_path(&setup_download_object("0.2.0", "public")).expect("a download name is a store path");
+
+        let bad = format!(r#"{{ "schemaVersion": 2, "version": "0 2", "setup": "{}", "size": 0 }}"#, hash.to_uppercase());
+        assert_eq!(parse_launcher_channel(bad.as_bytes()).unwrap_err().len(), 4);
+        let too_big = good.replace(r#""size": 5"#, &format!(r#""size": {}"#, MAX_SETUP_BYTES + 1));
+        assert!(parse_launcher_channel(too_big.as_bytes()).is_err());
+        let extra = good.replace(r#""size": 5"#, r#""size": 5, "extra": 1"#);
+        assert!(parse_launcher_channel(extra.as_bytes()).is_err());
     }
 
     #[test]

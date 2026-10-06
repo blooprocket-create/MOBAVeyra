@@ -19,6 +19,12 @@ path = "src/bin/install.rs"
 name = "veyra-fake-game"
 path = "src/bin/fake_game.rs"
 
+# A stand-in for Veyra Setup that records the switches it was started with, for the self-update tests
+# (ADR-022 §11).
+[[bin]]
+name = "veyra-fake-setup"
+path = "src/bin/fake_setup.rs"
+
 [dependencies]
 veyra-launcher-core = { path = "../core" }
 

@@ -64,8 +64,24 @@ function formatBytes(bytes) {
 
 async function start() {
   show("loading");
+  element("loading-status").textContent = "Contacting Veyra's services…";
   element("repair").hidden = true;
+  // The launcher updates itself first, before the game (ADR-022 §11): it closes, and Setup opens the
+  // new one.
+  const update = await invoke("launcher_update");
+  if (update.state === "ready") {
+    element("loading-status").textContent = `Updating the launcher to ${update.version}…`;
+    try {
+      await invoke("apply_launcher_update");
+    } catch (problem) {
+      showProblem(String(problem), start);
+    }
+    return;
+  }
   const game = await invoke("game_status");
+  if (update.note) {
+    game.note = game.note ? `${update.note} ${game.note}` : update.note;
+  }
   element("build").textContent = game.buildVersion ? `Build ${game.buildVersion}` : "";
   if (game.problem) {
     showProblem(game.problem, start);

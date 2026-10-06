@@ -136,7 +136,7 @@ The author's goal is that everything the player sees while installing is Veyra's
 ### 10. Deferred
 
 - **Signing:** signing the channel file and manifests, and code-signing Setup and the launcher. These wait for ADR-005's certificate and the CDN.
-- **The launcher's self-updater (L2):** it will run Setup with `/S`.
+- **The launcher's self-updater (L2):** done, §11 (2026-10-06).
 - **Better downloads:**
   - downloading a chunk once when several files share it;
   - a pause between a chunk's attempts;
@@ -145,6 +145,28 @@ The author's goal is that everything the player sees while installing is Veyra's
 - **Patching without the window:** in the background, or while the game runs.
 - **Channels:** more than one for players, such as a test realm.
 - **The website:** its download page.
+
+### 11. The launcher updates itself (added 2026-10-06)
+
+The author asked for launchers already on players' machines to update themselves, so a new friends build never needs a new installer.
+
+- **Its release.** The store holds the launcher's own release beside the game's, on the same channel:
+  - `launcher/<channel>.json`: `schemaVersion`, `version` (the launcher workspace's, `Launcher/Cargo.toml`), `setup` (the SHA-256 of Veyra Setup's bytes) and `size`. Setup's size is at most 256 MiB, a protocol limit.
+  - `setups/<sha256>.exe`: that Setup, by its hash.
+  - `setup/VeyraSetup-<version>-<channel>.exe`: the same file, under the name a person downloads.
+
+  `veyra-publish --setup` writes them, the channel file last. `Launcher/Package.ps1 -Publish` publishes the Setup it built on the channel its configuration names.
+- **When.** An installed launcher, one whose game comes from a release store, checks its channel as it opens, before the game. A launcher that starts a packaged build is a developer's and never updates itself. A store with no launcher release asks nothing; one that does not answer leaves the launcher as it is, and the game's own check says so.
+- **How.** When the channel names another version:
+  1. The launcher downloads its Setup into the temporary folder.
+  2. It checks the Setup against the size and hash the channel names.
+  3. It starts the Setup with `/S /RELAUNCH` and closes. The window says "Updating the launcher to <version>…".
+  4. Setup waits up to 30 seconds for the launcher's file to be free, replaces it, and opens the new launcher.
+
+  A rollback is an update too: the launcher follows the channel, as the game does.
+- **No loop.** The Setup the launcher started stays in that folder under its hash. A launcher that opens, is still the old version, and finds that Setup there says the update did not take and to run Setup again. It carries on and does not run Setup again. When the channel moves to another Setup it tries that one, and a current launcher clears the folder.
+- **Trust.** As the game's (§3): the channel names Setup by its hash, over the same address. Signing Setup and the channel waits for the certificate (§10).
+- **Launchers from before this.** Version 0.1.0 predates the self-updater: it updates the game but not itself. Its players run the new Setup once, which upgrades the launcher in place and keeps the game; every later launcher update is automatic.
 
 ## Consequences
 
@@ -156,6 +178,7 @@ The author's goal is that everything the player sees while installing is Veyra's
 ## Amendments to earlier records
 
 - **ADR-005 L5:** the chunking and compression method is chosen: FastCDC, SHA-256 and zstd (§4). Build-order step 6 is implemented by this record.
+- **ADR-005 L2:** the launcher's self-updater is §11's. It runs Veyra Setup silently rather than Tauri's updater plugin, and its signature waits for the certificate (§10).
 - **ADR-010 §5:** the launcher's configuration is schema 2 (§6). Beside the launcher's executable, `VeyraLauncher.json` comes before the development fallback.
 
 ## Alternatives considered
