@@ -137,6 +137,12 @@ section 9. The existing LFS rules cover the FBX files.
 - **Humanoid stances and dress:** an `aim` stance holds a long weapon two-handed at the shoulder, the arms keeping
   their hold while the upper body carries it (Kade, mid-sight). A `punch` strike drives the named hand's fist straight
   out from a guard with a lunge (Raska's bracer). A long cloak rides three cape bones that stream back as the body runs.
+  A `shoulderCarry` stance rests a heavy blade over the right shoulder at rest, running, flinching and recalling, its
+  flat turned up to the camera; an attack or a cast takes it off. Qazharr carries his boarding blade (a broad cleaver
+  head, a pale edge, an anchor fluke on its back) so, in a long coat open over a bare chest (`openJacket` with
+  `jacketUnder: "skin"`), with `tattoos` (coils on the chest, bands down the forearms), a `ropeCoil` slung over the
+  shoulder, an `anchorBelt` and red sash, and long dark curls (`curlyLong`). NO QUARTER (`qazharr_no_quarter_frenzy`)
+  takes the blade off his shoulder into a restless, forward-leaning ready stance.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:

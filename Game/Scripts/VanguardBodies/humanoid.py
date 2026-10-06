@@ -35,6 +35,11 @@ CAPE_REACH = 0.82
 CAPE_STRIPS = 6
 # The share of a wave rider's height the wave beneath her takes up, at her own size.
 WAVE_SHARE = 0.22
+# A blade carried over the right shoulder: the upper arm's swing forward and roll in, and the forearm's fold, in degrees.
+CARRY_UPPER_ARM = 20.0
+CARRY_ROLL_IN = 8.0
+CARRY_FOREARM = 140.0
+CARRY_FLAT_UP = 40.0
 # The upper body, which alone plays an attack, a cast or a hit while the body runs; the bone a pose lifts; and whether
 # the body stands on the ground.
 UPPER_BODY_BONE = "spine_01"
@@ -137,7 +142,8 @@ def layout(spec, capsule):
             L["lowerarm_" + side] = (elbow, wrist)
             L["hand_" + side] = (wrist, grips[side])
             L["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
-    elif stance is not None:
+    elif stance not in (None, "shoulderCarry"):
+        # A carry (carry_pose) poses the arm; its rest is the figure's own.
         raise AssertionError("Unknown stance: " + stance)
     strike = spec.get("strike", {"style": "swing", "hand": "right"})
     assert strike["style"] in ("swing", "punch") and strike["hand"] in ("left", "right"), ("Unknown strike", strike)
@@ -189,7 +195,7 @@ def body(spec, L, d, bones=BONES):
         for sign in (1, -1):
             body.ball("head", head_center + Vector((head_radius * 0.85, sign * head_radius * 0.35, head_radius * 0.1)), head_radius * 0.12, [0.05, 0.05, 0.06])
     hair_style = spec["hairStyle"]
-    if hair_style in ("short", "long", "curly", "twinTails", "sideTail", "longBeard", "windblown", "bigTwinTails"):
+    if hair_style in ("short", "long", "curly", "twinTails", "sideTail", "longBeard", "windblown", "bigTwinTails", "curlyLong"):
         body.ball("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.18)), head_radius * 1.04, hair, scale=(1.0, 0.95, 0.9))
     if hair_style in ("long", "longBeard"):
         body.box("head", head_center + Vector((-head_radius * 0.75, 0, -head_radius * 0.9)), (head_radius * 0.5, head_radius * 1.6, head_radius * 2.0), hair)
@@ -239,6 +245,20 @@ def body(spec, L, d, bones=BONES):
             tip = head_center + Vector((-head_radius * (2.9 - abs(spread)), spread * head_radius * 1.6, -head_radius * (1.0 + 0.4 * (index % 2))))
             body.limb("head", head_center + Vector((-head_radius * 0.6, spread * head_radius * 0.7, head_radius * 0.3)), tip,
                       head_radius * 0.42, head_radius * 0.1, mix(hair, accent, 0.25 if index % 2 else 0.0))
+    if hair_style == "curlyLong":
+        # Long dark curls falling to the shoulders behind and beside the face, each lock ending in a curl, and a full
+        # beard over the jaw and chin.
+        for index in range(9):
+            # From one side round the back to the other, leaving the face clear.
+            around = math.radians(-95 + index * 23.75)
+            out = Vector((-math.cos(around), math.sin(around), 0))
+            start = head_center + out * head_radius * 0.75 + Vector((0, 0, head_radius * 0.2))
+            tip = start + out * head_radius * 0.35 - Vector((0, 0, head_radius * (1.5 + 0.25 * (index % 2))))
+            body.limb("head", start, tip, head_radius * 0.34, head_radius * 0.2, hair, segments=6)
+            body.ball("head", tip, head_radius * 0.24, hair, segments=6)
+        body.ball("head", head_center + Vector((head_radius * 0.55, 0, -head_radius * 0.65)), head_radius * 0.5, hair, scale=(0.8, 1.2, 0.9), segments=8)
+        body.limb("head", head_center + Vector((head_radius * 0.75, 0, -head_radius * 0.85)), head_center + Vector((head_radius * 0.8, 0, -head_radius * 1.35)),
+                  head_radius * 0.32, head_radius * 0.12, hair, segments=6)
     # Headwear and head features.
     if "hood" in features:
         # Set back so the face shows through its opening.
@@ -401,7 +421,17 @@ def body(spec, L, d, bones=BONES):
         jacket = spec.get("jacket", primary)
         s0, s1 = L["spine_02"]
         top = L["spine_03"][0] + Vector((0, 0, d["torso"] * 0.15))
-        body.box("spine_02", (s0 + s1) / 2 + Vector((d["shoulder"] * 0.62, 0, 0)), (d["shoulder"] * 0.2, d["shoulder"] * 0.55, d["torso"] * 0.45), secondary)
+        # What it is open over: a dark top, or a bare chest.
+        under = skin if spec.get("jacketUnder") == "skin" else secondary
+        body.box("spine_02", (s0 + s1) / 2 + Vector((d["shoulder"] * 0.62, 0, 0)), (d["shoulder"] * 0.2, d["shoulder"] * 0.55, d["torso"] * 0.45), under)
+        if "tattoos" in features and spec.get("jacketUnder") == "skin":
+            # Heavy nautical tattoo work across the bare chest: a coil over each side of it.
+            ink = spec["tattoo"]
+            front = (s0 + s1) / 2 + Vector((d["shoulder"] * 0.72, 0, d["torso"] * 0.08))
+            for sign in (1, -1):
+                coil = front + Vector((0, sign * d["shoulder"] * 0.24, 0))
+                for ring, (radius, color) in enumerate(((0.13, ink), (0.09, skin), (0.05, ink))):
+                    body.ball("spine_02", coil + Vector((ring * 0.6, 0, 0)), d["shoulder"] * radius, color, scale=(0.12, 1.0, 1.0), segments=10)
         for sign in (1, -1):
             body.slab("spine_02", top + Vector((d["shoulder"] * 0.58, sign * d["shoulder"] * 0.5, 0)),
                       s0 + Vector((d["shoulder"] * 0.7, sign * d["shoulder"] * 0.72, -d["torso"] * 0.12)), d["shoulder"] * 0.42, 3.0, jacket)
@@ -409,6 +439,51 @@ def body(spec, L, d, bones=BONES):
                       p0 + Vector((-d["hip"] * 0.2, sign * d["hip"] * 1.3, -d["torso"] * 0.1)), d["hip"] * 0.9, 3.0, jacket)
         body.slab("spine_03", L["spine_03"][1] + Vector((-d["shoulder"] * 0.35, 0, -d["torso"] * 0.05)),
                   L["spine_03"][1] + Vector((-d["shoulder"] * 0.45, 0, d["torso"] * 0.12)), d["shoulder"] * 0.9, 3.0, jacket)
+    if "tattoos" in features:
+        # And down the bare forearms in bands, like waves.
+        for side in ("l", "r"):
+            e0, e1 = L["lowerarm_" + side]
+            for share in (0.2, 0.45, 0.7):
+                radius = limb * (1.0 - 0.15 * share) * 1.05
+                body.limb("lowerarm_" + side, e0.lerp(e1, share), e0.lerp(e1, share + 0.08), radius, radius, spec["tattoo"])
+    if "ropeCoil" in features:
+        # A coil of rope over the left shoulder: a loop slung from it across the chest to the right hip and round the
+        # back, and loops bundled on the shoulder.
+        rope = spec.get("rope", [0.62, 0.52, 0.34])
+        s0, s1 = L["spine_02"]
+        centre = s0.lerp(s1, 0.6)
+        across = Vector((0, d["shoulder"] * 0.95, d["torso"] * 0.5))
+        out = Vector((d["shoulder"], 0, 0))
+        # Laid on the body all the way round, hugging it rather than hooped about it.
+        loop = []
+        for k in range(15):
+            point = centre + across * math.cos(k / 14 * math.tau) + out * math.sin(k / 14 * math.tau)
+            flat = Vector((point.x, point.y, 0))
+            point = Vector((0, 0, point.z)) + flat.normalized() * (torso_radius(L, d, point.z) + limb * 0.35)
+            loop.append(point)
+        for a, b in zip(loop, loop[1:]):
+            body.limb("spine_02", a, b, limb * 0.42, limb * 0.42, rope, segments=6)
+        top = L["clavicle_l"][1] + Vector((0, -limb * 0.2, limb * 0.9))
+        for ring in range(3):
+            body.limb("clavicle_l", top + Vector((-limb * 0.6, 0, -limb * 0.5 * ring)), top + Vector((limb * 0.6, 0, -limb * 0.5 * ring - limb * 0.3)),
+                      limb * 1.15, limb * 1.15, mix(rope, [0.3, 0.25, 0.18], 0.15 * ring), segments=10)
+    if "anchorBelt" in features:
+        # A broad leather belt with an anchor cast into its brass plate, and a red sash knotted at the left hip.
+        leather, brass, sash = spec.get("belt", [0.30, 0.18, 0.10]), [0.78, 0.60, 0.28], spec.get("sash", [0.55, 0.10, 0.08])
+        unit = d["height"]
+        belt = p1 - Vector((0, 0, d["torso"] * 0.02))
+        body.limb("pelvis", belt - Vector((0, 0, unit * 0.025)), belt + Vector((0, 0, unit * 0.025)), d["hip"] * 1.14, d["hip"] * 1.14, leather)
+        plate = belt + Vector((d["hip"] * 1.16, 0, 0))
+        body.box("pelvis", plate, (unit * 0.01, unit * 0.075, unit * 0.06), mix(brass, leather, 0.4))
+        anchor = plate + Vector((unit * 0.008, 0, 0))
+        body.limb("pelvis", anchor + Vector((0, 0, unit * 0.022)), anchor - Vector((0, 0, unit * 0.02)), unit * 0.005, unit * 0.005, brass, segments=6)
+        body.limb("pelvis", anchor + Vector((0, unit * 0.016, unit * 0.014)), anchor + Vector((0, -unit * 0.016, unit * 0.014)), unit * 0.004, unit * 0.004, brass, segments=6)
+        for sign in (1, -1):
+            body.limb("pelvis", anchor - Vector((0, 0, unit * 0.02)), anchor + Vector((0, sign * unit * 0.022, -unit * 0.006)), unit * 0.005, unit * 0.003, brass, segments=6)
+        knot = belt + Vector((d["hip"] * 0.4, d["hip"] * 1.1, 0))
+        body.ball("pelvis", knot, unit * 0.025, sash, segments=8)
+        for spread in (-0.4, 0.4):
+            body.limb("pelvis", knot, knot + Vector((d["hip"] * 0.2 * spread, d["hip"] * 0.25, -unit * 0.16)), unit * 0.018, unit * 0.01, sash, segments=6)
     if "heavyBoots" in features:
         boots = spec.get("boots", [0.12, 0.08, 0.06])
         for side in ("l", "r"):
@@ -647,9 +722,27 @@ def add_prop(body, prop, L, d, spec):
         sweep = [grip + Vector((unit * 0.06 * k, -unit * 0.04 * math.sin(k * 1.4), -unit * (0.05 * k + 0.005 * k * k))) for k in (0.0, 1.0, 2.0, 3.0, 4.0)]
         chain_links(body, bone, sweep, unit * 0.022, [0.16, 0.14, 0.15], accent)
     elif kind == "boardingBlade":
-        body.limb(bone, grip, grip + forward * unit * 0.08, unit * 0.015, unit * 0.015, wood)
-        body.box(bone, grip + forward * unit * 0.4 + Vector((0, 0, unit * 0.02)), (unit * 0.62, unit * 0.015, unit * 0.11), metal)
-        body.limb(bone, grip + forward * unit * 0.66 + Vector((0, 0, -unit * 0.04)), grip + forward * unit * 0.6 + Vector((0, 0, -unit * 0.14)), unit * 0.04, unit * 0.005, metal)
+        # An oversized single-edged boarding blade on a long cord-bound haft, broadening like a cleaver toward its tip,
+        # its pale edge down at rest (up, carried over the shoulder). The back of it is an anchor's fluke: harbour
+        # salvage reforged into a weapon.
+        up = Vector((0, 0, 1))
+        steel, edge, iron, cord = [0.50, 0.50, 0.50], [0.85, 0.85, 0.82], [0.22, 0.21, 0.21], [0.68, 0.58, 0.40]
+        body.limb(bone, grip - forward * unit * 0.1, grip + forward * unit * 0.1, unit * 0.017, unit * 0.017, wood)
+        for share in (-0.07, -0.02, 0.03):
+            body.limb(bone, grip + forward * unit * share, grip + forward * unit * (share + 0.025), unit * 0.021, unit * 0.021, cord)
+        back = grip + forward * unit * 0.1 + up * unit * 0.03
+        # Its back straight; a narrow blade from the haft, then the broad cleaver's head over its last third.
+        for start, end, depth in ((0.0, 0.34, 0.1), (0.34, 0.52, 0.17)):
+            a, b, depth = back + forward * unit * start, back + forward * unit * end, unit * depth
+            body.slab(bone, a - up * depth * 0.5, b - up * depth * 0.5, unit * 0.016, depth, steel)
+            body.slab(bone, a - up * depth * 0.97, b - up * depth * 0.97, unit * 0.018, unit * 0.016, edge)
+        # The fluke: a shank off the back near the tip, its arm sweeping back toward the haft to a pointed palm.
+        root = back + forward * unit * 0.4
+        crown = root + up * unit * 0.07 + forward * unit * 0.03
+        body.limb(bone, root, crown, unit * 0.014, unit * 0.012, iron, segments=6)
+        palm = crown - forward * unit * 0.13 + up * unit * 0.015
+        body.limb(bone, crown, palm, unit * 0.012, unit * 0.006, iron, segments=6)
+        body.blob(bone, palm, (forward * unit * 0.035, Vector((0, unit * 0.008, 0)), up * unit * 0.03), iron, segments=4)
     elif kind == "swordBack":
         s0, s1 = L["spine_03"]
         body.limb("spine_03", s0 + Vector((-d["shoulder"] * 0.55, d["shoulder"] * 0.5, d["torso"] * 0.35)),
@@ -826,6 +919,8 @@ def pose(name, t, melee, d):
         raise AssertionError("Unknown animation: " + name)
     if d.get("stance") == "aim":
         aim_pose(pose, name, t, melee)
+    if d.get("stance") == "shoulderCarry":
+        carry_pose(pose, name, t)
     if d.get("kneel") and name != "Death":
         # Dug in: down on one knee, braced, whatever the upper body does.
         pose["thigh_l"] = forward_swing(80)
@@ -885,6 +980,32 @@ def crest_pose(name, t):
         return {"cape_01": curl(-10 * rise * (1 - fall) + 15 * fall), "cape_02": curl(10 * fall), "cape_03": curl(10 * rise + 30 * fall)}
     k = math.sin(min(1.0, t) * math.pi)
     return {"cape_01": curl(6 * k), "cape_02": curl(10 * k), "cape_03": curl(18 * k)}
+
+
+def torso_radius(L, d, z):
+    """How far the torso body() draws reaches from the spine at height z: its pelvis, belly and chest, each a cone."""
+    sections = [(L["pelvis"][0].z, d["hip"] * 1.05), (L["pelvis"][1].z, d["hip"]), (L["spine_01"][1].z, d["shoulder"] * 0.72),
+                (L["spine_02"][1].z, d["shoulder"] * 0.86), (L["spine_03"][1].z, d["shoulder"] * 0.62)]
+    if z <= sections[0][0]:
+        return sections[0][1]
+    for (z0, r0), (z1, r1) in zip(sections, sections[1:]):
+        if z <= z1:
+            return r0 + (r1 - r0) * (z - z0) / (z1 - z0)
+    return sections[-1][1]
+
+
+def carry_pose(pose, name, t):
+    """A heavy blade carried over the right shoulder: the upper arm a little forward and in, the forearm folded up so the
+    fist sits before the shoulder and the blade, which points ahead of a hanging hand, lies back over it. Held so at rest,
+    running (rocking with the stride), flinching and recalling; an attack or a cast takes it off the shoulder, and a
+    fall drops it."""
+    if name not in ("Idle", "Run", "Hit", "Recall"):
+        return
+    rock = 6 * math.sin(t * math.tau) if name == "Run" else 0.0
+    pose["upperarm_r"] = combine(forward_swing(CARRY_UPPER_ARM + rock), roll_side(-CARRY_ROLL_IN, -1))
+    pose["lowerarm_r"] = forward_swing(CARRY_FOREARM)
+    # The blade's flat turned up a little about its length, so the camera above sees its breadth, not its edge.
+    pose["hand_r"] = roll_side(CARRY_FLAT_UP, -1)
 
 
 def aim_pose(pose, name, t, melee):
