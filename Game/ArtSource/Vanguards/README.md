@@ -178,6 +178,15 @@ section 9. The existing LFS rules cover the FBX files.
   belt pouches). Her red `trailingScarf` is the one hot colour on her. `furCuffs` of her own fur show at her wrists and
   boot tops. The Tinkertwins (`rings`) orbit her hands, each as broad as her head: a brass ring with a gimbal crossed
   inside it and a cut blue crystal at its heart, turning inside a ring of its own light with star-sparks.
+  Celandrine is a hare, longer-legged and more athletic than Mimzi, and nothing she carries is magical. Her
+  `hareFace` has a rounder muzzle and a pink nose. Her `hareEars` are long and swept back over her shoulders, dark at
+  the tips (`earTips`), cupped like Mimzi's (one `cupped_ear` makes both). Her `hareLegs` are powerful, with furred
+  haunches over bare legs (`shorts`) and long fur feet (`footShare`, `feet`). She wears an olive courier jacket with
+  the hood up (`bigHood`), a step from Mimzi's teal, and her red scarf streams behind her. Cream running wraps bind
+  her forearms and shins (`wrapBindings` with `wrap`). Her `courierSatchel` holds letters standing from under its
+  flap, with a map tube strapped along its top. A mechanical `springbow` is in each fist: a green-painted steel stock,
+  brass limbs swept back across its front with a cord drawn between them, exposed coil springs, a winding drum and
+  a bolt laid in, all unlit.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:

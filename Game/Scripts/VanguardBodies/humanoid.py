@@ -110,7 +110,7 @@ def layout(spec, capsule):
         L["thigh_" + side] = (hip_point, knee)
         L["calf_" + side] = (knee, hock)
         # The foot's sole meets the ground: its axis runs a foot's thickness above it.
-        L["foot_" + side] = (hock, Vector((hock.x + leg * 0.22, hock.y, base + sole * FOOT_TOE_SHARE)))
+        L["foot_" + side] = (hock, Vector((hock.x + leg * spec.get("footShare", 0.22), hock.y, base + sole * FOOT_TOE_SHARE)))
     tail_start = Vector((-hip * 0.6, 0, pelvis_z - torso * 0.05))
     tail_dir = Vector((-1.0, 0, -0.35)).normalized()
     tail_length = leg * (1.1 if "heavyTail" in features else 0.5)
@@ -178,6 +178,24 @@ def layout(spec, capsule):
     return L, dims
 
 
+def cupped_ear(body, root, tip, out, width, head_radius, skin, inner_color, tip_color=None):
+    """An animal's ear from root to tip: its base runs across the head along out, width either side, and it is folded
+    back down its middle into a cup facing forward, so it has depth seen from the side too. Fur outside, inner_color
+    within, and tip_color over its last quarter if given."""
+    inner = root - out * width + Vector((0, 0, head_radius * 0.2))
+    outer = root + out * width - Vector((0, 0, head_radius * 0.3))
+    fold = root - Vector((head_radius * 0.4, 0, 0))
+    for half in ([inner, tip, fold], [fold, tip, outer]):
+        body.pane("head", half, head_radius * 0.14, skin)
+        facing = (half[1] - half[0]).cross(half[2] - half[0]).normalized()
+        facing = facing if facing.x > 0 else -facing
+        middle = sum(half, Vector()) / 3
+        body.pane("head", [point.lerp(middle, 0.3) + facing * head_radius * 0.08 for point in half], head_radius * 0.05, inner_color)
+    if tip_color:
+        for side in (inner, outer):
+            body.pane("head", [tip, side.lerp(tip, 0.72), fold.lerp(tip, 0.72)], head_radius * 0.18, tip_color)
+
+
 def body(spec, L, d, bones=BONES):
     """The figure of simple parts on L's bones. Another archetype's skeleton that holds these bones (a rider's) passes
     its own bone list, so the parts weight to the right vertex groups."""
@@ -212,13 +230,17 @@ def body(spec, L, d, bones=BONES):
         body.ball("head", muzzle + Vector((head_radius * 0.28, 0, head_radius * 0.08)), head_radius * 0.11, [0.15, 0.08, 0.06], segments=6)
         body.limb("head", muzzle + Vector((head_radius * 0.3, -head_radius * 0.2, -head_radius * 0.12)), muzzle + Vector((head_radius * 0.3, head_radius * 0.2, -head_radius * 0.05)),
                   head_radius * 0.025, head_radius * 0.025, [0.25, 0.15, 0.12], segments=4)
-    elif "foxFace" in features:
-        # A small fox's face, never a person's: a short pointed muzzle in pale fur with a dark nose, big amber eyes
-        # set wide, and tufts of pale cheek fur flaring out and down.
+    elif "foxFace" in features or "hareFace" in features:
+        # An animal's face, never a person's: a fox's short pointed muzzle in pale fur with a dark nose, or a hare's
+        # rounder one with a pink nose; big amber eyes set wide, and tufts of pale cheek fur flaring out and down.
         fur = spec.get("fur", [0.97, 0.93, 0.85])
         muzzle = head_center + Vector((head_radius * 0.55, 0, -head_radius * 0.28))
-        body.limb("head", muzzle, muzzle + Vector((head_radius * 0.62, 0, -head_radius * 0.08)), head_radius * 0.42, head_radius * 0.12, fur, segments=8)
-        body.ball("head", muzzle + Vector((head_radius * 0.64, 0, -head_radius * 0.04)), head_radius * 0.11, [0.08, 0.05, 0.05], segments=6)
+        if "foxFace" in features:
+            body.limb("head", muzzle, muzzle + Vector((head_radius * 0.62, 0, -head_radius * 0.08)), head_radius * 0.42, head_radius * 0.12, fur, segments=8)
+            body.ball("head", muzzle + Vector((head_radius * 0.64, 0, -head_radius * 0.04)), head_radius * 0.11, [0.08, 0.05, 0.05], segments=6)
+        else:
+            body.ball("head", muzzle + Vector((head_radius * 0.12, 0, 0)), head_radius * 0.42, fur, scale=(0.8, 1.0, 0.75), segments=8)
+            body.ball("head", muzzle + Vector((head_radius * 0.45, 0, head_radius * 0.12)), head_radius * 0.1, [0.85, 0.52, 0.52], segments=6)
         for sign in (1, -1):
             eye = head_center + Vector((head_radius * 0.74, sign * head_radius * 0.38, head_radius * 0.1))
             body.ball("head", eye, head_radius * 0.22, spec.get("eyes", [0.92, 0.55, 0.12]), scale=(0.6, 1.0, 1.1), segments=8)
@@ -355,36 +377,26 @@ def body(spec, L, d, bones=BONES):
                   head_radius * 0.6, head_radius * 0.08, hood, segments=8)
         n0, n1 = L["neck_01"]
         body.limb("spine_03", n0 + Vector((0, 0, head_radius * 0.2)), n0 - Vector((0, 0, d["torso"] * 0.18)), head_radius * 0.95, d["shoulder"] * 1.0, hood, segments=10)
-    if "fennecEars" in features:
-        # Enormous ears, a fennec's, standing up and out through the hood: broad, cupped to the front, pale fur outside,
-        # pink within, fur tufted at their roots. From above they are the widest thing about her.
+    if "fennecEars" in features or "hareEars" in features:
+        # A fennec's ears are enormous, standing up and out through the hood, broad, pale fur outside and pink within:
+        # from above the widest thing about her. A hare's are long and narrower, swept back over the shoulders and
+        # dark at the tips. Both are tufted with fur at their roots.
         fur = spec.get("fur", [0.97, 0.93, 0.85])
         for sign in (1, -1):
-            root = head_center + Vector((-head_radius * 0.15, sign * head_radius * 0.55, head_radius * 0.75))
             out = Vector((0, sign, 0))
-            # Its base runs across the head and its tip leans up, out and back, so it faces forward and up; folded
-            # back down its middle into a cup, it has depth seen from the side too.
-            inner = root - out * head_radius * 0.75 + Vector((0, 0, head_radius * 0.2))
-            outer = root + out * head_radius * 0.75 - Vector((0, 0, head_radius * 0.3))
-            fold = root - Vector((head_radius * 0.4, 0, 0))
-            tip = head_center + Vector((-head_radius * 0.9, sign * head_radius * 2.0, head_radius * 2.7))
-            for half in ([inner, tip, fold], [fold, tip, outer]):
-                body.pane("head", half, head_radius * 0.14, skin)
-                facing = (half[1] - half[0]).cross(half[2] - half[0]).normalized()
-                facing = facing if facing.x > 0 else -facing
-                middle = sum(half, Vector()) / 3
-                body.pane("head", [point.lerp(middle, 0.3) + facing * head_radius * 0.08 for point in half], head_radius * 0.05,
-                          spec.get("earInner", [0.92, 0.62, 0.58]))
+            if "fennecEars" in features:
+                root = head_center + Vector((-head_radius * 0.15, sign * head_radius * 0.55, head_radius * 0.75))
+                tip = head_center + Vector((-head_radius * 0.9, sign * head_radius * 2.0, head_radius * 2.7))
+                cupped_ear(body, root, tip, out, head_radius * 0.75, head_radius, skin, spec.get("earInner", [0.92, 0.62, 0.58]))
+            else:
+                root = head_center + Vector((-head_radius * 0.3, sign * head_radius * 0.4, head_radius * 0.8))
+                tip = head_center + Vector((-head_radius * 3.4, sign * head_radius * 1.3, head_radius * 1.7))
+                cupped_ear(body, root, tip, out, head_radius * 0.55, head_radius, skin, spec.get("earInner", [0.92, 0.62, 0.58]), spec.get("earTips"))
             body.limb("head", root + Vector((head_radius * 0.1, 0, 0)), root + Vector((head_radius * 0.35, sign * head_radius * 0.2, head_radius * 0.45)),
                       head_radius * 0.22, head_radius * 0.04, fur, segments=6)
-    if "roundEars" in features or "sweptEars" in features:
+    if "roundEars" in features:
         for sign in (1, -1):
-            if "roundEars" in features:
-                body.ball("head", head_center + Vector((0, sign * head_radius * 0.75, head_radius * 0.75)), head_radius * 0.35, skin)
-            else:
-                lean = -0.9
-                body.limb("head", head_center + Vector((0, sign * head_radius * 0.5, head_radius * 0.6)),
-                          head_center + Vector((head_radius * lean, sign * head_radius * 0.8, head_radius * 2.3)), head_radius * 0.3, head_radius * 0.05, skin)
+            body.ball("head", head_center + Vector((0, sign * head_radius * 0.75, head_radius * 0.75)), head_radius * 0.35, skin)
     # Arms; mechanical arms are metal from the shoulder, and long sleeves and gloves cover the forearms and hands.
     arm_color = metal if "mechanicalArms" in features else spec.get("sleeves", skin)
     for side in ("l", "r"):
@@ -403,7 +415,12 @@ def body(spec, L, d, bones=BONES):
             body.limb("thigh_" + side, t0 - (t1 - t0) * 0.1, t0.lerp(t1, 0.4), leg * 1.3, leg * 1.2, secondary)
         body.limb("calf_" + side, *L["calf_" + side], leg * 0.95, leg * 0.75, skin if bare else secondary)
         f0, f1 = L["foot_" + side]
-        body.limb("foot_" + side, f0, f1, leg * FOOT_HEEL_SHARE, leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE, mix(secondary, [0.05, 0.05, 0.05], 0.4))
+        body.limb("foot_" + side, f0, f1, leg * FOOT_HEEL_SHARE, leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE, spec.get("feet", mix(secondary, [0.05, 0.05, 0.05], 0.4)))
+    if "hareLegs" in features:
+        # A hare's powerful hind legs: great furred haunches over the thighs, bunched to spring.
+        for side in ("l", "r"):
+            t0, t1 = L["thigh_" + side]
+            body.limb("thigh_" + side, t0 + Vector((leg * 0.2, 0, leg * 0.3)), t1, leg * 1.6, leg * 1.05, skin, segments=10)
     # Clothing and armour.
     s0, s1 = L["spine_03"]
     if "cloak" in features:
@@ -484,6 +501,23 @@ def body(spec, L, d, bones=BONES):
         body.limb("pelvis", cog - Vector((hip * 0.02, 0, 0)), cog + Vector((hip * 0.02, 0, 0)), hip * 0.13, hip * 0.13, brass, segments=8)
         for sign in (1, 0.3):
             body.box("pelvis", p1 + Vector((hip * 1.0, sign * hip * 0.75, -d["torso"] * 0.08)), (hip * 0.25, hip * 0.35, hip * 0.35), leather)
+    if "courierSatchel" in features:
+        # A wayrunner's map-and-letter satchel, nothing in it magical: a broad flat bag riding the left hip on a strap
+        # across the body from the right shoulder, letters standing out from under its buckled flap, and a rolled map
+        # in a leather tube strapped along its top.
+        leather, dark, brass, paper = [0.38, 0.24, 0.13], [0.24, 0.15, 0.08], [0.80, 0.60, 0.25], [0.92, 0.88, 0.76]
+        hip = d["hip"]
+        bag = p1 + Vector((-hip * 0.1, hip * 1.3, -d["torso"] * 0.12))
+        body.box("pelvis", bag, (hip * 1.0, hip * 0.4, hip * 0.7), leather)
+        body.box("pelvis", bag + Vector((0, hip * 0.04, hip * 0.24)), (hip * 1.04, hip * 0.45, hip * 0.28), dark)
+        body.ball("pelvis", bag + Vector((hip * 0.1, hip * 0.25, hip * 0.08)), hip * 0.07, brass, segments=6)
+        for index in range(3):
+            body.box("pelvis", bag + Vector((-hip * 0.25 + index * hip * 0.2, 0, hip * 0.42)), (hip * 0.16, hip * 0.03, hip * 0.3), paper,
+                     rotation=Euler((0, math.radians(-12 + index * 12), 0)))
+        tube = bag + Vector((0, 0, hip * 0.52))
+        body.limb("pelvis", tube - Vector((hip * 0.65, 0, 0)), tube + Vector((hip * 0.65, 0, 0)), hip * 0.13, hip * 0.13, leather, segments=8)
+        body.limb("pelvis", tube + Vector((hip * 0.6, 0, 0)), tube + Vector((hip * 0.72, 0, 0)), hip * 0.11, hip * 0.11, paper, segments=8)
+        body.slab("spine_03", L["clavicle_r"][1] + Vector((d["shoulder"] * 0.2, d["shoulder"] * 0.1, 0)), bag + Vector((0, -hip * 0.1, hip * 0.3)), limb * 0.6, 1.5, leather)
     if "tornCoat" in features:
         # The coat's hem torn to ribbons, its red lining showing through every rent: strips of different lengths
         # hanging round the skirt, dark and red in turn.
@@ -1172,9 +1206,25 @@ def add_prop(body, prop, L, d, spec):
             for angle in (0.6, 2.3, 4.1):
                 body.ball("prop_" + ring_side, center + (across_axis * math.cos(angle) + up_axis * math.sin(angle)) * radius * 1.4, unit * 0.009, spark, glow=True, segments=6)
     elif kind == "springbow":
-        body.limb(bone, grip + Vector((0, 0, unit * 0.12)), grip - Vector((0, 0, unit * 0.12)), unit * 0.012, unit * 0.012, [0.20, 0.35, 0.18])
-        body.limb(bone, grip, grip + forward * unit * 0.12, unit * 0.01, unit * 0.01, [0.62, 0.48, 0.25])
-        body.ball(bone, grip + forward * unit * 0.12, unit * 0.014, accent, glow=True)
+        # A compact spring-loaded bolt launcher in the fist, ready to fire, mechanical and unlit: a green-painted steel
+        # stock reaching back along the forearm and forward past the fist, brass limbs swept back across its front with
+        # a cord drawn between them, exposed coil springs at their roots, a winding drum on its side and a bolt laid in.
+        green, brass, steel, cord = [0.22, 0.34, 0.16], [0.80, 0.60, 0.25], [0.32, 0.32, 0.34], [0.85, 0.82, 0.72]
+        across = Vector((0, 1, 0))
+        body.slab(bone, grip - forward * unit * 0.07, grip + forward * unit * 0.17, unit * 0.026, unit * 0.032, green)
+        front = grip + forward * unit * 0.15
+        nock = grip + forward * unit * 0.03
+        for sign in (1, -1):
+            limb_tip = front + across * sign * unit * 0.1 - forward * unit * 0.04
+            body.limb(bone, front + across * sign * unit * 0.012, limb_tip, unit * 0.009, unit * 0.005, brass, segments=6)
+            body.limb(bone, limb_tip, nock, unit * 0.0025, unit * 0.0025, cord, segments=4)
+            for coil in range(3):
+                ring = front + across * sign * unit * (0.022 + coil * 0.012)
+                body.limb(bone, ring - forward * unit * 0.004, ring + forward * unit * 0.004, unit * 0.012, unit * 0.012, steel, segments=8)
+        body.limb(bone, grip + forward * unit * 0.07 + across * unit * 0.018, grip + forward * unit * 0.07 + across * unit * 0.03, unit * 0.02, unit * 0.02, brass, segments=8)
+        body.limb(bone, nock + Vector((0, 0, unit * 0.018)), front + forward * unit * 0.06 + Vector((0, 0, unit * 0.018)), unit * 0.004, unit * 0.004, wood, segments=4)
+        body.limb(bone, front + forward * unit * 0.06 + Vector((0, 0, unit * 0.018)), front + forward * unit * 0.085 + Vector((0, 0, unit * 0.018)), unit * 0.008,
+                  unit * 0.001, steel, segments=4)
     elif kind == "cleaver":
         body.limb(bone, grip, grip + forward * unit * 0.06, unit * 0.015, unit * 0.015, wood)
         body.box(bone, grip + forward * unit * 0.22, (unit * 0.3, unit * 0.02, unit * 0.14), [0.18, 0.17, 0.16])
