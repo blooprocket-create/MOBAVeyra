@@ -2,7 +2,7 @@
 import math
 import random
 
-from mathutils import Vector
+from mathutils import Euler, Vector
 
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
@@ -57,10 +57,10 @@ def layout(spec, capsule):
     # Broad shoulders fill the capsule, so the body's footprint reads as the unit's.
     shoulder = max(capsule["capsuleRadius"] * 0.8, height * 0.13) * build
     hip = shoulder * 0.62
-    arm = height * 0.38 * (0.85 if spec["headShare"] > 0.2 else 1.0)
+    arm = height * spec.get("armShare", 0.38) * (0.85 if spec["headShare"] > 0.2 else 1.0)
     digitigrade = "digitigrade" in features
     # The foot's radius at its heel (humanoid_body draws it), so the sole stands on the ground.
-    sole = height * LEG_SHARE * build * FOOT_HEEL_SHARE
+    sole = height * LEG_SHARE * build * spec.get("limbScale", 1.0) * FOOT_HEEL_SHARE
     pelvis_z = base + leg
     chest_z = pelvis_z + torso
     L = {}
@@ -124,8 +124,10 @@ def layout(spec, capsule):
         raise AssertionError("Unknown stance: " + stance)
     strike = spec.get("strike", {"style": "swing", "hand": "right"})
     assert strike["style"] in ("swing", "punch") and strike["hand"] in ("left", "right"), ("Unknown strike", strike)
+    still = spec.get("stillPose")
+    assert still in (None, "slumped"), ("Unknown still pose", still)
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
-            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike}
+            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still}
     return L, dims
 
 
@@ -136,8 +138,10 @@ def body(spec, L, d, bones=BONES):
     features = set(spec["features"])
     skin, primary, secondary, hair, accent = spec["skin"], spec["primary"], spec["secondary"], spec["hair"], spec["accent"]
     metal = [0.62, 0.55, 0.42]
-    limb = d["height"] * 0.036 * d["build"]
-    leg = d["height"] * LEG_SHARE * d["build"]
+    # A plush toy's limbs are stubbier and fatter than a figure's.
+    plump = spec.get("limbScale", 1.0)
+    limb = d["height"] * 0.036 * d["build"] * plump
+    leg = d["height"] * LEG_SHARE * d["build"] * plump
     # Torso: hips, belly and chest, the chest broadest.
     p0, p1 = L["pelvis"]
     body.limb("pelvis", p0 - Vector((0, 0, d["torso"] * 0.08)), p1, d["hip"] * 1.05, d["hip"] * 1.0, secondary)
@@ -150,9 +154,21 @@ def body(spec, L, d, bones=BONES):
     head_radius = d["head"] * 0.52
     head_center = (h0 + h1) / 2
     body.ball("head", head_center, head_radius, skin, scale=(1.0, 0.9, 1.0))
-    # Eyes: two dark points on the front, so the face shows which way it looks.
-    for sign in (1, -1):
-        body.ball("head", head_center + Vector((head_radius * 0.85, sign * head_radius * 0.35, head_radius * 0.1)), head_radius * 0.12, [0.05, 0.05, 0.06])
+    if "buttonEyes" in features:
+        # A toy's mismatched button eyes, one dark and one pale, sewn on a little crooked, over a soft muzzle with a
+        # stitched seam across it. Plain and kindly: no fangs, no glow.
+        for sign, color, drop in ((1, [0.06, 0.05, 0.05], 0.0), (-1, [0.85, 0.82, 0.74], 0.12)):
+            eye = head_center + Vector((head_radius * 0.9, sign * head_radius * 0.38, head_radius * (0.15 - drop)))
+            body.limb("head", eye - Vector((head_radius * 0.06, 0, 0)), eye + Vector((head_radius * 0.06, 0, 0)), head_radius * 0.17, head_radius * 0.17, color, segments=8)
+        muzzle = head_center + Vector((head_radius * 0.82, 0, -head_radius * 0.3))
+        body.ball("head", muzzle, head_radius * 0.38, mix(skin, [1.0, 0.95, 0.85], 0.35), scale=(0.8, 1.0, 0.75), segments=8)
+        body.ball("head", muzzle + Vector((head_radius * 0.28, 0, head_radius * 0.08)), head_radius * 0.11, [0.15, 0.08, 0.06], segments=6)
+        body.limb("head", muzzle + Vector((head_radius * 0.3, -head_radius * 0.2, -head_radius * 0.12)), muzzle + Vector((head_radius * 0.3, head_radius * 0.2, -head_radius * 0.05)),
+                  head_radius * 0.025, head_radius * 0.025, [0.25, 0.15, 0.12], segments=4)
+    else:
+        # Eyes: two dark points on the front, so the face shows which way it looks.
+        for sign in (1, -1):
+            body.ball("head", head_center + Vector((head_radius * 0.85, sign * head_radius * 0.35, head_radius * 0.1)), head_radius * 0.12, [0.05, 0.05, 0.06])
     hair_style = spec["hairStyle"]
     if hair_style in ("short", "long", "curly", "twinTails", "sideTail", "longBeard", "windblown"):
         body.ball("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.18)), head_radius * 1.04, hair, scale=(1.0, 0.95, 0.9))
@@ -243,6 +259,43 @@ def body(spec, L, d, bones=BONES):
                       mix(cloak, [0.05, 0.02, 0.02], random.uniform(0.0, 0.3)))
     if "scarf" in features:
         body.box("neck_01", L["neck_01"][0] + Vector((-limb * 1.6, 0, -d["torso"] * 0.25)), (limb * 0.5, limb * 2.0, d["torso"] * 0.7), secondary)
+    if "trailingScarf" in features:
+        # A torn scarf wound at the neck, its long tail riding the cape bones so it trails and streams behind.
+        scarf = spec.get("scarf", secondary)
+        n0, n1 = L["neck_01"]
+        body.limb("neck_01", n0 - Vector((0, 0, limb * 0.6)), n0 + Vector((0, 0, limb * 0.9)), limb * 2.4, limb * 2.2, scarf, segments=10)
+        for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
+            c0, c1 = L[name]
+            offset = Vector((0, d["shoulder"] * 0.3, 0))
+            body.slab(name, c0 + offset, c1 + offset, limb * (2.2 - index * 0.4), 1.5, mix(scarf, [0.1, 0.02, 0.02], index * 0.15))
+    if "stitchHeart" in features:
+        # A red child's stitch heart, marked with a pale cross, on the chest.
+        c0, c1 = L["spine_02"]
+        front = c1 + Vector((d["shoulder"] * 0.82, 0, -d["torso"] * 0.05))
+        heart = [0.75, 0.08, 0.08]
+        for sign in (1, -1):
+            body.ball("spine_02", front + Vector((0, sign * d["shoulder"] * 0.14, d["shoulder"] * 0.08)), d["shoulder"] * 0.16, heart, scale=(0.4, 1.0, 1.0), segments=8)
+        body.limb("spine_02", front + Vector((0, 0, d["shoulder"] * 0.05)), front - Vector((0, 0, d["shoulder"] * 0.28)), d["shoulder"] * 0.24, d["shoulder"] * 0.02,
+                  heart, segments=8)
+        bar, stroke = d["shoulder"] * 0.24, d["shoulder"] * 0.05
+        for size in ((1.0, bar, stroke), (1.0, stroke, bar)):
+            body.box("spine_02", front + Vector((d["shoulder"] * 0.08, 0, 0)), size, [0.92, 0.88, 0.80])
+    if "harness" in features:
+        # A small leather harness: two straps crossing the chest and a belt.
+        top_l, top_r = L["clavicle_l"][1], L["clavicle_r"][1]
+        low = L["pelvis"][1]
+        for top, other in ((top_l, -1), (top_r, 1)):
+            body.slab("spine_03", top.lerp(L["spine_03"][1], 0.35) + Vector((d["shoulder"] * 0.62, 0, 0)), low + Vector((d["hip"] * 0.98, other * d["hip"] * 0.6, 0)),
+                      limb * 0.7, 1.5, [0.30, 0.18, 0.10])
+        body.limb("pelvis", p1 - Vector((0, 0, d["torso"] * 0.05)), p1 + Vector((0, 0, d["torso"] * 0.05)), d["hip"] * 1.12, d["hip"] * 1.12, [0.30, 0.18, 0.10])
+    if "spectralBear" in features:
+        spectral_bear(body, spec, L, d)
+    if "patches" in features:
+        # Repairs all over: square patches of other cloth sewn on.
+        for bone, at, size in (("spine_02", 0.6, 0.35), ("upperarm_r", 0.5, 0.18), ("thigh_l", 0.4, 0.2)):
+            b0, b1 = L[bone]
+            body.box(bone, b0.lerp(b1, at) + Vector((d["shoulder"] * size * 1.6, 0, 0)), (1.5, d["shoulder"] * size, d["shoulder"] * size),
+                     mix(skin, [0.55, 0.42, 0.30], 0.6), rotation=Euler((0.3, 0, 0)))
     if "coatSkirt" in features:
         body.limb("pelvis", p0 + Vector((0, 0, d["torso"] * 0.05)), p0 - Vector((0, 0, d["leg"] * 0.55)), d["hip"] * 1.15, d["hip"] * 1.55, primary)
     if "shoulderPlate" in features:
@@ -298,6 +351,42 @@ def body(spec, L, d, bones=BONES):
     for prop in spec["props"]:
         add_prop(body, prop, L, d, spec)
     return body
+
+
+def spectral_bear(body, spec, L, d):
+    """The enormous spectral bear of crimson energy that rears up around a small body: burning eyes, an open fanged
+    maw, vast clawed arms. All of it glows. Its arms ride the small body's arms, so their swing is its swipe; it
+    stands spec["spectralScale"] times the body's own capsule height, as its status grows the capsule."""
+    energy, eyes, fang = spec["spectral"], [1.0, 0.85, 0.4], [0.95, 0.85, 0.75]
+    tall = d["full"] / spec["heightShare"] * spec["spectralScale"]
+    back = Vector((-tall * 0.12, 0, 0))
+    # A towering trunk rising behind the toy, from its hips to above its head.
+    body.blob("spine_01", back + Vector((0, 0, tall * 0.42)), (Vector((tall * 0.2, 0, 0)), Vector((0, tall * 0.24, 0)), Vector((0, 0, tall * 0.3))), energy, glow=True, segments=10)
+    body.blob("spine_03", back + Vector((tall * 0.04, 0, tall * 0.66)), (Vector((tall * 0.18, 0, 0)), Vector((0, tall * 0.28, 0)), Vector((0, 0, tall * 0.16))), energy, glow=True, segments=10)
+    # Its head, thrust forward over the toy: round ears, burning eyes, an open maw with fangs.
+    head = back + Vector((tall * 0.2, 0, tall * 0.84))
+    body.blob("spine_03", head, (Vector((tall * 0.14, 0, 0)), Vector((0, tall * 0.12, 0)), Vector((0, 0, tall * 0.11))), energy, glow=True, segments=10)
+    for sign in (1, -1):
+        body.ball("spine_03", head + Vector((-tall * 0.03, sign * tall * 0.1, tall * 0.1)), tall * 0.05, energy, glow=True, segments=8)
+        body.ball("spine_03", head + Vector((tall * 0.12, sign * tall * 0.045, tall * 0.03)), tall * 0.02, eyes, glow=True, segments=6)
+    jaw = head + Vector((tall * 0.12, 0, -tall * 0.08))
+    body.blob("spine_03", jaw, (Vector((tall * 0.09, 0, 0)), Vector((0, tall * 0.08, 0)), Vector((0, 0, tall * 0.03))), mix(energy, [0.05, 0.0, 0.0], 0.5), glow=True, segments=8)
+    for index in range(4):
+        across = (index - 1.5) * tall * 0.03
+        for top, z, tip in ((1, tall * 0.02, -tall * 0.045), (-1, -tall * 0.02, tall * 0.035)):
+            root = head + Vector((tall * 0.18, across, -tall * 0.04 + z))
+            body.limb("spine_03", root, root + Vector((0, 0, tip)), tall * 0.012, tall * 0.002, fang, segments=4)
+    # Vast clawed arms reaching forward from its shoulders.
+    for side, sign in (("l", 1), ("r", -1)):
+        shoulder = back + Vector((tall * 0.02, sign * tall * 0.26, tall * 0.68))
+        elbow = shoulder + Vector((tall * 0.2, sign * tall * 0.1, -tall * 0.18))
+        paw = elbow + Vector((tall * 0.24, -sign * tall * 0.02, -tall * 0.12))
+        body.limb("upperarm_" + side, shoulder, elbow, tall * 0.09, tall * 0.075, energy, glow=True, segments=8)
+        body.limb("lowerarm_" + side, elbow, paw, tall * 0.075, tall * 0.065, energy, glow=True, segments=8)
+        body.ball("lowerarm_" + side, paw, tall * 0.08, energy, glow=True, segments=8)
+        for claw in (-1, 0, 1):
+            root = paw + Vector((tall * 0.05, claw * tall * 0.04, 0))
+            body.limb("lowerarm_" + side, root, root + Vector((tall * 0.1, claw * tall * 0.02, -tall * 0.06)), tall * 0.018, tall * 0.002, fang, segments=4)
 
 
 def add_prop(body, prop, L, d, spec):
@@ -395,8 +484,21 @@ def run_stride(d):
     return 2 * 2 * (d["leg"]) * math.sin(math.radians(RUN_THIGH_SWING))
 
 
+def slumped(d):
+    """A toy slumped where it was dropped: sat down, legs out, its body tipped forward, head lolling, arms limp. Every
+    clip of a still body holds it."""
+    pose = {"spine_01": lean(25), "spine_02": lean(10), "head": combine(lean(35), twist(18))}
+    for side, sign in (("l", 1), ("r", -1)):
+        pose["thigh_" + side] = combine(forward_swing(85), roll_side(12, sign))
+        pose["calf_" + side] = forward_swing(-5)
+        pose["upperarm_" + side] = combine(roll_side(18, sign), forward_swing(10))
+    return pose, -d["leg"] * 0.8
+
+
 def pose(name, t, melee, d):
     """Each bone's rotation (about the armature's axes, in radians) and the pelvis's lift at t from 0 to 1."""
+    if d.get("stillPose") == "slumped":
+        return slumped(d)
     pose, lift = {}, 0.0
     tau = math.tau
     if name == "Idle":

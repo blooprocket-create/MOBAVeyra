@@ -88,8 +88,14 @@
       "cloak": [0.55, 0.06, 0.08], "stance": "aim",
       "hairStyle": "short", "features": ["longCloak"], "props": [{ "kind": "rifle", "hand": "right" }] },
     { "id": "patch", "archetype": "humanoid", "seed": 105, "heightShare": 0.80, "build": "round", "headShare": 0.30,
-      "skin": [0.82, 0.70, 0.52], "primary": [0.82, 0.70, 0.52], "secondary": [0.60, 0.08, 0.08], "hair": [0.82, 0.70, 0.52], "accent": [1.00, 0.70, 0.25],
-      "hairStyle": "none", "features": ["roundEars", "scarf"], "props": [{ "kind": "lantern", "hand": "left" }] },
+      "skin": [0.72, 0.55, 0.36], "primary": [0.72, 0.55, 0.36], "secondary": [0.62, 0.46, 0.30], "hair": [0.72, 0.55, 0.36], "accent": [1.00, 0.70, 0.25],
+      "scarf": [0.60, 0.08, 0.08], "armShare": 0.27, "limbScale": 1.7,
+      "hairStyle": "none", "features": ["roundEars", "buttonEyes", "trailingScarf", "stitchHeart", "harness", "patches"], "props": [{ "kind": "lantern", "hand": "left" }],
+      "statusBodies": [
+        { "status": "patch_dormant", "name": "Dormant", "body": { "stillPose": "slumped" } },
+        { "status": "patch_inside_body", "name": "Inside", "body": { "spectral": [0.55, 0.03, 0.04], "spectralScale": 1.8,
+          "features": ["roundEars", "buttonEyes", "trailingScarf", "stitchHeart", "harness", "patches", "spectralBear"] } }
+      ] },
     { "id": "tavi", "archetype": "humanoid", "seed": 106, "heightShare": 0.86, "build": "lean", "headShare": 0.2,
       "skin": [0.90, 0.75, 0.66], "primary": [0.08, 0.07, 0.08], "secondary": [0.95, 0.45, 0.70], "hair": [0.95, 0.88, 0.70], "accent": [1.00, 0.40, 0.75],
       "hairStyle": "twinTails", "features": ["kneeGuards"], "props": [{ "kind": "ball", "hand": "right" }] },

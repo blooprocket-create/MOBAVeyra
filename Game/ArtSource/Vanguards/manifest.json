@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "ed0a3136ed43d624e7200bdf60dbf8a51835042c1922d6b8a9d4aa7716777e4b",
+  "kitSha256": "057d0955b4fc0a8ebaab3580bf70844f07a48bb864d6d9057af23941627a180f",
   "assets": [
     {
       "id": "angeru",
@@ -878,11 +878,11 @@
       "name": "SK_Patch",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch.fbx",
-      "sha256": "5181aeacc5789c101ef4eeb170fb6b3ae80ba4aae4a059022e1cd8ba49570bf5",
-      "triangles": 1620,
+      "sha256": "b7c9c71a5638e8494d817a4bae671162b46dd62c520987525d3778b576f487d9",
+      "triangles": 1884,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 114.19,
+      "bones": 29,
+      "heightCm": 113.92,
       "capsuleHalfHeightCm": 70,
       "melee": true,
       "runStrideCm": 77.09,
@@ -930,6 +930,124 @@
           "loop": true
         }
       ]
+    },
+    {
+      "id": "patch",
+      "name": "SK_Patch_Dormant",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Patch_Dormant.fbx",
+      "sha256": "2afdd0671b2d5a5971080fda650660d87e008eba68035805f142cea077902ec3",
+      "triangles": 1884,
+      "triangleBudget": 9000,
+      "bones": 29,
+      "heightCm": 113.92,
+      "capsuleHalfHeightCm": 70,
+      "melee": true,
+      "runStrideCm": 77.09,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "status": "patch_dormant"
+    },
+    {
+      "id": "patch",
+      "name": "SK_Patch_Inside",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Patch_Inside.fbx",
+      "sha256": "c5d06bd6a0533a2a9e7ded86b97dfa6b0e49fcbfd989f374474b9ea7d6c9e4dc",
+      "triangles": 2856,
+      "triangleBudget": 9000,
+      "bones": 29,
+      "heightCm": 248.98,
+      "capsuleHalfHeightCm": 70,
+      "melee": true,
+      "runStrideCm": 77.09,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "status": "patch_inside_body"
     },
     {
       "id": "qazharr",

@@ -109,15 +109,17 @@ namespace VeyraVanguardBodyTests
 					const TOptional<FVeyraContentId> StatusId = FVeyraContentId::FromText(Status.Key.ToString());
 					ASSERT_THAT(IsTrue(StatusId && UVeyraAbilitiesTuningSubsystem::FindStatus(*StatusId).IsSet(), *Status.Key.ToString()));
 				}
-				// Each of its bodies fitted to its capsule, which stays its only collision and movement.
+				// Each of its bodies fitted to its capsule, which stays its only collision and movement: its own to the
+				// capsule as defined, one it wears while a status grows its body to the capsule as grown.
 				const double CapsuleHeight = Vanguard->Body.CapsuleHalfHeight * 2.0;
-				for (const TPair<FString, const FVeyraVanguardBody*>& Body : EveryBody())
+				const double OwnHeight = Entry.Value.Mesh->GetBounds().BoxExtent.Z * 2.0;
+				ASSERT_THAT(IsTrue(OwnHeight >= CapsuleHeight * LeastHeightShare && OwnHeight <= CapsuleHeight * MostHeightShare, *Entry.Key.ToString()));
+				for (const TPair<FName, FVeyraVanguardBody>& Status : Entry.Value.StatusBodies)
 				{
-					if (Body.Key == Entry.Key.ToString() || Body.Key.StartsWith(Entry.Key.ToString() + TEXT(" while ")))
-					{
-						const double Height = Body.Value->Mesh->GetBounds().BoxExtent.Z * 2.0;
-						ASSERT_THAT(IsTrue(Height >= CapsuleHeight * LeastHeightShare && Height <= CapsuleHeight * MostHeightShare, *Body.Key));
-					}
+					const TOptional<FVeyraStatusSpec> Spec = UVeyraAbilitiesTuningSubsystem::FindStatus(FVeyraContentId::FromText(Status.Key.ToString()).GetValue());
+					const double Grown = Spec && Spec->Kind == EVeyraStatusKind::BodyScale ? Spec->Magnitude : 1.0;
+					const double Height = Status.Value.Mesh->GetBounds().BoxExtent.Z * 2.0;
+					ASSERT_THAT(IsTrue(Height >= CapsuleHeight * LeastHeightShare && Height <= CapsuleHeight * Grown * MostHeightShare, *Status.Key.ToString()));
 				}
 			}
 		}
