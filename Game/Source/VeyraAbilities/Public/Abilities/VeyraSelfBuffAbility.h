@@ -102,6 +102,8 @@ private:
 	FVeyraContentId AuraAbility;
 	double AuraEndsAt = 0.0;
 	FTimerHandle AuraTimer;
+	/** The aura's damage at each refresh, prepared at Commit; invalid when it deals none (ADR-065 §8). */
+	FVeyraPreparedDamage AuraDamage;
 	/** The units the aura under way gave its statuses, whose grants StopAura ends. */
 	TArray<TWeakObjectPtr<UAbilitySystemComponent>> AuraGranted;
 

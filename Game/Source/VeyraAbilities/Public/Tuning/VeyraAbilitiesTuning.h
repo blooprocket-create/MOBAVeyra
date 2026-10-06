@@ -973,6 +973,14 @@ struct FVeyraAuraTuning
 	/** Put on each allied Fluxborn in range at every refresh, as Full Grid overclocks them (ADR-033 §6). */
 	UPROPERTY()
 	TArray<FVeyraContentId> AllyFluxbornStatuses;
+
+	/**
+	 * Damage each second to each living enemy unit in range, never a structure or a ward (ADR-065 §8), as The Thing
+	 * Inside's: worked out from the caster's power at Commit, dealt at every refresh in proportion. One component per
+	 * type; empty for none.
+	 */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> EnemyDamagePerSecond;
 };
 
 /**
@@ -1728,6 +1736,29 @@ struct FVeyraVolleyAbilityTuning
 };
 
 /**
+ * What a tether drains while it holds (ADR-065 §8): every interval, and once more as its time runs out, it deals its
+ * damage to the target, worked out from the caster's power at Commit, and the caster regains a share of the Health the
+ * target lost.
+ */
+USTRUCT()
+struct FVeyraTetherSiphonTuning
+{
+	GENERATED_BODY()
+
+	/** Seconds between pulses; above 0. */
+	UPROPERTY()
+	double IntervalSeconds = 0.0;
+
+	/** Each pulse's damage: one component per type. */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	/** The share of the Health each pulse takes that the caster regains; at least 0. */
+	UPROPERTY()
+	double HealShare = 0.0;
+};
+
+/**
  * An ability that tethers an enemy to its caster (Combat Bible §43; ADR-018), as Patch's Don't Leave
  * Me: while it holds, the caster's side sees the target; stretched beyond its range, it may snap the
  * target back toward the caster once, and ends.
@@ -1766,6 +1797,10 @@ struct FVeyraTetherAbilityTuning
 	/** Status IDs held on the target while the tether lasts. */
 	UPROPERTY()
 	TArray<FVeyraContentId> TargetStatuses;
+
+	/** At most one: what the tether drains from its target while it holds (ADR-065 §8), as Don't Leave Me's. */
+	UPROPERTY()
+	TArray<FVeyraTetherSiphonTuning> Siphon;
 };
 
 /**
@@ -2474,7 +2509,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 25;
+	static constexpr int32 SchemaVersion = 26;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

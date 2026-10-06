@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
 #include "Tethers/VeyraTetherSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -62,6 +63,19 @@ FVeyraChannelPlan UVeyraTetherAbility::Deliver(const FVeyraCast& Cast)
 		{
 			Spec.TargetStatuses.Add(Status.GetValue());
 		}
+	}
+	// Its siphon's damage is worked out now, from the caster's power at Commit (Combat Bible §50; ADR-065 §8).
+	if (!Tuning->Siphon.IsEmpty())
+	{
+		const FVeyraTetherSiphonTuning& Siphon = Tuning->Siphon[0];
+		FVeyraRawDamageEvent Pulse;
+		for (const FVeyraDamageTuning& Damage : Siphon.Damage)
+		{
+			Pulse.Components.Add({ Damage.Type, VeyraEffectDelivery::DamageAmount(*Caster, Damage, Cast.Rank) });
+		}
+		Spec.SiphonDamage = VeyraCombat::PrepareDamage(*Caster, Pulse);
+		Spec.SiphonIntervalSeconds = Siphon.IntervalSeconds;
+		Spec.SiphonHealShare = Siphon.HealShare;
 	}
 	// A Spell Shield blocks the tether and its statuses (Combat Bible §19).
 	if (VeyraCombat::BlockAbilityHit(*Target, *Caster))

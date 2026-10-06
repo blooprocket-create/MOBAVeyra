@@ -265,6 +265,18 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 		AuraHolder = Recipient;
 		AuraAbility = Cast.Ability;
 		AuraEndsAt = World->GetTimeSeconds() + Aura.DurationSeconds;
+		// Its damage each second, worked out from the caster's power now (Combat Bible §50), comes in proportion at each
+		// refresh (ADR-065 §8).
+		AuraDamage = FVeyraPreparedDamage();
+		if (!Aura.EnemyDamagePerSecond.IsEmpty())
+		{
+			FVeyraRawDamageEvent PerRefresh;
+			for (const FVeyraDamageTuning& Damage : Aura.EnemyDamagePerSecond)
+			{
+				PerRefresh.Components.Add({ Damage.Type, VeyraEffectDelivery::DamageAmount(*Caster, Damage, Cast.Rank) * Aura.RefreshSeconds });
+			}
+			AuraDamage = VeyraCombat::PrepareDamage(*Caster, PerRefresh);
+		}
 		// Bound to the caster, not to this ability: GAS clears an ability's own timers as its cast ends,
 		// and the aura outlasts the cast.
 		TWeakObjectPtr<UVeyraSelfBuffAbility> Self(this);
@@ -615,16 +627,21 @@ void UVeyraSelfBuffAbility::RefreshAura()
 			}
 		}
 	}
-	if (Aura.EnemyStatuses.IsEmpty())
+	if (Aura.EnemyStatuses.IsEmpty() && !AuraDamage.IsValid())
 	{
 		return;
 	}
-	// The living enemy units in range take its enemy statuses; Combat refuses them for structures and wards.
+	// The living enemy units in range take its enemy statuses, which Combat refuses for structures and wards, and its
+	// damage, which never touches either.
 	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
 		[Body](const AActor& Unit) { return VeyraTargeting::CanHitEnemy(Body, Unit) && VeyraTargeting::IsAlive(&Unit); });
 	for (AActor* Enemy : Enemies)
 	{
 		UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Enemy);
+		if (Target && AuraDamage.IsValid() && !VeyraUnits::IsStructure(Enemy) && !VeyraUnits::IsWard(Enemy))
+		{
+			VeyraCombat::DealPreparedDamage(AuraDamage, *Target, {});
+		}
 		for (const FVeyraContentId& StatusId : Aura.EnemyStatuses)
 		{
 			const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId);
@@ -822,6 +839,7 @@ void UVeyraSelfBuffAbility::StopAura()
 	AuraCaster = nullptr;
 	AuraHolder = nullptr;
 	AuraAbility = FVeyraContentId();
+	AuraDamage = FVeyraPreparedDamage();
 }
 
 bool UVeyraSelfBuffAbility::IsAuraRunning() const

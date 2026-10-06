@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 25,
+  "schemaVersion": 26,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -597,7 +597,8 @@
     "patch_threaded": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
     "patch_inside_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.8, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
     "patch_inside_footing": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
-    "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_inside_shove": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
     "mavra_contaminated": { "provenance": "Provisional", "kind": "DamageOverTime", "stacking": "UniqueRefresh", "magnitude": 8, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [{ "damageType": "Magic", "tickSeconds": 0.5, "damagePerLevel": 1.2 }], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
     "mavra_exposure": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 6, "maxStacks": 3, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": ["mavra_unstable"], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0, "cover": [] },
     "mavra_unstable": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0, "cover": [] },
@@ -3859,7 +3860,7 @@
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
       "shields": [],
-      "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "enemyStatuses": [], "allyStatuses": ["cairn_immovable_cover"], "allyFluxbornStatuses": [] }],
+      "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "enemyStatuses": [], "allyStatuses": ["cairn_immovable_cover"], "allyFluxbornStatuses": [], "enemyDamagePerSecond": [] }],
       "heal": [],
       "recast": "EndsEarly",
       "variants": [],
@@ -4236,12 +4237,12 @@
       },
       "statuses": ["patch_inside_body", "patch_inside_footing"],
       "shields": [],
-      "aura": [{ "radius": 350, "durationSeconds": 8, "refreshSeconds": 0.25, "enemyStatuses": ["patch_inside_chill"], "allyStatuses": [], "allyFluxbornStatuses": [] }],
+      "aura": [{ "radius": 350, "durationSeconds": 8, "refreshSeconds": 0.25, "enemyStatuses": ["patch_inside_chill"], "allyStatuses": [], "allyFluxbornStatuses": [], "enemyDamagePerSecond": [{ "type": "Magic", "amountByRank": [25, 40, 55], "physicalPowerRatio": 0, "magicPowerRatio": 0.1 }] }],
       "heal": [],
       "recast": "None",
       "variants": [{ "slot": "Q", "ability": "patch_bear_hug_inside", "cooldown": "Own", "durationSeconds": 8 }],
-      "temporaryHealth": [{ "amountByRank": [200, 350, 500], "maxHealthRatio": 0.1, "durationSeconds": 8 }],
-      "endPayload": [],
+      "temporaryHealth": [{ "amountByRank": [300, 475, 650], "maxHealthRatio": 0.15, "durationSeconds": 8 }],
+      "endPayload": [{ "afterSeconds": 0.3, "radius": 350, "status": "patch_inside_shove", "baseSeconds": 1, "secondsPerHit": 0, "maxSeconds": 1, "minHits": 0, "displacement": [{ "direction": "AwayFromOrigin", "distance": 200, "speed": 1000, "collisionStatuses": [] }] }],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
       "recipientZones": [],
@@ -4496,7 +4497,7 @@
           "absorbedReward": []
         }
       ],
-      "aura": [{ "radius": 400, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["aurelisse_room_haste"], "enemyStatuses": [], "allyFluxbornStatuses": [] }],
+      "aura": [{ "radius": 400, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["aurelisse_room_haste"], "enemyStatuses": [], "allyFluxbornStatuses": [], "enemyDamagePerSecond": [] }],
       "heal": [],
       "recast": "None",
       "variants": [],
@@ -4835,7 +4836,8 @@
           "refreshSeconds": 0.5,
           "allyStatuses": ["relay_grid_link"],
           "enemyStatuses": [],
-          "allyFluxbornStatuses": ["relay_fluxborn_overclock", "relay_fluxborn_haste"]
+          "allyFluxbornStatuses": ["relay_fluxborn_overclock", "relay_fluxborn_haste"],
+          "enemyDamagePerSecond": []
         }
       ],
       "heal": [],
@@ -6577,7 +6579,8 @@
       "durationSeconds": 3,
       "snapDistance": 300,
       "snapSpeed": 1200,
-      "targetStatuses": ["patch_threaded"]
+      "targetStatuses": ["patch_threaded"],
+      "siphon": [{ "intervalSeconds": 0.5, "damage": [{ "type": "Magic", "amountByRank": [12, 17, 22, 27, 32], "physicalPowerRatio": 0, "magicPowerRatio": 0.05 }], "healShare": 1 }]
     }
   },
   "attach": {

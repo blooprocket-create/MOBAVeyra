@@ -520,6 +520,11 @@ namespace
 				CheckStatusIds(AuraPointer + TEXT("/allyStatuses"), Aura.AllyStatuses);
 				CheckStatusIds(AuraPointer + TEXT("/enemyStatuses"), Aura.EnemyStatuses);
 				CheckStatusIds(AuraPointer + TEXT("/allyFluxbornStatuses"), Aura.AllyFluxbornStatuses);
+				CheckDamage(AuraPointer + TEXT("/enemyDamagePerSecond"), Aura.EnemyDamagePerSecond);
+				if (!Aura.EnemyDamagePerSecond.IsEmpty() && !(Aura.RefreshSeconds > 0.0))
+				{
+					Problem(AuraPointer + TEXT("/refreshSeconds"), TEXT("must be above 0 for an aura that deals damage"));
+				}
 			}
 			if (Buff.TemporaryHealth.Num() > 1 || Buff.EndPayload.Num() > 1)
 			{
@@ -911,6 +916,20 @@ namespace
 			if (Tether.SnapDistance > 0.0 ? !(Tether.SnapSpeed > 0.0) : Tether.SnapSpeed != 0.0)
 			{
 				Problem(Pointer + TEXT("/snapSpeed"), TEXT("is above 0 with a snap, and 0 without one"));
+			}
+			if (Tether.Siphon.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/siphon"), TEXT("holds at most one siphon"));
+			}
+			for (int32 Index = 0; Index < Tether.Siphon.Num(); ++Index)
+			{
+				const FVeyraTetherSiphonTuning& Siphon = Tether.Siphon[Index];
+				const FString SiphonPointer = FString::Printf(TEXT("%s/siphon/%d"), *Pointer, Index);
+				CheckDamage(SiphonPointer + TEXT("/damage"), Siphon.Damage);
+				if (!(Siphon.IntervalSeconds > 0.0) || Siphon.HealShare < 0.0 || Siphon.Damage.IsEmpty())
+				{
+					Problem(SiphonPointer, TEXT("intervalSeconds is above 0, healShare at least 0, and it deals damage"));
+				}
 			}
 		}
 

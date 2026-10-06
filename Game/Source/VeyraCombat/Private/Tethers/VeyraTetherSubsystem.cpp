@@ -3,6 +3,7 @@
 #include "Tethers/VeyraTetherSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Engine/World.h"
 #include "Movement/VeyraForcedMovementTypes.h"
 #include "Targeting/VeyraTargeting.h"
@@ -15,9 +16,17 @@ namespace
 	bool IsValidSpec(const FVeyraTetherSpec& Spec)
 	{
 		const bool bSnaps = Spec.SnapDistance > 0.0;
+		const bool bSiphons = Spec.SiphonDamage.IsValid();
 		return Spec.Id.IsValid() && Spec.MaxRange > 0.0 && FMath::IsFinite(Spec.MaxRange) && Spec.DurationSeconds > 0.0
 			&& FMath::IsFinite(Spec.DurationSeconds) && Spec.SnapDistance >= 0.0 && FMath::IsFinite(Spec.SnapDistance)
-			&& (bSnaps ? Spec.SnapSpeed > 0.0 && FMath::IsFinite(Spec.SnapSpeed) : Spec.SnapSpeed == 0.0);
+			&& (bSnaps ? Spec.SnapSpeed > 0.0 && FMath::IsFinite(Spec.SnapSpeed) : Spec.SnapSpeed == 0.0)
+			&& (!bSiphons || (Spec.SiphonIntervalSeconds > 0.0 && FMath::IsFinite(Spec.SiphonIntervalSeconds) && Spec.SiphonHealShare >= 0.0
+				&& FMath::IsFinite(Spec.SiphonHealShare)));
+	}
+
+	double HealthOf(const UAbilitySystemComponent& Unit)
+	{
+		return Unit.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
 	}
 
 	const AActor* LivingBody(const UAbilitySystemComponent* Unit)
@@ -59,6 +68,7 @@ bool UVeyraTetherSubsystem::Tether(UAbilitySystemComponent& Source, UAbilitySyst
 	Link.Target = &Target;
 	Link.Spec = Spec;
 	Link.EndsAt = World->GetTimeSeconds() + Spec.DurationSeconds;
+	Link.NextPulseAt = World->GetTimeSeconds() + Spec.SiphonIntervalSeconds;
 	if (!World->GetTimerManager().IsTimerActive(CheckTimer))
 	{
 		World->GetTimerManager().SetTimer(CheckTimer, this, &UVeyraTetherSubsystem::Check,
@@ -105,6 +115,22 @@ void UVeyraTetherSubsystem::Check()
 {
 	const UWorld* World = GetWorld();
 	const double Now = World ? World->GetTimeSeconds() : 0.0;
+	// Siphons pulse while their tethers hold, and once more as their time runs out (ADR-065 §8). The pulses are taken
+	// first and dealt after, since a pulse can end a life, and a death's listeners can change the tethers.
+	TArray<FPulse> Pulses;
+	for (FLink& Link : Links)
+	{
+		const TOptional<EVeyraTetherEndReason> Reason = Judge(Link, Now);
+		if (Link.Spec.SiphonDamage.IsValid() && Now >= Link.NextPulseAt && (!Reason.IsSet() || Reason.GetValue() == EVeyraTetherEndReason::Expired))
+		{
+			Pulses.Add(FPulse{ Link.Source, Link.Target, Link.Spec.SiphonDamage, Link.Spec.SiphonHealShare });
+			Link.NextPulseAt += Link.Spec.SiphonIntervalSeconds;
+		}
+	}
+	for (const FPulse& Pulse : Pulses)
+	{
+		Siphon(Pulse);
+	}
 	// Downward, so a tether an ending one's listener adds is judged next time.
 	for (int32 Index = Links.Num() - 1; Index >= 0; --Index)
 	{
@@ -132,6 +158,27 @@ void UVeyraTetherSubsystem::Check()
 	if (Links.IsEmpty() && World)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(CheckTimer);
+	}
+}
+
+void UVeyraTetherSubsystem::Siphon(const FPulse& Pulse)
+{
+	UAbilitySystemComponent* Source = Pulse.Source.Get();
+	UAbilitySystemComponent* Target = Pulse.Target.Get();
+	if (!Source || !Target)
+	{
+		return;
+	}
+	// What the target lost, after its resistances and any shield, is what the source restores its share of.
+	const double Before = HealthOf(*Target);
+	if (!VeyraCombat::DealPreparedDamage(Pulse.Damage, *Target, {}))
+	{
+		return;
+	}
+	const double Lost = FMath::Max(0.0, Before - HealthOf(*Target));
+	if (Lost > 0.0 && Pulse.HealShare > 0.0)
+	{
+		VeyraCombat::RestoreHealthFrom(*Source, *Source, Lost * Pulse.HealShare);
 	}
 }
 
