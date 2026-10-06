@@ -11,7 +11,7 @@
     "Grass": "Grass and reeds; vertex colour carries the blade's tint and its height for the wind"
   },
   "look": {
-    "description": "The kit's materials (ImportEnvironmentMeshes.py): stone tints over the terrain's slate, moss on what faces up, glowing glyphs, foliage tints and a gentle wind.",
+    "description": "The kit's materials (ImportEnvironmentMeshes.py): stone tints over the terrain's slate, moss on what faces up, glowing glyphs, foliage tints and a gentle wind. Read only by the importer, so a change rebuilds materials without regenerating a mesh. The glyphs' glow ignores the scene's exposure: glyphStrength is in multiples of what the exposure maps to white.",
     "stoneTileCm": 400,
     "mossTileCm": 500,
     "desaturate": 0.6,
@@ -22,7 +22,7 @@
     "mossFrom": 0.55,
     "mossTo": 0.82,
     "glyphColor": [0.25, 0.65, 1.0],
-    "glyphStrength": 6.0,
+    "glyphStrength": 1.0,
     "glyphPulseRate": 0.9,
     "glyphPulseDepth": 0.25,
     "leafColour": [0.55, 0.8, 0.45],

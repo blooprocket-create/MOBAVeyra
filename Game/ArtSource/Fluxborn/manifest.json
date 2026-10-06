@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "kitSha256": "6ed39ab4e83031d3d156a2442caa144b4bef49223ee358812964127b23b02ee7",
+  "kitSha256": "fe145e8243411aed56acc44bcf52df4c4e35fef1cfbfdf0d46cdaac6117c2832",
   "blenderVersion": "5.2.1 LTS",
   "units": "centimetres in FBX",
   "footprintsCm": {
@@ -25,6 +25,7 @@
       "state": "Active",
       "file": "FBX/SM_Fluxborn_Strider_Active.fbx",
       "sha256": "e830f26d0cb772f091ec4e0528670558c244bd7a663a03aa36d1cf0fdb1d740f",
+      "contentSha256": "d21c888c1e99f03cb808baf30680569ffdab693add446604409579083cd12ef5",
       "triangles": 2660,
       "triangleBudget": 6500,
       "dimensionsCm": [
@@ -49,6 +50,7 @@
       "state": "Collapsed",
       "file": "FBX/SM_Fluxborn_Strider_Collapsed.fbx",
       "sha256": "1641f9d10bf67abb13183efd9907469ecc4031510e158edc79ea6f3e5b738dfc",
+      "contentSha256": "97157c78bf22647e9251856910baf859be472eee64d89ffe65f3037376a10f12",
       "triangles": 2680,
       "triangleBudget": 6500,
       "dimensionsCm": [
@@ -73,6 +75,7 @@
       "state": "Active",
       "file": "FBX/SM_Fluxborn_Spark_Active.fbx",
       "sha256": "2414ae797ba3d63fda0da65e41c81503164ff2a38422cb18b853f0d5484a1561",
+      "contentSha256": "733350783ad8287963c3554e3892b9d6031befb05e9d1139389d618b5bc2c713",
       "triangles": 3096,
       "triangleBudget": 6500,
       "dimensionsCm": [
@@ -97,6 +100,7 @@
       "state": "Collapsed",
       "file": "FBX/SM_Fluxborn_Spark_Collapsed.fbx",
       "sha256": "d830f9115d99fcbb315196f23e3d58e15885511b69936793f8d0a643eb2baace",
+      "contentSha256": "d6ced0000bd3e638267b493f320a00913b4c3ea43d7293371ab380913f6b2c52",
       "triangles": 3192,
       "triangleBudget": 6500,
       "dimensionsCm": [
@@ -121,6 +125,7 @@
       "state": "Active",
       "file": "FBX/SM_Fluxborn_Breaker_Active.fbx",
       "sha256": "57baf77100c9ed71b67b30cd9470543ce13d8b925929d39ffa28233b0f36215b",
+      "contentSha256": "9c5b5560b4d9492daae2049cf09c28caf6cf0473ffd15f253dc4a80a1519669a",
       "triangles": 4312,
       "triangleBudget": 8000,
       "dimensionsCm": [
@@ -145,6 +150,7 @@
       "state": "Collapsed",
       "file": "FBX/SM_Fluxborn_Breaker_Collapsed.fbx",
       "sha256": "56e07c75d8ad548d18c367582a540a1a297acd27027808f309513654a804c320",
+      "contentSha256": "9172d56f44c402d6711a4b66a8368c84bec5e3c3a672f48a12276fcbbc083eaa",
       "triangles": 4308,
       "triangleBudget": 8000,
       "dimensionsCm": [
