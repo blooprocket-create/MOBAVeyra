@@ -154,6 +154,10 @@ section 9. The existing LFS rules cover the FBX files.
   shoulders, her face in shadow but for a band of dark markings. Her grey-blue storm cloth is cut into ribbons at every
   hem (`ribbonHems`); her sleeves and gloves cover her arms (`sleeves`, `gloves`); her chained coat carries working
   `pilotGear` (bells, sea-glass, keys, weights, a ship's-wheel charm); and `NS_VeyraMist` gathers round her hem.
+  Mavra works in a stained `hazardCoat` open over its red `lining`, its ragged hem in red-and-white hazard stripes,
+  with `canisterBelts` of labelled, valved canisters crossed over her body, a red `headband` and `workGoggles` pushed
+  up on her forehead. Her `dispenserRig` is a banded steel tank on her back with a glowing reagent window, a gauge-glass
+  band and a hazard placard on its pump, its armoured hoses over her shoulder to the nozzle in her hand, one lit.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:

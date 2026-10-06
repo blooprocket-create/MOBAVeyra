@@ -290,6 +290,20 @@ def body(spec, L, d, bones=BONES):
     if "goggles" in features:
         for sign in (1, -1):
             body.ball("head", head_center + Vector((head_radius * 0.75, sign * head_radius * 0.35, head_radius * 0.65)), head_radius * 0.22, accent, glow=True)
+    if "headband" in features:
+        # A band round the head holding the hair back off the face.
+        body.limb("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.3)), head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.52)),
+                  head_radius * 1.07, head_radius * 1.05, spec.get("band", secondary), segments=10)
+    if "workGoggles" in features:
+        # Work goggles pushed up on the forehead: two short lensed cups on a strap round the head, the glass catching light.
+        strap, rim, lens = [0.12, 0.11, 0.10], [0.45, 0.40, 0.32], [0.55, 0.70, 0.72]
+        body.limb("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.6)), head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.72)),
+                  head_radius * 1.06, head_radius * 1.05, strap, segments=10)
+        for sign in (1, -1):
+            cup = head_center + Vector((head_radius * 0.82, sign * head_radius * 0.33, head_radius * 0.68))
+            body.limb("head", cup - Vector((head_radius * 0.12, 0, -head_radius * 0.04)), cup + Vector((head_radius * 0.12, 0, head_radius * 0.04)),
+                      head_radius * 0.24, head_radius * 0.26, rim, segments=8)
+            body.ball("head", cup + Vector((head_radius * 0.14, 0, head_radius * 0.05)), head_radius * 0.2, lens, scale=(0.35, 1.0, 1.0), segments=8)
     if "horn" in features:
         body.limb("head", head_center + Vector((head_radius * 0.3, head_radius * 0.3, head_radius * 0.7)),
                   head_center + Vector((head_radius * 0.2, head_radius * 0.6, head_radius * 1.7)), head_radius * 0.3, head_radius * 0.02, [0.85, 0.80, 0.70])
@@ -560,6 +574,46 @@ def body(spec, L, d, bones=BONES):
             angle = spoke / 4 * math.pi
             reach = Vector((0, math.cos(angle), math.sin(angle))) * unit * 0.034
             body.limb("pelvis", wheel - reach, wheel + reach, unit * 0.003, unit * 0.003, brass, segments=4)
+    if "hazardCoat" in features:
+        # A heavy layered work coat open at the front over its red lining, its ragged hem painted in red-and-white hazard
+        # stripes, and stained and burned from the work.
+        lining = spec.get("lining", secondary)
+        s0, s1 = L["spine_02"]
+        for sign in (1, -1):
+            edge = (s0 + s1) / 2 + Vector((d["shoulder"] * 0.82, sign * d["shoulder"] * 0.22, 0))
+            body.slab("spine_02", edge + Vector((0, 0, d["torso"] * 0.35)), edge - Vector((0, 0, d["torso"] * 0.7)), d["shoulder"] * 0.14, 2.0, lining)
+        hem_z = p0.z - d["leg"] * 0.55
+        stripes = [[0.75, 0.10, 0.08], [0.92, 0.90, 0.86]]
+        for index in range(14):
+            around = index / 14 * math.tau
+            out = Vector((math.cos(around), math.sin(around), 0))
+            top = Vector((p0.x, p0.y, hem_z)) + out * d["hip"] * 1.5
+            length = d["leg"] * random.uniform(0.08, 0.16)
+            side = "l" if math.sin(around) >= 0 else "r"
+            body.slab("thigh_" + side, top + Vector((0, 0, d["leg"] * 0.04)), top + out * d["hip"] * 0.06 - Vector((0, 0, length)), d["hip"] * 0.36, 1.6,
+                      stripes[index % 2])
+        grime = [mix(primary, [0.05, 0.04, 0.03], 0.5), mix(primary, [0.30, 0.18, 0.08], 0.4)]
+        for bone, at, out in (("spine_01", Vector((d["shoulder"] * 0.75, d["shoulder"] * 0.4, 0)), 0), ("spine_02", Vector((-d["shoulder"] * 0.8, -d["shoulder"] * 0.3, 0)), 1),
+                              ("pelvis", Vector((d["hip"] * 1.2, -d["hip"] * 0.6, -d["torso"] * 0.2)), 0), ("upperarm_r", Vector((0, -limb * 1.1, 0)), 1)):
+            b0, b1 = L[bone]
+            body.ball(bone, (b0 + b1) / 2 + at, limb * random.uniform(0.7, 1.1), grime[out], scale=(0.25, 1.0, 1.3), segments=6)
+    if "canisterBelts" in features:
+        # Belts of sealed canisters, bottles and reagent hardware crossed over her body: labelled, valved, strapped.
+        leather, steel, valve = [0.25, 0.16, 0.10], [0.55, 0.55, 0.56], [0.80, 0.62, 0.20]
+        labels = [[0.92, 0.80, 0.15], [0.90, 0.90, 0.88], [0.70, 0.12, 0.10]]
+        unit = d["height"]
+        s0, s1 = L["spine_02"]
+        for sign in (1, -1):
+            top = L["clavicle_" + ("l" if sign > 0 else "r")][1] + Vector((0, -sign * d["shoulder"] * 0.2, limb * 0.6))
+            low = p1 + Vector((d["hip"] * 0.4, -sign * d["hip"] * 1.05, 0))
+            front = [top + Vector((d["shoulder"] * 0.55, 0, -d["torso"] * 0.1)), (s0 + s1) / 2 + Vector((d["shoulder"] * 0.82, -sign * d["shoulder"] * 0.15, 0)), low]
+            for a, b in zip([top] + front, front):
+                body.limb("spine_02", a, b, unit * 0.009, unit * 0.009, leather, segments=4)
+            for index, share in enumerate((0.3, 0.55, 0.8)):
+                spot = front[0].lerp(front[2], share) + Vector((unit * 0.012, 0, 0))
+                body.limb("spine_02", spot - Vector((0, 0, unit * 0.03)), spot + Vector((0, 0, unit * 0.03)), unit * 0.014, unit * 0.014, steel, segments=8)
+                body.limb("spine_02", spot - Vector((0, 0, unit * 0.012)), spot + Vector((0, 0, unit * 0.012)), unit * 0.0145, unit * 0.0145, labels[(index + sign) % 3], segments=8)
+                body.limb("spine_02", spot + Vector((0, 0, unit * 0.03)), spot + Vector((0, 0, unit * 0.04)), unit * 0.006, unit * 0.006, valve, segments=6)
     if "wrapBindings" in features:
         # Soft dark cloth wound round the forearms and shins, cut to move silently.
         wrap = spec.get("wrap", mix(primary, [0.35, 0.35, 0.38], 0.18))
@@ -902,11 +956,40 @@ def add_prop(body, prop, L, d, spec):
     elif kind == "dagger":
         body.limb(bone, grip, grip + forward * unit * 0.14, unit * 0.012, unit * 0.002, metal)
     elif kind == "dispenserRig":
+        # A large pressurised dispenser rig on her back: a banded steel cylinder with a glass window onto the glowing
+        # orange reagent inside, a lozenge hazard mark on the glass, a pump housing on top with a yellow-and-black placard,
+        # and armoured hoses running over her shoulder to the nozzle in her hand, one of them lit from within.
+        steel, band, dark = [0.48, 0.48, 0.50], [0.30, 0.30, 0.32], [0.12, 0.12, 0.13]
+        limb = unit * 0.036 * d["build"] * spec.get("limbScale", 1.0)
         s0, s1 = L["spine_03"]
-        tank = s0 + Vector((-d["shoulder"] * 0.75, 0, -d["torso"] * 0.05))
-        body.limb("spine_03", tank - Vector((0, 0, d["torso"] * 0.4)), tank + Vector((0, 0, d["torso"] * 0.35)), d["shoulder"] * 0.4, d["shoulder"] * 0.4, metal)
-        body.limb("spine_03", tank - Vector((0, 0, d["torso"] * 0.2)), tank + Vector((0, 0, d["torso"] * 0.2)), d["shoulder"] * 0.42, d["shoulder"] * 0.42, accent, glow=True)
-        body.limb("prop_r", L["hand_r"][1], L["hand_r"][1] + forward * unit * 0.12, unit * 0.02, unit * 0.025, metal)
+        tank = s0 + Vector((-d["shoulder"] * 1.1, 0, -d["torso"] * 0.1))
+        radius = d["shoulder"] * 0.55
+        body.limb("spine_03", tank - Vector((0, 0, d["torso"] * 0.5)), tank + Vector((0, 0, d["torso"] * 0.42)), radius, radius, steel, segments=12)
+        for share in (-0.45, -0.12, 0.3):
+            ring = tank + Vector((0, 0, d["torso"] * share))
+            body.limb("spine_03", ring, ring + Vector((0, 0, d["torso"] * 0.05)), radius * 1.06, radius * 1.06, band, segments=12)
+        # The reagent shows through a tall window on the back and a gauge-glass band round the top, so it reads from any side.
+        window = tank + Vector((-radius * 0.9, 0, d["torso"] * 0.05))
+        body.box("spine_03", window, (radius * 0.3, radius * 1.1, d["torso"] * 0.42), accent, glow=True)
+        gauge = tank + Vector((0, 0, d["torso"] * 0.35))
+        body.limb("spine_03", gauge, gauge + Vector((0, 0, d["torso"] * 0.06)), radius * 1.02, radius * 1.02, accent, glow=True, segments=12)
+        body.box("spine_03", window + Vector((-radius * 0.16, 0, 0)), (1.0, radius * 0.32, radius * 0.32), dark, rotation=Euler((math.radians(45), 0, 0)))
+        housing = tank + Vector((0, 0, d["torso"] * 0.48))
+        body.box("spine_03", housing, (radius * 1.2, radius * 1.2, d["torso"] * 0.14), band)
+        for stripe in range(4):
+            body.box("spine_03", housing + Vector((-radius * 0.61, radius * (-0.375 + stripe * 0.25), 0)), (1.0, radius * 0.25, d["torso"] * 0.1),
+                     [0.95, 0.80, 0.10] if stripe % 2 == 0 else dark)
+        nozzle = L["hand_r"][1]
+        over = L["clavicle_r"][1] + Vector((-d["shoulder"] * 0.1, 0, limb * 1.4))
+        hose = [housing + Vector((0, -radius * 0.3, 0)), over, L["upperarm_r"][1] + Vector((-limb * 1.2, 0, 0))]
+        for a, b in zip(hose, hose[1:]):
+            body.limb("spine_03", a, b, unit * 0.014, unit * 0.014, dark, segments=6)
+        body.limb("lowerarm_r", hose[-1], nozzle, unit * 0.014, unit * 0.012, dark, segments=6)
+        lit = [housing + Vector((0, radius * 0.3, 0)), over + Vector((0, d["shoulder"] * 0.25, limb * 0.3)), L["upperarm_r"][0] + Vector((-limb * 1.4, 0, -d["torso"] * 0.1))]
+        for a, b in zip(lit, lit[1:]):
+            body.limb("spine_03", a, b, unit * 0.008, unit * 0.008, accent, glow=True, segments=5)
+        body.limb("prop_r", nozzle, nozzle + forward * unit * 0.14, unit * 0.02, unit * 0.014, steel, segments=8)
+        body.limb("prop_r", nozzle + forward * unit * 0.12, nozzle + forward * unit * 0.15, unit * 0.012, unit * 0.012, accent, glow=True, segments=6)
     elif kind == "cannon":
         body.limb(bone, grip - forward * unit * 0.2, grip + forward * unit * 0.4, unit * 0.06, unit * 0.075, [0.62, 0.48, 0.25])
         body.limb(bone, grip + forward * unit * 0.36, grip + forward * unit * 0.41, unit * 0.05, unit * 0.05, accent, glow=True)
