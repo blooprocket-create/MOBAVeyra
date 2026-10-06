@@ -105,7 +105,7 @@ namespace
 	};
 }
 
-void UVeyraVanguardAnimInstance::Configure(const FVeyraVanguardArt& Art, const FVeyraVanguardAnimShape& InShape)
+void UVeyraVanguardAnimInstance::Configure(const FVeyraVanguardBody& Art, const FVeyraVanguardAnimShape& InShape)
 {
 	Clips.SetNum(ClipCount);
 	for (int32 Index = 0; Index < ClipCount; ++Index)

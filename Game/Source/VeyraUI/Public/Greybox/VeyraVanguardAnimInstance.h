@@ -8,7 +8,7 @@
 #include "VeyraVanguardAnimInstance.generated.h"
 
 class UAnimSequence;
-struct FVeyraVanguardArt;
+struct FVeyraVanguardBody;
 
 /**
  * Plays a Vanguard body's generated animations (ADR-064 §3) with no Animation Blueprint: Idle and Run by its ground
@@ -22,7 +22,7 @@ class VEYRAUI_API UVeyraVanguardAnimInstance : public UAnimInstance
 
 public:
 	/** Fits it to Art and Shape's blend times and play rates; Shape's art-given values come from Art. Until then it holds the reference pose. */
-	void Configure(const FVeyraVanguardArt& Art, const FVeyraVanguardAnimShape& Shape);
+	void Configure(const FVeyraVanguardBody& Art, const FVeyraVanguardAnimShape& Shape);
 
 	bool IsConfigured() const { return Clips.Num() > 0; }
 

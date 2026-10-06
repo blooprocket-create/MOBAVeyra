@@ -10,6 +10,7 @@
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 #include "Recall/VeyraRecallComponent.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 
 USkeletalMeshComponent* VeyraVanguardSkin::Attach(APawn& Unit)
@@ -35,19 +36,37 @@ USkeletalMeshComponent* VeyraVanguardSkin::Attach(APawn& Unit)
 	return Skin;
 }
 
-void VeyraVanguardSkin::Dress(USkeletalMeshComponent& Skin, const FVeyraVanguardArt& Art, const FVeyraVanguardAnimShape& Shape)
+void VeyraVanguardSkin::Dress(USkeletalMeshComponent& Skin, const FVeyraVanguardBody& Body, const FVeyraVanguardAnimShape& Shape)
 {
-	if (!Art.Mesh || Skin.GetSkeletalMeshAsset() == Art.Mesh)
+	if (!Body.Mesh || Skin.GetSkeletalMeshAsset() == Body.Mesh)
 	{
 		return;
 	}
-	Skin.SetSkeletalMeshAsset(Art.Mesh);
+	Skin.SetSkeletalMeshAsset(Body.Mesh);
 	Skin.SetAnimationMode(EAnimationMode::AnimationBlueprint);
 	Skin.SetAnimInstanceClass(UVeyraVanguardAnimInstance::StaticClass());
 	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin.GetAnimInstance()))
 	{
-		Animation->Configure(Art, Shape);
+		Animation->Configure(Body, Shape);
 	}
+}
+
+const FVeyraVanguardBody& VeyraVanguardSkin::BodyOf(const APawn& Unit, const FVeyraVanguardArt& Art)
+{
+	// A Vanguard's statuses are its participant's, and their ledger reaches every machine for presentation.
+	const APlayerState* Participant = Unit.GetPlayerState();
+	const UVeyraStatusComponent* Statuses = Participant ? Participant->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (!Statuses || Art.StatusBodies.IsEmpty())
+	{
+		return Art;
+	}
+	// A cooked build keeps one spelling per name, so status IDs compare ignoring case.
+	return Art.BodyFor([Statuses](FName Status) {
+		const FString Wanted = Status.ToString();
+		return Statuses->GetLedger().Entries.ContainsByPredicate([&Wanted](const FVeyraStatusEntry& Entry) {
+			return Entry.Id.ToString().Equals(Wanted, ESearchCase::IgnoreCase);
+		});
+	});
 }
 
 FVeyraVanguardAnimShape VeyraVanguardSkin::ShapeOf(const UVeyraGreyboxSettings& Settings)

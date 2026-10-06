@@ -20,7 +20,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidatePattern('^[a-z0-9_]+$')]
+    [ValidatePattern('^[a-z0-9_]+(,[a-z0-9_]+)*$')]
     [string[]]$Vanguards,
     [string]$Blender,
     [switch]$Preview,
@@ -46,6 +46,20 @@ if (-not $ImportOnly) {
         throw "Blender failed. See $saved/Blender.log"
     }
     Select-String -LiteralPath (Join-Path $saved 'Blender.log') -Pattern 'VEYRA_VANGUARD_BODY: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
+}
+# A regenerated body may have new bones or stand differently, which a reimport onto its old skeleton does not take: its
+# previous assets go, and it imports fresh. They are generated output; acquire their Git LFS locks first (ADR-006 section 9).
+$kit = Get-Content (Join-Path $game 'ArtSource/Vanguards/VanguardKit.json') -Raw | ConvertFrom-Json
+$manifest = Get-Content (Join-Path $game 'ArtSource/Vanguards/manifest.json') -Raw | ConvertFrom-Json
+$selected = @($Vanguards | ForEach-Object { $_ -split ',' })
+foreach ($asset in $manifest.assets) {
+    if ($selected.Count -gt 0 -and $asset.id -notin $selected) { continue }
+    $folder = Join-Path $game ('Content' + $kit.destination.Substring('/Game'.Length) + '/' + $asset.name.Substring('SK_'.Length))
+    if (-not (Test-Path -LiteralPath $folder)) { continue }
+    foreach ($file in Get-ChildItem -LiteralPath $folder -Filter *.uasset) {
+        if ($file.IsReadOnly) { throw "Acquire the Git LFS lock before reimporting: $($file.FullName)" }
+        Remove-Item -LiteralPath $file.FullName
+    }
 }
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
 $script = Join-Path $PSScriptRoot 'ImportVanguardBodies.py'

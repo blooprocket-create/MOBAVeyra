@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "4565c45756c100dcb6344287989bc92c58082991afc357640c7eb3cadb1d64ce",
+  "kitSha256": "73811ebb8ae6fbbc40fa235b29b6cf1798846af35cec06ea17d5bf98b7a73ae5",
   "assets": [
     {
       "id": "angeru",
@@ -414,10 +414,10 @@
       "name": "SK_Kade",
       "archetype": "humanoid",
       "file": "FBX/SK_Kade.fbx",
-      "sha256": "e4a828a3c73b90345635ca057063e5c319d749f5837ecd71a1b66964329c87d9",
-      "triangles": 1452,
+      "sha256": "7e43f99f4a0cd25aee6770c1a1c45e994e0fc0eda5a718eaab7231783e9b4328",
+      "triangles": 1824,
       "triangleBudget": 9000,
-      "bones": 26,
+      "bones": 29,
       "heightCm": 172.95,
       "capsuleHalfHeightCm": 90,
       "melee": false,
@@ -992,13 +992,71 @@
     {
       "id": "raska",
       "name": "SK_Raska",
-      "archetype": "rider",
+      "archetype": "humanoid",
       "file": "FBX/SK_Raska.fbx",
-      "sha256": "e878eafd9088a3b011522d52f52de51e5d3a62835b52f4517e5fbfc12ccebe16",
-      "triangles": 4624,
-      "triangleBudget": 16000,
+      "sha256": "a80b5fcff3f8dc0364a2936da2250d144300236d655a538a19a58d3120e2e214",
+      "triangles": 2676,
+      "triangleBudget": 9000,
       "bones": 29,
-      "heightCm": 173.85,
+      "heightCm": 182.33,
+      "capsuleHalfHeightCm": 95,
+      "melee": true,
+      "runStrideCm": 180.3,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "id": "raska",
+      "name": "SK_Raska_Ride",
+      "archetype": "rider",
+      "file": "FBX/SK_Raska_Ride.fbx",
+      "sha256": "2790c6dda5795ba6cdcd29e6e33b815b9f4b51d347129f4b3d240491ccd478a6",
+      "triangles": 5440,
+      "triangleBudget": 16000,
+      "bones": 32,
+      "heightCm": 174.12,
       "capsuleHalfHeightCm": 95,
       "melee": true,
       "runStrideCm": 213.21,
@@ -1045,7 +1103,8 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "status": "raska_ride_body"
     },
     {
       "id": "relay",

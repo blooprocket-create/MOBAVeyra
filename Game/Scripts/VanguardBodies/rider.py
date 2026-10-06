@@ -11,7 +11,7 @@ import math
 from mathutils import Euler, Vector
 
 from . import humanoid
-from .parts import ease, forward_swing, lean, mix, roll_side, twist
+from .parts import ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
 # The mount's chain beside the rider's, both under the root. (name, parent)
 BONES = [("root", None), ("mount", "root"), ("wheel_back", "mount"), ("wheel_front", "mount")] + [
@@ -30,17 +30,6 @@ TYRE_KNOBS = 14
 CRASH_ROLL = 82.0
 RUBBER = [0.05, 0.05, 0.05]
 DARK = [0.08, 0.08, 0.09]
-
-
-def _two_bone(start, target, first, second, hint):
-    """The joint of a two-bone limb from start reaching target, bent toward hint."""
-    direction = target - start
-    distance = min(direction.length, (first + second) * 0.999)
-    direction.normalize()
-    along = (first * first - second * second + distance * distance) / (2 * distance)
-    out = math.sqrt(max(0.0, first * first - along * along))
-    bend = (hint - direction * hint.dot(direction)).normalized()
-    return start + direction * along + bend * out
 
 
 def layout(spec, capsule):
@@ -66,7 +55,8 @@ def layout(spec, capsule):
     L["mount"] = (back, front)
     L["wheel_back"] = (back, back + Vector((0, 0, radius * 0.5)))
     L["wheel_front"] = (front, front + Vector((0, 0, radius * 0.5)))
-    for name in ("pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "head", "clavicle_l", "clavicle_r", "tail_01", "tail_02", "tail_03"):
+    for name in ("pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "head", "clavicle_l", "clavicle_r", "tail_01", "tail_02", "tail_03",
+                 "cape_01", "cape_02", "cape_03"):
         L[name] = tuple(seated(point) for point in standing[name])
     arm = d["arm"]
     upper, lower, hand = arm * 0.48, arm * 0.40, arm * 0.12
@@ -77,7 +67,7 @@ def layout(spec, capsule):
         reach = Vector((1.0, sign * 0.12, -0.5)).normalized()
         wrist = shoulder + reach * (upper + lower) * 0.9
         grip = wrist + reach * hand
-        elbow = _two_bone(shoulder, wrist, upper, lower, Vector((0.0, sign * 0.6, -0.8)))
+        elbow = two_bone(shoulder, wrist, upper, lower, Vector((0.0, sign * 0.6, -0.8)))
         L["upperarm_" + side] = (shoulder, elbow)
         L["lowerarm_" + side] = (elbow, wrist)
         L["hand_" + side] = (wrist, grip)

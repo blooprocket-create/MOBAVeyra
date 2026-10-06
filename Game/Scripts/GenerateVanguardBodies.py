@@ -182,14 +182,22 @@ def reset_scene():
     scene.render.fps = KIT["fps"]
 
 
-def build(spec):
+def bodies_of(spec):
+    """A Vanguard's bodies, as (spec, status, name suffix): its own, then each it wears while it holds a status, built
+    from its own entry with the status body's entries over it (a rider's ride, ADR-064 §1)."""
+    yield spec, None, ""
+    for status_body in spec.get("statusBodies", []):
+        yield dict(spec, **status_body["body"]), status_body["status"], "_" + status_body["name"]
+
+
+def build(spec, status=None, suffix=""):
     random.seed(spec["seed"])
     archetype = ARCHETYPES[spec["archetype"]]
     capsule = TUNING[spec["id"]]["body"]
     melee = not TUNING[spec["id"]]["basicAttack"].get("projectile")
     reset_scene()
     layout, dims = archetype.layout(spec, capsule)
-    name = "SK_" + spec["id"].title().replace("_", "")
+    name = "SK_" + spec["id"].title().replace("_", "") + suffix
     armature = build_armature(name, archetype.BONES, layout)
     body = archetype.body(spec, layout, dims)
     mesh = bpy.data.meshes.new(name)
@@ -231,11 +239,14 @@ def build(spec):
                              colors_type="LINEAR")
     if PREVIEW:
         render_preview(name, armature, obj, archetype, dims, melee)
-    return {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "triangles": triangles, "triangleBudget": budget,
-            "bones": len(archetype.BONES), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
-            "melee": melee, "runStrideCm": round(archetype.run_stride(dims), 2), "upperBodyBone": archetype.UPPER_BODY_BONE,
-            "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions}
+    asset = {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,
+             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "triangles": triangles, "triangleBudget": budget,
+             "bones": len(archetype.BONES), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
+             "melee": melee, "runStrideCm": round(archetype.run_stride(dims), 2), "upperBodyBone": archetype.UPPER_BODY_BONE,
+             "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions}
+    if status:
+        asset["status"] = status
+    return asset
 
 
 def main():
@@ -244,14 +255,15 @@ def main():
     assert ONLY is None or len(entries) == len(ONLY), "Unknown Vanguard in --only"
     for spec in entries:
         assert spec["id"] in TUNING, spec["id"] + " is no Vanguard in Vanguards.json"
-        assert spec["archetype"] in KIT["archetypes"], (spec["id"], "has no archetype in the kit")
+        for body, status, _ in bodies_of(spec):
+            assert body["archetype"] in KIT["archetypes"], (spec["id"], status, "has no archetype in the kit")
     manifest_path = SOURCE / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if ONLY and manifest_path.exists() else {"assets": []}
     kept = [asset for asset in manifest["assets"] if ONLY and asset["id"] not in ONLY]
-    built = [build(spec) for spec in entries]
+    built = [build(*body) for spec in entries for body in bodies_of(spec)]
     manifest = {"generatorVersion": GENERATOR_VERSION, "blender": bpy.app.version_string,
                 "kitSha256": hashlib.sha256(KIT_BYTES).hexdigest(),
-                "assets": sorted(kept + built, key=lambda asset: asset["id"])}
+                "assets": sorted(kept + built, key=lambda asset: (asset["id"], asset.get("status", "")))}
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", newline="\n")
     for asset in built:
         print("VEYRA_VANGUARD_BODY: " + asset["name"] + " " + str(asset["triangles"]) + " triangles, " + str(asset["heightCm"]) + " cm")

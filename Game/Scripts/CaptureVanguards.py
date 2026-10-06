@@ -103,11 +103,12 @@ def camera_at(centre, fov, distance):
 
 
 def plan():
+    """Every body of each Vanguard named: its own, then those it wears while it holds a status (a rider's ride)."""
     shots = []
     for vanguard in IDS:
-        asset = next((entry for entry in MANIFEST["assets"] if entry["id"] == vanguard), None)
-        assert asset, f"{vanguard} has no generated body in the manifest"
-        shots.append(asset)
+        bodies = [entry for entry in MANIFEST["assets"] if entry["id"] == vanguard]
+        assert bodies, f"{vanguard} has no generated body in the manifest"
+        shots += sorted(bodies, key=lambda entry: entry.get("status", ""))
     return shots
 
 

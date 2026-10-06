@@ -1035,7 +1035,8 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const AVeyraVanguardCharacter& U
 		return;
 	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	VeyraVanguardSkin::Dress(*Skin, *Art, VeyraVanguardSkin::ShapeOf(Settings));
+	// The body its statuses call for: a rider on its mount while its ride lasts, on foot otherwise (ADR-064 §1).
+	VeyraVanguardSkin::Dress(*Skin, VeyraVanguardSkin::BodyOf(Unit, *Art), VeyraVanguardSkin::ShapeOf(Settings));
 	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2).
 	float Radius = 0.0f;
 	float HalfHeight = 0.0f;

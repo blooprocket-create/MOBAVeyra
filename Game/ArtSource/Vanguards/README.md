@@ -20,8 +20,8 @@ final character art. The imported assets are under `/Game/Veyra/Vanguards/<Id>`.
 
 | Archetype | Generated | Vanguards |
 |---|---|---|
-| Humanoid | Yes | Kade, Patch, Tavi, Vera, Marek, Neris, Qazharr, Angeru, Sylra, Mavra, Bryn, Mimzi, Celandrine, Gorraveth, Eudora |
-| Rider | Yes | Raska (on Hound) |
+| Humanoid | Yes | Raska, Kade, Patch, Tavi, Vera, Marek, Neris, Qazharr, Angeru, Sylra, Mavra, Bryn, Mimzi, Celandrine, Gorraveth, Eudora |
+| Rider (status body) | Yes | Raska on Hound, worn only while her ride's `raska_ride_body` status lasts |
 | Colossus | Yes | Silt, Relay, Varkesh, Cairn |
 | Beast | Yes | Korruk, Moro |
 | Construct | Yes | Torr, Oriel, Aurelisse |
@@ -78,7 +78,7 @@ section 9. The existing LFS rules cover the FBX files.
 
 - **Skeleton:** root, pelvis, three spine bones, neck and head; clavicle, upper
   arm, forearm, hand and a prop bone each side; thigh, calf and foot each side;
-  three tail bones. Every humanoid has every bone, and a bone a body does not use
+  three tail bones; three cape bones from the upper back. Every humanoid has every bone, and a bone a body does not use
   carries no weight.
 - **Fitting:** the body's height is the capsule's height times the entry's height
   share. Its shoulders fill most of the capsule's radius, so its footprint reads
@@ -94,10 +94,17 @@ section 9. The existing LFS rules cover the FBX files.
 
 ## The other archetypes
 
-- **Rider:** a humanoid seated on a mount that is half its silhouette. The mount's chain and the rider's both hang
-  from the root. Raska rides Hound, a heavy brawler's machine on fat knobbled tyres that turn once a Run cycle.
-  Wherever Hound moves the silhouette (an idle shudder, a lunge into her punch, a wheelie to cast, a jolt when hit),
-  she is posed to follow it. In death Hound goes down on its side and she is thrown clear.
+- **Status bodies:** a body a Vanguard wears in its own's place while it holds a status, listed in its kit entry's
+  `statusBodies` (status, name, and the entries that differ from its own) and imported beside its own body as
+  `SK_<Id>_<Name>`. A body shows the state the kit puts the Vanguard in: Raska fights on foot, and Hound arrives only
+  with her rides, which hold `raska_ride_body` for their length.
+- **Rider:** a humanoid seated on a mount that is half its silhouette, worn as a status body. The mount's chain and the
+  rider's both hang from the root. Raska rides Hound, a heavy brawler's machine on fat knobbled tyres that turn once a
+  Run cycle. Wherever Hound moves the silhouette (an idle shudder, a lunge, a wheelie to cast, a jolt when hit), she is
+  posed to follow it. In death Hound goes down on its side and she is thrown clear.
+- **Humanoid stances and dress:** an `aim` stance holds a long weapon two-handed at the shoulder, the arms keeping
+  their hold while the upper body carries it (Kade, mid-sight). A `punch` strike drives the named hand's fist straight
+  out from a guard with a lunge (Raska's bracer). A long cloak rides three cape bones that stream back as the body runs.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:

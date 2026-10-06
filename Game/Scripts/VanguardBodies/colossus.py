@@ -14,7 +14,7 @@ from mathutils import Euler, Vector
 from . import humanoid
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
 
-BONES = [bone for bone in humanoid.BONES if not bone[0].startswith("tail_")]
+BONES = [bone for bone in humanoid.BONES if not bone[0].startswith(("tail_", "cape_"))]
 UPPER_BODY_BONE = "spine_01"
 LIFT_BONE = "pelvis"
 GROUNDED = True

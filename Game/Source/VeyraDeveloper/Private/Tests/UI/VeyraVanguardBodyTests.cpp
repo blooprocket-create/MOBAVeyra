@@ -7,6 +7,7 @@
 
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
+#include "AbilitySystemGlobals.h"
 #include "AnimationRuntime.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -17,6 +18,7 @@
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 
 namespace VeyraVanguardBodyTests
@@ -57,6 +59,21 @@ namespace VeyraVanguardBodyTests
 			return FAnimationRuntime::GetComponentSpaceTransformRefPose(Reference, Reference.FindBoneIndex(Bone)).GetLocation();
 		}
 
+		/** Every body the set holds, labelled: each Vanguard's own, and those it wears while it holds a status. */
+		static TArray<TPair<FString, const FVeyraVanguardBody*>> EveryBody()
+		{
+			TArray<TPair<FString, const FVeyraVanguardBody*>> Bodies;
+			for (const TPair<FName, FVeyraVanguardArt>& Entry : ArtSet().Art)
+			{
+				Bodies.Emplace(Entry.Key.ToString(), &Entry.Value);
+				for (const TPair<FName, FVeyraVanguardBody>& Status : Entry.Value.StatusBodies)
+				{
+					Bodies.Emplace(Entry.Key.ToString() + TEXT(" while ") + Status.Key.ToString(), &Status.Value);
+				}
+			}
+			return Bodies;
+		}
+
 		UVeyraGreyboxSubsystem& RefreshedGreybox()
 		{
 			UVeyraGreyboxSubsystem* Subsystem = Spawner.GetWorld().GetSubsystem<UVeyraGreyboxSubsystem>();
@@ -86,22 +103,34 @@ namespace VeyraVanguardBodyTests
 				const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(Entry.Key.ToString());
 				const FVeyraVanguardDefinition* Vanguard = Id ? UVeyraVanguardsTuningSubsystem::FindVanguard(*Id) : nullptr;
 				ASSERT_THAT(IsTrue(Vanguard != nullptr, *Entry.Key.ToString()));
-				// Fitted to its capsule, which stays its only collision and movement.
-				const double Height = Entry.Value.Mesh->GetBounds().BoxExtent.Z * 2.0;
+				// A body it wears while it holds a status is for a status its abilities give.
+				for (const TPair<FName, FVeyraVanguardBody>& Status : Entry.Value.StatusBodies)
+				{
+					const TOptional<FVeyraContentId> StatusId = FVeyraContentId::FromText(Status.Key.ToString());
+					ASSERT_THAT(IsTrue(StatusId && UVeyraAbilitiesTuningSubsystem::FindStatus(*StatusId).IsSet(), *Status.Key.ToString()));
+				}
+				// Each of its bodies fitted to its capsule, which stays its only collision and movement.
 				const double CapsuleHeight = Vanguard->Body.CapsuleHalfHeight * 2.0;
-				ASSERT_THAT(IsTrue(Height >= CapsuleHeight * LeastHeightShare && Height <= CapsuleHeight * MostHeightShare, *Entry.Key.ToString()));
+				for (const TPair<FString, const FVeyraVanguardBody*>& Body : EveryBody())
+				{
+					if (Body.Key == Entry.Key.ToString() || Body.Key.StartsWith(Entry.Key.ToString() + TEXT(" while ")))
+					{
+						const double Height = Body.Value->Mesh->GetBounds().BoxExtent.Z * 2.0;
+						ASSERT_THAT(IsTrue(Height >= CapsuleHeight * LeastHeightShare && Height <= CapsuleHeight * MostHeightShare, *Body.Key));
+					}
+				}
 			}
 		}
 
 		TEST_METHOD(EveryBodyFacesForwardAndStandsOnItsFeet)
 		{
-			for (const TPair<FName, FVeyraVanguardArt>& Entry : ArtSet().Art)
+			for (const TPair<FString, const FVeyraVanguardBody*>& Body : EveryBody())
 			{
-				const USkeletalMesh& Mesh = *Entry.Value.Mesh;
-				const FString Id = Entry.Key.ToString();
-				// Unreal's +X ahead and +Y to the right: its left hand (or forefoot) on the left, its head above or ahead of its
-				// middle, and the knees of a body that has them ahead of its ankles.
-				ASSERT_THAT(IsTrue(BoneAt(Mesh, TEXT("hand_l")).Y < 0.0 && BoneAt(Mesh, TEXT("hand_r")).Y > 0.0, *Id));
+				const USkeletalMesh& Mesh = *Body.Value->Mesh;
+				const FString& Id = Body.Key;
+				// Unreal's +X ahead and +Y to the right: its left shoulder (or foreleg) on the left, since hands on one weapon
+				// cross, its head above or ahead of its middle, and the knees of a body that has them ahead of its ankles.
+				ASSERT_THAT(IsTrue(BoneAt(Mesh, TEXT("upperarm_l")).Y < 0.0 && BoneAt(Mesh, TEXT("upperarm_r")).Y > 0.0, *Id));
 				const FVector Head = BoneAt(Mesh, TEXT("head"));
 				const FVector Middle = BoneAt(Mesh, TEXT("pelvis"));
 				ASSERT_THAT(IsTrue(Head.X + Head.Z > Middle.X + Middle.Z, *Id));
@@ -136,6 +165,37 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsNear(Disc.GetSize().Z, static_cast<double>(GetDefault<UVeyraGreyboxSettings>()->VanguardFootDiscHeight), Tolerance));
 			ASSERT_THAT(IsNear(Disc.Min.Z, Unit.GetActorLocation().Z - HalfHeight, Tolerance));
 			ASSERT_THAT(IsNear(Disc.GetExtent().X, static_cast<double>(Radius), Tolerance));
+		}
+
+		TEST_METHOD(AVanguardWearsAStatusBodyOnlyWhileItHoldsTheStatus)
+		{
+			// The first Vanguard (by ID) with a body for a status, such as a rider and its ride.
+			TArray<FName> Ids;
+			ArtSet().Art.GetKeys(Ids);
+			Ids.Sort(FNameLexicalLess());
+			const FName* Id = Ids.FindByPredicate([](FName Candidate) { return !ArtSet().Find(Candidate)->StatusBodies.IsEmpty(); });
+			ASSERT_THAT(IsNotNull(Id, TEXT("the committed art holds a status body")));
+			const FVeyraVanguardArt& Art = *ArtSet().Find(*Id);
+			TArray<FName> Statuses;
+			Art.StatusBodies.GetKeys(Statuses);
+			Statuses.Sort(FNameLexicalLess());
+			const FVeyraContentId Status = FVeyraContentId::FromText(Statuses[0].ToString()).GetValue();
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(*Id);
+			UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+			ASSERT_THAT(IsNotNull(Abilities));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			ASSERT_THAT(IsNotNull(Skin));
+			ASSERT_THAT(IsTrue(Skin->GetSkeletalMeshAsset() == Art.Mesh, TEXT("its own body first")));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Abilities, *Abilities, UVeyraAbilitiesTuningSubsystem::FindStatus(Status).GetValue())));
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Skin->GetSkeletalMeshAsset() == Art.StatusBodies[Statuses[0]].Mesh, TEXT("the status's body while it holds the status")));
+			const UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance());
+			ASSERT_THAT(IsTrue(Animation && Animation->GetClip(EVeyraVanguardClip::Run) == Art.StatusBodies[Statuses[0]].Find(EVeyraVanguardClip::Run),
+				TEXT("animated as that body")));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Abilities, Status)));
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Skin->GetSkeletalMeshAsset() == Art.Mesh, TEXT("its own body again once the status ends")));
 		}
 
 		TEST_METHOD(AVanguardWithoutArtKeepsItsBody)

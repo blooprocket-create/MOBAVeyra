@@ -10,9 +10,9 @@
 class UAnimSequence;
 class USkeletalMesh;
 
-/** A Vanguard's generated body (ADR-064 §3): its skeletal mesh, its animations, and what they are fitted to. */
+/** One generated body (ADR-064 §3): its skeletal mesh, its animations, and what they are fitted to. */
 USTRUCT(BlueprintType)
-struct VEYRAUI_API FVeyraVanguardArt
+struct VEYRAUI_API FVeyraVanguardBody
 {
 	GENERATED_BODY()
 
@@ -40,6 +40,27 @@ struct VEYRAUI_API FVeyraVanguardArt
 
 	/** How long each of its animations plays at its own speed. */
 	FVeyraVanguardClipLengths Lengths() const;
+
+	/** Every problem with the body, each prefixed by Label. Empty when usable. */
+	TArray<FString> Validate(const FString& Label) const;
+};
+
+/**
+ * A Vanguard's generated bodies: its own, and those it wears in its own's place while it holds a status. A rider is on
+ * foot until its ride's status puts it on its mount (ADR-064 §1). Which body shows follows the replicated statuses;
+ * nothing here decides them.
+ */
+USTRUCT(BlueprintType)
+struct VEYRAUI_API FVeyraVanguardArt : public FVeyraVanguardBody
+{
+	GENERATED_BODY()
+
+	/** The bodies it wears while it holds a status, by status ID (Abilities.json statuses). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TMap<FName, FVeyraVanguardBody> StatusBodies;
+
+	/** The body to wear: the first status body (by status ID) whose status Holds says it holds, else its own. */
+	const FVeyraVanguardBody& BodyFor(TFunctionRef<bool(FName)> Holds) const;
 };
 
 /**
@@ -56,7 +77,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
 	TMap<FName, FVeyraVanguardArt> Art;
 
-	/** The body for the Vanguard Id, or null. */
+	/** The bodies for the Vanguard Id, or null. */
 	const FVeyraVanguardArt* Find(FName Id) const { return Art.Find(Id); }
 
 	/** Every problem with the set, as "Id: message". Empty when usable. */

@@ -27,7 +27,7 @@ ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary
 assert MANIFEST["kitSha256"] == hashlib.sha256(KIT_BYTES).hexdigest(), "Run GenerateVanguardBodies.py after changing the kit"
 assert DEST.startswith("/Game/Veyra/"), "Vanguard bodies live under /Game/Veyra"
 SELECTED = [asset for asset in MANIFEST["assets"] if ONLY is None or asset["id"] in ONLY]
-assert ONLY is None or len(SELECTED) == len(ONLY), "Unknown Vanguard in -VeyraOnly"
+assert ONLY is None or len({asset["id"] for asset in SELECTED}) == len(ONLY), "Unknown Vanguard in -VeyraOnly"
 
 
 def folder_of(asset):
@@ -156,8 +156,22 @@ def import_body(asset, material):
             "capsuleHalfHeightCm": asset["capsuleHalfHeightCm"], "triangles": asset["triangles"], "animations": animations}
 
 
+def fill_body(asset, body):
+    """Body, one of an art entry's bodies, filled from its manifest asset: its mesh, animations and fitting."""
+    mesh = unreal.load_asset(folder_of(asset) + "/" + asset["name"])
+    assert isinstance(mesh, unreal.SkeletalMesh), asset["name"] + " is not imported"
+    body.set_editor_property("mesh", mesh)
+    body.set_editor_property("animations", {unreal.Name(clip["name"]): unreal.load_asset(folder_of(asset) + "/" + sequence_name(asset, clip["name"]))
+                                            for clip in asset["animations"]})
+    body.set_editor_property("run_stride", asset["runStrideCm"])
+    body.set_editor_property("cast_release_share", asset["castReleaseShare"])
+    body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
+    return body
+
+
 def write_art_set():
-    """DA_VanguardArt: every body in the manifest by Vanguard ID, with its animations by name (ADR-064 §3)."""
+    """DA_VanguardArt: every Vanguard's own body by its ID, with the bodies it wears while it holds a status (a rider's
+    ride), each with its animations by name (ADR-064 §1, §3)."""
     path = DEST + "/DA_VanguardArt"
     writable(path)
     if unreal.EditorAssetLibrary.does_asset_exist(path):
@@ -167,21 +181,18 @@ def write_art_set():
         factory.set_editor_property("data_asset_class", unreal.VeyraVanguardArtSet)
         art_set = TOOLS.create_asset("DA_VanguardArt", DEST, unreal.VeyraVanguardArtSet, factory)
     assert isinstance(art_set, unreal.VeyraVanguardArtSet), path
-    entries = {}
-    for asset in sorted(MANIFEST["assets"], key=lambda entry: entry["id"]):
-        mesh = unreal.load_asset(folder_of(asset) + "/" + asset["name"])
-        assert isinstance(mesh, unreal.SkeletalMesh), asset["name"] + " is not imported"
-        body = unreal.VeyraVanguardArt()
-        body.set_editor_property("mesh", mesh)
-        body.set_editor_property("animations", {unreal.Name(clip["name"]): unreal.load_asset(folder_of(asset) + "/" + sequence_name(asset, clip["name"]))
-                                                for clip in asset["animations"]})
-        body.set_editor_property("run_stride", asset["runStrideCm"])
-        body.set_editor_property("cast_release_share", asset["castReleaseShare"])
-        body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
-        entries[unreal.Name(asset["id"])] = body
-    art_set.set_editor_property("art", entries)
+    entries, status_bodies = {}, {}
+    for asset in sorted(MANIFEST["assets"], key=lambda entry: (entry["id"], entry.get("status", ""))):
+        if asset.get("status"):
+            status_bodies.setdefault(asset["id"], {})[unreal.Name(asset["status"])] = fill_body(asset, unreal.VeyraVanguardBody())
+        else:
+            entries[asset["id"]] = fill_body(asset, unreal.VeyraVanguardArt())
+    for vanguard, bodies in status_bodies.items():
+        assert vanguard in entries, vanguard + " has a status body but no body of its own"
+        entries[vanguard].set_editor_property("status_bodies", bodies)
+    art_set.set_editor_property("art", {unreal.Name(vanguard): entry for vanguard, entry in entries.items()})
     assert unreal.EditorAssetLibrary.save_loaded_asset(art_set, only_if_is_dirty=False), "Save failed: " + path
-    unreal.log("VEYRA_VANGUARD_ART_SET: " + path + " dresses " + ", ".join(asset["id"] for asset in MANIFEST["assets"]))
+    unreal.log("VEYRA_VANGUARD_ART_SET: " + path + " dresses " + ", ".join(sorted(entries)))
 
 
 material = body_material()

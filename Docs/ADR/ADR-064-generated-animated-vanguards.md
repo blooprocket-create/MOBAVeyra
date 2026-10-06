@@ -27,7 +27,11 @@
 ## Decision
 
 ### 1. Body archetypes
-- **Five archetypes:** Humanoid, Rider, Colossus, Beast and Construct. Each Vanguard has one (the table below).
+- **Archetypes:** Humanoid, Colossus, Beast and Construct; each Vanguard's own body has one (the table below). A fifth, **Rider**, is never a Vanguard's own body. It is worn only while a ride lasts (below).
+- **A body shows the Vanguard's state in a match, which its kit decides.** Its Visual language and art say how it looks. Anything summoned, ridden or toggled is a state the presentation switches to, never part of the default body. Raska fights on foot: Hound arrives only with Kickstart and NO BRAKES, and she cannot basic-attack while mounted (author, 2026-10-05).
+- **Status bodies:** a Vanguard may wear another body in its own's place while it holds a status. Its rides already apply one for their length (Raska's `raska_ride_body`; Neris's wave rides `neris_wave_body`).
+  - Its kit entry lists them (`statusBodies`: status, name, the entries that differ), and each is generated and imported beside its own body.
+  - The art set holds them by status ID. The presentation dresses the body for the statuses the unit's replicated ledger holds, so the swap follows gameplay and decides nothing.
 - **Rider:** a humanoid seated on a mount that is half of its silhouette, such as Raska on Hound.
   - The rider's chain and the mount's chain both hang from the root. A mount on wheels turns them as it rides, so the Run stride is one turn of a wheel.
   - Wherever the mount moves the whole silhouette (a wheelie, a lunge, a jolt), the rider is posed to follow it. Being separate chains, a crash can throw the rider clear of a mount falling on its side.
@@ -40,8 +44,8 @@
 
 | Archetype | Vanguards |
 |---|---|
-| Humanoid | Kade, Patch, Tavi, Vera, Marek, Neris, Qazharr, Angeru, Sylra, Mavra, Bryn, Mimzi, Celandrine, Gorraveth, Eudora |
-| Rider | Raska (on Hound) |
+| Humanoid | Raska, Kade, Patch, Tavi, Vera, Marek, Neris, Qazharr, Angeru, Sylra, Mavra, Bryn, Mimzi, Celandrine, Gorraveth, Eudora |
+| Rider (a status body) | Raska on Hound, while `raska_ride_body` lasts |
 | Colossus | Silt, Relay, Varkesh, Cairn |
 | Beast | Korruk, Moro |
 | Construct | Torr, Oriel, Aurelisse |
@@ -79,7 +83,8 @@
   - A preview renders each body in its key poses, front, side and from the gameplay camera's pitch, for review.
   - `CaptureVanguards.ps1` stands imported bodies in their key poses in the lit Crucible. It captures them from the gameplay camera, at its own distance and field of view and through a narrow lens.
 - **Colour:** vertex colours are exported linear, as Unreal's materials read them. The importer rebuilds `M_VeyraVanguardBody` on every import and checks each connection, because a connection to a missing output fails quietly and leaves the body black.
-- **One Vanguard at a time (author, 2026-10-05):** each Vanguard's silhouette is refined and validated on its own, against its Visual language paragraph and approved art. Its preview is reviewed, then it is imported and captured in a match at the gameplay camera before the next begins.
+- **One Vanguard at a time (author, 2026-10-05):** each Vanguard's silhouette is refined and validated on its own, against its whole kit, its Visual language paragraph and its approved art. Its preview is reviewed, then it is imported and captured at the gameplay camera before the next begins.
+- **A regenerated body imports fresh:** its previous assets are removed first, since a reimport onto an existing skeleton keeps the old reference pose.
 
 ### 5. Fidelity and look
 - **The job:** the first pass is generated and stylised: broad, chunky and bright, so it reads from the match camera. Its job is readability: silhouette, motion and timing.
@@ -101,7 +106,7 @@ Final authored art, faces, cloth simulation, skins, LODs, and Fluxborn rigs (lat
 - A change to a generator rebuilds that archetype's assets, which needs the Git LFS locks on them.
 
 ### 9. Provisional answers where canon is open
-1. The five archetypes, and each Vanguard's.
+1. The archetypes, each Vanguard's, and the status bodies a ride is worn as.
 2. Each Vanguard's proportions, props and colours as read from its Visual language paragraph.
 3. The animation set and its timings.
 4. Blender 5.2 LTS, and FBX for characters.

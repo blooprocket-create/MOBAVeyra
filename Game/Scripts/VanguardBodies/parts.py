@@ -88,6 +88,17 @@ class Body:
             self.box(bone, start.lerp(end, share) + out * radius * 0.9, size, color, glow, facing)
 
 
+def two_bone(start, target, first, second, hint):
+    """The joint of a two-bone limb (first then second long) from start reaching target, bent toward hint."""
+    direction = target - start
+    distance = min(direction.length, (first + second) * 0.999)
+    direction.normalize()
+    along = (first * first - second * second + distance * distance) / (2 * distance)
+    out = math.sqrt(max(0.0, first * first - along * along))
+    bend = (hint - direction * hint.dot(direction)).normalized()
+    return start + direction * along + bend * out
+
+
 def mix(a, b, share):
     return [a[i] * (1 - share) + b[i] * share for i in range(3)]
 

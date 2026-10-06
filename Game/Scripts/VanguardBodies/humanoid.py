@@ -1,9 +1,10 @@
 """The humanoid archetype (ADR-064 §1): its skeleton, its body fitted to a capsule, its props and its animations."""
 import math
+import random
 
 from mathutils import Vector
 
-from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
+from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
 # The humanoid skeleton: every humanoid has every bone, so all share one definition. A bone a body does not use (a
 # tail, a prop) carries no weight. (name, parent)
@@ -15,6 +16,7 @@ BONES = [
     ("thigh_l", "pelvis"), ("calf_l", "thigh_l"), ("foot_l", "calf_l"),
     ("thigh_r", "pelvis"), ("calf_r", "thigh_r"), ("foot_r", "calf_r"),
     ("tail_01", "pelvis"), ("tail_02", "tail_01"), ("tail_03", "tail_02"),
+    ("cape_01", "spine_03"), ("cape_02", "cape_01"), ("cape_03", "cape_02"),
 ]
 BUILD = {"lean": 0.9, "normal": 1.0, "heavy": 1.3, "round": 1.15}
 # A leg's radius as a share of the body's height, and the foot's radius at heel and toe as shares of it.
@@ -27,6 +29,10 @@ RUN_THIGH_SWING = 35.0
 MELEE_COCK_SHARE = 0.65
 # The share of the Cast animation that raises the hands to the release, held until a cast commits.
 CAST_RELEASE_SHARE = 0.4
+# How far down a long cloak reaches, as a share of the height from the ground to the top of the shoulders.
+CAPE_REACH = 0.82
+# A long cloak's tattered hem: how many strips hang from it.
+CAPE_STRIPS = 6
 # The upper body, which alone plays an attack, a cast or a hit while the body runs; the bone a pose lifts; and whether
 # the body stands on the ground.
 UPPER_BODY_BONE = "spine_01"
@@ -94,8 +100,32 @@ def layout(spec, capsule):
     tail_length = leg * (1.1 if "heavyTail" in features else 0.5)
     for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
         L[name] = (tail_start + tail_dir * tail_length * index / 3, tail_start + tail_dir * tail_length * (index + 1) / 3)
+    # A cloak hangs from behind the shoulders, a little out from the back, down toward the calves.
+    cape_start = Vector((-shoulder * 0.45, 0, chest_z - torso * 0.05))
+    cape_dir = Vector((-0.2, 0, -1.0)).normalized()
+    cape_length = (cape_start.z - base) * CAPE_REACH
+    for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
+        L[name] = (cape_start + cape_dir * cape_length * index / 3, cape_start + cape_dir * cape_length * (index + 1) / 3)
+    stance = spec.get("stance")
+    if stance == "aim":
+        # Mid-sight: a long arm held two-handed at the shoulder, its optic at the eye and the left hand forward under the
+        # barrel, elbows bent out and down. The weapon points the way the body faces.
+        grip_r = Vector((arm * 0.28, -shoulder * 0.2, chest_z - torso * 0.03))
+        grips = {"r": grip_r, "l": grip_r + Vector((arm * 0.5, 0.0, -arm * 0.04))}
+        for side, sign in (("l", 1.0), ("r", -1.0)):
+            shoulder_point = L["upperarm_" + side][0]
+            wrist = grips[side] - Vector((arm * 0.12, 0.0, 0.0))
+            elbow = two_bone(shoulder_point, wrist, arm * 0.48, arm * 0.40, Vector((0.0, sign * 0.7, -0.7)))
+            L["upperarm_" + side] = (shoulder_point, elbow)
+            L["lowerarm_" + side] = (elbow, wrist)
+            L["hand_" + side] = (wrist, grips[side])
+            L["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
+    elif stance is not None:
+        raise AssertionError("Unknown stance: " + stance)
+    strike = spec.get("strike", {"style": "swing", "hand": "right"})
+    assert strike["style"] in ("swing", "punch") and strike["hand"] in ("left", "right"), ("Unknown strike", strike)
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
-            "hip": hip, "arm": arm, "build": build}
+            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike}
     return L, dims
 
 
@@ -124,7 +154,7 @@ def body(spec, L, d, bones=BONES):
     for sign in (1, -1):
         body.ball("head", head_center + Vector((head_radius * 0.85, sign * head_radius * 0.35, head_radius * 0.1)), head_radius * 0.12, [0.05, 0.05, 0.06])
     hair_style = spec["hairStyle"]
-    if hair_style in ("short", "long", "curly", "twinTails", "sideTail", "longBeard"):
+    if hair_style in ("short", "long", "curly", "twinTails", "sideTail", "longBeard", "windblown"):
         body.ball("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.18)), head_radius * 1.04, hair, scale=(1.0, 0.95, 0.9))
     if hair_style in ("long", "longBeard"):
         body.box("head", head_center + Vector((-head_radius * 0.75, 0, -head_radius * 0.9)), (head_radius * 0.5, head_radius * 1.6, head_radius * 2.0), hair)
@@ -143,6 +173,14 @@ def body(spec, L, d, bones=BONES):
     if hair_style == "sideTail":
         body.limb("head", head_center + Vector((-head_radius * 0.3, head_radius * 0.8, head_radius * 0.6)),
                   head_center + Vector((-head_radius * 0.6, head_radius * 1.3, -head_radius * 0.6)), head_radius * 0.28, head_radius * 0.08, hair)
+    if hair_style == "windblown":
+        # Long hair blown back: a mass from the crown streaming behind the shoulders, its locks fanning out, so from
+        # above it trails the head.
+        body.ball("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.18)), head_radius * 1.06, hair, scale=(1.05, 1.0, 0.9))
+        for index, spread in enumerate((-0.7, -0.25, 0.25, 0.7)):
+            tip = head_center + Vector((-head_radius * (2.9 - abs(spread)), spread * head_radius * 1.6, -head_radius * (1.0 + 0.4 * (index % 2))))
+            body.limb("head", head_center + Vector((-head_radius * 0.6, spread * head_radius * 0.7, head_radius * 0.3)), tip,
+                      head_radius * 0.42, head_radius * 0.1, mix(hair, accent, 0.25 if index % 2 else 0.0))
     # Headwear and head features.
     if "hood" in features:
         # Set back so the face shows through its opening.
@@ -185,6 +223,24 @@ def body(spec, L, d, bones=BONES):
     s0, s1 = L["spine_03"]
     if "cloak" in features:
         body.box("spine_03", s0 + Vector((-d["shoulder"] * 0.75, 0, -d["torso"] * 0.55)), (d["shoulder"] * 0.12, d["shoulder"] * 1.6, d["torso"] * 1.5), secondary)
+    if "longCloak" in features:
+        # A long cloak from the shoulders toward the calves, flaring as it falls, its hem torn into strips of
+        # different lengths (seeded). Each length rides its own bone, so it streams back as the body runs.
+        cloak = spec.get("cloak", secondary)
+        top = L["cape_01"][0]
+        body.box("cape_01", top + Vector((d["shoulder"] * 0.15, 0, d["torso"] * 0.05)), (d["shoulder"] * 0.5, d["shoulder"] * 2.1, d["torso"] * 0.22), cloak)
+        for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
+            c0, c1 = L[name]
+            overlap = (c1 - c0) * 0.08
+            body.slab(name, c0 - overlap, c1 + overlap, d["shoulder"] * (2.0 + index * 0.15), 2.5, cloak)
+        c0, c1 = L["cape_03"]
+        hem = d["shoulder"] * 2.3
+        down = (c1 - c0).normalized()
+        for strip in range(CAPE_STRIPS):
+            across = Vector((0, -hem / 2 + hem * (strip + 0.5) / CAPE_STRIPS, 0))
+            length = d["height"] * random.uniform(0.03, 0.12)
+            body.slab("cape_03", c1 + across - down * 1.0, c1 + across + down * length, hem / CAPE_STRIPS * 0.8, 2.0,
+                      mix(cloak, [0.05, 0.02, 0.02], random.uniform(0.0, 0.3)))
     if "scarf" in features:
         body.box("neck_01", L["neck_01"][0] + Vector((-limb * 1.6, 0, -d["torso"] * 0.25)), (limb * 0.5, limb * 2.0, d["torso"] * 0.7), secondary)
     if "coatSkirt" in features:
@@ -194,6 +250,33 @@ def body(spec, L, d, bones=BONES):
     if "kneeGuards" in features:
         for side in ("l", "r"):
             body.ball("calf_" + side, L["calf_" + side][0] + Vector((leg * 0.5, 0, 0)), leg * 0.8, metal)
+    if "heavyShoulderPlate" in features:
+        # A heavy plate over the left shoulder, overhanging it: layered, so its edge shows from above.
+        top = L["clavicle_l"][1] + Vector((0, 0, limb * 0.8))
+        for layer in range(3):
+            body.ball("clavicle_l", top + Vector((-limb * 0.3 * layer, limb * 0.4 * layer, -limb * 0.7 * layer)), limb * (2.6 - layer * 0.35),
+                      mix(mix(secondary, metal, 0.65), [0.30, 0.10, 0.06], 0.3 * layer), scale=(1.15, 1.0, 0.45))
+    if "openJacket" in features:
+        # An open riding jacket: its front panels part over a dark top, its hem flaring just past the waist, its
+        # collar turned up behind the neck.
+        jacket = spec.get("jacket", primary)
+        s0, s1 = L["spine_02"]
+        top = L["spine_03"][0] + Vector((0, 0, d["torso"] * 0.15))
+        body.box("spine_02", (s0 + s1) / 2 + Vector((d["shoulder"] * 0.62, 0, 0)), (d["shoulder"] * 0.2, d["shoulder"] * 0.55, d["torso"] * 0.45), secondary)
+        for sign in (1, -1):
+            body.slab("spine_02", top + Vector((d["shoulder"] * 0.58, sign * d["shoulder"] * 0.5, 0)),
+                      s0 + Vector((d["shoulder"] * 0.7, sign * d["shoulder"] * 0.72, -d["torso"] * 0.12)), d["shoulder"] * 0.42, 3.0, jacket)
+            body.slab("pelvis", p1 + Vector((-d["hip"] * 0.1, sign * d["hip"] * 1.0, 0)),
+                      p0 + Vector((-d["hip"] * 0.2, sign * d["hip"] * 1.3, -d["torso"] * 0.1)), d["hip"] * 0.9, 3.0, jacket)
+        body.slab("spine_03", L["spine_03"][1] + Vector((-d["shoulder"] * 0.35, 0, -d["torso"] * 0.05)),
+                  L["spine_03"][1] + Vector((-d["shoulder"] * 0.45, 0, d["torso"] * 0.12)), d["shoulder"] * 0.9, 3.0, jacket)
+    if "heavyBoots" in features:
+        for side in ("l", "r"):
+            f0, f1 = L["foot_" + side]
+            body.limb("foot_" + side, f0 - Vector((leg * 0.15, 0, 0)), f1 + Vector((leg * 0.15, 0, 0)), leg * FOOT_HEEL_SHARE * 1.25,
+                      leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE * 1.25, [0.12, 0.08, 0.06])
+            c0, c1 = L["calf_" + side]
+            body.limb("calf_" + side, c0.lerp(c1, 0.55), c1, leg * 1.0, leg * 1.05, [0.12, 0.08, 0.06])
     # Tails ride the tail bones.
     if "fluffyTail" in features:
         for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
@@ -230,13 +313,29 @@ def add_prop(body, prop, L, d, spec):
     down = Vector((0, 0, -1))
     bone = "prop_" + side
     if kind == "bracer":
+        # A segmented mechanical bracer sheathing the forearm, a channel of light along it and a Flux core burning at
+        # the wrist: from above, the brightest point on the body, on the arm that strikes.
         e0, e1 = L["lowerarm_" + side]
-        body.limb("lowerarm_" + side, e0 + (e1 - e0) * 0.3, e1, unit * 0.04, unit * 0.035, metal)
-        body.ball("lowerarm_" + side, e1, unit * 0.022, accent, glow=True)
+        for segment in range(3):
+            a, b = e0.lerp(e1, 0.1 + segment * 0.3), e0.lerp(e1, 0.36 + segment * 0.3)
+            body.limb("lowerarm_" + side, a, b, unit * (0.042 + segment * 0.004), unit * (0.046 + segment * 0.004), metal)
+        body.limb("lowerarm_" + side, e0.lerp(e1, 0.15) + Vector((0, 0, unit * 0.04)), e1 + Vector((0, 0, unit * 0.042)), unit * 0.009, unit * 0.009, accent, glow=True)
+        body.ball("lowerarm_" + side, e1, unit * 0.04, accent, glow=True)
     elif kind == "rifle":
-        body.limb(bone, grip - forward * unit * 0.12, grip + forward * unit * 0.45, unit * 0.022, unit * 0.016, [0.15, 0.14, 0.14])
-        body.limb(bone, grip, grip + forward * unit * 0.4, unit * 0.008, unit * 0.008, accent, glow=True)
-        body.limb(bone, grip + forward * unit * 0.05 + Vector((0, 0, unit * 0.035)), grip + forward * unit * 0.12 + Vector((0, 0, unit * 0.035)), unit * 0.02, unit * 0.02, accent, glow=True)
+        # A long, ornate energy rifle: dark steel and brass, channels glowing its length, a large round optic with a lit
+        # lens. Its barrel reaches well ahead of the body, so from above it points the way its bearer faces.
+        steel, brass = [0.14, 0.13, 0.14], [0.75, 0.55, 0.25]
+        up = Vector((0, 0, 1))
+        body.slab(bone, grip - forward * unit * 0.15 - up * unit * 0.01, grip - forward * unit * 0.01, unit * 0.025, unit * 0.06, steel)
+        body.limb(bone, grip - forward * unit * 0.02, grip + forward * unit * 0.24, unit * 0.026, unit * 0.022, steel)
+        body.limb(bone, grip + forward * unit * 0.24, grip + forward * unit * 0.56, unit * 0.013, unit * 0.012, steel)
+        body.limb(bone, grip + up * unit * 0.014, grip + forward * unit * 0.5 + up * unit * 0.008, unit * 0.007, unit * 0.006, accent, glow=True)
+        for share in (0.1, 0.24, 0.4, 0.56):
+            body.limb(bone, grip + forward * unit * (share - 0.008), grip + forward * unit * (share + 0.008), unit * 0.03, unit * 0.03, brass)
+        optic = grip + forward * unit * 0.04 + up * unit * 0.05
+        body.limb(bone, optic, optic + forward * unit * 0.17, unit * 0.026, unit * 0.034, steel)
+        body.limb(bone, optic + forward * unit * 0.17, optic + forward * unit * 0.18, unit * 0.03, unit * 0.03, accent, glow=True)
+        body.limb(bone, optic - forward * unit * 0.005, optic, unit * 0.018, unit * 0.018, accent, glow=True)
     elif kind == "lantern":
         body.limb(bone, grip, grip + down * unit * 0.08, unit * 0.004, unit * 0.004, metal)
         body.ball(bone, grip + down * unit * 0.13, unit * 0.045, accent, glow=True, scale=(1.0, 1.0, 1.3))
@@ -337,7 +436,20 @@ def pose(name, t, melee, d):
             settle = ease(max(0.0, (t - 0.35) / 0.65))
             recoil = math.sin(min(1.0, t / 0.4) * math.pi)
         hold = 1.0 - settle
-        if melee:
+        if melee and d["strike"]["style"] == "punch":
+            # A brawler's punch: the shoulder loads back with the fist by the jaw and the other hand up in guard, then
+            # the body lunges and the fist drives straight out, landing as the windup ends.
+            side = d["strike"]["hand"][0]
+            sign = 1 if side == "l" else -1
+            guard = "r" if side == "l" else "l"
+            pose["spine_01"] = lean(15 * sweep * hold)
+            pose["spine_02"] = twist(sign * (30 * cock - 70 * sweep) * hold)
+            pose["upperarm_" + side] = tuple(a + b for a, b in zip(forward_swing((-30 * cock + 120 * sweep) * hold), roll_side((25 * cock - 30 * sweep) * hold, sign)))
+            pose["lowerarm_" + side] = forward_swing((100 * cock - 100 * sweep) * hold)
+            pose["upperarm_" + guard] = forward_swing(40 * cock * hold)
+            pose["lowerarm_" + guard] = forward_swing(90 * cock * hold)
+            lift = d["height"] * 0.02 * sweep * hold
+        elif melee:
             pose["spine_02"] = twist((-30 * cock + 65 * sweep) * hold)
             pose["upperarm_r"] = (roll_side((75 * cock - 15 * sweep) * hold, -1)[0], 0.0, math.radians((-35 * cock + 95 * sweep) * hold))
             pose["lowerarm_r"] = forward_swing((55 * cock - 45 * sweep) * hold)
@@ -390,4 +502,40 @@ def pose(name, t, melee, d):
         lift = -d["height"] * 0.06 * settle
     else:
         raise AssertionError("Unknown animation: " + name)
+    if d.get("stance") == "aim":
+        aim_pose(pose, name, t, melee)
+    pose.update(cape_pose(name, t))
     return pose, lift
+
+
+def aim_pose(pose, name, t, melee):
+    """A weapon held two-handed keeps both hands on it: the arms keep their hold and the upper body carries it. Aiming
+    it, the chest settles over the sight; a cast raises it high; a recall lowers it."""
+    for bone in [bone for bone in pose if bone.startswith(("clavicle_", "upperarm_", "lowerarm_", "hand_"))]:
+        del pose[bone]
+    if name not in ("Death", "Cast"):
+        # One eye down the sight.
+        pose["head"] = combine(pose.get("head", (0.0, 0.0, 0.0)), lean(12))
+    if name == "Idle":
+        pose["spine_02"] = lean(4 + 1.5 * math.sin(t * math.tau))
+    elif name == "AttackWindup" and not melee:
+        pose["spine_02"] = combine(lean(6 * ease(t)), twist(-4 * ease(t)))
+    elif name == "Cast":
+        k = ease(min(1.0, t / CAST_RELEASE_SHARE)) * (1 - ease(max(0.0, (t - 0.6) / 0.4)))
+        pose["spine_02"] = lean(-28 * k)
+    elif name == "Recall":
+        pose["spine_02"] = lean(25 * ease(min(1.0, t * 4)))
+
+
+def cape_pose(name, t):
+    """A cloak's three lengths, each turned back from the one above: stirring at rest, streaming as the body runs,
+    flicked by a blow, an attack or a cast. A body without a cloak has the bones but nothing on them."""
+    wave = lambda speed, phase: math.sin(t * math.tau * speed + phase)
+    if name in ("Idle", "Recall"):
+        return {"cape_01": forward_swing(-3 - 2 * wave(1, 0)), "cape_02": forward_swing(-2 - 2 * wave(1, 1)), "cape_03": forward_swing(-2 - 3 * wave(1, 2))}
+    if name == "Run":
+        return {"cape_01": forward_swing(-30 - 4 * wave(2, 0)), "cape_02": forward_swing(-14 - 7 * wave(2, 1)), "cape_03": forward_swing(-10 - 10 * wave(2, 2))}
+    if name == "Death":
+        return {}
+    k = math.sin(min(1.0, t) * math.pi)
+    return {"cape_01": forward_swing(-12 * k), "cape_02": forward_swing(-8 * k), "cape_03": forward_swing(-8 * k)}
