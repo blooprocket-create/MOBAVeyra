@@ -96,6 +96,24 @@ class Body:
         verts = bmesh.ops.create_cube(self.bm, size=1.0, matrix=matrix)["verts"]
         self._finish(verts, bone, color, glow)
 
+    def pane(self, bone, outline, depth, color, glow=False):
+        """A flat piece the shape of outline (its corners in order, near one plane, convex) and depth thick: a pane of
+        glass, a shard, a blade. Its faces look either way along the outline's own normal."""
+        centre = sum(outline, Vector()) / len(outline)
+        normal = Vector()
+        for a, b in zip(outline, outline[1:] + outline[:1]):
+            normal += (a - centre).cross(b - centre)
+        offset = normal.normalized() * depth * 0.5
+        front = [self.bm.verts.new(point + offset) for point in outline]
+        back = [self.bm.verts.new(point - offset) for point in outline]
+        faces = [self.bm.faces.new(front), self.bm.faces.new(list(reversed(back)))]
+        for index in range(len(outline)):
+            following = (index + 1) % len(outline)
+            faces.append(self.bm.faces.new((front[index], back[index], back[following], front[following])))
+        for face in faces:
+            face.normal_update()
+        self._finish(front + back, bone, color, glow)
+
     def slab(self, bone, start, end, width, depth, color, glow=False, roll=0.0):
         """A box from start to end: width across, depth front to back, turned roll degrees about its length."""
         frame, length = self._frame(start, end)

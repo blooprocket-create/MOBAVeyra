@@ -193,4 +193,11 @@ section 9. The existing LFS rules cover the FBX files.
   with six orbit bones carrying parts that circle it and a trailing chain beneath: a
   column of plates (Torr), a point of shards (Oriel) or a cyclone (Aurelisse). A halo
   rides over the shoulders or behind the head. It bobs, sweeps its trailing parts
-  back as it moves, gathers its parts to strike and scatters them as it falls.
+  back as it moves, gathers its parts to strike and scatters them as it falls. Oriel is built of `pane`s, flat
+  pieces of any outline, each in gold leading. Her slender bodice is rings of irregular jewel panes, some cut corner
+  to corner, burning warm over the heart. Below the waist, ragged shards hang apart, splayed and swept back about a
+  narrow point that floats clear of the ground. Her limbs are crossed glass the whole way through, with gold joints
+  and long gold fingers. Her head is a pointed gem of panes, open at the face where her core burns in a gold frame,
+  under a crest of shards. A ring of gold framework stands behind it, tilted back and throwing rays. Kite panes, each
+  cut in four like a harlequin, fan from her shoulders like a window opened out: four on her left, three on her
+  right. Shards drift about her, two to each orbit.
