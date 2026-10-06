@@ -35,6 +35,18 @@
       "glowGain": 0.6,
       "albedo": 0.05,
       "clip": 0.02
+    },
+    {
+      "name": "M_VeyraFoam",
+      "kind": "particleSmoke",
+      "purpose": "ADR-064 §1: the foam and spray a living wave throws (Neris), drawn by particles; each fleck a solid, ragged, sunlit white blob that erodes as it falls.",
+      "noiseScale": 0.06,
+      "ragged": 0.4,
+      "erosion": 1.1,
+      "glowFloor": 0.0,
+      "glowGain": 0.12,
+      "albedo": 0.85,
+      "clip": 0.02
     }
   ]
 }

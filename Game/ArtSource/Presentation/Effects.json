@@ -44,6 +44,23 @@
         { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 40] },
         { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] }
       ]
+    },
+    {
+      "name": "NS_VeyraSpray",
+      "purpose": "ADR-064 §1: the spray a living wave throws (Neris), flung off its crest and wake as it moves; small foam flecks that fly out, fall and erode, in the colour the body gives.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam",
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [16] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.9] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "10 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "20 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "expression": "14 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [90] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -420] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1.5] }
+      ]
     }
   ]
 }

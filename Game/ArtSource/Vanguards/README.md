@@ -109,7 +109,10 @@ section 9. The existing LFS rules cover the FBX files.
 - **Status bodies:** a body a Vanguard wears in its own's place while it holds a status, listed in its kit entry's
   `statusBodies` (status, name, and the entries that differ from its own) and imported beside its own body as
   `SK_<Id>_<Name>`. A body shows the state the kit puts the Vanguard in: Raska fights on foot, and Hound arrives only
-  with her rides, which hold `raska_ride_body` for their length.
+  with her rides, which hold `raska_ride_body` for their length. Neris always rides her wave (`waveBase`: a swell with a
+  crescent crest on the cape bones). Breaking Wave and TIDEBREAKER (`neris_wave_body`, `neris_tidebreaker_body`) lift
+  her on a deeper, breaking one, and she stays her own size. Calm and Storm swap her slots rather than hold a status,
+  so the wave does not yet show them.
 - **Rider:** a humanoid seated on a mount that is half its silhouette, worn as a status body. The mount's chain and the
   rider's both hang from the root. Raska rides Hound, a heavy brawler's machine on fat knobbled tyres that turn once a
   Run cycle. Wherever Hound moves the silhouette (an idle shudder, a lunge, a wheelie to cast, a jolt when hit), she is
