@@ -187,6 +187,17 @@ section 9. The existing LFS rules cover the FBX files.
   flap, with a map tube strapped along its top. A mechanical `springbow` is in each fist: a green-painted steel stock,
   brass limbs swept back across its front with a cord drawn between them, exposed coil springs, a winding drum and
   a bolt laid in, all unlit.
+  Gorraveth is a living reptile, never a machine, built by `reptile` in his red hide and pale `belly`. His long jaw
+  is dropped open in a snarl, full of teeth, slag hanging from it. One eye burns and the other is clouded under a
+  scar that runs on across the snout. A great horn curves up from his left temple; on the right is a stump broken
+  off ragged. A frill of skin on spines fans behind his jaw, torn on the right. Broad scales band his belly, dark
+  spines run down his back and heavy tail, and talons tip his feet. A `hunch` (degrees) bows his back forward
+  through every clip, his head raised against it. His `miningArmor` is mismatched and scorched: a layered riveted
+  iron pauldron on the right shoulder and a leather one on the left, a heavy chain across the chest, a wide belt
+  with a torn red `tabard`, riveted bracers and knee plates, with `slag` clotted in the seams and roping off them.
+  His two `cleaver`s are oversized hooked slag cleavers made from mining tools: an iron-bound haft, a huge bolted
+  blade hooked forward at the back, its cutting edge burning molten, slag clinging to its flat and dripping from
+  its edge. Cairn's `NS_VeyraDrip`, in black, runs slag off both blades and his jaw.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:

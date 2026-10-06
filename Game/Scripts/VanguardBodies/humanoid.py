@@ -173,6 +173,7 @@ def layout(spec, capsule):
     assert still in (None, "slumped"), ("Unknown still pose", still)
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
             "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle"), "kneel": spec.get("kneel", False),
+            "hunch": spec.get("hunch", 0.0),
             "footprint": footprint, "ride": "wave" if "waveBase" in features else None, "gun": gun,
             "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base)}
     return L, dims
@@ -357,9 +358,6 @@ def body(spec, L, d, bones=BONES):
             body.limb("head", cup - Vector((head_radius * 0.12, 0, -head_radius * 0.04)), cup + Vector((head_radius * 0.12, 0, head_radius * 0.04)),
                       head_radius * 0.24, head_radius * 0.26, rim, segments=8)
             body.ball("head", cup + Vector((head_radius * 0.14, 0, head_radius * 0.05)), head_radius * 0.2, lens, scale=(0.35, 1.0, 1.0), segments=8)
-    if "horn" in features:
-        body.limb("head", head_center + Vector((head_radius * 0.3, head_radius * 0.3, head_radius * 0.7)),
-                  head_center + Vector((head_radius * 0.2, head_radius * 0.6, head_radius * 1.7)), head_radius * 0.3, head_radius * 0.02, [0.85, 0.80, 0.70])
     if "bigHood" in features:
         # An enormous hood over the head and down onto the shoulders: its crown set back so the face shows through a
         # heavy rolled brim, a brass rivet at each temple, its point falling behind, the ears standing up through it.
@@ -568,8 +566,6 @@ def body(spec, L, d, bones=BONES):
                      mix(skin, [0.55, 0.42, 0.30], 0.6), rotation=Euler((0.3, 0, 0)))
     if "coatSkirt" in features:
         body.limb("pelvis", p0 + Vector((0, 0, d["torso"] * 0.05)), p0 - Vector((0, 0, d["leg"] * 0.55)), d["hip"] * 1.15, d["hip"] * 1.55, primary)
-    if "shoulderPlate" in features:
-        body.ball("clavicle_l", L["clavicle_l"][1] + Vector((0, 0, limb)), limb * 2.2, mix(secondary, metal, 0.6), scale=(1.0, 1.0, 0.6))
     if "kneeGuards" in features:
         for side in ("l", "r"):
             body.ball("calf_" + side, L["calf_" + side][0] + Vector((leg * 0.5, 0, 0)), leg * 0.8, metal)
@@ -852,6 +848,10 @@ def body(spec, L, d, bones=BONES):
         for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
             t0, t1 = L[name]
             body.limb(name, t0, t1, leg * (1.3 - index * 0.4), leg * (0.95 - index * 0.35), skin)
+    if "reptile" in features:
+        reptile(body, spec, L, d, head_center, head_radius, leg)
+    if "miningArmor" in features:
+        mining_armor(body, spec, L, d, limb, leg)
     if "rescueGear" in features:
         rescue_gear(body, L, d, limb)
     # The wave Neris rides: a swell under her feet that is the whole silhouette.
@@ -894,6 +894,143 @@ def wave_body(body, spec, L, d):
     c0, c1 = L["cape_03"]
     for angle in [math.radians(degrees) for degrees in (-65, -42, -20, 0, 20, 42, 65)]:
         body.ball("cape_03", Matrix.Rotation(angle, 3, "Z") @ c1, 0.3 * u * (1 - abs(angle) / math.pi * 0.5), foam, segments=8)
+
+
+def reptile(body, spec, L, d, head_center, head_radius, leg):
+    """A living reptile, never armour or a machine: a long jaw dropped open in a snarl, full of teeth, slag hanging
+    from it; one burning eye and one clouded, a scar through it; a great curved horn and a broken stump; a frill on
+    spines behind the jaw, torn on the right; a pale scaled belly; dark spines down the back and tail; claws on the
+    feet. Its hide is the skin colour, its belly the belly colour."""
+    hide, belly = spec["skin"], spec.get("belly", [0.84, 0.76, 0.64])
+    dark, horn, tooth, slag = mix(hide, [0.0, 0.0, 0.0], 0.6), [0.80, 0.74, 0.62], [0.93, 0.89, 0.78], spec.get("slag", [0.03, 0.03, 0.03])
+    hc, hr = head_center, head_radius
+    # The jaw: a long upper snout over a lower jaw dropped open, the mouth dark between them, teeth in both.
+    drop = math.radians(18)
+    body.blob("head", hc + Vector((hr * 0.95, 0, -hr * 0.05)), (Vector((hr * 1.05, 0, 0)), Vector((0, hr * 0.58, 0)), Vector((0, 0, hr * 0.4))), hide, segments=10)
+    jaw = hc + Vector((hr * 0.8, 0, -hr * 0.55))
+    body.blob("head", jaw, (Vector((hr * 0.95 * math.cos(drop), 0, -hr * 0.95 * math.sin(drop))), Vector((0, hr * 0.5, 0)), Vector((0, 0, hr * 0.22))), belly, segments=10)
+    body.blob("head", hc + Vector((hr * 0.85, 0, -hr * 0.33)), (Vector((hr * 0.8, 0, 0)), Vector((0, hr * 0.42, 0)), Vector((0, 0, hr * 0.13))), [0.32, 0.05, 0.04], segments=8)
+    for index in range(6):
+        along = hr * (0.35 + index * 0.25)
+        for sign in (1, -1):
+            upper = hc + Vector((along, sign * hr * 0.4 * (1 - index * 0.08), -hr * 0.32))
+            body.limb("head", upper, upper - Vector((0, 0, hr * 0.24)), hr * 0.06, hr * 0.01, tooth, segments=4)
+            if index < 5:
+                lower = jaw + Vector((along - hr * 0.7, sign * hr * 0.34 * (1 - index * 0.08), hr * 0.16 - (along - hr * 0.7) * math.tan(drop)))
+                body.limb("head", lower, lower + Vector((0, 0, hr * 0.2)), hr * 0.05, hr * 0.01, tooth, segments=4)
+    for index, across in enumerate((0.3, -0.2, 0.05)):
+        start = jaw + Vector((hr * (0.1 + 0.25 * index), across * hr, -hr * 0.25))
+        body.limb("head", start, start - Vector((0, 0, hr * (0.5 + 0.2 * index))), hr * 0.08, hr * 0.02, slag, segments=6)
+    # One eye burning, the other clouded under a scar that runs on across the snout; heavy dark brows.
+    for sign, color, lit in ((1, spec["accent"], True), (-1, [0.74, 0.77, 0.78], False)):
+        eye = hc + Vector((hr * 0.5, sign * hr * 0.5, hr * 0.22))
+        body.ball("head", eye, hr * 0.14, color, glow=lit, segments=8)
+        body.blob("head", eye + Vector((-hr * 0.05, 0, hr * 0.14)), (Vector((hr * 0.3, 0, 0)), Vector((0, hr * 0.16, 0)), Vector((0, 0, hr * 0.08))), dark, segments=6)
+    body.limb("head", hc + Vector((hr * 0.35, -hr * 0.62, hr * 0.5)), hc + Vector((hr * 1.25, -hr * 0.2, hr * 0.32)), hr * 0.04, hr * 0.03, mix(belly, hide, 0.3), segments=4)
+    # A great horn curving up from the left temple and forward at its tip; on the right, a stump broken off ragged.
+    base = hc + Vector((-hr * 0.1, hr * 0.55, hr * 0.5))
+    curve = [base, base + Vector((-hr * 0.25, hr * 0.18, hr * 0.65)), base + Vector((-hr * 0.4, hr * 0.25, hr * 1.35)),
+             base + Vector((-hr * 0.2, hr * 0.25, hr * 1.95)), base + Vector((hr * 0.3, hr * 0.2, hr * 2.3))]
+    for index, (a, b) in enumerate(zip(curve, curve[1:])):
+        body.limb("head", a, b, hr * (0.34 - index * 0.075), hr * (0.34 - (index + 1) * 0.075), mix(horn, dark, index * 0.15), segments=8)
+    stump = hc + Vector((-hr * 0.1, -hr * 0.55, hr * 0.5))
+    stump_top = stump + Vector((-hr * 0.1, -hr * 0.12, hr * 0.55))
+    body.limb("head", stump, stump_top, hr * 0.34, hr * 0.27, horn, segments=8)
+    for angle in (0.4, 2.2, 4.0):
+        edge = stump_top + Vector((math.cos(angle) * hr * 0.18, math.sin(angle) * hr * 0.18, 0))
+        body.limb("head", edge, edge + Vector((0, 0, hr * (0.12 + 0.05 * angle))), hr * 0.09, hr * 0.01, mix(horn, dark, 0.4), segments=4)
+    # The frill: skin stretched between spines fanned behind each side of the jaw. On the right one panel is ripped
+    # away and the last spine snapped short.
+    for sign in (1, -1):
+        hinge = hc + Vector((-hr * 0.15, sign * hr * 0.55, -hr * 0.2))
+        tips = []
+        for index in range(4):
+            angle = math.radians(-35 + index * 30)
+            reach = hr * (0.45 if sign < 0 and index == 3 else 0.95)
+            tips.append(hinge + Vector((-math.cos(angle) * reach * 0.8, sign * reach * 0.55, math.sin(angle) * reach)))
+            body.limb("head", hinge, tips[-1], hr * 0.06, hr * 0.015, dark, segments=4)
+        for index, (a, b) in enumerate(zip(tips, tips[1:])):
+            if not (sign < 0 and index == 1):
+                body.pane("head", [hinge, a, b], hr * 0.04, mix(hide, [0.3, 0.05, 0.03], 0.35))
+    # A pale belly of broad scales banded across, down the front of the trunk.
+    s, torso = d["shoulder"], d["torso"]
+    s0, s1 = L["spine_02"]
+    front = (s0 + s1) / 2 + Vector((s * 0.62, 0, 0))
+    body.blob("spine_02", front, (Vector((s * 0.28, 0, 0)), Vector((0, s * 0.55, 0)), Vector((0, 0, torso * 0.42))), belly, segments=10)
+    for index in range(4):
+        height = (index - 1.5) * torso * 0.16
+        middle = front + Vector((s * 0.27, 0, height))
+        for sign in (1, -1):
+            body.limb("spine_02", middle, front + Vector((s * 0.16, sign * s * 0.44, height)), s * 0.02, s * 0.02, mix(belly, hide, 0.4), segments=4)
+    # Dark spines down the back from the neck to the hips, longest over the shoulders, and on down the tail.
+    neck = L["neck_01"][0] + Vector((-s * 0.6, 0, -torso * 0.05))
+    hips = L["pelvis"][1] + Vector((-d["hip"] * 0.95, 0, 0))
+    for index in range(7):
+        share = index / 6
+        bone = "spine_03" if share < 0.35 else "spine_02" if share < 0.7 else "spine_01"
+        root = neck.lerp(hips, share)
+        body.limb(bone, root, root + Vector((-0.6, 0, 0.8)).normalized() * s * (0.45 - 0.25 * share), s * 0.09, s * 0.01, dark, segments=4)
+    for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
+        t0, t1 = L[name]
+        for share in (0.25, 0.75):
+            root = t0.lerp(t1, share) + Vector((0, 0, leg * (1.25 - index * 0.4) * 0.85))
+            body.limb(name, root, root + Vector((-0.6, 0, 0.8)).normalized() * s * (0.25 - index * 0.06), s * 0.07, s * 0.01, dark, segments=4)
+    # Claws: three curved talons at each foot's toes.
+    for side in ("l", "r"):
+        f0, f1 = L["foot_" + side]
+        for spread in (-1, 0, 1):
+            toe = f1 + Vector((leg * 0.2, spread * leg * 0.45, -leg * 0.1))
+            body.limb("foot_" + side, toe, toe + Vector((leg * 0.7, spread * leg * 0.2, -leg * 0.35)), leg * 0.22, leg * 0.03, horn, segments=4)
+
+
+def mining_armor(body, spec, L, d, limb, leg):
+    """Mismatched, scorched mining armour over a living hide: a layered riveted iron pauldron on the right shoulder and
+    a leather one on the left, a heavy chain across the chest, a wide riveted belt with a torn red tabard hanging from
+    it, riveted bracers and knee plates, and black slag clinging in the gaps and dripping."""
+    iron, scorch, rivet = spec.get("armor", [0.30, 0.28, 0.26]), [0.11, 0.10, 0.09], [0.55, 0.50, 0.42]
+    leather, tabard, slag = spec.get("leather", [0.30, 0.19, 0.11]), spec.get("tabard", [0.45, 0.08, 0.06]), spec.get("slag", [0.03, 0.03, 0.03])
+    s, hip, torso = d["shoulder"], d["hip"], d["torso"]
+
+    def clot(bone, at, size, hang):
+        """Slag clinging at a seam, a rope of it hanging."""
+        body.blob(bone, at, (Vector((size, 0, 0)), Vector((0, size * 1.3, 0)), Vector((0, 0, size * 0.7))), slag, segments=6)
+        body.limb(bone, at, at - Vector((0, 0, hang)), size * 0.5, size * 0.12, slag, segments=5)
+
+    # The right pauldron: three overlapping scorched plates, rivets round their outer edges, slag in the seam.
+    top = L["clavicle_r"][1] + Vector((0, 0, limb * 0.8))
+    for layer in range(3):
+        centre = top + Vector((-limb * 0.2 * layer, -limb * 0.45 * layer, -limb * 0.75 * layer))
+        size = limb * (2.8 - layer * 0.4)
+        body.ball("clavicle_r", centre, size, mix(iron, scorch, 0.15 + 0.25 * layer), scale=(1.15, 1.0, 0.42), segments=10)
+        for index in range(4):
+            angle = math.radians(-150 + index * 40)
+            body.ball("clavicle_r", centre + Vector((math.cos(angle) * size * 1.05, math.sin(angle) * size * 0.92, size * 0.12)), limb * 0.2, rivet, segments=6)
+    clot("clavicle_r", top + Vector((limb * 0.6, -limb * 0.9, -limb * 0.5)), limb * 0.55, limb * 1.6)
+    # A smaller leather pauldron on the left, strapped on.
+    body.ball("clavicle_l", L["clavicle_l"][1] + Vector((0, 0, limb * 0.6)), limb * 2.0, leather, scale=(1.1, 1.0, 0.45), segments=8)
+    # A heavy chain across the chest from the left shoulder to the right hip.
+    chain_links(body, "spine_03", [L["clavicle_l"][1] + Vector((s * 0.35, -s * 0.1, 0)), L["spine_02"][1] + Vector((s * 0.95, -s * 0.2, 0)),
+                                   L["pelvis"][1] + Vector((hip * 1.05, -hip * 0.9, -torso * 0.05))], d["height"] * 0.018, iron)
+    # A wide riveted belt, its iron buckle plate clotted with slag, and a torn red tabard hanging from it.
+    p1 = L["pelvis"][1]
+    body.limb("pelvis", p1 - Vector((0, 0, torso * 0.07)), p1 + Vector((0, 0, torso * 0.07)), hip * 1.2, hip * 1.2, leather, segments=12)
+    buckle = p1 + Vector((hip * 1.2, 0, 0))
+    body.box("pelvis", buckle, (hip * 0.15, hip * 0.6, torso * 0.2), mix(iron, scorch, 0.3))
+    for sign in (1, -1):
+        body.ball("pelvis", buckle + Vector((hip * 0.08, sign * hip * 0.22, 0)), limb * 0.2, rivet, segments=6)
+    clot("pelvis", buckle + Vector((hip * 0.12, hip * 0.3, -torso * 0.08)), limb * 0.45, limb * 1.8)
+    for index, length in enumerate((0.55, 0.8, 0.45)):
+        across = (index - 1) * hip * 0.32
+        body.slab("pelvis", buckle + Vector((0, across, -torso * 0.1)), buckle + Vector((hip * 0.15, across, -torso * 0.1 - d["leg"] * length)), hip * 0.3, 1.5,
+                  mix(tabard, [0.1, 0.02, 0.02], 0.2 * index))
+    # Riveted iron bracers, slag running off them, and knee plates.
+    for side in ("l", "r"):
+        e0, e1 = L["lowerarm_" + side]
+        for band in (0.35, 0.7):
+            body.limb("lowerarm_" + side, e0.lerp(e1, band), e0.lerp(e1, band + 0.2), limb * 1.35, limb * 1.35, mix(iron, scorch, 0.3), segments=8)
+        clot("lowerarm_" + side, e0.lerp(e1, 0.6) + Vector((limb * 1.2, 0, 0)), limb * 0.35, limb * 1.2)
+        c0, c1 = L["calf_" + side]
+        body.ball("calf_" + side, c0 + Vector((leg * 0.55, 0, 0)), leg * 0.85, mix(iron, scorch, 0.4), scale=(0.7, 1.0, 1.1), segments=8)
 
 
 def rescue_gear(body, L, d, limb):
@@ -1226,9 +1363,30 @@ def add_prop(body, prop, L, d, spec):
         body.limb(bone, front + forward * unit * 0.06 + Vector((0, 0, unit * 0.018)), front + forward * unit * 0.085 + Vector((0, 0, unit * 0.018)), unit * 0.008,
                   unit * 0.001, steel, segments=4)
     elif kind == "cleaver":
-        body.limb(bone, grip, grip + forward * unit * 0.06, unit * 0.015, unit * 0.015, wood)
-        body.box(bone, grip + forward * unit * 0.22, (unit * 0.3, unit * 0.02, unit * 0.14), [0.18, 0.17, 0.16])
-        body.box(bone, grip + forward * unit * 0.22 + Vector((0, 0, unit * 0.075)), (unit * 0.3, unit * 0.024, unit * 0.02), accent, glow=True)
+        # An oversized hooked slag cleaver made from a mining tool: an iron-bound haft, a huge broad blade bolted to it,
+        # its back hooked forward and up at the tip, its cutting edge burning molten, slag clinging to its flat and
+        # roping off its edge.
+        iron, scorch, slag = [0.30, 0.29, 0.28], [0.12, 0.11, 0.10], spec.get("slag", [0.03, 0.03, 0.03])
+        side_axis = Vector((0, 1, 0))
+        root = grip + forward * unit * 0.1
+        body.limb(bone, grip - forward * unit * 0.05, root, unit * 0.016, unit * 0.018, wood, segments=8)
+        body.limb(bone, root - forward * unit * 0.02, root + forward * unit * 0.01, unit * 0.024, unit * 0.024, iron, segments=8)
+        at = lambda ahead, below: root + forward * unit * ahead + down * unit * below
+        # Its profile from the haft round the hooked back and down the edge, in the plane of forward and down.
+        body.pane(bone, [at(0.0, -0.035), at(0.22, -0.05), at(0.34, -0.11), at(0.31, -0.02), at(0.33, 0.07), at(0.26, 0.14), at(0.08, 0.13), at(0.0, 0.07)],
+                  unit * 0.012, mix(iron, scorch, 0.35))
+        edge = [at(0.33, 0.075), at(0.26, 0.145), at(0.08, 0.135), at(0.005, 0.075)]
+        for a, b in zip(edge, edge[1:]):
+            body.limb(bone, a, b, unit * 0.007, unit * 0.007, accent, glow=True, segments=5)
+        for ahead, below in ((0.03, -0.01), (0.03, 0.06), (0.1, 0.02)):
+            for sign in (1, -1):
+                body.ball(bone, at(ahead, below) + side_axis * sign * unit * 0.007, unit * 0.007, [0.55, 0.50, 0.42], segments=5)
+        for sign in (1, -1):
+            body.blob(bone, at(0.18, 0.0) + side_axis * sign * unit * 0.008, (Vector((unit * 0.06, 0, 0)), Vector((0, unit * 0.006, 0)), Vector((0, 0, unit * 0.035))),
+                      slag, segments=6)
+        for ahead, length in ((0.22, 0.09), (0.12, 0.06)):
+            drip = at(ahead, 0.14)
+            body.limb(bone, drip, drip + down * unit * length, unit * 0.008, unit * 0.002, slag, segments=5)
     elif kind == "scroll":
         body.limb(bone, grip + Vector((0, unit * 0.1, 0)), grip - Vector((0, unit * 0.1, 0)), unit * 0.025, unit * 0.025, [0.90, 0.86, 0.75])
     else:
@@ -1372,6 +1530,13 @@ def pose(name, t, melee, d):
         lift = -d["height"] * 0.06 * settle
     else:
         raise AssertionError("Unknown animation: " + name)
+    if d.get("hunch") and name != "Death":
+        # A brute's hunch, held through everything it does: the back bowed forward by hunch degrees, the head raised
+        # against it to keep looking ahead, the arms hanging forward of the body.
+        bow = d["hunch"]
+        pose["spine_01"] = combine(pose.get("spine_01", (0.0, 0.0, 0.0)), lean(bow * 0.6))
+        pose["spine_02"] = combine(pose.get("spine_02", (0.0, 0.0, 0.0)), lean(bow * 0.4))
+        pose["head"] = combine(pose.get("head", (0.0, 0.0, 0.0)), lean(-bow * 0.85))
     if d.get("stance") in ("aim", "braced"):
         aim_pose(pose, name, t, melee, sight=d["stance"] == "aim")
     if d.get("stance") == "shoulderCarry":

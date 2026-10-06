@@ -97,8 +97,9 @@ class Body:
         self._finish(verts, bone, color, glow)
 
     def pane(self, bone, outline, depth, color, glow=False):
-        """A flat piece the shape of outline (its corners in order, near one plane, convex) and depth thick: a pane of
-        glass, a shard, a blade. Its faces look either way along the outline's own normal."""
+        """A flat piece the shape of outline (its corners in order, near one plane; it may be concave, as a hooked blade
+        is) and depth thick: a pane of glass, a shard, a blade. Its faces look either way along the outline's own
+        normal."""
         centre = sum(outline, Vector()) / len(outline)
         normal = Vector()
         for a, b in zip(outline, outline[1:] + outline[:1]):
