@@ -84,8 +84,10 @@ def layout(spec, capsule):
         L["hand_" + side] = (wrist, hand_end)
         L["prop_" + side] = (hand_end, hand_end + Vector((length * 0.15, 0, 0)))
         hip_point = Vector((0, sign * hip, pelvis_z))
-        hock = Vector((0, sign * hip * 1.1, sole))
-        knee = Vector((leg * 0.06, sign * hip * 1.05, (pelvis_z + sole) / 2))
+        # Feet planted wider apart for a braced body (stanceSpread).
+        spread = spec.get("stanceSpread", 1.0)
+        hock = Vector((0, sign * hip * 1.1 * spread, sole))
+        knee = Vector((leg * 0.06, sign * hip * 1.05 * spread, (pelvis_z + sole) / 2))
         L["thigh_" + side] = (hip_point, knee)
         L["calf_" + side] = (knee, hock)
         L["foot_" + side] = (hock, Vector((hock.x + leg * 0.35, hock.y, sole * 0.8)))
@@ -267,19 +269,24 @@ def hand(body, spec, features, side, L, thick, rng):
         # A fist of stone.
         body.rocks(bone, h0, h1 + reach * 0.3, thick * 1.1, thick * 1.0, [primary, secondary], rng, chunks=2)
     if "hookArm" in features and side == "r":
-        # The rusted iron crescent, the size of his head, hung on heavy chain from the hook arm.
+        # The rusted iron crescent hung on heavy chain from the hook arm: outsized, the thing his silhouette is, a broad
+        # band of iron sweeping round to a sharpened point.
         grip = L["prop_" + side][0]
         iron = mix(accent, [0.1, 0.08, 0.07], 0.2)
-        radius = thick * 0.9
+        radius = thick * 1.45
         # Hung short below the hand, and never into the ground.
-        drop = min(thick * 1.3, grip.z - radius - thick * 0.3)
-        for index in range(2):
-            body.ball("prop_" + side, grip + Vector((0, 0, -drop * (index + 1) / 3)), thick * 0.22, mix(accent, secondary, 0.5))
-        center = grip + Vector((thick * 0.6, 0, -drop))
-        for index in range(7):
-            angle = math.radians(-40 + index * 35)
+        drop = min(thick * 1.1, grip.z - radius - thick * 0.6)
+        center = grip + Vector((thick * 0.9, 0, -drop))
+        humanoid.chain_links(body, "prop_" + side, [grip, grip + Vector((thick * 0.3, 0, -drop * 0.5)), center + Vector((-radius * 0.55, 0, radius * 0.8))],
+                             thick * 0.3, mix(accent, secondary, 0.35))
+        for index in range(9):
+            angle = math.radians(-60 + index * 30)
             point = center + Vector((math.cos(angle) * radius, 0, math.sin(angle) * radius))
-            body.box("prop_" + side, point, (thick * 0.55, thick * 0.35, thick * 0.6), iron, rotation=Euler((0, -angle, 0)))
+            body.box("prop_" + side, point, (thick * 0.7, thick * 0.5, thick * 0.95), mix(iron, [0.32, 0.14, 0.06], rng.uniform(0, 0.4)),
+                     rotation=Euler((0, -angle, 0)))
+        tip_angle = math.radians(-60 + 8 * 30)
+        tip = center + Vector((math.cos(tip_angle) * radius, 0, math.sin(tip_angle) * radius))
+        body.limb("prop_" + side, tip, tip + Vector((-thick * 0.6, 0, thick * 0.55)), thick * 0.42, thick * 0.03, iron, segments=4)
 
 
 def head(body, spec, features, L, d, rng):
@@ -318,13 +325,39 @@ def extras(body, spec, features, L, d, rng):
             top = (b0 + b1) / 2 + Vector((0, 0, shoulder * 0.3 if bone.startswith("clavicle") else shoulder * 0.18))
             body.ball(bone, top, shoulder * rng.uniform(0.18, 0.26), MOSS, scale=(1.3, 1.3, 0.45))
     if "chainWrap" in features:
-        # Heavy chain wound about his torso and shoulders.
+        # Heavy rusted chain wound about his torso and up over the shoulder to the hook arm, its loose end trailing behind
+        # him along the ground, as though he has just dragged it up out of the river.
+        rust = mix(accent, secondary, 0.35)
+        link = shoulder * 0.18
         c0, c1 = L["spine_02"]
-        for index in range(18):
-            angle = index / 18 * math.tau * 1.5
-            z = c0.z + (c1.z - c0.z) * (index / 18)
-            point = Vector((c0.x + math.cos(angle) * shoulder * 0.95, math.sin(angle) * shoulder * 0.95, z))
-            body.ball("spine_02", point, shoulder * 0.09, mix(accent, secondary, 0.4))
+        coil = [Vector((c0.x + math.cos(index / 12 * math.tau * 1.25) * shoulder * 1.0, math.sin(index / 12 * math.tau * 1.25) * shoulder * 1.0,
+                        c0.z + (c1.z - c0.z) * index / 12)) for index in range(13)]
+        humanoid.chain_links(body, "spine_02", coil, link, rust)
+        shoulder_r = L["clavicle_r"][1] + Vector((0, 0, shoulder * 0.35))
+        humanoid.chain_links(body, "clavicle_r", [coil[-1], shoulder_r, L["upperarm_r"][1] + Vector((0, 0, shoulder * 0.2))], link, rust)
+        p0, p1 = L["pelvis"]
+        trail = [p0 + Vector((-d["hip"] * 1.1, d["hip"] * 0.4, 0)), p0 + Vector((-d["hip"] * 2.0, d["hip"] * 0.5, -p0.z * 0.6)),
+                 Vector((p0.x - d["hip"] * 3.0, d["hip"] * 0.6, link * 0.8)), Vector((p0.x - d["hip"] * 4.2, d["hip"] * 0.4, link * 0.8))]
+        humanoid.chain_links(body, "pelvis", trail, link, rust)
+    if "masonry" in features:
+        # Collapsed masonry worked into him: dressed blocks from an old bridge, squared and carved with inset panels, on
+        # the hook arm's shoulder and a thigh.
+        dressed = mix(primary, [0.62, 0.56, 0.46], 0.35)
+        for bone, offset, size in (("clavicle_r", Vector((0, -shoulder * 0.2, shoulder * 0.42)), shoulder * 0.62), ("thigh_l", Vector((d["hip"] * 0.45, d["hip"] * 0.3, 0)), d["hip"] * 0.62)):
+            b0, b1 = L[bone]
+            centre = b0.lerp(b1, 0.55) + offset
+            body.box(bone, centre, (size * 0.9, size * 1.1, size * 0.7), dressed, rotation=Euler((0, 0, rng.uniform(-0.15, 0.15))))
+            for inset in (0.6, 0.32):
+                body.box(bone, centre + Vector((0, 0, size * 0.36)), (size * 0.9 * inset, size * 1.1 * inset, 1.0), mix(dressed, [0.15, 0.13, 0.11], 0.35 if inset > 0.5 else 0.1))
+    if spec.get("reinforced"):
+        # Planted and reinforced: further layers of riverstone heaved up over his trunk, shoulders and legs.
+        layer = [mix(secondary, primary, 0.4), mix(secondary, [0.18, 0.16, 0.14], 0.3), primary]
+        for bone, r0, r1 in (("spine_02", shoulder * 1.0, shoulder * 1.1), ("clavicle_l", shoulder * 0.5, shoulder * 0.55), ("clavicle_r", shoulder * 0.55, shoulder * 0.6),
+                             ("thigh_l", d["hip"] * 0.75, d["hip"] * 0.7), ("thigh_r", d["hip"] * 0.75, d["hip"] * 0.7), ("calf_l", d["hip"] * 0.7, d["hip"] * 0.65),
+                             ("calf_r", d["hip"] * 0.7, d["hip"] * 0.65)):
+            b0, b1 = L[bone]
+            # Turned chunks stop well above the ankle, so none sinks below the ground.
+            body.rocks(bone, b0.lerp(b1, 0.15), b0.lerp(b1, 0.55 if bone.startswith("calf") else 0.85), r0, r1, layer, rng, chunks=2)
     if "mast" in features:
         # A slender antenna mast from his back, lit at its tip.
         foot = s1 + Vector((-shoulder * 0.6, shoulder * 0.3, -d["torso"] * 0.1))

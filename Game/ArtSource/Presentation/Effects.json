@@ -63,6 +63,23 @@
       ]
     },
     {
+      "name": "NS_VeyraDrip",
+      "purpose": "ADR-064 §1: water sheeting off a body just come up out of a river (Cairn), running off its ledges and seams; small flecks of the lit stylized cloud material that drop, fall and break up, in the colour the body gives.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam",
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [10] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.7] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "5 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "10 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "expression": "20 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [20] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -600] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [0.5] }
+      ]
+    },
+    {
       "name": "NS_VeyraMist",
       "purpose": "ADR-064 §1: mist that gathers round a body and moves with it (Sylra), welling up off its hem and legs; soft pale clumps of stylized cloud that drift a little, rise and thin away, in the colour the body gives.",
       "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",

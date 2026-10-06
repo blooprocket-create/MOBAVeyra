@@ -8,7 +8,7 @@ folder and a seeded generator, so it is regenerated rather than hand-edited. The
 | Spec | Generator | Assets |
 |---|---|---|
 | `PresentationMaterials.json` | `Game/Scripts/BuildPresentationMaterials.ps1` (Unreal Python, `BuildPresentationMaterials.py`) | `M_VeyraHitFlash`, an additive overlay; `PP_VeyraHoverOutline`, a post-process outline whose stencils are its own parameter defaults; `M_VeyraSmoke`, a masked, sunlit puff of stylized smoke that erodes as its particle's alpha fades and glows independently of exposure |
-| `Effects.json` | `Game/Scripts/BuildEffects.ps1 [-Effects <name>]` (the `VeyraEffects` commandlet) | `Effects/NS_VeyraImpact`, `NS_VeyraCastFlash`, `NS_VeyraDeathBurst` (engine system templates) and `NS_VeyraTrail`, `NS_VeyraSmokeBody`, `NS_VeyraSpray`, `NS_VeyraMist`, `NS_VeyraEmbers` and `NS_VeyraWildstorm` (engine emitter templates), every particle's base colour linked to `User.Color`. An input is set to a value or to an expression; `User.Scale` (default 1) sizes a body's effect to its body |
+| `Effects.json` | `Game/Scripts/BuildEffects.ps1 [-Effects <name>]` (the `VeyraEffects` commandlet) | `Effects/NS_VeyraImpact`, `NS_VeyraCastFlash`, `NS_VeyraDeathBurst` (engine system templates) and `NS_VeyraTrail`, `NS_VeyraSmokeBody`, `NS_VeyraSpray`, `NS_VeyraDrip`, `NS_VeyraMist`, `NS_VeyraEmbers` and `NS_VeyraWildstorm` (engine emitter templates), every particle's base colour linked to `User.Color`. An input is set to a value or to an expression; `User.Scale` (default 1) sizes a body's effect to its body |
 | `CueSounds.json` | `Game/Scripts/BuildCueSounds.ps1` (`GenerateCueSounds.py` synthesises, `ImportCueSounds.py` imports) | `Audio/S_VeyraImpact`, `S_VeyraSwing`, `S_VeyraCast`, `S_VeyraDeath`, `S_VeyraClick` |
 
 ## Rules

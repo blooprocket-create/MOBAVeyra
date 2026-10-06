@@ -180,8 +180,13 @@
           "body": { "primary": [0.06, 0.06, 0.07], "accent": [0.22, 0.07, 0.04], "core": [1.00, 0.70, 0.40], "seamGap": 0.06, "effect": null } }
       ] },
     { "id": "cairn", "archetype": "colossus", "seed": 304, "heightShare": 0.95, "build": "heavy", "headShare": 0.08, "legShare": 0.27, "armShare": 0.55, "lean": 0.2,
-      "style": "riverstone", "primary": [0.46, 0.48, 0.47], "secondary": [0.28, 0.30, 0.30], "accent": [0.48, 0.25, 0.12], "detail": [0.22, 0.40, 0.14],
-      "features": ["hookArm", "chainWrap", "moss"] },
+      "style": "riverstone", "primary": [0.36, 0.33, 0.28], "secondary": [0.22, 0.20, 0.17], "accent": [0.50, 0.24, 0.10], "detail": [0.22, 0.40, 0.14],
+      "features": ["hookArm", "chainWrap", "masonry", "moss"],
+      "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraDrip.NS_VeyraDrip", "color": [0.55, 0.70, 0.80, 1.0],
+        "bones": ["clavicle_l", "clavicle_r", "lowerarm_r", "lowerarm_l", "spine_03"] },
+      "statusBodies": [
+        { "status": "cairn_immovable_guard", "name": "Immovable", "body": { "reinforced": true, "stanceSpread": 1.35 } }
+      ] },
     { "id": "korruk", "archetype": "beast", "seed": 401, "lengthShare": 1.45, "heightShare": 0.5, "trunkShare": 0.34, "hipShare": 0.92, "headShare": 0.24, "tailShare": 0.35, "build": "heavy",
       "primary": [0.80, 0.76, 0.66], "secondary": [0.30, 0.26, 0.23], "accent": [0.85, 0.08, 0.10], "detail": [0.86, 0.82, 0.72], "horn": [0.86, 0.82, 0.72],
       "features": ["sixLegs", "plates", "crest", "wedgeSkull", "lowHead", "broadBody", "claws", "limbCrystals", "chestCrystals"] },

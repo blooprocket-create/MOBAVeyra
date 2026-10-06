@@ -169,7 +169,11 @@ section 9. The existing LFS rules cover the FBX files.
   (`seamGap`), the plates of his forearms and shins riding clear, his crown plated over. An orange-white spiral burns
   in his chest, a tattered crimson drape hangs on iron rings, molten shards orbit his open hands, and
   `NS_VeyraEmbers` sheds from them. Tempered Shell (`varkesh_shell_tenacity`, held while its shield holds) cools him:
-  black plates, dark closed seams, no embers, the core still lit.
+  black plates, dark closed seams, no embers, the core still lit. Cairn is dark, weathered riverstone with dressed
+  bridge `masonry` worked into him: his outsized rusted crescent hangs on heavy chain links from the hook arm, the
+  chain wound round his torso, over his shoulder and trailing behind him along the ground (`chainWrap`), moss on his
+  upper surfaces, and `NS_VeyraDrip` running off his ledges. Immovable (`cairn_immovable_guard`) heaves further
+  layers of riverstone over him (`reinforced`) and plants his feet wider (`stanceSpread`).
 - **Beast:** a horizontal skeleton: hips at the back (the pelvis), the spine running
   forward to the chest, neck and head ahead; forelegs on the arm bones, hind legs on
   the leg bones, and a middle pair for six legs (Korruk). It trots (a tripod gait on six
