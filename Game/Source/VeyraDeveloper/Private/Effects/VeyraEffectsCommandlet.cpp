@@ -4,6 +4,7 @@
 
 #if WITH_EDITOR
 #include "Dom/JsonObject.h"
+#include "Effects/VeyraEffectsEnum.h"
 #include "HAL/FileManager.h"
 #include "JsonObjectConverter.h"
 #include "Misc/FileHelper.h"
@@ -35,7 +36,8 @@ namespace
 	/**
 	 * A module input the spec sets to a value of its own (1 number a float, 3 a vector, 4 a colour), or to an expression
 	 * of the system's parameters (as a size in terms of the user scale, or a whole number for a count), or to one of its
-	 * enum's values by display name (a static switch, such as a mode that shows the input it governs). It is set on the
+	 * enum's values by its display name as authored, never a translation (a static switch, such as a mode that shows the
+	 * input it governs). It is set on the
 	 * one emitter it names, or on every emitter that has it when it names none.
 	 */
 	struct FEffectInput
@@ -49,7 +51,10 @@ namespace
 		FName Emitter;
 	};
 
-	/** Value set to the entry of Reference's enum input whose display name is Display; false if it has none. */
+	/**
+	 * Value set to the entry of Reference's enum input whose display name, as authored, is Display; false if it has
+	 * none. Its display names are matched by their source text, so an editor in any culture builds the same system.
+	 */
 	bool EnumValue(const FNiagaraExt_StackItemReference& Reference, const FString& Display, FNiagaraExt_StackInputValue& Value, FNiagaraExternalEditContext& Edit)
 	{
 		FNiagaraExt_StackInputTopology Topology;
@@ -59,19 +64,22 @@ namespace
 		{
 			return false;
 		}
+		TArray<FText> DisplayNames;
 		for (int32 Index = 0; Index < Enum->NumEnums(); ++Index)
 		{
-			if (Enum->GetDisplayNameTextByIndex(Index).ToString() == Display)
-			{
-				Value.InitializeAs<FNiagaraExt_StackInputData_Enum>();
-				FNiagaraExt_StackInputData_Enum& Entry = Value.GetMutable<FNiagaraExt_StackInputData_Enum>();
-				Entry.Enum = Enum;
-				Entry.EnumName = Enum->GetNameByIndex(Index);
-				Entry.DisplayName = Enum->GetDisplayNameTextByIndex(Index);
-				return true;
-			}
+			DisplayNames.Add(Enum->GetDisplayNameTextByIndex(Index));
 		}
-		return false;
+		const int32 Index = VeyraEffects::FindByAuthoredName(DisplayNames, Display);
+		if (Index == INDEX_NONE)
+		{
+			return false;
+		}
+		Value.InitializeAs<FNiagaraExt_StackInputData_Enum>();
+		FNiagaraExt_StackInputData_Enum& Entry = Value.GetMutable<FNiagaraExt_StackInputData_Enum>();
+		Entry.Enum = Enum;
+		Entry.EnumName = Enum->GetNameByIndex(Index);
+		Entry.DisplayName = DisplayNames[Index];
+		return true;
 	}
 
 	/**
