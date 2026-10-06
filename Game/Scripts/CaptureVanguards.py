@@ -97,6 +97,17 @@ def spawn_rows(asset):
             component.override_animation_data(sequence, False, False, seconds, 0.0)
             # Held at its moment.
             component.set_position(seconds, False)
+            # What it is made of where no mesh shows it (smoke) pours off its bones, as the game pours it.
+            if asset.get("effect"):
+                system = unreal.load_asset(asset["effect"]["system"])
+                assert system, f"{asset['name']}'s effect does not load"
+                for bone in asset["effect"]["bones"]:
+                    effect = unreal.NiagaraFunctionLibrary.spawn_system_attached(system, component, bone, unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0),
+                                                                                unreal.AttachLocation.SNAP_TO_TARGET, False)
+                    assert effect, f"{asset['name']}'s effect did not spawn at {bone}"
+                    effect.set_variable_linear_color("Color", unreal.LinearColor(*asset["effect"]["color"]))
+                    effect.set_variable_float("Scale", asset["effect"]["scale"])
+                    EFFECTS.append(effect)
             spawned.append(actor)
     return spawned, centre, gap * len(POSES)
 
@@ -121,10 +132,23 @@ def plan():
     return shots
 
 
-STATE = {"queue": [], "task": None, "next": time.monotonic() + 15, "started": time.monotonic(), "captures": [], "spawned": []}
+# The effects the current rows pour (a body of smoke), started again once their system has compiled, and how many
+# frames each is simulated ahead before the shot (two seconds).
+EFFECTS = []
+WARM_TICKS = 60
+# How many seconds an effect may take to start (its system compiling) before the capture gives up on it.
+COMPILE_TRIES = 120
+STATE = {"queue": [],"task": None, "next": time.monotonic() + 15, "started": time.monotonic(), "captures": [], "spawned": []}
 for asset in plan():
     STATE["queue"].append(("rows", asset))
+    # Poured again before each shot: particles live about a second, and nothing else moves them on between shots.
+    STATE["queue"].append(("pour", asset))
+    if len(STATE["queue"]) == 2:
+        # The session's first shot draws no particles: one is taken and thrown away before any that is kept.
+        STATE["queue"].append(("Warmup", asset))
+        STATE["queue"].append(("pour", asset))
     STATE["queue"].append(("Game", asset))
+    STATE["queue"].append(("pour", asset))
     STATE["queue"].append(("Close", asset))
     STATE["queue"].append(("clear", asset))
 
@@ -145,26 +169,48 @@ def tick(delta):
             return
         step, asset = STATE["queue"].pop(0)
         if step == "rows":
+            EFFECTS.clear()
             STATE["spawned"], STATE["centre"], STATE["span"] = spawn_rows(asset)
             # Let the poses evaluate and the lighting settle on them.
             STATE["next"] = time.monotonic() + 5
+        elif step == "pour":
+            # An effect spawned while its system still compiled (on the editor's first load of it) did not start: start
+            # it now, and let its particles fill out before the shot. A cooked game ships its systems compiled.
+            # An editor world does not tick them either, so each is simulated ahead by hand to where a moving body's
+            # would be.
+            for effect in EFFECTS:
+                if not effect.is_active():
+                    effect.activate(True)
+            # One that will not start yet is still compiling: try again shortly, rather than shoot an empty body.
+            if any(not effect.is_active() for effect in EFFECTS):
+                STATE["compiling"] = STATE.get("compiling", 0) + 1
+                assert STATE["compiling"] <= COMPILE_TRIES, f"{asset['name']}'s effect never started"
+                STATE["queue"].insert(0, (step, asset))
+                STATE["next"] = time.monotonic() + 1
+                return
+            STATE["compiling"] = 0
+            for effect in EFFECTS:
+                effect.advance_simulation(WARM_TICKS, 1.0 / KIT["fps"])
+            STATE["next"] = time.monotonic() + (2 if EFFECTS else 0)
         elif step == "clear":
             for actor in STATE["spawned"]:
                 ACTORS.destroy_actor(actor)
             STATE["spawned"] = []
         else:
-            fov = GAME_FOV if step == "Game" else CLOSE_FOV
+            game = step in ("Game", "Warmup")
+            fov = GAME_FOV if game else CLOSE_FOV
             # The game view from the camera's own distance; the close one from as far as frames both rows.
-            distance = float(CAMERA["Distance"]) if step == "Game" else STATE["span"] * 0.62 / math.tan(math.radians(fov / 2))
+            distance = float(CAMERA["Distance"]) if game else STATE["span"] * 0.62 / math.tan(math.radians(fov / 2))
             camera = camera_at(STATE["centre"], fov, distance)
             STATE["spawned"].append(camera)
             LEVEL.pilot_level_actor(camera)
-            filename = OUTPUT / f"{asset['name']}_{step}.png"
+            filename = OUTPUT / ("warmup.png" if step == "Warmup" else f"{asset['name']}_{step}.png")
             if filename.exists():
                 filename.unlink()
             unreal.SystemLibrary.execute_console_command(WORLD, f'HighResShot 1920x1080 filename="{filename.as_posix()}"')
             STATE["task"] = str(filename)
-            STATE["captures"].append({"vanguard": asset["id"], "view": step, "file": str(filename), "fieldOfView": fov, "distance": round(distance)})
+            if step != "Warmup":
+                STATE["captures"].append({"vanguard": asset["id"], "view": step, "file": str(filename), "fieldOfView": fov, "distance": round(distance)})
             STATE["next"] = time.monotonic() + 3
     except Exception:
         (OUTPUT / "failure.txt").write_text(traceback.format_exc(), encoding="utf-8")

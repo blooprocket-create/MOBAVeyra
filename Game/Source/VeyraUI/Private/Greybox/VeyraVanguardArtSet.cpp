@@ -5,6 +5,7 @@
 #include "Animation/AnimSequence.h"
 #include "Content/VeyraContentId.h"
 #include "Engine/SkeletalMesh.h"
+#include "NiagaraSystem.h"
 
 namespace
 {
@@ -62,6 +63,21 @@ TArray<FString> FVeyraVanguardBody::Validate(const FString& Label) const
 	{
 		Problems.Add(Label + TEXT(": UpperBodyBone must be a bone of its mesh."));
 	}
+	if (Effect && EffectBones.IsEmpty())
+	{
+		Problems.Add(Label + TEXT(": an Effect needs EffectBones to pour from."));
+	}
+	if (!(EffectScale > 0.0f))
+	{
+		Problems.Add(Label + TEXT(": EffectScale must be above 0."));
+	}
+	for (const FName& Bone : EffectBones)
+	{
+		if (!Effect || Mesh->GetRefSkeleton().FindBoneIndex(Bone) == INDEX_NONE)
+		{
+			Problems.Add(FString::Printf(TEXT("%s: EffectBones' %s must be a bone of its mesh, with an Effect to pour."), *Label, *Bone.ToString()));
+		}
+	}
 	return Problems;
 }
 
@@ -84,11 +100,20 @@ const FVeyraVanguardBody& FVeyraVanguardArt::BodyFor(TFunctionRef<bool(FName)> H
 TArray<FString> UVeyraVanguardArtSet::Validate() const
 {
 	TArray<FString> Problems;
+	TArray<TPair<FString, const FVeyraVanguardArt*>> Entries;
 	for (const TPair<FName, FVeyraVanguardArt>& Entry : Art)
 	{
-		const FString Id = Entry.Key.ToString();
-		Problems.Append(Entry.Value.Validate(Id));
-		for (const TPair<FName, FVeyraVanguardBody>& Status : Entry.Value.StatusBodies)
+		Entries.Emplace(Entry.Key.ToString(), &Entry.Value);
+	}
+	for (const TPair<FName, FVeyraVanguardArt>& Entry : CompanionArt)
+	{
+		Entries.Emplace(TEXT("companion ") + Entry.Key.ToString(), &Entry.Value);
+	}
+	for (const TPair<FString, const FVeyraVanguardArt*>& Entry : Entries)
+	{
+		const FString& Id = Entry.Key;
+		Problems.Append(Entry.Value->Validate(Id));
+		for (const TPair<FName, FVeyraVanguardBody>& Status : Entry.Value->StatusBodies)
 		{
 			// Whether the status is one the ability tuning defines is the committed art's test to check, as its Vanguard
 			// IDs are: tuning a test scopes may hold other statuses.

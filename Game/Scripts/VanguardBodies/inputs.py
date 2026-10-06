@@ -18,6 +18,21 @@ def bodies_of(spec):
         yield dict(spec, **status_body["body"]), status_body["status"], "_" + status_body["name"]
 
 
+def units(vanguards, companions):
+    """Every unit a body is fitted to, by ID, as Vanguards.json shapes a Vanguard (its body's capsule and its basic
+    attack): the Vanguards, and the companions of Abilities.json, whose capsule sits on the definition itself."""
+    table = dict(vanguards)
+    for name, companion in companions.items():
+        table[name] = {"body": {"capsuleRadius": companion["capsuleRadius"], "capsuleHalfHeight": companion["capsuleHalfHeight"]},
+                       "basicAttack": companion["basicAttack"]}
+    return table
+
+
+def entries(kit):
+    """Every entry the kit generates bodies for: its Vanguards, then its companions."""
+    return list(kit["vanguards"]) + list(kit.get("companions", []))
+
+
 def input_hash(kit, vanguards, body_spec):
     """The hash of everything body_spec's body is generated from: its entry, its archetype's settings, the kit's frame
     rate, the generator version, and its Vanguard's capsule and whether it fights in melee (Vanguards.json)."""
@@ -33,7 +48,7 @@ def input_hash(kit, vanguards, body_spec):
 def stale_assets(kit, vanguards, assets):
     """Every manifest asset whose recorded inputs are not what the kit and Vanguards.json give it now, by name."""
     current = {}
-    for spec in kit["vanguards"]:
+    for spec in entries(kit):
         for body_spec, status, _ in bodies_of(spec):
             current[(spec["id"], status)] = input_hash(kit, vanguards, body_spec)
     return [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status"))) != asset.get("inputSha256")]
@@ -47,7 +62,9 @@ def stale_in(game):
     kit = json.loads((source / "VanguardKit.json").read_text(encoding="utf-8"))
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     vanguards = json.loads((game / "Tuning" / "Vanguards.json").read_text(encoding="utf-8"))["vanguards"]
-    return stale_assets(kit, vanguards, manifest["assets"])
+    abilities = game / "Tuning" / "Abilities.json"
+    companions = json.loads(abilities.read_text(encoding="utf-8")).get("companions", {}) if abilities.exists() else {}
+    return stale_assets(kit, units(vanguards, companions), manifest["assets"])
 
 
 if __name__ == "__main__":

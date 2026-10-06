@@ -8,6 +8,7 @@
 #include "VeyraVanguardArtSet.generated.h"
 
 class UAnimSequence;
+class UNiagaraSystem;
 class USkeletalMesh;
 
 /** One generated body (ADR-064 §3): its skeletal mesh, its animations, and what they are fitted to. */
@@ -34,6 +35,23 @@ struct VEYRAUI_API FVeyraVanguardBody
 	/** The bone whose chain is the upper body, which alone plays an attack, a cast or a hit while the body runs. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
 	FName UpperBodyBone;
+
+	/**
+	 * What the body is made of where no mesh can show it, as Nix's smoke: a looping effect that pours off each of
+	 * EffectBones as the body moves, in EffectColor and at EffectScale (the body's own scale, so a larger form pours
+	 * larger smoke). None for a body that is all mesh.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TObjectPtr<UNiagaraSystem> Effect;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TArray<FName> EffectBones;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FLinearColor EffectColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	float EffectScale = 1.0f;
 
 	/** The animation Clip, or null. */
 	UAnimSequence* Find(EVeyraVanguardClip Clip) const;
@@ -77,8 +95,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
 	TMap<FName, FVeyraVanguardArt> Art;
 
+	/** Companions' bodies by companion ID (Abilities.json companions), as Nix's: the other half of a Vanguard's pair. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TMap<FName, FVeyraVanguardArt> CompanionArt;
+
 	/** The bodies for the Vanguard Id, or null. */
 	const FVeyraVanguardArt* Find(FName Id) const { return Art.Find(Id); }
+
+	/** The bodies for the companion Id, or null. */
+	const FVeyraVanguardArt* FindCompanion(FName Id) const { return CompanionArt.Find(Id); }
 
 	/** Every problem with the set, as "Id: message". Empty when usable. */
 	TArray<FString> Validate() const;

@@ -11,8 +11,10 @@
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "Misc/SecureHash.h"
+#include "Materials/MaterialInterface.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraExternalSystemEditorUtilities.h"
+#include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraSystem.h"
 #include "NiagaraTypes.h"
 #include "Serialization/JsonReader.h"
@@ -29,13 +31,106 @@ namespace
 	/** The generator version this code is; the spec must name it. */
 	constexpr int32 GeneratorVersion = 1;
 
-	/** One system of the spec: its name, and the engine system or emitter template it starts from. */
+	/**
+	 * A module input the spec sets to a value of its own (1 number a float, 3 a vector, 4 a colour), or to an expression
+	 * of the system's parameters (as a size in terms of the user scale).
+	 */
+	struct FEffectInput
+	{
+		FName Script;
+		FName Module;
+		FName Input;
+		TArray<double> Value;
+		FString Expression;
+	};
+
+	/**
+	 * One system of the spec: its name, the engine system or emitter template it starts from, the inputs it sets, and
+	 * the material its sprites draw with, if not the template's.
+	 */
 	struct FEffectSpec
 	{
 		FString Name;
 		FString Template;
 		FString Emitter;
+		FString Material;
+		TArray<FEffectInput> Inputs;
 	};
+
+	/** Sets Input on every emitter of System that has it; how many it set. */
+	int32 SetInput(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, const FEffectInput& Input, FNiagaraExternalEditContext& Edit)
+	{
+		FNiagaraExt_StackInputValue Value;
+		// A local value is the instanced struct of its type (FNiagaraExt_StackInputValue's AdditionalTypes).
+		if (!Input.Expression.IsEmpty())
+		{
+			Value.InitializeAs<FNiagaraExt_StackInputData_HlslExpression>();
+			Value.GetMutable<FNiagaraExt_StackInputData_HlslExpression>().HlslExpression = Input.Expression;
+		}
+		else if (Input.Value.Num() == 1)
+		{
+			FNiagaraFloat Number;
+			Number.Value = static_cast<float>(Input.Value[0]);
+			Value.InitializeAs(FNiagaraFloat::StaticStruct(), reinterpret_cast<const uint8*>(&Number));
+		}
+		else if (Input.Value.Num() == 3)
+		{
+			const FVector3f Vector(Input.Value[0], Input.Value[1], Input.Value[2]);
+			Value.InitializeAs(TVariantStructure<FVector3f>::Get(), reinterpret_cast<const uint8*>(&Vector));
+		}
+		else if (Input.Value.Num() == 4)
+		{
+			const FLinearColor Color(Input.Value[0], Input.Value[1], Input.Value[2], Input.Value[3]);
+			Value.InitializeAs(TBaseStructure<FLinearColor>::Get(), reinterpret_cast<const uint8*>(&Color));
+		}
+		else
+		{
+			return 0;
+		}
+		int32 Set = 0;
+		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
+		{
+			FNiagaraExt_StackItemReference Reference(&System, Emitter.EmitterName, Input.Script, Input.Module);
+			Reference.InputNameStack.Add(Input.Input);
+			const int32 Errors = Edit.Errors.Num();
+			UNiagaraExternalEditUtilities::SetStackInputData(Reference, Value, Edit);
+			Set += Edit.Errors.Num() == Errors ? 1 : 0;
+		}
+		return Set;
+	}
+
+	/** Draws every sprite renderer of System with Material; how many it set. */
+	int32 SetSpriteMaterial(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, const FString& Material, FNiagaraExternalEditContext& Edit)
+	{
+		int32 Set = 0;
+		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
+		{
+			FNiagaraExt_EmitterTopology Topology;
+			UNiagaraExternalEditUtilities::GetEmitterTopology(FNiagaraExt_StackItemReference(&System, Emitter.EmitterName), Topology, Edit);
+			for (int32 Index = 0; Index < Topology.RendererClasses.Num(); ++Index)
+			{
+				if (Topology.RendererClasses[Index] != UNiagaraSpriteRendererProperties::StaticClass())
+				{
+					continue;
+				}
+				FNiagaraExt_StackItemReference Renderer(&System, Emitter.EmitterName);
+				Renderer.RendererIndex = Index;
+				FNiagaraExt_RendererData Data;
+				UNiagaraExternalEditUtilities::GetRendererData(Renderer, Data, Edit);
+				TSharedPtr<FJsonObject> Properties;
+				if (!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Data.PropertyValues), Properties) || !Properties)
+				{
+					continue;
+				}
+				Properties->SetStringField(TEXT("Material"), Material);
+				const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Data.PropertyValues);
+				FJsonSerializer::Serialize(Properties.ToSharedRef(), Writer);
+				UNiagaraExternalEditUtilities::SetRendererData(Renderer, Data, Edit);
+				++Set;
+			}
+		}
+		return Set;
+	}
 
 	/** The input every particle starts its colour from: a module's own "Color", as the templates' Initialize Particle has. */
 	const FName BaseColorInput(TEXT("Color"));
@@ -104,14 +199,15 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 	}
 	FString Destination;
 	FString ColorName;
+	FString ScaleName;
 	const TSharedPtr<FJsonObject>* UserVariables = nullptr;
 	const TArray<TSharedPtr<FJsonValue>>* Systems = nullptr;
 	if (Spec->GetIntegerField(TEXT("schemaVersion")) != 1 || Spec->GetIntegerField(TEXT("generatorVersion")) != GeneratorVersion
 		|| !Spec->TryGetStringField(TEXT("destination"), Destination) || !Destination.StartsWith(TEXT("/Game/Veyra/UI/"))
 		|| !Spec->TryGetObjectField(TEXT("userVariables"), UserVariables) || !(*UserVariables)->TryGetStringField(TEXT("color"), ColorName)
-		|| !Spec->TryGetArrayField(TEXT("systems"), Systems) || Systems->IsEmpty())
+		|| !(*UserVariables)->TryGetStringField(TEXT("scale"), ScaleName) || !Spec->TryGetArrayField(TEXT("systems"), Systems) || Systems->IsEmpty())
 	{
-		UE_LOG(LogVeyraEffects, Error, TEXT("%s: needs schema 1 for generator %d, a destination under /Game/Veyra/UI/ (always cooked), the user colour's name and systems."),
+		UE_LOG(LogVeyraEffects, Error, TEXT("%s: needs schema 1 for generator %d, a destination under /Game/Veyra/UI/ (always cooked), the user colour's and scale's names and systems."),
 			*SpecFile, GeneratorVersion);
 		return 1;
 	}
@@ -126,6 +222,36 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		{
 			UE_LOG(LogVeyraEffects, Error, TEXT("%s: each system needs a name and either a system template or an emitter template."), *SpecFile);
 			return 1;
+		}
+		Object->TryGetStringField(TEXT("material"), Effect.Material);
+		const TArray<TSharedPtr<FJsonValue>>* Inputs = nullptr;
+		if (Object->TryGetArrayField(TEXT("inputs"), Inputs))
+		{
+			for (const TSharedPtr<FJsonValue>& InputValue : *Inputs)
+			{
+				const TSharedPtr<FJsonObject> InputObject = InputValue->AsObject();
+				FString Script, Module, Input, Expression;
+				const TArray<TSharedPtr<FJsonValue>>* Numbers = nullptr;
+				const bool bNumbers = InputObject && InputObject->TryGetArrayField(TEXT("value"), Numbers);
+				const bool bExpression = InputObject && InputObject->TryGetStringField(TEXT("expression"), Expression) && !Expression.IsEmpty();
+				if (!InputObject || !InputObject->TryGetStringField(TEXT("script"), Script) || !InputObject->TryGetStringField(TEXT("module"), Module)
+					|| !InputObject->TryGetStringField(TEXT("input"), Input) || bNumbers == bExpression
+					|| (bNumbers && !(Numbers->Num() == 1 || Numbers->Num() == 3 || Numbers->Num() == 4)))
+				{
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and either a value of 1, 3 or 4 numbers or an expression."),
+						*SpecFile, *Effect.Name);
+					return 1;
+				}
+				FEffectInput& Set = Effect.Inputs.Add_GetRef({ FName(*Script), FName(*Module), FName(*Input) });
+				Set.Expression = Expression;
+				if (bNumbers)
+				{
+					for (const TSharedPtr<FJsonValue>& Number : *Numbers)
+					{
+						Set.Value.Add(Number->AsNumber());
+					}
+				}
+			}
 		}
 	}
 
@@ -228,6 +354,15 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		Color.DefaultValue.Set(ColorType, FNiagaraVariant(&White, sizeof(White)));
 		Color.Description = FText::FromString(TEXT("The side colour the presentation gives this effect (ADR-063 §4)."));
 		UNiagaraExternalEditUtilities::AddUserVariable(System, Color, Edit);
+		// And one scale, the body's, that a spec's expressions may size the effect by.
+		const FNiagaraTypeDefinition ScaleType = FNiagaraTypeDefinition::GetFloatDef();
+		FNiagaraExt_UserVariable Scale;
+		Scale.Name = FName(*(TEXT("User.") + ScaleName));
+		Scale.Type = ScaleType;
+		const float One = 1.0f;
+		Scale.DefaultValue.Set(ScaleType, FNiagaraVariant(&One, sizeof(One)));
+		Scale.Description = FText::FromString(TEXT("How large the presentation draws this effect, as the body it pours from is scaled (ADR-064 §1)."));
+		UNiagaraExternalEditUtilities::AddUserVariable(System, Scale, Edit);
 		FNiagaraExt_SystemSummary Summary;
 		UNiagaraExternalEditUtilities::GetSystemSummary(System, Summary, Edit);
 		int32 Linked = 0;
@@ -256,6 +391,38 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				*Effect.Template);
 			return 1;
 		}
+		// What the built system holds, to write its inputs against.
+		{
+			const TSharedRef<FJsonObject> Described = MakeShared<FJsonObject>();
+			TArray<TSharedPtr<FJsonValue>> Emitters;
+			for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
+			{
+				FNiagaraExt_EmitterTopology Topology;
+				UNiagaraExternalEditUtilities::GetEmitterTopology(FNiagaraExt_StackItemReference(System, Emitter.EmitterName), Topology, Edit);
+				if (const TSharedPtr<FJsonObject> Json = FJsonObjectConverter::UStructToJsonObject(Topology))
+				{
+					Emitters.Add(MakeShared<FJsonValueObject>(Json));
+				}
+			}
+			Described->SetArrayField(TEXT("emitters"), Emitters);
+			WriteJson(FPaths::Combine(Saved, Effect.Name + TEXT("-built.json")), Described);
+		}
+		for (const FEffectInput& Input : Effect.Inputs)
+		{
+			if (SetInput(*System, Summary, Input, Edit) == 0)
+			{
+				LogErrors(Edit, Effect.Name);
+				UE_LOG(LogVeyraEffects, Error, TEXT("%s: no emitter has %s.%s.%s; see %s-built.json."), *Effect.Name, *Input.Script.ToString(), *Input.Module.ToString(),
+					*Input.Input.ToString(), *Effect.Name);
+				return 1;
+			}
+		}
+		if (!Effect.Material.IsEmpty() && (!LoadObject<UMaterialInterface>(nullptr, *Effect.Material) || SetSpriteMaterial(*System, Summary, Effect.Material, Edit) == 0))
+		{
+			LogErrors(Edit, Effect.Name);
+			UE_LOG(LogVeyraEffects, Error, TEXT("%s: its material %s does not load, or it has no sprite renderer to draw with it."), *Effect.Name, *Effect.Material);
+			return 1;
+		}
 		System->RequestCompile(/*bForce*/ false);
 		System->WaitForCompilationComplete(/*bIncludingGPUShaders*/ true);
 		FNiagaraExt_SystemCompileState State;
@@ -264,6 +431,34 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		{
 			UE_LOG(LogVeyraEffects, Error, TEXT("%s does not compile."), *Effect.Name);
 			return 1;
+		}
+		// What every module's inputs hold once built (the template's own values beside those written here), to judge it by.
+		{
+			const TSharedRef<FJsonObject> Held = MakeShared<FJsonObject>();
+			for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
+			{
+				TArray<FNiagaraExt_ModuleInputValues> Values;
+				UNiagaraExternalEditUtilities::GetEmitterInputValues(FNiagaraExt_StackItemReference(System, Emitter.EmitterName), Values, Edit);
+				// Each value as its struct's text: JSON conversion cannot see inside the instanced struct that holds it.
+				const TSharedRef<FJsonObject> Modules = MakeShared<FJsonObject>();
+				for (const FNiagaraExt_ModuleInputValues& Module : Values)
+				{
+					const TSharedRef<FJsonObject> Inputs = MakeShared<FJsonObject>();
+					for (const FNiagaraExt_StackInputValueEntry& Input : Module.Inputs)
+					{
+						FString Text;
+						if (const UScriptStruct* Kind = Input.Value.GetScriptStruct())
+						{
+							Text = Kind->GetName();
+							Kind->ExportText(Text, Input.Value.GetMemory(), nullptr, nullptr, PPF_None, nullptr);
+						}
+						Inputs->SetStringField(Input.Name.ToString(), Text);
+					}
+					Modules->SetObjectField(Module.ModuleName.ToString(), Inputs);
+				}
+				Held->SetObjectField(Emitter.EmitterName.ToString(), Modules);
+			}
+			WriteJson(FPaths::Combine(Saved, Effect.Name + TEXT("-values.json")), Held);
 		}
 		FSavePackageArgs Save;
 		Save.TopLevelFlags = RF_Public | RF_Standalone;

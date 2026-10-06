@@ -140,6 +140,9 @@ public:
 	/** A Vanguard's generated, animated body, once drawn (ADR-064 §3); null for any other unit and a Vanguard without art. */
 	class USkeletalMeshComponent* FindSkin(const AActor& Unit) const;
 
+	/** The effects a unit's generated body is made of where no mesh shows it (as Nix's smoke), one per bone; empty for most. */
+	TArray<class UNiagaraComponent*> FindBodyEffects(const AActor& Unit) const;
+
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
 
@@ -215,6 +218,10 @@ private:
 		/** A Vanguard's generated body, which its animation moves; its body lies under its feet as a disc (ADR-064 §3). */
 		TWeakObjectPtr<class USkeletalMeshComponent> Skin;
 
+		/** What its generated body is made of where no mesh shows it (as Nix's smoke), one per bone, and the body they pour from. */
+		TArray<TWeakObjectPtr<class UNiagaraComponent>> BodyEffects;
+		TWeakObjectPtr<const class USkeletalMesh> BodyEffectsOf;
+
 		/** What its cues have it doing, and the hit flash's overlay, once it has flashed (ADR-063 §2). */
 		FVeyraBodyFeedbackState Feedback;
 		TWeakObjectPtr<UMaterialInstanceDynamic> Flash;
@@ -274,10 +281,14 @@ private:
 	void RefreshFluxbornArt(const class AVeyraFluxborn& Unit, FBody& Body);
 
 	/**
-	 * Dresses Unit in its Vanguard's generated body once its Vanguard is known and has art, and tells its animation what
-	 * it is doing. Its body becomes a disc under its feet, keeping its side's colour and its status tint.
+	 * Dresses Unit, a Vanguard or a companion, in its generated body once its Vanguard (or companion definition) is known
+	 * and has art, and tells its animation what it is doing. Its body becomes a disc under its feet, keeping its side's
+	 * colour and its status tint.
 	 */
-	void RefreshVanguardArt(const class AVeyraVanguardCharacter& Unit, FBody& Body);
+	void RefreshVanguardArt(const APawn& Unit, FBody& Body);
+
+	/** Pours Worn's effect off its bones on Skin, replacing what an earlier body poured; nothing for a body that is all mesh. */
+	void RefreshBodyEffects(FBody& Body, class USkeletalMeshComponent& Skin, const struct FVeyraVanguardBody& Worn);
 
 	/**
 	 * Draws Mesh over Unit in place of its body, its pivot at the capsule's foot, and colours the art set's Flux

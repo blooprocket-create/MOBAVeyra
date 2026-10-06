@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "5fff2144c3d8e4badadedc7112bfb917bcc707eb446e53c49f4397a495f9da38",
+  "kitSha256": "8f0aa3551d4c9619fe62c517fdb30043d28ed165bc27d4fdf4dc187dd5232fde",
   "assets": [
     {
       "id": "angeru",
@@ -592,6 +592,181 @@
         }
       ],
       "inputSha256": "a2f68c9d76a54e9f7c6dc8f099b74204c778aecf598aa53c8d49f27a1d8fc054"
+    },
+    {
+      "id": "marek_nix",
+      "name": "SK_MarekNix",
+      "archetype": "beast",
+      "file": "FBX/SK_MarekNix.fbx",
+      "sha256": "238cb8267f0630f34373de0da0ca1f9ad975e90bbaf52dd03391c22b94cd14b4",
+      "triangles": 3444,
+      "triangleBudget": 12000,
+      "bones": 27,
+      "heightCm": 94.06,
+      "capsuleHalfHeightCm": 60,
+      "melee": true,
+      "runStrideCm": 115.1,
+      "upperBodyBone": "neck_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 16,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "81d1126b421e2fc0aefe70e01c1edb03d66dc1398cb4c5ccad7cf9677c7ac0de",
+      "effect": {
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSmokeBody.NS_VeyraSmokeBody",
+        "bones": [
+          "pelvis",
+          "spine_01",
+          "spine_02",
+          "neck_01",
+          "head",
+          "upperarm_l",
+          "lowerarm_l",
+          "upperarm_r",
+          "lowerarm_r",
+          "thigh_l",
+          "calf_l",
+          "thigh_r",
+          "calf_r",
+          "tail_01",
+          "tail_02"
+        ],
+        "color": [
+          0.3,
+          0.07,
+          0.62,
+          1.0
+        ],
+        "scale": 1.0
+      },
+      "companion": true
+    },
+    {
+      "id": "marek_nix",
+      "name": "SK_MarekNix_TrueForm",
+      "archetype": "beast",
+      "file": "FBX/SK_MarekNix_TrueForm.fbx",
+      "sha256": "efe9002c12676f20def3167f5bc6579524ad1c879b731736fdffe090c5b2945f",
+      "triangles": 3476,
+      "triangleBudget": 12000,
+      "bones": 27,
+      "heightCm": 168.0,
+      "capsuleHalfHeightCm": 60,
+      "melee": true,
+      "runStrideCm": 149.69,
+      "upperBodyBone": "neck_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 16,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "32272e0e33b241dbbfb1bdb3bb3151df33c765d3d375d7d2a149804555e4e2c3",
+      "effect": {
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSmokeBody.NS_VeyraSmokeBody",
+        "bones": [
+          "pelvis",
+          "spine_01",
+          "spine_02",
+          "neck_01",
+          "head",
+          "upperarm_l",
+          "lowerarm_l",
+          "upperarm_r",
+          "lowerarm_r",
+          "thigh_l",
+          "calf_l",
+          "thigh_r",
+          "calf_r",
+          "tail_01",
+          "tail_02"
+        ],
+        "color": [
+          0.3,
+          0.07,
+          0.62,
+          1.0
+        ],
+        "scale": 1.4
+      },
+      "status": "nix_true_form_size",
+      "companion": true
     },
     {
       "id": "mavra",

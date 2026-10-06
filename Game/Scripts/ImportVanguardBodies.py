@@ -15,14 +15,13 @@ import unreal
 
 GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
 sys.path.insert(0, str(GAME / "Scripts"))
-from VanguardBodies.inputs import stale_assets  # noqa: E402
+from VanguardBodies.inputs import stale_in  # noqa: E402
 
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
 KIT_BYTES = (SOURCE / "VanguardKit.json").read_bytes()
 KIT = json.loads(KIT_BYTES)
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text())
-VANGUARDS = json.loads((GAME / "Tuning" / "Vanguards.json").read_text())["vanguards"]
 DEST = KIT["destination"]
 MATERIAL_PATH = DEST + "/M_VeyraVanguardBody"
 # The generator's rest-pose take (GenerateVanguardBodies.py BIND_TAKE).
@@ -33,7 +32,7 @@ ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary
 
 # Every body the art set will hold, not only those imported now, must have been made from what the kit and
 # Vanguards.json give it today: a partial build cannot pass off a body made from an older kit.
-STALE = stale_assets(KIT, VANGUARDS, MANIFEST["assets"])
+STALE = stale_in(GAME)
 assert not STALE, "Regenerate these bodies (GenerateVanguardBodies.py): their inputs changed since they were built: " + ", ".join(STALE)
 assert DEST.startswith("/Game/Veyra/"), "Vanguard bodies live under /Game/Veyra"
 SELECTED = [asset for asset in MANIFEST["assets"] if ONLY is None or asset["id"] in ONLY]
@@ -182,6 +181,13 @@ def fill_body(asset, body):
     body.set_editor_property("run_stride", asset["runStrideCm"])
     body.set_editor_property("cast_release_share", asset["castReleaseShare"])
     body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
+    if asset.get("effect"):
+        effect = unreal.load_asset(asset["effect"]["system"])
+        assert isinstance(effect, unreal.NiagaraSystem), (asset["name"], "its effect does not load; build it with BuildEffects.ps1", asset["effect"]["system"])
+        body.set_editor_property("effect", effect)
+        body.set_editor_property("effect_bones", [unreal.Name(bone) for bone in asset["effect"]["bones"]])
+        body.set_editor_property("effect_color", unreal.LinearColor(*asset["effect"]["color"]))
+        body.set_editor_property("effect_scale", asset["effect"]["scale"])
     return body
 
 
@@ -203,10 +209,13 @@ def write_art_set():
             status_bodies.setdefault(asset["id"], {})[unreal.Name(asset["status"])] = fill_body(asset, unreal.VeyraVanguardBody())
         else:
             entries[asset["id"]] = fill_body(asset, unreal.VeyraVanguardArt())
-    for vanguard, bodies in status_bodies.items():
-        assert vanguard in entries, vanguard + " has a status body but no body of its own"
-        entries[vanguard].set_editor_property("status_bodies", bodies)
-    art_set.set_editor_property("art", {unreal.Name(vanguard): entry for vanguard, entry in entries.items()})
+    for owner, bodies in status_bodies.items():
+        assert owner in entries, owner + " has a status body but no body of its own"
+        entries[owner].set_editor_property("status_bodies", bodies)
+    # Companions (the other half of a pair, as Nix) by companion ID, the Vanguards by Vanguard ID.
+    companions = {asset["id"] for asset in MANIFEST["assets"] if asset.get("companion")}
+    art_set.set_editor_property("art", {unreal.Name(owner): entry for owner, entry in entries.items() if owner not in companions})
+    art_set.set_editor_property("companion_art", {unreal.Name(owner): entry for owner, entry in entries.items() if owner in companions})
     assert unreal.EditorAssetLibrary.save_loaded_asset(art_set, only_if_is_dirty=False), "Save failed: " + path
     unreal.log("VEYRA_VANGUARD_ART_SET: " + path + " dresses " + ", ".join(sorted(entries)))
 

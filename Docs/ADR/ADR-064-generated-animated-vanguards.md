@@ -32,6 +32,13 @@
 - **Status bodies:** a Vanguard may wear another body in its own's place while it holds a status. Its rides already apply one for their length (Raska's `raska_ride_body`; Neris's wave rides `neris_wave_body`).
   - Its kit entry lists them (`statusBodies`: status, name, the entries that differ), and each is generated and imported beside its own body.
   - The art set holds them by status ID. The presentation dresses the body for the statuses the unit's replicated ledger holds, so the swap follows gameplay and decides nothing.
+- **Companions:** a companion that is half of its Vanguard's pair (Nix, to Marek) has a body of its own, generated from the kit's `companions` section and fitted to its definition's capsule in `Abilities.json`. The art set holds it by companion ID (`CompanionArt`), and the presentation dresses it as it dresses a Vanguard, status bodies included (Nix's horned true form while `nix_true_form_size` lasts). A companion's statuses sit beside its own ability system.
+- **Bodies of particles:** a body made of something no mesh can show is drawn by an effect instead. Nix is smoke: only its bone mask is mesh, and its body is stylized smoke that Niagara pours off its skeleton's bones as it moves.
+  - Each puff is a solid, sunlit blob with a ragged edge. It glows violet while young and erodes through holes as it ages.
+  - The skeleton still animates, so the smoke runs, strikes and dies with it.
+  - The body's art names the system, the bones it pours from, its colour and its scale. The scale is the body's own, so the true form pours larger smoke.
+  - The system is generated like the M52 effects (`Effects.json`), with its sizes written in terms of a user scale. Its puff material (`M_VeyraSmoke`) glows by the inverse of the scene's exposure, so it reads the same under the Crucible's physical sun.
+  - The effect decides nothing.
 - **Rider:** a humanoid seated on a mount that is half of its silhouette, such as Raska on Hound.
   - The rider's chain and the mount's chain both hang from the root. A mount on wheels turns them as it rides, so the Run stride is one turn of a wheel.
   - Wherever the mount moves the whole silhouette (a wheelie, a lunge, a jolt), the rider is posed to follow it. Being separate chains, a crash can throw the rider clear of a mount falling on its side.

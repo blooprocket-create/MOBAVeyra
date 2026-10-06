@@ -20,7 +20,7 @@ namespace VeyraVanguardSkin
 	/** Dresses Skin in Body and fits its animation to it and Shape; does nothing once it wears Body's mesh. */
 	VEYRAUI_API void Dress(USkeletalMeshComponent& Skin, const FVeyraVanguardBody& Body, const FVeyraVanguardAnimShape& Shape);
 
-	/** Which of Art's bodies Unit wears now: a status body while its participant holds that status, else its own. */
+	/** Which of Art's bodies Unit wears now: a status body while it holds that status (a Vanguard through its participant), else its own. */
 	VEYRAUI_API const FVeyraVanguardBody& BodyOf(const APawn& Unit, const FVeyraVanguardArt& Art);
 
 	/** The animation's blend times and play rates from the grey-box settings; the art fills in the rest. */

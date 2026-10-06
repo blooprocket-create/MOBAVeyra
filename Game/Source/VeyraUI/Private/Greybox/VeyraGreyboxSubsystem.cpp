@@ -887,6 +887,59 @@ USkeletalMeshComponent* UVeyraGreyboxSubsystem::FindSkin(const AActor& Unit) con
 	return Body ? Body->Skin.Get() : nullptr;
 }
 
+TArray<UNiagaraComponent*> UVeyraGreyboxSubsystem::FindBodyEffects(const AActor& Unit) const
+{
+	TArray<UNiagaraComponent*> Effects;
+	if (const FBody* Body = Bodies.Find(&Unit))
+	{
+		for (const TWeakObjectPtr<UNiagaraComponent>& Effect : Body->BodyEffects)
+		{
+			if (UNiagaraComponent* Live = Effect.Get())
+			{
+				Effects.Add(Live);
+			}
+		}
+	}
+	return Effects;
+}
+
+void UVeyraGreyboxSubsystem::RefreshBodyEffects(FBody& Body, USkeletalMeshComponent& Skin, const FVeyraVanguardBody& Worn)
+{
+	if (Body.BodyEffectsOf.Get() == Worn.Mesh && Body.BodyEffects.Num() == Worn.EffectBones.Num())
+	{
+		return;
+	}
+	// The body it wears changed (its own, or a status's): what it poured gives way to what this one pours.
+	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : Body.BodyEffects)
+	{
+		if (UNiagaraComponent* Live = Effect.Get())
+		{
+			Live->DestroyComponent();
+		}
+	}
+	Body.BodyEffects.Reset();
+	Body.BodyEffectsOf = Worn.Mesh;
+	if (!Worn.Effect)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (const FName& Bone : Worn.EffectBones)
+	{
+		// Attached at its bone and simulated in the world, so it pours off the animated skeleton and trails behind it.
+		// Made directly rather than through the spawning helper, which makes nothing where nothing renders.
+		UNiagaraComponent* Effect = NewObject<UNiagaraComponent>(Skin.GetOwner(), NAME_None, RF_Transient);
+		Effect->SetAsset(Worn.Effect);
+		Effect->SetCanEverAffectNavigation(false);
+		Effect->SetupAttachment(&Skin, Bone);
+		Effect->RegisterComponent();
+		Effect->SetVariableLinearColor(Settings.EffectColorParameter, Worn.EffectColor);
+		Effect->SetVariableFloat(Settings.EffectScaleParameter, Worn.EffectScale);
+		Effect->Activate(/*bReset*/ true);
+		Body.BodyEffects.Add(Effect);
+	}
+}
+
 UStaticMeshComponent* UVeyraGreyboxSubsystem::FindProjectileVisual(const AVeyraProjectile& Projectile) const
 {
 	const FProjectileVisual* Visual = Projectiles.Find(&Projectile);
@@ -1014,20 +1067,30 @@ void UVeyraGreyboxSubsystem::RefreshFluxbornArt(const AVeyraFluxborn& Unit, FBod
 	}
 }
 
-void UVeyraGreyboxSubsystem::RefreshVanguardArt(const AVeyraVanguardCharacter& Unit, FBody& Body)
+void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 {
-	// Its Vanguard arrives with its participant; until then, and for a Vanguard without art, its body shows.
-	const AVeyraPlayerState* Participant = Unit.GetPlayerState<AVeyraPlayerState>();
-	const FVeyraVanguardArt* Art = VanguardArt && Participant && Participant->GetVanguardId().IsValid()
-		? VanguardArt->Find(FName(Participant->GetVanguardId().ToString()))
-		: nullptr;
+	// A Vanguard's arrives with its participant, a companion's with its definition; until then, and for one without
+	// art, its body shows.
+	const FVeyraVanguardArt* Art = nullptr;
+	if (!VanguardArt)
+	{
+		return;
+	}
+	if (const AVeyraCompanion* Companion = Cast<AVeyraCompanion>(&Unit))
+	{
+		Art = Companion->GetDefinitionId().IsValid() ? VanguardArt->FindCompanion(FName(Companion->GetDefinitionId().ToString())) : nullptr;
+	}
+	else if (const AVeyraPlayerState* Participant = Unit.GetPlayerState<AVeyraPlayerState>(); Participant && Participant->GetVanguardId().IsValid())
+	{
+		Art = VanguardArt->Find(FName(Participant->GetVanguardId().ToString()));
+	}
 	if (!Art || !Art->Mesh)
 	{
 		return;
 	}
 	if (!Body.Skin.IsValid())
 	{
-		Body.Skin = VeyraVanguardSkin::Attach(const_cast<AVeyraVanguardCharacter&>(Unit));
+		Body.Skin = VeyraVanguardSkin::Attach(const_cast<APawn&>(Unit));
 	}
 	USkeletalMeshComponent* Skin = Body.Skin.Get();
 	if (!Skin)
@@ -1035,8 +1098,11 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const AVeyraVanguardCharacter& U
 		return;
 	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	// The body its statuses call for: a rider on its mount while its ride lasts, on foot otherwise (ADR-064 §1).
-	VeyraVanguardSkin::Dress(*Skin, VeyraVanguardSkin::BodyOf(Unit, *Art), VeyraVanguardSkin::ShapeOf(Settings));
+	// The body its statuses call for: a rider on its mount while its ride lasts, on foot otherwise (ADR-064 §1); and
+	// whatever that body is made of where no mesh shows it, as Nix's smoke.
+	const FVeyraVanguardBody& Worn = VeyraVanguardSkin::BodyOf(Unit, *Art);
+	VeyraVanguardSkin::Dress(*Skin, Worn, VeyraVanguardSkin::ShapeOf(Settings));
+	RefreshBodyEffects(Body, *Skin, Worn);
 	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2).
 	float Radius = 0.0f;
 	float HalfHeight = 0.0f;
@@ -1148,9 +1214,9 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			RefreshFluxbornArt(*Fluxborn, *Body);
 		}
-		else if (const AVeyraVanguardCharacter* Vanguard = Cast<AVeyraVanguardCharacter>(&Unit))
+		else if (Unit.IsA<AVeyraVanguardCharacter>() || Unit.IsA<AVeyraCompanion>())
 		{
-			RefreshVanguardArt(*Vanguard, *Body);
+			RefreshVanguardArt(Unit, *Body);
 		}
 		ApplyBodyPose(Unit, *Body, bReduceFlashing);
 	}

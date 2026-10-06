@@ -98,6 +98,14 @@ section 9. The existing LFS rules cover the FBX files.
 
 ## The other archetypes
 
+- **Companions:** the kit's `companions` section gives a companion that is half of a pair its own body (Nix: a
+  quadruped in a bone-white skull mask, and its horned true form), fitted to its capsule in `Abilities.json` and filed
+  in the art set's `CompanionArt` by companion ID.
+- **Bodies of particles:** a body entry's `effect` (system, bones, colour) is drawn by Niagara where no mesh can show
+  it. The `smokeBody` feature leaves only the mask as mesh, and `NS_VeyraSmokeBody` (`../Presentation/Effects.json`)
+  pours stylized smoke off the listed bones. The effect's scale is the body's `bodyScale`. Rebuild the system with
+  `BuildEffects.ps1` and its puff material with `BuildPresentationMaterials.ps1`; `CaptureVanguards.ps1` pours it in
+  the review shots.
 - **Status bodies:** a body a Vanguard wears in its own's place while it holds a status, listed in its kit entry's
   `statusBodies` (status, name, and the entries that differ from its own) and imported beside its own body as
   `SK_<Id>_<Name>`. A body shows the state the kit puts the Vanguard in: Raska fights on foot, and Hound arrives only

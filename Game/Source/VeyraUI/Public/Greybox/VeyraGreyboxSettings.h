@@ -374,6 +374,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Effects")
 	FName EffectColorParameter;
 
+	/** The effects' user scale, by which a body's effect is sized to the body it pours from (ADR-064 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Effects")
+	FName EffectScaleParameter;
+
 	/** A projectile's trail, a ribbon following its drawn sphere in its side's colour. */
 	UPROPERTY(Config, EditAnywhere, Category = "Effects")
 	TSoftObjectPtr<class UNiagaraSystem> TrailEffect;

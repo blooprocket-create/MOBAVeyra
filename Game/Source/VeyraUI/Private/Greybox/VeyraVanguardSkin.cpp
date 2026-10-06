@@ -2,6 +2,8 @@
 
 #include "Greybox/VeyraVanguardSkin.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Cues/VeyraCombatCues.h"
 #include "GameFramework/Pawn.h"
@@ -53,9 +55,11 @@ void VeyraVanguardSkin::Dress(USkeletalMeshComponent& Skin, const FVeyraVanguard
 
 const FVeyraVanguardBody& VeyraVanguardSkin::BodyOf(const APawn& Unit, const FVeyraVanguardArt& Art)
 {
-	// A Vanguard's statuses are its participant's, and their ledger reaches every machine for presentation.
-	const APlayerState* Participant = Unit.GetPlayerState();
-	const UVeyraStatusComponent* Statuses = Participant ? Participant->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	// A unit's statuses sit beside its ability system: a Vanguard's on its participant, a companion's on itself. Their
+	// ledger reaches every machine for presentation.
+	const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	const AActor* Holder = Abilities ? Abilities->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Holder ? Holder->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	if (!Statuses || Art.StatusBodies.IsEmpty())
 	{
 		return Art;

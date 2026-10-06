@@ -175,5 +175,16 @@
     { "id": "aurelisse", "archetype": "construct", "seed": 503, "heightShare": 0.97, "build": "lean", "headShare": 0.13, "hoverShare": 0.15, "coreShare": 0.45,
       "orbitShare": 1.5, "haloBehind": false, "style": "air",
       "primary": [0.86, 0.88, 0.90], "secondary": [0.30, 0.70, 0.72], "accent": [0.45, 0.70, 1.00], "detail": [0.80, 0.62, 0.30], "features": [] }
+  ],
+  "companions": [
+    { "id": "marek_nix", "archetype": "beast", "seed": 601, "lengthShare": 1.6, "heightShare": 0.55, "trunkShare": 0.32, "hipShare": 0.92, "headShare": 0.24, "tailShare": 0.45, "build": "normal",
+      "primary": [0.06, 0.04, 0.08], "secondary": [0.09, 0.06, 0.11], "accent": [0.65, 0.25, 1.00], "detail": [0.90, 0.86, 0.78], "horn": [0.90, 0.86, 0.78],
+      "features": ["skullMask", "smokeBody"],
+      "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSmokeBody.NS_VeyraSmokeBody", "color": [0.30, 0.07, 0.62, 1.0],
+        "bones": ["pelvis", "spine_01", "spine_02", "neck_01", "head", "upperarm_l", "lowerarm_l", "upperarm_r", "lowerarm_r", "thigh_l", "calf_l", "thigh_r", "calf_r", "tail_01", "tail_02"] },
+      "statusBodies": [
+        { "status": "nix_true_form_size", "name": "TrueForm", "body": { "bodyScale": 1.4, "trunkShare": 0.38, "build": "heavy",
+          "features": ["skullMask", "smokeBody", "horns"] } }
+      ] }
   ]
 }

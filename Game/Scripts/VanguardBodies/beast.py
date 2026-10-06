@@ -38,6 +38,9 @@ def layout(spec, capsule):
     """Every bone's head and tail in centimetres, the body facing +X with its left at +Y, fitted to the capsule."""
     features = set(spec["features"])
     build = BUILD[spec["build"]]
+    # A body a BodyScale status wears is fitted to the capsule as grown.
+    grown = spec.get("bodyScale", 1.0)
+    capsule = dict(capsule, capsuleHalfHeight=capsule["capsuleHalfHeight"] * grown, capsuleRadius=capsule["capsuleRadius"] * grown)
     length = capsule["capsuleRadius"] * 2.0 * spec["lengthShare"]
     withers = capsule["capsuleHalfHeight"] * 2.0 * spec["heightShare"]
     trunk = withers * spec["trunkShare"] * build
@@ -94,9 +97,14 @@ def body(spec, L, d):
     features = set(spec["features"])
     primary, secondary, accent, detail = spec["primary"], spec["secondary"], spec["accent"], spec["detail"]
     trunk, leg = d["trunk"], d["leg"]
+    # A body of smoke has no mesh for its trunk, neck, legs or tail: its effect pours them off its bones (the art
+    # set's Effect), and only what is solid in it, its mask, eyes and claws, is built.
+    smoke = "smokeBody" in features
     # The trunk: hips, belly and chest; a broad beast's wider than it is tall, built low over its legs.
     p0, p1 = L["pelvis"]
-    if "broadBody" in features:
+    if smoke:
+        pass
+    elif "broadBody" in features:
         for bone, start, end, size in (("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1, 0.95), ("spine_01", *L["spine_01"], 1.05), ("spine_02", *L["spine_02"], 1.12)):
             centre = start.lerp(end, 0.5)
             along = (end - start) * 0.75
@@ -105,15 +113,17 @@ def body(spec, L, d):
         body.limb("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1, trunk * 0.85, trunk * 0.95, primary)
         body.limb("spine_01", *L["spine_01"], trunk * 0.95, trunk * 1.0, primary)
         body.limb("spine_02", *L["spine_02"], trunk * 1.0, trunk * 1.05, primary)
-    body.limb("neck_01", *L["neck_01"], trunk * 0.7, trunk * 0.55, primary)
+    if not smoke:
+        body.limb("neck_01", *L["neck_01"], trunk * 0.7, trunk * 0.55, primary)
     # Legs: thick above, slender below, a broad paw.
     pairs = [LEGS, HIND] + ([MIDDLE] if d["six"] else [])
     for side in ("l", "r"):
         for upper, lower, foot in pairs:
-            body.limb(upper + "_" + side, *L[upper + "_" + side], trunk * 0.38, trunk * 0.3, secondary)
-            body.limb(lower + "_" + side, *L[lower + "_" + side], trunk * 0.28, trunk * 0.2, secondary)
             f0, f1 = L[foot + "_" + side]
-            body.limb(foot + "_" + side, f0, f1, trunk * 0.22, trunk * 0.18, mix(secondary, [0.05, 0.05, 0.05], 0.3))
+            if not smoke:
+                body.limb(upper + "_" + side, *L[upper + "_" + side], trunk * 0.38, trunk * 0.3, secondary)
+                body.limb(lower + "_" + side, *L[lower + "_" + side], trunk * 0.28, trunk * 0.2, secondary)
+                body.limb(foot + "_" + side, f0, f1, trunk * 0.22, trunk * 0.18, mix(secondary, [0.05, 0.05, 0.05], 0.3))
             if "claws" in features:
                 # Pale claws splayed ahead of each foot.
                 for claw in (-1, 0, 1):
@@ -128,7 +138,22 @@ def body(spec, L, d):
                           accent, glow=True, segments=4)
     # The head.
     h0, h1 = L["head"]
-    if "wedgeSkull" in features:
+    if "skullMask" in features:
+        # A dark smoke head behind a bone-white skull mask, the only pale thing it carries, violet eyes burning behind
+        # the mask's sockets; a horned true form's mask grows horns. Of smoke, the head is the effect's too.
+        if not smoke:
+            body.limb("head", h0, h1, trunk * 0.5, trunk * 0.32, primary, segments=8)
+        bone = [0.90, 0.86, 0.78]
+        # Big enough to read from the camera: the mask is what tells the pair apart from everything else dark.
+        mask = h0.lerp(h1, 0.55) + Vector((trunk * 0.15, 0, trunk * 0.18))
+        body.blob("head", mask, (Vector((trunk * 0.45, 0, 0)), Vector((0, trunk * 0.58, 0)), Vector((0, 0, trunk * 0.5))), bone, segments=8)
+        body.limb("head", mask, h1 + Vector((trunk * 0.2, 0, -trunk * 0.05)), trunk * 0.45, trunk * 0.2, bone, segments=6)
+        for sign in (1, -1):
+            body.ball("head", mask + Vector((trunk * 0.4, sign * trunk * 0.24, trunk * 0.1)), trunk * 0.12, accent, glow=True)
+            if "horns" in features:
+                root = mask + Vector((-trunk * 0.05, sign * trunk * 0.42, trunk * 0.35))
+                body.limb("head", root, root + Vector((-trunk * 0.5, sign * trunk * 0.35, trunk * 0.75)), trunk * 0.11, trunk * 0.01, bone, segments=5)
+    elif "wedgeSkull" in features:
         # A heavy wedge-shaped skull of faceted plate, a single deep ocular burning in it.
         body.limb("head", h0, h1, trunk * 0.6, trunk * 0.18, detail, segments=5)
         body.ball("head", h0.lerp(h1, 0.4) + Vector((0, 0, trunk * 0.3)), trunk * 0.14, accent, glow=True)
@@ -191,7 +216,8 @@ def body(spec, L, d):
             body.ball(bone, b0.lerp(b1, 0.5) + Vector((0, 0, trunk * 0.9)), trunk * 0.4, [0.22, 0.40, 0.14], scale=(1.4, 1.0, 0.4))
     # A tail tapering behind.
     for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
-        body.limb(name, *L[name], trunk * (0.35 - index * 0.1), trunk * (0.25 - index * 0.08), primary)
+        if not smoke:
+            body.limb(name, *L[name], trunk * (0.35 - index * 0.1), trunk * (0.25 - index * 0.08), primary)
     return body
 
 

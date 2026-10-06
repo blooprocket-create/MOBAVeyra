@@ -23,6 +23,18 @@
       "stencils": { "enemy": 1, "ally": 2, "neutral": 3 },
       "thicknessPixels": { "enemy": 3.0, "other": 2.0 },
       "referenceHeight": 1080.0
+    },
+    {
+      "name": "M_VeyraSmoke",
+      "kind": "particleSmoke",
+      "purpose": "ADR-064 §1: a body of stylized smoke (Nix), drawn by particles; each puff a solid, ragged, sunlit blob that glows young and erodes through holes as it ages.",
+      "noiseScale": 0.03,
+      "ragged": 0.45,
+      "erosion": 1.1,
+      "glowFloor": 0.0,
+      "glowGain": 0.6,
+      "albedo": 0.05,
+      "clip": 0.02
     }
   ]
 }

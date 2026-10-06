@@ -137,7 +137,89 @@ def build_post_process_outline(material, spec):
     EDIT.connect_material_property(custom, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
 
 
-BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline}
+def build_particle_smoke(material, spec):
+    """A particle's puff of stylized smoke: a solid, hard-edged blob (masked) whose edge is ragged by noise and which
+    erodes through growing holes as the particle's alpha fades with age. It is lit as a ball (a normal domed from the
+    sprite's centre), so the sun shades it like any solid in the scene; its albedo is the particle's colour darkened,
+    and it glows in that colour while young, by an amount that does not depend on the scene's exposure."""
+    for key in ("ragged", "erosion", "glowGain", "noiseScale", "albedo"):
+        assert spec[key] > 0.0, key
+    assert spec["glowFloor"] >= 0.0 and 0.0 < spec["clip"] < 1.0 and spec["albedo"] <= 1.0
+    material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_MASKED)
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
+    material.set_editor_property("used_with_niagara_sprites", True)
+    material.set_editor_property("opacity_mask_clip_value", spec["clip"])
+    color = expression(material, unreal.MaterialExpressionParticleColor, -1500, -300)
+    # The dome: 1 at the sprite's centre falling to 0 at its edge (1 - the square of the UV's distance from the centre
+    # in half-widths), so overlapping puffs merge into rounded shapes rather than points.
+    uv = expression(material, unreal.MaterialExpressionTextureCoordinate, -1700, 150)
+    offset = expression(material, unreal.MaterialExpressionSubtract, -1550, 150, const_b=0.5)
+    assert EDIT.connect_material_expressions(uv, "", offset, "A"), "uv"
+    across = expression(material, unreal.MaterialExpressionMultiply, -1400, 150, const_b=2.0)
+    assert EDIT.connect_material_expressions(offset, "", across, "A"), "offset"
+    squared = expression(material, unreal.MaterialExpressionDotProduct, -1250, 180)
+    assert EDIT.connect_material_expressions(across, "", squared, "A"), "across"
+    assert EDIT.connect_material_expressions(across, "", squared, "B"), "across again"
+    dome = expression(material, unreal.MaterialExpressionOneMinus, -1100, 180)
+    assert EDIT.connect_material_expressions(squared, "", dome, ""), "squared"
+    # Its normal, as a ball's: the offset across the sprite, and up out of it by what the dome leaves.
+    domed = expression(material, unreal.MaterialExpressionSaturate, -1000, 260)
+    assert EDIT.connect_material_expressions(dome, "", domed, ""), "dome"
+    rise = expression(material, unreal.MaterialExpressionSquareRoot, -900, 260)
+    assert EDIT.connect_material_expressions(domed, "", rise, ""), "domed"
+    normal = expression(material, unreal.MaterialExpressionAppendVector, -750, 200)
+    assert EDIT.connect_material_expressions(across, "", normal, "A"), "across"
+    assert EDIT.connect_material_expressions(rise, "", normal, "B"), "rise"
+    assert EDIT.connect_material_property(normal, "", unreal.MaterialProperty.MP_NORMAL), "normal"
+    # Noise in world space (the noise's own default position), from 0 to 1: puffs side by side share it, so their
+    # holes run through the body together.
+    noise = expression(material, unreal.MaterialExpressionNoise, -1300, 450, scale=spec["noiseScale"], levels=2,
+                       output_min=0.0, output_max=1.0, turbulence=False)
+    ragged = expression(material, unreal.MaterialExpressionMultiply, -1100, 450, const_b=spec["ragged"])
+    assert EDIT.connect_material_expressions(noise, "", ragged, "A"), "noise"
+    # Age: the share of its alpha the particle has lost, which the emitter fades over its life.
+    age = expression(material, unreal.MaterialExpressionOneMinus, -1100, 600)
+    assert EDIT.connect_material_expressions(color, "A", age, ""), "alpha"
+    eroded = expression(material, unreal.MaterialExpressionMultiply, -950, 600, const_b=spec["erosion"])
+    assert EDIT.connect_material_expressions(age, "", eroded, "A"), "age"
+    # Kept where the dome stands above the noise and the erosion together.
+    roughened = expression(material, unreal.MaterialExpressionSubtract, -800, 400)
+    assert EDIT.connect_material_expressions(dome, "", roughened, "A"), "dome"
+    assert EDIT.connect_material_expressions(ragged, "", roughened, "B"), "ragged"
+    mask = expression(material, unreal.MaterialExpressionSubtract, -650, 450)
+    assert EDIT.connect_material_expressions(roughened, "", mask, "A"), "roughened"
+    assert EDIT.connect_material_expressions(eroded, "", mask, "B"), "eroded"
+    assert EDIT.connect_material_property(mask, "", unreal.MaterialProperty.MP_OPACITY_MASK), "opacity mask"
+    # Albedo: the colour darkened; matte.
+    albedo = expression(material, unreal.MaterialExpressionMultiply, -600, -350, const_b=spec["albedo"])
+    assert EDIT.connect_material_expressions(color, "", albedo, "A"), "colour"
+    assert EDIT.connect_material_property(albedo, "", unreal.MaterialProperty.MP_BASE_COLOR), "base colour"
+    rough = expression(material, unreal.MaterialExpressionConstant, -600, -250, r=1.0)
+    assert EDIT.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS), "roughness"
+    # Glow: glowFloor + glowGain x alpha squared, so a puff glows as it leaves the body and darkens as it thins; scaled
+    # by the inverse of the scene's exposure, so it reads the same under any light.
+    alpha_squared = expression(material, unreal.MaterialExpressionMultiply, -1100, -150)
+    assert EDIT.connect_material_expressions(color, "A", alpha_squared, "A"), "alpha"
+    assert EDIT.connect_material_expressions(color, "A", alpha_squared, "B"), "alpha again"
+    gained = expression(material, unreal.MaterialExpressionMultiply, -950, -150, const_b=spec["glowGain"])
+    assert EDIT.connect_material_expressions(alpha_squared, "", gained, "A"), "alpha squared"
+    glow = expression(material, unreal.MaterialExpressionAdd, -800, -150, const_b=spec["glowFloor"])
+    assert EDIT.connect_material_expressions(gained, "", glow, "A"), "gained"
+    exposure = expression(material, unreal.MaterialExpressionEyeAdaptationInverse, -800, -50)
+    unexposed = expression(material, unreal.MaterialExpressionMultiply, -600, -100)
+    assert EDIT.connect_material_expressions(glow, "", unexposed, "A"), "glow"
+    assert EDIT.connect_material_expressions(exposure, "", unexposed, "B"), "exposure"
+    # Brightest at the puff's heart, so the glow reads as embers inside the smoke rather than its surface.
+    heart = expression(material, unreal.MaterialExpressionMultiply, -500, -100)
+    assert EDIT.connect_material_expressions(unexposed, "", heart, "A"), "unexposed"
+    assert EDIT.connect_material_expressions(domed, "", heart, "B"), "domed"
+    emissive = expression(material, unreal.MaterialExpressionMultiply, -400, -200)
+    assert EDIT.connect_material_expressions(color, "", emissive, "A"), "colour"
+    assert EDIT.connect_material_expressions(heart, "", emissive, "B"), "heart"
+    assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
+
+
+BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "particleSmoke": build_particle_smoke}
 
 # -VeyraOnly=A,B builds just those materials; without it, every one.
 ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)

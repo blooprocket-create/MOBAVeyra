@@ -27,6 +27,23 @@
       "name": "NS_VeyraTrail",
       "purpose": "ADR-063 §4: a projectile's trail; a ribbon left where it flies, in its side colour.",
       "emitter": "/Niagara/DefaultAssets/Templates/Emitters/LocationBasedRibbon.LocationBasedRibbon"
+    },
+    {
+      "name": "NS_VeyraSmokeBody",
+      "purpose": "ADR-064 §1: a body of stylized smoke (Nix), poured off a body's bones as it moves; chunky puffs that glow as they leave the body, then rise, darken and erode away, in the colour the body gives.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke",
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [12] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.9] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.4] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "34 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "54 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "expression": "10 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [10] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 40] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] }
+      ]
     }
   ]
 }

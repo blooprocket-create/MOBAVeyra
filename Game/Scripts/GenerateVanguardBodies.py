@@ -22,14 +22,16 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
-from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, input_hash, stale_assets  # noqa: E402
+from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, entries, input_hash, stale_assets, units  # noqa: E402
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
 KIT_BYTES = (SOURCE / "VanguardKit.json").read_bytes()
 KIT = json.loads(KIT_BYTES)
-TUNING = json.loads((GAME / "Tuning" / "Vanguards.json").read_bytes())["vanguards"]
+# Every unit a body is fitted to: the Vanguards, and the companions that are the other half of a pair (as Nix).
+TUNING = units(json.loads((GAME / "Tuning" / "Vanguards.json").read_bytes())["vanguards"],
+               json.loads((GAME / "Tuning" / "Abilities.json").read_bytes()).get("companions", {}))
 ARCHETYPES = {"humanoid": humanoid, "colossus": colossus, "beast": beast, "construct": construct, "rider": rider}
 
 if not bpy.app.background:
@@ -233,7 +235,9 @@ def build(spec, status=None, suffix=""):
     heights = [vertex.co.z for vertex in mesh.vertices]
     height = max(heights) - min(heights)
     assert min(heights) > -GROUND_SLACK, (spec["id"], "the body sinks below the ground", min(heights))
-    assert not archetype.GROUNDED or min(heights) < dims["full"] * 0.02, (spec["id"], "the body does not stand on the ground", min(heights))
+    # A body of smoke stands on feet its effect pours, not on its mesh.
+    grounded = archetype.GROUNDED and "smokeBody" not in spec.get("features", [])
+    assert not grounded or min(heights) < dims["full"] * 0.02, (spec["id"], "the body does not stand on the ground", min(heights))
     (SOURCE / "FBX").mkdir(parents=True, exist_ok=True)
     path = SOURCE / "FBX" / (name + ".fbx")
     bpy.ops.object.select_all(action="DESELECT")
@@ -256,6 +260,14 @@ def build(spec, status=None, suffix=""):
              "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions,
              # What it was made from, so a later partial build cannot pass it off as current (VanguardBodies.inputs).
              "inputSha256": input_hash(KIT, TUNING, spec)}
+    if spec.get("effect"):
+        # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
+        effect = spec["effect"]
+        missing = [bone for bone in effect["bones"] if bone not in dict(archetype.BONES)]
+        assert not missing, (spec["id"], "the effect pours from bones it lacks", missing)
+        # Sized as the body is grown (a larger form pours larger smoke).
+        asset["effect"] = {"system": effect["system"], "bones": effect["bones"], "color": effect["color"],
+                           "scale": spec.get("bodyScale", 1.0)}
     if status:
         asset["status"] = status
     return asset
@@ -263,16 +275,20 @@ def build(spec, status=None, suffix=""):
 
 def main():
     assert set(KIT["archetypes"]) <= set(ARCHETYPES), ("Unknown archetypes", set(KIT["archetypes"]) - set(ARCHETYPES))
-    entries = [spec for spec in KIT["vanguards"] if ONLY is None or spec["id"] in ONLY]
-    assert ONLY is None or len(entries) == len(ONLY), "Unknown Vanguard in --only"
-    for spec in entries:
-        assert spec["id"] in TUNING, spec["id"] + " is no Vanguard in Vanguards.json"
+    selected = [spec for spec in entries(KIT) if ONLY is None or spec["id"] in ONLY]
+    assert ONLY is None or len(selected) == len(ONLY), "Unknown Vanguard or companion in --only"
+    for spec in selected:
+        assert spec["id"] in TUNING, spec["id"] + " is no Vanguard in Vanguards.json nor companion in Abilities.json"
         for body, status, _ in bodies_of(spec):
             assert body["archetype"] in KIT["archetypes"], (spec["id"], status, "has no archetype in the kit")
     manifest_path = SOURCE / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if ONLY and manifest_path.exists() else {"assets": []}
     kept = [asset for asset in manifest["assets"] if ONLY and asset["id"] not in ONLY]
-    built = [build(*body) for spec in entries for body in bodies_of(spec)]
+    built = [build(*body) for spec in selected for body in bodies_of(spec)]
+    companions = {spec["id"] for spec in KIT.get("companions", [])}
+    for asset in built:
+        if asset["id"] in companions:
+            asset["companion"] = True
     manifest = {"generatorVersion": GENERATOR_VERSION, "blender": bpy.app.version_string,
                 "kitSha256": hashlib.sha256(KIT_BYTES).hexdigest(),
                 "assets": sorted(kept + built, key=lambda asset: (asset["id"], asset.get("status", "")))}
