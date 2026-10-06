@@ -21,7 +21,8 @@
 .PARAMETER Preview
     Also renders each body in its key poses to Game/Saved/VanguardKit/Preview for review.
 .PARAMETER ImportOnly
-    Imports the FBX already written, without running Blender.
+    Imports the FBX already written, without running Blender. As a full build does, it deletes the imported assets of
+    bodies the generator dropped and takes what the generator left to import.
 #>
 [CmdletBinding()]
 param(
@@ -40,7 +41,6 @@ $engine = Resolve-VeyraEngineRoot -ProjectFile $project -EngineRoot $EngineRoot
 $saved = Join-Path $game 'Saved/VanguardKit'
 New-Item -ItemType Directory -Force -Path $saved | Out-Null
 $importNone = $false
-$removedNames = @()
 if (-not $ImportOnly) {
     if (-not $Blender) {
         $command = Get-Command blender -ErrorAction SilentlyContinue
@@ -53,11 +53,18 @@ if (-not $ImportOnly) {
         throw "Blender failed. See $saved/Blender.log"
     }
     Select-String -LiteralPath (Join-Path $saved 'Blender.log') -Pattern 'VEYRA_VANGUARD_BODY(_UNCHANGED|_REMOVED)?: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
-    # The bodies it dropped (removed or renamed in the kit): their FBX went with them, and their imported assets go below.
-    $removedNames = @(Get-Content -LiteralPath (Join-Path $saved 'removed.json') -Raw | ConvertFrom-Json)
+}
+# What the generator has left to import and to delete since the last import, however it ran (it adds to these until an
+# import takes them): the Vanguards whose bodies changed, and the bodies it dropped (removed or renamed in the kit),
+# whose FBX went with them and whose imported assets go below, -ImportOnly or not.
+$changedList = Join-Path $saved 'changed.json'
+$removedList = Join-Path $saved 'removed.json'
+$pending = @(if (Test-Path -LiteralPath $changedList) { Get-Content -LiteralPath $changedList -Raw | ConvertFrom-Json })
+$removedNames = @(if (Test-Path -LiteralPath $removedList) { Get-Content -LiteralPath $removedList -Raw | ConvertFrom-Json })
+if (-not $ImportOnly) {
     # A body rebuilt as it was kept its FBX, and keeps its imported assets: only the Vanguards whose bodies changed are
     # imported again (the art set is written whatever changed).
-    $Vanguards = @(Get-Content -LiteralPath (Join-Path $saved 'changed.json') -Raw | ConvertFrom-Json)
+    $Vanguards = $pending
     $importNone = $Vanguards.Count -eq 0
 }
 # Before anything is removed: every body the art set will hold was made from today's kit, or nothing is imported.
@@ -97,9 +104,8 @@ $log = Join-Path $saved 'Import.log'
 if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath $log -SimpleMatch 'VEYRA_VANGUARD_BODIES_IMPORTED' -Quiet)) {
     throw "The Vanguard bodies were not imported. See $log"
 }
-if (-not $ImportOnly) {
-    # Imported and deleted: nothing the generator left is waiting any more (it adds to these until an import takes them).
-    Set-Content -LiteralPath (Join-Path $saved 'changed.json') -Value '[]'
-    Set-Content -LiteralPath (Join-Path $saved 'removed.json') -Value '[]'
-}
+# Imported and deleted: what was waiting is taken, all of it but what an -ImportOnly naming some Vanguards left out.
+$left = @(if ($selected.Count -gt 0) { $pending | Where-Object { $_ -notin $selected } })
+Set-Content -LiteralPath $changedList -Value (ConvertTo-Json -InputObject $left -Compress)
+Set-Content -LiteralPath $removedList -Value '[]'
 Select-String -LiteralPath $log -Pattern 'VEYRA_VANGUARD_BODY_ASSET: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
