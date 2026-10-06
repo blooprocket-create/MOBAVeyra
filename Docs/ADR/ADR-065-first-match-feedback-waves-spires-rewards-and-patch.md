@@ -73,7 +73,7 @@ The code:
 
 ### 6. A last-hit cue
 - **One formula:** `VeyraBasicAttacks::ExpectedHit` gives the damage a unit's basic attack deals a target before critical hits and on-hit effects. It takes the attack's profile and the attacker's power, and reads the target's resistances and the mitigation constant. The bots' last-hit judgement uses it too, so there is one formula.
-- **The cue:** when an enemy Fluxborn's or wildlife's Health is at most the player's expected hit, its bar shows a killable mark.
+- **The cue:** a damaged enemy Fluxborn's or creature's bar carries a mark at the player's expected hit: the Health one basic attack would finish. The moment its Health falls to the mark, the attack kills, and its Health turns gold.
 - **The inputs reach the client already:** the player's Vanguard's power (owner-only), the target's Health and resistances, and the profile from tuning.
 - **The setting:** "Last-Hit Cue" (Interface, on by default).
 - **It is a hint:** it ignores critical hits, other attackers and projectile travel, and never decides anything.

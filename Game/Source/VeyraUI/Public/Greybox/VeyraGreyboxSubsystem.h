@@ -378,6 +378,9 @@ private:
 	/** Unit's drawn body eases after each update from the server, as its kind's settings say (ADR-065 §12). */
 	static void EaseBody(APawn& Unit);
 
+	/** Whether Unit is the local player's own Vanguard. */
+	bool IsViewersVanguard(const AActor* Unit) const;
+
 	/** The ground under Location, lifted for drawing; Location itself where there is none. */
 	FVector GroundUnder(const FVector& Location) const;
 

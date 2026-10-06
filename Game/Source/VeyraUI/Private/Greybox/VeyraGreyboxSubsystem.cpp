@@ -275,11 +275,17 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	PlaySound(Cue);
 	NoteSwing(Cue);
 	// The player's own level-up is announced on the HUD (ADR-065 §5).
-	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
-	if (Cue.Kind == EVeyraCombatCueKind::LevelUp && Viewer && Cue.Unit.Get() == Viewer->GetPawn())
+	if (Cue.Kind == EVeyraCombatCueKind::LevelUp && IsViewersVanguard(Cue.Unit.Get()))
 	{
 		OwnLevelUp = FVeyraLevelUpMoment{ static_cast<int32>(Cue.Amount), FPlatformTime::Seconds() };
 	}
+}
+
+bool UVeyraGreyboxSubsystem::IsViewersVanguard(const AActor* Unit) const
+{
+	// The local controller possesses nothing: its participant's Vanguard is the player's own (ADR-006 §6).
+	const AVeyraPlayerController* Viewer = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	return Unit && Viewer && Unit == Viewer->GetVanguard();
 }
 
 void UVeyraGreyboxSubsystem::NoteSwing(const FVeyraCombatCue& Cue)
@@ -358,8 +364,7 @@ void UVeyraGreyboxSubsystem::PlaySound(const FVeyraCombatCue& Cue)
 	}
 	// A level-up is heard only by the player whose Vanguard it is, as the HUD's own sounds are (ADR-065 §5).
 	const bool bOwnLevelUp = Cue.Kind == EVeyraCombatCueKind::LevelUp;
-	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
-	if (bOwnLevelUp && (!Viewer || Unit != Viewer->GetPawn()))
+	if (bOwnLevelUp && !IsViewersVanguard(Unit))
 	{
 		return;
 	}

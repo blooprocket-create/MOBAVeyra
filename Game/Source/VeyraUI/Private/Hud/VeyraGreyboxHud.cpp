@@ -138,8 +138,9 @@ namespace
 		// Health and shields share the bar; when together they pass Max Health, the bar holds their total.
 		const double Total = FMath::Max(Vitals->MaxHealth, Vitals->Health + Vitals->Shield);
 		const float HealthWidth = BarWidth * Vitals->Health / Total;
-		// The last-hit cue, on an enemy Fluxborn or creature: a mark where the player's next basic attack would leave its
-		// Health, and its Health lit once that attack would finish it (ADR-065 §6). A guide: crits and on-hit are left out.
+		// The last-hit cue, on an enemy Fluxborn or creature: a mark at the Health the player's next basic attack would finish,
+		// so the moment its Health falls to the mark, that attack kills; its Health is lit from then (ADR-065 §6). A guide:
+		// crits and on-hit are left out.
 		FLinearColor HealthColor = Greybox.SideColorOf(Unit);
 		TOptional<float> LastHitMark;
 		const UAbilitySystemComponent* Defender = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);

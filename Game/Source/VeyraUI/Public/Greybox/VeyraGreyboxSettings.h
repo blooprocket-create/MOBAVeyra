@@ -109,8 +109,8 @@ public:
 	FLinearColor ShieldColor = FLinearColor::Transparent;
 
 	/**
-	 * The last-hit cue (ADR-065 §6): a mark across an enemy Fluxborn's or creature's bar where the player's next basic
-	 * attack would leave its Health, and the colour its Health takes once that attack would finish it.
+	 * The last-hit cue (ADR-065 §6): a mark across an enemy Fluxborn's or creature's bar at the Health the player's next
+	 * basic attack would finish, and the colour its Health takes once it falls that low.
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor LastHitMarkColor = FLinearColor::Transparent;
