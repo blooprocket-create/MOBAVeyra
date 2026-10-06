@@ -122,7 +122,14 @@ section 9. The existing LFS rules cover the FBX files.
   with her rides, which hold `raska_ride_body` for their length. Neris always rides her wave (`waveBase`: a swell with a
   crescent crest on the cape bones). Breaking Wave and TIDEBREAKER (`neris_wave_body`, `neris_tidebreaker_body`) lift
   her on a deeper, breaking one, and she stays her own size. Calm and Storm swap her slots rather than hold a status,
-  so the wave does not yet show them.
+  so the wave does not yet show them. When a unit holds several statuses with bodies, the status body with the highest
+  `priority` (inside its `body`) is worn, then the first by status ID.
+- **Moro** (`barkBody`): a dark fur trunk, with grey timber plates down the flanks of the haunch and shoulder, a
+  shaggy cream ruff, and branching antlers with leaves. Wildlight runs as veins down each side of the back, where the
+  camera sees it, as leaf panels on the flanks, as eyes at the shoulders and haunches, and as veins down the legs.
+  In his own ground (`moro_wild_dominion_power`) it surges (`wildlightSurge`): wider, paler, up the neck, and into
+  the antler leaves. Wildstorm (`moro_wildstorm_stride`, priority 1) adds the surge plus `NS_VeyraWildstorm` gusting
+  off his body and legs.
 - **Rider:** a humanoid seated on a mount that is half its silhouette, worn as a status body. The mount's chain and the
   rider's both hang from the root. Raska rides Hound, a heavy brawler's machine on fat knobbled tyres that turn once a
   Run cycle. Wherever Hound moves the silhouette (an idle shudder, a lunge, a wheelie to cast, a jolt when hit), she is

@@ -61,6 +61,23 @@
         { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -420] },
         { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1.5] }
       ]
+    },
+    {
+      "name": "NS_VeyraWildstorm",
+      "purpose": "ADR-064 §1: a storm roared up around a body (Moro's Wildstorm); quick gusts of glowing stylized cloud thrown out from its flanks and legs, lifting and tearing away, in the colour the body gives.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke",
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [14] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.7] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "24 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "44 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "expression": "50 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [260] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 120] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [3] }
+      ]
     }
   ]
 }

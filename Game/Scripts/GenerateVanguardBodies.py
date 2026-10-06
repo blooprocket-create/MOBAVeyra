@@ -335,6 +335,10 @@ def build(spec, status=None, suffix="", previous=None):
                            "scale": spec.get("bodyScale", 1.0)}
     if status:
         asset["status"] = status
+        # Which status body wins when its unit holds several (the art set's Priority): a brief burst's over one held
+        # all the while in some ground.
+        if spec.get("priority"):
+            asset["priority"] = spec["priority"]
     return asset, not kept
 
 

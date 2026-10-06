@@ -206,6 +206,25 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsTrue(Skin->GetSkeletalMeshAsset() == Art.Mesh, TEXT("its own body again once the status ends")));
 		}
 
+		TEST_METHOD(OfTheStatusesItHoldsTheHighestPriorityBodyWinsThenTheFirstById)
+		{
+			// A body it holds all the while in some ground, and a brief burst's body above it.
+			FVeyraVanguardArt Art;
+			const FName Ground(TEXT("a_ground")), Burst(TEXT("b_burst")), Other(TEXT("c_other"));
+			Art.StatusBodies.Add(Ground).RunStride = 1.0f;
+			FVeyraVanguardBody& BurstBody = Art.StatusBodies.Add(Burst);
+			BurstBody.RunStride = 2.0f;
+			BurstBody.Priority = 1;
+			Art.StatusBodies.Add(Other).RunStride = 3.0f;
+			const auto Holding = [](TArray<FName> Held) {
+				return [Held = MoveTemp(Held)](FName Status) { return Held.Contains(Status); };
+			};
+			ASSERT_THAT(IsTrue(&Art.BodyFor(Holding({ Ground, Burst })) == &Art.StatusBodies[Burst], TEXT("the burst over the ground")));
+			ASSERT_THAT(IsTrue(&Art.BodyFor(Holding({ Ground, Other })) == &Art.StatusBodies[Ground], TEXT("ties go by status ID")));
+			ASSERT_THAT(IsTrue(&Art.BodyFor(Holding({ Other })) == &Art.StatusBodies[Other]));
+			ASSERT_THAT(IsTrue(&Art.BodyFor(Holding({})) == &Art, TEXT("its own body when it holds none")));
+		}
+
 		TEST_METHOD(ACompanionWearsItsBodyAndItsStatusBodyWhileItHoldsTheStatus)
 		{
 			// The first companion (by ID) with art, summoned by a Vanguard, wears its own generated body: the pair's other half.
