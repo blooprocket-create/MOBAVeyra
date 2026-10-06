@@ -125,10 +125,10 @@ void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueK
 		break;
 	case EVeyraCombatCueKind::Hit:
 	{
-		// A flinch never cuts short what the body is doing; the flash still shows the hit.
+		// A flinch never cuts short what the body is doing, a recall included; the flash still shows the hit.
 		const EVeyraVanguardClip Busy = State.Current.IsActive() ? State.Current.Clip : EVeyraVanguardClip::None;
 		const bool bBusy = Busy == EVeyraVanguardClip::AttackWindup || Busy == EVeyraVanguardClip::AttackStrike || Busy == EVeyraVanguardClip::Cast ||
-			Busy == EVeyraVanguardClip::Death;
+			Busy == EVeyraVanguardClip::Death || Busy == EVeyraVanguardClip::Recall;
 		if (!bBusy && Has(Shape, EVeyraVanguardClip::Hit))
 		{
 			Play(State, EVeyraVanguardClip::Hit, 0.0f, 1.0f, -1.0f, false);
@@ -157,8 +157,11 @@ void VeyraVanguardAnim::Advance(FVeyraVanguardAnimState& State, float DeltaSecon
 		State.Previous = FVeyraVanguardAnimSlot();
 		State.Current = FVeyraVanguardAnimSlot();
 	}
-	// Recall loops while it lasts, over nothing else.
-	if (Inputs.bAlive && Inputs.bRecalling && !State.Current.IsActive() && Has(Shape, EVeyraVanguardClip::Recall))
+	// Recall loops while it lasts. It takes over from an action as soon as it begins (the recall order cancelled the
+	// windup or cast it shows), and otherwise waits for what is playing, a flinch, to end.
+	const EVeyraVanguardClip Doing = State.Current.IsActive() ? State.Current.Clip : EVeyraVanguardClip::None;
+	const bool bAction = Doing == EVeyraVanguardClip::AttackWindup || Doing == EVeyraVanguardClip::AttackStrike || Doing == EVeyraVanguardClip::Cast;
+	if (Inputs.bAlive && Inputs.bRecalling && (Doing == EVeyraVanguardClip::None || bAction) && Has(Shape, EVeyraVanguardClip::Recall))
 	{
 		Play(State, EVeyraVanguardClip::Recall, 0.0f, 1.0f, -1.0f, false);
 	}

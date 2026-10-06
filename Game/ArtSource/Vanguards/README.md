@@ -93,7 +93,9 @@ section 9. The existing LFS rules cover the FBX files.
   animation and its skeleton, in the import. Each body records the hash of what it is made from (its kit entry, its
   archetype's settings, the frame rate, the generator version, its capsule: `VanguardBodies/inputs.py`), and of what
   made it (the generator's code and the Blender version). The import, and CI (`.github/workflows/vanguard-bodies.yml`),
-  refuse any body in the manifest whose inputs have changed since, so a partial build cannot keep a stale one.
+  refuse any body in the manifest whose inputs have changed since, so a partial build cannot keep a stale one. The
+  kit pins the Blender release (`blender`): the generator will not run under another, and a manifest another built
+  is stale whole. CI also checks every FBX is the file the manifest recorded, by its Git LFS pointer.
 - **Rebuild everything, rewrite what changed:** each body also records a hash of its content (vertices, weights,
   colours, skeleton, every key). A rebuild that gives a body the same content keeps its FBX and imported assets, and
   `BuildVanguardBodies.ps1` imports only the Vanguards whose bodies changed, still rewriting the art set. After any

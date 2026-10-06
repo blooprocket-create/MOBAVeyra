@@ -66,15 +66,50 @@ def stale_assets(kit, vanguards, assets, generator=None, blender=None):
     return changed + missing
 
 
+def pinned_blender(kit, version):
+    """Whether version (as Blender gives it, "5.2.0") is the release the kit pins (its "blender", major.minor)."""
+    return version is not None and version.split(".")[:2] == kit["blender"].split(".")[:2]
+
+
 def stale_in(game):
     """The stale bodies of the project whose Game folder is game: the manifest's against its kit, Vanguards.json, the
-    generator's code beside them and the Blender the manifest was last built by."""
+    generator's code beside them and the Blender the manifest was last built by, which must be the one the kit pins:
+    built by any other, every body is stale."""
     game = Path(game)
     source = game / "ArtSource" / "Vanguards"
     kit = json.loads((source / "VanguardKit.json").read_text(encoding="utf-8"))
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     vanguards = json.loads((game / "Tuning" / "Vanguards.json").read_text(encoding="utf-8"))["vanguards"]
-    return stale_assets(kit, vanguards, manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"))
+    stale = stale_assets(kit, vanguards, manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"))
+    if not pinned_blender(kit, manifest.get("blender")):
+        stale = sorted(set(stale) | {asset["name"] for asset in manifest["assets"]})
+    return stale
+
+
+# How a Git LFS pointer begins: the file is not checked out (CI does not fetch large files), only its object's id.
+LFS_POINTER = b"version https://git-lfs.github.com/spec/v1"
+
+
+def committed_mismatches(game):
+    """Every manifest asset whose FBX is missing or is not the file the manifest recorded, by name. A file Git LFS has
+    not checked out is its pointer, which names its object by the same SHA-256, so CI need not fetch the FBX."""
+    game = Path(game)
+    source = game / "ArtSource" / "Vanguards"
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    mismatches = []
+    for asset in manifest["assets"]:
+        path = source / asset["file"]
+        if not path.is_file():
+            mismatches.append(asset["name"])
+            continue
+        data = path.read_bytes()
+        if data.startswith(LFS_POINTER):
+            oid = next((line.split(":", 1)[1] for line in data.decode("utf-8").splitlines() if line.startswith("oid sha256:")), None)
+        else:
+            oid = hashlib.sha256(data).hexdigest()
+        if oid != asset.get("sha256"):
+            mismatches.append(asset["name"])
+    return mismatches
 
 
 if __name__ == "__main__":
@@ -83,5 +118,9 @@ if __name__ == "__main__":
     stale = stale_in(sys.argv[1])
     if stale:
         print("Regenerate these bodies (GenerateVanguardBodies.py; a full build rewrites only those that changed): their inputs,"
-              " generator code or Blender changed since they were built: " + ", ".join(stale))
+              " generator code or Blender changed since they were built, or their Blender is not the kit's: " + ", ".join(stale))
+    mismatched = committed_mismatches(sys.argv[1])
+    if mismatched:
+        print("These bodies' FBX are missing or are not what the manifest recorded: " + ", ".join(mismatched))
+    if stale or mismatched:
         sys.exit(1)

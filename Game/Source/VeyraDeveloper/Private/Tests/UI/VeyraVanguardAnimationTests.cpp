@@ -205,6 +205,24 @@ namespace VeyraVanguardAnimationTests
 			ASSERT_THAT(IsTrue(State.Current.Clip == EVeyraVanguardClip::None, TEXT("it fades once the recall ends")));
 		}
 
+		TEST_METHOD(RecallTakesOverAnActionAsItBeginsAndAFlinchLeavesItBe)
+		{
+			FVeyraVanguardAnimInputs Recalling;
+			Recalling.bRecalling = true;
+			// The recall order cancels a windup under way: the body shows the recall at once, not the rest of the windup.
+			FVeyraVanguardAnimState State;
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::AttackWindup, WindupSeconds, Shape());
+			VeyraVanguardAnim::Advance(State, Step, Recalling, Shape());
+			ASSERT_THAT(IsTrue(State.Current.Clip == EVeyraVanguardClip::Recall, TEXT("the recall shows as soon as it begins")));
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::Hit, 0.0f, Shape());
+			ASSERT_THAT(IsTrue(State.Current.Clip == EVeyraVanguardClip::Recall, TEXT("a flinch never cuts it short")));
+			// And a cast's raised hands.
+			FVeyraVanguardAnimState Casting;
+			VeyraVanguardAnim::NoteCue(Casting, EVeyraCombatCueKind::CastWindup, 0.0f, Shape());
+			VeyraVanguardAnim::Advance(Casting, Step, Recalling, Shape());
+			ASSERT_THAT(IsTrue(Casting.Current.Clip == EVeyraVanguardClip::Recall));
+		}
+
 		TEST_METHOD(OnlyDeathAndRecallTakeTheLegsFromARun)
 		{
 			ASSERT_THAT(IsTrue(VeyraVanguardAnim::IsWholeBody(EVeyraVanguardClip::Death) && VeyraVanguardAnim::IsWholeBody(EVeyraVanguardClip::Recall)));

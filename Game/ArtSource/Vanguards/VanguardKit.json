@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "generator": "Game/Scripts/GenerateVanguardBodies.py",
   "generatorVersion": 1,
+  "blender": "5.2",
   "status": "Provisional",
   "purpose": "ADR-064: generated, stylised first-pass bodies whose job is readability. Each entry is read from its Vanguard's Visual language paragraph in the Initial Roster Character Bible; art parameters only, never gameplay tuning. The body is fitted to the capsule in Game/Tuning/Vanguards.json.",
   "destination": "/Game/Veyra/Vanguards",
