@@ -17,17 +17,17 @@ namespace VeyraEffectsEnumTests
 	{
 		TEST_METHOD(AnEntryIsFoundByItsAuthoredNameWhateverTheCulture)
 		{
-			// A display name with a translation, as an engine enum's has in a localized editor.
-			FPolyglotTextData Polyglot(ELocalizedTextSourceCategory::Game, TEXT("VeyraEffectsEnumTests"), TEXT("DirectSet"), TEXT("Direct Set"));
-			Polyglot.AddLocalizedString(TEXT("fr"), TEXT("Reglage direct"));
-			FTextLocalizationManager::Get().RegisterPolyglotTextData(Polyglot);
-			const FText Translated = Polyglot.GetText();
-			const TArray<FText> Names = { FText::AsCultureInvariant(TEXT("Random")), Translated };
-
 			FInternationalization& Internationalization = FInternationalization::Get();
 			FInternationalization::FCultureStateSnapshot Before;
 			Internationalization.BackupCultureState(Before);
 			const bool bChanged = Internationalization.SetCurrentCulture(TEXT("fr"));
+			// A display name with a translation, as an engine enum's has in an editor running in that culture: editor
+			// text, which follows the editor's own culture.
+			FPolyglotTextData Polyglot(ELocalizedTextSourceCategory::Editor, TEXT("VeyraEffectsEnumTests"), TEXT("DirectSet"), TEXT("Direct Set"));
+			Polyglot.AddLocalizedString(TEXT("fr"), TEXT("Reglage direct"));
+			FTextLocalizationManager::Get().RegisterPolyglotTextData(Polyglot);
+			const FText Translated = Polyglot.GetText();
+			const TArray<FText> Names = { FText::AsCultureInvariant(TEXT("Random")), Translated };
 			const FString Shown = Translated.ToString();
 			const int32 Found = VeyraEffects::FindByAuthoredName(Names, TEXT("Direct Set"));
 			const int32 FoundByTranslation = VeyraEffects::FindByAuthoredName(Names, TEXT("Reglage direct"));
