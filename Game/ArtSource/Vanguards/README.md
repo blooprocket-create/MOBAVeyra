@@ -168,6 +168,16 @@ section 9. The existing LFS rules cover the FBX files.
   and down under her right arm to a wide muzzle with Flux light standing in the bore, past two blue-lit Flux chambers,
   and its breech and recoil assembly rides up over her left shoulder. Both hands stay on it as she runs, swings and
   casts, and with no sight to look down she keeps her head up and clear of the gun.
+  Mimzi reads as a small animal, never a person with fox ears. She is small in frame (`shoulderShare` sizes her
+  shoulders by her own height rather than her capsule, and the disc under her shows her footprint). Her face is a
+  fox's (`foxFace`): a short pale muzzle with a dark nose, big amber eyes set wide, and flaring cheek tufts. Her
+  `fennecEars` are enormous, pale outside and pink within, and each is folded into a cup facing forward and up. They
+  stand through a `bigHood` with a rolled brim, brass rivets at the temples and a point falling behind. A `brushTail`
+  as long as she is tall to the shoulder sweeps up behind her, paler at the tip. Over her teal coat she wears a brown
+  `harness` and a `trinketSatchel` (a buckled satchel on a cross-strap, a cut blue crystal charm and a brass cog, two
+  belt pouches). Her red `trailingScarf` is the one hot colour on her. `furCuffs` of her own fur show at her wrists and
+  boot tops. The Tinkertwins (`rings`) orbit her hands, each as broad as her head: a brass ring with a gimbal crossed
+  inside it and a cut blue crystal at its heart, turning inside a ring of its own light with star-sparks.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:
