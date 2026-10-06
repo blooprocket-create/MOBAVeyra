@@ -160,7 +160,7 @@ def body(ground, side_colour, flash=0.0, stencil=0):
 
 def dress(component, flash, stencil):
     if flash > 0.0:
-        overlay = unreal.KismetMaterialLibrary.create_dynamic_material_instance(WORLD, asset("HitFlashMaterial"))
+        overlay = unreal.MaterialLibrary.create_dynamic_material_instance(WORLD, asset("HitFlashMaterial"))
         overlay.set_vector_parameter_value(GREYBOX["HitFlashColorParameter"], colour("HitFlashColor"))
         overlay.set_scalar_parameter_value(GREYBOX["HitFlashStrengthParameter"], flash)
         component.set_overlay_material(overlay)
@@ -268,7 +268,7 @@ def camera_at(centre, fov, distance):
     component = camera.camera_component
     component.set_editor_property("field_of_view", fov)
     component.set_editor_property("constrain_aspect_ratio", False)
-    outline = unreal.KismetMaterialLibrary.create_dynamic_material_instance(WORLD, asset("HoverOutlineMaterial"))
+    outline = unreal.MaterialLibrary.create_dynamic_material_instance(WORLD, asset("HoverOutlineMaterial"))
     for side in ("Enemy", "Ally", "Neutral"):
         outline.set_vector_parameter_value(GREYBOX[f"Hover{side}ColorParameter"], colour(f"{side}Color"))
     settings = component.get_editor_property("post_process_settings")

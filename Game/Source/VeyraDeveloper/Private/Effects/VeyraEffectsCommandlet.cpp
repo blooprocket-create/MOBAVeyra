@@ -34,7 +34,8 @@ namespace
 
 	/**
 	 * A module input the spec sets to a value of its own (1 number a float, 3 a vector, 4 a colour), or to an expression
-	 * of the system's parameters (as a size in terms of the user scale, or a whole number for a count). It is set on the
+	 * of the system's parameters (as a size in terms of the user scale, or a whole number for a count), or to one of its
+	 * enum's values by display name (a static switch, such as a mode that shows the input it governs). It is set on the
 	 * one emitter it names, or on every emitter that has it when it names none.
 	 */
 	struct FEffectInput
@@ -44,8 +45,34 @@ namespace
 		FName Input;
 		TArray<double> Value;
 		FString Expression;
+		FString Enum;
 		FName Emitter;
 	};
+
+	/** Value set to the entry of Reference's enum input whose display name is Display; false if it has none. */
+	bool EnumValue(const FNiagaraExt_StackItemReference& Reference, const FString& Display, FNiagaraExt_StackInputValue& Value, FNiagaraExternalEditContext& Edit)
+	{
+		FNiagaraExt_StackInputTopology Topology;
+		UNiagaraExternalEditUtilities::GetStackInputTopology(Reference, Topology, Edit);
+		UEnum* Enum = Topology.Type.GetEnum();
+		if (!Enum)
+		{
+			return false;
+		}
+		for (int32 Index = 0; Index < Enum->NumEnums(); ++Index)
+		{
+			if (Enum->GetDisplayNameTextByIndex(Index).ToString() == Display)
+			{
+				Value.InitializeAs<FNiagaraExt_StackInputData_Enum>();
+				FNiagaraExt_StackInputData_Enum& Entry = Value.GetMutable<FNiagaraExt_StackInputData_Enum>();
+				Entry.Enum = Enum;
+				Entry.EnumName = Enum->GetNameByIndex(Index);
+				Entry.DisplayName = Enum->GetDisplayNameTextByIndex(Index);
+				return true;
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * One system of the spec: its name, the engine system or emitter template it starts from, the inputs it sets, and
@@ -87,7 +114,7 @@ namespace
 			const FLinearColor Color(Input.Value[0], Input.Value[1], Input.Value[2], Input.Value[3]);
 			Value.InitializeAs(TBaseStructure<FLinearColor>::Get(), reinterpret_cast<const uint8*>(&Color));
 		}
-		else
+		else if (Input.Enum.IsEmpty())
 		{
 			return 0;
 		}
@@ -101,6 +128,11 @@ namespace
 			FNiagaraExt_StackItemReference Reference(&System, Emitter.EmitterName, Input.Script, Input.Module);
 			Reference.InputNameStack.Add(Input.Input);
 			const int32 Errors = Edit.Errors.Num();
+			// An enum's entries are its type's, which only this emitter's input can say.
+			if (!Input.Enum.IsEmpty() && !EnumValue(Reference, Input.Enum, Value, Edit))
+			{
+				continue;
+			}
 			UNiagaraExternalEditUtilities::SetStackInputData(Reference, Value, Edit);
 			Set += Edit.Errors.Num() == Errors ? 1 : 0;
 		}
@@ -256,20 +288,22 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 			for (const TSharedPtr<FJsonValue>& InputValue : *Inputs)
 			{
 				const TSharedPtr<FJsonObject> InputObject = InputValue->AsObject();
-				FString Script, Module, Input, Expression, Emitter;
+				FString Script, Module, Input, Expression, Enum, Emitter;
 				const TArray<TSharedPtr<FJsonValue>>* Numbers = nullptr;
 				const bool bNumbers = InputObject && InputObject->TryGetArrayField(TEXT("value"), Numbers);
 				const bool bExpression = InputObject && InputObject->TryGetStringField(TEXT("expression"), Expression) && !Expression.IsEmpty();
+				const bool bEnum = InputObject && InputObject->TryGetStringField(TEXT("enum"), Enum) && !Enum.IsEmpty();
 				if (!InputObject || !InputObject->TryGetStringField(TEXT("script"), Script) || !InputObject->TryGetStringField(TEXT("module"), Module)
-					|| !InputObject->TryGetStringField(TEXT("input"), Input) || bNumbers == bExpression
+					|| !InputObject->TryGetStringField(TEXT("input"), Input) || int32(bNumbers) + int32(bExpression) + int32(bEnum) != 1
 					|| (bNumbers && !(Numbers->Num() == 1 || Numbers->Num() == 3 || Numbers->Num() == 4)))
 				{
-					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and either a value of 1, 3 or 4 numbers or an expression."),
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and one of a value of 1, 3 or 4 numbers, an expression or an enum's display name."),
 						*SpecFile, *Effect.Name);
 					return 1;
 				}
 				FEffectInput& Set = Effect.Inputs.Add_GetRef({ FName(*Script), FName(*Module), FName(*Input) });
 				Set.Expression = Expression;
+				Set.Enum = Enum;
 				if (InputObject->TryGetStringField(TEXT("emitter"), Emitter))
 				{
 					if (Emitter.IsEmpty())
@@ -296,7 +330,8 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 	// -Only=A,B builds just those systems; without it, every one.
 	FString OnlyList;
 	TArray<FString> Only;
-	if (FParse::Value(*Params, TEXT("Only="), OnlyList))
+	// The whole list: FParse::Value stops at the first comma unless told otherwise.
+	if (FParse::Value(*Params, TEXT("Only="), OnlyList, /*bShouldStopOnSeparator*/ false))
 	{
 		OnlyList.ParseIntoArray(Only, TEXT(","));
 		for (const FString& Name : Only)
@@ -444,7 +479,14 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		}
 		for (const FEffectInput& Input : Effect.Inputs)
 		{
-			if (SetInput(*System, Summary, Input, Edit) == 0)
+			const int32 Set = SetInput(*System, Summary, Input, Edit);
+			if (Set > 0 && !Input.Enum.IsEmpty())
+			{
+				// A switch changes which inputs the stack shows, and a context keeps the stack it first read: the inputs after
+				// it are set through a fresh one.
+				Edit = FNiagaraExternalEditContext(System);
+			}
+			if (Set == 0)
 			{
 				LogErrors(Edit, Effect.Name);
 				const FString Where = Input.Emitter.IsNone() ? FString(TEXT("no emitter has")) : FString::Printf(TEXT("its emitter %s has no"), *Input.Emitter.ToString());
