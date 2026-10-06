@@ -12,6 +12,9 @@ on:
       - 'Game/Scripts/EnvironmentKit/inputs.py'
       - 'tests/test_kit_materials_spec.py'
       - 'tests/test_environment_kit_inputs.py'
+      - 'Game/Scripts/fbx_content.py'
+      - 'tests/test_fbx_content.py'
+      - 'tests/fixtures/fbx/**'
       - '.github/workflows/art-kits.yml'
   pull_request:
     paths:
@@ -24,6 +27,9 @@ on:
       - 'Game/Scripts/EnvironmentKit/inputs.py'
       - 'tests/test_kit_materials_spec.py'
       - 'tests/test_environment_kit_inputs.py'
+      - 'Game/Scripts/fbx_content.py'
+      - 'tests/test_fbx_content.py'
+      - 'tests/fixtures/fbx/**'
       - '.github/workflows/art-kits.yml'
 
 jobs:
@@ -40,3 +46,5 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_kit_materials_spec.py'
       - name: Check the environment meshes were generated from the committed kit
         run: python3 -m unittest discover -s tests -p 'test_environment_kit_inputs.py'
+      - name: Check that a generator keeps an FBX whose content is unchanged
+        run: python3 -m unittest discover -s tests -p 'test_fbx_content.py'

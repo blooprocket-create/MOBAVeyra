@@ -3,8 +3,9 @@
 Run in a background Blender 5.2 (BuildEnvironmentArt.ps1). Every family in Game/ArtSource/Environment/CrucibleKit.json
 is generated from its seed and parameters alone: slate cliffs and boulders cut into facets and weathered, fluted pillars
 broken off, masonry blocks, glyph steles, trees, shrubs, ferns, reeds and grass. Geometry and material slots only: no
-map coordinates, no collision, no gameplay. The manifest hashes each mesh's normalised geometry as well as its file,
-since FBX containers carry metadata that changes without the mesh.
+map coordinates, no collision, no gameplay. The manifest hashes each mesh's normalised geometry and content as well as
+its file, since FBX containers carry metadata that changes without the mesh; an FBX whose content comes out unchanged
+is kept as it was (fbx_content.py), so a run that changes no mesh rewrites no FBX.
 
 Usage: blender --background --factory-startup --python GenerateEnvironmentMeshes.py -- [--only Cliff,Tree] [--preview]
 """
@@ -22,6 +23,7 @@ from mathutils import Matrix, Vector, noise
 GAME = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(GAME / "Scripts"))
 from EnvironmentKit.inputs import mesh_profile_sha256  # noqa: E402
+from fbx_content import content_sha256, export_keeping_unchanged  # noqa: E402
 
 SOURCE = GAME / "ArtSource" / "Environment"
 PROFILE = SOURCE / "CrucibleKit.json"
@@ -575,6 +577,7 @@ report = {"generator": "GenerateEnvironmentMeshes.v3", "blender": bpy.app.versio
           "meshProfileSha256": mesh_profile_sha256(KIT),
           "collision": "None; gameplay terrain is owned by World.json and VeyraWorld", "assets": []}
 made = []
+kept = []
 for family_index, family in enumerate(KIT["families"]):
     if ONLY and family["id"] not in ONLY:
         continue
@@ -588,10 +591,13 @@ for family_index, family in enumerate(KIT["families"]):
         geometry = json.dumps({"vertices": [[round(c, 6) for c in v.co] for v in obj.data.vertices],
                                "faces": [list(p.vertices) for p in obj.data.polygons]}, separators=(",", ":"))
         filename = SOURCE / "FBX" / (name + ".fbx")
-        export(obj, filename)
+        # Its FBX stands, bytes and hash, when the mesh comes out as it was: only an export's time stamp would differ.
+        if export_keeping_unchanged(lambda path, mesh=obj: export(mesh, path), filename):
+            kept.append(name)
         report["assets"].append({"name": name, "family": family["id"], "kind": family["kind"], "seed": seed,
                                  "file": "FBX/" + filename.name, "sha256": hashlib.sha256(filename.read_bytes()).hexdigest(),
                                  "geometrySha256": hashlib.sha256(geometry.encode()).hexdigest(),
+                                 "contentSha256": content_sha256(filename),
                                  "triangles": len(obj.data.polygons), "dimensionsCm": [round(v * 100, 1) for v in obj.dimensions],
                                  "materialSlots": [m.name for m in obj.data.materials]})
         made.append(obj)
@@ -600,4 +606,4 @@ if PREVIEW:
     preview(made)
 if not ONLY:
     (SOURCE / "manifest.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
-print(f'VEYRA_ENVIRONMENT_GENERATED: {len(report["assets"])} assets')
+print(f'VEYRA_ENVIRONMENT_GENERATED: {len(report["assets"])} assets, {len(report["assets"]) - len(kept)} written, {len(kept)} kept unchanged')
