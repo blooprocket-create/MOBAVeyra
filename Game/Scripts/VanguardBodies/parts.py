@@ -47,10 +47,37 @@ class Body:
                                       radius2=radius_end, depth=length, matrix=frame)["verts"]
         self._finish(verts, bone, color, glow)
 
-    def ball(self, bone, center, radius, color, glow=False, scale=(1, 1, 1)):
+    def ball(self, bone, center, radius, color, glow=False, scale=(1, 1, 1), segments=SEGMENTS):
         matrix = Matrix.Translation(center) @ Matrix.Diagonal((*scale, 1.0))
-        verts = bmesh.ops.create_uvsphere(self.bm, u_segments=SEGMENTS, v_segments=7, radius=radius, matrix=matrix)["verts"]
+        verts = bmesh.ops.create_uvsphere(self.bm, u_segments=segments, v_segments=max(3, segments * 7 // 10), radius=radius, matrix=matrix)["verts"]
         self._finish(verts, bone, color, glow)
+
+    def blob(self, bone, center, axes, color, glow=False, segments=6):
+        """An ellipsoid at center whose three half-axes are the vectors axes, turned any way: a flake, a clump."""
+        basis = Matrix((axes[0], axes[1], axes[2])).transposed().to_4x4()
+        verts = bmesh.ops.create_uvsphere(self.bm, u_segments=segments, v_segments=max(3, segments * 2 // 3), radius=1.0,
+                                          matrix=Matrix.Translation(center) @ basis)["verts"]
+        self._finish(verts, bone, color, glow)
+
+    def shingles(self, bone, start, end, radius, colors, rng, count=8, lift=0.35):
+        """Overlapping rounded flakes laid around start→end, facing out, a share of them lifting away: flaking sheets
+        of drying sediment, or scales (seeded)."""
+        frame, length = self._frame(start, end)
+        along = frame.to_quaternion()
+        axis = (end - start).normalized()
+        for index in range(count):
+            angle = index / count * math.tau + rng.uniform(-0.35, 0.35)
+            share = (index % 3 + 0.5) / 3 + rng.uniform(-0.12, 0.12)
+            out = along @ Vector((math.cos(angle), math.sin(angle), 0.0))
+            peel = rng.uniform(0.0, lift)
+            # Its face turns out from the core, tipping further out the more it peels.
+            normal = (out + axis * -peel).normalized()
+            tangent = axis.cross(normal).normalized()
+            up = normal.cross(tangent).normalized()
+            size = radius * rng.uniform(0.45, 0.65)
+            self.blob(bone, start.lerp(end, share) + out * radius * (0.85 + peel * 0.4),
+                      (normal * radius * 0.1, tangent * size, up * max(size, length * rng.uniform(0.3, 0.45))),
+                      colors[rng.randrange(len(colors))])
 
     def box(self, bone, center, size, color, glow=False, rotation=None):
         matrix = Matrix.Translation(center) @ (rotation.to_matrix().to_4x4() if rotation else Matrix.Identity(4)) @ Matrix.Diagonal((*size, 1.0))

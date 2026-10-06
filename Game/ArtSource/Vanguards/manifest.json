@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "73811ebb8ae6fbbc40fa235b29b6cf1798846af35cec06ea17d5bf98b7a73ae5",
+  "kitSha256": "17c8e433d27c30453a67a7e44e6277f3b1ef29643767878fc70ccdbf27dfc0aa",
   "assets": [
     {
       "id": "angeru",
@@ -1169,11 +1169,11 @@
       "name": "SK_Silt",
       "archetype": "colossus",
       "file": "FBX/SK_Silt.fbx",
-      "sha256": "7d1eaedbd619f344852d1edd3c3758a02616d7ea04c459f569b1cfbc8c835fbf",
-      "triangles": 1644,
+      "sha256": "7f6342f795c6a092f65c3ada91158aacd434d7b4acc4b9623423cc5c1d6241cd",
+      "triangles": 8548,
       "triangleBudget": 14000,
       "bones": 23,
-      "heightCm": 197.18,
+      "heightCm": 225.29,
       "capsuleHalfHeightCm": 92,
       "melee": false,
       "runStrideCm": 64.85,

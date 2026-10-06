@@ -98,9 +98,12 @@ def mass(body, style, bone, start, end, r0, r1, spec, rng):
     """One segment of a colossus in its material."""
     primary, secondary, accent = spec["primary"], spec["secondary"], spec["accent"]
     if style == "sediment":
-        # Flaking sheets of drying sediment over a darker, wetter interior.
-        body.limb(bone, start, end, r0 * 0.85, r1 * 0.85, secondary)
-        body.plates(bone, start, end, (r0 + r1) / 2, mix(primary, accent, rng.uniform(0.0, 0.4)), rng, count=5)
+        # A dark, wet core of rounded clumps, shingled over with flaking sheets of drying sediment, some peeling away.
+        for share in (0.15, 0.5, 0.85):
+            radius = r0 + (r1 - r0) * share
+            body.ball(bone, start.lerp(end, share), radius * 0.86, secondary, segments=8)
+        flakes = [primary, mix(primary, accent, 0.35), mix(primary, secondary, 0.25), mix(primary, [1.0, 0.95, 0.8], 0.2)]
+        body.shingles(bone, start, end, (r0 + r1) / 2, flakes, rng, count=8)
     elif style == "slab":
         # Bone-white slab plating over dark exposed mechanism.
         body.limb(bone, start, end, r0 * 0.55, r1 * 0.55, secondary)
@@ -115,6 +118,28 @@ def mass(body, style, bone, start, end, r0, r1, spec, rng):
         body.rocks(bone, start, end, r0, r1, [primary, secondary, mix(primary, secondary, 0.5)], rng)
     else:
         raise AssertionError("Unknown colossus style: " + style)
+
+
+def segmented(body, bone, start, end, r0, r1, spec, rng, count=3):
+    """A slab limb in count plated segments with dark mechanism showing between them: a manipulator arm."""
+    primary, secondary = spec["primary"], spec["secondary"]
+    body.limb(bone, start, end, r0 * 0.5, r1 * 0.5, secondary)
+    for index in range(count):
+        a = start.lerp(end, index / count + 0.05)
+        b = start.lerp(end, (index + 1) / count - 0.05)
+        radius = r0 + (r1 - r0) * (index + 0.5) / count
+        body.slab(bone, a, b, radius * 2.0, radius * 1.85, primary, roll=rng.uniform(-5, 5))
+
+
+def joint_disc(body, bone, center, radius, offset, spec):
+    """A round joint housing on each side face of a limb (offset out from its centre): a dark wheel of mechanism
+    inside a pale rim, as an old machine's are."""
+    primary, secondary = spec["primary"], spec["secondary"]
+    for sign in (1, -1):
+        face = center + Vector((0, sign * offset, 0))
+        body.limb(bone, face - Vector((0, sign * radius * 0.25, 0)), face, radius, radius, secondary, segments=12)
+        body.limb(bone, face, face + Vector((0, sign * radius * 0.08, 0)), radius * 1.08, radius * 1.08, primary, segments=12)
+        body.limb(bone, face, face + Vector((0, sign * radius * 0.12, 0)), radius * 0.35, radius * 0.35, mix(primary, secondary, 0.5), segments=8)
 
 
 def body(spec, L, d):
@@ -134,13 +159,18 @@ def body(spec, L, d):
         s0, s1 = L["clavicle_" + side]
         scale = arm_scale(features, side)
         mass(body, style, "clavicle_" + side, s0, s1 + (s1 - s0).normalized() * shoulder * 0.15, shoulder * 0.35 * scale, shoulder * 0.42 * scale, spec, rng)
-    # Arms; their hands by the colossus's kind.
+    # Arms; their hands by the colossus's kind. A forearm may be the bigger, for lifting.
+    forearm = spec.get("forearmScale", 0.9)
     for side in ("l", "r"):
         scale = arm_scale(features, side)
         thick = shoulder * 0.3 * scale
-        mass(body, style, "upperarm_" + side, *L["upperarm_" + side], thick, thick * 0.9, spec, rng)
-        mass(body, style, "lowerarm_" + side, *L["lowerarm_" + side], thick * 0.9, thick * 0.85, spec, rng)
-        hand(body, spec, features, side, L, thick, rng)
+        if "segmentedArms" in features:
+            segmented(body, "upperarm_" + side, *L["upperarm_" + side], thick, thick * 0.9, spec, rng, count=2)
+            segmented(body, "lowerarm_" + side, *L["lowerarm_" + side], thick * forearm, thick * forearm * 0.95, spec, rng, count=3)
+        else:
+            mass(body, style, "upperarm_" + side, *L["upperarm_" + side], thick, thick * 0.9, spec, rng)
+            mass(body, style, "lowerarm_" + side, *L["lowerarm_" + side], thick * forearm, thick * forearm * 0.85 / 0.9, spec, rng)
+        hand(body, spec, features, side, L, thick * (forearm / 0.9 if "segmentedArms" in features else 1.0), rng)
     # Short, heavy legs.
     for side in ("l", "r"):
         mass(body, style, "thigh_" + side, *L["thigh_" + side], hip * 0.6, hip * 0.55, spec, rng)
@@ -162,15 +192,16 @@ def hand(body, spec, features, side, L, thick, rng):
     bone = "hand_" + side
     reach = h1 - h0
     if "claws" in features:
-        # Long tapering clawed digits splayed forward along the ground.
-        for index in (-1, 0, 1):
-            spread = Vector((0, index * thick * 0.5, 0))
-            tip = h1 + spread + Vector((reach.length * 0.7, 0, -h1.z * 0.8))
-            body.limb(bone, h0 + spread * 0.4, tip, thick * 0.35, thick * 0.05, mix(primary, secondary, 0.3))
+        # A broad, sodden palm and five long tapering clawed digits splayed forward along the ground.
+        body.ball(bone, h0.lerp(h1, 0.6), thick * 0.85, mix(primary, secondary, 0.4), scale=(1.3, 1.25, 0.7), segments=8)
+        for index in (-2, -1, 0, 1, 2):
+            spread = Vector((0, index * thick * 0.42, 0))
+            tip = h1 + spread * 1.6 + Vector((reach.length * (0.95 - abs(index) * 0.15), 0, -h1.z * 0.85))
+            body.limb(bone, h0.lerp(h1, 0.5) + spread * 0.5, tip, thick * 0.3, thick * 0.03, mix(primary, secondary, 0.35), segments=6)
     elif "manipulators" in features or "openHands" in features:
         # A broad palm and spread fingers: Relay's lifting manipulators, or Varkesh's open, empty hands.
         body.slab(bone, h0, h0 + reach * 0.6, thick * 1.6, thick * 0.9, primary)
-        fingers = 3 if "manipulators" in features else 5
+        fingers = 4 if "manipulators" in features else 5
         for index in range(fingers):
             across = (index - (fingers - 1) / 2) / max(1, fingers - 1)
             tip = h0 + reach * 1.3 + Vector((reach.length * 0.25, across * thick * 1.6, 0))
@@ -245,14 +276,44 @@ def extras(body, spec, features, L, d, rng):
             point = Vector((c0.x + math.cos(angle) * shoulder * 0.95, math.sin(angle) * shoulder * 0.95, z))
             body.ball("spine_02", point, shoulder * 0.09, mix(accent, secondary, 0.4))
     if "mast" in features:
-        # A slender antenna mast from his back, and the faded crimson expedition banner tied to it.
+        # A slender antenna mast from his back, lit at its tip.
         foot = s1 + Vector((-shoulder * 0.6, shoulder * 0.3, -d["torso"] * 0.1))
         tip = foot + Vector((-shoulder * 0.15, 0, d["height"] * 0.28))
         body.limb("spine_03", foot, tip, shoulder * 0.05, shoulder * 0.03, secondary)
         body.ball("spine_03", tip, shoulder * 0.07, accent, glow=True)
-        if "banner" in features:
-            body.box("spine_03", tip + Vector((-shoulder * 0.05, -shoulder * 0.35, -d["height"] * 0.12)),
-                     (shoulder * 0.04, shoulder * 0.7, d["height"] * 0.22), detail)
+    if "banner" in features:
+        # The faded crimson expedition banner someone tied across his chest, from his right shoulder, its pale sigil
+        # showing; its torn end hangs below his waist.
+        c0, c1 = L["spine_02"]
+        top = L["clavicle_r"][1] + Vector((shoulder * 0.55, shoulder * 0.1, -d["torso"] * 0.05))
+        low = c0 + Vector((shoulder * 0.95, shoulder * 0.25, -d["torso"] * 0.45))
+        body.slab("spine_03", top, low, shoulder * 0.5, 2.5, detail)
+        body.box("spine_03", top.lerp(low, 0.45) + Vector((2.0, 0, 0)), (1.5, shoulder * 0.16, shoulder * 0.16), [0.90, 0.86, 0.78],
+                 rotation=Euler((math.radians(45), 0, 0)))
+    if "pauldrons" in features:
+        # Huge rounded pauldrons, wider than the trunk; the left one still carries its stencilled unit marking.
+        for side, sign in (("l", 1), ("r", -1)):
+            c0, c1 = L["clavicle_" + side]
+            dome = c1 + Vector((0, sign * shoulder * 0.1, shoulder * 0.2))
+            body.ball("clavicle_" + side, dome, shoulder * 0.56, primary, scale=(1.15, 1.0, 0.68), segments=8)
+            body.limb("clavicle_" + side, dome + Vector((0, 0, -shoulder * 0.3)), dome + Vector((0, 0, -shoulder * 0.22)),
+                      shoulder * 0.66, shoulder * 0.66, mix(primary, secondary, 0.6))
+            if side == "l":
+                body.box("clavicle_l", dome + Vector((0, shoulder * 0.6, shoulder * 0.05)), (shoulder * 0.42, 1.0, shoulder * 0.16), secondary)
+    if "jointDiscs" in features:
+        # Round joint housings at shoulders, elbows, hips and knees.
+        forearm = spec.get("forearmScale", 0.9) * 0.3 * shoulder
+        for side in ("l", "r"):
+            joint_disc(body, "lowerarm_" + side, L["lowerarm_" + side][0], forearm * 0.8, forearm * 1.02, spec)
+            joint_disc(body, "thigh_" + side, L["thigh_" + side][0], d["hip"] * 0.5, d["hip"] * 0.58, spec)
+            joint_disc(body, "calf_" + side, L["calf_" + side][0], d["hip"] * 0.48, d["hip"] * 0.56, spec)
+    if "amberPoints" in features:
+        # Smaller amber points at the chest and on each hand, the optic's echoes.
+        c0, c1 = L["spine_02"]
+        body.ball("spine_02", c1 + Vector((shoulder * 0.9, -shoulder * 0.3, 0)), shoulder * 0.09, accent, glow=True)
+        for side in ("l", "r"):
+            h0, h1 = L["hand_" + side]
+            body.ball("hand_" + side, h0.lerp(h1, 0.4) + Vector((shoulder * 0.18, 0, shoulder * 0.12)), shoulder * 0.06, accent, glow=True)
     if "coreSpiral" in features:
         # The bright core spiral set into his chest.
         c0, c1 = L["spine_02"]
@@ -269,11 +330,49 @@ def extras(body, spec, features, L, d, rng):
             body.box("pelvis", p0 + Vector((sign * d["hip"] * 0.95, 0, -d["leg"] * 0.25)), (d["hip"] * 0.15, d["hip"] * 1.6, d["leg"] * 0.6), detail)
         body.limb("pelvis", p0 + Vector((0, 0, d["torso"] * 0.05)), p0 + Vector((0, 0, d["torso"] * 0.1)), d["hip"] * 1.2, d["hip"] * 1.2, secondary)
     if "flakes" in features:
-        # Sheets of wet sediment peeling off his back as he moves.
-        for index in range(5):
-            spot = s0.lerp(s1, rng.uniform(0, 1)) + Vector((-shoulder * rng.uniform(0.6, 0.9), rng.uniform(-shoulder, shoulder) * 0.6, 0))
-            body.box("spine_03", spot, (shoulder * 0.08, shoulder * rng.uniform(0.4, 0.6), shoulder * rng.uniform(0.3, 0.5)),
-                     mix(primary, accent, 0.3), rotation=Euler((rng.uniform(-0.6, 0.6), rng.uniform(-0.6, 0.6), rng.uniform(-0.6, 0.6))))
+        # The hump is shingled over on top too, so from above it reads as layered sediment, not as its wet core; a few
+        # sheets peel up off the back as he moves.
+        crown = s1 + Vector((-shoulder * 0.15, 0, shoulder * 0.55))
+        flakes = [primary, mix(primary, accent, 0.35), mix(primary, [1.0, 0.95, 0.8], 0.2)]
+        for index in range(9):
+            angle = index / 9 * math.tau
+            spot = crown + Vector((math.cos(angle) * shoulder * 0.55, math.sin(angle) * shoulder * 0.6, rng.uniform(-0.1, 0.1) * shoulder))
+            tilt = Vector((math.cos(angle) * 0.4, math.sin(angle) * 0.4, 1.0)).normalized()
+            side = tilt.cross(Vector((0, 0, 1)) if abs(tilt.z) < 0.99 else Vector((1, 0, 0))).normalized()
+            body.blob("spine_03", spot, (tilt * shoulder * 0.08, side * shoulder * rng.uniform(0.35, 0.5), tilt.cross(side) * shoulder * rng.uniform(0.3, 0.45)),
+                      flakes[index % len(flakes)])
+        body.ball("spine_03", crown, shoulder * 0.5, mix(primary, secondary, 0.3), scale=(1.2, 1.3, 0.55), segments=8)
+        for index in range(4):
+            spot = s0.lerp(s1, rng.uniform(0.2, 1.0)) + Vector((-shoulder * rng.uniform(0.7, 0.95), rng.uniform(-shoulder, shoulder) * 0.6, shoulder * 0.2))
+            body.blob("spine_03", spot, (Vector((-0.3, 0, 1)).normalized() * shoulder * 0.06, Vector((0, shoulder * rng.uniform(0.3, 0.45), 0)),
+                                          Vector((-1, 0, -0.3)).normalized() * shoulder * rng.uniform(0.35, 0.5)), mix(primary, accent, 0.3))
+    if "ribbons" in features:
+        # Broad ribbons of wet material flung up and back off his shoulders, mid-motion: he is always throwing
+        # himself through the air. Lighter and glossier than the mass, they fall away behind him.
+        for side, sign in (("l", 1), ("r", -1)):
+            c0, c1 = L["clavicle_" + side]
+            # Thrown out and back, falling as they go: a spray behind and beside him, never a pair of horns.
+            base = c1 + Vector((-shoulder * 0.3, 0, shoulder * 0.15))
+            points = [base + Vector((-shoulder * 1.3 * k, sign * shoulder * 1.4 * k, shoulder * 0.35 * math.sin(math.pi * k * 0.6) - shoulder * 0.6 * k * k))
+                      for k in (0.0, 0.25, 0.5, 0.75, 1.0)]
+            for index in range(len(points) - 1):
+                # Overlapping flattened lozenges, so the sheet reads as flung mud rather than plates.
+                a, b = points[index], points[index + 1]
+                along = (b - a) * 0.75
+                across = along.cross(Vector((0, 0, 1))).normalized() * shoulder * (0.42 - index * 0.08)
+                body.blob("clavicle_" + side, (a + b) / 2, (along, across, along.cross(across).normalized() * 2.0),
+                          mix(primary, secondary, 0.15 + index * 0.08), segments=8)
+            for drop in range(3):
+                body.ball("clavicle_" + side, points[-1] + Vector((-shoulder * 0.1 * drop, sign * shoulder * 0.05 * drop, -shoulder * (0.15 + 0.2 * drop))),
+                          shoulder * (0.09 - drop * 0.02), mix(primary, accent, 0.5), segments=6)
+    if "drips" in features:
+        # Rivulets running off his forearms as he drags them.
+        for side in ("l", "r"):
+            e0, e1 = L["lowerarm_" + side]
+            spot = e0.lerp(e1, 0.45) + Vector((0, 0, -shoulder * 0.25))
+            for drop in range(3):
+                body.ball("lowerarm_" + side, spot + Vector((-shoulder * 0.05 * drop, 0, -shoulder * (0.12 + 0.16 * drop))),
+                          shoulder * (0.1 - drop * 0.025), mix(secondary, [0.05, 0.04, 0.02], 0.3), scale=(1.0, 1.0, 1.4), segments=6)
 
 
 def run_stride(d):

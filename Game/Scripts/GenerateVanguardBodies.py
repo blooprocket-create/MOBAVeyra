@@ -119,8 +119,12 @@ def render_preview(name, armature, obj, archetype, d, melee):
     three-quarters toward the camera, one in profile, and one seen from the gameplay camera's pitch, as players see it."""
     scene = bpy.context.scene
     rest = rest_quaternions(armature)
-    span = max(d["full"], d.get("length", 0.0))
-    gap = span * (0.9 if span == d["full"] else 1.15)
+    # Framed on the body as built, so whatever towers over or reaches past its figure (a mount, a manifested spirit)
+    # stays in frame.
+    tall = max(d["full"], obj.dimensions.z)
+    span = max(tall, d.get("length", 0.0), obj.dimensions.x)
+    gap = span * (0.9 if span == tall else 1.15)
+    d = dict(d, full=tall)
     armature.hide_render = obj.hide_render = True
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.display.shading.light = "STUDIO"
