@@ -499,6 +499,33 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
 	TSoftObjectPtr<UVeyraUnitArtSet> FluxbornArt;
 
+	/**
+	 * The Vanguards' generated bodies (ADR-064 §3), keyed by Vanguard ID, drawn in place of each Vanguard's body and
+	 * animated from its cues. A Vanguard without art keeps its body. Visual only: its capsule stays its only collision
+	 * and movement.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards")
+	TSoftObjectPtr<class UVeyraVanguardArtSet> VanguardArt;
+
+	/** How long one of a body's animations takes to give way to another, in seconds. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "0"))
+	float VanguardBlendSeconds = 0.0f;
+
+	/** The ground speed at which Run has wholly taken over from Idle, in units a second. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "1"))
+	float VanguardRunBlendSpeed = 0.0f;
+
+	/** The slowest and the fastest a body's animation plays to fit what it shows: a windup to its commit, Run to its speed. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "0.01"))
+	float VanguardMinPlayRate = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "0.01"))
+	float VanguardMaxPlayRate = 0.0f;
+
+	/** How thick the disc an animated Vanguard's body becomes under its feet is, in units: its side's colour and status tint. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "0.1"))
+	float VanguardFootDiscHeight = 0.0f;
+
 	/** The lanes' road, the river, and each side's base as the viewer sees it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
 	FLinearColor LaneColor = FLinearColor::Transparent;

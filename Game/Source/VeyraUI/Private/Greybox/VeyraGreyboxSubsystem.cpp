@@ -34,6 +34,10 @@
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraUnitArtSet.h"
+#include "Greybox/VeyraVanguardAnimInstance.h"
+#include "Greybox/VeyraVanguardArtSet.h"
+#include "Greybox/VeyraVanguardSkin.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudOverlay.h"
 #include "Engine/NetConnection.h"
@@ -63,6 +67,7 @@
 #include "VeyraGameState.h"
 #include "Match/VeyraMatchMenuSubsystem.h"
 #include "VeyraPlayerController.h"
+#include "VeyraPlayerState.h"
 #include "VeyraTeamStart.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraUILog.h"
@@ -151,6 +156,19 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			for (const FString& Problem : FluxbornArt->Validate(TConstArrayView<FName>()))
 			{
 				Problems.Add(TEXT("FluxbornArt ") + Problem);
+			}
+		}
+		// Nor need the Vanguards' set dress every Vanguard: one without art keeps its body (ADR-064 §1).
+		VanguardArt = Settings.VanguardArt.LoadSynchronous();
+		if (!VanguardArt)
+		{
+			Problems.Add(FString::Printf(TEXT("VanguardArt: %s does not load."), *Settings.VanguardArt.ToString()));
+		}
+		else
+		{
+			for (const FString& Problem : VanguardArt->Validate())
+			{
+				Problems.Add(TEXT("VanguardArt ") + Problem);
 			}
 		}
 		if (!GroundMesh)
@@ -242,6 +260,11 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	if (FBody* Body = Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr)
 	{
 		VeyraBodyFeedback::Note(Body->Feedback, Cue, GetWorld()->GetRealTimeSeconds(), GetServerNow());
+		// An animated body acts it out, its windup timed to end as the attack commits (ADR-064 §3).
+		if (UVeyraVanguardAnimInstance* Animation = Body->Skin.IsValid() ? Cast<UVeyraVanguardAnimInstance>(Body->Skin->GetAnimInstance()) : nullptr)
+		{
+			Animation->NoteCue(Cue.Kind, static_cast<float>(FMath::Max(0.0, Cue.EndsAt - GetServerNow())));
+		}
 	}
 	PlayEffect(Cue);
 	PlaySound(Cue);
@@ -504,7 +527,8 @@ void UVeyraGreyboxSubsystem::SetOutlined(const AActor& Unit, bool bOutlined) con
 		return;
 	}
 	const int32 Stencil = HoverStencilOf(Unit);
-	for (UStaticMeshComponent* Shape : { Body->Mesh.Get(), Body->Art.Get() })
+	for (UPrimitiveComponent* Shape : { static_cast<UPrimitiveComponent*>(Body->Mesh.Get()), static_cast<UPrimitiveComponent*>(Body->Art.Get()),
+			 static_cast<UPrimitiveComponent*>(Body->Skin.Get()) })
 	{
 		if (!Shape)
 		{
@@ -565,9 +589,10 @@ void UVeyraGreyboxSubsystem::ApplyBodyPose(const APawn& Unit, FBody& Body, bool 
 	const FVeyraBodyPose Pose = VeyraBodyFeedback::PoseAt(Body.Feedback, GetWorld()->GetRealTimeSeconds(), bReduceFlashing, Settings);
 	UStaticMeshComponent* Shape = Body.Mesh.Get();
 	UStaticMeshComponent* Art = Body.Art.IsValid() && Body.Art->IsVisible() ? Body.Art.Get() : nullptr;
+	USkeletalMeshComponent* Skin = Body.Skin.IsValid() && Body.Skin->IsVisible() ? Body.Skin.Get() : nullptr;
 	const USceneComponent* Root = Unit.GetRootComponent();
-	// A structure stands still; it only flashes.
-	if (Root && !Unit.IsA<AVeyraStructure>())
+	// A structure stands still, and an animated body's animation acts out its fight (ADR-064 §3): they only flash.
+	if (Root && !Unit.IsA<AVeyraStructure>() && !Skin)
 	{
 		// The pose moves on the ground, whichever way the unit faces.
 		const FVector Local = Root->GetComponentTransform().InverseTransformVectorNoScale(Pose.Offset);
@@ -591,8 +616,8 @@ void UVeyraGreyboxSubsystem::ApplyBodyPose(const APawn& Unit, FBody& Body, bool 
 		}
 	}
 	// The flash lies over whatever shows, and is taken off once it has faded.
-	UStaticMeshComponent* Shown = Art ? Art : Shape;
-	if (UStaticMeshComponent* Was = Body.Flashing.Get(); Was && (Was != Shown || Pose.Flash <= 0.0))
+	UMeshComponent* Shown = Skin ? static_cast<UMeshComponent*>(Skin) : Art ? static_cast<UMeshComponent*>(Art) : Shape;
+	if (UMeshComponent* Was = Body.Flashing.Get(); Was && (Was != Shown || Pose.Flash <= 0.0))
 	{
 		Was->SetOverlayMaterial(nullptr);
 		Body.Flashing.Reset();
@@ -856,6 +881,12 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::FindArt(const AActor& Unit) const
 	return Body ? Body->Art.Get() : nullptr;
 }
 
+USkeletalMeshComponent* UVeyraGreyboxSubsystem::FindSkin(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	return Body ? Body->Skin.Get() : nullptr;
+}
+
 UStaticMeshComponent* UVeyraGreyboxSubsystem::FindProjectileVisual(const AVeyraProjectile& Projectile) const
 {
 	const FProjectileVisual* Visual = Projectiles.Find(&Projectile);
@@ -983,6 +1014,47 @@ void UVeyraGreyboxSubsystem::RefreshFluxbornArt(const AVeyraFluxborn& Unit, FBod
 	}
 }
 
+void UVeyraGreyboxSubsystem::RefreshVanguardArt(const AVeyraVanguardCharacter& Unit, FBody& Body)
+{
+	// Its Vanguard arrives with its participant; until then, and for a Vanguard without art, its body shows.
+	const AVeyraPlayerState* Participant = Unit.GetPlayerState<AVeyraPlayerState>();
+	const FVeyraVanguardArt* Art = VanguardArt && Participant && Participant->GetVanguardId().IsValid()
+		? VanguardArt->Find(FName(Participant->GetVanguardId().ToString()))
+		: nullptr;
+	if (!Art || !Art->Mesh)
+	{
+		return;
+	}
+	if (!Body.Skin.IsValid())
+	{
+		Body.Skin = VeyraVanguardSkin::Attach(const_cast<AVeyraVanguardCharacter&>(Unit));
+	}
+	USkeletalMeshComponent* Skin = Body.Skin.Get();
+	if (!Skin)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	// The body its statuses call for: a rider on its mount while its ride lasts, on foot otherwise (ADR-064 §1).
+	VeyraVanguardSkin::Dress(*Skin, VeyraVanguardSkin::BodyOf(Unit, *Art), VeyraVanguardSkin::ShapeOf(Settings));
+	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2).
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+	Skin->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
+	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()))
+	{
+		Animation->SetInputs(VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow()));
+	}
+	// Its body lies under its feet as a disc, still showing its side and its status tint.
+	if (UStaticMeshComponent* Shape = Body.Mesh.Get())
+	{
+		const double DiscHalfHeight = Settings.VanguardFootDiscHeight * 0.5;
+		FitGreyboxShape(*Shape, FVector(Radius, Radius, DiscHalfHeight));
+		Shape->SetRelativeLocation(Shape->GetRelativeLocation() + FVector(0.0, 0.0, DiscHalfHeight - HalfHeight));
+	}
+}
+
 void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
 {
 	USceneComponent* Root = Unit.GetRootComponent();
@@ -1075,6 +1147,10 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		else if (const AVeyraFluxborn* Fluxborn = Cast<AVeyraFluxborn>(&Unit))
 		{
 			RefreshFluxbornArt(*Fluxborn, *Body);
+		}
+		else if (const AVeyraVanguardCharacter* Vanguard = Cast<AVeyraVanguardCharacter>(&Unit))
+		{
+			RefreshVanguardArt(*Vanguard, *Body);
 		}
 		ApplyBodyPose(Unit, *Body, bReduceFlashing);
 	}

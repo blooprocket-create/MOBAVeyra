@@ -118,6 +118,12 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("MasteryEmoteTierColors"), TEXT("at least one colour is required, and none may be fully transparent."));
 	Require(!StructureArt.IsNull(), TEXT("StructureArt"), TEXT("the structure kit's art set is required."));
 	Require(!FluxbornArt.IsNull(), TEXT("FluxbornArt"), TEXT("the Fluxborn kit's art set is required."));
+	Require(!VanguardArt.IsNull(), TEXT("VanguardArt"), TEXT("the Vanguard body kit's art set is required."));
+	Require(VanguardFootDiscHeight >= 0.1f, TEXT("VanguardFootDiscHeight"), TEXT("must be at least 0.1 units."));
+	Require(VanguardBlendSeconds > 0.0f && VanguardRunBlendSpeed >= 1.0f, TEXT("VanguardBlendSeconds"),
+		TEXT("a body's animations need some time to blend, and Run a speed of at least 1 at which it takes over."));
+	Require(VanguardMinPlayRate > 0.0f && VanguardMinPlayRate <= 1.0f && VanguardMaxPlayRate >= 1.0f, TEXT("VanguardMinPlayRate"),
+		TEXT("an animation must be able to play at its own speed: the slowest rate above 0 and at most 1, the fastest at least 1."));
 	Require(StatusTintStrength > 0.0f && StatusTintStrength <= 1.0f, TEXT("StatusTintStrength"), TEXT("must be above 0 and at most 1."));
 	Require(BarWidth >= 1.0f, TEXT("BarWidth"), TEXT("must be at least 1 pixel."));
 	Require(BarHeight >= 1.0f, TEXT("BarHeight"), TEXT("must be at least 1 pixel."));
