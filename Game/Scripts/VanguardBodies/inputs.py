@@ -118,7 +118,8 @@ def pinned_blender(kit, version):
 def stale_in(game):
     """The stale bodies of the project whose Game folder is game: the manifest's against its kit, Vanguards.json, the
     generator's code beside them and the Blender the manifest was last built by, which must be the one the kit pins:
-    built by any other, every body is stale."""
+    built by any other, every body is stale. So is every body when the kit names another destination than the one the
+    manifest's bodies were imported to: a build does not move imported bodies."""
     game = Path(game)
     source = game / "ArtSource" / "Vanguards"
     kit = json.loads((source / "VanguardKit.json").read_text(encoding="utf-8"))
@@ -127,9 +128,15 @@ def stale_in(game):
     abilities = game / "Tuning" / "Abilities.json"
     companions = json.loads(abilities.read_text(encoding="utf-8")).get("companions", {}) if abilities.exists() else {}
     stale = stale_assets(kit, units(vanguards, companions), manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"))
-    if not pinned_blender(kit, manifest.get("blender")):
+    if not pinned_blender(kit, manifest.get("blender")) or not same_destination(kit, manifest):
         stale = sorted(set(stale) | {asset["name"] for asset in manifest["assets"]})
     return stale
+
+
+def same_destination(kit, manifest):
+    """Whether the kit names the destination the manifest's bodies were imported to (a manifest from before it recorded
+    one is taken at the kit's word)."""
+    return manifest.get("destination") in (None, kit.get("destination"))
 
 
 # How a Git LFS pointer begins: the file is not checked out (CI does not fetch large files), only its object's id.
