@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Algo/NoneOf.h"
 #include "CQTest.h"
 #include "Components/PIENetworkComponent.h"
 
@@ -74,7 +75,8 @@ namespace VeyraNetTests
 
 		TEST_METHOD(TheWallsStandForEveryoneAndPathsGoRoundThem)
 		{
-			const int32 WallCount = Layout().Walls.Num() * 2;
+			// Each wall stands as a chain of boxes along its curve (ADR-043 §1).
+			const int32 WallCount = VeyraLayout::Walls(Layout()).Num();
 			ASSERT_THAT(IsTrue(WallCount > 0));
 			Network
 				.ThenServer(TEXT("Build the committed battleground on the server"), [this](FState& State) {
@@ -122,8 +124,21 @@ namespace VeyraNetTests
 						ASSERT_THAT(IsTrue(PathLength(State.World, Fountain, Target.Value).IsSet(), *FString::Printf(TEXT("a path to %s"), *Target.Key)));
 					}
 
-					// From one face of a wall to the other is farther by path than in a straight line.
-					const FVeyraTerrainBox Wall = VeyraLayout::Walls(Layout())[0];
+					// From one face of a wall to the other is farther by path than in a straight line: across its thickest box
+					// whose two sides stand clear of every wall.
+					const TArray<FVeyraWallShape> Shapes = VeyraLayout::WallShapes(Layout());
+					const auto Clear = [&Shapes](const FVector2D& Point) { return Algo::NoneOf(Shapes, [&Point](const FVeyraWallShape& Shape) { return Shape.DepthInside(Point) > 0.0; }); };
+					TOptional<FVeyraTerrainBox> Across;
+					for (const FVeyraTerrainBox& Box : VeyraLayout::Walls(Layout()))
+					{
+						const double Out = Box.Thickness / 2.0 + BesideWall;
+						if ((!Across.IsSet() || Box.Thickness > Across->Thickness) && Clear(Box.Centre + Box.Facing * Out) && Clear(Box.Centre - Box.Facing * Out))
+						{
+							Across = Box;
+						}
+					}
+					ASSERT_THAT(IsTrue(Across.IsSet()));
+					const FVeyraTerrainBox Wall = Across.GetValue();
 					const FVector2D Front = Wall.Centre + Wall.Facing * (Wall.Thickness / 2.0 + BesideWall);
 					const FVector2D Back = Wall.Centre - Wall.Facing * (Wall.Thickness / 2.0 + BesideWall);
 					const TOptional<double> Round = PathLength(State.World, Front, Back);

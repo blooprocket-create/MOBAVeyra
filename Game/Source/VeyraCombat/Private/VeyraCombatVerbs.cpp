@@ -28,6 +28,7 @@
 #include "Tags/VeyraStatusTags.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Teams/VeyraTeam.h"
+#include "Terrain/VeyraGround.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
@@ -1236,20 +1237,34 @@ bool BlinkBeside(UAbilitySystemComponent& Unit, const AActor& Target, double Dis
 	const double Gap = Target.GetSimpleCollisionRadius() + Body->GetSimpleCollisionRadius() + Distance;
 	OutLanding = Target.GetActorLocation() + Away * Gap;
 	OutFacing = -Away;
-	return Blink(Unit, OutLanding, OutFacing);
+	if (!Blink(Unit, OutLanding, OutFacing))
+	{
+		return false;
+	}
+	// Where the body landed: on the ground there, which may lie above or below the target's (ADR-040 §4).
+	OutLanding = Body->GetActorLocation();
+	return true;
 }
 
 FVector NearestGround(const UWorld& World, const FVector& Point)
 {
+	// Point keeps its height above the ground (ADR-040 §4): a body's centre stays a body's centre wherever it lands.
+	// Without ground, as in a world built without any, it keeps its height.
+	FVector Under;
+	const bool bOverGround = VeyraGround::Under(World, Point, Under);
 	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(&World);
 	const ANavigationData* NavData = Navigation ? Navigation->GetDefaultNavDataInstance() : nullptr;
 	FNavLocation Walkable;
 	const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
-	if (!NavData || !Navigation->ProjectPointToNavigation(Point, Walkable, FVector(Extent), NavData))
+	if (!NavData || !Navigation->ProjectPointToNavigation(bOverGround ? Under : Point, Walkable, FVector(Extent), NavData))
 	{
 		return Point;
 	}
-	return FVector(Walkable.Location.X, Walkable.Location.Y, Point.Z);
+	const FVector Found(Walkable.Location.X, Walkable.Location.Y, Point.Z);
+	FVector There;
+	return bOverGround && VeyraGround::Under(World, FVector(Found.X, Found.Y, Walkable.Location.Z), There)
+		? There + FVector::UpVector * (Point.Z - Under.Z)
+		: Found;
 }
 
 void SetCastLocksMovement(UAbilitySystemComponent& Unit, bool bLocks)

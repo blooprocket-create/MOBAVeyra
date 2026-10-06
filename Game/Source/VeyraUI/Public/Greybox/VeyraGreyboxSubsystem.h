@@ -86,6 +86,7 @@ public:
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 
@@ -197,6 +198,8 @@ private:
 	TWeakObjectPtr<class AVeyraPlayerController> CombatTextSource;
 	FDelegateHandle CombatTextHandle;
 
+	bool bAuthoredTerrain = false;
+	TMap<FVector2D, double> FogSurfaceHeights;
 	struct FBody
 	{
 		TWeakObjectPtr<UStaticMeshComponent> Mesh;

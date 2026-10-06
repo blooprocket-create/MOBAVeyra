@@ -8,6 +8,7 @@
 #include "Damage/VeyraDamageTypes.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Tuning/VeyraTuningProvenance.h"
+#include "Tuning/VeyraTerrainTuning.h"
 #include "UObject/ObjectMacros.h"
 
 #include "VeyraWorldTuning.generated.h"
@@ -27,7 +28,7 @@ struct FVeyraMapPoint
 
 /**
  * One Fluxway (Battleground Bible §2, §4) and Team A's structures on it (§5, §10). The lane runs from
- * Team A's base to Team B's; Team B's structures are Team A's mirrored (VeyraLayout::Mirror).
+ * Team A's base to Team B's; Team B's structures stand the same distances along it from Team B's end.
  */
 USTRUCT()
 struct FVeyraLaneLayout
@@ -61,7 +62,7 @@ struct FVeyraLaneLayout
 	double FluxbornSpawnDistance = 0.0;
 };
 
-/** Team A's base (Battleground Bible §3, §12, §18); Team B's is its mirror. */
+/** Team A's base (Battleground Bible §3, §12, §18); Team B's is its rotation (VeyraLayout::Rotate). */
 USTRUCT()
 struct FVeyraBaseLayout
 {
@@ -89,7 +90,7 @@ struct FVeyraBaseLayout
 
 /**
  * One Dense Fog circle of Team A's half (Battleground Bible §11, Vision Bible §2): the battleground's
- * bush. Team B's is its mirror; circles that touch are one fog volume.
+ * bush. Team B's is its rotation; circles that touch are one fog volume.
  */
 USTRUCT()
 struct FVeyraFogLayout
@@ -104,36 +105,64 @@ struct FVeyraFogLayout
 	double Radius = 0.0;
 };
 
+/** Validated vertical search bounds and walkable slope for terrain placement (ADR-040). */
+USTRUCT()
+struct FVeyraSurfaceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double MinZ = 0.0;
+
+	UPROPERTY()
+	double MaxZ = 0.0;
+
+	UPROPERTY()
+	double MaxSlopeDegrees = 0.0;
+};
+
+/** One control point of a wall's spine: where it passes, and how thick the wall is there. */
+USTRUCT()
+struct FVeyraWallPoint
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double X = 0.0;
+
+	UPROPERTY()
+	double Y = 0.0;
+
+	/** The wall's full thickness here, in units; above 0. */
+	UPROPERTY()
+	double Width = 0.0;
+};
+
 /**
- * One wall of Team A's half (ADR-043 §1): an oriented box of terrain standing on the floor, Length long
- * across the way it faces and Thickness deep along it. Team B's is its mirror. Grey-box geometry,
- * Veyra's own.
+ * One wall of Team A's half (ADR-043 §1, as amended 2026-10-05): a ridge of impassable terrain along a smooth curve
+ * through its points, as thick at each as its width, the thickness changing steadily between them and its ends rounded.
+ * Walls may overlap, so one massif can bend, branch and swell. Team B's is its rotation. The terrain field raises a
+ * ridge on it.
  */
 USTRUCT()
 struct FVeyraWallLayout
 {
 	GENERATED_BODY()
 
+	/** What designers call it; play never reads it. */
 	UPROPERTY()
-	FVeyraMapPoint Center;
+	FString Name;
 
-	/** The way it faces, in degrees from +X toward +Y. */
+	/** Its spine's control points, at least two, in order. */
 	UPROPERTY()
-	double Facing = 0.0;
-
-	/** In units; above 0. */
-	UPROPERTY()
-	double Length = 0.0;
-
-	/** In units; above 0. */
-	UPROPERTY()
-	double Thickness = 0.0;
+	TArray<FVeyraWallPoint> Points;
 };
 
 /**
- * The battleground's grey-box layout (ADR-011 §12): the one source for the generated map and the
- * server's spawning. Team B's half is Team A's reflected across the river's diagonal, the line
- * Y = -X, which maps every lane onto itself and swaps the bases, so both teams' distances match.
+ * The battleground's authoritative spatial layout (ADR-011 §12): the one source for the generated map and the
+ * server's spawning. Team B's half is Team A's rotated half a turn about the centre (author ruling 2026-10-05), which
+ * swaps the bases and maps the lanes onto each other, top onto bottom and mid onto itself, so both teams have the same
+ * battleground from their own side. The river through the centre is its own rotation.
  */
 USTRUCT()
 struct FVeyraBattlegroundLayout
@@ -147,9 +176,14 @@ struct FVeyraBattlegroundLayout
 	UPROPERTY()
 	double HalfExtent = 0.0;
 
-	/** How wide the river is drawn along its diagonal, in units. */
 	UPROPERTY()
-	double RiverWidth = 0.0;
+	FVeyraSurfaceTuning Surface;
+
+	UPROPERTY()
+	FVeyraTerrainTuning Terrain;
+
+	UPROPERTY()
+	FVeyraRiverLayout River;
 
 	UPROPERTY()
 	TArray<FVeyraLaneLayout> Lanes;
@@ -157,13 +191,20 @@ struct FVeyraBattlegroundLayout
 	UPROPERTY()
 	FVeyraBaseLayout Base;
 
-	/** Team A's Dense Fog (ADR-016 §4, §11); Team B's is its mirror. */
+	/** Team A's Dense Fog (ADR-016 §4, §11); Team B's is its rotation. */
 	UPROPERTY()
 	TArray<FVeyraFogLayout> DenseFog;
 
-	/** Team A's walls (ADR-043 §1); Team B's are their mirror. */
+	/** Team A's walls (ADR-043 §1); Team B's are their rotation. */
 	UPROPERTY()
 	TArray<FVeyraWallLayout> Walls;
+
+	/**
+	 * How finely each wall's curve is sampled between two of its points. What blocks and hides is one box to each
+	 * sample's span, so finer follows a curve closer with more boxes.
+	 */
+	UPROPERTY()
+	int32 WallSamplesPerSegment = 0;
 
 	/** Half of every wall's height, in units: taller than any body it blocks. */
 	UPROPERTY()
@@ -542,7 +583,7 @@ struct FVeyraWildlifeAiTuning
 	double HomeAcceptance = 0.0;
 };
 
-/** One of Team A's camps; Team B's is its mirror (Battleground Bible §7, §8, §17). */
+/** One of Team A's camps; Team B's is its rotation (Battleground Bible §7, §8, §17). */
 USTRUCT()
 struct FVeyraCampTuning
 {
@@ -666,7 +707,7 @@ struct FVeyraFluxWellsTuning
 	UPROPERTY()
 	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
 
-	/** Where each Well stands: on the river's diagonal, so each is its own mirror. */
+	/** Where each Well stands: on a river island (author ruling 2026-10-05); each site's rotation is another site. */
 	UPROPERTY()
 	TArray<FVeyraMapPoint> Sites;
 
@@ -721,7 +762,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 7;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;
@@ -771,9 +812,10 @@ namespace VeyraWorld
 {
 	/**
 	 * Problems with Tuning, each a JSON pointer and a message; empty when it is consistent: one lane
-	 * of each kind, each mirroring onto itself, its structures on Team A's half, every point on the
-	 * floor; each camp of a known species, on Team A's half with its leash on the floor and clear of
-	 * the river and every lane; each Flux Well on the river and clear of every lane.
+	 * of each kind, the lanes rotating onto each other, each lane's structures on its owner's half, every point on the
+	 * floor; a river whose main channel starts at the centre and leaves the floor, each island's channel joining it at both
+	 * ends; each camp of a known species, on Team A's half with its leash on the floor and clear of the water and every
+	 * lane; each Flux Well dry on its island and clear of every lane, the sites rotating onto each other.
 	 */
 	VEYRAWORLD_API TArray<FString> Validate(const FVeyraWorldTuning& Tuning);
 }

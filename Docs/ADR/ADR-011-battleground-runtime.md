@@ -303,7 +303,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - each lane's inhibitor as a distance along the lane from its owning end, and its Spires as distances beyond that inhibitor;
   - Team A's Prime Well, base towers and fountain.
 
-  Team B's positions follow from a declared mirror: a reflection across the river's diagonal, which maps each lane onto itself and swaps the bases. Distances are therefore balanced by construction, as Battleground §2 and §7 ask. Travel distance is gameplay, so the layout is tuning: hashed, staged and compared at login.
+  Team B's positions follow from a declared mirror: a reflection across the river's diagonal, which maps each lane onto itself and swaps the bases. (Amended 2026-10-05 by [ADR-040](ADR-040-crucible-world-authoring-toolchain.md): the declared transform is now a half turn about the centre, which maps top onto bot and mid onto itself, so a curved river is the same for both teams.) Distances are therefore balanced by construction, as Battleground §2 and §7 ask. Travel distance is gameplay, so the layout is tuning: hashed, staged and compared at login.
 - **`UVeyraBattlegroundMapCommandlet`** (VeyraDeveloper, following the `L_Greybox` and `L_FrontEnd` commandlets) bakes `Content/Veyra/World/Maps/L_Battleground`:
   - the floor;
   - the fountains as team starts;

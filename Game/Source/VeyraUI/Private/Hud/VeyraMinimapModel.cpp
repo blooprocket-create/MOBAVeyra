@@ -11,6 +11,7 @@
 #include "GameFramework/Pawn.h"
 #include "Hud/VeyraHudModel.h"
 #include "Layout/VeyraLayout.h"
+#include "Layout/VeyraRiver.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -101,13 +102,28 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 		View.Fog = DescribeFog(Frame, *Ground);
 	}
 	const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
-	// The river runs along the diagonal Y = -X: the band |X + Y| <= its width / sqrt(2), cut to the map's
-	// square, round its outline. The walls stand where the layout puts them.
+	// Draw each sampled channel as triangles; a curved river is not a convex polygon.
 	const double H = Frame.HalfExtent;
-	const double C = FMath::Min(Layout.RiverWidth / UE_SQRT_2, 2.0 * H);
-	for (const FVector2D& Corner : { FVector2D(-H, H), FVector2D(C - H, H), FVector2D(H, C - H), FVector2D(H, -H), FVector2D(H - C, -H), FVector2D(-H, H - C) })
+	auto ToClippedMap = [&](FVector2D Point) {
+		Point.X = FMath::Clamp(Point.X, -H, H);
+		Point.Y = FMath::Clamp(Point.Y, -H, H);
+		return ToMap(Frame, FVector(Point, 0.0));
+	};
+	for (const FVeyraRiverChannel& Channel : VeyraRiver::ShapeOf(Layout).GetChannels())
 	{
-		View.River.Add(ToMap(Frame, FVector(Corner, 0.0)));
+		const TArray<FVeyraRiverSample>& Samples = Channel.Samples;
+		for (int32 I = 1; I < Samples.Num(); ++I)
+		{
+			const auto& A = Samples[I - 1];
+			const auto& B = Samples[I];
+			const FVector2D Along = (B.Point - A.Point).GetSafeNormal();
+			const FVector2D Normal(-Along.Y, Along.X);
+			const FVector2D ALeft = ToClippedMap(A.Point - Normal * A.Width / 2.0);
+			const FVector2D ARight = ToClippedMap(A.Point + Normal * A.Width / 2.0);
+			const FVector2D BLeft = ToClippedMap(B.Point - Normal * B.Width / 2.0);
+			const FVector2D BRight = ToClippedMap(B.Point + Normal * B.Width / 2.0);
+			View.River.Append({ ALeft, ARight, BRight, ALeft, BRight, BLeft });
+		}
 	}
 	for (const FVeyraTerrainBox& Wall : VeyraLayout::Walls(Layout))
 	{

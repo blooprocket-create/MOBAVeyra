@@ -11,6 +11,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Shapes/VeyraShapes.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraGround.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
 
@@ -152,9 +153,14 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 	// Terrain its body already overlaps where the step starts, as a wall its caster stood against,
 	// stops it only where its centre meets it, so it can still be cast along the wall; any other
 	// terrain its body meets further on still stops it.
+	// The shot keeps its height above the ground along its path (ADR-040 §4): slopes neither stop it nor strand it in
+	// the air; the ground is not terrain that stops it, walls are. Distances along it are the ground's plan.
+	const auto Along = [&World, &From, this](double Distance) {
+		return VeyraGround::Carried(World, From, FVector2D(From + Direction * Distance));
+	};
 	const FCollisionQueryParams Params(SCENE_QUERY_STAT(VeyraProjectile), /*bTraceComplex*/ false, this);
 	const FCollisionObjectQueryParams TerrainObjects(ECC_WorldStatic);
-	const FVector To = From + Direction * Step;
+	const FVector To = Along(Step);
 	double TerrainDistance = TNumericLimits<double>::Max();
 	TArray<FHitResult> BodyHits;
 	World.SweepMultiByObjectType(BodyHits, From, To, FQuat::Identity, TerrainObjects, FCollisionShape::MakeSphere(static_cast<float>(Radius)), Params);
@@ -162,13 +168,13 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 	{
 		if (!Hit.bStartPenetrating)
 		{
-			TerrainDistance = FMath::Min(TerrainDistance, static_cast<double>(Hit.Distance));
+			TerrainDistance = FMath::Min(TerrainDistance, Hit.Time * Step);
 		}
 	}
 	FHitResult CentreHit;
 	if (World.LineTraceSingleByObjectType(CentreHit, From, To, TerrainObjects, Params))
 	{
-		TerrainDistance = FMath::Min(TerrainDistance, static_cast<double>(CentreHit.Distance));
+		TerrainDistance = FMath::Min(TerrainDistance, CentreHit.Time * Step);
 	}
 	if (TerrainDistance <= Step)
 	{
@@ -210,13 +216,13 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 		if (Collision != EVeyraSkillshotCollision::Pierce)
 		{
 			Travelled += Hit.Distance;
-			SetActorLocation(From + Direction * Hit.Distance);
+			SetActorLocation(Along(Hit.Distance));
 			End();
 			return;
 		}
 	}
 	Travelled += Step;
-	SetActorLocation(From + Direction * Step);
+	SetActorLocation(Along(Step));
 	if (bEnds)
 	{
 		End();
@@ -232,17 +238,22 @@ void AVeyraProjectile::AdvanceHoming(UAbilitySystemComponent& Source, double Dis
 		End();
 		return;
 	}
+	// It closes on its target over the ground's plan, rising or falling toward the target's height as it goes, so a
+	// shot up a slope or down into the river meets its target's body (ADR-040 §4).
 	const FVector Here = GetActorLocation();
-	FVector ToTarget = Target->GetActorLocation() - Here;
-	ToTarget.Z = 0.0;
-	const FVector Heading = ToTarget.GetSafeNormal();
-	const double Gap = FMath::Max(0.0, ToTarget.Size() - Target->GetSimpleCollisionRadius() - Radius);
+	const FVector ToTarget = Target->GetActorLocation() - Here;
+	const FVector Heading = ToTarget.GetSafeNormal2D();
+	const double Apart = ToTarget.Size2D();
+	const double Gap = FMath::Max(0.0, Apart - Target->GetSimpleCollisionRadius() - Radius);
+	const auto Toward = [&](double Run) {
+		return Here + Heading * Run + FVector::UpVector * (Apart > 0.0 ? ToTarget.Z * Run / Apart : 0.0);
+	};
 	if (Distance < Gap)
 	{
-		SetActorLocation(Here + Heading * Distance);
+		SetActorLocation(Toward(Distance));
 		return;
 	}
-	SetActorLocation(Here + Heading * Gap);
+	SetActorLocation(Toward(Gap));
 	// A targeted shot at an enemy that is Untargetable as it would land fails (Combat Bible §10).
 	if (VeyraTargeting::AreHostile(this, Target) && VeyraTargeting::IsUntargetable(*Target))
 	{
@@ -264,7 +275,10 @@ FVector AVeyraProjectile::GetLineLocationAt(double ServerTime) const
 	{
 		return LaunchedFrom;
 	}
-	return LaunchedFrom + Direction * FMath::Clamp(Speed * (ServerTime - LaunchedAt), 0.0, Range);
+	// As the server flies it: at its launch height above the ground along its path.
+	const FVector2D Place(LaunchedFrom + Direction * FMath::Clamp(Speed * (ServerTime - LaunchedAt), 0.0, Range));
+	const UWorld* World = GetWorld();
+	return World ? VeyraGround::Carried(*World, LaunchedFrom, Place) : FVector(Place, LaunchedFrom.Z);
 }
 
 FVeyraEffectFrame AVeyraProjectile::CasterFrame() const

@@ -11,6 +11,7 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Shapes/VeyraShapes.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraSurfacePlacement.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -189,7 +190,13 @@ void AVeyraFluxbornController::Walk(const AVeyraFluxborn& Body)
 	}
 	if (!bArrived)
 	{
-		const EPathFollowingRequestResult::Type Result = MoveToLocation(FVector(Waypoints[WaypointIndex], Here.Z), static_cast<float>(Acceptance),
+		FVector Destination;
+		if (!VeyraSurfacePlacement::Resolve(*GetWorld(), Waypoints[WaypointIndex], 0.0, UVeyraWorldTuningSubsystem::Get().Layout.Surface, Destination))
+		{
+			Halt();
+			return;
+		}
+		const EPathFollowingRequestResult::Type Result = MoveToLocation(Destination, static_cast<float>(Acceptance),
 			/*bStopOnOverlap*/ false, /*bUsePathfinding*/ true, /*bProjectDestinationToNavigation*/ true, /*bCanStrafe*/ false, /*FilterClass*/ nullptr,
 			/*bAllowPartialPath*/ true);
 		Path = Result == EPathFollowingRequestResult::RequestSuccessful ? EPath::Lane : EPath::None;

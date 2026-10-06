@@ -10,9 +10,12 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "DevCommands/VeyraDevCommands.h"
+#include "DynamicRHI.h"
 #include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformTime.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -21,6 +24,8 @@
 #include "Movement/VeyraMovementComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "RenderTimer.h"
+#include "Scalability.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -92,6 +97,7 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 	bEndMatch = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeEndMatch"));
 	bWaitForEnd = bEndMatch || FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeWaitForEnd"));
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
+	bMeasureFrames = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeFrameTimes"));
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeScreenshot="), ScreenshotPath);
 	bKit = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeKit"));
 	bEndCustomMatch = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeEndCustomMatch"));
@@ -664,13 +670,51 @@ void UVeyraSmokeClientSubsystem::Finish(bool bPassed, const FString& Reason)
 	// clean disconnect the server should see. A failed client quits at once; a passing one may stay.
 	if (bPassed && StaySeconds > 0.0)
 	{
-		// Staying connected after the script, if asked, so the server can be measured.
+		// Staying connected after the script, if asked, so the server, or this client's frames, can be measured.
 		UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: staying connected for %g s."), StaySeconds);
-		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float) {
+		if (bMeasureFrames)
+		{
+			FrameHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this, [this](float DeltaSeconds) {
+				RecordFrame(DeltaSeconds);
+				return true;
+			}));
+		}
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Self = TWeakObjectPtr<UVeyraSmokeClientSubsystem>(this)](float) {
+			if (Self.IsValid())
+			{
+				Self->LogFrameTimes();
+			}
 			FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraSmoke"));
 			return false;
 		}), static_cast<float>(StaySeconds));
 		return;
 	}
 	FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraSmoke"));
+}
+
+void UVeyraSmokeClientSubsystem::RecordFrame(float DeltaSeconds)
+{
+	FrameTimes.Frame.Add(DeltaSeconds * 1000.0);
+	FrameTimes.Game.Add(FPlatformTime::ToMilliseconds(GGameThreadTime));
+	FrameTimes.Render.Add(FPlatformTime::ToMilliseconds(GRenderThreadTime));
+	FrameTimes.Gpu.Add(FPlatformTime::ToMilliseconds(RHIGetGPUFrameCycles()));
+}
+
+void UVeyraSmokeClientSubsystem::LogFrameTimes() const
+{
+	if (FrameTimes.Frame.IsEmpty())
+	{
+		return;
+	}
+	// The value below which Share of the frames fall.
+	const auto Percentiles = [](TArray<double> Values) {
+		Values.Sort();
+		const auto At = [&Values](double Share) { return Values[FMath::Clamp(FMath::FloorToInt32(Share * (Values.Num() - 1)), 0, Values.Num() - 1)]; };
+		return FString::Printf(TEXT("%.2f/%.2f/%.2f"), At(0.5), At(0.95), At(0.99));
+	};
+	const FIntPoint Size = GEngine && GEngine->GameViewport && GEngine->GameViewport->Viewport ? GEngine->GameViewport->Viewport->GetSizeXY() : FIntPoint::ZeroValue;
+	const IConsoleVariable* ScreenPercentage = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+	UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: frame times over %d frames at %dx%d, quality %d, screen percentage %g; median/95th/99th ms: frame %s, game %s, render %s, GPU %s."),
+		FrameTimes.Frame.Num(), Size.X, Size.Y, Scalability::GetQualityLevels().GetSingleQualityLevel(), ScreenPercentage ? ScreenPercentage->GetFloat() : 0.0f,
+		*Percentiles(FrameTimes.Frame), *Percentiles(FrameTimes.Game), *Percentiles(FrameTimes.Render), *Percentiles(FrameTimes.Gpu));
 }

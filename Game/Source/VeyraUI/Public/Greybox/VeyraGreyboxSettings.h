@@ -551,6 +551,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Vision", meta = (ClampMin = "0"))
 	float FogOfWarLift = 0.0f;
 
+	/** Maximum edge of a terrain-conforming fog tile; presentation quality, not sight resolution. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vision", meta = (ClampMin = "1"))
+	float FogOfWarSurfaceStep = 0.0f;
+
 	/** A presence ping: a ring over the fog an enemy is present in, fading until the next (ADR-016 §8). */
 	UPROPERTY(Config, EditAnywhere, Category = "Vision")
 	FLinearColor PresencePingColor = FLinearColor::Transparent;

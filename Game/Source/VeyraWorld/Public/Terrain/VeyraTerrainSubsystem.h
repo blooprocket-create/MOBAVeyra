@@ -26,12 +26,14 @@ public:
 	virtual void Deinitialize() override;
 
 	virtual int32 RaiseWall(const FVeyraWallRequest& Request) override;
+	int32 RaiseMapWall(const FVeyraWallRequest& Request);
 	virtual void LowerWall(int32 Handle) override;
 
 	/** How many walls stand. */
 	int32 GetWallCount() const { return Walls.Num(); }
 
 private:
+	int32 RaiseWallInternal(const FVeyraWallRequest& Request, bool bMapTerrain);
 	/** Moves each unit standing where Request's wall forms to the nearest legal point beside it. */
 	void MoveOut(const FVeyraWallRequest& Request) const;
 

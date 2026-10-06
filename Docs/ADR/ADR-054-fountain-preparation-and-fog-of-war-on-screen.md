@@ -37,6 +37,7 @@ Two match-facing pieces are missing.
 ### 3. The client darkens the ground its side does not see
 
 - **In the world (grey box):** each unseen cell is darkened by a translucent quad just above the ground. Runs of unseen cells in a row are drawn as one quad. The colour and opacity are a presentation setting.
+- **Production elevation (ADR-040):** the same unseen runs are tessellated over the resolved ground; cached ground heights and an editable presentation tile size affect drawing only. Vision cell resolution and server authority are unchanged.
 - **On the minimap:** the same cells are darkened over the map.
 - **Edges** are cell-sized in the grey box. Real presentation may soften them later without changing the contract.
 - **No setting turns it off.** Settings may not change fog-of-war information (Settings §4).

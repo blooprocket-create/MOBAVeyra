@@ -87,6 +87,7 @@ struct FVeyraMinimapView
 	TArray<FVeyraMinimapLane> Lanes;
 	TArray<FVeyraMinimapWall> Walls;
 	/** The river: its band along the diagonal, cut to the map's square, as the outline of a convex polygon. */
+	/** Sampled river triangle vertices, clipped to the minimap. */
 	TArray<FVector2D> River;
 	TArray<FVeyraMinimapDot> Dots;
 	TArray<FVeyraMinimapPing> Pings;

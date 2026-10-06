@@ -13,6 +13,7 @@
 #include "NavMesh/NavMeshBoundsVolume.h"
 #include "NavigationSystem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Terrain/VeyraGround.h"
 #include "VeyraTeamStart.h"
 
 namespace VeyraGreybox
@@ -75,6 +76,8 @@ void SpawnFloor(UWorld& World, const FVeyraGreyboxLayout& Layout, EComponentMobi
 	AStaticMeshActor* Floor = World.SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Transform);
 	Floor->SetMobility(Mobility);
 	Floor->GetStaticMeshComponent()->SetStaticMesh(Cube);
+	// The floor is playable ground (ADR-040 §4): what ground queries find, and walls' sweeps pass over.
+	VeyraGround::MakeGround(*Floor->GetStaticMeshComponent());
 }
 
 void SpawnTeamStarts(UWorld& World, const FVeyraGreyboxLayout& Layout)

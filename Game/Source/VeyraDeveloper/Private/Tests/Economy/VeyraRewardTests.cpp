@@ -136,6 +136,7 @@ namespace VeyraEconomyTests
 		{
 			Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			ASSERT_THAT(IsNotNull(Battleground));
+			VeyraWorldTests::SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(VeyraWorldTests::CompactBattleground());
 			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
 			Killer = &Spawn(World, EVeyraTeam::A, FVector::ZeroVector);

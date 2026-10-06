@@ -87,6 +87,9 @@ Final environment art must preserve that separation. A beautiful decorative towe
 
 ## 4. Protected competitive geometry
 
+**Production redesign authorization (author ruling, 2026-10-02):** the Battleground Bible section 2 opens the current spatial arrangement to redesign. Only three lanes, a river, inner jungle between the lanes, and outer jungle beyond top and bot are fixed spatial requirements. Existing coordinates and blocker layouts are prototype inputs, not canon. Terrain fairness, terrain sight blocking and fog of war remain required. During this pass, intentional layout edits belong in World.json and must be reported and validated; art generation must consume the resulting layout without silently changing it. The protection rules below apply to the selected gameplay layout and do not prohibit this explicitly authorized redesign.
+
+
 The following are protected and may not be altered by ordinary art dressing, Blender generation, PCG, foliage placement, water decoration, or lighting work:
 
 - lane/Fluxway centerlines;
@@ -286,6 +289,8 @@ For the Crucible, water must primarily:
 Prefer shader/Niagara techniques over general fluid simulation unless measured evidence justifies otherwise.
 
 ## 8. Large forms and environment hierarchy
+
+**Provisional look (author ruling, 2026-10-05): an overgrown highland ruin.** Pale weathered stone causeways carry the Fluxways; moss-green jungle shelves rise between them over dark slate cliffs; the river runs clear teal; blue Flux glyphs glow in the old stonework; a warm late-afternoon sun lights the field. It guides materials, the environment kit and lighting until art direction replaces it.
 
 The Crucible should be built in three visual layers.
 

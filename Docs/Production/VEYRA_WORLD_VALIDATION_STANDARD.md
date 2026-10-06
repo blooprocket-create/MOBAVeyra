@@ -249,6 +249,8 @@ Acceptable deltas remain reviewed data/playtest constraints.
 
 Visual asymmetry is welcome when functional constraints remain fair.
 
+Under the author's terrain-fairness ruling (Battleground Bible section 2), compare both teams using the same movement capabilities and camera settings. Include slopes, elevation transitions, cover, sightlines, collision, crossing widths and approach/escape options alongside route times. Record failures per corresponding region; a terrain-induced side advantage blocks acceptance. Do not treat mirrored XY anchors or a successful navigation build as proof of fairness.
+
 ## 11. Gate 9 — gameplay-camera readability
 
 Important world content is judged from the actual Veyra gameplay camera, not a ground-level cinematic camera.
@@ -506,7 +508,11 @@ This document does not invent final hardware targets or frame budgets.
 
 Once approved, store them in validation profiles/tools rather than prose-only guesses.
 
-### 23.1 Stress cases
+### 23.1 First-pass hardware target (author ruling, 2026-10-02)
+
+Validate the first production pass on the author's current PC at 120 FPS: Intel Core i7-12700KF, NVIDIA GeForce RTX 3070 Ti, 32 GB system memory. Record resolution, graphics preset, render scale, frame-time distribution, and representative stress scene with every measurement. The corresponding frame budget is 1000 / 120 milliseconds. A different resolution or quality level is a separate measurement, not a substitute for reporting the tested configuration. This is a first-pass target, not the release minimum specification.
+
+### 23.2 Stress cases
 
 Maintain representative stress conditions:
 - empty lane;

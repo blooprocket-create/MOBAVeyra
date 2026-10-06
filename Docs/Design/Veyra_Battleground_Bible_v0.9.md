@@ -46,7 +46,13 @@ A Vanguard who attunes to one of the Crucible's Prime Wells can project a tempor
 **FAMILIAR THREE-LANE LANGUAGE; DIFFERENT SPATIAL LOGIC**
 
 
-**LOCKED TOPOLOGY PRINCIPLES**
+**CURRENT MAP-DESIGN AUTHORITY (author ruling, 2026-10-02)**
+
+The current map design is provisional, not canon. The fixed spatial requirements are three lanes, a river, jungle between the three lanes, and outer jungle beyond top and bot. Existing coordinates, lane shapes, river course, base arrangements, objective/camp locations, wall placements and route geometry may be redesigned. Earlier spatial descriptions below, including the 2026-09-28 macro-shape ruling, describe the prototype and are superseded wherever they imply a locked map design beyond these requirements.
+
+The terrain-fairness requirement remains binding: no starting side may receive an inherent terrain advantage. Terrain sight blocking and fog of war remain required. Existing gameplay rules for structures, objectives, spawning and victory retain their owning sections; this ruling opens their spatial arrangement, not unrelated gameplay systems. New geometry must be explicit, reviewable designer-editable data and must pass navigation, visibility, fairness and gameplay-camera validation.
+
+**PROTOTYPE TOPOLOGY PRINCIPLES (provisional under the current ruling)**
 
 - Three major Fluxways: top, mid, bot.
 - Two Prime Wells in opposing corners anchor each side of the network.
@@ -54,6 +60,8 @@ A Vanguard who attunes to one of the Crucible's Prime Wells can project a tempor
 - There is jungle both inside and outside top and bot, enabling outer-wrap ganks and double-roamer strategies.
 - Two spawned neutral Flux Well sites sit near the north/top and south/bot macro spaces.
 - Competitive distances should be balanced, but the final visual geometry does not need to be a literal mirror of the reference battleground's shape.
+- **Terrain fairness (author ruling, 2026-10-01):** neither team may gain an inherent competitive advantage from its starting side's terrain. Equivalent routes and combat spaces must preserve fair travel times, slopes and elevation transitions, chokepoints, crossings, objective access, cover, sightlines, collision, approach and escape options, and gameplay-camera readability. Visual asymmetry is allowed only where these gameplay conditions remain competitively equivalent. A terrain-induced side advantage blocks map acceptance.
+- **Symmetry and river (author ruling, 2026-10-05):** the prototype battleground is symmetric under a half turn about its centre: Team B's half is Team A's turned 180 degrees, so each lane, route, wall and objective has an equivalent on the other side, and top and bot trade places. The river follows a naturally curved course through the centre, and each Flux Well stands on an island in it, a side channel parting from the river and rejoining it around the Well.
 
 **DESIGN INTENT**
 

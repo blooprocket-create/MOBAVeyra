@@ -98,6 +98,7 @@ namespace VeyraWorldTests
 			WorldTuning->Tuning.Wildlife.Camps = { Camp };
 			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			ASSERT_THAT(IsNotNull(Battleground));
+			SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(CompactBattleground());
 			Jungle = Spawner.GetWorld().GetSubsystem<UVeyraJungleSubsystem>();
 			ASSERT_THAT(IsNotNull(Jungle));
@@ -146,7 +147,7 @@ namespace VeyraWorldTests
 			TArray<FVeyraCampState> Camps = Jungle->GetCamps();
 			ASSERT_THAT(AreEqual(2, Camps.Num()));
 			ASSERT_THAT(IsTrue(Camps[0].Half == EVeyraTeam::A && Camps[1].Half == EVeyraTeam::B));
-			ASSERT_THAT(IsTrue(VeyraLayout::Mirror(Camps[0].Center).Equals(Camps[1].Center, Tolerance), TEXT("Team B's camp is Team A's mirror")));
+			ASSERT_THAT(IsTrue(VeyraLayout::Rotate(Camps[0].Center).Equals(Camps[1].Center, Tolerance), TEXT("Team B's camp is Team A's rotation")));
 			ASSERT_THAT(IsTrue(Camps[0].Alive == 0 && Camps[0].SpawnsAt > 0.0, TEXT("nothing before its spawn time")));
 
 			Advance(SpawnSeconds + Margin);
