@@ -8,6 +8,7 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "GameFramework/Actor.h"
 #include "Hud/VeyraHudModel.h"
+#include "Progression/VeyraProgressionComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Units/VeyraUnit.h"
 
@@ -70,6 +71,10 @@ TArray<FVeyraCombatCue> Between(const AActor& Unit, const FVeyraUnitSighting& Be
 		Cue.Ability = Now.CommitAbility;
 		Cue.Location = Now.CommitLocation;
 	}
+	if (Before.Level > 0 && Now.Level > Before.Level)
+	{
+		Add(EVeyraCombatCueKind::LevelUp).Amount = Now.Level;
+	}
 	return Cues;
 }
 
@@ -102,6 +107,10 @@ TOptional<FVeyraUnitSighting> Sight(const AActor& Unit, EVeyraTeam Viewer)
 		Sighting.CommitSerial = Commit.Serial;
 		Sighting.CommitAbility = Commit.Ability;
 		Sighting.CommitLocation = Commit.Location;
+	}
+	if (const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Unit))
+	{
+		Sighting.Level = Progression->GetLevel();
 	}
 	return Sighting;
 }

@@ -19,6 +19,7 @@ namespace VeyraCombatTextViewTests
 		// Fixture timing, independent of the committed HUD settings.
 		static constexpr double ShowSeconds = 1.2;
 		static constexpr double MergeSeconds = 0.4;
+		static constexpr double GoldMergeSeconds = 0.15;
 
 		FActorTestSpawner Spawner;
 
@@ -71,6 +72,30 @@ namespace VeyraCombatTextViewTests
 			Later.Add(ArrivalOf(Target, &Dealer, EVeyraCombatTextKind::DamageDealt, 7.0, 0.6 + MergeSeconds + 0.1));
 			const TArray<FVeyraCombatTextShown> Again = VeyraCombatTextView::Describe(Later, 1.2, OptionsOf(true));
 			ASSERT_THAT(IsTrue(Again.Num() == 4 && Again[0].Amount == 27.0 && Again[3].Amount == 7.0));
+		}
+
+		TEST_METHOD(GoldMergesAtAnyDensityWhereItWasEarnedAndItsSettingHidesIt)
+		{
+			AActor& Own = Spawner.SpawnActor<AActor>();
+			const FVector Fell(100.0, 200.0, 0.0);
+			FVeyraCombatTextArrival LastHit;
+			LastHit.Line.Kind = EVeyraCombatTextKind::Gold;
+			LastHit.Line.bFixed = true;
+			LastHit.Line.Where = Fell;
+			LastHit.Line.Amount = 21.0f;
+			// A kill over the player's own Vanguard, its bounty at the same moment, and a last hit where a unit fell.
+			const TArray<FVeyraCombatTextArrival> Arrivals = {
+				ArrivalOf(Own, nullptr, EVeyraCombatTextKind::Gold, 300.0, 0.0),
+				ArrivalOf(Own, nullptr, EVeyraCombatTextKind::Gold, 150.0, GoldMergeSeconds / 2.0),
+				LastHit,
+			};
+			FVeyraCombatTextOptions Options = OptionsOf(/*bReduced*/ false);
+			Options.GoldMergeSeconds = GoldMergeSeconds;
+			const TArray<FVeyraCombatTextShown> Shown = VeyraCombatTextView::Describe(Arrivals, GoldMergeSeconds, Options);
+			ASSERT_THAT(IsTrue(Shown.Num() == 2 && Shown[0].Amount == 450.0 && !Shown[0].bFixed, TEXT("a kill and its bounty read as one")));
+			ASSERT_THAT(IsTrue(Shown[1].bFixed && Shown[1].Where.Equals(Fell) && Shown[1].Amount == 21.0, TEXT("a last hit stays where its unit fell")));
+			Options.bGold = false;
+			ASSERT_THAT(IsTrue(VeyraCombatTextView::Describe(Arrivals, GoldMergeSeconds, Options).IsEmpty()));
 		}
 
 		TEST_METHOD(TurnedOffKindsShowNothingAndCritEmphasisIsTheirs)

@@ -135,6 +135,8 @@ struct FVeyraAbilityLineModel
 	FText Description;
 	/** The ability's or passive's ID, which its icon is found by. */
 	FString AbilityId;
+	/** An ability's damage at every rank, a line each (ADR-065 §7); none for a passive. */
+	TArray<FString> Numbers;
 };
 struct FVeyraSelectModel
 {

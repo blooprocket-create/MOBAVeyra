@@ -38,4 +38,10 @@ namespace VeyraHudDeck
 
 	/** Draws Text large and centred a third of the way down, in Color: the match's end, for one. */
 	void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const FString& Text, const FLinearColor& Color);
+
+	/**
+	 * Announces the player's own level-up (ADR-065 §5): "Level N" in gold over the battleground, with a line about the
+	 * skill point while one waits, fading through its last part. Shown runs from 0 as it comes to 1 as it goes.
+	 */
+	void DrawLevelUp(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, int32 Level, int32 UnspentPoints, double Shown);
 }

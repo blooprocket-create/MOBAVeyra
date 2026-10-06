@@ -1244,6 +1244,11 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	{
 		Statistics->AddParticipant(PlayerState);
 	}
+	// Its player sees the Gold it earns as numbers (ADR-065 §4).
+	if (CombatText)
+	{
+		CombatText->WatchGold(PlayerState);
+	}
 	// The one guaranteed Gold, once per match (Economy & Progression Bible §1), and empty slots to spend it on (§10).
 	// A custom match's host may set its own starting Gold (ADR-021 §3).
 	const TOptional<FVeyraCustomSettings> Custom = Roster ? Roster->GetAssignment().Custom : TOptional<FVeyraCustomSettings>();

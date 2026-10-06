@@ -18,12 +18,19 @@ struct FVeyraCombatTextOptions
 	bool bDamageReceived = true;
 	bool bHealing = true;
 	bool bShielding = true;
+	/** Gold the player earned (ADR-065 §4). */
+	bool bGold = true;
 	/** A crit's number stands out. */
 	bool bCritEmphasis = true;
 	/** Reduced density: quick numbers between the same two units merge into a running total. */
 	bool bReduced = false;
 	/** Reduced merges a number arriving within this many seconds of the last it would join. */
 	double MergeSeconds = 0.0;
+	/**
+	 * At any density, Gold arriving within this many seconds of the last Gold at the same place joins it, so a kill and
+	 * its bounty read as one figure.
+	 */
+	double GoldMergeSeconds = 0.0;
 	/** How long a number rises and fades, in seconds. */
 	double ShowSeconds = 0.0;
 };
@@ -38,6 +45,9 @@ struct FVeyraCombatTextShown
 	double Amount = 0.0;
 	/** How far through its showing it is: 0 as its latest part arrives, nearing 1 as it vanishes. */
 	double Progress = 0.0;
+	/** It shows at Where, not at a unit: Gold a fall earned (ADR-065 §4). */
+	bool bFixed = false;
+	FVector Where = FVector::ZeroVector;
 };
 
 /** The client's presentation of combat text, apart from the engine. */
@@ -52,7 +62,8 @@ namespace VeyraCombatTextView
 	/**
 	 * The numbers to draw at Now, in the order they arrived: the kinds the player turned off are left out, and
 	 * under Reduced density a number arriving within MergeSeconds of the last between the same two units, of the
-	 * same kind and type, adds to its running total, which shows from its latest part. A number that rounds to
+	 * same kind and type, adds to its running total, which shows from its latest part. Gold arriving within
+	 * GoldMergeSeconds of the last Gold at the same unit or place adds to it at any density. A number that rounds to
 	 * nothing shows nothing.
 	 */
 	VEYRAUI_API TArray<FVeyraCombatTextShown> Describe(TConstArrayView<FVeyraCombatTextArrival> Arrivals, double Now, const FVeyraCombatTextOptions& Options);

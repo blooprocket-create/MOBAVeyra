@@ -153,14 +153,14 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(OrderMarkSeconds > 0.0f, TEXT("OrderMarkSeconds"), TEXT("must be above 0."));
 	Require(!HitFlashMaterial.IsNull(), TEXT("HitFlashMaterial"), TEXT("the generated hit flash material is required."));
 	Require(!HoverOutlineMaterial.IsNull(), TEXT("HoverOutlineMaterial"), TEXT("the generated hover outline material is required."));
-	Require(!ImpactEffect.IsNull() && !CastEffect.IsNull() && !DeathEffect.IsNull() && !TrailEffect.IsNull(), TEXT("ImpactEffect"),
-		TEXT("the generated impact, cast, death and trail effects are required."));
+	Require(!ImpactEffect.IsNull() && !CastEffect.IsNull() && !DeathEffect.IsNull() && !LevelUpEffect.IsNull() && !TrailEffect.IsNull(), TEXT("ImpactEffect"),
+		TEXT("the generated impact, cast, death, level-up and trail effects are required."));
 	Require(SwingArcReach > 0.0f && SwingArcDegrees > 0.0f && SwingArcDegrees <= 360.0f && SwingArcSeconds > 0.0f, TEXT("SwingArcReach"),
 		TEXT("a swing needs a reach, an arc of up to 360 degrees and some time to fade."));
 	Require(!EffectColorParameter.IsNone(), TEXT("EffectColorParameter"), TEXT("the effects' colour parameter is required."));
 	Require(!EffectScaleParameter.IsNone(), TEXT("EffectScaleParameter"), TEXT("the effects' scale parameter is required."));
-	Require(!ImpactSound.IsNull() && !SwingSound.IsNull() && !CastSound.IsNull() && !DeathSound.IsNull() && !ClickSound.IsNull(), TEXT("ImpactSound"),
-		TEXT("the generated impact, swing, cast, death and click sounds are required."));
+	Require(!ImpactSound.IsNull() && !SwingSound.IsNull() && !CastSound.IsNull() && !DeathSound.IsNull() && !ClickSound.IsNull() && !LevelUpSound.IsNull(),
+		TEXT("ImpactSound"), TEXT("the generated impact, swing, cast, death, click and level-up sounds are required."));
 	Require(ShopOffset >= 0.0f && ShopRadius >= 1.0f && ShopHeight > ShopRadius * 2.0f, TEXT("ShopHeight"),
 		TEXT("the shop needs a radius of at least 1 and must stand taller than it is wide."));
 	Require(SoundAudibleRadius >= 1.0f && SoundFalloffDistance >= 1.0f && MaxCueSounds >= 1, TEXT("SoundAudibleRadius"),
@@ -183,6 +183,12 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(CombatTextShowSeconds > 0.0f, TEXT("CombatTextShowSeconds"), TEXT("must be above 0."));
 	Require(CombatTextMergeSeconds >= 0.0f && CombatTextMergeSeconds < CombatTextShowSeconds, TEXT("CombatTextMergeSeconds"),
 		TEXT("must not be negative, and must be shorter than CombatTextShowSeconds, or a total would vanish while it grows."));
+	Require(CombatTextGoldMergeSeconds >= 0.0f && CombatTextGoldMergeSeconds < CombatTextShowSeconds, TEXT("CombatTextGoldMergeSeconds"),
+		TEXT("must not be negative, and must be shorter than CombatTextShowSeconds."));
+	Require(LevelUpFontSize >= 1 && LevelUpHeightShare > 0.0f && LevelUpHeightShare < 1.0f && LevelUpBannerSeconds > 0.0f && LevelUpFadeShare > 0.0f
+		&& LevelUpFadeShare <= 1.0f, TEXT("LevelUpBannerSeconds"), TEXT("the level-up banner needs a size, a place on screen, some time to show and a share of it to fade."));
+	Require(RankUpPulseSeconds > 0.0f && RankUpPulseFloor >= 0.0f && RankUpPulseFloor < 1.0f, TEXT("RankUpPulseSeconds"),
+		TEXT("a pulse needs a period above 0 and a floor below whole."));
 	Require(CombatTextScale > 0.0f, TEXT("CombatTextScale"), TEXT("must be above 0."));
 	Require(CombatTextCritScale >= 1.0f, TEXT("CombatTextCritScale"), TEXT("must be at least 1."));
 	Require(TelegraphLift >= 0.0f, TEXT("TelegraphLift"), TEXT("must not be negative."));

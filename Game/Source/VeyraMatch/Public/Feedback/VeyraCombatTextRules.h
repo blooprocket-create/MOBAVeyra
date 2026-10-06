@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Feedback/VeyraCombatTextTypes.h"
+#include "Gold/VeyraGoldComponent.h"
 #include "Misc/Optional.h"
 
 class UAbilitySystemComponent;
@@ -25,4 +26,11 @@ namespace VeyraCombatTextRouting
 
 	/** A shield the player granted or received. */
 	VEYRAMATCH_API TOptional<FVeyraCombatTextLine> ForShield(const FVeyraShieldGranted& Event, const UAbilitySystemComponent& Player);
+
+	/**
+	 * Gold the player earned (ADR-065 §4): fixed where the unit whose fall earned it fell, or else over Own, the player's
+	 * Vanguard. Nothing for starting Gold, passive income, a sale, an undo or a developer's grant, nor without anywhere
+	 * to show.
+	 */
+	VEYRAMATCH_API TOptional<FVeyraCombatTextLine> ForGold(double Amount, EVeyraGoldReason Reason, const FVeyraGoldSource& From, AActor* Own);
 }

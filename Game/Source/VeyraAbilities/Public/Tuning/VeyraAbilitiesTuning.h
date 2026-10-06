@@ -2624,4 +2624,25 @@ namespace VeyraAbilityRules
 	 * hold one value, or exactly RankCount (ADR-008 §3).
 	 */
 	VEYRAABILITIES_API TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 RankCount);
+
+	/**
+	 * One damage component's amount at Rank for an attacker with these powers, before the target's defences: the rank's
+	 * amount plus the powers times the ratios. The one formula a cast prepares its damage with and an ability's numbers
+	 * show (ADR-065 §7).
+	 */
+	VEYRAABILITIES_API double DamageAmount(const FVeyraDamageTuning& Damage, int32 Rank, double PhysicalPower, double MagicPower);
+
+	/** One damage list an ability's tuning holds, with the role its place there plays (ADR-065 §7). */
+	struct FVeyraAbilityDamagePart
+	{
+		/**
+		 * The field it sits in, its role: "hostEffects", "contactEffects", "pulseEffects", "endEffects", "siphon",
+		 * "enemyDamagePerSecond" and so on; "damage" for the ability's own damage with no other role.
+		 */
+		FString Role;
+		TArray<FVeyraDamageTuning> Damage;
+	};
+
+	/** Every damage list Ability's tuning holds, in the order its validation reads them; empty for one that deals none. */
+	VEYRAABILITIES_API TArray<FVeyraAbilityDamagePart> DamageParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 }

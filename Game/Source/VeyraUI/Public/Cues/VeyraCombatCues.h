@@ -26,6 +26,8 @@ enum class EVeyraCombatCueKind : uint8
 	CastCommit,
 	/** A unit died. */
 	Death,
+	/** A Vanguard's Level rose (ADR-065 §5). */
+	LevelUp,
 };
 
 /** One cue, as the presentation's views take it. */
@@ -43,7 +45,7 @@ struct FVeyraCombatCue
 	FVeyraContentId Ability;
 	FVector Location = FVector::ZeroVector;
 
-	/** A hit's Health and shields lost. */
+	/** A hit's Health and shields lost; a level-up's new Level. */
 	double Amount = 0.0;
 
 	/** When an attack's windup ends, in the server's world time. */
@@ -72,14 +74,18 @@ struct FVeyraUnitSighting
 	int32 CommitSerial = 0;
 	FVeyraContentId CommitAbility;
 	FVector CommitLocation = FVector::ZeroVector;
+
+	/** A Vanguard's Level, which every client receives; 0 for any other unit. */
+	int32 Level = 0;
 };
 
 /** Reading a fight's moments from the state a client already receives (ADR-063 §1). */
 namespace VeyraCombatCues
 {
 	/**
-	 * The cues between two sightings of Unit, in the order they happen: a hit, then a death, or else the attack's and
-	 * the cast's. A new windup or backswing is told apart from the old by its phase end; a lost Max Health is not a hit.
+	 * The cues between two sightings of Unit, in the order they happen: a hit, then a death, or else the attack's, the
+	 * cast's and a level-up. A new windup or backswing is told apart from the old by its phase end; a lost Max Health is
+	 * not a hit; a Level first seen is no level-up.
 	 */
 	VEYRAUI_API TArray<FVeyraCombatCue> Between(const AActor& Unit, const FVeyraUnitSighting& Before, const FVeyraUnitSighting& Now);
 

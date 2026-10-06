@@ -22,6 +22,23 @@ namespace VeyraAbilitiesTests
 			return *Vanguard.GetAbilitySystemComponent();
 		}
 
+		TEST_METHOD(GoldShowsWhereAFallEarnedItOrOverThePlayersVanguardButNeverForIncome)
+		{
+			AActor& Own = Spawner.SpawnActor<AActor>();
+			AActor& Fallen = Spawner.SpawnActor<AActor>();
+			const FVector Fell(400.0, -200.0, 0.0);
+			const TOptional<FVeyraCombatTextLine> LastHit = VeyraCombatTextRouting::ForGold(21.0, EVeyraGoldReason::LastHit, FVeyraGoldSource{ &Fallen, Fell }, &Own);
+			ASSERT_THAT(IsTrue(LastHit.IsSet() && LastHit->Kind == EVeyraCombatTextKind::Gold && LastHit->bFixed && LastHit->Unit.Get() == &Fallen
+				&& FVector(LastHit->Where).Equals(Fell) && LastHit->Amount == 21.0f, TEXT("where the unit fell")));
+			const TOptional<FVeyraCombatTextLine> Kill = VeyraCombatTextRouting::ForGold(300.0, EVeyraGoldReason::Kill, {}, &Own);
+			ASSERT_THAT(IsTrue(Kill.IsSet() && !Kill->bFixed && Kill->Unit.Get() == &Own, TEXT("over the player's own Vanguard")));
+			for (const EVeyraGoldReason Income : { EVeyraGoldReason::Starting, EVeyraGoldReason::Passive, EVeyraGoldReason::Sale, EVeyraGoldReason::Undo, EVeyraGoldReason::Developer })
+			{
+				ASSERT_THAT(IsFalse(VeyraCombatTextRouting::ForGold(300.0, Income, {}, &Own).IsSet(), LexToString(Income)));
+			}
+			ASSERT_THAT(IsFalse(VeyraCombatTextRouting::ForGold(300.0, EVeyraGoldReason::Kill, {}, nullptr).IsSet(), TEXT("nowhere to show")));
+		}
+
 		TEST_METHOD(ADamageInstanceGivesItsDealerAndItsReceiverANumberPerType)
 		{
 			FArchetypeTestWorld World{ Spawner };

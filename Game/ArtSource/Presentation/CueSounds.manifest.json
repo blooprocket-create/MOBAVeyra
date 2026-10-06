@@ -1,6 +1,6 @@
 {
   "generatorVersion": 1,
-  "specSha256": "bdf24e549ba9235b1be6fc8d884a077d424ca9e94b27725eae789c6a4bbadcc8",
+  "specSha256": "c4791292edf97468e6c00ff1b3b8f9a40d88a6c053909d7eb3d6c6337d590899",
   "sounds": [
     {
       "name": "S_VeyraImpact",
@@ -31,6 +31,12 @@
       "file": "Audio/S_VeyraClick.wav",
       "sha256": "af199bf6d9ce4c34fb88b5d9f9f5cf5066fe757abab1ceffaaef3b92c21d0207",
       "samples": 1323
+    },
+    {
+      "name": "S_VeyraLevelUp",
+      "file": "Audio/S_VeyraLevelUp.wav",
+      "sha256": "94996a70052dbc950d4b1902ed444570ce893ec4b41b5b55966bf2724ae1ef8f",
+      "samples": 22050
     }
   ]
 }

@@ -13,6 +13,9 @@ namespace
 		TConstArrayView<int32> RankCounts;
 		TArray<FString> Problems;
 
+		/** Hears every damage list the checker reads, with its JSON pointer: how an ability's damage parts are found. */
+		TFunction<void(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)> OnDamage;
+
 		void Problem(const FString& Pointer, const FString& Message)
 		{
 			Problems.Add(FString::Printf(TEXT("%s: %s"), *Pointer, *Message));
@@ -135,6 +138,10 @@ namespace
 
 		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)
 		{
+			if (OnDamage && !DamageList.IsEmpty())
+			{
+				OnDamage(Pointer, DamageList);
+			}
 			TArray<EVeyraDamageType, TInlineAllocator<3>> Types;
 			for (int32 Index = 0; Index < DamageList.Num(); ++Index)
 			{
@@ -1595,10 +1602,61 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
+namespace
+{
+	/** Reads every archetype map's entry for Ability with Checker. */
+	void CheckAbility(FAbilityTuningChecker& Checker, const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/**
+	 * A damage list's role, from its JSON pointer below its archetype and ID: the last named field, passing over
+	 * indices and the plain "damage" and "effects" every bundle has; "damage" when nothing else names it.
+	 */
+	FString DamageRoleOf(const FString& Pointer)
+	{
+		TArray<FString> Segments;
+		Pointer.ParseIntoArray(Segments, TEXT("/"));
+		// The archetype map and the ability's ID come first.
+		for (int32 Index = Segments.Num() - 1; Index >= 2; --Index)
+		{
+			const FString& Segment = Segments[Index];
+			if (!Segment.IsNumeric() && Segment != TEXT("damage") && Segment != TEXT("effects"))
+			{
+				return Segment;
+			}
+		}
+		return TEXT("damage");
+	}
+}
+
+double DamageAmount(const FVeyraDamageTuning& Damage, int32 Rank, double PhysicalPower, double MagicPower)
+{
+	return ValueAtRank(Damage.AmountByRank, Rank) + PhysicalPower * Damage.PhysicalPowerRatio + MagicPower * Damage.MagicPowerRatio;
+}
+
+TArray<FVeyraAbilityDamagePart> DamageParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
+	TArray<FVeyraAbilityDamagePart> Parts;
+	FAbilityTuningChecker Checker{ Tuning, {} };
+	Checker.OnDamage = [&Parts](const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList) {
+		Parts.Add(FVeyraAbilityDamagePart{ DamageRoleOf(Pointer), TArray<FVeyraDamageTuning>(DamageList) });
+	};
+	CheckAbility(Checker, Tuning, Ability);
+	return Parts;
+}
+
 TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 RankCount)
 {
 	const int32 RankCounts[] = { RankCount };
 	FAbilityTuningChecker Checker{ Tuning, RankCounts };
+	CheckAbility(Checker, Tuning, Ability);
+	// Targeted damage abilities keep one value for every rank.
+	return Checker.Problems;
+}
+
+namespace
+{
+void CheckAbility(FAbilityTuningChecker& Checker, const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
 	const FString Key = Ability.ToString();
 	if (const FVeyraAreaAbilityTuning* Area = Tuning.Area.Find(Ability))
 	{
@@ -1664,7 +1722,6 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	{
 		Checker.CheckEcho(TEXT("/echo/") + Key, *Echo);
 	}
-	// Targeted damage abilities keep one value for every rank.
-	return Checker.Problems;
+}
 }
 }

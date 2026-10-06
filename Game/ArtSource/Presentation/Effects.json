@@ -72,6 +72,30 @@
       ]
     },
     {
+      "name": "NS_VeyraLevelUp",
+      "purpose": "ADR-065 §5: a Vanguard levelling up; a ring of puffs around its body that flare white-hot and stream upward, cooling to its side colour, with fast strands climbing ahead of them, so the moment reads at a glance and from a distance.",
+      "template": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff",
+      "ribbonMaterial": "/Game/Veyra/UI/Presentation/M_VeyraEffectStrand.M_VeyraEffectStrand",
+      "inputs": [
+        { "emitter": "OmnidirectionalBurst", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "18" },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.8] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.1] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "value": [20] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "value": [34] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [55] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 420] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "8" },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.6] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "value": [12] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "value": [18] },
+        { "emitter": "RIbbonTrailFollower", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Ribbon Width Mode", "enum": "Direct Set" },
+        { "emitter": "RIbbonTrailFollower", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Ribbon Width", "value": [10] },
+        { "emitter": "RIbbonTrailFollower", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.45] }
+      ]
+    },
+    {
       "name": "NS_VeyraTrail",
       "purpose": "ADR-063 §4: a projectile's trail; a stream of puffs poured where it flies, white-hot at the projectile and cooling to its side colour, darkening and eroding away behind it.",
       "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",

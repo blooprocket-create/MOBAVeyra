@@ -65,6 +65,20 @@ namespace VeyraCombatCueTests
 			ASSERT_THAT(IsTrue(VeyraCombatCues::Between(Unit, Windup, Idle).IsEmpty(), TEXT("a cancelled windup lands nothing")));
 		}
 
+		TEST_METHOD(ARisingLevelIsALevelUpAndALevelFirstSeenIsNot)
+		{
+			const ACharacter& Unit = SpawnUnit();
+			FVeyraUnitSighting Before = Standing();
+			Before.Level = 3;
+			FVeyraUnitSighting After = Before;
+			After.Level = 4;
+			const TArray<FVeyraCombatCue> Cues = VeyraCombatCues::Between(Unit, Before, After);
+			ASSERT_THAT(IsTrue(Cues.Num() == 1 && Cues[0].Kind == EVeyraCombatCueKind::LevelUp && Cues[0].Amount == 4.0 && Cues[0].Unit.Get() == &Unit));
+			FVeyraUnitSighting Unseen = Standing();
+			ASSERT_THAT(IsTrue(VeyraCombatCues::Between(Unit, Unseen, After).IsEmpty(), TEXT("a Level first seen is no level-up")));
+			ASSERT_THAT(IsTrue(VeyraCombatCues::Between(Unit, After, After).IsEmpty()));
+		}
+
 		TEST_METHOD(AnAttackSeenOnlyInItsBackswingStillCommits)
 		{
 			// A fast attack's windup can fall between two updates: its new backswing ends at a new time.

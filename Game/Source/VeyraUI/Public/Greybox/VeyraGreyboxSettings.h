@@ -108,6 +108,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ShieldColor = FLinearColor::Transparent;
 
+	/**
+	 * The last-hit cue (ADR-065 §6): a mark across an enemy Fluxborn's or creature's bar where the player's next basic
+	 * attack would leave its Health, and the colour its Health takes once that attack would finish it.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor LastHitMarkColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor LastHitColor = FLinearColor::Transparent;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ResourceColor = FLinearColor::Transparent;
 
@@ -371,6 +381,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Effects")
 	TSoftObjectPtr<class UNiagaraSystem> DeathEffect;
 
+	/** A Vanguard levelling up (ADR-065 §5), rising round its body in its side colour. */
+	UPROPERTY(Config, EditAnywhere, Category = "Effects")
+	TSoftObjectPtr<class UNiagaraSystem> LevelUpEffect;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Effects")
 	FName EffectColorParameter;
 
@@ -432,6 +446,10 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Sounds")
 	TSoftObjectPtr<class USoundBase> ClickSound;
+
+	/** The player's own level-up (ADR-065 §5), heard as the click is, from nowhere in particular. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sounds")
+	TSoftObjectPtr<class USoundBase> LevelUpSound;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Sounds", meta = (ClampMin = "1"))
 	float SoundAudibleRadius = 0.0f;
@@ -674,6 +692,32 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	int32 HudHeadlineFontSize = 0;
 
+	/**
+	 * The player's own level-up (ADR-065 §5): "Level N" at LevelUpFontSize, centred LevelUpHeightShare of the way down
+	 * the screen, for LevelUpBannerSeconds, fading out through the last LevelUpFadeShare of it.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 LevelUpFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0", ClampMax = "1"))
+	float LevelUpHeightShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float LevelUpBannerSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0", ClampMax = "1"))
+	float LevelUpFadeShare = 0.0f;
+
+	/**
+	 * While a skill point waits, the rank-up marks pulse between RankUpPulseFloor of their opacity and all of it, once
+	 * every RankUpPulseSeconds; Reduce UI Animation holds them whole (ADR-065 §5; ADR-055 §3).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float RankUpPulseSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0", ClampMax = "1"))
+	float RankUpPulseFloor = 0.0f;
+
 	/** A hovered slot's tooltip, at the reference height. */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	float TooltipWidth = 0.0f;
@@ -729,6 +773,10 @@ public:
 	/** Reduced density merges a number arriving within this many seconds of the last it would join. */
 	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
 	float CombatTextMergeSeconds = 0.0f;
+
+	/** At any density, Gold arriving within this many seconds of the last Gold at the same place joins it (ADR-065 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextGoldMergeSeconds = 0.0f;
 
 	/** The numbers' size against the HUD's small type, and a crit's against that. */
 	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))

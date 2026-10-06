@@ -5,6 +5,8 @@
 #include "Internationalization/StringTableCore.h"
 #include "Internationalization/StringTableRegistry.h"
 #include "Misc/Paths.h"
+#include "Tuning/VeyraAbilitiesTuning.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuning.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -127,6 +129,23 @@ FText PassiveName(const FVeyraContentId& Passive)
 	return TextOr(PassiveKind, Passive, NameField, Passive.ToString());
 }
 
+FText DamageRole(const FString& Role)
+{
+	for (const FString& Key : { TEXT("damage_role.") + Role, FString(TEXT("damage_role.damage")) })
+	{
+		if (HasKey(Key))
+		{
+			return FText::FromStringTable(TableName, FTextKey(Key));
+		}
+	}
+	return FText::FromString(Role);
+}
+
+bool HasDamageRole(const FString& Role)
+{
+	return HasKey(TEXT("damage_role.") + Role);
+}
+
 FText PassiveDescription(const FVeyraContentId& Passive)
 {
 	return TextOr(PassiveKind, Passive, DescriptionField, FString());
@@ -235,6 +254,14 @@ TArray<FString> FindMissingPlayableText()
 			{
 				Require(AbilityKind, Ability, NameField);
 				Require(AbilityKind, Ability, DescriptionField);
+				// The name of each role its numbers show (ADR-065 §7).
+				for (const VeyraAbilityRules::FVeyraAbilityDamagePart& Part : VeyraAbilityRules::DamageParts(UVeyraAbilitiesTuningSubsystem::Get(), Ability))
+				{
+					if (!HasDamageRole(Part.Role))
+					{
+						Missing.AddUnique(TEXT("damage_role.") + Part.Role);
+					}
+				}
 			}
 		}
 		for (const FVeyraContentId& Passive : Definition.Passive)

@@ -424,6 +424,11 @@ UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 			UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 			AddLine(*WidgetTree, *Texts, FText::Format(LOCTEXT("AbilityLine", "{0}: {1}"), Ability.Key, Ability.Name), EVeyraShellText::Heading);
 			AddLine(*WidgetTree, *Texts, Ability.Description, EVeyraShellText::Muted, HAlign_Left, /*bWrap*/ true);
+			// Its damage at every rank, from tuning (ADR-065 §7).
+			for (const FString& Number : Ability.Numbers)
+			{
+				AddLine(*WidgetTree, *Texts, FText::FromString(Number), EVeyraShellText::Small, HAlign_Left, /*bWrap*/ true);
+			}
 			Line->AddChildToHorizontalBox(Texts)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 			Lines->AddChildToVerticalBox(Line)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Settings.Spacing / 2.0f));
 		}

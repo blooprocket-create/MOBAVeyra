@@ -201,7 +201,8 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		CastSound = Settings.CastSound.LoadSynchronous();
 		DeathSound = Settings.DeathSound.LoadSynchronous();
 		ClickSound = Settings.ClickSound.LoadSynchronous();
-		if (!ImpactSound || !SwingSound || !CastSound || !DeathSound || !ClickSound)
+		LevelUpSound = Settings.LevelUpSound.LoadSynchronous();
+		if (!ImpactSound || !SwingSound || !CastSound || !DeathSound || !ClickSound || !LevelUpSound)
 		{
 			Problems.Add(TEXT("ImpactSound: the cue sounds do not all load; run BuildCueSounds.ps1."));
 		}
@@ -217,10 +218,11 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ImpactEffect = Settings.ImpactEffect.LoadSynchronous();
 		CastEffect = Settings.CastEffect.LoadSynchronous();
 		DeathEffect = Settings.DeathEffect.LoadSynchronous();
+		LevelUpEffect = Settings.LevelUpEffect.LoadSynchronous();
 		TrailEffect = Settings.TrailEffect.LoadSynchronous();
-		if (!ImpactEffect || !CastEffect || !DeathEffect || !TrailEffect)
+		if (!ImpactEffect || !CastEffect || !DeathEffect || !LevelUpEffect || !TrailEffect)
 		{
-			Problems.Add(TEXT("ImpactEffect: the impact, cast, death and trail effects do not all load; run BuildEffects.ps1."));
+			Problems.Add(TEXT("ImpactEffect: the impact, cast, death, level-up and trail effects do not all load; run BuildEffects.ps1."));
 		}
 		HoverOutlineMaterial = Settings.HoverOutlineMaterial.LoadSynchronous();
 		if (!HoverOutlineMaterial)
@@ -269,6 +271,12 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	PlayEffect(Cue);
 	PlaySound(Cue);
 	NoteSwing(Cue);
+	// The player's own level-up is announced on the HUD (ADR-065 §5).
+	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
+	if (Cue.Kind == EVeyraCombatCueKind::LevelUp && Viewer && Cue.Unit.Get() == Viewer->GetPawn())
+	{
+		OwnLevelUp = FVeyraLevelUpMoment{ static_cast<int32>(Cue.Amount), FPlatformTime::Seconds() };
+	}
 }
 
 void UVeyraGreyboxSubsystem::NoteSwing(const FVeyraCombatCue& Cue)
@@ -328,6 +336,8 @@ USoundBase* UVeyraGreyboxSubsystem::SoundFor(EVeyraCombatCueKind Kind) const
 		return CastSound;
 	case EVeyraCombatCueKind::Death:
 		return DeathSound;
+	case EVeyraCombatCueKind::LevelUp:
+		return LevelUpSound;
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::CastWindup:
 		break;
@@ -343,12 +353,25 @@ void UVeyraGreyboxSubsystem::PlaySound(const FVeyraCombatCue& Cue)
 	{
 		return;
 	}
-	const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
-	if (Volume > 0.0f)
+	// A level-up is heard only by the player whose Vanguard it is, as the HUD's own sounds are (ADR-065 §5).
+	const bool bOwnLevelUp = Cue.Kind == EVeyraCombatCueKind::LevelUp;
+	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
+	if (bOwnLevelUp && (!Viewer || Unit != Viewer->GetPawn()))
 	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Unit->GetActorLocation(), FRotator::ZeroRotator, Volume, /*PitchMultiplier*/ 1.0f,
-			/*StartTime*/ 0.0f, CueAttenuation, CueConcurrency);
+		return;
 	}
+	const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
+	if (Volume <= 0.0f)
+	{
+		return;
+	}
+	if (bOwnLevelUp)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), Sound, Volume);
+		return;
+	}
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Unit->GetActorLocation(), FRotator::ZeroRotator, Volume, /*PitchMultiplier*/ 1.0f,
+		/*StartTime*/ 0.0f, CueAttenuation, CueConcurrency);
 }
 
 TArray<AVeyraFountainShop*> UVeyraGreyboxSubsystem::GetShops() const
@@ -451,6 +474,8 @@ UNiagaraSystem* UVeyraGreyboxSubsystem::EffectFor(EVeyraCombatCueKind Kind) cons
 		return CastEffect;
 	case EVeyraCombatCueKind::Death:
 		return DeathEffect;
+	case EVeyraCombatCueKind::LevelUp:
+		return LevelUpEffect;
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::AttackCommit:
 	case EVeyraCombatCueKind::CastWindup:

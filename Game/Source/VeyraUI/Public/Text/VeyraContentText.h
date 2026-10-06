@@ -35,6 +35,15 @@ namespace VeyraContentText
 	VEYRAUI_API FText PassiveName(const FVeyraContentId& Passive);
 	VEYRAUI_API FText PassiveDescription(const FVeyraContentId& Passive);
 
+	/**
+	 * The name of a damage part's role beside an ability's numbers (ADR-065 §7), as damage_role.<role> gives it, such as
+	 * "Each pulse"; the plain role's name, "Damage", for a role the table lacks.
+	 */
+	VEYRAUI_API FText DamageRole(const FString& Role);
+
+	/** Whether the table names Role in a damage_role row of its own. */
+	VEYRAUI_API bool HasDamageRole(const FString& Role);
+
 	/** A mode's name, as mode.<id>.name gives it, or Fallback when the table has none. */
 	VEYRAUI_API FText ModeName(const FVeyraContentId& Mode, const FString& Fallback);
 
@@ -43,8 +52,9 @@ namespace VeyraContentText
 	VEYRAUI_API FText ItemDescription(const FVeyraContentId& Item);
 
 	/**
-	 * The keys a Playable Vanguard needs that the table lacks: its name and title, and each of its
-	 * abilities' and its passive's name and description. Empty when every released Vanguard has its text.
+	 * The keys a Playable Vanguard needs that the table lacks: its name and title, each of its abilities' and
+	 * its passive's name and description, and the name of each role its abilities' numbers show (ADR-065 §7).
+	 * Empty when every released Vanguard has its text.
 	 */
 	VEYRAUI_API TArray<FString> FindMissingPlayableText();
 

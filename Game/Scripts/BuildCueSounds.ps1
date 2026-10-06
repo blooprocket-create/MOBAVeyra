@@ -7,9 +7,12 @@
     manifest of their hashes; ImportCueSounds.py then imports them in an editor commandlet as sound assets under
     /Game/Veyra/UI/Presentation/Audio. Regenerate rather than hand-edit them. An existing sound is a binary asset:
     acquire its Git LFS lock before reimporting it (ADR-006 section 9).
+.PARAMETER Sounds
+    Imports only the sounds named, as the spec names them, such as a new one; without it, every sound.
 #>
 [CmdletBinding()]
 param(
+    [string[]]$Sounds,
     [string]$EngineRoot
 )
 $ErrorActionPreference = 'Stop'
@@ -26,6 +29,7 @@ New-Item -ItemType Directory -Force -Path $saved | Out-Null
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
 $script = Join-Path $PSScriptRoot 'ImportCueSounds.py'
 $log = Join-Path $saved 'ImportCueSounds.log'
+$env:VEYRA_CUE_SOUNDS_ONLY = $Sounds -join ','
 & $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' "-ABSLOG=$log" *> (Join-Path $saved 'ImportCueSounds-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath $log -SimpleMatch 'VEYRA_CUE_SOUNDS_PASSED' -Quiet)) {
     throw "The cue sounds were not imported. See $log"

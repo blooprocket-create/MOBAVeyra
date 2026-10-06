@@ -163,6 +163,8 @@ namespace
 		FString Title;
 		FString Detail;
 		FString Description;
+		/** An ability's numbers, a line each, between its detail and its description (ADR-065 §7). */
+		TArray<FString> Numbers;
 	};
 
 	FString KeyName(const FKey& Key)
@@ -507,10 +509,17 @@ namespace
 		const FSlateFontInfo DetailFont = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
 		const FSlateFontInfo BodyFont = Paint.Font(TEXT("Regular"), Settings.HudBodyFontSize);
 		const TArray<FString> Lines = Paint.Wrap(Hover.Description, BodyFont, Width - Pad * 2.0f);
+		TArray<FString> NumberLines;
+		for (const FString& Number : Hover.Numbers)
+		{
+			NumberLines.Append(Paint.Wrap(Number, DetailFont, Width - Pad * 2.0f));
+		}
 		const float LineHeight = Paint.Measure(TEXT("Ag"), BodyFont).Y;
+		const float NumberHeight = Paint.Measure(TEXT("Ag"), DetailFont).Y;
 		const float TitleHeight = Paint.Measure(Hover.Title, TitleFont).Y;
 		const float DetailHeight = Hover.Detail.IsEmpty() ? 0.0f : Paint.Measure(Hover.Detail, DetailFont).Y;
-		const float Height = Pad * 2.0f + TitleHeight + DetailHeight + (Lines.IsEmpty() ? 0.0f : Paint.S(6.0f) + LineHeight * Lines.Num());
+		const float NumbersHeight = NumberLines.IsEmpty() ? 0.0f : Paint.S(6.0f) + NumberHeight * NumberLines.Num();
+		const float Height = Pad * 2.0f + TitleHeight + DetailHeight + NumbersHeight + (Lines.IsEmpty() ? 0.0f : Paint.S(6.0f) + LineHeight * Lines.Num());
 		const float Left = FMath::Clamp(DeckCentre - Width / 2.0f, 0.0f, FMath::Max(0.0f, Paint.Canvas.ClipX - Width));
 		const FVector2D TopLeft(Left, DeckTop - Height - Paint.S(Settings.DeckGap));
 		Paint.Surface(TopLeft, FVector2D(Width, Height));
@@ -522,6 +531,15 @@ namespace
 		{
 			Paint.Text(FVector2D(TopLeft.X + Pad, Y), Hover.Detail.ToUpper(), DetailFont, Settings.HudAccentColor);
 			Y += DetailHeight;
+		}
+		if (!NumberLines.IsEmpty())
+		{
+			Y += Paint.S(6.0f);
+			for (const FString& Line : NumberLines)
+			{
+				Paint.Text(FVector2D(TopLeft.X + Pad, Y), Line, DetailFont, Settings.TextColor);
+				Y += NumberHeight;
+			}
 		}
 		Y += Paint.S(6.0f);
 		for (const FString& Line : Lines)
@@ -629,7 +647,7 @@ namespace
 	 */
 	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns,
 		const FVeyraStatusDisplay& Statuses, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey,
-		const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
+		const TOptional<FVector2D>& Mouse, double Now, float RankMarkOpacity, TOptional<FHover>& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
@@ -733,12 +751,12 @@ namespace
 				const FVector2D PipAt(At.X + Rank * (PipWidth + Bar.S(2.0f)), At.Y + Ability + Gap / 2.0f);
 				Bar.Rect(PipAt, FVector2D(PipWidth, Pip), Rank < Slot.Rank ? Settings.HudAccentColor : Settings.BarBackgroundColor);
 			}
-			// A skill point to spend on it: a lit mark above the tile.
+			// A skill point to spend on it: a lit mark above the tile, pulsing while it waits (ADR-065 §5).
 			if (Slot.bCanRankUp)
 			{
 				const FVector2D MarkSize(Bar.S(22.0f), Bar.S(16.0f));
 				const FVector2D MarkAt(At.X + (Ability - MarkSize.X) / 2.0f, At.Y - MarkSize.Y - Bar.S(4.0f));
-				Bar.Rect(MarkAt, MarkSize, Settings.HudAccentColor);
+				Bar.Rect(MarkAt, MarkSize, Settings.HudAccentColor.CopyWithNewOpacity(Settings.HudAccentColor.A * RankMarkOpacity));
 				Bar.TextCentred(MarkAt + MarkSize / 2.0, TEXT("+"), Bar.Font(TEXT("Black"), Settings.HudBodyFontSize), Settings.HudSurfaceColor.CopyWithNewOpacity(1.0f));
 			}
 			if (Slot.Ability.IsValid() && Contains(At, FVector2D(Ability), Mouse))
@@ -752,7 +770,7 @@ namespace
 				{
 					Detail += FString::Printf(TEXT("   next attack empowered %.1f s"), Slot.EmpoweredSeconds);
 				}
-				Hover = FHover{ Name, Detail, VeyraContentText::AbilityDescription(Slot.Ability).ToString() };
+				Hover = FHover{ Name, Detail, VeyraContentText::AbilityDescription(Slot.Ability).ToString(), Slot.Numbers };
 			}
 			X += Ability + Gap;
 		}
@@ -945,8 +963,12 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
 	const UVeyraMatchMenuSubsystem* Screens = World.GetGameInstance() ? World.GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
 	const FString ShopKey = KeyName(Screens ? Screens->GetKeys().ShopKey : GetDefault<UVeyraUIInputSettings>()->ShopKey);
-	const float DeckTop =
-		DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
+	// The rank-up marks pulse while a point waits, unless the player reduced UI animation (ADR-065 §5; ADR-055 §3).
+	const double Phase = FMath::Fmod(FPlatformTime::Seconds(), static_cast<double>(Settings.RankUpPulseSeconds)) / Settings.RankUpPulseSeconds;
+	const float RankMarkOpacity = Preferences.bReduceUiAnimation ? 1.0f
+		: FMath::Lerp(Settings.RankUpPulseFloor, 1.0f, static_cast<float>(0.5 + 0.5 * FMath::Cos(UE_DOUBLE_TWO_PI * Phase)));
+	const float DeckTop = DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own,
+		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, Hover);
 	if (Player)
 	{
 		DrawChat(Paint, Preferences, Layout.Chat, *Player, GameState, Side, Screens && Screens->IsChatOpen());
@@ -967,5 +989,24 @@ void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const 
 	// A band of shade behind it, so it reads over the fallen Well.
 	Paint.Rect(FVector2D(0.0f, Centre.Y - Size.Y), FVector2D(Canvas.ClipX, Size.Y * 2.0f), Settings.ShadeColor);
 	Paint.TextCentred(Centre, Text.ToUpper(), Font, Color, true);
+}
+
+void DrawLevelUp(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* FontAsset, int32 Level, int32 UnspentPoints, double Shown)
+{
+	const FPainter Paint(Canvas, Settings, FontAsset);
+	// Whole until its last part, then fading out.
+	const float Opacity = static_cast<float>(FMath::Clamp((1.0 - Shown) / Settings.LevelUpFadeShare, 0.0, 1.0));
+	FSlateFontInfo Font = Paint.Font(TEXT("Black"), Settings.LevelUpFontSize);
+	Font.LetterSpacing = 120;
+	const FString Headline = FString::Printf(TEXT("LEVEL %d"), Level);
+	const FVector2D Centre(Canvas.ClipX / 2.0f, Canvas.ClipY * Settings.LevelUpHeightShare);
+	Paint.TextCentred(Centre, Headline, Font, Settings.GoldColor.CopyWithNewOpacity(Opacity), true);
+	if (UnspentPoints > 0)
+	{
+		const FSlateFontInfo Note = Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize);
+		const float Below = Paint.Measure(Headline, Font).Y * 0.5f + Paint.Measure(TEXT("Ag"), Note).Y;
+		Paint.TextCentred(Centre + FVector2D(0.0f, Below), UnspentPoints > 1 ? FString::Printf(TEXT("%d skill points to spend"), UnspentPoints) : FString(TEXT("A skill point to spend")),
+			Note, Settings.TextColor.CopyWithNewOpacity(Opacity), true);
+	}
 }
 }

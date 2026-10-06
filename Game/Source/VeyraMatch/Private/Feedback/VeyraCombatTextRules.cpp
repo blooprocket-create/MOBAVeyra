@@ -78,4 +78,40 @@ TOptional<FVeyraCombatTextLine> ForShield(const FVeyraShieldGranted& Event, cons
 	}
 	return LineOf(EVeyraCombatTextKind::Shielding, *Target, Provider, Event.Added);
 }
+
+TOptional<FVeyraCombatTextLine> ForGold(double Amount, EVeyraGoldReason Reason, const FVeyraGoldSource& From, AActor* Own)
+{
+	switch (Reason)
+	{
+	// Gold that comes on its own, or back from the shop, is no moment of play.
+	case EVeyraGoldReason::Starting:
+	case EVeyraGoldReason::Passive:
+	case EVeyraGoldReason::Sale:
+	case EVeyraGoldReason::Undo:
+	case EVeyraGoldReason::Developer:
+		return {};
+	default:
+		break;
+	}
+	if (!(Amount > 0.0))
+	{
+		return {};
+	}
+	FVeyraCombatTextLine Line;
+	Line.Kind = EVeyraCombatTextKind::Gold;
+	Line.Amount = static_cast<float>(Amount);
+	if (From.Where.IsSet())
+	{
+		Line.Unit = const_cast<AActor*>(From.Unit.Get());
+		Line.bFixed = true;
+		Line.Where = From.Where.GetValue();
+		return Line;
+	}
+	if (!Own)
+	{
+		return {};
+	}
+	Line.Unit = Own;
+	return Line;
+}
 }

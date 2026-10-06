@@ -142,6 +142,9 @@ void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueK
 			Play(State, EVeyraVanguardClip::Death, 0.0f, 1.0f, Shape.Lengths.Of(EVeyraVanguardClip::Death), false);
 		}
 		break;
+	case EVeyraCombatCueKind::LevelUp:
+		// A level-up shows as a burst, never as a pose.
+		break;
 	}
 }
 

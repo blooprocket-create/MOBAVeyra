@@ -18,8 +18,20 @@ namespace
 			return Options.bHealing;
 		case EVeyraCombatTextKind::Shielding:
 			return Options.bShielding;
+		case EVeyraCombatTextKind::Gold:
+			return Options.bGold;
 		}
 		return false;
+	}
+
+	/** How soon a number must follow the last it would join, or nothing when it joins none: Gold always merges. */
+	TOptional<double> MergeWindow(EVeyraCombatTextKind Kind, const FVeyraCombatTextOptions& Options)
+	{
+		if (Kind == EVeyraCombatTextKind::Gold)
+		{
+			return Options.GoldMergeSeconds;
+		}
+		return Options.bReduced ? Options.MergeSeconds : TOptional<double>();
 	}
 
 	/** A number drawn whole: under half a point rounds to nothing. */
@@ -51,16 +63,19 @@ namespace
 				continue;
 			}
 			const bool bCritical = Line.bCritical && Options.bCritEmphasis;
-			// The latest total between the same two units, of the same kind and type, takes a number arriving soon enough.
+			// The latest total between the same two units, or at the same place, of the same kind and type, takes a number
+			// arriving soon enough.
 			FRunning* Joins = nullptr;
-			if (Options.bReduced)
+			if (const TOptional<double> Window = MergeWindow(Line.Kind, Options))
 			{
 				for (int32 Latest = Running.Num() - 1; Latest >= 0; --Latest)
 				{
 					FRunning& Each = Running[Latest];
-					if (Each.Shown.Unit.Get() == Line.Unit.Get() && Each.Other.Get() == Line.Other.Get() && Each.Shown.Kind == Line.Kind && Each.Shown.DamageType == Line.DamageType)
+					const bool bSamePlace = Each.Shown.bFixed == Line.bFixed && (!Line.bFixed || Each.Shown.Where.Equals(FVector(Line.Where)));
+					if (Each.Shown.Unit.Get() == Line.Unit.Get() && Each.Other.Get() == Line.Other.Get() && bSamePlace && Each.Shown.Kind == Line.Kind
+						&& Each.Shown.DamageType == Line.DamageType)
 					{
-						Joins = Arrival.ReceivedAt - Each.LastAt <= Options.MergeSeconds ? &Each : nullptr;
+						Joins = Arrival.ReceivedAt - Each.LastAt <= Window.GetValue() ? &Each : nullptr;
 						break;
 					}
 				}
@@ -79,6 +94,8 @@ namespace
 			Started.Shown.DamageType = Line.DamageType;
 			Started.Shown.bCritical = bCritical;
 			Started.Shown.Amount = Line.Amount;
+			Started.Shown.bFixed = Line.bFixed;
+			Started.Shown.Where = Line.Where;
 			Started.Other = Line.Other.Get();
 			Started.LastAt = Arrival.ReceivedAt;
 			Started.Parts.Add(Index);

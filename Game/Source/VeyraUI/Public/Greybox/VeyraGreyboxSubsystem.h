@@ -40,6 +40,13 @@ enum class EVeyraTelegraphSource : uint8
 	Indicator,
 };
 
+/** The player's own level-up as this machine announces it (ADR-065 §5): the new Level, and when it came by this machine's clock. */
+struct FVeyraLevelUpMoment
+{
+	int32 Level = 0;
+	double At = 0.0;
+};
+
 /** A melee attack's swing as this machine draws it: an arc from its attacker toward its target, fading (ADR-063 §2). */
 struct FVeyraSwingArc
 {
@@ -173,6 +180,9 @@ public:
 	/** The combat text this machine's player received and still shows, oldest first, by this machine's clock (ADR-052 §1). */
 	const TArray<FVeyraCombatTextArrival>& GetCombatText() const { return CombatText; }
 
+	/** This machine's player's latest level-up, by this machine's clock, for the HUD's banner (ADR-065 §5). */
+	const TOptional<FVeyraLevelUpMoment>& GetOwnLevelUp() const { return OwnLevelUp; }
+
 	/** The colour of Team as the viewer sees it: ally, enemy or neutral. */
 	FLinearColor ColorOfSide(EVeyraTeam Team) const;
 
@@ -198,6 +208,8 @@ private:
 	void OnCombatText(const FVeyraCombatTextLine& Line);
 
 	TArray<FVeyraCombatTextArrival> CombatText;
+
+	TOptional<FVeyraLevelUpMoment> OwnLevelUp;
 	TWeakObjectPtr<class AVeyraPlayerController> CombatTextSource;
 	FDelegateHandle CombatTextHandle;
 
@@ -376,6 +388,9 @@ private:
 	TObjectPtr<class UNiagaraSystem> DeathEffect;
 
 	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> LevelUpEffect;
+
+	UPROPERTY(Transient)
 	TObjectPtr<class UNiagaraSystem> TrailEffect;
 
 	/** The fight's sounds (ADR-063 §5), how far they carry and how many play at once. */
@@ -393,6 +408,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<class USoundBase> ClickSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> LevelUpSound;
 
 	UPROPERTY(Transient)
 	TObjectPtr<class USoundAttenuation> CueAttenuation;

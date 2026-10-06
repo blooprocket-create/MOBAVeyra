@@ -2,6 +2,11 @@
 
 #include "Hud/VeyraGreyboxHud.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "Attacks/VeyraBasicAttackTypes.h"
+#include "Attributes/VeyraOffenceSet.h"
+
 #include "CanvasItem.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
@@ -19,6 +24,7 @@
 #include "Hud/VeyraHudModel.h"
 #include "Ending/VeyraMatchEnding.h"
 #include "Hud/VeyraMinimapModel.h"
+#include "Progression/VeyraProgressionComponent.h"
 #include "Structures/VeyraStructure.h"
 #include "Input/VeyraInputSettings.h"
 #include "Teams/VeyraTeam.h"
@@ -69,13 +75,35 @@ namespace
 		Canvas.DrawItem(Item);
 	}
 
+	/** The player's own basic attack, as the last-hit cue reads it (ADR-065 §6). */
+	struct FLastHitReach
+	{
+		const FVeyraBasicAttackProfile* Profile = nullptr;
+		double PhysicalPower = 0.0;
+		double MagicPower = 0.0;
+	};
+
+	/** Viewer's Vanguard's basic attack and power now, while the player keeps the cue on; its power is the owner's to see. */
+	TOptional<FLastHitReach> LastHitReachOf(const FVeyraInterfacePreferences& Preferences, const APlayerController* Viewer)
+	{
+		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
+		const UAbilitySystemComponent* AbilitySystem = Own ? Own->GetAbilitySystemComponent() : nullptr;
+		const FVeyraVanguardDefinition* Definition = Own ? UVeyraVanguardsTuningSubsystem::FindVanguard(Own->GetVanguardId()) : nullptr;
+		if (!Preferences.bLastHitCue || !AbilitySystem || !Definition)
+		{
+			return {};
+		}
+		return FLastHitReach{ &Definition->BasicAttack, AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()),
+			AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) };
+	}
+
 	/**
 	 * Health with shields after it, the resource under them, and the unit's statuses above; a Fluxborn's or a
 	 * jungle creature's only when the player's bar settings show it (ADR-052 §2). Targeted are the units the
-	 * player targets now.
+	 * player targets now; LastHit, the player's attack for the last-hit cue (ADR-065 §6).
 	 */
 	void DrawOverheadBars(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybox, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences,
-		TConstArrayView<const AActor*> Targeted, const APawn& Unit, double Now)
+		TConstArrayView<const AActor*> Targeted, const TOptional<FLastHitReach>& LastHit, const APawn& Unit, double Now)
 	{
 		const TOptional<FVeyraHudVitals> Vitals = VeyraHud::VitalsOf(Unit, Greybox.GetViewerTeam());
 		if (!Vitals || Vitals->MaxHealth <= 0.0 || Unit.IsHidden())
@@ -111,9 +139,31 @@ namespace
 		// Health and shields share the bar; when together they pass Max Health, the bar holds their total.
 		const double Total = FMath::Max(Vitals->MaxHealth, Vitals->Health + Vitals->Shield);
 		const float HealthWidth = BarWidth * Vitals->Health / Total;
+		// The last-hit cue, on an enemy Fluxborn or creature: a mark where the player's next basic attack would leave its
+		// Health, and its Health lit once that attack would finish it (ADR-065 §6). A guide: crits and on-hit are left out.
+		FLinearColor HealthColor = Greybox.SideColorOf(Unit);
+		TOptional<float> LastHitMark;
+		const UAbilitySystemComponent* Defender = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+		if (LastHit && Defender && !Facts.bAllied && (Facts.Kind == EVeyraUnitKind::Fluxborn || Facts.Kind == EVeyraUnitKind::Wildlife))
+		{
+			const double Hit = VeyraBasicAttacks::ExpectedHit(*LastHit->Profile, LastHit->PhysicalPower, LastHit->MagicPower, *Defender);
+			if (Hit > 0.0 && Hit >= Vitals->Health)
+			{
+				HealthColor = Settings.LastHitColor;
+			}
+			else if (Hit > 0.0 && Facts.bDamaged)
+			{
+				LastHitMark = static_cast<float>(BarWidth * Hit / Total);
+			}
+		}
 		DrawHudRect(Canvas, TopLeft, FVector2D(BarWidth, BarHeight), Settings.BarBackgroundColor);
-		DrawHudRect(Canvas, TopLeft, FVector2D(HealthWidth, BarHeight), Greybox.SideColorOf(Unit));
+		DrawHudRect(Canvas, TopLeft, FVector2D(HealthWidth, BarHeight), HealthColor);
 		DrawHudRect(Canvas, TopLeft + FVector2D(HealthWidth, 0.0f), FVector2D(BarWidth * Vitals->Shield / Total, BarHeight), Settings.ShieldColor);
+		if (LastHitMark.IsSet())
+		{
+			DrawHudRect(Canvas, FVector2D(TopLeft.X + LastHitMark.GetValue(), TopLeft.Y - Scale), FVector2D(FMath::Max(2.0f, 2.0f * Scale), BarHeight + 2.0f * Scale),
+				Settings.LastHitMarkColor);
+		}
 		// Ticks every HealthPerTick along a Vanguard's bar, a longer one every tenth, so its Health reads at
 		// a glance; never so close that they blur.
 		constexpr double HealthPerTick = 100.0;
@@ -211,6 +261,8 @@ namespace
 			return Settings.CombatTextHealingColor;
 		case EVeyraCombatTextKind::Shielding:
 			return Settings.CombatTextShieldingColor;
+		case EVeyraCombatTextKind::Gold:
+			return Settings.GoldColor;
 		case EVeyraCombatTextKind::DamageDealt:
 		case EVeyraCombatTextKind::DamageReceived:
 			break;
@@ -231,26 +283,34 @@ namespace
 		return Settings.CombatTextPhysicalColor;
 	}
 
-	/** The player's combat text, each number rising from its unit's bars and fading as it goes (ADR-052 §1). */
+	/**
+	 * The player's combat text, each number rising from its unit's bars and fading as it goes (ADR-052 §1); Gold a fall
+	 * earned rises from where the unit fell (ADR-065 §4).
+	 */
 	void DrawCombatText(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, TConstArrayView<FVeyraCombatTextShown> Numbers)
 	{
 		for (const FVeyraCombatTextShown& Number : Numbers)
 		{
-			const AActor* Unit = Number.Unit.Get();
-			if (!Unit || Unit->IsHidden())
+			const double Rise = Settings.BarLift + Settings.CombatTextRise * Number.Progress;
+			FVector Anchor = Number.Where + FVector::UpVector * Rise;
+			if (!Number.bFixed)
 			{
-				continue;
+				const AActor* Unit = Number.Unit.Get();
+				if (!Unit || Unit->IsHidden())
+				{
+					continue;
+				}
+				float Radius = 0.0f;
+				float HalfHeight = 0.0f;
+				Unit->GetSimpleCollisionCylinder(Radius, HalfHeight);
+				Anchor = Unit->GetActorLocation() + FVector::UpVector * (HalfHeight + Rise);
 			}
-			float Radius = 0.0f;
-			float HalfHeight = 0.0f;
-			Unit->GetSimpleCollisionCylinder(Radius, HalfHeight);
-			const double Lift = HalfHeight + Settings.BarLift + Settings.CombatTextRise * Number.Progress;
-			const FVector OnScreen = Canvas.Project(Unit->GetActorLocation() + FVector::UpVector * Lift);
+			const FVector OnScreen = Canvas.Project(Anchor);
 			if (OnScreen.Z <= 0.0)
 			{
 				continue;
 			}
-			const bool bGiven = Number.Kind == EVeyraCombatTextKind::Healing || Number.Kind == EVeyraCombatTextKind::Shielding;
+			const bool bGiven = Number.Kind == EVeyraCombatTextKind::Healing || Number.Kind == EVeyraCombatTextKind::Shielding || Number.Kind == EVeyraCombatTextKind::Gold;
 			const FString Text = FString::Printf(TEXT("%s%d"), bGiven ? TEXT("+") : TEXT(""), FMath::RoundToInt(Number.Amount));
 			FCanvasTextItem Item(FVector2D(OnScreen.X, OnScreen.Y), FText::FromString(Text), HudFont(),
 				CombatTextColor(Settings, Preferences.bUniformDamageColors, Number).CopyWithNewOpacity(static_cast<float>(1.0 - Number.Progress)));
@@ -427,11 +487,12 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 	const FVeyraHudArrangement Layout = Arrangement(Settings, Preferences, FVector2D(Canvas.ClipX, Canvas.ClipY));
 	const AVeyraPlayerController* Targeting = Cast<AVeyraPlayerController>(Viewer);
 	const TArray<const AActor*> Targeted = Targeting ? Targeting->GetTargetedUnits() : TArray<const AActor*>();
+	const TOptional<FLastHitReach> LastHit = LastHitReachOf(Preferences, Viewer);
 	for (TActorIterator<APawn> It(Greybox.GetWorld()); It; ++It)
 	{
 		if (VeyraUnits::KindOf(*It).IsSet())
 		{
-			DrawOverheadBars(Canvas, Greybox, Settings, Preferences, Targeted, **It, Now);
+			DrawOverheadBars(Canvas, Greybox, Settings, Preferences, Targeted, LastHit, **It, Now);
 		}
 	}
 	// The player's own fountain shop says what it is, so nobody needs telling there is one (ADR-063 §6).
@@ -479,6 +540,14 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 			Warnings.Add(TEXT("Low frame rate: Graphics settings can help"));
 		}
 		VeyraHudDeck::Draw(Canvas, Settings, Preferences, Greybox.GetHudFont(), *Greybox.GetWorld(), *GameState, Viewer, Own, Now, Warnings, Layout);
+		// The player's own level-up, for a while after it comes (ADR-065 §5).
+		const TOptional<FVeyraLevelUpMoment>& LevelUp = Greybox.GetOwnLevelUp();
+		const double Shown = LevelUp.IsSet() ? (FPlatformTime::Seconds() - LevelUp->At) / Settings.LevelUpBannerSeconds : 1.0;
+		if (Own && Shown >= 0.0 && Shown < 1.0)
+		{
+			const UVeyraProgressionComponent* Progression = Own->FindComponentByClass<UVeyraProgressionComponent>();
+			VeyraHudDeck::DrawLevelUp(Canvas, Settings, Greybox.GetHudFont(), LevelUp->Level, Progression ? Progression->GetUnspentSkillPoints() : 0, Shown);
+		}
 		// How the match ended, while its players watch the end (ADR-020 §1).
 		if (GameState->GetPhase() == EVeyraMatchPhase::Ended)
 		{

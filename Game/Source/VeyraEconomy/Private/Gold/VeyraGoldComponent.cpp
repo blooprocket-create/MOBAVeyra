@@ -89,7 +89,7 @@ void UVeyraGoldComponent::SetStreaks(int32 NewKillStreak, int32 NewDeathStreak)
 	}
 }
 
-bool UVeyraGoldComponent::Grant(double Amount, EVeyraGoldReason Reason)
+bool UVeyraGoldComponent::Grant(double Amount, EVeyraGoldReason Reason, const FVeyraGoldSource& From)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
 	if (!FMath::IsFinite(Amount) || !(Amount > 0.0))
@@ -98,7 +98,7 @@ bool UVeyraGoldComponent::Grant(double Amount, EVeyraGoldReason Reason)
 	}
 	SetGold(Gold + Amount);
 	UE_LOG(LogVeyraEconomy, Verbose, TEXT("%s gained %.2f Gold for %s, now %.2f."), *GetNameSafe(GetOwner()), Amount, LexToString(Reason), Gold);
-	OnGoldGranted.Broadcast(Amount, Reason);
+	OnGoldGranted.Broadcast(Amount, Reason, From);
 	return true;
 }
 

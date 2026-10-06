@@ -252,4 +252,20 @@ namespace VeyraBasicAttacks
 	 * the attack's own damage in full, and Effectiveness of what riders added on top.
 	 */
 	VEYRAABILITIES_API FVeyraRawDamageEvent AgainstStructure(const FVeyraAttackPlan& Plan, double Effectiveness);
+
+	/**
+	 * What one attack of Profile deals before its target's resistance, critical hits and on-hit effects: the attacker's
+	 * power times the profile's ratios. One formula for the bots' last hits and the player's last-hit cue (ADR-065 §6).
+	 */
+	VEYRAABILITIES_API double RawHit(const FVeyraBasicAttackProfile& Profile, double PhysicalPower, double MagicPower);
+
+	/**
+	 * The share of an attack of Profile's damage type that reaches Target past its resistance (Combat Bible §3): its Armor
+	 * against physical damage, its Magic Resist against magic, and all of True Damage. On a client, the target's
+	 * resistances are those it receives.
+	 */
+	VEYRAABILITIES_API double ShareTaken(const FVeyraBasicAttackProfile& Profile, const UAbilitySystemComponent& Target);
+
+	/** The Health one attack of Profile takes from Target before critical hits and on-hit effects: RawHit times ShareTaken. */
+	VEYRAABILITIES_API double ExpectedHit(const FVeyraBasicAttackProfile& Profile, double PhysicalPower, double MagicPower, const UAbilitySystemComponent& Target);
 }
