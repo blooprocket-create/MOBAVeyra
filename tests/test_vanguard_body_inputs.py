@@ -33,12 +33,18 @@ VANGUARDS = {
 }
 
 
-def built(kit, vanguards):
-    """The manifest assets a full build of kit writes: one per body, each with its input hash."""
+SCRIPTS = SCRIPT.parents[1]
+GENERATOR = inputs.generator_hash(SCRIPTS)
+BLENDER = "5.2.0"
+
+
+def built(kit, vanguards, generator=GENERATOR, blender=BLENDER):
+    """The manifest assets a full build of kit writes: one per body, each with its input hash and what built it."""
     assets = []
     for vanguard in kit["vanguards"]:
         for body, status, suffix in inputs.bodies_of(vanguard):
-            asset = {"id": vanguard["id"], "name": inputs.body_name(vanguard["id"], suffix), "inputSha256": inputs.input_hash(kit, vanguards, body)}
+            asset = {"id": vanguard["id"], "name": inputs.body_name(vanguard["id"], suffix), "inputSha256": inputs.input_hash(kit, vanguards, body),
+                     "generatorSha256": generator, "blender": blender}
             if status:
                 asset["status"] = status
             assets.append(asset)
@@ -88,10 +94,11 @@ class VanguardBodyInputs(unittest.TestCase):
             game = Path(folder)
             (game / "ArtSource" / "Vanguards").mkdir(parents=True)
             (game / "Tuning").mkdir()
+            self.copy_generator(game)
             (game / "ArtSource" / "Vanguards" / "VanguardKit.json").write_text(json.dumps(KIT))
             (game / "Tuning" / "Vanguards.json").write_text(json.dumps({"vanguards": VANGUARDS}))
             manifest = game / "ArtSource" / "Vanguards" / "manifest.json"
-            manifest.write_text(json.dumps({"assets": built(KIT, VANGUARDS)}))
+            manifest.write_text(json.dumps({"blender": BLENDER, "assets": built(KIT, VANGUARDS)}))
             self.assertEqual(inputs.stale_in(game), [])
             ok = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
             self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
@@ -101,6 +108,47 @@ class VanguardBodyInputs(unittest.TestCase):
             stale = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
             self.assertEqual(stale.returncode, 1)
             self.assertIn("SK_A_Ride", stale.stdout)
+
+    @staticmethod
+    def copy_generator(game):
+        """The generator's code, as the project beside its manifest holds it."""
+        import shutil
+        (game / "Scripts" / "VanguardBodies").mkdir(parents=True)
+        shutil.copy(SCRIPTS / "GenerateVanguardBodies.py", game / "Scripts")
+        for module in (SCRIPTS / "VanguardBodies").glob("*.py"):
+            shutil.copy(module, game / "Scripts" / "VanguardBodies")
+
+    def test_a_body_built_by_other_generator_code_or_another_blender_is_stale(self):
+        # A selective build after the generator's code changed keeps bodies the old code built.
+        self.assertEqual(sorted(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS, generator="old"), GENERATOR, BLENDER)),
+                         ["SK_A", "SK_A_Ride", "SK_B"])
+        # And one under another Blender than the manifest was last built by.
+        assets = built(KIT, VANGUARDS)
+        assets[2]["blender"] = "5.1.0"
+        self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, assets, GENERATOR, BLENDER), ["SK_B"])
+        self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS), GENERATOR, BLENDER), [])
+
+    def test_the_preflight_fails_when_the_generator_code_changes_but_not_for_its_line_endings(self):
+        import json
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = Path(folder)
+            (game / "ArtSource" / "Vanguards").mkdir(parents=True)
+            (game / "Tuning").mkdir()
+            self.copy_generator(game)
+            (game / "ArtSource" / "Vanguards" / "VanguardKit.json").write_text(json.dumps(KIT))
+            (game / "Tuning" / "Vanguards.json").write_text(json.dumps({"vanguards": VANGUARDS}))
+            (game / "ArtSource" / "Vanguards" / "manifest.json").write_text(json.dumps({"blender": BLENDER, "assets": built(KIT, VANGUARDS)}))
+            # The same code checked out with other line endings is the same code.
+            module = game / "Scripts" / "VanguardBodies" / "parts.py"
+            module.write_bytes(module.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+            self.assertEqual(inputs.stale_in(game), [])
+            # Changed code is not.
+            module.write_bytes(module.read_bytes() + b"\n# changed\n")
+            stale = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
+            self.assertEqual(stale.returncode, 1)
+            self.assertIn("SK_B", stale.stdout)
 
     def test_a_body_without_a_recorded_input_hash_is_stale(self):
         assets = built(KIT, VANGUARDS)

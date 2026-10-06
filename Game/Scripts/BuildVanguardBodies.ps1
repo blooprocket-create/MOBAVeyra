@@ -9,6 +9,9 @@
     commandlet as skeletal meshes, skeletons and animation sequences under /Game/Veyra/Vanguards. Regenerate rather
     than hand-edit them. An existing asset is a binary asset: acquire its Git LFS lock before reimporting it
     (ADR-006 section 9).
+    A body rebuilt as it was (its content unchanged) keeps its FBX and its imported assets; only the Vanguards whose
+    bodies changed are imported again. A full build after a change to the generator's code is therefore cheap, and the
+    preflight refuses bodies built by other code or another Blender (VanguardBodies/inputs.py).
 .PARAMETER Vanguards
     Builds only the Vanguards named, by ID; without it, every Vanguard in the kit.
 .PARAMETER Blender
@@ -34,6 +37,7 @@ $game = Split-Path -Parent $project
 $engine = Resolve-VeyraEngineRoot -ProjectFile $project -EngineRoot $EngineRoot
 $saved = Join-Path $game 'Saved/VanguardKit'
 New-Item -ItemType Directory -Force -Path $saved | Out-Null
+$importNone = $false
 if (-not $ImportOnly) {
     if (-not $Blender) {
         $command = Get-Command blender -ErrorAction SilentlyContinue
@@ -45,7 +49,11 @@ if (-not $ImportOnly) {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $saved 'Blender.log') -SimpleMatch 'VEYRA_VANGUARD_BODIES_PASSED' -Quiet)) {
         throw "Blender failed. See $saved/Blender.log"
     }
-    Select-String -LiteralPath (Join-Path $saved 'Blender.log') -Pattern 'VEYRA_VANGUARD_BODY: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
+    Select-String -LiteralPath (Join-Path $saved 'Blender.log') -Pattern 'VEYRA_VANGUARD_BODY(_UNCHANGED)?: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
+    # A body rebuilt as it was kept its FBX, and keeps its imported assets: only the Vanguards whose bodies changed are
+    # imported again (the art set is written whatever changed).
+    $Vanguards = @(Get-Content -LiteralPath (Join-Path $saved 'changed.json') -Raw | ConvertFrom-Json)
+    $importNone = $Vanguards.Count -eq 0
 }
 # Before anything is removed: every body the art set will hold was made from today's kit, or nothing is imported.
 $python = if (Get-Command python3 -ErrorAction SilentlyContinue) { 'python3' } else { 'python' }
@@ -55,11 +63,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Stale Vanguard bodies: regenerate them before 
 # previous assets go, and it imports fresh. They are generated output; acquire their Git LFS locks first (ADR-006 section 9).
 $kit = Get-Content (Join-Path $game 'ArtSource/Vanguards/VanguardKit.json') -Raw | ConvertFrom-Json
 $manifest = Get-Content (Join-Path $game 'ArtSource/Vanguards/manifest.json') -Raw | ConvertFrom-Json
-$selected = @($Vanguards | ForEach-Object { $_ -split ',' })
+$selected = @($Vanguards | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $destination = Join-Path $game ('Content' + $kit.destination.Substring('/Game'.Length))
 $replaced = @()
 foreach ($asset in $manifest.assets) {
-    if ($selected.Count -gt 0 -and $asset.id -notin $selected) { continue }
+    if (($selected.Count -gt 0 -or $importNone) -and $asset.id -notin $selected) { continue }
     $folder = Join-Path $destination $asset.name.Substring('SK_'.Length)
     if (Test-Path -LiteralPath $folder) { $replaced += @(Get-ChildItem -LiteralPath $folder -Filter *.uasset) }
 }
@@ -75,7 +83,7 @@ foreach ($file in $replaced) { Remove-Item -LiteralPath $file.FullName }
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
 $script = Join-Path $PSScriptRoot 'ImportVanguardBodies.py'
 $log = Join-Path $saved 'Import.log'
-[string[]]$importOnly = if ($Vanguards) { @("-VeyraOnly=$($Vanguards -join ',')") } else { @() }
+[string[]]$importOnly = if ($selected.Count -gt 0 -or $importNone) { @("-VeyraOnly=$($selected -join ',')") } else { @() }
 & $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" @importOnly *> (Join-Path $saved 'Import-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath $log -SimpleMatch 'VEYRA_VANGUARD_BODIES_IMPORTED' -Quiet)) {
     throw "The Vanguard bodies were not imported. See $log"

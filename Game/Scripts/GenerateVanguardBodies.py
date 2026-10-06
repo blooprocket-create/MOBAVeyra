@@ -22,7 +22,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
-from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, body_name, entries, input_hash, stale_assets, units  # noqa: E402
+from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash, input_hash, stale_assets, units  # noqa: E402
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -52,6 +52,12 @@ BIND_TAKE = "_Bind"
 GAMEPLAY_PITCH = 60.0
 # How far below the ground a body's lowest point may reach, in centimetres: the slack Veyra.UI.VanguardBodies allows.
 GROUND_SLACK = 2.0
+# The decimal places a body's content is compared to: past float noise, well short of anything visible.
+CONTENT_PLACES = 3
+# The code that builds a body (VanguardBodies.inputs): a body built by other code is stale.
+GENERATOR = generator_hash(Path(__file__).resolve().parent)
+# The changed bodies' Vanguards, which the import takes; the rest kept their FBX and their imported assets.
+CHANGED = SAVED / "changed.json"
 
 
 # ---------------------------------------------------------------------------------------------- the skeleton
@@ -93,7 +99,15 @@ def pose_rig(rig, rest, archetype, pose, lift):
             bone.location = rest[bone.name].inverted() @ Vector(moved.get(bone.name, (0.0, 0.0, 0.0)))
 
 
-def animate(armature, spec, archetype, d, melee):
+def keyed(digest, armature, archetype):
+    """Adds the pose about to be keyed, rounded past float noise, to digest: what the clip holds at that frame."""
+    for bone in armature.pose.bones:
+        values = list(bone.rotation_quaternion) + (list(bone.location) if bone.name in moved_bones(archetype) else [])
+        digest.update(json.dumps([bone.name] + [round(value, CONTENT_PLACES) for value in values]).encode())
+
+
+def animate(armature, spec, archetype, d, melee, digest):
+    """Keys the rest take and every clip of the archetype on armature, adding each keyed pose to digest."""
     fps = KIT["fps"]
     rest = rest_quaternions(armature)
     armature.animation_data_create()
@@ -104,6 +118,7 @@ def animate(armature, spec, archetype, d, melee):
     armature.animation_data.action = bind
     for frame in (1, 2):
         pose_rig(armature, rest, archetype, {}, 0.0)
+        keyed(digest, armature, archetype)
         for bone in armature.pose.bones:
             bone.keyframe_insert("rotation_quaternion", frame=frame)
             if bone.name in moved_bones(archetype):
@@ -114,10 +129,12 @@ def animate(armature, spec, archetype, d, melee):
         action = bpy.data.actions.new(name)
         armature.animation_data.action = action
         frames = max(2, round(clip["seconds"] * fps))
+        digest.update(json.dumps([name, frames, clip["loop"]]).encode())
         for frame in range(frames + 1):
             # A loop's last frame repeats its first.
             t = (frame % frames) / frames if clip["loop"] else frame / frames
             pose_rig(armature, rest, archetype, *archetype.pose(name, t, melee, d))
+            keyed(digest, armature, archetype)
             for bone in armature.pose.bones:
                 bone.keyframe_insert("rotation_quaternion", frame=frame + 1)
                 if bone.name in moved_bones(archetype):
@@ -201,7 +218,34 @@ def reset_scene():
     scene.render.fps = KIT["fps"]
 
 
-def build(spec, status=None, suffix=""):
+def content_of(obj, armature, digest):
+    """What a body is, whenever it was written: its faces, its vertices with their weights and colours, its skeleton at
+    rest, and (already in digest) every key of its takes, rounded to CONTENT_PLACES. The same content exports the same
+    body, so an FBX of it need not be written again."""
+    mesh = obj.data
+    groups = [group.name for group in obj.vertex_groups]
+    for vertex in mesh.vertices:
+        weights = sorted((groups[item.group], round(item.weight, CONTENT_PLACES)) for item in vertex.groups if item.weight > 0)
+        digest.update(json.dumps([[round(value, CONTENT_PLACES) for value in vertex.co], weights]).encode())
+    # Faces as a set, not a sequence: Blender may lay out the same faces in another order from one run to the next. Each
+    # is its corners (vertex and colour) from its lowest vertex on, keeping its winding.
+    colors = mesh.color_attributes["Col"].data
+    faces = []
+    for polygon in mesh.polygons:
+        corners = [[mesh.loops[index].vertex_index, [round(value, CONTENT_PLACES) for value in colors[index].color]] for index in polygon.loop_indices]
+        first = min(range(len(corners)), key=lambda corner: corners[corner][0])
+        faces.append(json.dumps(corners[first:] + corners[:first]))
+    for face in sorted(faces):
+        digest.update(face.encode())
+    for bone in armature.data.bones:
+        digest.update(json.dumps([bone.name, bone.parent.name if bone.parent else None]
+                                 + [round(value, CONTENT_PLACES) for value in list(bone.head_local) + list(bone.tail_local)]).encode())
+    return digest.hexdigest()
+
+
+def build(spec, status=None, suffix="", previous=None):
+    """Generates one body; its manifest asset, and whether its content changed from previous (its earlier asset), whose
+    FBX it keeps if not."""
     random.seed(spec["seed"])
     archetype = ARCHETYPES[spec["archetype"]]
     capsule = TUNING[spec["id"]]["body"]
@@ -227,7 +271,8 @@ def build(spec, status=None, suffix=""):
     obj.parent = armature
     modifier = obj.modifiers.new("Armature", "ARMATURE")
     modifier.object = armature
-    actions = animate(armature, spec, archetype, dims, melee)
+    digest = hashlib.sha256()
+    actions = animate(armature, spec, archetype, dims, melee, digest)
     budget = KIT["archetypes"][spec["archetype"]]["triangleBudget"]
     assert triangles <= budget, (spec["id"], "triangle budget", triangles, budget)
     # Measured on the rest geometry, as Unreal imports it. Nothing sinks below the ground, and a body that walks stands
@@ -240,17 +285,23 @@ def build(spec, status=None, suffix=""):
     assert not grounded or min(heights) < dims["full"] * 0.02, (spec["id"], "the body does not stand on the ground", min(heights))
     (SOURCE / "FBX").mkdir(parents=True, exist_ok=True)
     path = SOURCE / "FBX" / (name + ".fbx")
-    bpy.ops.object.select_all(action="DESELECT")
-    armature.select_set(True)
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = armature
-    bpy.ops.export_scene.fbx(filepath=str(path), use_selection=True, object_types={"ARMATURE", "MESH"},
-                             apply_unit_scale=True, apply_scale_options="FBX_SCALE_UNITS", axis_forward="-Y", axis_up="Z",
-                             add_leaf_bones=False, primary_bone_axis="Y", secondary_bone_axis="X", use_armature_deform_only=False,
-                             bake_anim=True, bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
-                             bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0, mesh_smooth_type="FACE",
-                             # Unreal's materials read vertex colours as linear, so they go out linear.
-                             colors_type="LINEAR")
+    content = content_of(obj, armature, digest)
+    # Built again as it was (new generator code or a new Blender that changes nothing in it): its FBX and imported
+    # assets stand, and only its record of what built it moves on.
+    kept = (previous is not None and previous.get("contentSha256") == content and path.exists()
+            and hashlib.sha256(path.read_bytes()).hexdigest() == previous.get("sha256"))
+    if not kept:
+        bpy.ops.object.select_all(action="DESELECT")
+        armature.select_set(True)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature
+        bpy.ops.export_scene.fbx(filepath=str(path), use_selection=True, object_types={"ARMATURE", "MESH"},
+                                 apply_unit_scale=True, apply_scale_options="FBX_SCALE_UNITS", axis_forward="-Y", axis_up="Z",
+                                 add_leaf_bones=False, primary_bone_axis="Y", secondary_bone_axis="X", use_armature_deform_only=False,
+                                 bake_anim=True, bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
+                                 bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0, mesh_smooth_type="FACE",
+                                 # Unreal's materials read vertex colours as linear, so they go out linear.
+                                 colors_type="LINEAR")
     if PREVIEW:
         render_preview(name, armature, obj, archetype, dims, melee)
     asset = {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,
@@ -258,8 +309,10 @@ def build(spec, status=None, suffix=""):
              "bones": len(archetype.BONES), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
              "melee": melee, "runStrideCm": round(archetype.run_stride(dims), 2), "upperBodyBone": archetype.UPPER_BODY_BONE,
              "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions,
-             # What it was made from, so a later partial build cannot pass it off as current (VanguardBodies.inputs).
-             "inputSha256": input_hash(KIT, TUNING, spec)}
+             # What it was made from and by, so a later partial build cannot pass it off as current (VanguardBodies.inputs),
+             # and what it is, so a rebuild that changes nothing in it keeps it.
+             "inputSha256": input_hash(KIT, TUNING, spec), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
+             "contentSha256": content}
     if spec.get("effect"):
         # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
         effect = spec["effect"]
@@ -270,7 +323,7 @@ def build(spec, status=None, suffix=""):
                            "scale": spec.get("bodyScale", 1.0)}
     if status:
         asset["status"] = status
-    return asset
+    return asset, not kept
 
 
 def main():
@@ -282,9 +335,12 @@ def main():
         for body, status, _ in bodies_of(spec):
             assert body["archetype"] in KIT["archetypes"], (spec["id"], status, "has no archetype in the kit")
     manifest_path = SOURCE / "manifest.json"
-    manifest = json.loads(manifest_path.read_text()) if ONLY and manifest_path.exists() else {"assets": []}
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"assets": []}
+    previous = {(asset["id"], asset.get("status")): asset for asset in manifest["assets"]}
     kept = [asset for asset in manifest["assets"] if ONLY and asset["id"] not in ONLY]
-    built = [build(*body) for spec in selected for body in bodies_of(spec)]
+    results = [build(*body, previous=previous.get((spec["id"], body[1]))) for spec in selected for body in bodies_of(spec)]
+    built = [asset for asset, _ in results]
+    changed = sorted({asset["id"] for asset, fresh in results if fresh})
     companions = {spec["id"] for spec in KIT.get("companions", [])}
     for asset in built:
         if asset["id"] in companions:
@@ -293,13 +349,16 @@ def main():
                 "kitSha256": hashlib.sha256(KIT_BYTES).hexdigest(),
                 "assets": sorted(kept + built, key=lambda asset: (asset["id"], asset.get("status", "")))}
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", newline="\n")
-    # A body kept from an earlier build whose inputs have changed since (a shared setting, say) is stale: say which
-    # to rebuild, rather than let the importer take it.
-    stale = stale_assets(KIT, TUNING, manifest["assets"])
+    SAVED.mkdir(parents=True, exist_ok=True)
+    CHANGED.write_text(json.dumps(changed) + "\n")
+    # A body kept from an earlier build whose inputs have changed since (a shared setting, its generator's code, the
+    # Blender that built it) is stale: say which to rebuild, rather than let the importer take it.
+    stale = stale_assets(KIT, TUNING, manifest["assets"], GENERATOR, manifest["blender"])
     if stale:
         print("VEYRA_VANGUARD_BODIES_STALE: " + ", ".join(stale))
-    for asset in built:
-        print("VEYRA_VANGUARD_BODY: " + asset["name"] + " " + str(asset["triangles"]) + " triangles, " + str(asset["heightCm"]) + " cm")
+    for asset, fresh in results:
+        print(("VEYRA_VANGUARD_BODY: " if fresh else "VEYRA_VANGUARD_BODY_UNCHANGED: ") + asset["name"] + " " + str(asset["triangles"])
+              + " triangles, " + str(asset["heightCm"]) + " cm")
     print("VEYRA_VANGUARD_BODIES_PASSED: " + str(len(built)))
 
 
