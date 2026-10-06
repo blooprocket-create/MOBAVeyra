@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "status": "First production pass (ADR-040): an overgrown highland ruin; requires Unreal gameplay-camera review",
+  "seed": 48173,
+  "size": 2048,
+  "macroTileMetres": 60.0,
+  "material": { "description": "M_CrucibleTerrain's look: its large-scale variation, where the ground is steep enough for rock, and the water's edge.", "macroDarkest": 0.82, "macroBrightest": 1.12, "macroCool": [0.94, 1.0, 1.04], "macroWarm": [1.06, 1.0, 0.92], "cliffNormalZFull": 0.62, "cliffNormalZNone": 0.82, "cliffNormalFlatten": 0.5, "wetDarkening": 0.68, "wetRoughness": 0.38 },
+  "overgrowth": { "description": "Moss patches over paving and pads, where the variation map's third channel runs high.", "from": 0.58, "to": 0.72, "strength": 0.5 },
+  "water": {
+    "description": "The river's look (M_CrucibleWater, Single Layer Water): a clear teal that reads as water even where it is shallow, its ripples flowing downstream, foam along the shore.",
+    "tileMetres": 6.0,
+    "rippleStrength": 1.6,
+    "scattering": [0.0012, 0.0065, 0.006],
+    "absorption": [0.028, 0.0045, 0.0055],
+    "phaseG": 0.1,
+    "colorScaleBehindWater": 0.85,
+    "roughness": 0.05,
+    "flowDistance": 0.25,
+    "flowCycleSeconds": 6.0,
+    "normalStrength": 0.6,
+    "foamColor": [0.85, 0.90, 0.88],
+    "foamBand": 0.35
+  },
+  "layers": [
+    {
+      "id": "Causeway",
+      "recipe": "flagstones",
+      "tileMetres": 4.0,
+      "cells": 7,
+      "grout": 0.055,
+      "stone": [0.66, 0.63, 0.57],
+      "stoneVariation": 0.09,
+      "warmCool": 0.035,
+      "groutColor": [0.20, 0.22, 0.13],
+      "lichen": [0.62, 0.66, 0.42],
+      "lichenCover": 0.12,
+      "roughness": [0.78, 0.92],
+      "normalStrength": 3.0
+    },
+    {
+      "id": "Moss",
+      "recipe": "moss",
+      "tileMetres": 5.0,
+      "soil": [0.17, 0.13, 0.09],
+      "moss": [0.14, 0.21, 0.085],
+      "mossLight": [0.29, 0.34, 0.15],
+      "litter": [0.40, 0.26, 0.12],
+      "mossCover": 0.74,
+      "litterShare": 0.15,
+      "litterStrength": 0.55,
+      "roughness": [0.86, 0.97],
+      "normalStrength": 2.2
+    },
+    {
+      "id": "Shore",
+      "recipe": "pebbles",
+      "tileMetres": 2.5,
+      "cells": 28,
+      "sand": [0.52, 0.46, 0.35],
+      "pebble": [0.43, 0.42, 0.39],
+      "pebbleVariation": 0.16,
+      "pebbleCover": 0.55,
+      "roughness": [0.55, 0.88],
+      "normalStrength": 2.6
+    },
+    {
+      "id": "Slate",
+      "recipe": "strata",
+      "tileMetres": 6.0,
+      "rock": [0.21, 0.23, 0.25],
+      "rockLight": [0.36, 0.37, 0.37],
+      "crevice": [0.11, 0.15, 0.08],
+      "strataBands": 7,
+      "roughness": [0.70, 0.90],
+      "normalStrength": 3.4
+    }
+  ]
+}

@@ -124,6 +124,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(ResourceBarHeight >= 1.0f, TEXT("ResourceBarHeight"), TEXT("must be at least 1 pixel."));
 	Require(BarLift >= 0.0f, TEXT("BarLift"), TEXT("must not be negative."));
 	// Over the ground's markings and under the telegraphs.
+	Require(FogOfWarSurfaceStep > 0.0f, TEXT("FogOfWarSurfaceStep"), TEXT("must be above zero."));
 	Require(FogOfWarLift >= 0.0f && FogOfWarLift <= TelegraphLift, TEXT("FogOfWarLift"), TEXT("must not be negative, nor above TelegraphLift."));
 	Require(FogOfWarColor.A < 1.0f && MinimapFogColor.A < 1.0f, TEXT("FogOfWarColor"), TEXT("the fog of war is translucent: the ground shows through it."));
 	Require(ChannelBarWidth >= 1.0f, TEXT("ChannelBarWidth"), TEXT("must be at least 1 pixel."));

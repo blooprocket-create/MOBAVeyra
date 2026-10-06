@@ -1,7 +1,10 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "CQTest.h"
+#include "Movement/VeyraUnitCollision.h"
+#include "Terrain/VeyraGround.h"
 #include "VeyraVisionSubsystem.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Delivery/VeyraProjectile.h"
@@ -155,6 +158,38 @@ namespace VeyraAbilitiesTests
 		void SpawnWall(double OffsetY = 0.0)
 		{
 			SpawnTerrain(FVector(WallFaceX + WallThickness / 2.0, OffsetY, 0.0), FVector(WallThickness, WallWidth, WallHeight));
+		}
+
+		TEST_METHOD(ASkillshotFliesOverRisingGroundAtItsHeightAboveIt)
+		{
+			// Fixture values: the ground under the caster, and a terrace rising across the path (ADR-040 §4).
+			constexpr double TerraceFromX = 400.0;
+			constexpr double TerraceRise = 150.0;
+			constexpr double SlabHalfThickness = 50.0;
+			constexpr double SlabHalfWidth = 1000.0;
+			constexpr double FlightShare = 0.7;
+			const double Feet = Caster->GetActorLocation().Z - Caster->GetSimpleCollisionHalfHeight();
+			const auto SpawnGround = [this](double FromX, double ToX, double TopZ) {
+				AActor* Slab = Spawner.GetWorld().SpawnActor<AActor>();
+				UBoxComponent* Box = NewObject<UBoxComponent>(Slab);
+				Slab->SetRootComponent(Box);
+				Box->SetBoxExtent(FVector((ToX - FromX) / 2.0, SlabHalfWidth, SlabHalfThickness));
+				VeyraGround::MakeGround(*Box);
+				VeyraUnitCollision::SetResponseToUnits(*Box, ECR_Ignore);
+				Box->RegisterComponent();
+				Slab->SetActorLocation(FVector((FromX + ToX) / 2.0, 0.0, TopZ - SlabHalfThickness));
+			};
+			SpawnGround(-ShotRange, TerraceFromX, Feet);
+			SpawnGround(TerraceFromX, ShotRange * 2.0, Feet + TerraceRise);
+			ASSERT_THAT(IsTrue(LearnAndCast(TEXT("test_spear")) == EVeyraCastRejection::None));
+			const AVeyraProjectile* Shot = InFlight();
+			ASSERT_THAT(IsTrue(Shot != nullptr));
+			const double LaunchZ = Shot->GetActorLocation().Z;
+			Fly(ShotRange * FlightShare / ShotSpeed);
+			ASSERT_THAT(IsTrue(InFlight() == Shot, TEXT("rising ground does not stop it")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Shot->GetActorLocation().X, ShotRange * FlightShare, Tolerance)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Shot->GetActorLocation().Z, LaunchZ + TerraceRise, Tolerance),
+				FString::Printf(TEXT("at Z %g, launched at %g"), Shot->GetActorLocation().Z, LaunchZ)));
 		}
 
 		TEST_METHOD(AFirstEnemySkillshotStopsAtTheNearestEnemy)

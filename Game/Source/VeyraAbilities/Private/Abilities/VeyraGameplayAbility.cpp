@@ -22,6 +22,7 @@
 #include "Progression/VeyraProgressionComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraGround.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
@@ -464,7 +465,8 @@ void UVeyraGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	{
 		Offset = Offset.GetSafeNormal() * Tuning->CastRange;
 	}
-	Cast.Point = Cast.CasterLocation + Offset;
+	// The point stands where the caster's body would stand there, up a slope or down into the river (ADR-040 §4).
+	Cast.Point = VeyraGround::Carried(*World, Cast.CasterLocation, FVector2D(Cast.CasterLocation + Offset));
 	Cast.Direction = Offset.IsNearlyZero() ? Avatar->GetActorForwardVector().GetSafeNormal2D() : Offset.GetSafeNormal();
 
 	if (UVeyraStatusComponent* Statuses = FindBesideAbilitySystem<UVeyraStatusComponent>(*Caster))

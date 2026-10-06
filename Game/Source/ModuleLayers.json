@@ -69,6 +69,12 @@
       "modules": ["Veyra"]
     },
     {
+      "name": "WorldAuthoring",
+      "description": "Editor-only world generation (ADR-040). Sealed: gameplay never depends on authoring.",
+      "sealed": true,
+      "modules": ["VeyraWorldTools"]
+    },
+    {
       "name": "Developer",
       "description": "Automation tests and developer tooling. Sealed: production modules never depend on it.",
       "sealed": true,

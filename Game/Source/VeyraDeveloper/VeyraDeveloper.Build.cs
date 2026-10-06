@@ -24,6 +24,8 @@ public class VeyraDeveloper : ModuleRules
 			"NetCore",
 			"PhysicsCore",
 			"Projects",
+			"RenderCore",
+			"RHI",
 			"CQTest",
 			"VeyraCore",
 			"VeyraSettings",

@@ -286,7 +286,7 @@ VeyraFlux arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2
 
 World actors report outcomes to the authoritative owning systems rather than reaching directly into UI or champion code.
 
-VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints, structure placements and jungle terrain (ADR-026 §5) for the map commandlet and the server alike.
+VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its rotation half a turn about the centre, [ADR-040](Docs/ADR/ADR-040-crucible-world-authoring-toolchain.md)), its terrain and its river and its structures; `VeyraLayout` turns the layout into lanes, waypoints, structure placements and jungle terrain (ADR-026 §5) for the map commandlet and the server alike.
 
 - `Structures/`: `AVeyraStructure`, a pawn with its own Ability System Component, and the tower attack.
 - `Fluxborn/`: `AVeyraFluxborn` and its server-only `AVeyraFluxbornController`, which follows its lane's waypoints and fights by `VeyraFluxbornRules` (ADR-011 §7).

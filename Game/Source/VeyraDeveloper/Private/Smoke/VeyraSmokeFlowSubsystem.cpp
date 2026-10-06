@@ -1891,7 +1891,8 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	}
 	// The fountain as the match goes live, with the shop standing by it (ADR-063 §6). A scripted client's cursor rests
 	// wherever the desktop left it, so the camera stops scrolling at the screen's edge and looks at the Vanguard first.
-	if (Script == EScript::Practice && !Captured.Contains(TEXT("Fountain")))
+	// Only a client that saves screenshots frames it: without them Capture records nothing, and the step would repeat.
+	if (Script == EScript::Practice && !ScreenshotFolder.IsEmpty() && !Captured.Contains(TEXT("Fountain")))
 	{
 		if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
 		{

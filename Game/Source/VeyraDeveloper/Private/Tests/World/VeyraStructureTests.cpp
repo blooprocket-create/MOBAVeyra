@@ -141,6 +141,7 @@ namespace VeyraWorldTests
 		{
 			Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			ASSERT_THAT(IsNotNull(Battleground));
+			SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(CompactBattleground());
 			Battleground->OnStructureDestroyed.AddLambda([this](const FVeyraStructureDestroyedEvent& Event) { Destroyed.Add(Event); });
 			Attacker = &VeyraCombatTests::SpawnCombatant(Spawner);

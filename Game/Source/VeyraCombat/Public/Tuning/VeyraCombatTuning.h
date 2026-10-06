@@ -99,6 +99,20 @@ struct FVeyraForcedMovementTuning
 	double NavigationExtent = 0.0;
 };
 
+/** The playable ground (ADR-040 §4). */
+USTRUCT()
+struct FVeyraGroundTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How far above and below a body or a point its ground is looked for, in units. */
+	UPROPERTY()
+	double SearchHeight = 0.0;
+};
+
 /** Crowd control (Combat Bible §8). */
 USTRUCT()
 struct FVeyraCrowdControlTuning
@@ -273,7 +287,7 @@ struct FVeyraCombatTuning
 	GENERATED_BODY()
 
 	/** The Combat.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 6;
+	static constexpr int32 SchemaVersion = 7;
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
@@ -289,6 +303,9 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraForcedMovementTuning ForcedMovement;
+
+	UPROPERTY()
+	FVeyraGroundTuning Ground;
 
 	UPROPERTY()
 	FVeyraCrowdControlTuning CrowdControl;

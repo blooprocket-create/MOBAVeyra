@@ -305,10 +305,10 @@ namespace
 		Edge.SetColor(Settings.HudHairlineColor);
 		Edge.BlendMode = SE_BLEND_Translucent;
 		Canvas.DrawItem(Edge);
-		// The river, a convex polygon: a fan of triangles from its first corner.
-		for (int32 Index = 2; Index < View.River.Num(); ++Index)
+		// The authored river is a triangle list, including both sampled branches.
+		for (int32 Index = 2; Index < View.River.Num(); Index += 3)
 		{
-			FCanvasTriangleItem Piece(View.River[0], View.River[Index - 1], View.River[Index], GWhiteTexture);
+			FCanvasTriangleItem Piece(View.River[Index - 2], View.River[Index - 1], View.River[Index], GWhiteTexture);
 			Piece.SetColor(Settings.RiverColor);
 			Canvas.DrawItem(Piece);
 		}

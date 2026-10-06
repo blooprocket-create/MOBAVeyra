@@ -361,8 +361,8 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool BlinkBeside(UAbilitySystemComponent& Unit, const AActor& Target, double Distance, FVector& OutLanding, FVector& OutFacing);
 
 	/**
-	 * The navigable ground nearest Point within Combat's reach for forced movement, in X and Y, at Point's
-	 * height; Point itself where there is none (ADR-031 §4).
+	 * The navigable ground nearest Point within Combat's reach for forced movement, in X and Y, as high above its ground as
+	 * Point is above its own (ADR-040 §4); Point itself where there is none (ADR-031 §4).
 	 */
 	VEYRACOMBAT_API FVector NearestGround(const UWorld& World, const FVector& Point);
 

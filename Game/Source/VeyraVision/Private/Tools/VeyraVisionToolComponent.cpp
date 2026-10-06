@@ -11,6 +11,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Teams/VeyraTeam.h"
+#include "Terrain/VeyraGround.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -143,9 +144,12 @@ EVeyraVisionToolRejection UVeyraVisionToolComponent::Use(const FVector& Point)
 		{
 			Offset = Offset.GetSafeNormal() * Tuning.PlacementRange;
 		}
-		// It stands on the ground its Vanguard stands on.
-		const double Ground = From.Z - Body->GetSimpleCollisionHalfHeight();
-		const FVector Where(From.X + Offset.X, From.Y + Offset.Y, Ground + Tuning.BodyHalfHeight);
+		// It stands on the ground where it is placed, however far that rises or falls from its Vanguard's (ADR-040 §4);
+		// without ground there, on the ground its Vanguard stands on.
+		const FVector Feet(From.X + Offset.X, From.Y + Offset.Y, From.Z - Body->GetSimpleCollisionHalfHeight());
+		FVector Surface = Feet;
+		VeyraGround::Under(*GetWorld(), Feet, Surface);
+		const FVector Where = Surface + FVector::UpVector * Tuning.BodyHalfHeight;
 		UVeyraVisionSubsystem* Vision = GetWorld()->GetSubsystem<UVeyraVisionSubsystem>();
 		if (!Vision || !Vision->PlaceWard(*Participant, Where))
 		{
@@ -193,7 +197,8 @@ EVeyraVisionToolRejection UVeyraVisionToolComponent::Use(const FVector& Point)
 		{
 			return EVeyraVisionToolRejection::InvalidPoint;
 		}
-		Vision->RevealArea(VeyraTeams::TeamOf(Participant), FVector(From.X + Offset.X, From.Y + Offset.Y, From.Z), Tuning.Radius, Tuning.DurationSeconds);
+		Vision->RevealArea(VeyraTeams::TeamOf(Participant), VeyraGround::Carried(*GetWorld(), From, FVector2D(From.X + Offset.X, From.Y + Offset.Y)), Tuning.Radius,
+			Tuning.DurationSeconds);
 		QuickSightReadyAt = Now + Tuning.CooldownSeconds;
 		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraVisionToolComponent, QuickSightReadyAt, this);
 		return EVeyraVisionToolRejection::None;

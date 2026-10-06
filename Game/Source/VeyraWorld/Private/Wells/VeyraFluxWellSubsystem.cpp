@@ -9,6 +9,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "Layout/VeyraLayout.h"
+#include "Terrain/VeyraSurfacePlacement.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraFluxWellRules.h"
 #include "Targeting/VeyraTargeting.h"
@@ -64,7 +65,14 @@ void UVeyraFluxWellSubsystem::Start()
 	const double Now = World->GetTimeSeconds();
 	for (int32 Site = 0; Site < Tuning.Sites.Num(); ++Site)
 	{
-		const FTransform Where(FRotator::ZeroRotator, FVector(VeyraLayout::ToVector(Tuning.Sites[Site]), Tuning.CapsuleHalfHeight));
+		FVector Location;
+		if (!VeyraSurfacePlacement::Resolve(*World, VeyraLayout::ToVector(Tuning.Sites[Site]), Tuning.CapsuleHalfHeight,
+			UVeyraWorldTuningSubsystem::Get().Layout.Surface, Location))
+		{
+			UE_LOG(LogVeyraWorld, Error, TEXT("Flux Well site %d has no playable surface."), Site);
+			continue;
+		}
+		const FTransform Where(FRotator::ZeroRotator, Location);
 		AVeyraFluxWell* Well = World->SpawnActorDeferred<AVeyraFluxWell>(AVeyraFluxWell::StaticClass(), Where, nullptr, nullptr,
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 		if (!Well)

@@ -103,6 +103,7 @@ namespace VeyraWorldTests
 			Tuning.Presence.TickSeconds = NeverSeconds;
 			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			ASSERT_THAT(IsNotNull(Battleground));
+			SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(CompactBattleground());
 			Wells = Spawner.GetWorld().GetSubsystem<UVeyraFluxWellSubsystem>();
 			ASSERT_THAT(IsNotNull(Wells));

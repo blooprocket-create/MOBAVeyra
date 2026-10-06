@@ -128,6 +128,7 @@ namespace VeyraWorldTests
 			Tuning->Tuning.Waves.UnitIntervalSeconds = 0.0;
 			Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
 			ASSERT_THAT(IsNotNull(Battleground));
+			SpawnCompactGround(Spawner.GetWorld());
 			Battleground->SpawnStructures(CompactBattleground());
 		}
 

@@ -37,7 +37,10 @@ void UVeyraTerrainSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-int32 UVeyraTerrainSubsystem::RaiseWall(const FVeyraWallRequest& Request)
+int32 UVeyraTerrainSubsystem::RaiseWall(const FVeyraWallRequest& Request) { return RaiseWallInternal(Request, false); }
+int32 UVeyraTerrainSubsystem::RaiseMapWall(const FVeyraWallRequest& Request) { return RaiseWallInternal(Request, true); }
+
+int32 UVeyraTerrainSubsystem::RaiseWallInternal(const FVeyraWallRequest& Request, bool bMapTerrain)
 {
 	UWorld* World = GetWorld();
 	const FVector Facing = Request.Facing.GetSafeNormal2D();
@@ -54,6 +57,7 @@ int32 UVeyraTerrainSubsystem::RaiseWall(const FVeyraWallRequest& Request)
 	{
 		return 0;
 	}
+	Wall->SetMapTerrain(bMapTerrain);
 	Wall->SetHalfExtent(FVector(Request.Thickness / 2.0, Request.Length / 2.0, Request.HalfHeight));
 	Wall->FinishSpawning(Where);
 	Wall->Form();
@@ -97,8 +101,9 @@ void UVeyraTerrainSubsystem::MoveOut(const FVeyraWallRequest& Request) const
 		const double Along = FVector::DotProduct(Here - Request.Centre, Facing);
 		const double Side = Along >= 0.0 ? 1.0 : -1.0;
 		const FVector Out = Here + Facing * (Side * (Request.Thickness / 2.0 + Radius + ClearanceUnits) - Along);
+		// Standing on the ground there, as high above it as the body stood above its own (ADR-040 §4).
 		const FVector Ground = VeyraCombat::NearestGround(World, Out);
-		Unit->TeleportTo(FVector(Ground.X, Ground.Y, Here.Z), Unit->GetActorRotation(), /*bIsATest*/ false, /*bNoCheck*/ true);
+		Unit->TeleportTo(Ground, Unit->GetActorRotation(), /*bIsATest*/ false, /*bNoCheck*/ true);
 		UE_LOG(LogVeyraWorld, Verbose, TEXT("A wall formed on %s, which moves out to %s."), *GetNameSafe(Unit), *Unit->GetActorLocation().ToString());
 	}
 }

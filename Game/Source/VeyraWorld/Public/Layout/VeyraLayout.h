@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Battleground/VeyraBattlegroundTypes.h"
+#include "Layout/VeyraWidthCurve.h"
 #include "Containers/ArrayView.h"
 #include "Math/Vector2D.h"
 #include "Misc/Optional.h"
@@ -42,15 +43,40 @@ struct FVeyraStructurePlacement
 };
 
 /**
+ * One wall as it stands for one team (ADR-043 §1, as amended 2026-10-05): its spine sampled, the ridge the terrain raises
+ * within it, and the boxes that stand for it wherever something must meet it.
+ */
+struct VEYRAWORLD_API FVeyraWallShape
+{
+	EVeyraTeam Team = EVeyraTeam::None;
+
+	/** Its entry in the layout's walls. */
+	int32 Index = INDEX_NONE;
+
+	TArray<FVeyraCurveSample> Spine;
+
+	/** How deep inside the wall Point lies, from its nearest edge: negative outside. Its ends are rounded. */
+	double DepthInside(const FVector2D& Point) const;
+
+	/**
+	 * The boxes that block and hide for it (ADR-043 §2, §3): one to each span of its spine, as thick as the span's thicker
+	 * end, mitred where the spine turns so the outside of each bend stays closed, and squared past each end so its
+	 * rounded tip stands inside.
+	 */
+	TArray<FVeyraTerrainBox> Boxes() const;
+};
+
+/**
  * The battleground's geometry as pure functions of its layout (ADR-011 §12), so the map commandlet,
- * the server's spawning and the tests agree. Team A's half is authored; Team B's is its mirror.
+ * the server's spawning and the tests agree. Team A's half is authored; Team B's is its rotation half a turn about the
+ * centre (author ruling 2026-10-05).
  */
 namespace VeyraLayout
 {
 	VEYRAWORLD_API FVector2D ToVector(const FVeyraMapPoint& Point);
 
-	/** Team A's point as Team B's: reflected across the river's diagonal, Y = -X. */
-	VEYRAWORLD_API FVector2D Mirror(const FVector2D& Point);
+	/** Team A's point as Team B's: turned half a turn about the centre. Directions turn the same way. */
+	VEYRAWORLD_API FVector2D Rotate(const FVector2D& Point);
 
 	/** The length of the path through Points. */
 	VEYRAWORLD_API double Length(TConstArrayView<FVeyraMapPoint> Points);
@@ -59,8 +85,8 @@ namespace VeyraLayout
 	VEYRAWORLD_API double DistanceToPath(TConstArrayView<FVeyraMapPoint> Points, const FVector2D& Point);
 
 	/**
-	 * How far Point lies from the river's diagonal, Y = -X, toward Team A's base: positive on Team A's
-	 * half, negative on Team B's.
+	 * How far Point lies from the line through the centre between the bases, X + Y = 0, toward Team A's base: positive
+	 * on Team A's half, negative on Team B's. The halves are each other's rotation.
 	 */
 	VEYRAWORLD_API double DepthInTeamAHalf(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point);
 
@@ -76,24 +102,33 @@ namespace VeyraLayout
 	/** A point of Team A's base, as it stands for Team. */
 	VEYRAWORLD_API FVector2D ForTeam(const FVector2D& TeamAPoint, EVeyraTeam Team);
 
-	/** Both teams' Dense Fog: Team A's circles, then their mirrors. */
+	/** Both teams' Dense Fog: Team A's circles, then their rotations. */
 	VEYRAWORLD_API TArray<FVeyraFogPlacement> DenseFog(const FVeyraBattlegroundLayout& Layout);
 
-	/** One of Team A's walls, as it stands for Team (ADR-043 §1). */
-	VEYRAWORLD_API FVeyraTerrainBox Wall(const FVeyraWallLayout& Wall, EVeyraTeam Team);
+	/** Team A's wall Index in the layout's walls, as it stands for Team (ADR-043 §1): Team B's is its rotation. */
+	VEYRAWORLD_API FVeyraWallShape WallShape(const FVeyraBattlegroundLayout& Layout, int32 Index, EVeyraTeam Team);
 
-	/** Both teams' walls: Team A's, then their mirrors. */
+	/** Both teams' walls: Team A's, then their rotations. */
+	VEYRAWORLD_API TArray<FVeyraWallShape> WallShapes(const FVeyraBattlegroundLayout& Layout);
+
+	/** Every box of both teams' walls (FVeyraWallShape::Boxes): Team A's walls' first, each wall's in order along it. */
 	VEYRAWORLD_API TArray<FVeyraTerrainBox> Walls(const FVeyraBattlegroundLayout& Layout);
 
-	/** Every structure of both teams: each lane's Spires and inhibitor, the base towers and the Prime Well. */
+	/**
+	 * Every structure of both teams: each lane's Spires and inhibitor, the same distances along the lane from each team's
+	 * own end, then the base towers and the Prime Well.
+	 */
 	VEYRAWORLD_API TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layout);
 
 	/**
-	 * Whether Point is jungle terrain (ADR-026 §5): on the floor, and on no lane's road, the river or
-	 * either base's pad, each as wide as the layout draws it, so a new layout needs no extra authoring.
+	 * Whether Point is jungle terrain (ADR-026 §5): on the floor, and on no lane's road, the river's water or either
+	 * base's pad, each as wide as the layout draws it, so a new layout needs no extra authoring. A Well's island is ground.
 	 */
 	VEYRAWORLD_API bool IsJungle(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point);
 
-	/** Whether the lane's path is its own mirror, reversed, so both teams walk the same distances. */
-	VEYRAWORLD_API bool MirrorsOntoItself(const FVeyraLaneLayout& Lane);
+	/**
+	 * Whether Lane, rotated and reversed, is one of Lanes: top onto bottom, mid onto itself. Then each team walks the same
+	 * lanes from its own side.
+	 */
+	VEYRAWORLD_API bool RotatesOntoALane(const FVeyraLaneLayout& Lane, TConstArrayView<FVeyraLaneLayout> Lanes);
 }
