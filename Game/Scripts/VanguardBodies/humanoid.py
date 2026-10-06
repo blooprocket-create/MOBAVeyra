@@ -133,6 +133,8 @@ def layout(spec, capsule):
         for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
             L[name] = (crest[index], crest[index + 1])
     stance = spec.get("stance")
+    # A gun carried across the body (braced): its breech and muzzle, for the prop to lie between.
+    gun = None
     if stance == "aim":
         # Mid-sight: a long arm held two-handed at the shoulder, its optic at the eye and the left hand forward under the
         # barrel, elbows bent out and down. The weapon points the way the body faces.
@@ -146,6 +148,21 @@ def layout(spec, capsule):
             L["lowerarm_" + side] = (elbow, wrist)
             L["hand_" + side] = (wrist, grips[side])
             L["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
+    elif stance == "braced":
+        # A heavy gun carried across the body on both sides of her: its barrel forward and down under the right arm to
+        # the muzzle, its breech up over the left shoulder. The right hand grips under the barrel, the left the breech.
+        breech = Vector((shoulder * 0.3, shoulder * 0.75, chest_z + torso * 0.1))
+        muzzle = Vector((arm * 1.15, -shoulder * 0.7, chest_z - torso * 0.8))
+        gun = (breech, muzzle)
+        grips = {"r": breech.lerp(muzzle, 0.62) + Vector((0, 0, -height * 0.05)), "l": breech.lerp(muzzle, 0.2) + Vector((height * 0.02, 0, -height * 0.035))}
+        for side, sign in (("l", 1.0), ("r", -1.0)):
+            shoulder_point = L["upperarm_" + side][0]
+            wrist = grips[side] - Vector((arm * 0.08, 0.0, 0.0))
+            elbow = two_bone(shoulder_point, wrist, arm * 0.48, arm * 0.40, Vector((-0.3, sign * 0.7, -0.6)))
+            L["upperarm_" + side] = (shoulder_point, elbow)
+            L["lowerarm_" + side] = (elbow, wrist)
+            L["hand_" + side] = (wrist, grips[side])
+            L["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
     elif stance not in (None, "shoulderCarry", "lanternOut"):
         # A carry (carry_pose) poses the arm; its rest is the figure's own.
         raise AssertionError("Unknown stance: " + stance)
@@ -155,7 +172,7 @@ def layout(spec, capsule):
     assert still in (None, "slumped"), ("Unknown still pose", still)
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
             "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle"), "kneel": spec.get("kneel", False),
-            "footprint": footprint, "ride": "wave" if "waveBase" in features else None,
+            "footprint": footprint, "ride": "wave" if "waveBase" in features else None, "gun": gun,
             "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base)}
     return L, dims
 
@@ -661,6 +678,19 @@ def body(spec, L, d, bones=BONES):
         for sign in (1, -1):
             body.limb("pelvis", token + Vector((sign * unit * 0.02, -unit * 0.006, unit * 0.02)), token + Vector((-sign * unit * 0.02, -unit * 0.006, -unit * 0.02)),
                       unit * 0.004, unit * 0.004, silver, segments=4)
+    if "gunnerKit" in features:
+        # A working gunner's gear at the waist: ammunition pouches on the belt and a coil of rope hung at the left hip.
+        unit = d["height"]
+        leather, rope = [0.28, 0.18, 0.10], spec.get("rope", [0.62, 0.52, 0.34])
+        belt = p1 - Vector((0, 0, d["torso"] * 0.06))
+        for index in range(4):
+            around = math.radians(-70 + index * 30)
+            spot = belt + Vector((math.cos(around) * d["hip"] * 1.18, math.sin(around) * d["hip"] * 1.18, -unit * 0.02))
+            body.box("pelvis", spot, (unit * 0.035, unit * 0.045, unit * 0.05), leather, rotation=Euler((0, 0, around)))
+        coil = belt + Vector((-d["hip"] * 0.1, d["hip"] * 1.25, -unit * 0.05))
+        for ring in range(3):
+            body.limb("pelvis", coil + Vector((-unit * 0.035, 0, -unit * 0.012 * ring)), coil + Vector((unit * 0.035, 0, -unit * 0.012 * ring - unit * 0.01)),
+                      unit * 0.04, unit * 0.04, mix(rope, [0.3, 0.25, 0.18], 0.15 * ring), segments=10)
     if "heavyBoots" in features:
         boots = spec.get("boots", [0.12, 0.08, 0.06])
         for side in ("l", "r"):
@@ -947,6 +977,33 @@ def add_prop(body, prop, L, d, spec):
         for share in (0.04, 0.97):
             point = hilt.lerp(tip, share)
             body.limb("spine_03", point, point + along * unit * 0.015, unit * 0.02, unit * 0.02, fitting, segments=8)
+    elif kind == "harborGun":
+        # One heavy engineered gun carried on both sides of her (the braced stance): a banded brass-and-iron barrel
+        # running forward under her right arm to a wide muzzle with Flux light standing in the bore, exposed blue-lit
+        # Flux chambers along it, and the breech and recoil assembly riding up over her left shoulder. It rides her upper
+        # body, which carries it with her hands on it.
+        breech, muzzle = d["gun"]
+        along = (muzzle - breech).normalized()
+        side = along.cross(Vector((0, 0, 1))).normalized()
+        up = side.cross(along).normalized()
+        iron, brass, dark = [0.20, 0.20, 0.22], [0.78, 0.60, 0.28], [0.10, 0.10, 0.11]
+        radius = unit * 0.045
+        point = lambda share: breech.lerp(muzzle, share)
+        body.limb("spine_03", point(0.32), point(0.96), radius, radius * 1.05, iron, segments=12)
+        for share in (0.4, 0.55, 0.7, 0.85):
+            body.limb("spine_03", point(share), point(share + 0.03), radius * 1.18, radius * 1.18, brass, segments=12)
+        body.limb("spine_03", point(0.94), muzzle + along * radius * 0.6, radius * 1.35, radius * 1.6, brass, segments=12)
+        body.limb("spine_03", muzzle + along * radius * 0.5, muzzle + along * radius * 0.65, radius * 1.15, radius * 1.15, accent, glow=True, segments=12)
+        for offset in (side, -side):
+            chamber = offset * radius * 1.05 + up * radius * 0.3
+            body.limb("spine_03", point(0.46) + chamber, point(0.66) + chamber, radius * 0.38, radius * 0.38, accent, glow=True, segments=8)
+            body.limb("spine_03", point(0.44) + chamber, point(0.46) + chamber, radius * 0.48, radius * 0.48, brass, segments=8)
+            body.limb("spine_03", point(0.66) + chamber, point(0.68) + chamber, radius * 0.48, radius * 0.48, brass, segments=8)
+        body.limb("spine_03", point(0.02), point(0.34), radius * 1.45, radius * 1.4, dark, segments=8)
+        for offset in (side * 0.7 + up * 0.9, -side * 0.7 + up * 0.9):
+            body.limb("spine_03", point(0.05) + offset * radius * 1.4, point(0.45) + offset * radius * 1.1, radius * 0.28, radius * 0.28, iron, segments=6)
+        body.box("spine_03", point(0.12) + up * radius * 1.5, (radius * 1.4, radius * 1.2, radius * 0.5), brass,
+                 rotation=Vector((0, 0, 1)).rotation_difference(along).to_euler())
     elif kind == "needles":
         # Thin throwing needles fanned between the fingers.
         steel = [0.80, 0.80, 0.84]
@@ -1152,8 +1209,8 @@ def pose(name, t, melee, d):
         lift = -d["height"] * 0.06 * settle
     else:
         raise AssertionError("Unknown animation: " + name)
-    if d.get("stance") == "aim":
-        aim_pose(pose, name, t, melee)
+    if d.get("stance") in ("aim", "braced"):
+        aim_pose(pose, name, t, melee, sight=d["stance"] == "aim")
     if d.get("stance") == "shoulderCarry":
         carry_pose(pose, name, t)
     if d.get("stance") == "lanternOut":
@@ -1258,12 +1315,13 @@ def lantern_pose(pose, name, t):
     pose["hand_l"] = combine(forward_swing(-(raise_ + LANTERN_ELBOW)), roll_side(-LANTERN_OUT, 1))
 
 
-def aim_pose(pose, name, t, melee):
+def aim_pose(pose, name, t, melee, sight=True):
     """A weapon held two-handed keeps both hands on it: the arms keep their hold and the upper body carries it. Aiming
-    it, the chest settles over the sight; a cast raises it high; a recall lowers it."""
+    it, the chest settles over the sight (a gun held low across the body has none to look down); a cast raises it high;
+    a recall lowers it."""
     for bone in [bone for bone in pose if bone.startswith(("clavicle_", "upperarm_", "lowerarm_", "hand_"))]:
         del pose[bone]
-    if name not in ("Death", "Cast"):
+    if sight and name not in ("Death", "Cast"):
         # One eye down the sight.
         pose["head"] = combine(pose.get("head", (0.0, 0.0, 0.0)), lean(12))
     if name == "Idle":

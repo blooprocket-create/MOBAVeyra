@@ -158,6 +158,12 @@ section 9. The existing LFS rules cover the FBX files.
   with `canisterBelts` of labelled, valved canisters crossed over her body, a red `headband` and `workGoggles` pushed
   up on her forehead. Her `dispenserRig` is a banded steel tank on her back with a glowing reagent window, a gauge-glass
   band and a hazard placard on its pump, its armoured hoses over her shoulder to the nozzle in her hand, one lit.
+  Bryn is a compact veteran gunner in a worn dark-teal naval coat (`coatSkirt`) with salt-and-pepper hair, a red
+  `waistSash`, a `gunnerKit` (ammunition pouches round the belt, a rope coil at the left hip) and `heavyBoots`.
+  Mournwake (`harborGun`) is carried on both sides of her (`braced`): its banded brass-and-iron barrel runs forward
+  and down under her right arm to a wide muzzle with Flux light standing in the bore, past two blue-lit Flux chambers,
+  and its breech and recoil assembly rides up over her left shoulder. Both hands stay on it as she runs, swings and
+  casts, and with no sight to look down she keeps her head up and clear of the gun.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:
