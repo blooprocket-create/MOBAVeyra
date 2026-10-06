@@ -11,7 +11,9 @@
     (ADR-006 section 9).
     A body rebuilt as it was (its content unchanged) keeps its FBX and its imported assets; only the Vanguards whose
     bodies changed are imported again. A full build after a change to the generator's code is therefore cheap, and the
-    preflight refuses bodies built by other code or another Blender (VanguardBodies/inputs.py).
+    preflight refuses bodies built by other code or another Blender (VanguardBodies/inputs.py). What changed is counted
+    since the last import, not the last generator run: bodies generated on their own (a preview, a failed import) are
+    imported by the next build that imports.
 .PARAMETER Vanguards
     Builds only the Vanguards named, by ID; without it, every Vanguard in the kit.
 .PARAMETER Blender
@@ -93,5 +95,10 @@ $log = Join-Path $saved 'Import.log'
 & $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" @importOnly *> (Join-Path $saved 'Import-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath $log -SimpleMatch 'VEYRA_VANGUARD_BODIES_IMPORTED' -Quiet)) {
     throw "The Vanguard bodies were not imported. See $log"
+}
+if (-not $ImportOnly) {
+    # Imported and deleted: nothing the generator left is waiting any more (it adds to these until an import takes them).
+    Set-Content -LiteralPath (Join-Path $saved 'changed.json') -Value '[]'
+    Set-Content -LiteralPath (Join-Path $saved 'removed.json') -Value '[]'
 }
 Select-String -LiteralPath $log -Pattern 'VEYRA_VANGUARD_BODY_ASSET: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }

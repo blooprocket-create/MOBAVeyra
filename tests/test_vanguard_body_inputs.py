@@ -176,6 +176,20 @@ class VanguardBodyInputs(unittest.TestCase):
         # A build of a alone keeps b's bodies, which it did not make.
         self.assertEqual([asset["name"] for asset in inputs.removed_assets(previous, current, only={"a"})], ["SK_A_Ride"])
 
+    def test_what_a_build_leaves_to_import_waits_until_an_import_takes_it(self):
+        assets = built(KIT, VANGUARDS)
+        # A build that only generated (no import) changed a; a later build changes nothing more, but a is still to import.
+        self.assertEqual(inputs.pending_changed([], ["a"], assets), ["a"])
+        self.assertEqual(inputs.pending_changed(["a"], [], assets), ["a"])
+        self.assertEqual(inputs.pending_changed(["a"], ["b", "a"], assets), ["a", "b"])
+        # A Vanguard the kit has since dropped has nothing left to import.
+        self.assertEqual(inputs.pending_changed(["gone", "b"], [], assets), ["b"])
+        # A dropped body's imported assets are still to delete after a build that only generated, unless the body is
+        # back (imported again, which replaces its folder).
+        self.assertEqual(inputs.pending_removed([], ["SK_Gone"], assets), ["SK_Gone"])
+        self.assertEqual(inputs.pending_removed(["SK_Gone"], [], assets), ["SK_Gone"])
+        self.assertEqual(inputs.pending_removed(["SK_Gone", "SK_A_Ride"], ["SK_Old"], assets), ["SK_Gone", "SK_Old"])
+
     @staticmethod
     def copy_generator(game):
         """The generator's code, as the project beside its manifest holds it."""
