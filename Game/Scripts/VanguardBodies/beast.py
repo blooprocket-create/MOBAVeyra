@@ -100,9 +100,11 @@ def body(spec, L, d):
     # A body of smoke has no mesh for its trunk, neck, legs or tail: its effect pours them off its bones (the art
     # set's Effect), and only what is solid in it, its mask, eyes and claws, is built.
     smoke = "smokeBody" in features
+    # A body of water (a Waterling) has none either: water_body builds it whole, low on the ground.
+    bare = smoke or "waterBody" in features
     # The trunk: hips, belly and chest; a broad beast's wider than it is tall, built low over its legs.
     p0, p1 = L["pelvis"]
-    if smoke:
+    if bare:
         pass
     elif "broadBody" in features:
         for bone, start, end, size in (("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1, 0.95), ("spine_01", *L["spine_01"], 1.05), ("spine_02", *L["spine_02"], 1.12)):
@@ -113,14 +115,14 @@ def body(spec, L, d):
         body.limb("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1, trunk * 0.85, trunk * 0.95, primary)
         body.limb("spine_01", *L["spine_01"], trunk * 0.95, trunk * 1.0, primary)
         body.limb("spine_02", *L["spine_02"], trunk * 1.0, trunk * 1.05, primary)
-    if not smoke:
+    if not bare:
         body.limb("neck_01", *L["neck_01"], trunk * 0.7, trunk * 0.55, primary)
     # Legs: thick above, slender below, a broad paw.
     pairs = [LEGS, HIND] + ([MIDDLE] if d["six"] else [])
     for side in ("l", "r"):
         for upper, lower, foot in pairs:
             f0, f1 = L[foot + "_" + side]
-            if not smoke:
+            if not bare:
                 body.limb(upper + "_" + side, *L[upper + "_" + side], trunk * 0.38, trunk * 0.3, secondary)
                 body.limb(lower + "_" + side, *L[lower + "_" + side], trunk * 0.28, trunk * 0.2, secondary)
                 body.limb(foot + "_" + side, f0, f1, trunk * 0.22, trunk * 0.18, mix(secondary, [0.05, 0.05, 0.05], 0.3))
@@ -153,6 +155,8 @@ def body(spec, L, d):
             if "horns" in features:
                 root = mask + Vector((-trunk * 0.05, sign * trunk * 0.42, trunk * 0.35))
                 body.limb("head", root, root + Vector((-trunk * 0.5, sign * trunk * 0.35, trunk * 0.75)), trunk * 0.11, trunk * 0.01, bone, segments=5)
+    elif "waterBody" in features:
+        water_body(body, spec, L, d)
     elif "wedgeSkull" in features:
         # A heavy wedge-shaped skull of faceted plate, a single deep ocular burning in it.
         body.limb("head", h0, h1, trunk * 0.6, trunk * 0.18, detail, segments=5)
@@ -216,9 +220,43 @@ def body(spec, L, d):
             body.ball(bone, b0.lerp(b1, 0.5) + Vector((0, 0, trunk * 0.9)), trunk * 0.4, [0.22, 0.40, 0.14], scale=(1.4, 1.0, 0.4))
     # A tail tapering behind.
     for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
-        if not smoke:
+        if not bare:
             body.limb(name, *L[name], trunk * (0.35 - index * 0.1), trunk * (0.25 - index * 0.08), primary)
     return body
+
+
+def water_body(body, spec, L, d):
+    """A little living wave (a Waterling): a low teardrop of water resting on the ground along its spine, its back rising
+    into a foam-tipped crest that curls forward over a small rounded head with two points of light, and a wake tapering
+    behind along its tail. Primary is its water, secondary the deeper water under it, detail its foam."""
+    trunk, tall, long = d["trunk"], d["height"], d["length"]
+    water, deep, foam, light = spec["primary"], spec["secondary"], spec["detail"], spec["accent"]
+    hips, chest = L["pelvis"][0], L["spine_02"][1]
+    # One swell resting on the ground from the hips to the chest, its back half on the hips and its front on the chest,
+    # so it heaves as the body moves: lower and deeper-coloured behind, tallest at the front.
+    body.blob("pelvis", Vector((hips.x + long * 0.12, 0, tall * 0.35)), (Vector((long * 0.3, 0, 0)), Vector((0, trunk * 1.15, 0)), Vector((0, 0, tall * 0.35))),
+              mix(water, deep, 0.35), segments=12)
+    body.blob("spine_02", Vector((chest.x - long * 0.1, 0, tall * 0.45)), (Vector((long * 0.32, 0, 0)), Vector((0, trunk * 1.25, 0)), Vector((0, 0, tall * 0.45))),
+              water, segments=12)
+    # The head, the front of the swell, with its two lights looking ahead.
+    front = Vector((chest.x + long * 0.14, 0, tall * 0.35))
+    body.blob("head", front, (Vector((long * 0.18, 0, 0)), Vector((0, trunk * 0.95, 0)), Vector((0, 0, tall * 0.35))), mix(water, foam, 0.08), segments=10)
+    for sign in (1, -1):
+        body.ball("head", front + Vector((long * 0.15, sign * trunk * 0.4, tall * 0.18)), trunk * 0.14, light, glow=True, segments=8)
+    # The crest: the back rises into it and it curls forward over the head, foam rolling along its lip.
+    crest = Vector((chest.x - long * 0.1, 0, tall * 0.95))
+    body.blob("neck_01", crest, (Vector((long * 0.12, 0, tall * 0.32)), Vector((0, trunk * 1.0, 0)), Vector((long * 0.1, 0, -tall * 0.04))),
+              mix(water, foam, 0.3), segments=10)
+    for index in range(5):
+        across = (index / 4 - 0.5) * trunk * 1.5
+        body.ball("neck_01", crest + Vector((long * 0.16, across, tall * 0.3 - abs(across) * 0.2)), trunk * 0.3, foam, segments=8)
+    # The wake: flatter and narrower toward its end.
+    for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
+        t0, t1 = L[name]
+        centre = t0.lerp(t1, 0.5)
+        rise = tall * (0.22 - index * 0.06)
+        body.blob(name, Vector((centre.x, 0, rise)), (Vector(((t1 - t0).length * 0.75, 0, 0)), Vector((0, trunk * (1.0 - index * 0.25), 0)), Vector((0, 0, rise))),
+                  mix(water, foam, 0.12 * index), segments=10)
 
 
 def run_stride(d):

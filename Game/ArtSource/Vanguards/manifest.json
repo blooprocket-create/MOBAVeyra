@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "8f0aa3551d4c9619fe62c517fdb30043d28ed165bc27d4fdf4dc187dd5232fde",
+  "kitSha256": "3c90cc81223e421883e50b6cab239ac829a7d579fb8b3faa7ff5f85ac49b7023",
   "assets": [
     {
       "id": "angeru",
@@ -950,8 +950,8 @@
       "name": "SK_Neris",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris.fbx",
-      "sha256": "6d5637026d39e07ba46ed32c41f39704605816bc3c91f2dcc0481cca0fee9e79",
-      "triangles": 2652,
+      "sha256": "135174ad7150608fd787eff4b7a239db880928e55245295b3776de0d04ec0cf4",
+      "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
       "heightCm": 170.31,
@@ -1002,7 +1002,246 @@
           "loop": true
         }
       ],
-      "inputSha256": "0c5a63c789fff1f1f9108789e6f29928717387d7a48d1aebfd7d28b560727876"
+      "inputSha256": "a0f5fbbe672ddf9292f03475cff9c4ed779ae16f34e787f00e3c2668845749bc",
+      "effect": {
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "bones": [
+          "cape_02",
+          "cape_03",
+          "root"
+        ],
+        "color": [
+          0.8,
+          0.92,
+          1.0,
+          1.0
+        ],
+        "scale": 1.0
+      }
+    },
+    {
+      "id": "neris",
+      "name": "SK_Neris_Tidebreaker",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Neris_Tidebreaker.fbx",
+      "sha256": "9347cb553490f8b79b6be3cb3cf5b752ee007c46b5a9a970ea0effcaf822d8f6",
+      "triangles": 6892,
+      "triangleBudget": 9000,
+      "bones": 29,
+      "heightCm": 381.74,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 130.39,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "8524488a86ea4ccad45ae3e9d76dbfe33e5af68600325455d84822b4557f5f44",
+      "effect": {
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "bones": [
+          "cape_02",
+          "cape_03",
+          "root"
+        ],
+        "color": [
+          0.8,
+          0.92,
+          1.0,
+          1.0
+        ],
+        "scale": 1.8
+      },
+      "status": "neris_tidebreaker_body"
+    },
+    {
+      "id": "neris",
+      "name": "SK_Neris_Wave",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Neris_Wave.fbx",
+      "sha256": "097e4d0c73c8264327a1c4d8e2a51d45bcb411a8d9fed4d3e9855815c52e88f4",
+      "triangles": 6892,
+      "triangleBudget": 9000,
+      "bones": 29,
+      "heightCm": 203.43,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 130.39,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "501a574e051664f5e0b5e140ed17072490c3e34551efeceeb5e1da80cbdea0e0",
+      "effect": {
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "bones": [
+          "cape_02",
+          "cape_03",
+          "root"
+        ],
+        "color": [
+          0.8,
+          0.92,
+          1.0,
+          1.0
+        ],
+        "scale": 1.2
+      },
+      "status": "neris_wave_body"
+    },
+    {
+      "id": "neris_waterling",
+      "name": "SK_NerisWaterling",
+      "archetype": "beast",
+      "file": "FBX/SK_NerisWaterling.fbx",
+      "sha256": "836598b4362f72d431d680f57f10cc1924027e5227734f2e1b6c9ac5ffd288ce",
+      "triangles": 3684,
+      "triangleBudget": 12000,
+      "bones": 27,
+      "heightCm": 62.38,
+      "capsuleHalfHeightCm": 45,
+      "melee": true,
+      "runStrideCm": 73.8,
+      "upperBodyBone": "neck_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 16,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "edab63812c296450a177504fb8a37617dd08a79f74937bfb6507c4f5ad41caf6",
+      "effect": {
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "bones": [
+          "neck_01",
+          "tail_02"
+        ],
+        "color": [
+          0.8,
+          0.92,
+          1.0,
+          1.0
+        ],
+        "scale": 1.0
+      },
+      "companion": true
     },
     {
       "id": "oriel",

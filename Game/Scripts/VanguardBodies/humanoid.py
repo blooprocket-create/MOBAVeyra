@@ -2,7 +2,7 @@
 import math
 import random
 
-from mathutils import Euler, Vector
+from mathutils import Euler, Matrix, Vector
 
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
@@ -33,6 +33,8 @@ CAST_RELEASE_SHARE = 0.4
 CAPE_REACH = 0.82
 # A long cloak's tattered hem: how many strips hang from it.
 CAPE_STRIPS = 6
+# The share of a wave rider's height the wave beneath her takes up, at her own size.
+WAVE_SHARE = 0.22
 # The upper body, which alone plays an attack, a cast or a hit while the body runs; the bone a pose lifts; and whether
 # the body stands on the ground.
 UPPER_BODY_BONE = "spine_01"
@@ -41,11 +43,15 @@ GROUNDED = True
 
 
 def layout(spec, capsule):
-    """Every bone's head and tail in centimetres, the body facing +X with its left at +Y, fitted to the capsule."""
+    """Every bone's head and tail in centimetres, the body facing +X with its left at +Y, fitted to the capsule (grown
+    by bodyScale for a body a BodyScale status wears)."""
     features = set(spec["features"])
-    wave = 0.22 if "waveBase" in features else 0.0
-    full = capsule["capsuleHalfHeight"] * 2.0 * spec["heightShare"]
+    grown = spec.get("bodyScale", 1.0)
+    # A wave grows under a rider who stays her own size: the figure keeps its share of the ungrown height.
+    wave = 1.0 - (1.0 - WAVE_SHARE) / grown if "waveBase" in features else 0.0
+    full = capsule["capsuleHalfHeight"] * 2.0 * spec["heightShare"] * grown
     base = full * wave
+    footprint = capsule["capsuleRadius"] * grown
     height = full - base
     head = height * spec["headShare"]
     # Stylised for a high camera: a grown figure's legs are 0.44 of its height, and they shorten as the head grows
@@ -106,6 +112,17 @@ def layout(spec, capsule):
     cape_length = (cape_start.z - base) * CAPE_REACH
     for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
         L[name] = (cape_start + cape_dir * cape_length * index / 3, cape_start + cape_dir * cape_length * (index + 1) / 3)
+    if "waveBase" in features:
+        # The wave's crest rides the cape bones in a cloak's place: from the back of the swell it rises behind the rider
+        # and curls forward at its lip, as tall as the swell is deep.
+        assert not features & {"cloak", "longCloak", "trailingScarf"}, (spec["id"], "a wave's crest rides the cape bones")
+        # Its unit is her own wave grown with the body: the crest rises that far above the swell she stands on, which is
+        # as long as it is deep, so a deeper swell spreads rather than towers.
+        unit, reach = max(WAVE_SHARE * full, 0.6 * base), max(footprint, 0.75 * base)
+        crest = [Vector((-0.9 * reach, 0, base - 0.5 * unit)), Vector((-1.25 * reach, 0, base + 0.5 * unit)),
+                 Vector((-1.15 * reach, 0, base + 1.4 * unit)), Vector((-0.7 * reach, 0, base + 1.8 * unit))]
+        for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
+            L[name] = (crest[index], crest[index + 1])
     stance = spec.get("stance")
     if stance == "aim":
         # Mid-sight: a long arm held two-handed at the shoulder, its optic at the eye and the left hand forward under the
@@ -127,7 +144,9 @@ def layout(spec, capsule):
     still = spec.get("stillPose")
     assert still in (None, "slumped"), ("Unknown still pose", still)
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
-            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle"), "kneel": spec.get("kneel", False)}
+            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle"), "kneel": spec.get("kneel", False),
+            "footprint": footprint, "ride": "wave" if "waveBase" in features else None,
+            "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base)}
     return L, dims
 
 
@@ -431,15 +450,70 @@ def body(spec, L, d, bones=BONES):
         for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
             t0, t1 = L[name]
             body.limb(name, t0, t1, leg * (1.3 - index * 0.4), leg * (0.95 - index * 0.35), skin)
+    if "rescueGear" in features:
+        rescue_gear(body, L, d, limb)
     # The wave Neris rides: a swell under her feet that is the whole silhouette.
     if "waveBase" in features:
-        base = d["base"]
-        # Flattened to 0.55 of its radius and resting on the ground.
-        body.ball("root", Vector((0, 0, base * 1.4 * 0.55)), base * 1.4, mix(accent, [0.02, 0.06, 0.12], 0.7), scale=(1.6, 1.1, 0.55))
-        body.ball("root", Vector((-base * 0.5, 0, base * 0.85)), base * 0.6, accent, glow=True, scale=(1.4, 0.9, 0.35))
+        wave_body(body, spec, L, d)
     for prop in spec["props"]:
         add_prop(body, prop, L, d, spec)
     return body
+
+
+def wave_body(body, spec, L, d):
+    """The living wave a rider stands on, the whole of her silhouette. A long swell of dark water rests on the ground
+    under her, longer than it is wide and lowest at the front. Its back rises into a crest on the cape bones, so the crest
+    rolls as she rides. White foam froths along its lip and round the swell's leading edge, and cold light shows in the
+    water under her feet. A larger wave lifts her higher on a deeper, broader swell, and its crest rises with it."""
+    b, r, u = d["base"], d["waveReach"], d["waveUnit"]
+    water = spec.get("water", [0.04, 0.12, 0.20])
+    deep = mix(water, [0.0, 0.0, 0.0], 0.3)
+    foam = spec.get("foam", [0.85, 0.93, 0.97])
+    # The swell, resting on the ground: narrow at the front, broad at the back where it rises into the crest.
+    body.blob("root", Vector((0.35 * r, 0, 0.45 * b)), (Vector((1.1 * r, 0, 0)), Vector((0, 0.75 * r, 0)), Vector((0, 0, 0.45 * b))), water, segments=12)
+    body.blob("root", Vector((-0.6 * r, 0, 0.55 * b)), (Vector((0.95 * r, 0, 0)), Vector((0, 1.3 * r, 0)), Vector((0, 0, 0.55 * b))), deep, segments=12)
+    # The light the water gives where she stands.
+    body.blob("root", Vector((0.1 * r, 0, 0.92 * b)), (Vector((0.6 * r, 0, 0)), Vector((0, 0.5 * r, 0)), Vector((0, 0, 0.05 * b))), spec["accent"], glow=True, segments=10)
+    # Froth thrown up at the bow, where the wave pushes through.
+    body.blob("root", Vector((1.3 * r, 0, 0.5 * b)), (Vector((0.3 * r, 0, 0)), Vector((0, 0.6 * r, 0)), Vector((0, 0, 0.3 * u))), foam, segments=10)
+    # The crest: a wall of water curved round behind her, a crescent from above, rounded panels in an arc about her on
+    # each length of the crest, brightening toward the lip, which rolls with foam.
+    arc = [math.radians(degrees) for degrees in (-60, -30, 0, 30, 60)]
+    for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
+        c0, c1 = L[name]
+        color = mix(mix(water, deep, 0.3 - index * 0.15), foam, 0.1 + index * 0.15)
+        for angle in arc:
+            turn = Matrix.Rotation(angle, 3, "Z")
+            a, z = turn @ c0, turn @ c1
+            along = (z - a) / 2
+            across = (turn @ Vector((0, 1, 0))) * r * 0.62 * (1 - abs(angle) / math.pi * 0.6)
+            thick = along.cross(across).normalized() * u * (0.22 - index * 0.04)
+            body.blob(name, (a + z) / 2, (along * 1.2, across, thick), color, segments=12)
+    c0, c1 = L["cape_03"]
+    for angle in [math.radians(degrees) for degrees in (-65, -42, -20, 0, 20, 42, 65)]:
+        body.ball("cape_03", Matrix.Rotation(angle, 3, "Z") @ c1, 0.3 * u * (1 - abs(angle) / math.pi * 0.5), foam, segments=8)
+
+
+def rescue_gear(body, L, d, limb):
+    """A rescuer's working gear over the coat: a heavy shackle at the chest, a coil of line at the right hip, and a
+    metal signal whistle on a chain."""
+    iron, rope, brass = [0.20, 0.19, 0.20], [0.62, 0.52, 0.34], [0.70, 0.60, 0.35]
+    p0, p1 = L["pelvis"]
+    chest = L["spine_03"][0] + Vector((d["shoulder"] * 0.85, 0, 0))
+    # The shackle: a heavy iron loop on the strap at the chest.
+    loop = [chest + Vector((0, math.cos(angle) * limb * 1.6, math.sin(angle) * limb * 1.6)) for angle in [index / 8 * math.tau for index in range(9)]]
+    chain_links(body, "spine_03", loop, limb * 0.8, iron)
+    # The whistle hangs from it on a short chain.
+    hang = [chest - Vector((0, 0, limb * 1.6)), chest - Vector((-limb * 0.4, 0, limb * 4.0))]
+    chain_links(body, "spine_03", hang, limb * 0.5, iron)
+    body.limb("spine_03", hang[1], hang[1] + Vector((limb * 0.3, 0, -limb * 2.0)), limb * 0.45, limb * 0.35, brass, segments=8)
+    # The coil of line: rope wound in turns at the right hip.
+    hip = p1 + Vector((0, -d["hip"] * 1.2, -d["torso"] * 0.05))
+    for turn in range(3):
+        ring = [hip + Vector((math.cos(angle) * limb * 2.4, -limb * (0.5 + turn * 0.7), math.sin(angle) * limb * 2.4))
+                for angle in [index / 10 * math.tau for index in range(11)]]
+        for a, b in zip(ring, ring[1:]):
+            body.limb("pelvis", a, b, limb * 0.45, limb * 0.45, rope, segments=5)
 
 
 def chain_links(body, bone, points, size, iron, fire=None):
@@ -759,8 +833,58 @@ def pose(name, t, melee, d):
         pose["thigh_r"] = forward_swing(-10)
         pose["calf_r"] = forward_swing(-90)
         lift = -d["leg"] * 0.42
-    pose.update(cape_pose(name, t))
+    if d.get("ride") == "wave":
+        if name != "Death":
+            # Carried, not running: the wave's motion replaces the stride's.
+            lift = (0.0 if name == "Run" else lift) + wave_ride(pose, name, t, d)
+        pose.update(crest_pose(name, t))
+    else:
+        pose.update(cape_pose(name, t))
     return pose, lift
+
+
+def wave_ride(pose, name, t, d):
+    """Braced on the wave whatever the upper body does: hips turned, the left foot forward and the right back, knees bent
+    and weight forward. Riding, she leans into it with her arms out for balance and rises and falls with the swell; at
+    rest it lifts her gently. Her lift."""
+    swell = math.sin(t * math.tau)
+    pose["pelvis"] = twist(18)
+    pose["spine_02"] = combine(pose.get("spine_02", (0.0, 0.0, 0.0)), twist(-14))
+    pose["thigh_l"] = combine(forward_swing(28), roll_side(6, 1))
+    pose["calf_l"] = forward_swing(-38)
+    pose["thigh_r"] = combine(forward_swing(-18), roll_side(6, -1))
+    pose["calf_r"] = forward_swing(-34)
+    lift = -d["leg"] * 0.14
+    if name == "Run":
+        pose["spine_01"] = lean(16)
+        for side, sign in (("l", 1), ("r", -1)):
+            pose["upperarm_" + side] = combine(roll_side(40 + 6 * math.sin(t * math.tau + sign), sign), forward_swing(15))
+            pose["lowerarm_" + side] = forward_swing(20)
+        lift += d["height"] * 0.02 * swell
+    elif name == "Idle":
+        lift += d["height"] * 0.012 * swell
+    return lift
+
+
+def crest_pose(name, t):
+    """A wave's crest on the cape bones, which point up it: rolling forward over itself and back at rest, curling
+    harder and faster as it carries her, rearing then breaking as she casts or strikes, and falling flat as she falls."""
+    roll = lambda speed, phase: math.sin(t * math.tau * speed + phase)
+    # An upright bone's tip goes forward as it swings back.
+    curl = lambda degrees: forward_swing(-degrees)
+    if name in ("Idle", "Recall"):
+        return {"cape_01": curl(3 * roll(1, 0)), "cape_02": curl(4 * roll(1, 1)), "cape_03": curl(8 + 6 * roll(1, 2))}
+    if name == "Run":
+        return {"cape_01": curl(8 + 4 * roll(2, 0)), "cape_02": curl(12 + 6 * roll(2, 1)), "cape_03": curl(22 + 10 * roll(2, 2))}
+    if name == "Death":
+        k = ease(min(1.0, t / 0.8))
+        return {"cape_01": curl(45 * k), "cape_02": curl(35 * k), "cape_03": curl(25 * k)}
+    if name == "Cast":
+        rise = ease(min(1.0, t / CAST_RELEASE_SHARE))
+        fall = ease(max(0.0, (t - CAST_RELEASE_SHARE) / (1.0 - CAST_RELEASE_SHARE)))
+        return {"cape_01": curl(-10 * rise * (1 - fall) + 15 * fall), "cape_02": curl(10 * fall), "cape_03": curl(10 * rise + 30 * fall)}
+    k = math.sin(min(1.0, t) * math.pi)
+    return {"cape_01": curl(6 * k), "cape_02": curl(10 * k), "cape_03": curl(18 * k)}
 
 
 def aim_pose(pose, name, t, melee):
