@@ -264,7 +264,7 @@ def body(spec, L, d, bones=BONES):
         # Set back so the face shows through its opening.
         body.ball("head", head_center + Vector((-head_radius * 0.4, 0, head_radius * 0.15)), head_radius * 1.15, primary, scale=(1.0, 1.0, 1.05))
     if "hoodDown" in features:
-        body.limb("neck_01", *L["neck_01"], head_radius * 1.1, head_radius * 0.9, secondary)
+        body.limb("neck_01", *L["neck_01"], head_radius * 1.1, head_radius * 0.9, spec.get("hood", secondary))
     if "wideHat" in features:
         body.limb("head", head_center + Vector((0, 0, head_radius * 0.55)), head_center + Vector((0, 0, head_radius * 0.65)), head_radius * 2.0, head_radius * 2.0, secondary)
         body.limb("head", head_center + Vector((0, 0, head_radius * 0.6)), head_center + Vector((0, 0, head_radius * 1.4)), head_radius * 0.95, head_radius * 0.8, secondary)
@@ -309,14 +309,16 @@ def body(spec, L, d, bones=BONES):
         # A long cloak from the shoulders toward the calves, flaring as it falls, its hem torn into strips of
         # different lengths (seeded). Each length rides its own bone, so it streams back as the body runs.
         cloak = spec.get("cloak", secondary)
+        # As wide as the shoulders, or a narrower tail of cloth (cloakWidth, a share of that).
+        wide = spec.get("cloakWidth", 1.0)
         top = L["cape_01"][0]
-        body.box("cape_01", top + Vector((d["shoulder"] * 0.15, 0, d["torso"] * 0.05)), (d["shoulder"] * 0.5, d["shoulder"] * 2.1, d["torso"] * 0.22), cloak)
+        body.box("cape_01", top + Vector((d["shoulder"] * 0.15, 0, d["torso"] * 0.05)), (d["shoulder"] * 0.5, d["shoulder"] * 2.1 * wide, d["torso"] * 0.22), cloak)
         for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
             c0, c1 = L[name]
             overlap = (c1 - c0) * 0.08
-            body.slab(name, c0 - overlap, c1 + overlap, d["shoulder"] * (2.0 + index * 0.15), 2.5, cloak)
+            body.slab(name, c0 - overlap, c1 + overlap, d["shoulder"] * (2.0 + index * 0.15) * wide, 2.5, cloak)
         c0, c1 = L["cape_03"]
-        hem = d["shoulder"] * 2.3
+        hem = d["shoulder"] * 2.3 * wide
         down = (c1 - c0).normalized()
         for strip in range(CAPE_STRIPS):
             across = Vector((0, -hem / 2 + hem * (strip + 0.5) / CAPE_STRIPS, 0))
@@ -484,6 +486,53 @@ def body(spec, L, d, bones=BONES):
         body.ball("pelvis", knot, unit * 0.025, sash, segments=8)
         for spread in (-0.4, 0.4):
             body.limb("pelvis", knot, knot + Vector((d["hip"] * 0.2 * spread, d["hip"] * 0.25, -unit * 0.16)), unit * 0.018, unit * 0.01, sash, segments=6)
+    if "wrapBindings" in features:
+        # Soft dark cloth wound round the forearms and shins, cut to move silently.
+        wrap = spec.get("wrap", mix(primary, [0.35, 0.35, 0.38], 0.18))
+        for side in ("l", "r"):
+            for bone, radius in (("lowerarm_" + side, limb), ("calf_" + side, leg * 0.85)):
+                b0, b1 = L[bone]
+                for share in (0.15, 0.32, 0.49, 0.66):
+                    body.limb(bone, b0.lerp(b1, share), b0.lerp(b1, share + 0.12), radius * 1.08, radius * 1.06, wrap if share != 0.32 else mix(wrap, primary, 0.5))
+    if "formalVest" in features:
+        # A structured piece of formal dress over the chest: stiff, straight-edged panels crossing at the front under a
+        # high standing collar, in disciplined lines.
+        vest = spec.get("vest", mix(primary, [0.30, 0.30, 0.32], 0.25))
+        s0, s1 = L["spine_02"]
+        front = (s0 + s1) / 2 + Vector((d["shoulder"] * 0.62, 0, 0))
+        for sign in (1, -1):
+            body.slab("spine_02", front + Vector((0, sign * d["shoulder"] * 0.45, d["torso"] * 0.22)),
+                      front + Vector((0, -sign * d["shoulder"] * 0.12, -d["torso"] * 0.18)), d["shoulder"] * 0.32, 2.5, vest)
+        n0, n1 = L["neck_01"]
+        body.limb("neck_01", n0 - Vector((0, 0, limb * 0.4)), n0 + Vector((0, 0, limb * 1.4)), limb * 1.75, limb * 1.85, vest, segments=8)
+    if "cutInsignia" in features:
+        # Every house mark cut out of the cloth: clean empty patches, paler than the black round them, on the left
+        # shoulder, over the heart and on the back.
+        empty = spec.get("insignia", mix(primary, [0.45, 0.43, 0.42], 0.35))
+        u0, u1 = L["upperarm_l"]
+        body.box("upperarm_l", u0.lerp(u1, 0.3) + Vector((0, limb * 1.25, 0)), (limb * 1.0, 1.0, limb * 1.0), empty)
+        s0, s1 = L["spine_02"]
+        body.box("spine_02", s0.lerp(s1, 0.8) + Vector((d["shoulder"] * 0.86, d["shoulder"] * 0.3, 0)), (1.0, d["shoulder"] * 0.2, d["shoulder"] * 0.2), empty)
+        body.box("spine_03", L["spine_03"][0] + Vector((-d["shoulder"] * 0.86, 0, 0)), (1.0, d["shoulder"] * 0.36, d["shoulder"] * 0.36), empty)
+    if "waistSash" in features:
+        # A torn sash wound at the waist, knotted at the left hip, its frayed ends hanging.
+        sash = spec.get("sash", secondary)
+        unit = d["height"]
+        waist = p1 - Vector((0, 0, d["torso"] * 0.02))
+        body.limb("pelvis", waist - Vector((0, 0, unit * 0.03)), waist + Vector((0, 0, unit * 0.025)), d["hip"] * 1.12, d["hip"] * 1.12, sash)
+        knot = waist + Vector((d["hip"] * 0.2, d["hip"] * 1.12, 0))
+        body.ball("pelvis", knot, unit * 0.028, sash, segments=8)
+        for spread, length in ((-0.4, 0.22), (0.5, 0.15)):
+            body.slab("pelvis", knot, knot + Vector((d["hip"] * 0.3 * spread, d["hip"] * 0.2, -unit * length)), unit * 0.05, 1.5, mix(sash, [0.1, 0.02, 0.02], 0.2))
+    if "crossedToken" in features:
+        # A round token hung at the right hip beside the dagger's sheath, two blades crossed on it.
+        unit = d["height"]
+        token = p1 + Vector((d["hip"] * 0.75, -d["hip"] * 0.95, -unit * 0.06))
+        silver = [0.72, 0.72, 0.74]
+        body.limb("pelvis", token - Vector((0, unit * 0.004, 0)), token + Vector((0, unit * 0.004, 0)), unit * 0.03, unit * 0.03, mix(silver, primary, 0.5), segments=10)
+        for sign in (1, -1):
+            body.limb("pelvis", token + Vector((sign * unit * 0.02, -unit * 0.006, unit * 0.02)), token + Vector((-sign * unit * 0.02, -unit * 0.006, -unit * 0.02)),
+                      unit * 0.004, unit * 0.004, silver, segments=4)
     if "heavyBoots" in features:
         boots = spec.get("boots", [0.12, 0.08, 0.06])
         for side in ("l", "r"):
@@ -744,9 +793,25 @@ def add_prop(body, prop, L, d, spec):
         body.limb(bone, crown, palm, unit * 0.012, unit * 0.006, iron, segments=6)
         body.blob(bone, palm, (forward * unit * 0.035, Vector((0, unit * 0.008, 0)), up * unit * 0.03), iron, segments=4)
     elif kind == "swordBack":
+        # A long single-edged sword sheathed across the back, its hilt over the left shoulder: a black lacquered
+        # scabbard with pale fittings, a round guard and a cord-wrapped grip.
         s0, s1 = L["spine_03"]
-        body.limb("spine_03", s0 + Vector((-d["shoulder"] * 0.55, d["shoulder"] * 0.5, d["torso"] * 0.35)),
-                  s0 + Vector((-d["shoulder"] * 0.55, -d["shoulder"] * 0.6, -d["torso"] * 0.55)), unit * 0.018, unit * 0.014, [0.08, 0.08, 0.09])
+        hilt = s0 + Vector((-d["shoulder"] * 0.75, d["shoulder"] * 0.55, d["torso"] * 0.42))
+        tip = s0 + Vector((-d["shoulder"] * 0.75, -d["shoulder"] * 0.8, -d["torso"] * 0.75))
+        along = (tip - hilt).normalized()
+        lacquer, fitting = [0.05, 0.05, 0.06], [0.74, 0.73, 0.70]
+        body.limb("spine_03", hilt + along * unit * 0.01, tip, unit * 0.017, unit * 0.013, lacquer)
+        body.limb("spine_03", hilt - along * unit * 0.13, hilt, unit * 0.011, unit * 0.011, spec.get("grip", [0.30, 0.05, 0.05]), segments=6)
+        body.limb("spine_03", hilt - along * unit * 0.004, hilt + along * unit * 0.008, unit * 0.032, unit * 0.032, fitting, segments=10)
+        for share in (0.04, 0.97):
+            point = hilt.lerp(tip, share)
+            body.limb("spine_03", point, point + along * unit * 0.015, unit * 0.02, unit * 0.02, fitting, segments=8)
+    elif kind == "needles":
+        # Thin throwing needles fanned between the fingers.
+        steel = [0.80, 0.80, 0.84]
+        for spread in (-1, 0, 1):
+            body.limb(bone, grip, grip + forward * unit * 0.11 + Vector((0, spread * unit * 0.03, -unit * 0.015 * abs(spread))), unit * 0.004, unit * 0.001,
+                      steel, segments=4)
     elif kind == "dagger":
         body.limb(bone, grip, grip + forward * unit * 0.14, unit * 0.012, unit * 0.002, metal)
     elif kind == "dispenserRig":

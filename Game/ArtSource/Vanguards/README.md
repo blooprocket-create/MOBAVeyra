@@ -143,7 +143,13 @@ section 9. The existing LFS rules cover the FBX files.
   head, a pale edge, an anchor fluke on its back) so, in a long coat open over a bare chest (`openJacket` with
   `jacketUnder: "skin"`), with `tattoos` (coils on the chest, bands down the forearms), a `ropeCoil` slung over the
   shoulder, an `anchorBelt` and red sash, and long dark curls (`curlyLong`). NO QUARTER (`qazharr_no_quarter_frenzy`)
-  takes the blade off his shoulder into a restless, forward-leaning ready stance.
+  takes the blade off his shoulder into a restless, forward-leaning ready stance. Angeru is black but for a torn red
+  `waistSash` and a narrow cloak-tail (`longCloak` with `cloakWidth`) that streams behind him: his hood down
+  (`hood`), Veil cloth bound round his forearms and shins (`wrapBindings`), Blade House formal panels and a standing
+  collar (`formalVest`), every house mark cut out (`cutInsignia`), a `crossedToken` at his hip, his long sword sheathed
+  across his back with its hilt over his left shoulder, a dagger in his right hand and throwing `needles` in his left.
+  He shows Veil Stance, his own; Blade Stance swaps his slots rather than holding a status, so the body does not yet
+  draw the sword for it.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:

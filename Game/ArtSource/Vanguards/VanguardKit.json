@@ -132,8 +132,10 @@
         { "status": "qazharr_no_quarter_frenzy", "name": "NoQuarter", "body": { "stance": null, "idle": "bouncy" } }
       ] },
     { "id": "angeru", "archetype": "humanoid", "seed": 115, "heightShare": 0.94, "build": "lean", "headShare": 0.16,
-      "skin": [0.80, 0.66, 0.55], "primary": [0.06, 0.06, 0.07], "secondary": [0.65, 0.06, 0.06], "hair": [0.06, 0.06, 0.07], "accent": [0.85, 0.85, 0.90],
-      "hairStyle": "short", "features": ["hoodDown", "cloak"], "props": [{ "kind": "swordBack", "hand": "back" }, { "kind": "dagger", "hand": "left" }] },
+      "skin": [0.80, 0.66, 0.55], "primary": [0.06, 0.06, 0.07], "secondary": [0.09, 0.09, 0.10], "hair": [0.06, 0.06, 0.07], "accent": [0.85, 0.85, 0.90],
+      "hood": [0.07, 0.07, 0.08], "cloak": [0.62, 0.06, 0.06], "cloakWidth": 0.4, "sash": [0.62, 0.06, 0.06],
+      "hairStyle": "short", "features": ["hoodDown", "longCloak", "waistSash", "wrapBindings", "formalVest", "cutInsignia", "crossedToken"],
+      "props": [{ "kind": "swordBack", "hand": "back" }, { "kind": "dagger", "hand": "right" }, { "kind": "needles", "hand": "left" }] },
     { "id": "sylra", "archetype": "humanoid", "seed": 116, "heightShare": 0.93, "build": "lean", "headShare": 0.16,
       "skin": [0.80, 0.70, 0.64], "primary": [0.35, 0.42, 0.50], "secondary": [0.20, 0.24, 0.30], "hair": [0.20, 0.24, 0.30], "accent": [0.80, 0.92, 1.00],
       "hairStyle": "none", "features": ["hood", "coatSkirt"], "props": [{ "kind": "lantern", "hand": "left" }] },
