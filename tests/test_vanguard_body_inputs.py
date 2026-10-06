@@ -47,7 +47,7 @@ def built(kit, vanguards, generator=GENERATOR, blender=BLENDER):
         for body, status, suffix in inputs.bodies_of(vanguard):
             name = inputs.body_name(vanguard["id"], suffix)
             asset = {"id": vanguard["id"], "name": name, "inputSha256": inputs.input_hash(kit, vanguards, body),
-                     "generatorSha256": generator, "blender": blender,
+                     "generatorSha256": generator, "blender": blender, "contentVersion": inputs.CONTENT_VERSION,
                      # Its FBX, written by write_fbx: the body's name as its bytes.
                      "file": "FBX/" + name + ".fbx", "sha256": hashlib.sha256(name.encode()).hexdigest()}
             if status:
@@ -66,6 +66,14 @@ def write_fbx(game, assets):
 class VanguardBodyInputs(unittest.TestCase):
     def test_a_full_build_is_current(self):
         self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS)), [])
+
+    def test_a_body_recorded_before_its_content_hash_covered_what_it_exports_is_stale(self):
+        # Its recorded content (from before UVs counted) cannot be compared with a build's now: a full build records it
+        # again, and the preflight refuses it until then.
+        assets = built(KIT, VANGUARDS)
+        del assets[0]["contentVersion"]
+        assets[1]["contentVersion"] = inputs.CONTENT_VERSION - 1
+        self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, assets), ["SK_A", "SK_A_Ride"])
 
     def test_a_shared_setting_changed_since_stales_every_body_that_uses_it(self):
         # One Vanguard rebuilt after the humanoid's Run timing changed: the other, kept from before, is stale.

@@ -22,8 +22,8 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
-from VanguardBodies.inputs import (GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash, input_hash,  # noqa: E402
-                                   pending_changed, pending_removed, pinned_blender, removed_assets, stale_assets, units)
+from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash,  # noqa: E402
+                                   input_hash, pending_changed, pending_removed, pinned_blender, removed_assets, stale_assets, units)
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -230,21 +230,24 @@ def reset_scene():
     scene.render.fps = KIT["fps"]
 
 
-def content_of(obj, armature, digest):
-    """What a body is, whenever it was written: its faces, its vertices with their weights and colours, its skeleton at
-    rest, and (already in digest) every key of its takes, rounded to CONTENT_PLACES. The same content exports the same
-    body, so an FBX of it need not be written again."""
+def content_of(obj, armature, digest, uvs=True):
+    """What a body is, whenever it was written: its faces with the UVs they export, its vertices with their weights and
+    colours, its skeleton at rest, and (already in digest) every key of its takes, rounded to CONTENT_PLACES. The same
+    content exports the same body, so an FBX of it need not be written again."""
     mesh = obj.data
     groups = [group.name for group in obj.vertex_groups]
     for vertex in mesh.vertices:
         weights = sorted((groups[item.group], round(item.weight, CONTENT_PLACES)) for item in vertex.groups if item.weight > 0)
         digest.update(json.dumps([[round(value, CONTENT_PLACES) for value in vertex.co], weights]).encode())
     # Faces as a set, not a sequence: Blender may lay out the same faces in another order from one run to the next. Each
-    # is its corners (vertex and colour) from its lowest vertex on, keeping its winding.
+    # is its corners (vertex, colour and the UV it exports) from its lowest vertex on, keeping its winding. Without uvs,
+    # the content as recorded before CONTENT_VERSION 2.
     colors = mesh.color_attributes["Col"].data
+    uv = mesh.uv_layers["UVMap"].data if uvs else None
     faces = []
     for polygon in mesh.polygons:
-        corners = [[mesh.loops[index].vertex_index, [round(value, CONTENT_PLACES) for value in colors[index].color]] for index in polygon.loop_indices]
+        corners = [[mesh.loops[index].vertex_index, [round(value, CONTENT_PLACES) for value in colors[index].color]]
+                   + ([[round(value, CONTENT_PLACES) for value in uv[index].uv]] if uv else []) for index in polygon.loop_indices]
         first = min(range(len(corners)), key=lambda corner: corners[corner][0])
         faces.append(json.dumps(corners[first:] + corners[:first]))
     for face in sorted(faces):
@@ -297,11 +300,17 @@ def build(spec, status=None, suffix="", previous=None):
     assert not grounded or min(heights) < dims["full"] * 0.02, (spec["id"], "the body does not stand on the ground", min(heights))
     (SOURCE / "FBX").mkdir(parents=True, exist_ok=True)
     path = SOURCE / "FBX" / (name + ".fbx")
-    content = content_of(obj, armature, digest)
+    content = content_of(obj, armature, digest.copy())
     # Built again as it was (new generator code or a new Blender that changes nothing in it): its FBX and imported
-    # assets stand, and only its record of what built it moves on.
-    kept = (previous is not None and previous.get("contentSha256") == content and path.exists()
-            and hashlib.sha256(path.read_bytes()).hexdigest() == previous.get("sha256"))
+    # assets stand, and only its record of what built it moves on. A body recorded before its UVs counted (an earlier
+    # CONTENT_VERSION) is the same body if all else is and the same Blender built it: the UV projection
+    # (VanguardBodies.parts) is unchanged since every such body's FBX was exported, so it carries the UVs its geometry
+    # gives today.
+    if previous is not None and previous.get("contentVersion") != CONTENT_VERSION:
+        same = previous.get("blender") == bpy.app.version_string and previous.get("contentSha256") == content_of(obj, armature, digest.copy(), uvs=False)
+    else:
+        same = previous is not None and previous.get("contentSha256") == content
+    kept = same and path.exists() and hashlib.sha256(path.read_bytes()).hexdigest() == previous.get("sha256")
     if not kept:
         bpy.ops.object.select_all(action="DESELECT")
         armature.select_set(True)
@@ -324,7 +333,7 @@ def build(spec, status=None, suffix="", previous=None):
              # What it was made from and by, so a later partial build cannot pass it off as current (VanguardBodies.inputs),
              # and what it is, so a rebuild that changes nothing in it keeps it.
              "inputSha256": input_hash(KIT, TUNING, spec), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
-             "contentSha256": content}
+             "contentSha256": content, "contentVersion": CONTENT_VERSION}
     if spec.get("effect"):
         # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
         effect = spec["effect"]
