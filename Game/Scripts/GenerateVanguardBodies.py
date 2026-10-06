@@ -47,6 +47,8 @@ PREVIEW_POSES = [("Idle", 0.0), ("Run", 0.25), ("Run", 0.75), ("AttackWindup", 0
                  ("Cast", 0.5), ("Hit", 0.5), ("Recall", 0.5), ("Death", 1.0)]
 # The gameplay camera's look down from the horizontal, in degrees (DefaultGame.ini, VeyraCameraSettings.PitchDegrees).
 GAMEPLAY_PITCH = 60.0
+# How far below the ground a body's lowest point may reach, in centimetres: the slack Veyra.UI.VanguardBodies allows.
+GROUND_SLACK = 2.0
 
 
 # ---------------------------------------------------------------------------------------------- the skeleton
@@ -212,7 +214,7 @@ def build(spec):
     # on it; one that floats hovers clear of it.
     heights = [vertex.co.z for vertex in mesh.vertices]
     height = max(heights) - min(heights)
-    assert min(heights) > -dims["full"] * 0.02, (spec["id"], "the body sinks below the ground", min(heights))
+    assert min(heights) > -GROUND_SLACK, (spec["id"], "the body sinks below the ground", min(heights))
     assert not archetype.GROUNDED or min(heights) < dims["full"] * 0.02, (spec["id"], "the body does not stand on the ground", min(heights))
     (SOURCE / "FBX").mkdir(parents=True, exist_ok=True)
     path = SOURCE / "FBX" / (name + ".fbx")
@@ -225,7 +227,8 @@ def build(spec):
                              add_leaf_bones=False, primary_bone_axis="Y", secondary_bone_axis="X", use_armature_deform_only=False,
                              bake_anim=True, bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
                              bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0, mesh_smooth_type="FACE",
-                             colors_type="SRGB")
+                             # Unreal's materials read vertex colours as linear, so they go out linear.
+                             colors_type="LINEAR")
     if PREVIEW:
         render_preview(name, armature, obj, archetype, dims, melee)
     return {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,

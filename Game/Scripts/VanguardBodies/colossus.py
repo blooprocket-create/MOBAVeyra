@@ -144,7 +144,10 @@ def body(spec, L, d):
     # Short, heavy legs.
     for side in ("l", "r"):
         mass(body, style, "thigh_" + side, *L["thigh_" + side], hip * 0.6, hip * 0.55, spec, rng)
-        mass(body, style, "calf_" + side, *L["calf_" + side], hip * 0.55, hip * 0.5, spec, rng)
+        # Riverstone's rough chunks turn about the shin, so it stops a sole above the ankle and none sinks below the ground.
+        knee, ankle = L["calf_" + side]
+        ankle = ankle + Vector((0, 0, d["sole"])) if style == "riverstone" else ankle
+        mass(body, style, "calf_" + side, knee, ankle, hip * 0.55, hip * 0.5, spec, rng)
         f0, f1 = L["foot_" + side]
         # Flat on the ground: its depth (along the frame's X, here upright) is the sole's thickness.
         body.slab("foot_" + side, f0 - Vector((d["leg"] * 0.08, 0, 0)), f1, hip * 0.9, d["sole"] * 1.6, mix(secondary, primary, 0.3))

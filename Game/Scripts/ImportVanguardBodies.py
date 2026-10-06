@@ -61,27 +61,31 @@ for asset in SELECTED:
 
 
 def body_material():
-    """The one material every generated body wears: vertex colour for colour, vertex alpha for glow."""
+    """The one material every generated body wears: vertex colour for colour, vertex alpha for glow. Its graph is rebuilt
+    on every import, so the generated asset always matches this definition."""
     material = unreal.load_asset(MATERIAL_PATH) if unreal.EditorAssetLibrary.does_asset_exist(MATERIAL_PATH) else None
     if material:
-        return material
-    material = TOOLS.create_asset("M_VeyraVanguardBody", DEST, unreal.Material, unreal.MaterialFactoryNew())
+        EDIT.delete_all_material_expressions(material)
+    else:
+        material = TOOLS.create_asset("M_VeyraVanguardBody", DEST, unreal.Material, unreal.MaterialFactoryNew())
+    # A vertex colour's colour output is unnamed; R, G, B and A are its others. A connection to a name that is not an
+    # output fails quietly, leaving the body black, so every connection is checked.
     color = EDIT.create_material_expression(material, unreal.MaterialExpressionVertexColor, -800, 0)
-    EDIT.connect_material_property(color, "RGB", unreal.MaterialProperty.MP_BASE_COLOR)
+    assert EDIT.connect_material_property(color, "", unreal.MaterialProperty.MP_BASE_COLOR), "base colour"
     glow = EDIT.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -800, 250)
     glow.set_editor_property("parameter_name", "GlowStrength")
     glow.set_editor_property("default_value", 6.0)
     masked = EDIT.create_material_expression(material, unreal.MaterialExpressionMultiply, -500, 150)
-    EDIT.connect_material_expressions(color, "RGB", masked, "A")
-    EDIT.connect_material_expressions(color, "A", masked, "B")
+    assert EDIT.connect_material_expressions(color, "", masked, "A"), "glow colour"
+    assert EDIT.connect_material_expressions(color, "A", masked, "B"), "glow mask"
     emissive = EDIT.create_material_expression(material, unreal.MaterialExpressionMultiply, -250, 150)
-    EDIT.connect_material_expressions(masked, "", emissive, "A")
-    EDIT.connect_material_expressions(glow, "", emissive, "B")
-    EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    assert EDIT.connect_material_expressions(masked, "", emissive, "A"), "masked glow"
+    assert EDIT.connect_material_expressions(glow, "", emissive, "B"), "glow strength"
+    assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
     roughness = EDIT.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -800, 450)
     roughness.set_editor_property("parameter_name", "Roughness")
     roughness.set_editor_property("default_value", 0.75)
-    EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS)
+    assert EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS), "roughness"
     # Skinned meshes use it.
     material.set_editor_property("used_with_skeletal_mesh", True)
     EDIT.recompile_material(material)

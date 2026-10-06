@@ -77,6 +77,8 @@
   - The generator checks the triangle budget and that the body stands on the ground.
   - The import checks source hashes, each body's height against the generator's, that every animation imported, and that it is on the body's skeleton.
   - A preview renders each body in its key poses, front, side and from the gameplay camera's pitch, for review.
+  - `CaptureVanguards.ps1` stands imported bodies in their key poses in the lit Crucible. It captures them from the gameplay camera, at its own distance and field of view and through a narrow lens.
+- **Colour:** vertex colours are exported linear, as Unreal's materials read them. The importer rebuilds `M_VeyraVanguardBody` on every import and checks each connection, because a connection to a missing output fails quietly and leaves the body black.
 - **One Vanguard at a time (author, 2026-10-05):** each Vanguard's silhouette is refined and validated on its own, against its Visual language paragraph and approved art. Its preview is reviewed, then it is imported and captured in a match at the gameplay camera before the next begins.
 
 ### 5. Fidelity and look
