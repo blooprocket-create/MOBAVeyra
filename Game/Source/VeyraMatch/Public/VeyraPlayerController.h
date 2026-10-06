@@ -267,6 +267,23 @@ public:
 	void SetMinimapHitTest(FMinimapHitTest InHitTest) { MinimapHitTest = MoveTemp(InHitTest); }
 	bool HasMinimapHitTest() const { return static_cast<bool>(MinimapHitTest); }
 
+	/**
+	 * Owning client: whether a screen pixel lies on one of the HUD's panels (the deck, the minimap, the selected unit's frame),
+	 * so a click there selects nothing (ADR-066 §2). The UI sets it, as it sets the minimap's.
+	 */
+	using FHudHitTest = TFunction<bool(const FVector2D& /*Screen*/)>;
+	void SetHudHitTest(FHudHitTest InHitTest) { HudHitTest = MoveTemp(InHitTest); }
+	bool HasHudHitTest() const { return static_cast<bool>(HudHitTest); }
+
+	/**
+	 * Owning client: the unit the player selected with the Select click, whose frame the HUD shows (ADR-066 §2); null when none
+	 * is, or it has left this machine or hides. Presentation only: the server never hears of it.
+	 */
+	AActor* GetSelectedUnit() const;
+
+	/** Owning client: selects Unit, or clears the selection with null. */
+	void SelectUnit(AActor* Unit) { SelectedUnit = Unit; }
+
 	/** Owning client: the indicator the player sees, while a cast waits or Show Cast Range previews one (ADR-041 §1). */
 	const TOptional<FVeyraCastIndicator>& GetCastIndicator() const { return CastInput.GetIndicator(); }
 
@@ -514,6 +531,14 @@ private:
 	FDelegateHandle SettingsHandle;
 
 	FMinimapHitTest MinimapHitTest;
+
+	FHudHitTest HudHitTest;
+
+	/** The unit the Select click picked (GetSelectedUnit). */
+	TWeakObjectPtr<AActor> SelectedUnit;
+
+	/** Whether the cursor lies on a HUD panel now. */
+	bool IsCursorOverHud() const;
 
 	/** The minimap's ground point under the cursor for Purpose, if the cursor is on it. */
 	TOptional<FVector> MinimapPointUnderCursor(EMinimapClick Purpose) const;

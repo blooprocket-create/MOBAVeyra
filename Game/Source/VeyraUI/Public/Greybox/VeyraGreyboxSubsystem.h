@@ -39,6 +39,8 @@ enum class EVeyraTelegraphSource : uint8
 	LingeringAreaEnding,
 	/** The local player's indicator: where an ability would land, before it is cast (ADR-041 §2). */
 	Indicator,
+	/** The ring under the unit the local player selected, in its side's colour (ADR-066 §2). */
+	Selection,
 };
 
 /** The player's own level-up as this machine announces it (ADR-065 §5): the new Level, and when it came by this machine's clock. */
@@ -346,6 +348,9 @@ private:
 
 	/** Adds the ring of the local player's basic attack reach around the body it commands, while Show Attack Range is held. */
 	void AddAttackRange(const class AVeyraPlayerController& Local);
+
+	/** Adds the ring under the unit the local player selected, just outside its drawn body (ADR-066 §2). */
+	void AddSelectionRing(const class AVeyraPlayerController& Local);
 	void DrawTelegraphs();
 
 	/** The viewer's side's presence pings and outlines, drawn on the ground with the telegraphs (ADR-016 §8). */

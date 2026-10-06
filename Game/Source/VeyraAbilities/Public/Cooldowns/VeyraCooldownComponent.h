@@ -71,7 +71,8 @@ namespace VeyraCooldowns
  * A combatant's ability cooldowns (ADR-006 §4 amendment: a Veyra ledger, not Gameplay Effects). It
  * lives on the PlayerState, so cooldowns keep running through death and respawn (Combat Bible §44).
  * It counts in the server's world time, which stops while the match is paused (ADR-006 §8).
- * Replicated to the owner and to replays for the HUD.
+ * Replicated to the owner and to replays for the HUD; the cooldowns of what its loadout shares, its Flux Spells, reach every
+ * machine (ADR-066 §4).
  */
 UCLASS(ClassGroup = Abilities)
 class VEYRAABILITIES_API UVeyraCooldownComponent : public UActorComponent
@@ -116,7 +117,22 @@ public:
 	/** When Ability's latest cooldown runs out, in server world time, or 0 if it has none; a new cooldown always moves it later. */
 	double GetReadyAt(const FVeyraContentId& Ability) const;
 
+	/**
+	 * Server only: whether Ability's cooldown reaches every machine, not only its owner and replays (ADR-066 §4). The loadout
+	 * shares the Flux Spells its slots hold.
+	 */
+	void SetShared(const FVeyraContentId& Ability, bool bShared);
+
+	/** Every machine: seconds until a shared ability is ready at server gameplay time Now; 0 when it is, or is not shared. */
+	double GetSharedRemainingSeconds(const FVeyraContentId& Ability, double Now) const;
+
+	/** Every machine: the duration a shared ability's current cooldown started with; 0 when it has none. */
+	double GetSharedDurationSeconds(const FVeyraContentId& Ability) const;
+
 private:
+	/** Server: the ledger changed. Its owner's copy and the shared entries follow it. */
+	void MarkChanged();
+
 	/**
 	 * Server world time, which the ledger counts in. On the server that is its own world clock. A
 	 * client's world clock started when it loaded the map, so a client uses the game state's
@@ -129,6 +145,13 @@ private:
 
 	UPROPERTY(Replicated)
 	TArray<FVeyraCooldownEntry> Entries;
+
+	/** Server: the abilities whose cooldowns every machine receives. */
+	TArray<FVeyraContentId> SharedIds;
+
+	/** Every machine: the ledger's entries for the shared abilities (ADR-066 §4). */
+	UPROPERTY(Replicated)
+	TArray<FVeyraCooldownEntry> SharedEntries;
 
 	FDelegateHandle HasteHandle;
 };

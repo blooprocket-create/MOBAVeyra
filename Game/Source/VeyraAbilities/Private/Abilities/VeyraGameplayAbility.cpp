@@ -151,13 +151,11 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::OnCooldown;
 	}
-	// It may need a least of the resource held, as well as its cost (ADR-033 §3).
-	const FVeyraCastTuning* Costs = GetCastTuning(Ability);
-	const double Held = Caster.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
-	if (!VeyraCombat::CanAffordResource(Caster, CostFor(Caster, Ability, Rank)) || (Costs && !Costs->MinimumResource.IsEmpty() && Held < Costs->MinimumResource[0]))
+	if (!HoldsEnough(Caster, Ability, Rank))
 	{
 		return EVeyraCastRejection::InsufficientResource;
 	}
+	const FVeyraCastTuning* Costs = GetCastTuning(Ability);
 	// It may need its caster's companion on the battleground (ADR-034 §8).
 	const UVeyraCompanionSubsystem* Companions = Caster.GetWorld() ? Caster.GetWorld()->GetSubsystem<UVeyraCompanionSubsystem>() : nullptr;
 	if (Costs && Costs->NeedsCompanion == EVeyraCompanionNeed::Living && !(Companions && Companions->FindLiving(Caster)))
@@ -353,6 +351,27 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, 
 		return EVeyraCastRejection::InvalidTarget;
 	}
 	return EVeyraCastRejection::InvalidTarget;
+}
+
+bool UVeyraGameplayAbility::HoldsEnough(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const
+{
+	// It may need a least of the resource held, as well as its cost (ADR-033 §3).
+	const FVeyraCastTuning* Costs = GetCastTuning(Ability);
+	const double Held = Caster.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+	return VeyraCombat::CanAffordResource(Caster, CostFor(Caster, Ability, Rank)) && !(Costs && !Costs->MinimumResource.IsEmpty() && Held < Costs->MinimumResource[0]);
+}
+
+bool UVeyraGameplayAbility::CanAfford(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+{
+	// A recast that only ends a lasting effect early is free (ADR-008 §9); an ability not learned has no cost yet.
+	const int32 Rank = GetRank(Caster, Ability);
+	return Rank < 1 || !Defines(Ability) || EndsEarlyOnRecast(Caster, Ability) || HoldsEnough(Caster, Ability, Rank);
+}
+
+double UVeyraGameplayAbility::CostNow(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+{
+	const int32 Rank = GetRank(Caster, Ability);
+	return Rank < 1 || !Defines(Ability) ? 0.0 : CostFor(Caster, Ability, Rank);
 }
 
 double UVeyraGameplayAbility::CostFor(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const

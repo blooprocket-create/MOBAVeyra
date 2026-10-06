@@ -424,6 +424,24 @@ namespace VeyraAbilitiesTests
 			return VeyraAbilities::TryCast(*Caster->GetAbilitySystemComponent(), EVeyraAbilitySlot::E, FVeyraCastTarget());
 		}
 
+		TEST_METHOD(WhatItsCasterCannotPayForIsUnaffordableButItsFreeRecastIsNot)
+		{
+			// The HUD's test is the validator's own (ADR-066 §1).
+			UAbilitySystemComponent& Abilities = *Caster->GetAbilitySystemComponent();
+			const FVeyraContentId Brace = ArchetypeTestId(TEXT("test_brace"));
+			const auto Hold = [&Abilities](double Resource) { Abilities.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), static_cast<float>(Resource)); };
+			ASSERT_THAT(IsNear(VeyraAbilities::CastCostOf(Abilities, Brace), ResourceCost, 1e-6));
+			Hold(ResourceCost - 1.0);
+			ASSERT_THAT(IsFalse(VeyraAbilities::CanAffordCast(Abilities, Brace), TEXT("less than its cost")));
+			ASSERT_THAT(IsTrue(Cast() == EVeyraCastRejection::InsufficientResource, TEXT("and the validator agrees")));
+			Hold(ResourceCost);
+			ASSERT_THAT(IsTrue(VeyraAbilities::CanAffordCast(Abilities, Brace), TEXT("exactly its cost")));
+			ASSERT_THAT(IsTrue(Cast() == EVeyraCastRejection::None));
+			// While it stands, casting it again ends it early, which costs nothing.
+			Hold(0.0);
+			ASSERT_THAT(IsTrue(VeyraAbilities::CanAffordCast(Abilities, Brace), TEXT("a recast that ends it early is free")));
+		}
+
 		TEST_METHOD(TheCasterGetsItsStatusesAndShield)
 		{
 			ASSERT_THAT(IsTrue(Cast() == EVeyraCastRejection::None));

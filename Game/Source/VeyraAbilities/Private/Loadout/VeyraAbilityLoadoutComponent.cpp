@@ -4,23 +4,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
-#include "Abilities/VeyraAreaAbility.h"
-#include "Abilities/VeyraAmbushAbility.h"
-#include "Abilities/VeyraAttachAbility.h"
-#include "Abilities/VeyraBlinkAbility.h"
-#include "Abilities/VeyraCommandAbility.h"
-#include "Abilities/VeyraDashAbility.h"
-#include "Abilities/VeyraDismountAbility.h"
-#include "Abilities/VeyraEchoAbility.h"
-#include "Abilities/VeyraRideAbility.h"
-#include "Abilities/VeyraEmpoweredAttackAbility.h"
-#include "Abilities/VeyraPlacementAbility.h"
-#include "Abilities/VeyraSelfBuffAbility.h"
-#include "Abilities/VeyraSkillshotAbility.h"
-#include "Abilities/VeyraStanceAbility.h"
-#include "Abilities/VeyraTargetedDamageAbility.h"
-#include "Abilities/VeyraTetherAbility.h"
-#include "Abilities/VeyraVolleyAbility.h"
+#include "Abilities/VeyraGameplayAbility.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
@@ -33,80 +18,6 @@ namespace
 	// An ability's rank comes from Progression, not from the Gameplay Ability System's level, so
 	// every ability is granted at the system's default level and its numbers come from tuning.
 	constexpr int32 DefaultAbilityLevel = 1;
-
-	/** The archetype class that runs Ability, from the map the Abilities tuning defines it in (ADR-008 §3). */
-	TSubclassOf<UVeyraGameplayAbility> ArchetypeFor(const FVeyraContentId& Ability)
-	{
-		if (UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability))
-		{
-			return UVeyraTargetedDamageAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindArea(Ability))
-		{
-			return UVeyraAreaAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
-		{
-			return UVeyraSelfBuffAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindSkillshot(Ability))
-		{
-			return UVeyraSkillshotAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindDash(Ability))
-		{
-			return UVeyraDashAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindEmpoweredAttack(Ability))
-		{
-			return UVeyraEmpoweredAttackAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindVolley(Ability))
-		{
-			return UVeyraVolleyAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindTether(Ability))
-		{
-			return UVeyraTetherAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindAttach(Ability))
-		{
-			return UVeyraAttachAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindRide(Ability))
-		{
-			return UVeyraRideAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindAmbush(Ability))
-		{
-			return UVeyraAmbushAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindStance(Ability))
-		{
-			return UVeyraStanceAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindPlacement(Ability))
-		{
-			return UVeyraPlacementAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
-		{
-			return UVeyraBlinkAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
-		{
-			return UVeyraCommandAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindDismount(Ability))
-		{
-			return UVeyraDismountAbility::StaticClass();
-		}
-		if (UVeyraAbilitiesTuningSubsystem::FindEcho(Ability))
-		{
-			return UVeyraEchoAbility::StaticClass();
-		}
-		return nullptr;
-	}
 }
 
 UVeyraAbilityLoadoutComponent::UVeyraAbilityLoadoutComponent()
@@ -123,11 +34,13 @@ void UVeyraAbilityLoadoutComponent::GetLifetimeReplicatedProps(TArray<FLifetimeP
 	Params.Condition = COND_ReplayOrOwner;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, Entries, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, Overrides, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, UnlockedSpellSlots, Params);
-	// The stance shows on its holder's body, so every machine needs it; what each slot holds stays its owner's.
+	// The stance shows on its holder's body, so every machine needs it, and so are its Flux Spells and how many its team has
+	// unlocked to anyone who selects it (ADR-066 §4); what each other slot holds stays its owner's.
 	FDoRepLifetimeParams Public;
 	Public.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, Stance, Public);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, SharedSpells, Public);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, UnlockedSpellSlots, Public);
 }
 
 void UVeyraAbilityLoadoutComponent::SetStance(const FVeyraContentId& InStance)
@@ -160,7 +73,7 @@ bool UVeyraAbilityLoadoutComponent::IsLocked(EVeyraAbilitySlot Slot) const
 bool UVeyraAbilityLoadoutComponent::Grant(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
-	const TSubclassOf<UVeyraGameplayAbility> Archetype = ArchetypeFor(Ability);
+	const TSubclassOf<UVeyraGameplayAbility> Archetype = VeyraAbilities::ArchetypeOf(Ability);
 	if (!Archetype)
 	{
 		UE_LOG(LogVeyraAbilities, Error, TEXT("Cannot grant %s to %s: the Abilities tuning defines no ability with that ID."),
@@ -181,7 +94,33 @@ bool UVeyraAbilityLoadoutComponent::Grant(UAbilitySystemComponent& AbilitySystem
 	Entry->Ability = Ability;
 	Entry->Handle = AbilitySystem.GiveAbility(FGameplayAbilitySpec(Archetype, DefaultAbilityLevel));
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Entries, this);
+	ShareSpell(Slot, Ability);
 	return Entry->Handle.IsValid();
+}
+
+void UVeyraAbilityLoadoutComponent::ShareSpell(EVeyraAbilitySlot Slot, const FVeyraContentId& Spell)
+{
+	const int32 Index = VeyraAbilitySlots::SpellIndexOf(Slot);
+	if (Index == INDEX_NONE)
+	{
+		return;
+	}
+	if (SharedSpells.Num() <= Index)
+	{
+		SharedSpells.SetNum(Index + 1);
+	}
+	const FVeyraContentId Before = SharedSpells[Index];
+	SharedSpells[Index] = Spell;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, SharedSpells, this);
+	// Its cooldown reaches every machine with it, and one no other slot holds stops reaching them (ADR-066 §4).
+	if (UVeyraCooldownComponent* Cooldowns = GetOwner()->FindComponentByClass<UVeyraCooldownComponent>())
+	{
+		if (Before != Spell && !SharedSpells.Contains(Before))
+		{
+			Cooldowns->SetShared(Before, false);
+		}
+		Cooldowns->SetShared(Spell, true);
+	}
 }
 
 void UVeyraAbilityLoadoutComponent::Clear(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot)
@@ -196,6 +135,7 @@ void UVeyraAbilityLoadoutComponent::Clear(UAbilitySystemComponent& AbilitySystem
 	AbilitySystem.ClearAbility(Entries[Index].Handle);
 	Entries.RemoveAt(Index);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Entries, this);
+	ShareSpell(Slot, FVeyraContentId());
 	for (int32 StowedIndex = Stowed.Num() - 1; StowedIndex >= 0; --StowedIndex)
 	{
 		if (Stowed[StowedIndex].Slot == Slot)
@@ -228,7 +168,7 @@ bool UVeyraAbilityLoadoutComponent::SwapOwn(UAbilitySystemComponent& AbilitySyst
 	}
 	else
 	{
-		const TSubclassOf<UVeyraGameplayAbility> Archetype = ArchetypeFor(Ability);
+		const TSubclassOf<UVeyraGameplayAbility> Archetype = VeyraAbilities::ArchetypeOf(Ability);
 		if (!Archetype)
 		{
 			UE_LOG(LogVeyraAbilities, Error, TEXT("Cannot put %s in %s's slot: the Abilities tuning defines no ability with that ID."), *Ability.ToString(),
@@ -366,7 +306,7 @@ FVeyraContentId UVeyraAbilityLoadoutComponent::CooldownIdOf(const FVeyraContentI
 bool UVeyraAbilityLoadoutComponent::Override(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& Spec)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
-	const TSubclassOf<UVeyraGameplayAbility> Archetype = ArchetypeFor(Spec.Ability);
+	const TSubclassOf<UVeyraGameplayAbility> Archetype = VeyraAbilities::ArchetypeOf(Spec.Ability);
 	if (!Archetype || !FMath::IsFinite(Spec.DurationSeconds) || Spec.DurationSeconds < 0.0)
 	{
 		UE_LOG(LogVeyraAbilities, Error, TEXT("Cannot override %s's slot with %s: the Abilities tuning defines no ability with that ID, or its time is not 0 or more."),

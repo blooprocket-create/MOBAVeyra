@@ -83,6 +83,12 @@ struct FVeyraHudSlot
 	/** Seconds the empowerment it cast still waits for the next basic attack; 0 when none waits (Combat Bible §17). */
 	double EmpoweredSeconds = 0.0;
 
+	/** Whether its owner holds enough of the resource to cast it now, by the cast validator's own test (ADR-066 §1). */
+	bool bAffordable = true;
+
+	/** What casting it would cost now; 0 for nothing, and before it is learned. */
+	double Cost = 0.0;
+
 	/**
 	 * Its numbers at its rank, its first before it is learned, with the player's power now and before the target's
 	 * defences: its cooldown and cost, then each damage part (ADR-065 §7).

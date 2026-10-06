@@ -73,12 +73,17 @@ TArray<FVeyraKillFeedRow> Rows(TConstArrayView<FVeyraKillFeedArrival> Arrivals, 
 
 FString StructureName(const FVeyraKillFeedLine& Line)
 {
-	switch (Line.StructureKind)
+	return StructureName(Line.StructureKind, Line.bHasLane ? TOptional<EVeyraLane>(Line.Lane) : TOptional<EVeyraLane>(), Line.StructureOrder);
+}
+
+FString StructureName(EVeyraStructureKind Kind, TOptional<EVeyraLane> Lane, int32 Order)
+{
+	switch (Kind)
 	{
 	case EVeyraStructureKind::LaneSpire:
-		return Line.bHasLane ? FString::Printf(TEXT("%s %s Spire"), LaneWord(Line.Lane), SpireWord(Line.StructureOrder)) : FString(TEXT("Spire"));
+		return Lane ? FString::Printf(TEXT("%s %s Spire"), LaneWord(*Lane), SpireWord(Order)) : FString(TEXT("Spire"));
 	case EVeyraStructureKind::Inhibitor:
-		return Line.bHasLane ? FString::Printf(TEXT("%s inhibitor"), LaneWord(Line.Lane)) : FString(TEXT("inhibitor"));
+		return Lane ? FString::Printf(TEXT("%s inhibitor"), LaneWord(*Lane)) : FString(TEXT("inhibitor"));
 	case EVeyraStructureKind::BaseTower:
 		return TEXT("base tower");
 	case EVeyraStructureKind::PrimeWell:

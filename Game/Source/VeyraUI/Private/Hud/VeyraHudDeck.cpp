@@ -18,6 +18,7 @@
 #include "Hud/VeyraHudLayout.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraKillFeedModel.h"
+#include "Hud/VeyraTargetFrameModel.h"
 #include "Input/VeyraInputSettings.h"
 #include "Rendering/SlateRenderer.h"
 #include "Engine/GameInstance.h"
@@ -746,8 +747,19 @@ namespace
 				Bar.Rect(At, FVector2D(Ability), Settings.ShadeColor);
 			}
 			DrawCooldown(Bar, Cooldowns, At, Ability, bLearned ? Slot.CooldownSeconds : 0.0, Slot.CooldownTotal);
+			// Off cooldown but more than its owner holds: darkened in its resource's colour with its cost over it, so colour is
+			// never the only sign (ADR-066 §1).
+			const bool bCooled = bLearned && Slot.CooldownSeconds <= 0.0;
+			if (bCooled && !Slot.bAffordable)
+			{
+				const FLinearColor Resource = Settings.ResourceColorOf(Player.Vitals.Family);
+				Bar.Rect(At, FVector2D(Ability), Settings.ShadeColor);
+				Bar.Rect(At, FVector2D(Ability), Resource.CopyWithNewOpacity(Settings.UnaffordableTintOpacity));
+				Bar.TextCentred(At + FVector2D(Ability / 2.0f), FString::FromInt(FMath::CeilToInt(Slot.Cost)),
+					Bar.Font(TEXT("Bold"), Settings.HudHeadingFontSize), Settings.TextColor, true);
+			}
 			const bool bEmpowered = Slot.EmpoweredSeconds > 0.0;
-			const bool bReady = bLearned && Slot.CooldownSeconds <= 0.0;
+			const bool bReady = bCooled && Slot.bAffordable;
 			Bar.Outline(At, FVector2D(Ability), bEmpowered ? Settings.EmpoweredColor : ReadyOutline(Settings, bReady),
 				bEmpowered ? Bar.S(2.0f) : 1.0f);
 			Bar.KeyCap(At, KeyName(Input.GetAbilityKey(Slot.Slot)));
@@ -1088,5 +1100,114 @@ void DrawAnnouncement(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, co
 	const FLinearColor Color = Announcement.bGood ? Preferences.SideColors.Ally : Preferences.SideColors.Enemy;
 	Paint.Outline(TopLeft, Size, Color.CopyWithNewOpacity(0.6f * Opacity));
 	Paint.TextCentred(TopLeft + Size / 2.0, Announcement.Text, Font, Color.CopyWithNewOpacity(Opacity), true);
+}
+
+void DrawTargetFrame(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* FontAsset,
+	const FVeyraTargetFrame& Frame, EVeyraTeam OwnSide, const FBox2D& Box, float Scale)
+{
+	const FPainter Paint(Canvas, Settings, FontAsset, Scale);
+	const bool bVanguard = Frame.Vanguard.IsValid() || !Frame.Spells.IsEmpty();
+	const bool bResource = Frame.Vitals.MaxResource > 0.0;
+	const float Pad = Paint.S(8.0f);
+	const float Header = bVanguard ? Paint.S(48.0f) : Paint.S(36.0f);
+	const float HealthHeight = Paint.S(14.0f);
+	const float ResourceHeight = Paint.S(10.0f);
+	const float BarGap = Paint.S(4.0f);
+	const float Tile = Paint.S(24.0f);
+	const float TileGap = Paint.S(4.0f);
+	const float Width = static_cast<float>(Box.GetSize().X);
+	const float Height = Pad + Header + Pad + HealthHeight + (bResource ? BarGap + ResourceHeight : 0.0f) + (bVanguard ? Pad + Tile : 0.0f) + Pad;
+	const FVector2D TopLeft = Box.Min;
+	const FLinearColor Side = Frame.Side == EVeyraTeam::None ? Preferences.SideColors.Neutral
+		: Frame.Side == OwnSide ? Preferences.SideColors.Ally : Preferences.SideColors.Enemy;
+	Paint.Surface(TopLeft, FVector2D(Width, Height));
+	Paint.Outline(TopLeft, FVector2D(Width, Height), Side.CopyWithNewOpacity(0.6f));
+
+	// Its face and Level, its name in its side's colour, and its player.
+	float X = TopLeft.X + Pad;
+	const float Y = TopLeft.Y + Pad;
+	if (bVanguard)
+	{
+		DrawFace(Paint, Frame.Vanguard, FVector2D(X, Y), Header, Settings.HudHeadingFontSize);
+		if (Frame.Level > 0)
+		{
+			const FVector2D Badge(Paint.S(18.0f));
+			const FVector2D BadgeAt(X + Header - Badge.X, Y + Header - Badge.Y);
+			Paint.Rect(BadgeAt, Badge, Settings.HudSurfaceColor.CopyWithNewOpacity(1.0f));
+			Paint.TextCentred(BadgeAt + Badge / 2.0, FString::FromInt(Frame.Level), Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor);
+		}
+		X += Header + Pad;
+	}
+	Paint.Text(FVector2D(X, Y), Frame.Name, Paint.Font(TEXT("Bold"), Settings.HudHeadingFontSize), Side, true);
+	const FString Detail = Frame.bAlive ? Frame.Detail : Frame.Detail.IsEmpty() ? FString(TEXT("Fallen")) : Frame.Detail + TEXT("   Fallen");
+	Paint.Text(FVector2D(X, Y + Paint.S(22.0f)), Detail, Paint.Font(TEXT("Regular"), Settings.HudSmallFontSize), Settings.DescriptionColor);
+
+	// Health with its shields, then its resource, each with its figures.
+	const float BarsX = TopLeft.X + Pad;
+	const float BarWidth = Width - Pad * 2.0f;
+	float BarY = Y + Header + Pad;
+	const double Total = FMath::Max(Frame.Vitals.MaxHealth, Frame.Vitals.Health + Frame.Vitals.Shield);
+	const FSlateFontInfo Figures = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
+	Paint.Rect(FVector2D(BarsX, BarY), FVector2D(BarWidth, HealthHeight), Settings.BarBackgroundColor);
+	if (Total > 0.0)
+	{
+		const float HealthWidth = static_cast<float>(BarWidth * Frame.Vitals.Health / Total);
+		Paint.Rect(FVector2D(BarsX, BarY), FVector2D(HealthWidth, HealthHeight), Side);
+		Paint.Rect(FVector2D(BarsX + HealthWidth, BarY), FVector2D(static_cast<float>(BarWidth * Frame.Vitals.Shield / Total), HealthHeight), Settings.ShieldColor);
+	}
+	Paint.TextCentred(FVector2D(BarsX + BarWidth / 2.0f, BarY + HealthHeight / 2.0f),
+		FString::Printf(TEXT("%d / %d"), FMath::CeilToInt32(Frame.Vitals.Health), FMath::CeilToInt32(Frame.Vitals.MaxHealth)), Figures, Settings.TextColor, true);
+	BarY += HealthHeight;
+	if (bResource)
+	{
+		BarY += BarGap;
+		Paint.Rect(FVector2D(BarsX, BarY), FVector2D(BarWidth, ResourceHeight), Settings.BarBackgroundColor);
+		Paint.Rect(FVector2D(BarsX, BarY), FVector2D(static_cast<float>(BarWidth * FMath::Clamp(Frame.Vitals.Resource / Frame.Vitals.MaxResource, 0.0, 1.0)), ResourceHeight),
+			Settings.ResourceColorOf(Frame.Vitals.Family));
+		Paint.TextCentred(FVector2D(BarsX + BarWidth / 2.0f, BarY + ResourceHeight / 2.0f),
+			FString::Printf(TEXT("%d / %d"), FMath::FloorToInt32(Frame.Vitals.Resource), FMath::CeilToInt32(Frame.Vitals.MaxResource)), Figures, Settings.TextColor, true);
+		BarY += ResourceHeight;
+	}
+	if (!bVanguard)
+	{
+		return;
+	}
+
+	// Its six items, then its Flux Spells: locked, cooling with the seconds left, or ready (ADR-066 §3).
+	const float TilesY = BarY + Pad;
+	float TileX = BarsX;
+	const FSlateFontInfo Mark = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
+	for (const FVeyraContentId& Item : Frame.Items)
+	{
+		const FVector2D At(TileX, TilesY);
+		Paint.Rect(At, FVector2D(Tile), Settings.BarBackgroundColor);
+		if (Item.IsValid() && !DrawIcon(Paint, VeyraShellArt::ItemIconOf(Item.ToString()), At, Tile))
+		{
+			Paint.TextCentred(At + FVector2D(Tile / 2.0f), Monogram(VeyraContentText::ItemName(Item).ToString()), Mark, Settings.TextColor);
+		}
+		Paint.Outline(At, FVector2D(Tile), Settings.HudHairlineColor);
+		TileX += Tile + TileGap;
+	}
+	TileX += Pad;
+	for (const FVeyraTargetFrameSpell& Spell : Frame.Spells)
+	{
+		const FVector2D At(TileX, TilesY);
+		Paint.Rect(At, FVector2D(Tile), Settings.BarBackgroundColor);
+		if (Spell.Spell.IsValid() && !DrawIcon(Paint, VeyraShellArt::AbilityIconOf(Spell.Spell.ToString()), At, Tile))
+		{
+			Paint.TextCentred(At + FVector2D(Tile / 2.0f), Monogram(VeyraContentText::AbilityName(Spell.Spell).ToString()), Mark, Settings.TextColor);
+		}
+		if (Spell.bLocked)
+		{
+			Paint.Rect(At, FVector2D(Tile), Settings.ShadeColor);
+			Paint.TextCentred(At + FVector2D(Tile / 2.0f), TEXT("-"), Mark, Settings.DescriptionColor);
+		}
+		else
+		{
+			DrawCooldown(Paint, Preferences.Cooldowns, At, Tile, Spell.CooldownSeconds, Spell.CooldownTotal);
+		}
+		Paint.Outline(At, FVector2D(Tile), ReadyOutline(Settings, Spell.Spell.IsValid() && !Spell.bLocked && Spell.CooldownSeconds <= 0.0));
+		TileX += Tile + TileGap;
+	}
 }
 }

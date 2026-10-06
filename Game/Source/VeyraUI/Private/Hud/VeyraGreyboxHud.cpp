@@ -24,6 +24,7 @@
 #include "Hud/VeyraHudModel.h"
 #include "Ending/VeyraMatchEnding.h"
 #include "Hud/VeyraMinimapModel.h"
+#include "Hud/VeyraTargetFrameModel.h"
 #include "Movement/VeyraDrawnBody.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Structures/VeyraStructure.h"
@@ -474,6 +475,33 @@ namespace
 		});
 	}
 
+	/**
+	 * Gives the local controller the HUD's hit test (ADR-066 §2): the deck, the minimap, and the selected unit's frame while one
+	 * shows, so a click on them neither selects nor clears.
+	 */
+	void BindHudClicks(AVeyraPlayerController& Controller)
+	{
+		if (Controller.HasHudHitTest())
+		{
+			return;
+		}
+		Controller.SetHudHitTest([WeakController = TWeakObjectPtr<AVeyraPlayerController>(&Controller)](const FVector2D& Screen) {
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const AVeyraPlayerController* Owner = WeakController.Get();
+			const UGameViewportClient* Viewport = Owner && Owner->GetLocalPlayer() ? Owner->GetLocalPlayer()->ViewportClient : nullptr;
+			if (!Viewport)
+			{
+				return false;
+			}
+			FVector2D Size;
+			Viewport->GetViewportSize(Size);
+			const FVeyraHudArrangement Layout = Arrangement(Settings, VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(Owner)), Size);
+			const FBox2D Deck(Layout.DeckTopLeft, Layout.DeckTopLeft + Layout.Deck.Size);
+			const FBox2D Minimap(Layout.Minimap.Origin, Layout.Minimap.Origin + FVector2D(Layout.Minimap.Size));
+			return Deck.IsInsideOrOn(Screen) || Minimap.IsInsideOrOn(Screen) || (Owner->GetSelectedUnit() && Layout.TargetFrame.IsInsideOrOn(Screen));
+		});
+	}
+
 }
 
 void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybox, const APlayerController* Viewer)
@@ -516,6 +544,7 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 		if (Player && Own)
 		{
 			BindMinimapClicks(*const_cast<AVeyraPlayerController*>(Player));
+			BindHudClicks(*const_cast<AVeyraPlayerController*>(Player));
 			const AVeyraCameraRig* Rig = Player->GetCameraRig();
 			const TOptional<FVector> Focus = Rig ? TOptional<FVector>(Rig->GetFocus()) : TOptional<FVector>();
 			const FVeyraMinimapFrame& Frame = Layout.Minimap;
@@ -537,6 +566,12 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 			Warnings.Add(TEXT("Low frame rate: Graphics settings can help"));
 		}
 		VeyraHudDeck::Draw(Canvas, Settings, Preferences, Greybox.GetHudFont(), *Greybox.GetWorld(), *GameState, Viewer, Own, Now, Warnings, Layout);
+		// The selected unit's frame, under Team Flux (ADR-066 §3).
+		const AActor* Selected = Player ? Player->GetSelectedUnit() : nullptr;
+		if (const TOptional<FVeyraTargetFrame> Frame = Selected && Own ? VeyraTargetFrame::Describe(*Selected, Own->GetVeyraTeam(), Now) : TOptional<FVeyraTargetFrame>())
+		{
+			VeyraHudDeck::DrawTargetFrame(Canvas, Settings, Preferences, Greybox.GetHudFont(), Frame.GetValue(), Own->GetVeyraTeam(), Layout.TargetFrame, Layout.TeamPanels);
+		}
 		// The player's own level-up, for a while after it comes (ADR-065 §5).
 		const TOptional<FVeyraLevelUpMoment>& LevelUp = Greybox.GetOwnLevelUp();
 		const double Shown = LevelUp.IsSet() ? (FPlatformTime::Seconds() - LevelUp->At) / Settings.LevelUpBannerSeconds : 1.0;

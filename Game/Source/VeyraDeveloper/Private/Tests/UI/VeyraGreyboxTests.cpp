@@ -2,6 +2,7 @@
 
 #include "CQTest.h"
 #include "AbilitySystemComponent.h"
+#include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "VeyraCombatVerbs.h"
 
@@ -77,6 +78,7 @@ namespace VeyraAbilitiesTests
 		static constexpr int32 CircleSegments = 24;
 		static constexpr double Tolerance = 1.0;
 		static constexpr double HitAmount = 50.0;
+		static constexpr double ResourceCost = 40.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -106,6 +108,11 @@ namespace VeyraAbilitiesTests
 			Mortar.DelaySeconds = LongSeconds;
 			Mortar.Zones.AddDefaulted_GetRef().Shape = CircleOf(InnerRadius);
 			Tuning.Area.Add(ArchetypeTestId(TEXT("test_mortar")), Mortar);
+
+			// The same mortar with a cost.
+			FVeyraAreaAbilityTuning DearMortar = Mortar;
+			DearMortar.Cast.ResourceCostByRank = { ResourceCost };
+			Tuning.Area.Add(ArchetypeTestId(TEXT("test_dear_mortar")), DearMortar);
 
 			FVeyraSkillshotAbilityTuning Bolt;
 			Bolt.Cast = InstantCast(CastRange, LongSeconds, 0.0);
@@ -690,6 +697,23 @@ namespace VeyraAbilitiesTests
 			Player = VeyraHud::DescribePlayer(Participant, Now);
 			ASSERT_THAT(IsTrue(Player.Level == 2 && Player.UnspentSkillPoints == 1));
 			ASSERT_THAT(IsTrue(Player.Slots[0].bCanRankUp && Player.Slots[1].bCanRankUp && !Player.Slots[3].bCanRankUp));
+		}
+
+		TEST_METHOD(TheHudSaysWhenAReadyAbilityCostsMoreThanItsOwnerHolds)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			const FVeyraContentId Dear = ArchetypeTestId(TEXT("test_dear_mortar"));
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::Q, Dear)));
+			const AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			UAbilitySystemComponent& Abilities = *Caster->GetAbilitySystemComponent();
+			const double Now = RefreshedGreybox().GetServerNow();
+			Abilities.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), static_cast<float>(ResourceCost / 2.0));
+			const FVeyraHudSlot Short = VeyraHud::DescribePlayer(Participant, Now).Slots[0];
+			ASSERT_THAT(IsTrue(!Short.bAffordable && Short.CooldownSeconds == 0.0, TEXT("ready, but unaffordable (ADR-066 §1)")));
+			ASSERT_THAT(IsNear(Short.Cost, ResourceCost, Tolerance, TEXT("with what it costs")));
+			Abilities.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), static_cast<float>(ResourceCost));
+			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now).Slots[0].bAffordable));
+			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now).Slots[1].bAffordable, TEXT("an empty slot is never short")));
 		}
 
 		TEST_METHOD(ADecoyShowsItsOwnersBarsAndStatusesButNotTheirStealth)

@@ -76,6 +76,47 @@ void UVeyraCooldownComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	Params.bIsPushBased = true;
 	Params.Condition = COND_ReplayOrOwner;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCooldownComponent, Entries, Params);
+	// What it shares reaches every machine (ADR-066 §4).
+	FDoRepLifetimeParams Everyone;
+	Everyone.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCooldownComponent, SharedEntries, Everyone);
+}
+
+void UVeyraCooldownComponent::SetShared(const FVeyraContentId& Ability, bool bShared)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	if (!Ability.IsValid() || SharedIds.Contains(Ability) == bShared)
+	{
+		return;
+	}
+	if (bShared)
+	{
+		SharedIds.Add(Ability);
+	}
+	else
+	{
+		SharedIds.Remove(Ability);
+	}
+	MarkChanged();
+}
+
+void UVeyraCooldownComponent::MarkChanged()
+{
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+	// The shared entries are the ledger's own, filtered, so there is one arithmetic (ADR-066 §4).
+	SharedEntries = Entries.FilterByPredicate([this](const FVeyraCooldownEntry& Entry) { return SharedIds.Contains(Entry.Ability); });
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, SharedEntries, this);
+}
+
+double UVeyraCooldownComponent::GetSharedRemainingSeconds(const FVeyraContentId& Ability, double Now) const
+{
+	return VeyraCooldowns::RemainingSeconds(SharedEntries, Ability, Now);
+}
+
+double UVeyraCooldownComponent::GetSharedDurationSeconds(const FVeyraContentId& Ability) const
+{
+	const FVeyraCooldownEntry* Entry = SharedEntries.FindByPredicate([&Ability](const FVeyraCooldownEntry& Candidate) { return Candidate.Ability == Ability; });
+	return Entry ? Entry->DurationSeconds : 0.0;
 }
 
 void UVeyraCooldownComponent::OnRegister()
@@ -107,7 +148,7 @@ void UVeyraCooldownComponent::StartCooldown(const FVeyraContentId& Ability, doub
 		? AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetAbilityHasteAttribute())
 		: 0.0;
 	VeyraCooldowns::Start(Entries, Ability, BaseSeconds * VeyraHaste::CooldownMultiplier(AbilityHaste), GetServerNow(), bAbilityHaste);
-	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+	MarkChanged();
 }
 
 void UVeyraCooldownComponent::ClearCooldown(const FVeyraContentId& Ability)
@@ -115,7 +156,7 @@ void UVeyraCooldownComponent::ClearCooldown(const FVeyraContentId& Ability)
 	check(GetOwner() && GetOwner()->HasAuthority());
 	if (VeyraCooldowns::Clear(Entries, Ability))
 	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+		MarkChanged();
 	}
 }
 
@@ -124,7 +165,7 @@ void UVeyraCooldownComponent::ReduceCooldown(const FVeyraContentId& Ability, dou
 	check(GetOwner() && GetOwner()->HasAuthority());
 	if (VeyraCooldowns::Reduce(Entries, Ability, GetServerNow(), Fraction, Seconds))
 	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+		MarkChanged();
 	}
 }
 
@@ -136,7 +177,7 @@ int32 UVeyraCooldownComponent::ClearAllCooldowns()
 	if (!Entries.IsEmpty())
 	{
 		Entries.Reset();
-		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+		MarkChanged();
 	}
 	return Running;
 }
@@ -151,7 +192,7 @@ void UVeyraCooldownComponent::OnAbilityHasteChanged(const FOnAttributeChangeData
 	// What remains keeps its proportion: it becomes the new multiplier's share of the old one's (§21).
 	const double Factor = VeyraHaste::CooldownMultiplier(Change.NewValue) / VeyraHaste::CooldownMultiplier(Change.OldValue);
 	VeyraCooldowns::Rescale(Entries, Factor, GetServerNow());
-	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+	MarkChanged();
 }
 
 double UVeyraCooldownComponent::GetRemainingSeconds(const FVeyraContentId& Ability, double Now) const

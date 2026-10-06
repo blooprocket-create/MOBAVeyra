@@ -230,6 +230,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(LevelUpFontSize >= 1 && LevelUpHeightShare > 0.0f && LevelUpHeightShare < 1.0f && LevelUpBannerSeconds > 0.0f && LevelUpFadeShare > 0.0f
 		&& LevelUpFadeShare <= 1.0f, TEXT("LevelUpBannerSeconds"), TEXT("the level-up banner needs a size, a place on screen, some time to show and a share of it to fade."));
 	Require(VanguardBodyScale > 0.0f && StructureArtScale > 0.0f, TEXT("VanguardBodyScale"), TEXT("bodies need a scale above 0."));
+	Require(TargetFrameWidth >= 1.0f && TargetFrameHeight >= 1.0f && TargetFrameTop >= 0.0f && SelectionRingMargin >= 0.0f, TEXT("TargetFrameWidth"),
+		TEXT("the selected unit's frame needs a size and a place, and its ring a margin of 0 or more."));
+	Require(UnaffordableTintOpacity > 0.0f && UnaffordableTintOpacity <= 1.0f, TEXT("UnaffordableTintOpacity"),
+		TEXT("an ability its owner cannot afford needs a tint above 0 and at most whole."));
 	Require(VanguardEaseLocationSeconds > 0.0f && VanguardEaseRotationSeconds > 0.0f && CreatureEaseLocationSeconds > 0.0f && CreatureEaseRotationSeconds > 0.0f,
 		TEXT("VanguardEaseLocationSeconds"), TEXT("a drawn body needs some time to ease to each update, or it steps with its capsule."));
 	Require(KillFeedRows >= 1 && KillFeedSeconds > 0.0f && KillFeedFaceSize >= 1.0f && AnnouncementSeconds > 0.0f && AnnouncementFontSize >= 1, TEXT("KillFeedSeconds"),

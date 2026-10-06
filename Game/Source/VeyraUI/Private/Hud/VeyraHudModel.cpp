@@ -14,6 +14,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Echoes/VeyraEcho.h"
+#include "VeyraAbilitiesVerbs.h"
 #include "EngineUtils.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
@@ -378,6 +379,12 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		if (Shown.Ability.IsValid())
 		{
 			Shown.Numbers = VeyraAbilityNumbers::AtRank(Shown.Ability, FMath::Max(1, Shown.Rank), PhysicalPower, MagicPower, ResourceName);
+			// Whether it can be paid for now, by the cast validator's own test, and what it would cost (ADR-066 §1).
+			if (Offence)
+			{
+				Shown.bAffordable = VeyraAbilities::CanAffordCast(*Offence, Shown.Ability);
+				Shown.Cost = VeyraAbilities::CastCostOf(*Offence, Shown.Ability);
+			}
 		}
 	}
 	if (const UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>())

@@ -17,6 +17,7 @@ struct FVeyraHudArrangement;
 struct FVeyraInterfacePreferences;
 struct FVeyraKillFeedRow;
 struct FVeyraAnnouncement;
+struct FVeyraTargetFrame;
 
 /**
  * The in-match HUD's deck and strips, drawn on the canvas (ADR-008 §1). The Art Bible leaves the
@@ -58,4 +59,11 @@ namespace VeyraHudDeck
 	/** The announcement of a moment under the top strip, in the player's side's colour for good news and the enemy's for bad. */
 	void DrawAnnouncement(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font,
 		const FVeyraAnnouncement& Announcement, const FVector2D& Inset);
+
+	/**
+	 * The selected unit's frame from Box's top-left corner, Box's width across, at Scale pixels per designed unit (ADR-066 §3):
+	 * its name and side, its Health and resource with their figures, and a Vanguard's face, Level, items and Flux Spells.
+	 */
+	void DrawTargetFrame(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font,
+		const FVeyraTargetFrame& Frame, EVeyraTeam OwnSide, const FBox2D& Box, float Scale);
 }

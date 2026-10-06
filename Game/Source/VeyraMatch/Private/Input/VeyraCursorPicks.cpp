@@ -27,6 +27,12 @@ AActor* ForCast(TConstArrayView<FVeyraCursorUnit> Under, bool bVanguardsOnly, bo
 	return bNamesAlly ? Ally(Under) : Enemy(Under, bVanguardsOnly);
 }
 
+AActor* ForSelect(TConstArrayView<FVeyraCursorUnit> Under, bool bVanguardsOnly)
+{
+	const FVeyraCursorUnit* Picked = Under.FindByPredicate([bVanguardsOnly](const FVeyraCursorUnit& Unit) { return !bVanguardsOnly || Unit.Kind == EVeyraUnitKind::Vanguard; });
+	return Picked ? Picked->Actor : nullptr;
+}
+
 bool SmartSelfCasts(const AActor& Caster, TConstArrayView<FVeyraCursorUnit> Under, double CastRange)
 {
 	return VeyraTargeting::CheckAllyTarget(Caster, Ally(Under), CastRange) != EVeyraTargetValidity::Valid;

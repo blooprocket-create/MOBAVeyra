@@ -430,6 +430,19 @@ FVeyraSlotNow AVeyraPlayerController::SlotNow(EVeyraAbilitySlot Slot) const
 	return Now;
 }
 
+bool AVeyraPlayerController::IsCursorOverHud() const
+{
+	FVector2D Mouse;
+	return HudHitTest && GetMousePosition(Mouse.X, Mouse.Y) && HudHitTest(Mouse);
+}
+
+AActor* AVeyraPlayerController::GetSelectedUnit() const
+{
+	// Fog or stealth takes it off this machine or hides it, and the selection goes with it (ADR-066 §2).
+	AActor* Unit = SelectedUnit.Get();
+	return Unit && !Unit->IsHidden() ? Unit : nullptr;
+}
+
 TOptional<FVector> AVeyraPlayerController::MinimapPointUnderCursor(EMinimapClick Purpose) const
 {
 	FVector2D Mouse;
@@ -500,11 +513,17 @@ void AVeyraPlayerController::TickCastInput()
 		return;
 	}
 	const TOptional<FVeyraCastIndicator>& Shown = CastInput.GetIndicator();
+	const UVeyraInputSettings& Keys = GetKeys();
 	if (!Shown)
 	{
+		// Unclaimed, the Select click selects the unit under the cursor, or nothing over open ground; a click that pings or
+		// lands on the HUD is not its own (ADR-066 §2).
+		if (WasInputKeyJustPressed(Keys.SelectKey) && !IsPinging() && !IsCursorOverHud())
+		{
+			SelectUnit(VeyraCursorPicks::ForSelect(UnitsUnderCursor(), IsTargetingVanguardsOnly()));
+		}
 		return;
 	}
-	const UVeyraInputSettings& Keys = GetKeys();
 	if (Shown->bPreviewOnly)
 	{
 		if (!IsInputKeyDown(Keys.ShowCastRangeKey))

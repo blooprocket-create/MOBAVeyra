@@ -197,7 +197,16 @@ public:
 	/** Whether Slot is a Flux Spell slot not unlocked yet, whatever it holds. */
 	bool IsLocked(EVeyraAbilitySlot Slot) const;
 
+	/**
+	 * Every machine: the Flux Spell each spell slot holds, in slot order, invalid for an empty one (ADR-066 §4). Unlike the
+	 * other slots, these reach everyone, for the frame of whoever selects this participant.
+	 */
+	const TArray<FVeyraContentId>& GetSharedSpells() const { return SharedSpells; }
+
 private:
+	/** Server: Slot, if a Flux Spell slot, now holds Spell for every machine to see, and its cooldown with it. */
+	void ShareSpell(EVeyraAbilitySlot Slot, const FVeyraContentId& Spell);
+
 	/** Server: Slot's override ran out: it casts itself first if it should, then ends. */
 	void OnOverrideExpired(EVeyraAbilitySlot Slot);
 
@@ -222,8 +231,13 @@ private:
 	/** Server: each timed override's timer, by slot. */
 	TMap<EVeyraAbilitySlot, FTimerHandle> OverrideTimers;
 
+	/** Every machine, as Team Flux is shown to all. */
 	UPROPERTY(Replicated)
 	int32 UnlockedSpellSlots = 0;
+
+	/** Every machine: GetSharedSpells. */
+	UPROPERTY(Replicated)
+	TArray<FVeyraContentId> SharedSpells;
 
 	/** Every machine: the stance whose set its slots hold (GetStance). */
 	UPROPERTY(Replicated)
