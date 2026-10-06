@@ -88,7 +88,7 @@
 - **Validation:**
   - The generator checks the triangle budget and that the body stands on the ground.
   - The import checks source hashes, each body's height against the generator's, that every animation imported, and that it is on the body's skeleton.
-  - Each body records a hash of what it is made from and by: its data, the generator's code, and the Blender that built it. The import, and CI on any change to them, refuse a body whose inputs have changed since it was built, so a partial build cannot keep a stale one.
+  - Each body records a hash of what it is made from and by: its data, the generator's code, and the Blender that built it. The import, and CI on any change to them, refuse a body whose inputs have changed since it was built, or whose name the kit has changed, so a partial build cannot keep a stale one.
   - Each body also records a hash of what it is: its vertices, weights, colours, skeleton and every animation key. A full rebuild redoes every body but rewrites only those whose content changed, so it costs little when little changed and the repository's large files are not rewritten for nothing. What changed is counted since the last import, not the last generator run: a body generated on its own (a preview, a failed import) waits for the next import, and so do a dropped body's imported assets.
   - Every FBX begins with a rest-pose take, and every bone has skin, so a skeleton binds at rest.
   - A preview renders each body in its key poses, front, side and from the gameplay camera's pitch, for review.

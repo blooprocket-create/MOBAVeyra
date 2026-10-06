@@ -98,6 +98,14 @@ class VanguardBodyInputs(unittest.TestCase):
         kit["vanguards"][0]["statusBodies"][0]["body"]["archetype"] = "humanoid"
         self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_A_Ride"])
 
+    def test_a_status_body_the_kit_renames_is_stale_though_its_inputs_are_not(self):
+        # Its name is no input of its body, so a build of another Vanguard keeps the body under its old name: the
+        # kit now names another, which the import would never make.
+        kit = copy.deepcopy(KIT)
+        kit["vanguards"][0]["statusBodies"][0]["name"] = "Mount"
+        assets = built(KIT, VANGUARDS)
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, assets), ["SK_A_Ride"])
+
     def test_the_preflight_reads_a_project_and_fails_on_a_stale_body(self):
         import json
         import subprocess

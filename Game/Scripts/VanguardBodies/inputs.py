@@ -66,15 +66,16 @@ def input_hash(kit, vanguards, body_spec):
 
 def stale_assets(kit, vanguards, assets, generator=None, blender=None):
     """Every body the manifest does not hold as the kit and Vanguards.json give it now, by name: one whose recorded
-    inputs differ or that the kit no longer has; one the kit has that the manifest lacks (a partial build that kept a
-    manifest from before the kit gave a Vanguard a new body); and, when given, one built by other generator code than
-    generator or another Blender than blender."""
+    inputs differ, that the kit no longer has, or that the kit now names otherwise (a status body renamed: its name is
+    no input of its body); one the kit has that the manifest lacks (a partial build that kept a manifest from before
+    the kit gave a Vanguard a new body); and, when given, one built by other generator code than generator or another
+    Blender than blender."""
     current = {}
     for spec in entries(kit):
         for body_spec, status, suffix in bodies_of(spec):
             current[(spec["id"], status)] = (input_hash(kit, vanguards, body_spec), body_name(spec["id"], suffix))
     recorded = {(asset["id"], asset.get("status")) for asset in assets}
-    changed = [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status")), (None,))[0] != asset.get("inputSha256")
+    changed = [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status")), (None, None)) != (asset.get("inputSha256"), asset["name"])
                or (generator is not None and asset.get("generatorSha256") != generator)
                or (blender is not None and asset.get("blender") != blender)]
     missing = [name for key, (_, name) in current.items() if key not in recorded]
