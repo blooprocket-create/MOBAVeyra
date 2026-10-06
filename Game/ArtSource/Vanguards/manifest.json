@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "057d0955b4fc0a8ebaab3580bf70844f07a48bb864d6d9057af23941627a180f",
+  "kitSha256": "33e3d1baea18529d88c8aea140792ddec3c827e62fd4cd1e208fbfb2b2f9dde9",
   "assets": [
     {
       "id": "angeru",
@@ -1403,11 +1403,11 @@
       "name": "SK_Tavi",
       "archetype": "humanoid",
       "file": "FBX/SK_Tavi.fbx",
-      "sha256": "7eb8b76391ad43662b4873597bfc945746a2bea3c4eba4b7222a68fff6790613",
-      "triangles": 1764,
+      "sha256": "f700d383670cced818a1f6f5c8d0e3e681f573ed4585d85bef7b8b4bea133c25",
+      "triangles": 3276,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 115.18,
+      "bones": 29,
+      "heightCm": 116.08,
       "capsuleHalfHeightCm": 66,
       "melee": true,
       "runStrideCm": 103.14,

@@ -127,7 +127,7 @@ def layout(spec, capsule):
     still = spec.get("stillPose")
     assert still in (None, "slumped"), ("Unknown still pose", still)
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
-            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still}
+            "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle")}
     return L, dims
 
 
@@ -170,7 +170,7 @@ def body(spec, L, d, bones=BONES):
         for sign in (1, -1):
             body.ball("head", head_center + Vector((head_radius * 0.85, sign * head_radius * 0.35, head_radius * 0.1)), head_radius * 0.12, [0.05, 0.05, 0.06])
     hair_style = spec["hairStyle"]
-    if hair_style in ("short", "long", "curly", "twinTails", "sideTail", "longBeard", "windblown"):
+    if hair_style in ("short", "long", "curly", "twinTails", "sideTail", "longBeard", "windblown", "bigTwinTails"):
         body.ball("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.18)), head_radius * 1.04, hair, scale=(1.0, 0.95, 0.9))
     if hair_style in ("long", "longBeard"):
         body.box("head", head_center + Vector((-head_radius * 0.75, 0, -head_radius * 0.9)), (head_radius * 0.5, head_radius * 1.6, head_radius * 2.0), hair)
@@ -189,6 +189,25 @@ def body(spec, L, d, bones=BONES):
     if hair_style == "sideTail":
         body.limb("head", head_center + Vector((-head_radius * 0.3, head_radius * 0.8, head_radius * 0.6)),
                   head_center + Vector((-head_radius * 0.6, head_radius * 1.3, -head_radius * 0.6)), head_radius * 0.28, head_radius * 0.08, hair)
+    if hair_style == "bigTwinTails":
+        # Two big, wild tails tied high and flaring out and back, streaked with the accent, each tied with a bow and a
+        # bunny clip: from above, the widest thing about her.
+        streak = spec.get("hairStreak", accent)
+        for sign in (1, -1):
+            # Bushy and drooping as they fly back, with a second wild lock beside each: tails, never horns.
+            tie = head_center + Vector((-head_radius * 0.25, sign * head_radius * 0.85, head_radius * 0.45))
+            mid = tie + Vector((-head_radius * 0.75, sign * head_radius * 0.8, -head_radius * 0.75))
+            tip = mid + Vector((-head_radius * 0.8, sign * head_radius * 0.35, -head_radius * 1.4))
+            body.ball("head", tie.lerp(mid, 0.45), head_radius * 0.55, hair, segments=8)
+            body.limb("head", tie, mid, head_radius * 0.5, head_radius * 0.55, hair, segments=8)
+            body.limb("head", mid, tip, head_radius * 0.55, head_radius * 0.12, hair, segments=8)
+            body.limb("head", mid + Vector((0, sign * head_radius * 0.2, head_radius * 0.1)), tip + Vector((head_radius * 0.3, sign * head_radius * 0.6, head_radius * 0.4)),
+                      head_radius * 0.3, head_radius * 0.06, streak, segments=6)
+            body.limb("head", tie.lerp(mid, 0.5) + Vector((0, 0, head_radius * 0.2)), mid.lerp(tip, 0.8) + Vector((-head_radius * 0.2, 0, 0)), head_radius * 0.22, head_radius * 0.05,
+                      streak, segments=6)
+            for wing in (1, -1):
+                body.ball("head", tie + Vector((wing * head_radius * 0.25, 0, head_radius * 0.15)), head_radius * 0.22, [0.55, 0.08, 0.25], scale=(1.3, 0.6, 0.8), segments=6)
+            body.ball("head", tie + Vector((head_radius * 0.15, 0, head_radius * 0.35)), head_radius * 0.2, [0.95, 0.93, 0.92], segments=6)
     if hair_style == "windblown":
         # Long hair blown back: a mass from the crown streaming behind the shoulders, its locks fanning out, so from
         # above it trails the head.
@@ -229,10 +248,14 @@ def body(spec, L, d, bones=BONES):
         h0, h1 = L["hand_" + side]
         # Big hands read at a distance.
         body.ball("hand_" + side, (h0 + h1) / 2, limb * 1.35, arm_color)
-    # Legs and feet; boots in the secondary colour.
+    # Legs and feet; boots in the secondary colour. Shorts leave the legs bare below them.
+    bare = "shorts" in features
     for side in ("l", "r"):
-        body.limb("thigh_" + side, *L["thigh_" + side], leg * 1.15, leg * 0.95, secondary)
-        body.limb("calf_" + side, *L["calf_" + side], leg * 0.95, leg * 0.75, secondary)
+        t0, t1 = L["thigh_" + side]
+        body.limb("thigh_" + side, t0, t1, leg * 1.15, leg * 0.95, skin if bare else secondary)
+        if bare:
+            body.limb("thigh_" + side, t0 - (t1 - t0) * 0.1, t0.lerp(t1, 0.4), leg * 1.3, leg * 1.2, secondary)
+        body.limb("calf_" + side, *L["calf_" + side], leg * 0.95, leg * 0.75, skin if bare else secondary)
         f0, f1 = L["foot_" + side]
         body.limb("foot_" + side, f0, f1, leg * FOOT_HEEL_SHARE, leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE, mix(secondary, [0.05, 0.05, 0.05], 0.4))
     # Clothing and armour.
@@ -324,12 +347,34 @@ def body(spec, L, d, bones=BONES):
         body.slab("spine_03", L["spine_03"][1] + Vector((-d["shoulder"] * 0.35, 0, -d["torso"] * 0.05)),
                   L["spine_03"][1] + Vector((-d["shoulder"] * 0.45, 0, d["torso"] * 0.12)), d["shoulder"] * 0.9, 3.0, jacket)
     if "heavyBoots" in features:
+        boots = spec.get("boots", [0.12, 0.08, 0.06])
         for side in ("l", "r"):
             f0, f1 = L["foot_" + side]
             body.limb("foot_" + side, f0 - Vector((leg * 0.15, 0, 0)), f1 + Vector((leg * 0.15, 0, 0)), leg * FOOT_HEEL_SHARE * 1.25,
-                      leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE * 1.25, [0.12, 0.08, 0.06])
+                      leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE * 1.25, boots)
             c0, c1 = L["calf_" + side]
-            body.limb("calf_" + side, c0.lerp(c1, 0.55), c1, leg * 1.0, leg * 1.05, [0.12, 0.08, 0.06])
+            body.limb("calf_" + side, c0.lerp(c1, 0.55), c1, leg * 1.0, leg * 1.05, boots)
+            if "bunnyBoots" in features:
+                # A stripe of the accent round the cuff, and a bunny face's ears on each toe.
+                body.limb("calf_" + side, c0.lerp(c1, 0.55), c0.lerp(c1, 0.62), leg * 1.08, leg * 1.08, accent)
+                toe = f1 + Vector((leg * 0.05, 0, leg * 0.5))
+                for sign in (1, -1):
+                    body.limb("foot_" + side, toe + Vector((0, sign * leg * 0.25, 0)), toe + Vector((-leg * 0.15, sign * leg * 0.35, leg * 0.75)),
+                              leg * 0.18, leg * 0.06, [0.95, 0.92, 0.90], segments=6)
+    if "bunnyCharms" in features:
+        # Plush bunny charms hung on the jacket: white heads with long ears and the cross-stitched eyes of her mark.
+        for bone, at, out in (("spine_02", Vector((d["shoulder"] * 0.7, d["shoulder"] * 0.45, 0)), 1.0),
+                              ("spine_03", Vector((-d["shoulder"] * 0.75, -d["shoulder"] * 0.3, 0)), -1.0),
+                              ("pelvis", Vector((d["hip"] * 0.4, -d["hip"] * 1.1, 0)), 1.0)):
+            b0, b1 = L[bone]
+            centre = (b0 + b1) / 2 + at
+            size = d["shoulder"] * 0.17
+            body.ball(bone, centre, size, [0.95, 0.93, 0.92], segments=8)
+            for sign in (1, -1):
+                body.limb(bone, centre + Vector((0, sign * size * 0.35, size * 0.6)), centre + Vector((0, sign * size * 0.55, size * 2.0)),
+                          size * 0.3, size * 0.12, [0.95, 0.93, 0.92], segments=5)
+                body.box(bone, centre + Vector((out * size * 0.95, sign * size * 0.35, size * 0.15)), (1.0, size * 0.35, size * 0.08), [0.1, 0.05, 0.08],
+                         rotation=Euler((math.radians(45), 0, 0)))
     # Tails ride the tail bones.
     if "fluffyTail" in features:
         for index, name in enumerate(("tail_01", "tail_02", "tail_03")):
@@ -429,7 +474,21 @@ def add_prop(body, prop, L, d, spec):
         body.limb(bone, grip, grip + down * unit * 0.08, unit * 0.004, unit * 0.004, metal)
         body.ball(bone, grip + down * unit * 0.13, unit * 0.045, accent, glow=True, scale=(1.0, 1.0, 1.3))
     elif kind == "ball":
-        body.ball(bone, grip + forward * unit * 0.06, unit * 0.07, accent, glow=True)
+        # A big black, pink and white ball with a cross-eyed bunny face, trailing ribbons of light.
+        centre = grip + forward * unit * 0.1 + Vector((0, 0, unit * 0.02))
+        radius = unit * 0.1
+        body.ball(bone, centre, radius, [0.08, 0.06, 0.07], segments=12)
+        body.limb(bone, centre - Vector((0, 0, radius * 0.25)), centre + Vector((0, 0, radius * 0.25)), radius * 1.02, radius * 1.02, accent, segments=12)
+        face = centre + forward * radius * 0.8
+        body.ball(bone, face, radius * 0.45, [0.95, 0.93, 0.92], scale=(0.35, 1.0, 1.0), segments=8)
+        for sign in (1, -1):
+            body.limb(bone, face + Vector((0, sign * radius * 0.2, radius * 0.3)), face + Vector((-radius * 0.1, sign * radius * 0.3, radius * 0.85)),
+                      radius * 0.13, radius * 0.05, [0.95, 0.93, 0.92], segments=5)
+        for index, sign in enumerate((1, -1)):
+            arc = [centre - forward * radius * (0.8 + k * 1.2) + Vector((0, sign * radius * (0.6 + k * 0.5), radius * math.sin(k * 2.5) * 0.6))
+                   for k in (0.0, 0.5, 1.0, 1.5)]
+            for a, b in zip(arc, arc[1:]):
+                body.limb(bone, a, b, radius * 0.07, radius * 0.04, accent, glow=True, segments=5)
     elif kind == "siegeArm":
         body.limb(bone, grip - forward * unit * 0.25, grip + forward * unit * 0.55, unit * 0.04, unit * 0.03, wood)
         body.limb(bone, grip + forward * unit * 0.55, grip + forward * unit * 0.72, unit * 0.025, unit * 0.002, metal)
@@ -501,7 +560,18 @@ def pose(name, t, melee, d):
         return slumped(d)
     pose, lift = {}, 0.0
     tau = math.tau
-    if name == "Idle":
+    if name == "Idle" and d.get("idle") == "bouncy":
+        # Never still: bouncing on her toes, leaning in, ready to lunge.
+        bounce = abs(math.sin(t * tau * 2))
+        pose["spine_01"] = lean(10)
+        pose["head"] = twist(12 * math.sin(t * tau))
+        for side, sign in (("l", 1), ("r", -1)):
+            pose["upperarm_" + side] = combine(forward_swing(20 + 10 * math.sin(t * tau * 2 + sign)), roll_side(15, sign))
+            pose["lowerarm_" + side] = forward_swing(50)
+            pose["thigh_" + side] = forward_swing(12)
+            pose["calf_" + side] = forward_swing(-24)
+        lift = d["height"] * (0.03 * bounce - 0.02)
+    elif name == "Idle":
         breath = math.sin(t * tau)
         pose["spine_03"] = lean(1.5 * breath)
         pose["head"] = twist(4 * math.sin(t * tau + 1.0))
