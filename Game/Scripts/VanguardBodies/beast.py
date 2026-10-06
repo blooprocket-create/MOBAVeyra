@@ -94,11 +94,17 @@ def body(spec, L, d):
     features = set(spec["features"])
     primary, secondary, accent, detail = spec["primary"], spec["secondary"], spec["accent"], spec["detail"]
     trunk, leg = d["trunk"], d["leg"]
-    # The trunk: hips, belly and chest.
+    # The trunk: hips, belly and chest; a broad beast's wider than it is tall, built low over its legs.
     p0, p1 = L["pelvis"]
-    body.limb("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1, trunk * 0.85, trunk * 0.95, primary)
-    body.limb("spine_01", *L["spine_01"], trunk * 0.95, trunk * 1.0, primary)
-    body.limb("spine_02", *L["spine_02"], trunk * 1.0, trunk * 1.05, primary)
+    if "broadBody" in features:
+        for bone, start, end, size in (("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1, 0.95), ("spine_01", *L["spine_01"], 1.05), ("spine_02", *L["spine_02"], 1.12)):
+            centre = start.lerp(end, 0.5)
+            along = (end - start) * 0.75
+            body.blob(bone, centre, (along, Vector((0, trunk * size * 1.3, 0)), Vector((0, 0, trunk * size * 0.85))), secondary, segments=10)
+    else:
+        body.limb("pelvis", p0 - Vector((trunk * 0.3, 0, 0)), p1, trunk * 0.85, trunk * 0.95, primary)
+        body.limb("spine_01", *L["spine_01"], trunk * 0.95, trunk * 1.0, primary)
+        body.limb("spine_02", *L["spine_02"], trunk * 1.0, trunk * 1.05, primary)
     body.limb("neck_01", *L["neck_01"], trunk * 0.7, trunk * 0.55, primary)
     # Legs: thick above, slender below, a broad paw.
     pairs = [LEGS, HIND] + ([MIDDLE] if d["six"] else [])
@@ -108,6 +114,18 @@ def body(spec, L, d):
             body.limb(lower + "_" + side, *L[lower + "_" + side], trunk * 0.28, trunk * 0.2, secondary)
             f0, f1 = L[foot + "_" + side]
             body.limb(foot + "_" + side, f0, f1, trunk * 0.22, trunk * 0.18, mix(secondary, [0.05, 0.05, 0.05], 0.3))
+            if "claws" in features:
+                # Pale claws splayed ahead of each foot.
+                for claw in (-1, 0, 1):
+                    root = f1 + Vector((0, claw * trunk * 0.12, 0))
+                    body.limb(foot + "_" + side, root, root + Vector((trunk * 0.22, claw * trunk * 0.05, -trunk * 0.08)), trunk * 0.06, trunk * 0.01,
+                              detail, segments=4)
+            if "limbCrystals" in features:
+                # Crimson crystal set into the plates of the upper limb.
+                u0, u1 = L[upper + "_" + side]
+                out = Vector((0, trunk * (0.3 if side == "l" else -0.3), 0))
+                body.limb(upper + "_" + side, u0.lerp(u1, 0.4) + out, u0.lerp(u1, 0.4) + out * 1.8 + Vector((0, 0, trunk * 0.25)), trunk * 0.07, trunk * 0.01,
+                          accent, glow=True, segments=4)
     # The head.
     h0, h1 = L["head"]
     if "wedgeSkull" in features:
@@ -119,26 +137,34 @@ def body(spec, L, d):
         for sign in (1, -1):
             body.ball("head", h0.lerp(h1, 0.45) + Vector((0, sign * trunk * 0.35, trunk * 0.25)), trunk * 0.09, accent, glow="glowEyes" in features)
     if "plates" in features:
-        # Pale bone-coloured mineral plating in overlapping layers along the back and flanks.
-        for bone in ("pelvis", "spine_01", "spine_02", "neck_01"):
+        # Pale bone-coloured mineral plating in rounded overlapping layers over the back and flanks, scuffed lighter
+        # and darker, like a pangolin's.
+        plating = [primary, mix(primary, detail, 0.5), mix(primary, secondary, 0.2), mix(primary, [1.0, 0.97, 0.9], 0.15)]
+        for bone, size, count in (("pelvis", 0.95, 8), ("spine_01", 1.05, 9), ("spine_02", 1.12, 9), ("neck_01", 0.7, 6)):
             b0, b1 = L[bone]
-            for index in range(3):
-                spot = b0.lerp(b1, (index + 0.5) / 3)
-                for sign in (1, -1, 0):
-                    out = Vector((0, sign * trunk * 0.75, trunk * (0.75 if sign == 0 else 0.45)))
-                    body.box(bone, spot + out, (trunk * 0.7, trunk * (0.9 if sign == 0 else 0.25), trunk * (0.25 if sign == 0 else 0.7)),
-                             mix(detail, primary, rng.uniform(0.0, 0.25)), rotation=Euler((sign * 0.35, rng.uniform(-0.1, 0.1), 0)))
+            # Lifted a little so the shingles cover the top and flanks, not the belly.
+            lift = Vector((0, 0, trunk * 0.25))
+            body.shingles(bone, b0 + lift, b1 + lift, trunk * size, plating, rng, count=count, lift=0.25)
     if "crest" in features:
-        # Crimson crystalline spines in a dense dorsal crest, longest over the shoulders, tapering toward the tail.
-        for bone, longest in (("spine_02", 1.0), ("spine_01", 0.75), ("pelvis", 0.5)):
+        # A dense crest of crimson crystal spines, faceted and fanned across the back: longest over the shoulders,
+        # tapering toward the tail. They are what he fires, so they glow.
+        for bone, longest, count in (("spine_02", 1.6, 7), ("spine_01", 1.15, 6), ("pelvis", 0.7, 5)):
             b0, b1 = L[bone]
-            for index in range(4):
-                base = b0.lerp(b1, (index + 0.5) / 4) + Vector((0, rng.uniform(-0.4, 0.4) * trunk, trunk * 0.85))
-                rise = trunk * longest * rng.uniform(0.9, 1.3)
-                body.limb(bone, base, base + Vector((-rise * 0.35, 0, rise)), trunk * 0.12, trunk * 0.02, accent, glow=True, segments=5)
+            for index in range(count):
+                across = (index % 3 - 1) * 0.35 + rng.uniform(-0.1, 0.1)
+                base = b0.lerp(b1, (index + 0.5) / count) + Vector((0, across * trunk, trunk * 0.9))
+                rise = trunk * longest * rng.uniform(0.75, 1.15)
+                tilt = Vector((-rise * 0.4, across * rise * 0.5, rise))
+                body.limb(bone, base, base + tilt, trunk * 0.16, trunk * 0.02, accent, glow=True, segments=4)
         for index in range(3):
-            spot = L["tail_01"][0].lerp(L["tail_03"][1], (index + 0.5) / 3) + Vector((0, 0, trunk * 0.35))
-            body.limb("tail_0" + str(index + 1), spot, spot + Vector((-trunk * 0.2, 0, trunk * 0.4)), trunk * 0.08, trunk * 0.01, accent, glow=True, segments=5)
+            spot = L["tail_01"][0].lerp(L["tail_03"][1], (index + 0.5) / 3) + Vector((0, 0, trunk * 0.3))
+            body.limb("tail_0" + str(index + 1), spot, spot + Vector((-trunk * 0.25, 0, trunk * (0.45 - index * 0.1))), trunk * 0.1, trunk * 0.01, accent,
+                      glow=True, segments=4)
+    if "chestCrystals" in features:
+        n0, n1 = L["neck_01"]
+        for sign in (1, -1):
+            spot = n0.lerp(n1, 0.2) + Vector((trunk * 0.3, sign * trunk * 0.4, -trunk * 0.1))
+            body.limb("neck_01", spot, spot + Vector((trunk * 0.25, sign * trunk * 0.15, trunk * 0.2)), trunk * 0.08, trunk * 0.01, accent, glow=True, segments=4)
     if "ruff" in features:
         # A thick cream-white ruff at the chest.
         n0, n1 = L["neck_01"]
