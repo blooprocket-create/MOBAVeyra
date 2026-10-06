@@ -91,8 +91,9 @@ foreach ($folder in $dropped) { Remove-Item -LiteralPath $folder -Recurse }
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
 $script = Join-Path $PSScriptRoot 'ImportVanguardBodies.py'
 $log = Join-Path $saved 'Import.log'
-[string[]]$importOnly = if ($selected.Count -gt 0 -or $importNone) { @("-VeyraOnly=$($selected -join ',')") } else { @() }
-& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" @importOnly *> (Join-Path $saved 'Import-console.log')
+# Named apart from -ImportOnly: PowerShell's names ignore case, so one called importOnly would overwrite the switch.
+[string[]]$veyraOnly = if ($selected.Count -gt 0 -or $importNone) { @("-VeyraOnly=$($selected -join ',')") } else { @() }
+& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-nullrhi' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" @veyraOnly *> (Join-Path $saved 'Import-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath $log -SimpleMatch 'VEYRA_VANGUARD_BODIES_IMPORTED' -Quiet)) {
     throw "The Vanguard bodies were not imported. See $log"
 }
