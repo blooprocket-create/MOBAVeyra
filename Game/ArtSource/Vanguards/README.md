@@ -99,7 +99,9 @@ section 9. The existing LFS rules cover the FBX files.
 - **Rebuild everything, rewrite what changed:** each body also records a hash of its content (vertices, weights,
   colours, skeleton, every key). A rebuild that gives a body the same content keeps its FBX and imported assets, and
   `BuildVanguardBodies.ps1` imports only the Vanguards whose bodies changed, still rewriting the art set. After any
-  change to the generator's code, run it without `-Vanguards`.
+  change to the generator's code, run it without `-Vanguards`. A body the kit removes or renames is dropped whole:
+  its FBX by the generator and its imported folder by the build, after the same lock check, so nothing unreferenced
+  stays tracked or cooked.
 - **Binding at rest:** every bone has skin (an unused one gets a speck), and every FBX begins with a one-frame rest
   take (`_Bind`, removed on import), so a skeleton always binds at rest and the import measures the rest pose.
 

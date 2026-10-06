@@ -81,6 +81,14 @@ def stale_assets(kit, vanguards, assets, generator=None, blender=None):
     return changed + missing
 
 
+def removed_assets(previous, current, only=None):
+    """The bodies a build drops, by their previous manifest assets: those of the Vanguards it made (every one, or only
+    those named) that its manifest no longer holds by name, a body the kit removed or renamed. Their FBX and imported
+    assets go with them, so nothing unreferenced stays tracked or cooked."""
+    names = {asset["name"] for asset in current}
+    return [asset for asset in previous if (only is None or asset["id"] in only) and asset["name"] not in names]
+
+
 def pinned_blender(kit, version):
     """Whether version (as Blender gives it, "5.2.0") is the release the kit pins (its "blender", major.minor)."""
     return version is not None and version.split(".")[:2] == kit["blender"].split(".")[:2]

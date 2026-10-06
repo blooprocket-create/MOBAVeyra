@@ -38,6 +38,7 @@ $engine = Resolve-VeyraEngineRoot -ProjectFile $project -EngineRoot $EngineRoot
 $saved = Join-Path $game 'Saved/VanguardKit'
 New-Item -ItemType Directory -Force -Path $saved | Out-Null
 $importNone = $false
+$removedNames = @()
 if (-not $ImportOnly) {
     if (-not $Blender) {
         $command = Get-Command blender -ErrorAction SilentlyContinue
@@ -49,7 +50,9 @@ if (-not $ImportOnly) {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $saved 'Blender.log') -SimpleMatch 'VEYRA_VANGUARD_BODIES_PASSED' -Quiet)) {
         throw "Blender failed. See $saved/Blender.log"
     }
-    Select-String -LiteralPath (Join-Path $saved 'Blender.log') -Pattern 'VEYRA_VANGUARD_BODY(_UNCHANGED)?: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
+    Select-String -LiteralPath (Join-Path $saved 'Blender.log') -Pattern 'VEYRA_VANGUARD_BODY(_UNCHANGED|_REMOVED)?: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
+    # The bodies it dropped (removed or renamed in the kit): their FBX went with them, and their imported assets go below.
+    $removedNames = @(Get-Content -LiteralPath (Join-Path $saved 'removed.json') -Raw | ConvertFrom-Json)
     # A body rebuilt as it was kept its FBX, and keeps its imported assets: only the Vanguards whose bodies changed are
     # imported again (the art set is written whatever changed).
     $Vanguards = @(Get-Content -LiteralPath (Join-Path $saved 'changed.json') -Raw | ConvertFrom-Json)
@@ -71,6 +74,8 @@ foreach ($asset in $manifest.assets) {
     $folder = Join-Path $destination $asset.name.Substring('SK_'.Length)
     if (Test-Path -LiteralPath $folder) { $replaced += @(Get-ChildItem -LiteralPath $folder -Filter *.uasset) }
 }
+$dropped = @($removedNames | ForEach-Object { Join-Path $destination $_.Substring('SK_'.Length) } | Where-Object { Test-Path -LiteralPath $_ })
+foreach ($folder in $dropped) { $replaced += @(Get-ChildItem -LiteralPath $folder -Filter *.uasset) }
 # Every import also rewrites the bodies' material and the art set (ImportVanguardBodies.py). Each file it will write is
 # checked before any is removed, so a missing lock stops the build with nothing changed.
 $shared = @('M_VeyraVanguardBody.uasset', 'DA_VanguardArt.uasset') | ForEach-Object { Join-Path $destination $_ } |
@@ -80,6 +85,7 @@ if ($locked.Count -gt 0) {
     throw "Acquire the Git LFS locks before reimporting; nothing was removed or imported:`n$(($locked | ForEach-Object FullName) -join "`n")"
 }
 foreach ($file in $replaced) { Remove-Item -LiteralPath $file.FullName }
+foreach ($folder in $dropped) { Remove-Item -LiteralPath $folder -Recurse }
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
 $script = Join-Path $PSScriptRoot 'ImportVanguardBodies.py'
 $log = Join-Path $saved 'Import.log'
