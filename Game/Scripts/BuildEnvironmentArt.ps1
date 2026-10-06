@@ -8,7 +8,7 @@
     reimport, per ADR-006 section 9. Review the source README before replacing assets.
 .PARAMETER Materials
     Rebuilds only the kit's materials named (such as M_CrucibleGlyph) from its look, without
-    running Blender or importing any mesh.
+    running Blender, importing any mesh or checking the meshes against their source.
 #>
 [CmdletBinding()]
 param(

@@ -8,7 +8,7 @@
     reimport, per ADR-006 section 9. Review the source README before replacing assets.
 .PARAMETER Materials
     Rebuilds only the kit's materials named (such as M_FluxbornFlux) from FluxbornKit.json,
-    without running Blender or importing any mesh. The kit's manifest still has to match it.
+    without running Blender, importing any mesh or checking the meshes against their source.
 #>
 [CmdletBinding()]
 param(

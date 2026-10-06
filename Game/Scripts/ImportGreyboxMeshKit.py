@@ -26,15 +26,16 @@ def import_kit(game, source_folder, kit_filename, destination, saved_folder, suc
     assert not (VERIFY_ONLY and NAMED is not None), "Verify the saved assets or rebuild materials, not both"
     MANIFEST = json.loads((SOURCE / "manifest.json").read_text())
     world_bytes = (GAME / "Tuning" / "World.json").read_bytes()
-    if "worldSha256" in MANIFEST:
+    # The meshes must match their source only when they are imported or verified, not when materials alone are rebuilt.
+    if NAMED is None and "worldSha256" in MANIFEST:
         assert MANIFEST["worldSha256"] == hashlib.sha256(world_bytes).hexdigest(), "Regenerate after World.json changes."
-    else:
+    elif NAMED is None:
         units = json.loads(world_bytes)["fluxborn"]["units"]
         footprints = {key: {field: value[field] for field in ("capsuleRadius", "capsuleHalfHeight")} for key, value in units.items()}
         assert MANIFEST["footprintsCm"] == footprints, "Regenerate after Fluxborn footprint changes."
         assert MANIFEST["kitSha256"] == hashlib.sha256((SOURCE / kit_filename).read_bytes()).hexdigest(), "Regenerate after art settings change."
     # Validate the complete source set before mutating any Unreal assets.
-    for entry in MANIFEST["assets"]:
+    for entry in MANIFEST["assets"] if NAMED is None else []:
         source_file = (SOURCE / entry["file"]).resolve()
         assert source_file.is_relative_to(SOURCE.resolve()), "FBX path escapes source kit"
         assert hashlib.sha256(source_file.read_bytes()).hexdigest() == entry["sha256"], "FBX differs from manifest"

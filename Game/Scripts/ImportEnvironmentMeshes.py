@@ -25,8 +25,6 @@ DEST = "/Game/Veyra/World/Environment"
 TEXTURES = DEST + "/Terrain/Textures"
 KIT = json.loads((SOURCE / "CrucibleKit.json").read_text(encoding="utf-8"))
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
-STALE = stale(GAME)
-assert not STALE, STALE
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 # The legacy FBX importer, which honours the options below; set here, since a command-line -ExecCmds may run only after
 # this script has begun importing.
@@ -199,6 +197,9 @@ BUILDS = {
 # Materials named on the command line are rebuilt alone, and no mesh is imported; otherwise everything is.
 NAMED = materials_named([name for name, _ in BUILDS.values()])
 SELECTED = {slot: (name, build) for slot, (name, build) in BUILDS.items() if NAMED is None or name in NAMED}
+# The meshes must have been generated from this kit only when they are imported (CI checks the committed pair too).
+STALE = stale(GAME) if NAMED is None else None
+assert not STALE, STALE
 # Nothing changes until every asset this run rewrites is writable.
 refuse_locked(GAME, [f"{DEST}/Materials/{name}" for name, _ in SELECTED.values()]
               + ([] if NAMED is not None else [f"{DEST}/Meshes/{spec['name']}" for spec in MANIFEST["assets"]]))

@@ -55,11 +55,14 @@ runtime plugin or project setting changes are required.
 Use `-VerifyOnly` to check the saved Unreal meshes without changing any assets;
 its report is `Game/Saved/FluxbornKit/unreal-verify.json`. Use
 `-Materials M_FluxbornFlux` to rebuild only the named materials, without
-importing a mesh. The manifest hashes the whole kit, materials included (the
-generator writes them into its Blender scene and exports), so after a change to a
-material's values run `GenerateFluxbornMeshes.py` first: its manifest then
-matches the kit, and the meshes need no reimport when their triangles and
-dimensions are unchanged.
+importing a mesh or checking the meshes against their source. The manifest
+hashes the whole kit, materials included (the generator writes them into its
+Blender scene and exports), so after a change to a material's values run the
+generator again before the next full import. It keeps every FBX whose content
+comes out unchanged, its bytes and its hash, and records each mesh's
+`contentSha256` (`Game/Scripts/fbx_content.py`). A material's own values are not
+content, since the importer builds materials from the kit, so a glow change
+rewrites only the manifest.
 
 - `FluxbornKit.json`: editable palette, art proportions, geometry budgets and
   preview settings; no gameplay tuning.

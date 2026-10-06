@@ -22,7 +22,6 @@ SAVED = GAME / "Saved" / "StructureKit"
 DEST = "/Game/Veyra/World/Structures/Greybox"
 KIT = json.loads((SOURCE / "StructureKit.json").read_text())
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text())
-assert MANIFEST["worldSha256"] == hashlib.sha256((GAME / "Tuning" / "World.json").read_bytes()).hexdigest(), "Regenerate after World.json changes."
 PROBLEMS = surface_problems(KIT)
 assert not PROBLEMS, "StructureKit.json: " + "; ".join(PROBLEMS)
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
@@ -31,6 +30,9 @@ TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 EDITOR = unreal.get_default_object(unreal.StaticMeshEditorSubsystem)
 # Materials named on the command line are rebuilt alone, and no mesh is imported; otherwise everything is.
 NAMED = materials_named([spec["name"] for spec in KIT["materials"]])
+# The meshes must match their source only when they are imported.
+if NAMED is None:
+    assert MANIFEST["worldSha256"] == hashlib.sha256((GAME / "Tuning" / "World.json").read_bytes()).hexdigest(), "Regenerate after World.json changes."
 SELECTED = [spec for spec in KIT["materials"] if NAMED is None or spec["name"] in NAMED]
 refuse_locked(GAME, [DEST + "/Materials/" + spec["name"] for spec in SELECTED]
               + ([] if NAMED is not None else [DEST + "/Meshes/" + spec["name"] for spec in MANIFEST["assets"]]))

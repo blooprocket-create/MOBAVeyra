@@ -19,6 +19,7 @@ import unreal
 GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
 sys.path.insert(0, str(GAME / "Scripts"))
 from PresentationMaterials.spec import GENERATOR_VERSION, RULES, validate  # noqa: E402
+from veyra_material_graph import unexposed  # noqa: E402
 
 SPEC_FILE = GAME / "ArtSource" / "Presentation" / "PresentationMaterials.json"
 SPEC = json.loads(SPEC_FILE.read_text())
@@ -36,15 +37,6 @@ def expression(material, kind, x, y, **properties):
     for key, value in properties.items():
         node.set_editor_property(key, value)
     return node
-
-
-def unexposed(material, glow, x, y):
-    """glow x the inverse of the scene's exposure: an emissive that reads the same under any light."""
-    exposure = expression(material, unreal.MaterialExpressionEyeAdaptationInverse, x - 200, y + 100)
-    result = expression(material, unreal.MaterialExpressionMultiply, x, y)
-    assert EDIT.connect_material_expressions(glow, "", result, "A"), "glow"
-    assert EDIT.connect_material_expressions(exposure, "", result, "B"), "exposure"
-    return result
 
 
 def build_overlay_flash(material, spec):
