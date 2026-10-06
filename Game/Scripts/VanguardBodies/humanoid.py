@@ -40,6 +40,10 @@ CARRY_UPPER_ARM = 20.0
 CARRY_ROLL_IN = 8.0
 CARRY_FOREARM = 140.0
 CARRY_FLAT_UP = 40.0
+# A lantern held out at arm's length: the arm's raise forward and out, and the elbow's bend, in degrees.
+LANTERN_RAISE = 60.0
+LANTERN_OUT = 15.0
+LANTERN_ELBOW = 10.0
 # The upper body, which alone plays an attack, a cast or a hit while the body runs; the bone a pose lifts; and whether
 # the body stands on the ground.
 UPPER_BODY_BONE = "spine_01"
@@ -142,7 +146,7 @@ def layout(spec, capsule):
             L["lowerarm_" + side] = (elbow, wrist)
             L["hand_" + side] = (wrist, grips[side])
             L["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
-    elif stance not in (None, "shoulderCarry"):
+    elif stance not in (None, "shoulderCarry", "lanternOut"):
         # A carry (carry_pose) poses the arm; its rest is the figure's own.
         raise AssertionError("Unknown stance: " + stance)
     strike = spec.get("strike", {"style": "swing", "hand": "right"})
@@ -263,6 +267,21 @@ def body(spec, L, d, bones=BONES):
     if "hood" in features:
         # Set back so the face shows through its opening.
         body.ball("head", head_center + Vector((-head_radius * 0.4, 0, head_radius * 0.15)), head_radius * 1.15, primary, scale=(1.0, 1.0, 1.05))
+    if "deepHood" in features:
+        # A deep hood that holds most of the face in shadow: a cowl reaching forward past the brow, the opening dark,
+        # a band of dark markings across the eyes, and only the chin catching the light.
+        hood = spec.get("hood", primary)
+        body.ball("head", head_center + Vector((-head_radius * 0.3, 0, head_radius * 0.2)), head_radius * 1.25, hood, scale=(1.05, 1.0, 1.1), segments=10)
+        body.limb("head", head_center + Vector((head_radius * 0.2, 0, head_radius * 0.25)), head_center + Vector((head_radius * 1.15, 0, head_radius * 0.35)),
+                  head_radius * 1.15, head_radius * 0.95, hood, segments=10)
+        body.ball("head", head_center + Vector((head_radius * 0.92, 0, head_radius * 0.05)), head_radius * 0.72, [0.03, 0.03, 0.04], scale=(0.3, 1.0, 0.85), segments=8)
+        body.box("head", head_center + Vector((head_radius * 0.98, 0, head_radius * 0.05)), (1.0, head_radius * 1.0, head_radius * 0.16), [0.01, 0.01, 0.02])
+        body.limb("neck_01", *L["neck_01"], head_radius * 1.15, head_radius * 1.0, hood, segments=10)
+        # Its cloth falls to a soft peak behind the crown and drapes over the shoulders as a mantle.
+        body.limb("head", head_center + Vector((-head_radius * 0.6, 0, head_radius * 0.7)), head_center + Vector((-head_radius * 1.6, 0, head_radius * 0.3)),
+                  head_radius * 0.75, head_radius * 0.1, hood, segments=8)
+        n0, n1 = L["neck_01"]
+        body.limb("spine_03", n0 + Vector((0, 0, head_radius * 0.2)), n0 - Vector((0, 0, d["torso"] * 0.22)), head_radius * 1.3, d["shoulder"] * 1.18, hood, segments=10)
     if "hoodDown" in features:
         body.limb("neck_01", *L["neck_01"], head_radius * 1.1, head_radius * 0.9, spec.get("hood", secondary))
     if "wideHat" in features:
@@ -282,15 +301,15 @@ def body(spec, L, d, bones=BONES):
                 lean = -0.9 if "sweptEars" in features else -0.2
                 body.limb("head", head_center + Vector((0, sign * head_radius * 0.5, head_radius * 0.6)),
                           head_center + Vector((head_radius * lean, sign * head_radius * 0.8, head_radius * 2.3)), head_radius * 0.3, head_radius * 0.05, skin)
-    # Arms; mechanical arms are metal from the shoulder.
-    arm_color = metal if "mechanicalArms" in features else skin
+    # Arms; mechanical arms are metal from the shoulder, and long sleeves and gloves cover the forearms and hands.
+    arm_color = metal if "mechanicalArms" in features else spec.get("sleeves", skin)
     for side in ("l", "r"):
         body.limb("clavicle_" + side, *L["clavicle_" + side], limb * 1.2, limb * 1.25, primary)
         body.limb("upperarm_" + side, *L["upperarm_" + side], limb * 1.25, limb * 1.0, primary)
         body.limb("lowerarm_" + side, *L["lowerarm_" + side], limb * 1.0, limb * 0.85, arm_color)
         h0, h1 = L["hand_" + side]
         # Big hands read at a distance.
-        body.ball("hand_" + side, (h0 + h1) / 2, limb * 1.35, arm_color)
+        body.ball("hand_" + side, (h0 + h1) / 2, limb * 1.35, spec.get("gloves", arm_color))
     # Legs and feet; boots in the secondary colour. Shorts leave the legs bare below them.
     bare = "shorts" in features
     for side in ("l", "r"):
@@ -486,6 +505,61 @@ def body(spec, L, d, bones=BONES):
         body.ball("pelvis", knot, unit * 0.025, sash, segments=8)
         for spread in (-0.4, 0.4):
             body.limb("pelvis", knot, knot + Vector((d["hip"] * 0.2 * spread, d["hip"] * 0.25, -unit * 0.16)), unit * 0.018, unit * 0.01, sash, segments=6)
+    if "ribbonHems" in features:
+        # Storm cloth cut into long ribbons at every hem, so her edges move with the air: round the coat's skirt (on the
+        # thighs, swinging as she walks), from the sleeves, and down the back (on the cape bones, streaming as she runs).
+        cloth = [primary, secondary, mix(primary, secondary, 0.5), mix(primary, [0.75, 0.80, 0.85], 0.2)]
+        hem_z = p0.z - d["leg"] * 0.55
+        for index in range(12):
+            around = index / 12 * math.tau
+            side = "l" if math.sin(around) >= 0 else "r"
+            out = Vector((math.cos(around), math.sin(around), 0))
+            top = Vector((p0.x, p0.y, hem_z)) + out * d["hip"] * 1.45
+            length = d["leg"] * random.uniform(0.18, 0.4)
+            body.slab("thigh_" + side, top + Vector((0, 0, d["leg"] * 0.06)), top + out * d["hip"] * 0.15 - Vector((0, 0, length)), d["hip"] * 0.36, 1.5,
+                      cloth[index % len(cloth)])
+        for side in ("l", "r"):
+            e0, e1 = L["lowerarm_" + side]
+            for strip in range(3):
+                start = e0.lerp(e1, 0.75) + Vector((0, (strip - 1) * limb * 0.7, 0))
+                body.slab("lowerarm_" + side, start, start + (e1 - e0).normalized() * limb * random.uniform(3.5, 5.5) - Vector((0, 0, limb * 1.5)),
+                          limb * 0.6, 1.2, cloth[(strip + 1) % len(cloth)])
+        for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
+            c0, c1 = L[name]
+            for strip in range(3):
+                across = Vector((0, (strip - 1) * d["shoulder"] * 0.5, 0))
+                body.slab(name, c0 + across, c1 + across + (c1 - c0) * 0.1, d["shoulder"] * 0.32, 1.5, cloth[(index + strip) % len(cloth)])
+    if "pilotGear" in features:
+        # A heavy chained coat hung with working navigational gear: chains across the chest, tuned bells, sea-glass,
+        # keys and small weights on them, and a ship's-wheel charm at the belt. Every piece is a tool.
+        iron, brass, glass = [0.22, 0.22, 0.24], [0.72, 0.58, 0.30], spec.get("seaGlass", [0.35, 0.75, 0.70])
+        unit = d["height"]
+        s0, s1 = L["spine_02"]
+        front = (s0 + s1) / 2 + Vector((d["shoulder"] * 0.8, 0, 0))
+        for drop in (0.0, 1.0):
+            chain = [front + Vector((-d["shoulder"] * 0.25, d["shoulder"] * 0.7, d["torso"] * (0.2 - drop * 0.18))),
+                     front + Vector((0, 0, -d["torso"] * (0.05 + drop * 0.18))),
+                     front + Vector((-d["shoulder"] * 0.25, -d["shoulder"] * 0.7, d["torso"] * (0.2 - drop * 0.18)))]
+            chain_links(body, "spine_02", chain, unit * 0.011, iron)
+        hung = [(0.25, "bell"), (0.45, "glass"), (0.6, "key"), (0.8, "bell"), (0.35, "weight")]
+        for at, kind in hung:
+            spot = front + Vector((0, d["shoulder"] * (0.7 - at * 1.4), -d["torso"] * (0.05 + 0.15 * (1 - abs(at - 0.5) * 2))))
+            if kind == "bell":
+                body.limb("spine_02", spot, spot - Vector((0, 0, unit * 0.03)), unit * 0.006, unit * 0.017, brass, segments=8)
+            elif kind == "glass":
+                body.blob("spine_02", spot - Vector((0, 0, unit * 0.015)), (Vector((unit * 0.006, 0, 0)), Vector((0, unit * 0.01, 0)), Vector((0, 0, unit * 0.017))),
+                          glass, glow=True, segments=4)
+            elif kind == "key":
+                body.limb("spine_02", spot, spot - Vector((0, 0, unit * 0.035)), unit * 0.003, unit * 0.003, brass, segments=4)
+                body.limb("spine_02", spot - Vector((0, 0, unit * 0.03)), spot - Vector((0, -unit * 0.01, unit * 0.03)), unit * 0.003, unit * 0.003, brass, segments=4)
+            else:
+                body.ball("spine_02", spot - Vector((0, 0, unit * 0.012)), unit * 0.009, iron, segments=6)
+        wheel = p1 + Vector((d["hip"] * 0.9, d["hip"] * 0.75, -unit * 0.04))
+        body.limb("pelvis", wheel - Vector((unit * 0.002, 0, 0)), wheel + Vector((unit * 0.002, 0, 0)), unit * 0.025, unit * 0.025, brass, segments=10)
+        for spoke in range(4):
+            angle = spoke / 4 * math.pi
+            reach = Vector((0, math.cos(angle), math.sin(angle))) * unit * 0.034
+            body.limb("pelvis", wheel - reach, wheel + reach, unit * 0.003, unit * 0.003, brass, segments=4)
     if "wrapBindings" in features:
         # Soft dark cloth wound round the forearms and shins, cut to move silently.
         wrap = spec.get("wrap", mix(primary, [0.35, 0.35, 0.38], 0.18))
@@ -733,6 +807,19 @@ def add_prop(body, prop, L, d, spec):
     elif kind == "lantern":
         body.limb(bone, grip, grip + down * unit * 0.08, unit * 0.004, unit * 0.004, metal)
         body.ball(bone, grip + down * unit * 0.13, unit * 0.045, accent, glow=True, scale=(1.0, 1.0, 1.3))
+    elif kind == "pilotLantern":
+        # A large pilot's lantern hung on its chain from the hand, burning cold blue-white inside an iron cage: the
+        # brightest thing about her, and the point allies steer by.
+        iron = [0.20, 0.20, 0.22]
+        chain_links(body, bone, [grip, grip + down * unit * 0.1], unit * 0.008, iron)
+        centre = grip + down * unit * 0.19
+        body.limb(bone, centre + down * unit * 0.08, centre + down * unit * 0.095, unit * 0.06, unit * 0.06, iron, segments=8)
+        body.limb(bone, centre - down * unit * 0.07, centre - down * unit * 0.1, unit * 0.055, unit * 0.025, iron, segments=8)
+        body.ball(bone, centre, unit * 0.055, mix(accent, [1.0, 1.0, 1.0], 0.4), glow=True, scale=(1.0, 1.0, 1.35), segments=10)
+        for bar in range(4):
+            angle = bar / 4 * math.tau + math.pi / 4
+            out = Vector((math.cos(angle), math.sin(angle), 0)) * unit * 0.058
+            body.limb(bone, centre + out - down * unit * 0.07, centre + out + down * unit * 0.08, unit * 0.004, unit * 0.004, iron, segments=4)
     elif kind == "ball":
         # A big black, pink and white ball with a cross-eyed bunny face, trailing ribbons of light.
         centre = grip + forward * unit * 0.1 + Vector((0, 0, unit * 0.02))
@@ -986,6 +1073,8 @@ def pose(name, t, melee, d):
         aim_pose(pose, name, t, melee)
     if d.get("stance") == "shoulderCarry":
         carry_pose(pose, name, t)
+    if d.get("stance") == "lanternOut":
+        lantern_pose(pose, name, t)
     if d.get("kneel") and name != "Death":
         # Dug in: down on one knee, braced, whatever the upper body does.
         pose["thigh_l"] = forward_swing(80)
@@ -1071,6 +1160,19 @@ def carry_pose(pose, name, t):
     pose["lowerarm_r"] = forward_swing(CARRY_FOREARM)
     # The blade's flat turned up a little about its length, so the camera above sees its breadth, not its edge.
     pose["hand_r"] = roll_side(CARRY_FLAT_UP, -1)
+
+
+def lantern_pose(pose, name, t):
+    """A lantern held out at arm's length before her on its chain: the left arm raised forward and out, the hand turned
+    back as far so the lantern hangs plumb beneath it, swaying a little as she walks or runs. A cast lifts it with both
+    hands; a fall drops it."""
+    if name not in ("Idle", "Run", "Hit", "Recall", "AttackWindup", "AttackStrike"):
+        return
+    sway = (3 if name == "Idle" else 7 if name == "Run" else 0) * math.sin(t * math.tau)
+    raise_ = LANTERN_RAISE + sway
+    pose["upperarm_l"] = combine(forward_swing(raise_), roll_side(LANTERN_OUT, 1))
+    pose["lowerarm_l"] = forward_swing(LANTERN_ELBOW)
+    pose["hand_l"] = combine(forward_swing(-(raise_ + LANTERN_ELBOW)), roll_side(-LANTERN_OUT, 1))
 
 
 def aim_pose(pose, name, t, melee):

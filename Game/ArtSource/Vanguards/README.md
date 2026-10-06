@@ -149,7 +149,11 @@ section 9. The existing LFS rules cover the FBX files.
   collar (`formalVest`), every house mark cut out (`cutInsignia`), a `crossedToken` at his hip, his long sword sheathed
   across his back with its hilt over his left shoulder, a dagger in his right hand and throwing `needles` in his left.
   He shows Veil Stance, his own; Blade Stance swaps his slots rather than holding a status, so the body does not yet
-  draw the sword for it.
+  draw the sword for it. Sylra holds a large `pilotLantern` out at arm's length (`lanternOut`: the arm raised forward
+  and out, the hand turned back so the lantern hangs plumb) under a `deepHood` that peaks behind and drapes her
+  shoulders, her face in shadow but for a band of dark markings. Her grey-blue storm cloth is cut into ribbons at every
+  hem (`ribbonHems`); her sleeves and gloves cover her arms (`sleeves`, `gloves`); her chained coat carries working
+  `pilotGear` (bells, sea-glass, keys, weights, a ship's-wheel charm); and `NS_VeyraMist` gathers round her hem.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:

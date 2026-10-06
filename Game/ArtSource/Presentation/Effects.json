@@ -63,6 +63,23 @@
       ]
     },
     {
+      "name": "NS_VeyraMist",
+      "purpose": "ADR-064 §1: mist that gathers round a body and moves with it (Sylra), welling up off its hem and legs; soft pale clumps of stylized cloud that drift a little, rise and thin away, in the colour the body gives.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam",
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [3] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [1.2] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [2.0] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "18 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "30 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "expression": "22 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [15] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 10] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] }
+      ]
+    },
+    {
       "name": "NS_VeyraEmbers",
       "purpose": "ADR-064 §1: a molten body shedding embers (Varkesh), off its hands, forearms and core as it moves; small glowing flecks of stylized cloud that rise, cool and erode, in the colour the body gives.",
       "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
