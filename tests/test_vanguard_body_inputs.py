@@ -165,6 +165,17 @@ class VanguardBodyInputs(unittest.TestCase):
             # A patch release of the pinned one is that release.
             self.assertEqual(inputs.stale_in(self.project(folder, blender="5.2.1")), [])
 
+    def test_a_build_drops_the_bodies_the_kit_no_longer_makes_and_only_among_those_it_built(self):
+        previous = built(KIT, VANGUARDS)
+        # The ride body renamed (a new name for the same status) and Vanguard b removed.
+        kit = copy.deepcopy(KIT)
+        kit["vanguards"][0]["statusBodies"][0]["name"] = "Mount"
+        del kit["vanguards"][1]
+        current = built(kit, VANGUARDS)
+        self.assertEqual([asset["name"] for asset in inputs.removed_assets(previous, current)], ["SK_A_Ride", "SK_B"])
+        # A build of a alone keeps b's bodies, which it did not make.
+        self.assertEqual([asset["name"] for asset in inputs.removed_assets(previous, current, only={"a"})], ["SK_A_Ride"])
+
     @staticmethod
     def copy_generator(game):
         """The generator's code, as the project beside its manifest holds it."""

@@ -182,12 +182,20 @@ void VeyraVanguardAnim::Advance(FVeyraVanguardAnimState& State, float DeltaSecon
 	{
 		NoteCue(State, EVeyraCombatCueKind::CastWindup, 0.0f, Shape);
 	}
-	// A windup held at its end gives way once nothing holds it: an attack's that will not commit fades out, and a cast's
-	// hands lower. A channel keeps them at the release. Only a held pose gives way, so inputs a frame behind the cues
-	// cut nothing short.
+	// A windup gives way once nothing holds it: an attack's that will not commit fades out, and a cast's hands lower. A
+	// channel keeps them at the release. An attack's cancelled midway (a move order, a new target: its input seen and
+	// now gone while its blow is more than a blend away) fades at once, so no strike shows that will not land. Its input a
+	// frame behind its cue (not yet seen), or its commit a frame behind its input (within a blend of the blow), cuts
+	// nothing short: held at its end, it waits for that commit and gives way only if none comes.
 	FVeyraVanguardAnimSlot& Held = State.Current;
 	const bool bAtHold = Held.HoldAt >= 0.0f && Held.Position >= Held.HoldAt;
-	if (Held.IsActive() && Held.Clip == EVeyraVanguardClip::AttackWindup && bAtHold && !Inputs.bAttackWindingUp)
+	const bool bWindup = Held.IsActive() && Held.Clip == EVeyraVanguardClip::AttackWindup;
+	if (bWindup && Inputs.bAttackWindingUp)
+	{
+		Held.bHoldSeen = true;
+	}
+	const float ToBlow = Held.Rate > 0.0f ? (Held.HoldAt - Held.Position) / Held.Rate : 0.0f;
+	if (bWindup && !Inputs.bAttackWindingUp && (bAtHold || (Held.bHoldSeen && ToBlow > Shape.BlendSeconds)))
 	{
 		Held.bFadingOut = true;
 	}
