@@ -37,7 +37,8 @@ Run from the repository root with the project's editor built:
 ```
 
 `-Vanguards raska,kade` builds only those Vanguards. `-ImportOnly` imports the FBX
-already written. `-Blender '<path to blender.exe>'` names Blender when it is not
+already written: what the generator has left to import since the last import, or the
+Vanguards `-Vanguards` names. `-Blender '<path to blender.exe>'` names Blender when it is not
 on PATH or in Blender 5.2's default install. Blender 5.2.1 LTS and Unreal 5.8.3
 were used for this pass.
 
