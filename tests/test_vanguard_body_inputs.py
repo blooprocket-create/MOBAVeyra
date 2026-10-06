@@ -38,7 +38,7 @@ def built(kit, vanguards):
     assets = []
     for vanguard in kit["vanguards"]:
         for body, status, suffix in inputs.bodies_of(vanguard):
-            asset = {"id": vanguard["id"], "name": "SK_" + vanguard["id"] + suffix, "inputSha256": inputs.input_hash(kit, vanguards, body)}
+            asset = {"id": vanguard["id"], "name": inputs.body_name(vanguard["id"], suffix), "inputSha256": inputs.input_hash(kit, vanguards, body)}
             if status:
                 asset["status"] = status
             assets.append(asset)
@@ -56,29 +56,29 @@ class VanguardBodyInputs(unittest.TestCase):
         kit["archetypes"]["humanoid"]["animations"]["Run"]["seconds"] = 0.5
         rebuilt = [asset for asset in built(kit, VANGUARDS) if asset["id"] == "a"]
         kept = [asset for asset in assets if asset["id"] != "a"]
-        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, rebuilt + kept), ["SK_b"])
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, rebuilt + kept), ["SK_B"])
 
     def test_the_frame_rate_stales_every_body(self):
         kit = copy.deepcopy(KIT)
         kit["fps"] = 60
-        self.assertEqual(sorted(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS))), ["SK_a", "SK_a_Ride", "SK_b"])
+        self.assertEqual(sorted(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS))), ["SK_A", "SK_A_Ride", "SK_B"])
 
     def test_a_capsule_or_attack_change_stales_that_vanguards_bodies_only(self):
         vanguards = copy.deepcopy(VANGUARDS)
         vanguards["a"]["body"]["capsuleHalfHeight"] = 100
-        self.assertEqual(sorted(inputs.stale_assets(KIT, vanguards, built(KIT, VANGUARDS))), ["SK_a", "SK_a_Ride"])
+        self.assertEqual(sorted(inputs.stale_assets(KIT, vanguards, built(KIT, VANGUARDS))), ["SK_A", "SK_A_Ride"])
         vanguards = copy.deepcopy(VANGUARDS)
         vanguards["b"]["basicAttack"]["projectile"] = []
-        self.assertEqual(inputs.stale_assets(KIT, vanguards, built(KIT, VANGUARDS)), ["SK_b"])
+        self.assertEqual(inputs.stale_assets(KIT, vanguards, built(KIT, VANGUARDS)), ["SK_B"])
 
     def test_a_status_body_is_its_own_entry_over_its_vanguards(self):
         # Its entries over its Vanguard's: a change to the Vanguard's own entry stales the status body too.
         kit = copy.deepcopy(KIT)
         kit["vanguards"][0]["seed"] = 7
-        self.assertEqual(sorted(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS))), ["SK_a", "SK_a_Ride"])
+        self.assertEqual(sorted(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS))), ["SK_A", "SK_A_Ride"])
         kit = copy.deepcopy(KIT)
         kit["vanguards"][0]["statusBodies"][0]["body"]["archetype"] = "humanoid"
-        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_a_Ride"])
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_A_Ride"])
 
     def test_the_preflight_reads_a_project_and_fails_on_a_stale_body(self):
         import json
@@ -100,12 +100,22 @@ class VanguardBodyInputs(unittest.TestCase):
             (game / "ArtSource" / "Vanguards" / "VanguardKit.json").write_text(json.dumps(kit))
             stale = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
             self.assertEqual(stale.returncode, 1)
-            self.assertIn("SK_a_Ride", stale.stdout)
+            self.assertIn("SK_A_Ride", stale.stdout)
 
     def test_a_body_without_a_recorded_input_hash_is_stale(self):
         assets = built(KIT, VANGUARDS)
         del assets[0]["inputSha256"]
-        self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, assets), ["SK_a"])
+        self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, assets), ["SK_A"])
+
+    def test_a_body_the_kit_has_and_the_manifest_lacks_is_stale(self):
+        # A status body added to a Vanguard the last partial build left out: the manifest it kept has no such body.
+        kit = copy.deepcopy(KIT)
+        kit["vanguards"][1]["statusBodies"] = [{"status": "b_form", "name": "Form", "body": {"features": []}}]
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_B_Form"])
+        # And one the kit no longer has is stale too, so the art set is never written from it.
+        kit = copy.deepcopy(KIT)
+        del kit["vanguards"][0]["statusBodies"]
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_A_Ride"])
 
 
 if __name__ == "__main__":
