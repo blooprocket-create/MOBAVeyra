@@ -129,7 +129,7 @@ blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
       <dt>Damage</dt><dd><span class='chip'>magic</span><span class='chip'>utility</span></dd>
       <dt>Basic attack</dt><dd><span class='chip'>physical</span><span class='chip'>melee</span></dd>
       <dt>Resource</dt><dd><span class='chip'>standard</span></dd>
-      <dt>Crowd control</dt><dd><span class='chip'>slow</span><span class='chip'>fear</span><span class='chip'>pull</span></dd>
+      <dt>Crowd control</dt><dd><span class='chip'>slow</span><span class='chip'>fear</span><span class='chip'>pull</span><span class='chip'>knockback</span></dd>
       <dt>Mobility</dt><dd><span class='chip'>leap</span></dd>
       <dt>Grants</dt><dd><span class='chip'>temporary health</span></dd>
       <dt>Stealth</dt><dd><span class="none">none</span></dd>
@@ -146,7 +146,7 @@ blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
     <div class='slot detail'><span class='slot-label'>Detail — portrait</span><span class='slot-file'>portrait.webp</span></div><div class='slot detail'><span class='slot-label'>Detail — weapon / focus</span><span class='slot-file'>weapon.webp</span></div><div class='slot detail'><span class='slot-label'>Detail — material</span><span class='slot-file'>material.webp</span></div><div class='slot detail'><span class='slot-label'>Detail — signature element</span><span class='slot-file'>signature.webp</span></div></div></div>
 </div>
 
-<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>Passive punishes damaging Patch&#x27;s ALLIES, not damaging Patch. Per-enemy individual cooldown.</li><li>Q&#x27;s recast produces a slight opposite-direction stumble, NOT a stun.</li><li>Taunt is not part of Patch&#x27;s canonical kit despite having appeared on the deleted concept sheet.</li><li>R enlarges collision/body presence and enables physical blocking -- requires a collision-scaling primitive.</li><li>The entity inside Patch stays deliberately unexplained; do not resolve it to Flux, Echo or Elsewhere for taxonomy convenience.</li></ul></div>
+<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>Passive punishes damaging Patch&#x27;s ALLIES, not damaging Patch. Per-enemy individual cooldown.</li><li>Q&#x27;s recast produces a slight opposite-direction stumble, NOT a stun.</li><li>Taunt is not part of Patch&#x27;s canonical kit despite having appeared on the deleted concept sheet.</li><li>R enlarges collision/body presence and enables physical blocking -- requires a collision-scaling primitive.</li><li>E siphons its target&#x27;s Health into Patch while the tether holds (author ruling 2026-10-06, ADR-065 8); its pull-back still happens once and breaks the tether.</li><li>R claims the ground around him (ADR-065 8); enemies are shoved away as the bear rises, and its chill also burns.</li><li>The entity inside Patch stays deliberately unexplained; do not resolve it to Flux, Echo or Elsewhere for taxonomy convenience.</li></ul></div>
 
 <div class="prov">
   <strong>Rendered from canon.</strong>

@@ -54,7 +54,7 @@ guards:
   - R enlarges collision/body presence and enables physical blocking -- requires a collision-scaling primitive.
   - E siphons its target's Health into Patch while the tether holds (author ruling 2026-10-06, ADR-065 8); its
     pull-back still happens once and breaks the tether.
-  - R claims the ground around him (ADR-065 8): enemies are shoved away as the bear rises, and its chill also burns.
+  - R claims the ground around him (ADR-065 8); enemies are shoved away as the bear rises, and its chill also burns.
   - The entity inside Patch stays deliberately unexplained; do not resolve it to Flux, Echo or Elsewhere
     for taxonomy convenience.
 sheet:
