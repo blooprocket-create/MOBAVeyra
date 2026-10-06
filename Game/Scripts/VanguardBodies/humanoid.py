@@ -197,6 +197,56 @@ def cupped_ear(body, root, tip, out, width, head_radius, skin, inner_color, tip_
             body.pane("head", [tip, side.lerp(tip, 0.72), fold.lerp(tip, 0.72)], head_radius * 0.18, tip_color)
 
 
+PROSTHETIC_STEEL, PROSTHETIC_BRASS, PROSTHETIC_JOINT = [0.50, 0.50, 0.52], [0.78, 0.60, 0.28], [0.20, 0.20, 0.21]
+
+
+def prosthetic_arm(body, L, side, limb):
+    """A freight-grade arm below the coat sleeve: a brass elbow joint, a forearm of steel bands ringed in brass with a
+    piston along its outside, and an articulated gripping hand, its jointed fingers curled a little and a thumb set
+    against them."""
+    steel, brass, joint = PROSTHETIC_STEEL, PROSTHETIC_BRASS, PROSTHETIC_JOINT
+    out = Vector((0, 1 if side == "l" else -1, 0))
+    e0, e1 = L["lowerarm_" + side]
+    body.ball("lowerarm_" + side, e0, limb * 1.3, brass, segments=8)
+    for band in range(4):
+        a, b = e0.lerp(e1, 0.08 + band * 0.23), e0.lerp(e1, 0.27 + band * 0.23)
+        body.limb("lowerarm_" + side, a, b, limb * (1.15 - band * 0.05), limb * (1.1 - band * 0.05), steel if band % 2 == 0 else mix(steel, joint, 0.4), segments=8)
+        body.limb("lowerarm_" + side, b - (b - a) * 0.15, b + (b - a) * 0.05, limb * (1.22 - band * 0.05), limb * (1.22 - band * 0.05), brass, segments=8)
+    body.limb("lowerarm_" + side, e0.lerp(e1, 0.15) + out * limb * 1.1, e0.lerp(e1, 0.85) + out * limb * 1.0, limb * 0.2, limb * 0.2, brass, segments=6)
+    h0, h1 = L["hand_" + side]
+    along = (h1 - h0).normalized()
+    across = Vector((1, 0, 0))
+    body.ball("hand_" + side, h0, limb * 0.75, joint, segments=8)
+    palm = h0 + along * limb * 0.9
+    body.blob("hand_" + side, palm, (along * limb * 0.85, across * limb * 0.85, out * limb * 0.45), steel, segments=8)
+    for finger in range(4):
+        base = palm + along * limb * 0.8 + across * limb * (finger - 1.5) * 0.45
+        middle = base + along * limb * 0.75 - out * limb * 0.15
+        body.limb("hand_" + side, base, middle, limb * 0.2, limb * 0.18, steel, segments=5)
+        body.limb("hand_" + side, middle, middle + along * limb * 0.55 - out * limb * 0.35, limb * 0.17, limb * 0.13, mix(steel, joint, 0.3), segments=5)
+    thumb = palm + across * limb * 0.75 - out * limb * 0.1
+    body.limb("hand_" + side, thumb, thumb + along * limb * 0.6 - out * limb * 0.45, limb * 0.2, limb * 0.15, steel, segments=5)
+
+
+def prosthetic_leg(body, L, side, leg):
+    """A freight-grade leg from the knee down: a heavy plated knee over a dark joint, a shin of steel bands ringed in
+    brass with a piston down its back, and a jointed foot, its toe plate hinged."""
+    steel, brass, joint = PROSTHETIC_STEEL, PROSTHETIC_BRASS, PROSTHETIC_JOINT
+    c0, c1 = L["calf_" + side]
+    body.ball("calf_" + side, c0, leg * 0.95, joint, segments=8)
+    body.ball("calf_" + side, c0 + Vector((leg * 0.55, 0, 0)), leg * 1.1, mix(brass, joint, 0.25), scale=(0.6, 1.0, 1.15), segments=8)
+    for band in range(3):
+        a, b = c0.lerp(c1, 0.12 + band * 0.28), c0.lerp(c1, 0.36 + band * 0.28)
+        body.limb("calf_" + side, a, b, leg * (0.9 - band * 0.06), leg * (0.84 - band * 0.06), steel, segments=8)
+        body.limb("calf_" + side, b - (b - a) * 0.12, b + (b - a) * 0.04, leg * (0.97 - band * 0.06), leg * (0.97 - band * 0.06), brass, segments=8)
+    body.limb("calf_" + side, c0.lerp(c1, 0.1) - Vector((leg * 0.85, 0, 0)), c1 - Vector((leg * 0.65, 0, 0)), leg * 0.22, leg * 0.22, brass, segments=6)
+    f0, f1 = L["foot_" + side]
+    body.ball("foot_" + side, f0, leg * 0.75, joint, segments=8)
+    body.limb("foot_" + side, f0 - (f1 - f0) * 0.1, f0.lerp(f1, 0.65), leg * FOOT_HEEL_SHARE * 1.2, leg * FOOT_HEEL_SHARE * 1.1, steel, segments=8)
+    body.limb("foot_" + side, f0.lerp(f1, 0.65), f1 + (f1 - f0) * 0.1, leg * FOOT_HEEL_SHARE * 1.05, leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE * 1.1, mix(steel, joint, 0.3),
+              segments=8)
+
+
 def body(spec, L, d, bones=BONES):
     """The figure of simple parts on L's bones. Another archetype's skeleton that holds these bones (a rider's) passes
     its own bone list, so the parts weight to the right vertex groups."""
@@ -341,9 +391,12 @@ def body(spec, L, d, bones=BONES):
     if "wideHat" in features:
         body.limb("head", head_center + Vector((0, 0, head_radius * 0.55)), head_center + Vector((0, 0, head_radius * 0.65)), head_radius * 2.0, head_radius * 2.0, secondary)
         body.limb("head", head_center + Vector((0, 0, head_radius * 0.6)), head_center + Vector((0, 0, head_radius * 1.4)), head_radius * 0.95, head_radius * 0.8, secondary)
-    if "goggles" in features:
-        for sign in (1, -1):
-            body.ball("head", head_center + Vector((head_radius * 0.75, sign * head_radius * 0.35, head_radius * 0.65)), head_radius * 0.22, accent, glow=True)
+    if "burnScar" in features:
+        # An old burn across the right cheek, raw red against the skin, and a scar running up through it.
+        cheek = head_center + Vector((head_radius * 0.74, -head_radius * 0.45, -head_radius * 0.12))
+        body.ball("head", cheek, head_radius * 0.3, mix(skin, [0.65, 0.18, 0.12], 0.55), scale=(0.35, 1.0, 0.8), segments=8)
+        body.limb("head", cheek + Vector((0, head_radius * 0.05, -head_radius * 0.2)), cheek + Vector((head_radius * 0.05, head_radius * 0.15, head_radius * 0.35)),
+                  head_radius * 0.035, head_radius * 0.03, [0.55, 0.15, 0.10], segments=4)
     if "headband" in features:
         # A band round the head holding the hair back off the face.
         body.limb("head", head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.3)), head_center + Vector((-head_radius * 0.12, 0, head_radius * 0.52)),
@@ -395,11 +448,14 @@ def body(spec, L, d, bones=BONES):
     if "roundEars" in features:
         for sign in (1, -1):
             body.ball("head", head_center + Vector((0, sign * head_radius * 0.75, head_radius * 0.75)), head_radius * 0.35, skin)
-    # Arms; mechanical arms are metal from the shoulder, and long sleeves and gloves cover the forearms and hands.
-    arm_color = metal if "mechanicalArms" in features else spec.get("sleeves", skin)
+    # Arms; long sleeves and gloves cover the forearms and hands, and prosthetic arms are machined below the sleeve.
+    arm_color = spec.get("sleeves", skin)
     for side in ("l", "r"):
         body.limb("clavicle_" + side, *L["clavicle_" + side], limb * 1.2, limb * 1.25, primary)
         body.limb("upperarm_" + side, *L["upperarm_" + side], limb * 1.25, limb * 1.0, primary)
+        if "prostheticArms" in features:
+            prosthetic_arm(body, L, side, limb)
+            continue
         body.limb("lowerarm_" + side, *L["lowerarm_" + side], limb * 1.0, limb * 0.85, arm_color)
         h0, h1 = L["hand_" + side]
         # Big hands read at a distance.
@@ -411,6 +467,9 @@ def body(spec, L, d, bones=BONES):
         body.limb("thigh_" + side, t0, t1, leg * 1.15, leg * 0.95, skin if bare else secondary)
         if bare:
             body.limb("thigh_" + side, t0 - (t1 - t0) * 0.1, t0.lerp(t1, 0.4), leg * 1.3, leg * 1.2, secondary)
+        if "prostheticLegs" in features:
+            prosthetic_leg(body, L, side, leg)
+            continue
         body.limb("calf_" + side, *L["calf_" + side], leg * 0.95, leg * 0.75, skin if bare else secondary)
         f0, f1 = L["foot_" + side]
         body.limb("foot_" + side, f0, f1, leg * FOOT_HEEL_SHARE, leg * FOOT_HEEL_SHARE * FOOT_TOE_SHARE, spec.get("feet", mix(secondary, [0.05, 0.05, 0.05], 0.4)))
@@ -516,6 +575,23 @@ def body(spec, L, d, bones=BONES):
         body.limb("pelvis", tube - Vector((hip * 0.65, 0, 0)), tube + Vector((hip * 0.65, 0, 0)), hip * 0.13, hip * 0.13, leather, segments=8)
         body.limb("pelvis", tube + Vector((hip * 0.6, 0, 0)), tube + Vector((hip * 0.72, 0, 0)), hip * 0.11, hip * 0.11, paper, segments=8)
         body.slab("spine_03", L["clavicle_r"][1] + Vector((d["shoulder"] * 0.2, d["shoulder"] * 0.1, 0)), bag + Vector((0, -hip * 0.1, hip * 0.3)), limb * 0.6, 1.5, leather)
+    if "toolBelt" in features:
+        # An engineer's working tools on her belt: pouches round its front and left, and a heavy wrench and a hammer hung
+        # at the right hip.
+        leather, steel, handle = [0.28, 0.18, 0.10], [0.55, 0.55, 0.56], [0.40, 0.26, 0.14]
+        hip = d["hip"]
+        for index in range(3):
+            around = math.radians(-20 + index * 45)
+            body.box("pelvis", p1 + Vector((math.cos(around) * hip * 1.15, math.sin(around) * hip * 1.15, -d["torso"] * 0.06)), (hip * 0.22, hip * 0.32, hip * 0.38),
+                     leather, rotation=Euler((0, 0, around)))
+        hang = p1 + Vector((hip * 0.2, -hip * 1.22, -d["torso"] * 0.08))
+        bottom = hang - Vector((0, 0, d["leg"] * 0.35))
+        body.limb("pelvis", hang, bottom, limb * 0.25, limb * 0.25, steel, segments=6)
+        for sign in (1, -1):
+            body.limb("pelvis", bottom, bottom + Vector((sign * limb * 0.6, 0, -limb * 0.5)), limb * 0.28, limb * 0.22, steel, segments=6)
+        top = hang + Vector((-hip * 0.45, 0, 0))
+        body.limb("pelvis", top, top - Vector((0, 0, d["leg"] * 0.3)), limb * 0.2, limb * 0.2, handle, segments=6)
+        body.box("pelvis", top + Vector((0, 0, limb * 0.2)), (limb * 1.3, limb * 0.5, limb * 0.5), steel)
     if "tornCoat" in features:
         # The coat's hem torn to ribbons, its red lining showing through every rent: strips of different lengths
         # hanging round the skirt, dark and red in turn.
@@ -1387,8 +1463,16 @@ def add_prop(body, prop, L, d, spec):
         for ahead, length in ((0.22, 0.09), (0.12, 0.06)):
             drip = at(ahead, 0.14)
             body.limb(bone, drip, drip + down * unit * length, unit * 0.008, unit * 0.002, slag, segments=5)
-    elif kind == "scroll":
-        body.limb(bone, grip + Vector((0, unit * 0.1, 0)), grip - Vector((0, unit * 0.1, 0)), unit * 0.025, unit * 0.025, [0.90, 0.86, 0.75])
+    elif kind == "drawings":
+        # A bundle of rolled drawings carried in the hand: three rolls of pale paper of different lengths, tied round
+        # the middle.
+        paper = [0.92, 0.88, 0.76]
+        along = (forward * 0.8 + Vector((0, 0, 0.6))).normalized()
+        for index, (length, offset) in enumerate(((0.32, 0.0), (0.26, 0.022), (0.29, -0.02))):
+            centre = grip + Vector((0, offset * unit, offset * unit * 0.5))
+            body.limb(bone, centre - along * unit * length * 0.45, centre + along * unit * length * 0.55, unit * 0.018, unit * 0.018,
+                      mix(paper, [0.75, 0.70, 0.58], 0.15 * index), segments=8)
+        body.limb(bone, grip - along * unit * 0.012, grip + along * unit * 0.012, unit * 0.04, unit * 0.04, [0.45, 0.15, 0.10], segments=8)
     else:
         raise AssertionError("Unknown prop: " + kind)
 

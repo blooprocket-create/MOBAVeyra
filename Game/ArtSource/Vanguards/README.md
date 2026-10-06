@@ -198,6 +198,14 @@ section 9. The existing LFS rules cover the FBX files.
   His two `cleaver`s are oversized hooked slag cleavers made from mining tools: an iron-bound haft, a huge bolted
   blade hooked forward at the back, its cutting edge burning molten, slag clinging to its flat and dripping from
   its edge. Cairn's `NS_VeyraDrip`, in black, runs slag off both blades and his jaw.
+  Eudora is an older engineer, flesh from the knees to the shoulders and freight-grade machine beyond. Her
+  weathered red work coat (`openJacket` over dark workwear, a long `coatSkirt`, its hem torn by `tornCoat` over a
+  darker `lining`) falls to her calves. She wears a `harness`, and her `toolBelt` carries pouches, a heavy wrench and a
+  hammer. Her iron-grey hair is short, `workGoggles` are pushed up on her forehead, and a `burnScar` crosses her right
+  cheek. Her `prostheticArms` run below the coat sleeves: a brass elbow, a forearm of steel bands ringed in brass with
+  a piston along it, and an articulated gripping hand. Her `prostheticLegs` run from the knee: a heavy plated knee, a
+  banded shin with a brass piston down its back, and a jointed foot. She carries a bundle of rolled `drawings` in her
+  left hand.
 - **Colossus:** the humanoid skeleton without its tail, in colossal proportions: a
   towering, forward-leaning trunk, enormous shoulders, long arms over short legs, the
   head small and low between the shoulders, or none. Each is built in its material:
