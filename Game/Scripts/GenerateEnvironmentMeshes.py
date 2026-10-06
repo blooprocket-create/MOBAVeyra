@@ -20,6 +20,9 @@ import bpy
 from mathutils import Matrix, Vector, noise
 
 GAME = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(GAME / "Scripts"))
+from EnvironmentKit.inputs import mesh_profile_sha256  # noqa: E402
+
 SOURCE = GAME / "ArtSource" / "Environment"
 PROFILE = SOURCE / "CrucibleKit.json"
 KIT = json.loads(PROFILE.read_text(encoding="utf-8"))
@@ -567,8 +570,9 @@ def preview(objects):
     bpy.ops.render.render(write_still=True)
 
 
-report = {"generator": "GenerateEnvironmentMeshes.v2", "blender": bpy.app.version_string, "seed": KIT["seed"],
-          "profileSha256": hashlib.sha256(PROFILE.read_bytes()).hexdigest(),
+# The kit's look is the importer's alone (EnvironmentKit/inputs.py), so the manifest hashes the rest: what the meshes are made from.
+report = {"generator": "GenerateEnvironmentMeshes.v3", "blender": bpy.app.version_string, "seed": KIT["seed"],
+          "meshProfileSha256": mesh_profile_sha256(KIT),
           "collision": "None; gameplay terrain is owned by World.json and VeyraWorld", "assets": []}
 made = []
 for family_index, family in enumerate(KIT["families"]):

@@ -298,6 +298,8 @@ Share reusable controls for:
 
 A global Veyra art-direction change should be possible without editing hundreds of independent material graphs.
 
+**Glow under physical light.** The Crucible is lit physically, under a manual exposure that maps an emissive of a few units to black ([ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md)). Every generated glow is therefore scaled by the inverse of the scene's exposure, through one shared helper (`unexposed` in `Game/Scripts/veyra_material_graph.py`). Its strength is data in its spec or kit, in multiples of what the exposure maps to white. A new emissive material uses the helper; it never uses a raw emissive value tuned by eye under one light.
+
 ### 8.2 Texture packing
 
 Do not invent a new channel convention per asset.

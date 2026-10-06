@@ -213,3 +213,12 @@ The tolerances are provisional review values in the profile, not code constants.
 
 The first run was render-thread bound at 9.18 ms. Hiding the map's art (Landscape, meshes and dressing) left that time unchanged. The cost was the fog-of-war sheet: its line-batch mesh is rebuilt every frame, and on the Landscape each fog cell is subdivided to follow the ground. Sharing corners across each unseen run cut the sheet to a third of its vertices. The 99th percentile is still just over the 8.33 ms budget. A persistent fog mesh, uploaded only when the fog changes, is the next lever.
 The merged ADR-054 seen-ground grid remains Vision-owned. UI terrain-following fog tiles and ground telegraphs use World surface resolution. Presentation tessellation does not change sight-cell resolution, information replication or terrain occlusion.
+
+**Glow under the physical light (2026-10-06).** The light above (a 22,000 lux sun under a manual exposure of EV100 12) shows an emissive of a few units as nothing. The stele glyphs, the structures' Flux (`M_CrucibleFlux`) and the Fluxborn's (`M_FluxbornFlux`) therefore had no visible glow. The presentation's materials had the same problem, fixed in [ADR-063](ADR-063-combat-readability-cues-effects-sound-and-the-fountain-shop.md)'s 2026-10-06 amendment, and so did the Vanguard bodies ([ADR-064](ADR-064-generated-animated-vanguards.md) §4).
+
+- **The fix:** each of these glows is scaled by the inverse of the scene's exposure, through one shared helper (`unexposed` in `Game/Scripts/veyra_material_graph.py`).
+- **Strengths are kit data,** in multiples of what the exposure maps to white: `look.glyphStrength` in `CrucibleKit.json`, and each surface's `emission` in `StructureKit.json` and `FluxbornKit.json`. `Game/Scripts/KitMaterials/spec.py` checks them, in CI too.
+- **One surface builder:** the structure and Fluxborn kits now share it, where each had its own copy.
+- **Materials-only rebuilds:** each kit's build script takes `-Materials`. It rebuilds just the materials named and imports no mesh.
+- **The environment manifest** now hashes what its meshes are made from: the kit without its `look`, which only the importer's materials read (`Game/Scripts/EnvironmentKit/inputs.py`). CI checks the committed manifest against the kit, and a change to the look rebuilds materials without regenerating the 33 meshes. The one regeneration that wrote the new hash left every mesh's geometry hash unchanged.
+- **Provisional:** the values, judged in the lit Crucible from the gameplay camera.

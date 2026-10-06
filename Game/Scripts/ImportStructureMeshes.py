@@ -1,13 +1,19 @@
 """Editor-only import and validation for the provisional Crucible structure kit.
 
 Invoked by BuildStructureArt.ps1 with PythonScriptPlugin enabled for that process.
-Does not edit a map or install a runtime plugin.
+Does not edit a map or install a runtime plugin. With -VeyraMaterials=A,B it rebuilds
+only the materials named, from the kit, and imports no mesh.
 """
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 import unreal
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from KitMaterials.spec import surface_problems  # noqa: E402
+from veyra_material_graph import kit_material, materials_named, refuse_locked  # noqa: E402
 
 
 GAME = Path(__file__).resolve().parents[1]
@@ -17,10 +23,17 @@ DEST = "/Game/Veyra/World/Structures/Greybox"
 KIT = json.loads((SOURCE / "StructureKit.json").read_text())
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text())
 assert MANIFEST["worldSha256"] == hashlib.sha256((GAME / "Tuning" / "World.json").read_bytes()).hexdigest(), "Regenerate after World.json changes."
+PROBLEMS = surface_problems(KIT)
+assert not PROBLEMS, "StructureKit.json: " + "; ".join(PROBLEMS)
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 # Commandlets do not initialize the interactive editor's subsystem collection.
 # These asset-only helpers have no per-instance state.
 EDITOR = unreal.get_default_object(unreal.StaticMeshEditorSubsystem)
+# Materials named on the command line are rebuilt alone, and no mesh is imported; otherwise everything is.
+NAMED = materials_named([spec["name"] for spec in KIT["materials"]])
+SELECTED = [spec for spec in KIT["materials"] if NAMED is None or spec["name"] in NAMED]
+refuse_locked(GAME, [DEST + "/Materials/" + spec["name"] for spec in SELECTED]
+              + ([] if NAMED is not None else [DEST + "/Meshes/" + spec["name"] for spec in MANIFEST["assets"]]))
 MATERIALS = []
 
 
@@ -29,35 +42,19 @@ def create_material(spec):
     material = unreal.load_asset(path) if unreal.EditorAssetLibrary.does_asset_exist(path) else None
     if not material:
         material = TOOLS.create_asset(spec["name"], DEST + "/Materials", unreal.Material, unreal.MaterialFactoryNew())
-    edit = unreal.MaterialEditingLibrary
-    edit.delete_all_material_expressions(material)
-    color = edit.create_material_expression(material, unreal.MaterialExpressionVectorParameter, -500, 0)
-    color.set_editor_property("parameter_name", "FluxTint" if spec["emission"] else "SurfaceColor")
-    color.set_editor_property("default_value", unreal.LinearColor(*spec["color"]))
-    edit.connect_material_property(color, "RGB", unreal.MaterialProperty.MP_BASE_COLOR)
-    for i, (key, prop) in enumerate([("metallic", unreal.MaterialProperty.MP_METALLIC), ("roughness", unreal.MaterialProperty.MP_ROUGHNESS)]):
-        value = edit.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -500, 180+i*120)
-        value.set_editor_property("parameter_name", key.title())
-        value.set_editor_property("default_value", spec[key])
-        edit.connect_material_property(value, "", prop)
-    if spec["emission"]:
-        strength = edit.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -500, -180)
-        strength.set_editor_property("parameter_name", "FluxStrength")
-        strength.set_editor_property("default_value", spec["emission"])
-        multiply = edit.create_material_expression(material, unreal.MaterialExpressionMultiply, -200, -100)
-        edit.connect_material_expressions(color, "RGB", multiply, "A")
-        edit.connect_material_expressions(strength, "", multiply, "B")
-        edit.connect_material_property(multiply, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
-    edit.recompile_material(material)
-    unreal.EditorAssetLibrary.save_loaded_asset(material)
+    unreal.MaterialEditingLibrary.delete_all_material_expressions(material)
+    kit_material(material, spec)
+    unreal.MaterialEditingLibrary.recompile_material(material)
+    assert unreal.EditorAssetLibrary.save_loaded_asset(material), "Material save failed: " + path
+    unreal.log("VEYRA_STRUCTURE_MATERIAL: " + material.get_path_name())
     return material
 
 
-for spec in KIT["materials"]:
+for spec in SELECTED:
     MATERIALS.append(create_material(spec))
 
 RESULTS = []
-for spec in MANIFEST["assets"]:
+for spec in MANIFEST["assets"] if NAMED is None else []:
     filename = SOURCE / spec["file"]
     assert hashlib.sha256(filename.read_bytes()).hexdigest() == spec["sha256"], "FBX differs from manifest"
     task = unreal.AssetImportTask()
@@ -118,5 +115,6 @@ for spec in MANIFEST["assets"]:
                     "defaultCollision": "NoCollision", "lightmapChannel": 1})
 
 SAVED.mkdir(exist_ok=True, parents=True)
-(SAVED / "unreal-validation.json").write_text(json.dumps({"status": "passed", "assets": RESULTS}, indent=2)+"\n")
-unreal.log("VEYRA_STRUCTURE_IMPORT_PASSED: " + str(len(RESULTS)) + " static meshes")
+(SAVED / "unreal-validation.json").write_text(json.dumps({"status": "passed", "mode": "import" if NAMED is None else "materials",
+                                                         "materials": [m.get_path_name() for m in MATERIALS], "assets": RESULTS}, indent=2)+"\n")
+unreal.log("VEYRA_STRUCTURE_IMPORT_PASSED: " + str(len(MATERIALS)) + " materials, " + str(len(RESULTS)) + " static meshes")

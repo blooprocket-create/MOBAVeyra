@@ -1,8 +1,8 @@
 {
-  "generator": "GenerateEnvironmentMeshes.v2",
+  "generator": "GenerateEnvironmentMeshes.v3",
   "blender": "5.2.1 LTS",
   "seed": 48173,
-  "profileSha256": "06eec89d4cdb9d247dd22ac659664a54326b829f2ab2ae6485d290cfaf47e1cd",
+  "meshProfileSha256": "cb9d60384dfbbee3c6476f83cdcf9a6eca5f72930123d104324e7372a31c207e",
   "collision": "None; gameplay terrain is owned by World.json and VeyraWorld",
   "assets": [
     {
@@ -11,7 +11,7 @@
       "kind": "rock",
       "seed": 48173,
       "file": "FBX/SM_Crucible_Cliff_00.fbx",
-      "sha256": "3fd806ff8572d47cd2a83e8f20448f66d57793311b1246be1b72def7213d435e",
+      "sha256": "384f69f5473908ec4cbde70b0b58aef0adbd269d77add1dd626354f7004701ec",
       "geometrySha256": "610b390d8bd26e4421f04b9b77b1bb3f027b934615273429cf8cce8adf4ba08b",
       "triangles": 13998,
       "dimensionsCm": [
@@ -29,7 +29,7 @@
       "kind": "rock",
       "seed": 48174,
       "file": "FBX/SM_Crucible_Cliff_01.fbx",
-      "sha256": "fc385b709004fdd19b4af5bd693d55e0f1d037e66558b5a71a575660493a0c18",
+      "sha256": "480a94fb25843abc53deefbaa86ef5eb82e6aa4f94e1088f0cb76d922e827d5c",
       "geometrySha256": "40895c661abcedd8d1e86648abdf63a4fdcde3da2de8e6cd1297e0380d85bbc0",
       "triangles": 14000,
       "dimensionsCm": [
@@ -47,7 +47,7 @@
       "kind": "rock",
       "seed": 48175,
       "file": "FBX/SM_Crucible_Cliff_02.fbx",
-      "sha256": "11f68568727ecaa046c3ea30db2bf085b3dbf91455b2958b6f94b75bbaf52047",
+      "sha256": "1f3d856e42bae0ce4c8909340b7ded9064a280c5192d109026d5abee770b5428",
       "geometrySha256": "66368e160e8a869bdb213ac6d349979839b18f2d62558e020c6cad374c5108ed",
       "triangles": 14000,
       "dimensionsCm": [
@@ -65,7 +65,7 @@
       "kind": "rock",
       "seed": 48176,
       "file": "FBX/SM_Crucible_Cliff_03.fbx",
-      "sha256": "b229a18dbaa38cc33e727eed8467b4574f6baada6b76af3b415c5acef9fe9269",
+      "sha256": "efcdd51b971efd15e2060f1e1f275d59822c9b93d419ea7edcea0154864daf17",
       "geometrySha256": "c3dc2973d8e786928ee799256425aaf1ebfc818dd6e071b3e60c291ab72b2ab1",
       "triangles": 14000,
       "dimensionsCm": [
@@ -83,7 +83,7 @@
       "kind": "rock",
       "seed": 48273,
       "file": "FBX/SM_Crucible_Boulder_00.fbx",
-      "sha256": "e0f1f0583465a2f15c9df037e8f0e7b06cc8a6fe2de8bcc3563a4505a7c61023",
+      "sha256": "874f4719770d3489b59b5f8f9dec218124af38a2085033d412316175fcf6a3f3",
       "geometrySha256": "97062e5368efb152bf8a0fdce6c8aa86e9ab3b436bc1166e282abf9ad649e0f9",
       "triangles": 5000,
       "dimensionsCm": [
@@ -101,7 +101,7 @@
       "kind": "rock",
       "seed": 48274,
       "file": "FBX/SM_Crucible_Boulder_01.fbx",
-      "sha256": "fc8d280972b790fad049172db485b863b61b1a9eaf3dfecd32cc8acb2f7c0f37",
+      "sha256": "a11ac857c82dfacd05f0cdf79d09d6524de37d3496fda8ebcea3bef00c3ad38b",
       "geometrySha256": "c1ca33d8247959cf1d7803023f6badc382e30feee33a631c072947775035c5b6",
       "triangles": 5000,
       "dimensionsCm": [
@@ -119,7 +119,7 @@
       "kind": "rock",
       "seed": 48275,
       "file": "FBX/SM_Crucible_Boulder_02.fbx",
-      "sha256": "b054d127d850d1253a195f94833e55e5946e2b8b3fa0fa83146ce0aa6b5b43b5",
+      "sha256": "5fa7af78544d2ad10b3a81e71cfd7bccb3228de71edfbf2edb00f81c58a482fa",
       "geometrySha256": "8ddfc85188e5998ae21d36b3207e8db6f07fe235180917ce59fb7a1eb1ba7fc3",
       "triangles": 5000,
       "dimensionsCm": [
@@ -137,7 +137,7 @@
       "kind": "rock",
       "seed": 48276,
       "file": "FBX/SM_Crucible_Boulder_03.fbx",
-      "sha256": "12d54ce93d9c855231101635c1533ba30ce106ae186e52c27f77df393bd5ec58",
+      "sha256": "3f558119f2b15fc0324192af04fc0d655d806d6ceab4ed6c03a8939efaf4a838",
       "geometrySha256": "865fadf81ad98d5ce28cdd74348d45bb4ebc3d11c8d7fb8a7e3570277ec6155f",
       "triangles": 5000,
       "dimensionsCm": [
@@ -155,7 +155,7 @@
       "kind": "pillar",
       "seed": 48373,
       "file": "FBX/SM_Crucible_Pillar_00.fbx",
-      "sha256": "7288410c2c8b2f4a9b344fbbe2627bf844875f4a8cb8ae48b0ff1be3086beee4",
+      "sha256": "5a18491e83891b26d78f9bd7b177b809cad589b9bad11b2befdbda89e724b5cf",
       "geometrySha256": "8b7ef06884a03ac1d94599ed37d3799f36cdbf2a9a1ba95244192331794f2644",
       "triangles": 3212,
       "dimensionsCm": [
@@ -173,7 +173,7 @@
       "kind": "pillar",
       "seed": 48374,
       "file": "FBX/SM_Crucible_Pillar_01.fbx",
-      "sha256": "acc5bb87448ce2c3265d989d0f1ad9788a54a34f8c34a170cf5c5c1c03cf2679",
+      "sha256": "e8e5ae95a3ee0383f9d7453ca40357987872b5f6cdeba1a160af4b64ee37d435",
       "geometrySha256": "a0862740b2ad5e14ce889735ebefc722c69946794ee698eb495e9c0afeefe1b4",
       "triangles": 5264,
       "dimensionsCm": [
@@ -191,7 +191,7 @@
       "kind": "pillar",
       "seed": 48375,
       "file": "FBX/SM_Crucible_Pillar_02.fbx",
-      "sha256": "890e39288ef1021c11c0bee4e55772611523a22aa7b5bcc38d10609c2b4c4195",
+      "sha256": "dc6a3baba79465dd845c678e4b8659a0b69ec1de361888c0e914e0372706c277",
       "geometrySha256": "03907670e725915ce0a9c3b6aea2a2406e63d7fff486495d709ea63100a0f09d",
       "triangles": 4250,
       "dimensionsCm": [
@@ -209,7 +209,7 @@
       "kind": "block",
       "seed": 48473,
       "file": "FBX/SM_Crucible_Block_00.fbx",
-      "sha256": "beefda7b13bfcbebe6b3744c5077373cca513f45b79ee96a94332a2ef7bc2951",
+      "sha256": "13515b48a6bbe25c04d9d007fbf82b731137f78e12129e98c29b9b1b01b905a1",
       "geometrySha256": "41b5bc074871e875041792741515b4afec324d4925c041967bba3f6b9ca8a600",
       "triangles": 3000,
       "dimensionsCm": [
@@ -227,7 +227,7 @@
       "kind": "block",
       "seed": 48474,
       "file": "FBX/SM_Crucible_Block_01.fbx",
-      "sha256": "0464fd2859e8fdf2b0dc7d3806b4e7eb6a953a7ae973a851f888044e1470ded8",
+      "sha256": "3706b713e0b550d27cead39166a23c32099dab3c94946fbd5a5fb65b6eee601f",
       "geometrySha256": "8158ee7b0071acefba3e344c617e7a3f40e89e4f490c4fdd7dad92e51870c44a",
       "triangles": 3000,
       "dimensionsCm": [
@@ -245,7 +245,7 @@
       "kind": "block",
       "seed": 48475,
       "file": "FBX/SM_Crucible_Block_02.fbx",
-      "sha256": "f39623bff161250c83f5c51d97701aac5d7e7a1f27f27f5ba44f46e8d8ee39ee",
+      "sha256": "cb0b036dcbcba4b7fa82559f262b62323e981217ae4dea4f1ec9eda9d795345c",
       "geometrySha256": "2fc5a91a5f8c92b3818e5cd2a1f1936e800ef831a7270ce3c2bb29859bb7373d",
       "triangles": 3000,
       "dimensionsCm": [
@@ -263,7 +263,7 @@
       "kind": "block",
       "seed": 48476,
       "file": "FBX/SM_Crucible_Block_03.fbx",
-      "sha256": "cb79779077e9154998c761b78364b426481fa5b46ad635ca1f7cbbede8c2858a",
+      "sha256": "63e9c20fea5351d435888550881b607c314504b73ce8256a46d5bae22ba57a3a",
       "geometrySha256": "eb483237719771aaead0050a11da446d0d3102b93ed790d14b517ce0e65b249d",
       "triangles": 3000,
       "dimensionsCm": [
@@ -281,7 +281,7 @@
       "kind": "stele",
       "seed": 48573,
       "file": "FBX/SM_Crucible_Stele_00.fbx",
-      "sha256": "ba2c90b220578e678d228ad53c2fc76f1dd61c8087e5862c2a85b54f19a6694a",
+      "sha256": "44742e963c370f11f61f5c6a30bda347ee3d09126116df9c4d4090b4c5921b34",
       "geometrySha256": "ae3d249917810ac321b2f8bbfb03ca3fdb2e42e010e0a6a6507b3c4e41755797",
       "triangles": 3450,
       "dimensionsCm": [
@@ -300,7 +300,7 @@
       "kind": "stele",
       "seed": 48574,
       "file": "FBX/SM_Crucible_Stele_01.fbx",
-      "sha256": "d852d68392c6a911dc1f8abb518d34585a24d818a1efaed2fbf57c4028b6feb0",
+      "sha256": "edff070f39e33a2393a5fa7758492fc0d5755c5757f3e5426c0dd2d225757e28",
       "geometrySha256": "cb8844218c6ab43cbe756fb78b8e7ec47f034d5be98d929b4e5eada56984c521",
       "triangles": 3460,
       "dimensionsCm": [
@@ -319,7 +319,7 @@
       "kind": "stele",
       "seed": 48575,
       "file": "FBX/SM_Crucible_Stele_02.fbx",
-      "sha256": "229476e4936f87045bc89ebb959063e35a6afd8e5a7b3f8f2b3c8fa01016fd38",
+      "sha256": "a1ea73a8b0670e2ad2ccc1eb02a6da5d195f9100f02c5276e4e845216c80b6df",
       "geometrySha256": "6d21c9d6fc1585ea4bfa46b9b1672549df570e3512c6fd3e7596bc10e552a7b0",
       "triangles": 3450,
       "dimensionsCm": [
@@ -338,7 +338,7 @@
       "kind": "tree",
       "seed": 48673,
       "file": "FBX/SM_Crucible_Tree_00.fbx",
-      "sha256": "fdc8f93fbda8894c22953d22c59ee5475a37ac7c7c91afd5ff632c587de04f94",
+      "sha256": "63a66efbde39923fa902cb20367692cc46a15fc7d7fe935352c7c6412a4f908e",
       "geometrySha256": "c1dcbc3b8df0665389b4d0d102257fec3affe4f35f89bffd4739ca856ef0458f",
       "triangles": 1356,
       "dimensionsCm": [
@@ -357,7 +357,7 @@
       "kind": "tree",
       "seed": 48674,
       "file": "FBX/SM_Crucible_Tree_01.fbx",
-      "sha256": "be9a27de6bd2d6ea61931e25d0dcaab8e2f26ba068c3d1ed7d7d26fbbac3def3",
+      "sha256": "5d38e06c5f844a34b06a6bf3e393a6ce15d148b2cb464d14e265c0d63d53d74f",
       "geometrySha256": "c62109b0aef225dd0a4ffb3500c183361e9676772d0165a469260e62aac4c9c8",
       "triangles": 1112,
       "dimensionsCm": [
@@ -376,7 +376,7 @@
       "kind": "tree",
       "seed": 48675,
       "file": "FBX/SM_Crucible_Tree_02.fbx",
-      "sha256": "d0b61965b6f2b9aab2290b35862b8cd6ad6ba99fbc4c55463f734aa52bf82130",
+      "sha256": "9b7384006e870787a5c2350d31495b87b6f80c3bf81d3d0bdc17130e2ca28f41",
       "geometrySha256": "c088dbc8d63d3c1b0c184d56e474f5cc512da1bfbca757238d08c4bceb81edcf",
       "triangles": 1116,
       "dimensionsCm": [
@@ -395,7 +395,7 @@
       "kind": "shrub",
       "seed": 48773,
       "file": "FBX/SM_Crucible_Shrub_00.fbx",
-      "sha256": "c1793685febe844ee0d2c5896bf7e04456f66303b78bca78325216755e55271f",
+      "sha256": "0135e429607b26eeae8a0e9490be0f3f820ca5577cd9bec09d8411bdafcc7e87",
       "geometrySha256": "fcf0f998796f2497b22d7df3b6292b3b385963f3b727119f762e18df6238dff1",
       "triangles": 400,
       "dimensionsCm": [
@@ -413,7 +413,7 @@
       "kind": "shrub",
       "seed": 48774,
       "file": "FBX/SM_Crucible_Shrub_01.fbx",
-      "sha256": "fdf6e31361598327c5b47bccc47e113cd09793b834296c29136feb85303a406d",
+      "sha256": "d30ca04c366c0808f774f25eef07b5868b4210124b6cb2097c2dd42b43b25334",
       "geometrySha256": "cf882af4a0c3c4a0626fcf61fd5cb093a2a56fe676fbf502e981ce7564233931",
       "triangles": 400,
       "dimensionsCm": [
@@ -431,7 +431,7 @@
       "kind": "shrub",
       "seed": 48775,
       "file": "FBX/SM_Crucible_Shrub_02.fbx",
-      "sha256": "5ffe36f36c967d7ee2133c07a530d8f76c7954fcaa00d54c27a7d6719303e3ca",
+      "sha256": "857622fe6203a78f10a92d6bcd95097fe4ffbfd67d2639f8fabbcf1a64f1c80e",
       "geometrySha256": "97a8f7fe97a157181e866da496e37aa3c46e036507d4d90ec5b3d6c58edb3408",
       "triangles": 480,
       "dimensionsCm": [
@@ -449,7 +449,7 @@
       "kind": "fern",
       "seed": 48873,
       "file": "FBX/SM_Crucible_Fern_00.fbx",
-      "sha256": "412c79ab688c8bfe0f1c31b104e0f27aa06de5264d97065e9334b0b0d70c3f00",
+      "sha256": "61c24c2a3fc222759d30a42d17436e4dd64c0431d3697e5b29d684662ef6879e",
       "geometrySha256": "9754fcb1dde9da8c678cc8a28fa6e9816f0d86ae1ed7ac7d8a518829d44da787",
       "triangles": 162,
       "dimensionsCm": [
@@ -467,7 +467,7 @@
       "kind": "fern",
       "seed": 48874,
       "file": "FBX/SM_Crucible_Fern_01.fbx",
-      "sha256": "b17629c876c10dbf66d30df2ca874776e1f884e037f8928b33121448a79630e1",
+      "sha256": "1400c909341c151fe2b1cb087b004facdd5bd11e91035dfcc30926ce88051218",
       "geometrySha256": "013fef335099c70041b1490b6be77f6bf2f9b85b0d6998cf46b39b91927efa73",
       "triangles": 162,
       "dimensionsCm": [
@@ -485,7 +485,7 @@
       "kind": "fern",
       "seed": 48875,
       "file": "FBX/SM_Crucible_Fern_02.fbx",
-      "sha256": "deeece56d4920bc5d2709991893800e149ebf8529687d1a314872bdddddc3aeb",
+      "sha256": "6a89ea84207e635e51745c1e1c3b2740abbc64ffc43f55256c24d4c53feae3ee",
       "geometrySha256": "51ce8d2e293f099f0986bb3a106fd19323e8a371cc3bc23c0e722e62588b0857",
       "triangles": 126,
       "dimensionsCm": [
@@ -503,7 +503,7 @@
       "kind": "grass",
       "seed": 48973,
       "file": "FBX/SM_Crucible_Reeds_00.fbx",
-      "sha256": "01f4af3440519f8d831e6444d3061710e35640b8fdc3df8bdbd6da9fe8789a75",
+      "sha256": "0e3257d77cfc98ecc594fda07373586e6bf90527c2337bf4606b97bac5199510",
       "geometrySha256": "0d86bc80939fa37abe3da9649af5238c05418b18a2462d80ab4dbc30fda3e780",
       "triangles": 160,
       "dimensionsCm": [
@@ -521,7 +521,7 @@
       "kind": "grass",
       "seed": 48974,
       "file": "FBX/SM_Crucible_Reeds_01.fbx",
-      "sha256": "82052e4d0f0cc15d7f47d02c7ee623c3fa88ce761ca600af6abb326da77a1608",
+      "sha256": "eac6ff3725b920c12e43e99cbd34b60fe4022385cdfc3d109a053a0bc4543173",
       "geometrySha256": "35cc2c9578589368d760312940de5fa9fc276756ea00d9a08ed2d5ba8a983179",
       "triangles": 140,
       "dimensionsCm": [
@@ -539,7 +539,7 @@
       "kind": "grass",
       "seed": 48975,
       "file": "FBX/SM_Crucible_Reeds_02.fbx",
-      "sha256": "c168ceee64f9a0d0b2e06777ce24ebd48ebfbef6b26f52034b49dc8292d196d9",
+      "sha256": "fde0037b7e79016cfaa41c30d7d460d0dd368cb9753124656364654429a57150",
       "geometrySha256": "f3690de254cc2617140ddb6f1c3591396ff23d35e53d9cd211642d09765d40ff",
       "triangles": 195,
       "dimensionsCm": [
@@ -557,7 +557,7 @@
       "kind": "grass",
       "seed": 49073,
       "file": "FBX/SM_Crucible_Grass_00.fbx",
-      "sha256": "e7287b4a15ea5f619451e5253c11a2b4fc3fb394d2329677c725456e14cbdfc8",
+      "sha256": "ac627d42b82ce3678af10ff222db093d01bd18e55c57a2e8a825b91f1d3a0a56",
       "geometrySha256": "a638b4f50307ae77ca2cf1a0a7a5c5205734966c228dc0c6c9b79839e0571499",
       "triangles": 125,
       "dimensionsCm": [
@@ -575,7 +575,7 @@
       "kind": "grass",
       "seed": 49074,
       "file": "FBX/SM_Crucible_Grass_01.fbx",
-      "sha256": "b97f9b52f70de9bf13da998d5df97f0fc3a90686d14de174bd18f37c64a9b37b",
+      "sha256": "b1fb4da9cffabefdd1d6e487f3f2c515105b16228abe669ee3d7c91feebe7f81",
       "geometrySha256": "754f0d297a74579f94b16c03018c4b0fee559288e61f23dbb00bc5594045fbce",
       "triangles": 150,
       "dimensionsCm": [
@@ -593,7 +593,7 @@
       "kind": "grass",
       "seed": 49075,
       "file": "FBX/SM_Crucible_Grass_02.fbx",
-      "sha256": "2b3855c64957f7afcafbb6a3c82209c297ced50cb94b854abb69c8708d82cf8e",
+      "sha256": "80e2b0a884a0bfb2daeabae209c8c3fe6b708313bfe0fcf1f52eeb76d5ad006c",
       "geometrySha256": "d0cdb1204390dc9e78a0cd35e8db4103ed26dc0aea206db5f773a84437167acf",
       "triangles": 150,
       "dimensionsCm": [

@@ -6,12 +6,17 @@
     Uses a separate background Blender and an editor commandlet. Does not modify maps,
     gameplay code or project plugins. Existing binary assets require Git LFS locks before
     reimport, per ADR-006 section 9. Review the source README before replacing assets.
+.PARAMETER Materials
+    Rebuilds only the kit's materials named (such as M_CrucibleGlyph) from its look, without
+    running Blender or importing any mesh.
 #>
 [CmdletBinding()]
 param(
     [string]$Blender,
     [string]$EngineRoot,
-    [switch]$ImportOnly
+    [switch]$ImportOnly,
+    [ValidatePattern('^[A-Za-z0-9_]+$')]
+    [string[]]$Materials
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'VeyraProject.psm1') -Force
@@ -20,7 +25,7 @@ $game = Split-Path -Parent $project
 $engine = Resolve-VeyraEngineRoot -ProjectFile $project -EngineRoot $EngineRoot
 $saved = Join-Path $game 'Saved/EnvironmentKit'
 New-Item -ItemType Directory -Force -Path $saved | Out-Null
-if (-not $ImportOnly) {
+if (-not $ImportOnly -and -not $Materials) {
     if (-not $Blender) {
         $command = Get-Command blender -ErrorAction SilentlyContinue
         if (-not $command) { throw 'Pass -Blender <path to blender.exe> or add Blender to PATH.' }
@@ -34,6 +39,8 @@ $script = Join-Path $PSScriptRoot 'ImportEnvironmentMeshes.py'
 $log = Join-Path $saved 'Import.log'
 $validation = Join-Path $saved 'unreal-validation.json'
 if (Test-Path -LiteralPath $validation) { Remove-Item -LiteralPath $validation }
-& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-AllowCommandletRendering' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" *> (Join-Path $saved 'Import-console.log')
+[string[]]$named = if ($Materials) { @("-VeyraMaterials=$($Materials -join ',')") } else { @() }
+& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-AllowCommandletRendering' '-nosplash' '-nosound' '-ExecCmds=Interchange.FeatureFlags.Import.FBX 0' "-ABSLOG=$log" @named *> (Join-Path $saved 'Import-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $validation)) { throw "Environment import failed. See $log" }
-Write-Host "Environment meshes imported and validated. Preview and validation: $saved"
+Select-String -LiteralPath $log -Pattern 'VEYRA_ENVIRONMENT_MATERIAL: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
+Write-Host $(if ($Materials) { "Environment materials rebuilt. Validation: $saved" } else { "Environment meshes imported and validated. Preview and validation: $saved" })

@@ -3,7 +3,8 @@
 Invoked by BuildEnvironmentArt.ps1 in an editor commandlet with the PythonScriptPlugin. Builds the kit's materials from
 the terrain's generated textures (the stone and the moss match the ground they stand on), imports every mesh in the
 manifest, assigns materials by slot name, turns on Nanite for stone and validates size, pivot and the absence of
-collision: the kit is presentation, and World owns what blocks. Does not edit a map.
+collision: the kit is presentation, and World owns what blocks. Does not edit a map. With -VeyraMaterials=A,B it
+rebuilds only the materials named, from the kit's look, and imports no mesh.
 """
 import hashlib
 import json
@@ -13,7 +14,9 @@ from pathlib import Path
 import unreal
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from veyra_material_graph import EDIT, Graph  # noqa: E402
+from EnvironmentKit.inputs import stale  # noqa: E402
+from KitMaterials.spec import glyph_problems  # noqa: E402
+from veyra_material_graph import EDIT, Graph, materials_named, refuse_locked  # noqa: E402
 
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Environment"
@@ -22,7 +25,8 @@ DEST = "/Game/Veyra/World/Environment"
 TEXTURES = DEST + "/Terrain/Textures"
 KIT = json.loads((SOURCE / "CrucibleKit.json").read_text(encoding="utf-8"))
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
-assert MANIFEST["profileSha256"] == hashlib.sha256((SOURCE / "CrucibleKit.json").read_bytes()).hexdigest(), "Regenerate after kit changes."
+STALE = stale(GAME)
+assert not STALE, STALE
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 # The legacy FBX importer, which honours the options below; set here, since a command-line -ExecCmds may run only after
 # this script has begun importing.
@@ -30,6 +34,8 @@ unreal.SystemLibrary.execute_console_command(None, "Interchange.FeatureFlags.Imp
 ASSETS = unreal.EditorAssetLibrary
 MESHES = unreal.get_default_object(unreal.StaticMeshEditorSubsystem)
 LOOK = KIT["look"]
+GLYPH_PROBLEMS = glyph_problems(LOOK)
+assert not GLYPH_PROBLEMS, "CrucibleKit.json: " + "; ".join(GLYPH_PROBLEMS)
 
 # Stone stands on the ground whose textures it shares; foliage sways; nothing blocks.
 STONE_KINDS = {"rock", "pillar", "block", "stele"}
@@ -72,7 +78,8 @@ def material(name, build):
     build(asset, Graph(asset))
     errors = EDIT.recompile_material(asset)
     assert not errors, f"{name} does not compile: {errors}"
-    ASSETS.save_loaded_asset(asset)
+    assert ASSETS.save_loaded_asset(asset), "Material save failed: " + path
+    unreal.log("VEYRA_ENVIRONMENT_MATERIAL: " + asset.get_path_name())
     return asset
 
 
@@ -112,7 +119,8 @@ def mossy_stone(base_texture, tint, look):
 
 
 def glyph(asset, g):
-    """Blue Flux glyphs: emissive, breathing slowly."""
+    """Blue Flux glyphs, breathing slowly. Their glow ignores the scene's exposure, so it reads the same under the
+    Crucible's sun as anywhere: glyphStrength is in multiples of what the exposure maps to white."""
     colour = g.node(unreal.MaterialExpressionVectorParameter, 1, parameter_name="GlyphColor", group="Glyph",
                     default_value=unreal.LinearColor(*LOOK["glyphColor"], 1.0))
     strength = g.scalar(1, "GlyphStrength", LOOK["glyphStrength"], "Glyph")
@@ -123,9 +131,9 @@ def glyph(asset, g):
     depth = g.scalar(2, "GlyphPulseDepth", LOOK["glyphPulseDepth"], "Glyph")
     one = g.node(unreal.MaterialExpressionConstant, 3, r=1.0)
     pulse = g.op(unreal.MaterialExpressionAdd, 4, one, g.op(unreal.MaterialExpressionMultiply, 4, wave, depth))
-    emissive = g.op(unreal.MaterialExpressionMultiply, 5, g.op(unreal.MaterialExpressionMultiply, 4, colour, strength, a_out="RGB"), pulse)
-    EDIT.connect_material_property(colour, "RGB", unreal.MaterialProperty.MP_BASE_COLOR)
-    EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    glow = g.op(unreal.MaterialExpressionMultiply, 5, g.op(unreal.MaterialExpressionMultiply, 4, colour, strength, a_out="RGB"), pulse)
+    assert EDIT.connect_material_property(colour, "RGB", unreal.MaterialProperty.MP_BASE_COLOR), "base colour"
+    assert EDIT.connect_material_property(g.unexposed(6, glow), "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
 
 
 def swaying(g, height_share):
@@ -179,17 +187,25 @@ def foliage(colour_key, two_sided, root_key=None):
     return build
 
 
-MATERIALS = {
-    "Rock": material("M_CrucibleRock", mossy_stone("Slate_BaseColor", LOOK["rockTint"], LOOK)),
-    "Ruin": material("M_CrucibleRuin", mossy_stone("Slate_BaseColor", LOOK["ruinTint"], LOOK)),
-    "Bark": material("M_CrucibleBark", mossy_stone("Slate_BaseColor", LOOK["barkTint"], dict(LOOK, mossFrom=0.95, mossTo=1.0))),
-    "Glyph": material("M_CrucibleGlyph", glyph),
-    "Leaves": material("M_CrucibleLeaves", foliage("leafColour", two_sided=True)),
-    "Grass": material("M_CrucibleGrass", foliage("grassTipColour", two_sided=True, root_key="grassRootColour")),
+# Each mesh slot's material, by name, and how it is built.
+BUILDS = {
+    "Rock": ("M_CrucibleRock", mossy_stone("Slate_BaseColor", LOOK["rockTint"], LOOK)),
+    "Ruin": ("M_CrucibleRuin", mossy_stone("Slate_BaseColor", LOOK["ruinTint"], LOOK)),
+    "Bark": ("M_CrucibleBark", mossy_stone("Slate_BaseColor", LOOK["barkTint"], dict(LOOK, mossFrom=0.95, mossTo=1.0))),
+    "Glyph": ("M_CrucibleGlyph", glyph),
+    "Leaves": ("M_CrucibleLeaves", foliage("leafColour", two_sided=True)),
+    "Grass": ("M_CrucibleGrass", foliage("grassTipColour", two_sided=True, root_key="grassRootColour")),
 }
+# Materials named on the command line are rebuilt alone, and no mesh is imported; otherwise everything is.
+NAMED = materials_named([name for name, _ in BUILDS.values()])
+SELECTED = {slot: (name, build) for slot, (name, build) in BUILDS.items() if NAMED is None or name in NAMED}
+# Nothing changes until every asset this run rewrites is writable.
+refuse_locked(GAME, [f"{DEST}/Materials/{name}" for name, _ in SELECTED.values()]
+              + ([] if NAMED is not None else [f"{DEST}/Meshes/{spec['name']}" for spec in MANIFEST["assets"]]))
+MATERIALS = {slot: material(name, build) for slot, (name, build) in SELECTED.items()}
 
 RESULTS = []
-for spec in MANIFEST["assets"]:
+for spec in MANIFEST["assets"] if NAMED is None else []:
     filename = SOURCE / spec["file"]
     assert hashlib.sha256(filename.read_bytes()).hexdigest() == spec["sha256"], "FBX differs from manifest"
     # Each mesh is a function of its FBX alone: imported fresh, never over an earlier import's settings.
@@ -250,6 +266,7 @@ for spec in MANIFEST["assets"]:
                     "nanite": spec["kind"] in STONE_KINDS, "defaultCollision": "NoCollision"})
 
 SAVED.mkdir(exist_ok=True, parents=True)
-(SAVED / "unreal-validation.json").write_text(json.dumps({"status": "passed", "materials": sorted(m.get_path_name() for m in MATERIALS.values()),
+(SAVED / "unreal-validation.json").write_text(json.dumps({"status": "passed", "mode": "import" if NAMED is None else "materials",
+                                                         "materials": sorted(m.get_path_name() for m in MATERIALS.values()),
                                                          "assets": RESULTS}, indent=2) + "\n")
-unreal.log("VEYRA_ENVIRONMENT_IMPORT_PASSED: " + str(len(RESULTS)) + " static meshes")
+unreal.log("VEYRA_ENVIRONMENT_IMPORT_PASSED: " + str(len(MATERIALS)) + " materials, " + str(len(RESULTS)) + " static meshes")
