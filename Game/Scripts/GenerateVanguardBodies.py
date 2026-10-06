@@ -22,7 +22,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
-from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash, input_hash, stale_assets, units  # noqa: E402
+from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash, input_hash, pinned_blender, stale_assets, units  # noqa: E402
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -38,6 +38,8 @@ if not bpy.app.background:
     raise RuntimeError("Run in an isolated background Blender process.")
 assert KIT["schemaVersion"] == 1, "Unknown kit schema"
 assert KIT["generatorVersion"] == GENERATOR_VERSION, "The kit was written for another generator version"
+# Bodies are built by the Blender release the kit pins (ADR-064), whatever blender is on the PATH.
+assert pinned_blender(KIT, bpy.app.version_string), "Run Blender " + KIT["blender"] + " (BuildVanguardBodies.ps1 -Blender), not " + bpy.app.version_string
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 ONLY = set(ARGS[ARGS.index("--only") + 1].split(",")) if "--only" in ARGS else None

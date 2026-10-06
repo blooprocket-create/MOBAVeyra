@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import sys
 import unittest
@@ -17,6 +18,7 @@ spec.loader.exec_module(inputs)
 
 KIT = {
     "fps": 30,
+    "blender": "5.2",
     "archetypes": {
         "humanoid": {"triangleBudget": 9000, "animations": {"Run": {"seconds": 0.6, "loop": True}}},
         "rider": {"triangleBudget": 16000, "animations": {"Run": {"seconds": 0.6, "loop": True}}},
@@ -43,12 +45,22 @@ def built(kit, vanguards, generator=GENERATOR, blender=BLENDER):
     assets = []
     for vanguard in kit["vanguards"]:
         for body, status, suffix in inputs.bodies_of(vanguard):
-            asset = {"id": vanguard["id"], "name": inputs.body_name(vanguard["id"], suffix), "inputSha256": inputs.input_hash(kit, vanguards, body),
-                     "generatorSha256": generator, "blender": blender}
+            name = inputs.body_name(vanguard["id"], suffix)
+            asset = {"id": vanguard["id"], "name": name, "inputSha256": inputs.input_hash(kit, vanguards, body),
+                     "generatorSha256": generator, "blender": blender,
+                     # Its FBX, written by write_fbx: the body's name as its bytes.
+                     "file": "FBX/" + name + ".fbx", "sha256": hashlib.sha256(name.encode()).hexdigest()}
             if status:
                 asset["status"] = status
             assets.append(asset)
     return assets
+
+
+def write_fbx(game, assets):
+    """Each asset's FBX, as built writes it into the project whose Game folder is game."""
+    (game / "ArtSource" / "Vanguards" / "FBX").mkdir(parents=True, exist_ok=True)
+    for asset in assets:
+        (game / "ArtSource" / "Vanguards" / asset["file"]).write_bytes(asset["name"].encode())
 
 
 class VanguardBodyInputs(unittest.TestCase):
@@ -99,6 +111,7 @@ class VanguardBodyInputs(unittest.TestCase):
             (game / "Tuning" / "Vanguards.json").write_text(json.dumps({"vanguards": VANGUARDS}))
             manifest = game / "ArtSource" / "Vanguards" / "manifest.json"
             manifest.write_text(json.dumps({"blender": BLENDER, "assets": built(KIT, VANGUARDS)}))
+            write_fbx(game, built(KIT, VANGUARDS))
             self.assertEqual(inputs.stale_in(game), [])
             ok = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
             self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
@@ -108,6 +121,49 @@ class VanguardBodyInputs(unittest.TestCase):
             stale = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
             self.assertEqual(stale.returncode, 1)
             self.assertIn("SK_A_Ride", stale.stdout)
+
+    def project(self, folder, blender=BLENDER):
+        """A project in folder with the fixture's kit, capsules, generator and a full build's manifest and FBX."""
+        import json
+        game = Path(folder)
+        (game / "ArtSource" / "Vanguards").mkdir(parents=True)
+        (game / "Tuning").mkdir()
+        self.copy_generator(game)
+        (game / "ArtSource" / "Vanguards" / "VanguardKit.json").write_text(json.dumps(KIT))
+        (game / "Tuning" / "Vanguards.json").write_text(json.dumps({"vanguards": VANGUARDS}))
+        assets = built(KIT, VANGUARDS, blender=blender)
+        (game / "ArtSource" / "Vanguards" / "manifest.json").write_text(json.dumps({"blender": blender, "assets": assets}))
+        write_fbx(game, assets)
+        return game
+
+    def test_the_preflight_names_a_missing_or_changed_fbx_and_reads_a_pointer_for_its_file(self):
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = self.project(folder)
+            fbx = game / "ArtSource" / "Vanguards" / "FBX"
+            # A checkout without the large files (CI): each FBX is its Git LFS pointer, which names the same SHA-256.
+            for path in fbx.glob("*.fbx"):
+                oid = hashlib.sha256(path.read_bytes()).hexdigest()
+                path.write_text("version https://git-lfs.github.com/spec/v1\noid sha256:" + oid + "\nsize 4\n")
+            self.assertEqual(inputs.committed_mismatches(game), [])
+            # One replaced without the manifest, one gone.
+            (fbx / "SK_A.fbx").write_bytes(b"other")
+            (fbx / "SK_B.fbx").unlink()
+            self.assertEqual(sorted(inputs.committed_mismatches(game)), ["SK_A", "SK_B"])
+            failed = subprocess.run([sys.executable, str(SCRIPT), str(game)], capture_output=True, text=True)
+            self.assertEqual(failed.returncode, 1)
+            self.assertIn("SK_B", failed.stdout)
+
+    def test_a_manifest_built_by_another_blender_than_the_pinned_one_is_all_stale(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            # Built whole and consistent, but by a release the kit does not pin.
+            game = self.project(folder, blender="5.3.0")
+            self.assertEqual(inputs.stale_in(game), ["SK_A", "SK_A_Ride", "SK_B"])
+        with tempfile.TemporaryDirectory() as folder:
+            # A patch release of the pinned one is that release.
+            self.assertEqual(inputs.stale_in(self.project(folder, blender="5.2.1")), [])
 
     @staticmethod
     def copy_generator(game):
@@ -140,6 +196,7 @@ class VanguardBodyInputs(unittest.TestCase):
             (game / "ArtSource" / "Vanguards" / "VanguardKit.json").write_text(json.dumps(KIT))
             (game / "Tuning" / "Vanguards.json").write_text(json.dumps({"vanguards": VANGUARDS}))
             (game / "ArtSource" / "Vanguards" / "manifest.json").write_text(json.dumps({"blender": BLENDER, "assets": built(KIT, VANGUARDS)}))
+            write_fbx(game, built(KIT, VANGUARDS))
             # The same code checked out with other line endings is the same code.
             module = game / "Scripts" / "VanguardBodies" / "parts.py"
             module.write_bytes(module.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))

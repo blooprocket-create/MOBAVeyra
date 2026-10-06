@@ -36,6 +36,9 @@ def build_overlay_flash(material, spec):
     assert 0.0 <= spec["rimFloor"] <= 1.0 and spec["rimExponent"] > 0.0
     material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_ADDITIVE)
     material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    # It overlays the generated bodies (skeletal meshes) as well as the grey-box shapes: a cooked game has only the
+    # shaders a material's saved usages ask for.
+    material.set_editor_property("used_with_skeletal_mesh", True)
     color = expression(material, unreal.MaterialExpressionVectorParameter, -900, -200,
                        parameter_name=spec["colorParameter"], default_value=unreal.LinearColor(*spec["defaultColor"]))
     strength = expression(material, unreal.MaterialExpressionScalarParameter, -900, 0,
