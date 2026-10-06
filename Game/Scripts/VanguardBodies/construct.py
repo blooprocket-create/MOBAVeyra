@@ -35,7 +35,10 @@ GLIDE_STRIDES = 1.2
 
 
 def layout(spec, capsule):
-    """Every bone's head and tail in centimetres, the body facing +X with its left at +Y, fitted to the capsule."""
+    """Every bone's head and tail in centimetres, the body facing +X with its left at +Y, fitted to the capsule (grown
+    by bodyScale for a body a BodyScale status wears)."""
+    grown = spec.get("bodyScale", 1.0)
+    capsule = dict(capsule, capsuleHalfHeight=capsule["capsuleHalfHeight"] * grown, capsuleRadius=capsule["capsuleRadius"] * grown)
     full = capsule["capsuleHalfHeight"] * 2.0 * spec["heightShare"]
     build = humanoid.BUILD[spec["build"]]
     hover = full * spec["hoverShare"]
@@ -62,10 +65,15 @@ def layout(spec, capsule):
         L["upperarm_" + side] = (shoulder_point, elbow)
         L["lowerarm_" + side] = (elbow, wrist)
         L["hand_" + side] = (wrist, wrist + down * arm * 0.12)
-    # Orbits: each bone reaches from the core to where its part circles.
+    # Orbits: each bone reaches from the core to where its part circles; fortified, they stand in a wall before it.
     for index, name in enumerate(ORBITS):
-        angle = index / len(ORBITS) * math.tau
         reach = shoulder * spec["orbitShare"]
+        if spec.get("fortified"):
+            across = (index % 3 - 1) * shoulder * 0.9
+            rise = (index // 3) * (chest_z - core_z) * 0.9
+            L[name] = (L["pelvis"][0], L["pelvis"][0] + Vector((reach * 0.8, across, rise)))
+            continue
+        angle = index / len(ORBITS) * math.tau
         rise = (index % 3 - 1) * (chest_z - core_z) * 0.4
         L[name] = (L["pelvis"][0], L["pelvis"][0] + Vector((math.cos(angle) * reach, math.sin(angle) * reach, rise)))
     # The trail: down from the core toward the ground, a little behind.
@@ -85,46 +93,92 @@ def body(spec, L, d):
     return body
 
 
+def stone_plate(body, bone, centre, normal, size, stone, moss, flux, rng, rune=True):
+    """One rounded, rune-carved stone plate facing out along normal: sandstone shading a little lighter or darker,
+    moss on it if it faces up, and a rune on its face lit by the Flux behind it."""
+    normal = normal.normalized()
+    side = normal.cross(Vector((0, 0, 1)) if abs(normal.z) < 0.9 else Vector((1, 0, 0))).normalized()
+    up = side.cross(normal).normalized()
+    shade = mix(stone, [0.25, 0.22, 0.20] if rng.random() < 0.5 else [1.0, 0.95, 0.85], rng.uniform(0.0, 0.25))
+    body.blob(bone, centre, (normal * size * 0.45, side * size * rng.uniform(0.85, 1.15), up * size * rng.uniform(0.8, 1.1)), shade, segments=8)
+    if up.z > 0.3 or normal.z > 0.5:
+        body.blob(bone, centre + (normal * 0.2 + up * 0.55) * size, (normal * size * 0.2, side * size * 0.7, up * size * 0.25), moss, segments=6)
+    if rune:
+        mark = centre + normal * size * 0.46
+        # A carved stroke across its face, at an angle of its own.
+        body.box(bone, mark, (size * 0.06, size * 0.45, size * 0.07), flux, glow=True,
+                 rotation=Euler((rng.uniform(-0.8, 0.8), 0, math.atan2(normal.y, normal.x))))
+
+
 def rune_plates(body, spec, L, d, rng):
     """Torr: rune-carved stone plates held around a blue-violet crystalline core by Flux light, a broken stone ring over
-    the shoulders, the runes lit from inside; the gaps between the plates are the design."""
+    the shoulders, the runes lit from inside; the gaps between the plates are the design. A fortified body gathers its
+    circling plates into a wall before it; an overcapacity body's core flares and its plates spread."""
     stone, moss, flux = spec["primary"], spec["secondary"], spec["accent"]
     shoulder = d["shoulder"]
+    flare = spec.get("coreFlare", 1.0)
     core = L["pelvis"][1]
-    body.ball("spine_03", core + Vector((shoulder * 0.2, 0, 0)), shoulder * 0.3, flux, glow=True)
-    # The chest: plates standing clear of the core on every side.
-    for index in range(6):
-        angle = index / 6 * math.tau
-        out = Vector((math.cos(angle), math.sin(angle), 0))
-        spot = core + out * shoulder * 0.75 + Vector((0, 0, rng.uniform(-0.1, 0.25) * shoulder))
-        body.box("spine_03", spot, (shoulder * 0.22, shoulder * 0.7, shoulder * 0.8), mix(stone, moss, rng.uniform(0, 0.3)),
-                 rotation=Euler((0, rng.uniform(-0.2, 0.2), angle)))
-        body.box("spine_03", spot + out * shoulder * 0.12, (shoulder * 0.03, shoulder * 0.35, shoulder * 0.12), flux, glow=True,
-                 rotation=Euler((0, 0, angle)))
-    # The head: a single plate with a lit slit.
+    chest = L["spine_03"][1]
+    # The core, deep in the chest, and the web of Flux it throws to every plate.
+    body.ball("spine_03", core + Vector((shoulder * 0.1, 0, 0)), shoulder * 0.42 * flare, flux, glow=True, segments=10)
+    body.ball("spine_03", core + Vector((shoulder * 0.1, 0, 0)), shoulder * 0.55 * flare, mix(flux, [0.15, 0.10, 0.35], 0.6), scale=(0.9, 0.9, 1.1), segments=10)
+    # The trunk: two tiers of plates standing clear of the core on every side, wider at the chest.
+    for tier, (height, reach, count) in enumerate(((0.0, 0.85, 7), (0.55, 1.05, 8))):
+        for index in range(count):
+            angle = (index + tier * 0.5) / count * math.tau
+            out = Vector((math.cos(angle), math.sin(angle), 0.15 + tier * 0.25))
+            spot = core.lerp(chest, height) + Vector(out.xy.to_3d()) * shoulder * reach + Vector((0, 0, rng.uniform(-0.1, 0.2) * shoulder))
+            stone_plate(body, "spine_03", spot, out, shoulder * 0.42, stone, moss, flux, rng)
+            body.limb("spine_03", core, spot - out.normalized() * shoulder * 0.2, shoulder * 0.035 * flare, shoulder * 0.02, flux, glow=True, segments=4)
+    # The head: a cluster of plates over a single lit slit.
     h0, h1 = L["head"]
-    body.box("head", (h0 + h1) / 2, (d["head"] * 0.9, d["head"] * 0.9, d["head"]), stone)
-    body.box("head", (h0 + h1) / 2 + Vector((d["head"] * 0.46, 0, d["head"] * 0.1)), (d["head"] * 0.05, d["head"] * 0.6, d["head"] * 0.1), flux, glow=True)
-    # Arms of separate plates, each held clear of the next.
-    for side in ("l", "r"):
-        for part in ARM[1:]:
-            b0, b1 = L[part + "_" + side]
-            body.box(part + "_" + side, b0.lerp(b1, 0.5), (shoulder * 0.42, shoulder * 0.42, (b1 - b0).length * 0.75), stone,
-                     rotation=(b1 - b0).to_track_quat("Z", "Y"))
+    centre = (h0 + h1) / 2
+    for index in range(4):
+        angle = index / 4 * math.tau + 0.4
+        out = Vector((math.cos(angle) * 0.6, math.sin(angle) * 0.8, 0.6))
+        stone_plate(body, "head", centre + out * d["head"] * 0.4, out, d["head"] * 0.55, stone, moss, flux, rng, rune=False)
+    body.box("head", centre + Vector((d["head"] * 0.5, 0, 0)), (d["head"] * 0.08, d["head"] * 0.6, d["head"] * 0.12), flux, glow=True)
+    # Huge shoulders, arms of separate plates held clear of each other by Flux, and great fists of clustered stone.
+    for side, sign in (("l", 1), ("r", -1)):
         s0, s1 = L["clavicle_" + side]
-        body.box("clavicle_" + side, s1 + Vector((0, 0, shoulder * 0.15)), (shoulder * 0.7, shoulder * 0.6, shoulder * 0.35), mix(stone, moss, 0.4))
-    # Orbiting plates.
-    for name in ORBITS:
+        for index in range(3):
+            out = Vector((rng.uniform(-0.4, 0.4), sign * 0.6, 0.8))
+            stone_plate(body, "clavicle_" + side, s1 + out * shoulder * 0.35, out, shoulder * 0.5, stone, moss, flux, rng)
+        for part, size in (("upperarm", 0.4), ("lowerarm", 0.45)):
+            b0, b1 = L[part + "_" + side]
+            for index in range(2):
+                spot = b0.lerp(b1, 0.3 + index * 0.45)
+                out = Vector((0.5, sign * 0.8, 0.3 if index else -0.2))
+                stone_plate(body, part + "_" + side, spot, out, shoulder * size, stone, moss, flux, rng)
+            body.ball(part + "_" + side, b0, shoulder * 0.12 * flare, flux, glow=True, segments=6)
+        h0, h1 = L["hand_" + side]
+        fist = h0.lerp(h1, 0.6)
+        for index in range(5):
+            angle = index / 5 * math.tau
+            out = Vector((0.5 + math.cos(angle) * 0.5, math.sin(angle) * 0.7, -0.3 + math.sin(angle) * 0.4))
+            stone_plate(body, "hand_" + side, fist + out * shoulder * 0.3, out, shoulder * 0.42, stone, moss, flux, rng, rune=index % 2 == 0)
+        body.ball("hand_" + side, fist, shoulder * 0.18 * flare, flux, glow=True, segments=6)
+    # The circling plates: around him, or, fortified, gathered into a wall before him.
+    for index, name in enumerate(ORBITS):
         o0, o1 = L[name]
-        body.box(name, o1, (shoulder * 0.35, shoulder * 0.12, shoulder * 0.45), stone, rotation=Euler((0, 0, math.atan2(o1.y, o1.x))))
-    # Plates stacked under the core for legs.
+        out = (o1 - o0).normalized()
+        stone_plate(body, name, o1, out, shoulder * (0.75 if spec.get("fortified") else 0.5), stone, moss, flux, rng)
+        body.limb(name, o0, o1 - out * shoulder * 0.3, shoulder * 0.025 * flare, shoulder * 0.015, flux, glow=True, segments=4)
+    # Columns of stacked plates under the core, for legs.
     for index, name in enumerate(TRAIL):
         t0, t1 = L[name]
         for sign in (1, -1):
-            body.box(name, t0.lerp(t1, 0.5) + Vector((0, sign * shoulder * 0.45, 0)), (shoulder * 0.45, shoulder * 0.4, (t1 - t0).length * 0.8),
-                     mix(stone, moss, rng.uniform(0, 0.35)), rotation=Euler((0, rng.uniform(-0.15, 0.15), 0)))
-    # The broken ring of stone over the shoulders: the one part that holds still.
-    halo(body, L["halo"][0], shoulder * 0.9, stone, rng, gap=2, size=shoulder * 0.22)
+            spot = t0.lerp(t1, 0.5) + Vector((0, sign * shoulder * 0.5, 0))
+            # Its rounded bottom (up to 1.1 times its size below its centre) floats at the hover height, never under it.
+            spot.z = max(spot.z, d["hover"] + shoulder * 0.55 * 1.15)
+            stone_plate(body, name, spot, Vector((0.6, sign * 0.8, 0.1)), shoulder * 0.55, stone, moss, flux, rng, rune=index != 2)
+            body.ball(name, t0 + Vector((0, sign * shoulder * 0.5, 0)), shoulder * 0.1 * flare, flux, glow=True, segments=6)
+    # The broken ring of stone over the shoulders, lit along its inner edge: the one part that holds still.
+    halo(body, L["halo"][0], shoulder * 0.9, stone, rng, gap=2, size=shoulder * 0.24)
+    for index in range(12):
+        a, b = index / 14 * math.tau, (index + 1) / 14 * math.tau
+        point = lambda angle: L["halo"][0] + Vector((math.cos(angle), math.sin(angle), 0)) * shoulder * 0.78
+        body.limb("halo", point(a), point(b), shoulder * 0.03, shoulder * 0.03, flux, glow=True, segments=4)
 
 
 def stained_glass(body, spec, L, d, rng):

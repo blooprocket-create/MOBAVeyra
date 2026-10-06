@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "38d6ea3584a9769a2f1cd292881cfa593608f9f7372e560bbcdb7aa5bbea2a93",
+  "kitSha256": "8d10b897ed17e39eb32c56995f378cf15a9736c221363b0e84b03b24b3fc3049",
   "assets": [
     {
       "id": "angeru",
@@ -1486,11 +1486,11 @@
       "name": "SK_Torr",
       "archetype": "construct",
       "file": "FBX/SK_Torr.fbx",
-      "sha256": "cb5bf0effc5e99748e40cbaa18dc1281e2a47256ed789e68da5e4c92f8b40beb",
-      "triangles": 1032,
+      "sha256": "f830403e7459eac016b34b4ebd7577f54c11af4a933769f17bce5442cd040ae8",
+      "triangles": 7624,
       "triangleBudget": 12000,
       "bones": 23,
-      "heightCm": 236.75,
+      "heightCm": 237.14,
       "capsuleHalfHeightCm": 120,
       "melee": true,
       "runStrideCm": 273.6,
@@ -1538,7 +1538,127 @@
           "loop": true
         }
       ],
-      "inputSha256": "1b0c6a49fdd7acc399efeb0125796a671665a0151d0fcf871aae1a052af9dbfa"
+      "inputSha256": "74cc56de149c0fe00ff8aa1dee150f196d1a8a431c6e3ce6fbad197acc059733"
+    },
+    {
+      "id": "torr",
+      "name": "SK_Torr_Fortify",
+      "archetype": "construct",
+      "file": "FBX/SK_Torr_Fortify.fbx",
+      "sha256": "4c5ee5934632e2a6fd6112d35dcbcb53a749a28866d4bba729bb471eab21c4f7",
+      "triangles": 7624,
+      "triangleBudget": 12000,
+      "bones": 23,
+      "heightCm": 237.14,
+      "capsuleHalfHeightCm": 120,
+      "melee": true,
+      "runStrideCm": 273.6,
+      "upperBodyBone": "spine_03",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 73,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 25,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 37,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 73,
+          "loop": true
+        }
+      ],
+      "inputSha256": "8f1e17616dc353ffc605cdee3adef4ef8339ed4dbc6ade3d3bc92598cbd2de1b",
+      "status": "torr_fortify_guard"
+    },
+    {
+      "id": "torr",
+      "name": "SK_Torr_Overcapacity",
+      "archetype": "construct",
+      "file": "FBX/SK_Torr_Overcapacity.fbx",
+      "sha256": "37fbcdc758a002e464dbea3c02676f1e34bceb3fc874c06cbf92cea0bd7bceea",
+      "triangles": 7624,
+      "triangleBudget": 12000,
+      "bones": 23,
+      "heightCm": 331.98,
+      "capsuleHalfHeightCm": 120,
+      "melee": true,
+      "runStrideCm": 383.04,
+      "upperBodyBone": "spine_03",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 73,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 25,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 37,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 73,
+          "loop": true
+        }
+      ],
+      "inputSha256": "c86212f772ed6a551450af404b6611ddd66c18a85700e2092c166c3d865de453",
+      "status": "torr_overcapacity_size"
     },
     {
       "id": "varkesh",
