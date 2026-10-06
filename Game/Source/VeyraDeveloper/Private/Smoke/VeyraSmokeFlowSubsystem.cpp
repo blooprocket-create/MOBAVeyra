@@ -426,6 +426,12 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		}
 		if (Flow.CanIssue(EVeyraClientIntent::HoverVanguard))
 		{
+			// A select asks the backend for the Vanguards the player may pick as it begins; until the answer
+			// comes the list is empty, which is not a refusal. A list that never comes is the flow's timeout.
+			if (Snapshot.AvailableVanguards.IsEmpty())
+			{
+				break;
+			}
 			const FString Pick = ChooseFrom(Snapshot.AvailableVanguards);
 			if (Pick.IsEmpty())
 			{
