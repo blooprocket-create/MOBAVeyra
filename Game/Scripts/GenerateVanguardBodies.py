@@ -22,9 +22,8 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
+from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, input_hash, stale_assets  # noqa: E402
 from VanguardBodies.parts import local  # noqa: E402
-
-GENERATOR_VERSION = 1
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
@@ -45,6 +44,8 @@ PREVIEW_DIR = Path(ARGS[ARGS.index("--preview-dir") + 1]) if "--preview-dir" in 
 # The poses a preview lines up, as (animation, time from 0 to 1).
 PREVIEW_POSES = [("Idle", 0.0), ("Run", 0.25), ("Run", 0.75), ("AttackWindup", 0.65), ("AttackWindup", 1.0),
                  ("Cast", 0.5), ("Hit", 0.5), ("Recall", 0.5), ("Death", 1.0)]
+# The rest-pose take every FBX begins with (see animate); its name sorts before every clip's.
+BIND_TAKE = "_Bind"
 # The gameplay camera's look down from the horizontal, in degrees (DefaultGame.ini, VeyraCameraSettings.PitchDegrees).
 GAMEPLAY_PITCH = 60.0
 # How far below the ground a body's lowest point may reach, in centimetres: the slack Veyra.UI.VanguardBodies allows.
@@ -94,6 +95,18 @@ def animate(armature, spec, archetype, d, melee):
     fps = KIT["fps"]
     rest = rest_quaternions(armature)
     armature.animation_data_create()
+    # The FBX's first take is the one an importer reads its time zero from, and Blender writes takes in name order:
+    # this one, named to come first, holds the rest pose, so a skeleton rebound at time zero is bound at rest. The
+    # importer removes its sequence.
+    bind = bpy.data.actions.new(BIND_TAKE)
+    armature.animation_data.action = bind
+    for frame in (1, 2):
+        pose_rig(armature, rest, archetype, {}, 0.0)
+        for bone in armature.pose.bones:
+            bone.keyframe_insert("rotation_quaternion", frame=frame)
+            if bone.name in moved_bones(archetype):
+                bone.keyframe_insert("location", frame=frame)
+    bind.use_fake_user = True
     actions = []
     for name, clip in KIT["archetypes"][spec["archetype"]]["animations"].items():
         action = bpy.data.actions.new(name)
@@ -182,14 +195,6 @@ def reset_scene():
     scene.render.fps = KIT["fps"]
 
 
-def bodies_of(spec):
-    """A Vanguard's bodies, as (spec, status, name suffix): its own, then each it wears while it holds a status, built
-    from its own entry with the status body's entries over it (a rider's ride, ADR-064 §1)."""
-    yield spec, None, ""
-    for status_body in spec.get("statusBodies", []):
-        yield dict(spec, **status_body["body"]), status_body["status"], "_" + status_body["name"]
-
-
 def build(spec, status=None, suffix=""):
     random.seed(spec["seed"])
     archetype = ARCHETYPES[spec["archetype"]]
@@ -200,6 +205,7 @@ def build(spec, status=None, suffix=""):
     name = "SK_" + spec["id"].title().replace("_", "") + suffix
     armature = build_armature(name, archetype.BONES, layout)
     body = archetype.body(spec, layout, dims)
+    body.anchor_unweighted({bone: heads[0] for bone, heads in layout.items()})
     mesh = bpy.data.meshes.new(name)
     body.bm.to_mesh(mesh)
     triangles = sum(len(face.verts) - 2 for face in body.bm.faces)
@@ -243,7 +249,9 @@ def build(spec, status=None, suffix=""):
              "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "triangles": triangles, "triangleBudget": budget,
              "bones": len(archetype.BONES), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
              "melee": melee, "runStrideCm": round(archetype.run_stride(dims), 2), "upperBodyBone": archetype.UPPER_BODY_BONE,
-             "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions}
+             "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions,
+             # What it was made from, so a later partial build cannot pass it off as current (VanguardBodies.inputs).
+             "inputSha256": input_hash(KIT, TUNING, spec)}
     if status:
         asset["status"] = status
     return asset
@@ -265,6 +273,11 @@ def main():
                 "kitSha256": hashlib.sha256(KIT_BYTES).hexdigest(),
                 "assets": sorted(kept + built, key=lambda asset: (asset["id"], asset.get("status", "")))}
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", newline="\n")
+    # A body kept from an earlier build whose inputs have changed since (a shared setting, say) is stale: say which
+    # to rebuild, rather than let the importer take it.
+    stale = stale_assets(KIT, TUNING, manifest["assets"])
+    if stale:
+        print("VEYRA_VANGUARD_BODIES_STALE: " + ", ".join(stale))
     for asset in built:
         print("VEYRA_VANGUARD_BODY: " + asset["name"] + " " + str(asset["triangles"]) + " triangles, " + str(asset["heightCm"]) + " cm")
     print("VEYRA_VANGUARD_BODIES_PASSED: " + str(len(built)))

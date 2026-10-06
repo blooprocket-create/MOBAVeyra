@@ -80,6 +80,8 @@
 - **Validation:**
   - The generator checks the triangle budget and that the body stands on the ground.
   - The import checks source hashes, each body's height against the generator's, that every animation imported, and that it is on the body's skeleton.
+  - Each body records a hash of what it is made from. The import refuses a body whose inputs have changed since it was built, so a partial build cannot keep a stale one.
+  - Every FBX begins with a rest-pose take, and every bone has skin, so a skeleton binds at rest.
   - A preview renders each body in its key poses, front, side and from the gameplay camera's pitch, for review.
   - `CaptureVanguards.ps1` stands imported bodies in their key poses in the lit Crucible. It captures them from the gameplay camera, at its own distance and field of view and through a narrow lens.
 - **Colour:** vertex colours are exported linear, as Unreal's materials read them. The importer rebuilds `M_VeyraVanguardBody` on every import and checks each connection, because a connection to a missing output fails quietly and leaves the body black.

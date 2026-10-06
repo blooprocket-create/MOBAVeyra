@@ -6,6 +6,8 @@ from mathutils import Euler, Matrix, Vector
 
 # Sides of a round part.
 SEGMENTS = 10
+# The radius of a speck that gives an otherwise unused bone some skin, in centimetres: too small to see.
+ANCHOR_RADIUS = 0.05
 
 
 class Body:
@@ -17,9 +19,19 @@ class Body:
         self.color = self.bm.loops.layers.color.new("Col")
         self.uv = self.bm.loops.layers.uv.new("UVMap")
         self.groups = {name: index for index, name in enumerate(bone_names)}
+        self.weighted = set()
+
+    def anchor_unweighted(self, heads):
+        """A speck weighted to each bone nothing else is (a cloak's bones on a body without one, an unused prop bone),
+        at its head, inside the body. Every bone then has skin, so the FBX gives every bone a bind pose; without one,
+        Unreal rebinds the whole body to its first animation's opening frame."""
+        for bone in self.groups:
+            if bone not in self.weighted:
+                self.ball(bone, heads[bone], ANCHOR_RADIUS, (0.0, 0.0, 0.0))
 
     def _finish(self, verts, bone, color, glow):
         group = self.groups[bone]
+        self.weighted.add(bone)
         faces = set()
         for vert in verts:
             vert[self.deform][group] = 1.0
