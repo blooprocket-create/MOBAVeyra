@@ -1484,8 +1484,9 @@ FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const
 {
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const FVector Lift = FVector::UpVector * Settings.TelegraphLift;
+	// Everything drawn here lies over the ground, a ridge's cliff faces included, so it takes the surface however steep.
 	FVector Surface;
-	return (VeyraSurfacePlacement::Resolve(*GetWorld(), FVector2D(Location), 0.0, UVeyraWorldTuningSubsystem::Get().Layout.Surface, Surface) ? Surface : Location) + Lift;
+	return (VeyraSurfacePlacement::Drape(*GetWorld(), FVector2D(Location), UVeyraWorldTuningSubsystem::Get().Layout.Surface, Surface) ? Surface : Location) + Lift;
 }
 
 void UVeyraGreyboxSubsystem::DrawVisionMarks()

@@ -27,6 +27,8 @@ namespace VeyraWorldTests
 		static constexpr double RaisedTo = 350.0;
 		static constexpr double WallAbove = 300.0;
 		static constexpr double Slack = 0.01;
+		// Steeper than the fixture's surface allows a body to stand on.
+		static constexpr double SteepDegrees = 60.0;
 
 		static FVeyraSurfaceTuning Settings()
 		{
@@ -92,6 +94,22 @@ namespace VeyraWorldTests
 			FVector Location;
 			ASSERT_THAT(IsFalse(VeyraSurfacePlacement::Resolve(Spawner.GetWorld(), FVector2D::ZeroVector, BodyHalfHeight, Invalid, Location)));
 			ASSERT_THAT(IsFalse(VeyraSurfacePlacement::Resolve(Spawner.GetWorld(), FVector2D::ZeroVector, -1.0, Settings(), Location)));
+		}
+
+		TEST_METHOD(GroundTooSteepToStandOnStillTakesWhatLiesOverIt)
+		{
+			// A cliff face: no place to stand, but presentation that lies over the ground (the unseen-ground sheet) lies
+			// over it too, rather than under it at an assumed height.
+			UBoxComponent& Slab = SpawnSlab(RaisedTo, true);
+			Slab.GetOwner()->SetActorRotation(FRotator(SteepDegrees, 0.0, 0.0));
+			FVector Location(1.0, 2.0, 3.0);
+			ASSERT_THAT(IsFalse(VeyraSurfacePlacement::Resolve(Spawner.GetWorld(), FVector2D::ZeroVector, BodyHalfHeight, Settings(), Location)));
+			ASSERT_THAT(IsTrue(VeyraSurfacePlacement::Drape(Spawner.GetWorld(), FVector2D::ZeroVector, Settings(), Location)));
+			const double FaceAbove = SlabHalfThickness / FMath::Cos(FMath::DegreesToRadians(SteepDegrees));
+			ASSERT_THAT(IsTrue(Location.Equals(FVector(0.0, 0.0, RaisedTo + FaceAbove), Slack)));
+			// Where there is no ground between the bounds, nothing.
+			Slab.GetOwner()->SetActorLocation(FVector(0.0, 0.0, Settings().MaxZ * 2.0));
+			ASSERT_THAT(IsFalse(VeyraSurfacePlacement::Drape(Spawner.GetWorld(), FVector2D::ZeroVector, Settings(), Location)));
 		}
 
 		TEST_METHOD(StandingAtFollowsTheGroundAndKeepsTheHeightWithoutIt)
