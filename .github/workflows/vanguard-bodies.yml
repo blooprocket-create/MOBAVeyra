@@ -1,14 +1,22 @@
 name: Vanguard body checks
 
+# Whatever a generated body is made from or by: its kit, the capsules it is fitted to, the generator's code and the
+# manifest of what was built. A change to any of them must leave every committed body current.
 on:
   push:
     paths:
-      - 'Game/Scripts/VanguardBodies/inputs.py'
+      - 'Game/ArtSource/Vanguards/**'
+      - 'Game/Tuning/Vanguards.json'
+      - 'Game/Scripts/GenerateVanguardBodies.py'
+      - 'Game/Scripts/VanguardBodies/**'
       - 'tests/test_vanguard_body_inputs.py'
       - '.github/workflows/vanguard-bodies.yml'
   pull_request:
     paths:
-      - 'Game/Scripts/VanguardBodies/inputs.py'
+      - 'Game/ArtSource/Vanguards/**'
+      - 'Game/Tuning/Vanguards.json'
+      - 'Game/Scripts/GenerateVanguardBodies.py'
+      - 'Game/Scripts/VanguardBodies/**'
       - 'tests/test_vanguard_body_inputs.py'
       - '.github/workflows/vanguard-bodies.yml'
 
@@ -24,3 +32,5 @@ jobs:
           python-version: '3.12'
       - name: Regression-test what makes a generated body stale
         run: python3 -m unittest discover -s tests -p 'test_vanguard_body_inputs.py'
+      - name: Every committed body is current (the import's preflight)
+        run: python3 Game/Scripts/VanguardBodies/inputs.py Game

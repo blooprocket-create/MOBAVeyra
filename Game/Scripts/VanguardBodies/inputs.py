@@ -1,11 +1,14 @@
 """What a generated body is made from (ADR-064 §4): the inputs whose change makes it stale.
 
-Pure Python, shared by the generator (Blender) and the importer (Unreal), so both derive the same answer. A body is
-stale when its own kit entry, its archetype's settings, the kit's frame rate, the generator version or its Vanguard's
-capsule and attack range class change, whichever Vanguard was rebuilt last.
+Pure Python, shared by the generator (Blender), the importer (Unreal) and CI, so all derive the same answer. A body
+is stale when its own kit entry, its archetype's settings, the kit's frame rate, the generator version or its
+Vanguard's capsule and attack range class change, whichever Vanguard was rebuilt last; and when the generator's code
+or the Blender that built it differ from the manifest's. A full rebuild redoes every body and rewrites only those whose
+content changed (GenerateVanguardBodies.py), so it costs little when little changed.
 """
 import hashlib
 import json
+from pathlib import Path
 
 GENERATOR_VERSION = 1
 
@@ -23,6 +26,17 @@ def body_name(vanguard_id, suffix):
     return "SK_" + vanguard_id.title().replace("_", "") + suffix
 
 
+def generator_hash(scripts):
+    """The hash of the code that builds a body: GenerateVanguardBodies.py and every module of the VanguardBodies package
+    in scripts (the Game/Scripts folder), each by name and its text with line endings made alike, so a Windows checkout
+    and CI agree."""
+    scripts = Path(scripts)
+    digest = hashlib.sha256()
+    for path in [scripts / "GenerateVanguardBodies.py"] + sorted((scripts / "VanguardBodies").glob("*.py")):
+        digest.update(path.name.encode("utf-8") + b"\0" + path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+    return digest.hexdigest()
+
+
 def input_hash(kit, vanguards, body_spec):
     """The hash of everything body_spec's body is generated from: its entry, its archetype's settings, the kit's frame
     rate, the generator version, and its Vanguard's capsule and whether it fights in melee (Vanguards.json)."""
@@ -35,29 +49,32 @@ def input_hash(kit, vanguards, body_spec):
     return hashlib.sha256(json.dumps(inputs, sort_keys=True).encode("utf-8")).hexdigest()
 
 
-def stale_assets(kit, vanguards, assets):
+def stale_assets(kit, vanguards, assets, generator=None, blender=None):
     """Every body the manifest does not hold as the kit and Vanguards.json give it now, by name: one whose recorded
-    inputs differ or that the kit no longer has, and one the kit has that the manifest lacks (a partial build that kept
-    a manifest from before the kit gave a Vanguard a new body)."""
+    inputs differ or that the kit no longer has; one the kit has that the manifest lacks (a partial build that kept a
+    manifest from before the kit gave a Vanguard a new body); and, when given, one built by other generator code than
+    generator or another Blender than blender."""
     current = {}
     for spec in kit["vanguards"]:
         for body_spec, status, suffix in bodies_of(spec):
             current[(spec["id"], status)] = (input_hash(kit, vanguards, body_spec), body_name(spec["id"], suffix))
     recorded = {(asset["id"], asset.get("status")) for asset in assets}
-    changed = [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status")), (None,))[0] != asset.get("inputSha256")]
+    changed = [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status")), (None,))[0] != asset.get("inputSha256")
+               or (generator is not None and asset.get("generatorSha256") != generator)
+               or (blender is not None and asset.get("blender") != blender)]
     missing = [name for key, (_, name) in current.items() if key not in recorded]
     return changed + missing
 
 
 def stale_in(game):
-    """The stale bodies of the project whose Game folder is game: the manifest's against its kit and Vanguards.json."""
-    from pathlib import Path
+    """The stale bodies of the project whose Game folder is game: the manifest's against its kit, Vanguards.json, the
+    generator's code beside them and the Blender the manifest was last built by."""
     game = Path(game)
     source = game / "ArtSource" / "Vanguards"
     kit = json.loads((source / "VanguardKit.json").read_text(encoding="utf-8"))
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     vanguards = json.loads((game / "Tuning" / "Vanguards.json").read_text(encoding="utf-8"))["vanguards"]
-    return stale_assets(kit, vanguards, manifest["assets"])
+    return stale_assets(kit, vanguards, manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"))
 
 
 if __name__ == "__main__":
@@ -65,5 +82,6 @@ if __name__ == "__main__":
     import sys
     stale = stale_in(sys.argv[1])
     if stale:
-        print("Regenerate these bodies (GenerateVanguardBodies.py): their inputs changed since they were built: " + ", ".join(stale))
+        print("Regenerate these bodies (GenerateVanguardBodies.py; a full build rewrites only those that changed): their inputs,"
+              " generator code or Blender changed since they were built: " + ", ".join(stale))
         sys.exit(1)

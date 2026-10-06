@@ -15,7 +15,7 @@ import unreal
 
 GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
 sys.path.insert(0, str(GAME / "Scripts"))
-from VanguardBodies.inputs import stale_assets  # noqa: E402
+from VanguardBodies.inputs import stale_in  # noqa: E402
 
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
@@ -29,11 +29,14 @@ MATERIAL_PATH = DEST + "/M_VeyraVanguardBody"
 BIND_TAKE = "_Bind"
 EDIT = unreal.MaterialEditingLibrary
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
-ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)
+# -VeyraOnly=A,B imports just those Vanguards' bodies, and -VeyraOnly= none (the art set is still written from the
+# manifest: what a body pours or how far it strides can change when its mesh does not).
+ONLY = next(([vanguard for vanguard in token.split("=", 1)[1].split(",") if vanguard] for token in unreal.SystemLibrary.get_command_line().split()
+             if token.startswith("-VeyraOnly=")), None)
 
 # Every body the art set will hold, not only those imported now, must have been made from what the kit and
-# Vanguards.json give it today: a partial build cannot pass off a body made from an older kit.
-STALE = stale_assets(KIT, VANGUARDS, MANIFEST["assets"])
+# Vanguards.json give it today, by today's generator: a partial build cannot pass off a body made from an older kit.
+STALE = stale_in(GAME)
 assert not STALE, "Regenerate these bodies (GenerateVanguardBodies.py): their inputs changed since they were built: " + ", ".join(STALE)
 assert DEST.startswith("/Game/Veyra/"), "Vanguard bodies live under /Game/Veyra"
 SELECTED = [asset for asset in MANIFEST["assets"] if ONLY is None or asset["id"] in ONLY]
