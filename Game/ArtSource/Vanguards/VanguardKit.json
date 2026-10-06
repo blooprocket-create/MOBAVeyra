@@ -7,6 +7,11 @@
   "purpose": "ADR-064: generated, stylised first-pass bodies whose job is readability. Each entry is read from its Vanguard's Visual language paragraph in the Initial Roster Character Bible; art parameters only, never gameplay tuning. The body is fitted to the capsule in Game/Tuning/Vanguards.json.",
   "destination": "/Game/Veyra/Vanguards",
   "fps": 30,
+  "bodyMaterial": {
+    "purpose": "ADR-064 §4: M_VeyraVanguardBody, the one material every body wears (ImportVanguardBodies.py builds it), coloured by its vertex colour. What its vertex alpha marks glows at glowGain times what the scene's exposure maps to white, so witchfire and burning cores read the same under the Crucible's physical sun as anywhere. Art values, read only by the importer; no body is made from them.",
+    "glowGain": 1.0,
+    "roughness": 0.75
+  },
   "archetypes": {
     "humanoid": {
       "triangleBudget": 9000,

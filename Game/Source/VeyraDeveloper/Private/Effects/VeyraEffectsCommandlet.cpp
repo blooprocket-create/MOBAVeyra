@@ -4,6 +4,7 @@
 
 #if WITH_EDITOR
 #include "Dom/JsonObject.h"
+#include "Effects/VeyraEffectsEnum.h"
 #include "HAL/FileManager.h"
 #include "JsonObjectConverter.h"
 #include "Misc/FileHelper.h"
@@ -14,6 +15,7 @@
 #include "Materials/MaterialInterface.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraExternalSystemEditorUtilities.h"
+#include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraSystem.h"
 #include "NiagaraTypes.h"
@@ -29,11 +31,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogVeyraEffects, Log, All);
 namespace
 {
 	/** The generator version this code is; the spec must name it. */
-	constexpr int32 GeneratorVersion = 1;
+	constexpr int32 GeneratorVersion = 2;
 
 	/**
 	 * A module input the spec sets to a value of its own (1 number a float, 3 a vector, 4 a colour), or to an expression
-	 * of the system's parameters (as a size in terms of the user scale).
+	 * of the system's parameters (as a size in terms of the user scale, or a whole number for a count), or to one of its
+	 * enum's values by its display name as authored, never a translation (a static switch, such as a mode that shows the
+	 * input it governs). It is set on the
+	 * one emitter it names, or on every emitter that has it when it names none.
 	 */
 	struct FEffectInput
 	{
@@ -42,11 +47,44 @@ namespace
 		FName Input;
 		TArray<double> Value;
 		FString Expression;
+		FString Enum;
+		FName Emitter;
 	};
 
 	/**
+	 * Value set to the entry of Reference's enum input whose display name, as authored, is Display; false if it has
+	 * none. Its display names are matched by their source text, so an editor in any culture builds the same system.
+	 */
+	bool EnumValue(const FNiagaraExt_StackItemReference& Reference, const FString& Display, FNiagaraExt_StackInputValue& Value, FNiagaraExternalEditContext& Edit)
+	{
+		FNiagaraExt_StackInputTopology Topology;
+		UNiagaraExternalEditUtilities::GetStackInputTopology(Reference, Topology, Edit);
+		UEnum* Enum = Topology.Type.GetEnum();
+		if (!Enum)
+		{
+			return false;
+		}
+		TArray<FText> DisplayNames;
+		for (int32 Index = 0; Index < Enum->NumEnums(); ++Index)
+		{
+			DisplayNames.Add(Enum->GetDisplayNameTextByIndex(Index));
+		}
+		const int32 Index = VeyraEffects::FindByAuthoredName(DisplayNames, Display);
+		if (Index == INDEX_NONE)
+		{
+			return false;
+		}
+		Value.InitializeAs<FNiagaraExt_StackInputData_Enum>();
+		FNiagaraExt_StackInputData_Enum& Entry = Value.GetMutable<FNiagaraExt_StackInputData_Enum>();
+		Entry.Enum = Enum;
+		Entry.EnumName = Enum->GetNameByIndex(Index);
+		Entry.DisplayName = DisplayNames[Index];
+		return true;
+	}
+
+	/**
 	 * One system of the spec: its name, the engine system or emitter template it starts from, the inputs it sets, and
-	 * the material its sprites draw with, if not the template's.
+	 * the generated materials its sprites and its ribbons draw with.
 	 */
 	struct FEffectSpec
 	{
@@ -54,10 +92,11 @@ namespace
 		FString Template;
 		FString Emitter;
 		FString Material;
+		FString RibbonMaterial;
 		TArray<FEffectInput> Inputs;
 	};
 
-	/** Sets Input on every emitter of System that has it; how many it set. */
+	/** Sets Input on the emitter it names, or on every emitter of System that has it; how many it set. */
 	int32 SetInput(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, const FEffectInput& Input, FNiagaraExternalEditContext& Edit)
 	{
 		FNiagaraExt_StackInputValue Value;
@@ -83,24 +122,50 @@ namespace
 			const FLinearColor Color(Input.Value[0], Input.Value[1], Input.Value[2], Input.Value[3]);
 			Value.InitializeAs(TBaseStructure<FLinearColor>::Get(), reinterpret_cast<const uint8*>(&Color));
 		}
-		else
+		else if (Input.Enum.IsEmpty())
 		{
 			return 0;
 		}
 		int32 Set = 0;
 		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
 		{
+			if (!Input.Emitter.IsNone() && Emitter.EmitterName != Input.Emitter)
+			{
+				continue;
+			}
 			FNiagaraExt_StackItemReference Reference(&System, Emitter.EmitterName, Input.Script, Input.Module);
 			Reference.InputNameStack.Add(Input.Input);
 			const int32 Errors = Edit.Errors.Num();
+			// An enum's entries are its type's, which only this emitter's input can say.
+			if (!Input.Enum.IsEmpty() && !EnumValue(Reference, Input.Enum, Value, Edit))
+			{
+				continue;
+			}
 			UNiagaraExternalEditUtilities::SetStackInputData(Reference, Value, Edit);
 			Set += Edit.Errors.Num() == Errors ? 1 : 0;
 		}
 		return Set;
 	}
 
-	/** Draws every sprite renderer of System with Material; how many it set. */
-	int32 SetSpriteMaterial(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, const FString& Material, FNiagaraExternalEditContext& Edit)
+	/** How many renderers of RendererClass System's emitters have. */
+	int32 CountRenderers(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, UClass* RendererClass, FNiagaraExternalEditContext& Edit)
+	{
+		int32 Count = 0;
+		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
+		{
+			FNiagaraExt_EmitterTopology Topology;
+			UNiagaraExternalEditUtilities::GetEmitterTopology(FNiagaraExt_StackItemReference(&System, Emitter.EmitterName), Topology, Edit);
+			for (int32 Index = 0; Index < Topology.RendererClasses.Num(); ++Index)
+			{
+				Count += Topology.RendererClasses[Index] == RendererClass ? 1 : 0;
+			}
+		}
+		return Count;
+	}
+
+	/** Draws every renderer of RendererClass (sprites or ribbons, whose material is their own "Material") with Material; how many it set. */
+	int32 SetRendererMaterial(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, UClass* RendererClass, const FString& Material,
+		FNiagaraExternalEditContext& Edit)
 	{
 		int32 Set = 0;
 		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
@@ -109,7 +174,7 @@ namespace
 			UNiagaraExternalEditUtilities::GetEmitterTopology(FNiagaraExt_StackItemReference(&System, Emitter.EmitterName), Topology, Edit);
 			for (int32 Index = 0; Index < Topology.RendererClasses.Num(); ++Index)
 			{
-				if (Topology.RendererClasses[Index] != UNiagaraSpriteRendererProperties::StaticClass())
+				if (Topology.RendererClasses[Index] != RendererClass)
 				{
 					continue;
 				}
@@ -224,26 +289,38 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 			return 1;
 		}
 		Object->TryGetStringField(TEXT("material"), Effect.Material);
+		Object->TryGetStringField(TEXT("ribbonMaterial"), Effect.RibbonMaterial);
 		const TArray<TSharedPtr<FJsonValue>>* Inputs = nullptr;
 		if (Object->TryGetArrayField(TEXT("inputs"), Inputs))
 		{
 			for (const TSharedPtr<FJsonValue>& InputValue : *Inputs)
 			{
 				const TSharedPtr<FJsonObject> InputObject = InputValue->AsObject();
-				FString Script, Module, Input, Expression;
+				FString Script, Module, Input, Expression, Enum, Emitter;
 				const TArray<TSharedPtr<FJsonValue>>* Numbers = nullptr;
 				const bool bNumbers = InputObject && InputObject->TryGetArrayField(TEXT("value"), Numbers);
 				const bool bExpression = InputObject && InputObject->TryGetStringField(TEXT("expression"), Expression) && !Expression.IsEmpty();
+				const bool bEnum = InputObject && InputObject->TryGetStringField(TEXT("enum"), Enum) && !Enum.IsEmpty();
 				if (!InputObject || !InputObject->TryGetStringField(TEXT("script"), Script) || !InputObject->TryGetStringField(TEXT("module"), Module)
-					|| !InputObject->TryGetStringField(TEXT("input"), Input) || bNumbers == bExpression
+					|| !InputObject->TryGetStringField(TEXT("input"), Input) || int32(bNumbers) + int32(bExpression) + int32(bEnum) != 1
 					|| (bNumbers && !(Numbers->Num() == 1 || Numbers->Num() == 3 || Numbers->Num() == 4)))
 				{
-					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and either a value of 1, 3 or 4 numbers or an expression."),
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and one of a value of 1, 3 or 4 numbers, an expression or an enum's display name."),
 						*SpecFile, *Effect.Name);
 					return 1;
 				}
 				FEffectInput& Set = Effect.Inputs.Add_GetRef({ FName(*Script), FName(*Module), FName(*Input) });
 				Set.Expression = Expression;
+				Set.Enum = Enum;
+				if (InputObject->TryGetStringField(TEXT("emitter"), Emitter))
+				{
+					if (Emitter.IsEmpty())
+					{
+						UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: an input's emitter, when given, names one."), *SpecFile, *Effect.Name);
+						return 1;
+					}
+					Set.Emitter = FName(*Emitter);
+				}
 				if (bNumbers)
 				{
 					for (const TSharedPtr<FJsonValue>& Number : *Numbers)
@@ -261,7 +338,8 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 	// -Only=A,B builds just those systems; without it, every one.
 	FString OnlyList;
 	TArray<FString> Only;
-	if (FParse::Value(*Params, TEXT("Only="), OnlyList))
+	// The whole list: FParse::Value stops at the first comma unless told otherwise.
+	if (FParse::Value(*Params, TEXT("Only="), OnlyList, /*bShouldStopOnSeparator*/ false))
 	{
 		OnlyList.ParseIntoArray(Only, TEXT(","));
 		for (const FString& Name : Only)
@@ -409,19 +487,50 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		}
 		for (const FEffectInput& Input : Effect.Inputs)
 		{
-			if (SetInput(*System, Summary, Input, Edit) == 0)
+			const int32 Set = SetInput(*System, Summary, Input, Edit);
+			if (Set > 0 && !Input.Enum.IsEmpty())
+			{
+				// A switch changes which inputs the stack shows, and a context keeps the stack it first read: the inputs after
+				// it are set through a fresh one.
+				Edit = FNiagaraExternalEditContext(System);
+			}
+			if (Set == 0)
 			{
 				LogErrors(Edit, Effect.Name);
-				UE_LOG(LogVeyraEffects, Error, TEXT("%s: no emitter has %s.%s.%s; see %s-built.json."), *Effect.Name, *Input.Script.ToString(), *Input.Module.ToString(),
-					*Input.Input.ToString(), *Effect.Name);
+				const FString Where = Input.Emitter.IsNone() ? FString(TEXT("no emitter has")) : FString::Printf(TEXT("its emitter %s has no"), *Input.Emitter.ToString());
+				UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s %s.%s.%s; see %s-built.json."), *Effect.Name, *Where, *Input.Script.ToString(),
+					*Input.Module.ToString(), *Input.Input.ToString(), *Effect.Name);
 				return 1;
 			}
 		}
-		if (!Effect.Material.IsEmpty() && (!LoadObject<UMaterialInterface>(nullptr, *Effect.Material) || SetSpriteMaterial(*System, Summary, Effect.Material, Edit) == 0))
+		// Every sprite and ribbon draws with a generated material. The engine's default ones are unlit, with an emissive near 1,
+		// which the Crucible's physical sun and manual exposure show black; the generated ones glow alike under any exposure.
+		// A mesh renderer draws its mesh's own materials, so a spec keeps none spawning (the death burst's template has one).
+		struct FRendererMaterial
 		{
-			LogErrors(Edit, Effect.Name);
-			UE_LOG(LogVeyraEffects, Error, TEXT("%s: its material %s does not load, or it has no sprite renderer to draw with it."), *Effect.Name, *Effect.Material);
-			return 1;
+			UClass* Class;
+			const TCHAR* What;
+			const TCHAR* Field;
+			const FString& Material;
+		};
+		for (const FRendererMaterial& Renderers : { FRendererMaterial{ UNiagaraSpriteRendererProperties::StaticClass(), TEXT("sprite"), TEXT("material"), Effect.Material },
+				 FRendererMaterial{ UNiagaraRibbonRendererProperties::StaticClass(), TEXT("ribbon"), TEXT("ribbonMaterial"), Effect.RibbonMaterial } })
+		{
+			const int32 Count = CountRenderers(*System, Summary, Renderers.Class, Edit);
+			if (Renderers.Material.IsEmpty() && Count > 0)
+			{
+				UE_LOG(LogVeyraEffects, Error, TEXT("%s: %d %s renderer(s) would draw with the engine's default material, which the scene's exposure shows black; name a generated one in its spec's %s."),
+					*Effect.Name, Count, Renderers.What, Renderers.Field);
+				return 1;
+			}
+			if (!Renderers.Material.IsEmpty() && (!LoadObject<UMaterialInterface>(nullptr, *Renderers.Material) || Count == 0
+				|| SetRendererMaterial(*System, Summary, Renderers.Class, Renderers.Material, Edit) != Count))
+			{
+				LogErrors(Edit, Effect.Name);
+				UE_LOG(LogVeyraEffects, Error, TEXT("%s: its %s %s does not load, it has no %s renderer to draw with it, or not every one took it."), *Effect.Name,
+					Renderers.Field, *Renderers.Material, Renderers.What);
+				return 1;
+			}
 		}
 		System->RequestCompile(/*bForce*/ false);
 		System->WaitForCompilationComplete(/*bIncludingGPUShaders*/ true);
@@ -472,6 +581,8 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		Entry->SetStringField(TEXT("asset"), System->GetPathName());
 		Entry->SetStringField(TEXT("template"), Template ? Effect.Template : Effect.Emitter);
 		Entry->SetNumberField(TEXT("linkedColorInputs"), Linked);
+		Entry->SetStringField(TEXT("material"), Effect.Material);
+		Entry->SetStringField(TEXT("ribbonMaterial"), Effect.RibbonMaterial);
 		Built.Add(MakeShared<FJsonValueObject>(Entry));
 		UE_LOG(LogVeyraEffects, Display, TEXT("VEYRA_EFFECT: %s (%d colour input(s) linked to %s)"), *System->GetPathName(), Linked, *UserColor.ToString());
 	}

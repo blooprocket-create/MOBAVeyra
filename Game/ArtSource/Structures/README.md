@@ -74,7 +74,14 @@ colour (provisional, for legibility).
 
 Both sides share geometry and physical materials. `M_CrucibleFlux` exposes
 `FluxTint` and `FluxStrength` for material instances; blue is a review default,
-not a new faction or team-color rule. Rebuilding and invulnerability need their
+not a new faction or team-color rule. Its glow ignores the scene's exposure, so
+it reads the same under the Crucible's physical sun as anywhere: the kit's
+`emission` (the `FluxStrength` default) is in multiples of what the exposure maps
+to white, and 0 means the surface does not glow. Every kit surface comes from one
+shared builder (`kit_material` in `Game/Scripts/veyra_material_graph.py`, as the
+Fluxborn kit's do), and `Game/Scripts/KitMaterials/spec.py` checks the kit's
+values, in CI too. `BuildStructureArt.ps1 -Materials M_CrucibleFlux` rebuilds only
+the named materials from the kit, without Blender and without importing a mesh. Rebuilding and invulnerability need their
 own presentation treatment during integration. Cracking, corruption venting and
 energy release during destruction still require animation/VFX. The wreck meshes
 provide only the resulting static geometry.

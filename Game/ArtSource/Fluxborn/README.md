@@ -32,7 +32,13 @@ Stone shells, iron joints, alloy trim and geometric Flux conduits connect the
 kit visually to the Crucible structures. Both sides share the meshes. The blue
 Flux material is a neutral review default, not a team-color or strength-state
 decision. Its `FluxTint` and `FluxStrength` parameters support later material
-instances. Collapsed meshes use dark iron in place of luminous surfaces.
+instances. Collapsed meshes use dark iron in place of luminous surfaces. The
+Flux glow ignores the scene's exposure, so it reads the same under the
+Crucible's physical sun as anywhere: the kit's `emission` (the `FluxStrength`
+default) is in multiples of what the exposure maps to white, and 0 means the
+surface does not glow. The surfaces share the structure kit's builder
+(`kit_material` in `Game/Scripts/veyra_material_graph.py`), and
+`Game/Scripts/KitMaterials/spec.py` checks their values, in CI too.
 
 ## Reproduce
 
@@ -47,7 +53,16 @@ and Unreal 5.8.3 were used for this pass. Blender runs in its own background
 process. PythonScriptPlugin is enabled only for the Unreal import process; no
 runtime plugin or project setting changes are required.
 Use `-VerifyOnly` to check the saved Unreal meshes without changing any assets;
-its report is `Game/Saved/FluxbornKit/unreal-verify.json`.
+its report is `Game/Saved/FluxbornKit/unreal-verify.json`. Use
+`-Materials M_FluxbornFlux` to rebuild only the named materials, without
+importing a mesh or checking the meshes against their source. The manifest
+hashes the whole kit, materials included (the generator writes them into its
+Blender scene and exports), so after a change to a material's values run the
+generator again before the next full import. It keeps every FBX whose content
+comes out unchanged, its bytes and its hash, and records each mesh's
+`contentSha256` (`Game/Scripts/fbx_content.py`). A material's own values are not
+content, since the importer builds materials from the kit, so a glow change
+rewrites only the manifest.
 
 - `FluxbornKit.json`: editable palette, art proportions, geometry budgets and
   preview settings; no gameplay tuning.

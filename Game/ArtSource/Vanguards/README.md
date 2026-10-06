@@ -58,6 +58,10 @@ were used for this pass.
 - `Game/Scripts/ImportVanguardBodies.py`: the validated editor-only importer. It
   rebuilds `M_VeyraVanguardBody` (checking every connection) and imports `SK_<Id>`, `SK_<Id>_Skeleton` and
   `AS_<Id>_Armature_<Clip>`. Its report is `Game/Saved/VanguardKit/unreal-validation.json`.
+- `bodyMaterial` in `VanguardKit.json`: the material's values, which only the importer reads, so changing them
+  regenerates no body. Its glow ignores the scene's exposure, so it reads the same under the Crucible's physical sun
+  as anywhere: `glowGain` is in multiples of what the exposure maps to white. `Game/Scripts/KitMaterials/spec.py`
+  checks it, in CI too.
 
 ## Review a body in the game's light
 

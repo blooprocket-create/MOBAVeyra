@@ -1,0 +1,2 @@
+# Small real Blender exports for tests/test_fbx_content.py: binary, kept in git (not LFS) so CI reads them.
+*.fbx binary

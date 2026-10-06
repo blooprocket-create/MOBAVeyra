@@ -18,6 +18,9 @@ from mathutils import Euler, Matrix, Vector
 
 
 GAME = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(GAME / "Scripts"))
+from fbx_content import content_sha256, export_keeping_unchanged  # noqa: E402
+
 SOURCE = GAME / "ArtSource" / "Fluxborn"
 SAVED = GAME / "Saved" / "FluxbornKit"
 KIT_BYTES = (SOURCE / "FluxbornKit.json").read_bytes()
@@ -312,6 +315,7 @@ MANIFEST = {"schemaVersion":1,"kitSha256":hashlib.sha256(KIT_BYTES).hexdigest(),
             "blenderVersion":bpy.app.version_string,"units":"centimetres in FBX",
             "footprintsCm":{key:{f:value[f] for f in ("capsuleRadius","capsuleHalfHeight")} for key,value in UNITS.items()},
             "assets":[]}
+KEPT = []
 SOURCE_PARTS = bpy.data.collections.new("EditableSourceParts")
 SCENE.collection.children.link(SOURCE_PARTS)
 for spec in KIT["assets"]:
@@ -345,9 +349,12 @@ for spec in KIT["assets"]:
         SCENE.unit_settings.scale_length = .01
         obj.data.update()
         bpy.context.view_layer.update()
-        bpy.ops.export_scene.fbx(filepath=str(path),use_selection=True,object_types={"MESH","EMPTY"},
-                                 apply_unit_scale=True,apply_scale_options="FBX_SCALE_UNITS",
-                                 axis_forward="-Y",axis_up="Z",bake_anim=False,mesh_smooth_type="FACE")
+        # Its FBX stands, bytes and hash, when the mesh comes out as it was (fbx_content.py): an export's time stamp, or a
+        # material value the importer builds from the kit, changes nothing Unreal takes from it.
+        if export_keeping_unchanged(lambda target: bpy.ops.export_scene.fbx(filepath=str(target),use_selection=True,object_types={"MESH","EMPTY"},
+                                                                           apply_unit_scale=True,apply_scale_options="FBX_SCALE_UNITS",
+                                                                           axis_forward="-Y",axis_up="Z",bake_anim=False,mesh_smooth_type="FACE"), path):
+            KEPT.append(name)
         for vertex in obj.data.vertices:
             vertex.co /= 100
         SCENE.unit_settings.scale_length = 1
@@ -356,6 +363,7 @@ for spec in KIT["assets"]:
         bpy.data.objects.remove(socket,do_unlink=True)
         MANIFEST["assets"].append({"name":name,"kind":spec["id"],"role":spec["role"],"state":state,
                                    "file":"FBX/"+path.name,"sha256":hashlib.sha256(path.read_bytes()).hexdigest(),
+                                   "contentSha256":content_sha256(path),
                                    "triangles":len(obj.data.polygons),"triangleBudget":spec["triangleBudget"],
                                    "dimensionsCm":[round(v*100,3) for v in obj.dimensions],
                                    "groundPivot":True,"uvChannels":2,"forwardSocket":"Facing",
@@ -364,6 +372,7 @@ for spec in KIT["assets"]:
 SOURCE_PARTS.hide_render = True
 SOURCE_PARTS.hide_viewport = True
 (SOURCE/"manifest.json").write_text(json.dumps(MANIFEST,indent=2)+"\n")
+print(f"VEYRA_FLUXBORN_GENERATED: {len(MANIFEST['assets'])} assets, {len(MANIFEST['assets'])-len(KEPT)} written, {len(KEPT)} kept unchanged")
 
 
 def aim(obj,point):

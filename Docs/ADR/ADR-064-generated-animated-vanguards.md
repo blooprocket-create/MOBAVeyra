@@ -89,6 +89,8 @@
   - `SK_<Id>_Skeleton`, its skeleton;
   - `AS_<Id>_Armature_<Clip>`, its animation sequences, named by the import from each take.
 - **Material:** every body wears one generated material, `M_VeyraVanguardBody`: its colour is the vertex colour, and the vertex alpha marks what glows.
+  - **Its glow ignores exposure (2026-10-06).** The glow is scaled by the inverse of the scene's exposure, as the presentation's materials are (ADR-063, 2026-10-06 amendment). Witchfire and burning cores therefore read under the Crucible's physical sun, which showed the earlier plain emissive as nothing.
+  - Its values are the kit's `bodyMaterial`: `glowGain`, in multiples of what the exposure maps to white, and the roughness. Only the importer reads them, so changing them regenerates no body.
 - **Validation:**
   - The generator checks the triangle budget and that the body stands on the ground.
   - The import checks source hashes, each body's height against the generator's, that every animation imported, and that it is on the body's skeleton.

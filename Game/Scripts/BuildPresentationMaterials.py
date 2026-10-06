@@ -1,27 +1,35 @@
 """Build the presentation's generated materials from ArtSource/Presentation/PresentationMaterials.json (ADR-063).
 
 Run through BuildPresentationMaterials.ps1, in an editor commandlet. Each material's graph comes from its kind
-below and its values from the spec, so the same spec and generator version always build the same asset.
+below and its values from the spec, so the same spec and generator version always build the same asset. The spec is
+checked whole by PresentationMaterials/spec.py, which CI also runs, before any asset changes.
+
+The Crucible is lit physically (a sun of tens of thousands of lux under a manual exposure), so an unlit emissive of 1
+reads thousands of times too dark. Every glow here is scaled by the inverse of the scene's exposure (unexposed below),
+so it reads the same under any light; its strength in the spec is in multiples of what the exposure maps to white.
 """
 import hashlib
 import json
 import stat
+import sys
 from pathlib import Path
 
 import unreal
 
 GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
+sys.path.insert(0, str(GAME / "Scripts"))
+from PresentationMaterials.spec import GENERATOR_VERSION, RULES, validate  # noqa: E402
+from veyra_material_graph import unexposed  # noqa: E402
+
 SPEC_FILE = GAME / "ArtSource" / "Presentation" / "PresentationMaterials.json"
 SPEC = json.loads(SPEC_FILE.read_text())
 SAVED = GAME / "Saved" / "PresentationMaterials"
-GENERATOR_VERSION = 1
 EDIT = unreal.MaterialEditingLibrary
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 
-assert SPEC["schemaVersion"] == 1, "Unknown spec schema"
-assert SPEC["generatorVersion"] == GENERATOR_VERSION, "The spec was written for another generator version"
+PROBLEMS = validate(SPEC)
+assert not PROBLEMS, "PresentationMaterials.json: " + "; ".join(PROBLEMS)
 DEST = SPEC["destination"]
-assert DEST.startswith("/Game/Veyra/UI/"), "Presentation materials live where the UI's content is always cooked"
 
 
 def expression(material, kind, x, y, **properties):
@@ -32,31 +40,34 @@ def expression(material, kind, x, y, **properties):
 
 
 def build_overlay_flash(material, spec):
-    """Emissive = colour x strength, brightest at the silhouette: additive and unlit, for a mesh's overlay."""
-    assert 0.0 <= spec["rimFloor"] <= 1.0 and spec["rimExponent"] > 0.0
+    """Emissive = colour x strength x glowGain, brightest at the silhouette, by the inverse of the scene's exposure:
+    additive and unlit, for a mesh's overlay, so it brightens a sunlit body alike under any light. It is drawn over
+    static bodies and kit art and over skinned Vanguard bodies (ADR-064 §3), so it is marked for skeletal meshes: a
+    cooked game draws a material without that mark on one as the engine's default."""
     material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_ADDITIVE)
     material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
-    # It overlays the generated bodies (skeletal meshes) as well as the grey-box shapes: a cooked game has only the
-    # shaders a material's saved usages ask for.
     material.set_editor_property("used_with_skeletal_mesh", True)
-    color = expression(material, unreal.MaterialExpressionVectorParameter, -900, -200,
+    color = expression(material, unreal.MaterialExpressionVectorParameter, -1100, -200,
                        parameter_name=spec["colorParameter"], default_value=unreal.LinearColor(*spec["defaultColor"]))
-    strength = expression(material, unreal.MaterialExpressionScalarParameter, -900, 0,
+    strength = expression(material, unreal.MaterialExpressionScalarParameter, -1100, 0,
                           parameter_name=spec["strengthParameter"], default_value=0.0)
-    fresnel = expression(material, unreal.MaterialExpressionFresnel, -900, 200, exponent=spec["rimExponent"], base_reflect_fraction=0.0)
-    floor = expression(material, unreal.MaterialExpressionConstant, -900, 380, r=spec["rimFloor"])
-    full = expression(material, unreal.MaterialExpressionConstant, -900, 460, r=1.0)
-    rim = expression(material, unreal.MaterialExpressionLinearInterpolate, -600, 260)
-    EDIT.connect_material_expressions(floor, "", rim, "A")
-    EDIT.connect_material_expressions(full, "", rim, "B")
-    EDIT.connect_material_expressions(fresnel, "", rim, "Alpha")
-    lit = expression(material, unreal.MaterialExpressionMultiply, -600, -100)
-    EDIT.connect_material_expressions(color, "RGB", lit, "A")
-    EDIT.connect_material_expressions(strength, "", lit, "B")
-    emissive = expression(material, unreal.MaterialExpressionMultiply, -300, 0)
-    EDIT.connect_material_expressions(lit, "", emissive, "A")
-    EDIT.connect_material_expressions(rim, "", emissive, "B")
-    EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    fresnel = expression(material, unreal.MaterialExpressionFresnel, -1100, 200, exponent=spec["rimExponent"], base_reflect_fraction=0.0)
+    floor = expression(material, unreal.MaterialExpressionConstant, -1100, 380, r=spec["rimFloor"])
+    full = expression(material, unreal.MaterialExpressionConstant, -1100, 460, r=1.0)
+    rim = expression(material, unreal.MaterialExpressionLinearInterpolate, -800, 260)
+    assert EDIT.connect_material_expressions(floor, "", rim, "A"), "rim floor"
+    assert EDIT.connect_material_expressions(full, "", rim, "B"), "rim full"
+    assert EDIT.connect_material_expressions(fresnel, "", rim, "Alpha"), "fresnel"
+    lit = expression(material, unreal.MaterialExpressionMultiply, -800, -100)
+    assert EDIT.connect_material_expressions(color, "RGB", lit, "A"), "colour"
+    assert EDIT.connect_material_expressions(strength, "", lit, "B"), "strength"
+    rimmed = expression(material, unreal.MaterialExpressionMultiply, -600, 0)
+    assert EDIT.connect_material_expressions(lit, "", rimmed, "A"), "lit"
+    assert EDIT.connect_material_expressions(rim, "", rimmed, "B"), "rim"
+    gained = expression(material, unreal.MaterialExpressionMultiply, -450, 0, const_b=spec["glowGain"])
+    assert EDIT.connect_material_expressions(rimmed, "", gained, "A"), "rimmed"
+    emissive = unexposed(material, gained, -250, 0)
+    assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
 
 
 OUTLINE_HLSL = """
@@ -106,8 +117,6 @@ def custom_input(name):
 def build_post_process_outline(material, spec):
     """A post-process pass, after tonemapping, that outlines custom-depth stencilled shapes by their stencil."""
     stencils = spec["stencils"]
-    assert len(set(stencils.values())) == 3 and all(1 <= value <= 255 for value in stencils.values()), "Three distinct stencils, 1-255"
-    assert spec["thicknessPixels"]["enemy"] >= spec["thicknessPixels"]["other"] > 0.0 and spec["referenceHeight"] > 0.0
     material.set_editor_property("material_domain", unreal.MaterialDomain.MD_POST_PROCESS)
     material.set_editor_property("blendable_location", unreal.BlendableLocation.BL_SCENE_COLOR_AFTER_TONEMAPPING)
     # The engine's own ids for the scene textures, not numbers copied by hand.
@@ -145,9 +154,6 @@ def build_particle_smoke(material, spec):
     erodes through growing holes as the particle's alpha fades with age. It is lit as a ball (a normal domed from the
     sprite's centre), so the sun shades it like any solid in the scene; its albedo is the particle's colour darkened,
     and it glows in that colour while young, by an amount that does not depend on the scene's exposure."""
-    for key in ("ragged", "erosion", "glowGain", "noiseScale", "albedo"):
-        assert spec[key] > 0.0, key
-    assert spec["glowFloor"] >= 0.0 and 0.0 < spec["clip"] < 1.0 and spec["albedo"] <= 1.0
     material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_MASKED)
     material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
     material.set_editor_property("used_with_niagara_sprites", True)
@@ -208,13 +214,10 @@ def build_particle_smoke(material, spec):
     assert EDIT.connect_material_expressions(alpha_squared, "", gained, "A"), "alpha squared"
     glow = expression(material, unreal.MaterialExpressionAdd, -800, -150, const_b=spec["glowFloor"])
     assert EDIT.connect_material_expressions(gained, "", glow, "A"), "gained"
-    exposure = expression(material, unreal.MaterialExpressionEyeAdaptationInverse, -800, -50)
-    unexposed = expression(material, unreal.MaterialExpressionMultiply, -600, -100)
-    assert EDIT.connect_material_expressions(glow, "", unexposed, "A"), "glow"
-    assert EDIT.connect_material_expressions(exposure, "", unexposed, "B"), "exposure"
+    glowing = unexposed(material, glow, -600, -100)
     # Brightest at the puff's heart, so the glow reads as embers inside the smoke rather than its surface.
     heart = expression(material, unreal.MaterialExpressionMultiply, -500, -100)
-    assert EDIT.connect_material_expressions(unexposed, "", heart, "A"), "unexposed"
+    assert EDIT.connect_material_expressions(glowing, "", heart, "A"), "unexposed"
     assert EDIT.connect_material_expressions(domed, "", heart, "B"), "domed"
     emissive = expression(material, unreal.MaterialExpressionMultiply, -400, -200)
     assert EDIT.connect_material_expressions(color, "", emissive, "A"), "colour"
@@ -222,17 +225,126 @@ def build_particle_smoke(material, spec):
     assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
 
 
-BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "particleSmoke": build_particle_smoke}
+def build_particle_effect(material, spec):
+    """A stylized effect particle (ADR-063 §4): a solid, hard-edged shape (masked) whose edge is ragged by world-space
+    noise and which erodes through growing holes as it ages. It flares white-hot as it is born, cools into its colour,
+    then darkens as it frays away. Its age is the particle's normalized age, which every Niagara renderer passes, so the
+    look keeps its timing whatever a template does with colour and alpha. A sprite is a ball, lit through a domed
+    normal; a ribbon is a strand, domed across its width (its V) and lit flat. Its glow reads the same under any light."""
+    sprite = spec["shape"] == "sprite"
+    material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_MASKED)
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
+    material.set_editor_property("used_with_niagara_sprites" if sprite else "used_with_niagara_ribbons", True)
+    material.set_editor_property("opacity_mask_clip_value", spec["clip"])
+    # Hue: the particle's colour folded under 1 by its brightest channel, so a template that brightens colour past 1
+    # keeps its hue rather than washing the glow out to white.
+    color = expression(material, unreal.MaterialExpressionParticleColor, -2100, -450)
+    red_green = expression(material, unreal.MaterialExpressionMax, -1900, -350)
+    assert EDIT.connect_material_expressions(color, "R", red_green, "A"), "red"
+    assert EDIT.connect_material_expressions(color, "G", red_green, "B"), "green"
+    brightest = expression(material, unreal.MaterialExpressionMax, -1750, -350)
+    assert EDIT.connect_material_expressions(red_green, "", brightest, "A"), "red and green"
+    assert EDIT.connect_material_expressions(color, "B", brightest, "B"), "blue"
+    folding = expression(material, unreal.MaterialExpressionMax, -1600, -350, const_b=1.0)
+    assert EDIT.connect_material_expressions(brightest, "", folding, "A"), "brightest"
+    hue = expression(material, unreal.MaterialExpressionDivide, -1450, -450)
+    assert EDIT.connect_material_expressions(color, "", hue, "A"), "colour"
+    assert EDIT.connect_material_expressions(folding, "", hue, "B"), "folding"
+    # Age, from 0 at birth to 1 at death, and youth, what is left of its life.
+    relative = expression(material, unreal.MaterialExpressionParticleRelativeTime, -2100, 500)
+    age = expression(material, unreal.MaterialExpressionSaturate, -1950, 500)
+    assert EDIT.connect_material_expressions(relative, "", age, ""), "relative time"
+    youth = expression(material, unreal.MaterialExpressionOneMinus, -1800, 350)
+    assert EDIT.connect_material_expressions(age, "", youth, ""), "age"
+    # The dome: 1 along the shape's heart, falling to 0 at its edge (1 - the square of the distance from the heart in
+    # half-widths), so overlapping particles merge into rounded masses rather than points.
+    uv = expression(material, unreal.MaterialExpressionTextureCoordinate, -2100, 150)
+    if sprite:
+        offset = expression(material, unreal.MaterialExpressionSubtract, -1950, 150, const_b=0.5)
+        assert EDIT.connect_material_expressions(uv, "", offset, "A"), "uv"
+    else:
+        width = expression(material, unreal.MaterialExpressionComponentMask, -1950, 150, r=False, g=True, b=False, a=False)
+        assert EDIT.connect_material_expressions(uv, "", width, ""), "uv"
+        offset = expression(material, unreal.MaterialExpressionSubtract, -1850, 150, const_b=0.5)
+        assert EDIT.connect_material_expressions(width, "", offset, "A"), "across"
+    across = expression(material, unreal.MaterialExpressionMultiply, -1700, 150, const_b=2.0)
+    assert EDIT.connect_material_expressions(offset, "", across, "A"), "offset"
+    squared = expression(material, unreal.MaterialExpressionDotProduct if sprite else unreal.MaterialExpressionMultiply, -1550, 180)
+    assert EDIT.connect_material_expressions(across, "", squared, "A"), "across"
+    assert EDIT.connect_material_expressions(across, "", squared, "B"), "across again"
+    dome = expression(material, unreal.MaterialExpressionOneMinus, -1400, 180)
+    assert EDIT.connect_material_expressions(squared, "", dome, ""), "squared"
+    domed = expression(material, unreal.MaterialExpressionSaturate, -1250, 260)
+    assert EDIT.connect_material_expressions(dome, "", domed, ""), "dome"
+    if sprite:
+        # A ball's normal: the offset across the sprite, and up out of it by what the dome leaves.
+        rise = expression(material, unreal.MaterialExpressionSquareRoot, -1100, 260)
+        assert EDIT.connect_material_expressions(domed, "", rise, ""), "domed"
+        normal = expression(material, unreal.MaterialExpressionAppendVector, -950, 200)
+        assert EDIT.connect_material_expressions(across, "", normal, "A"), "across"
+        assert EDIT.connect_material_expressions(rise, "", normal, "B"), "rise"
+        assert EDIT.connect_material_property(normal, "", unreal.MaterialProperty.MP_NORMAL), "normal"
+    # Kept where the dome stands above world-space noise (0 to 1) and the erosion of age together: particles side by
+    # side share the noise, so holes run through a burst as one, and widen until the particle frays away.
+    noise = expression(material, unreal.MaterialExpressionNoise, -1550, 450, scale=spec["noiseScale"], levels=2,
+                       output_min=0.0, output_max=1.0, turbulence=False)
+    ragged = expression(material, unreal.MaterialExpressionMultiply, -1400, 450, const_b=spec["ragged"])
+    assert EDIT.connect_material_expressions(noise, "", ragged, "A"), "noise"
+    eroded = expression(material, unreal.MaterialExpressionMultiply, -1400, 600, const_b=spec["erosion"])
+    assert EDIT.connect_material_expressions(age, "", eroded, "A"), "age"
+    roughened = expression(material, unreal.MaterialExpressionSubtract, -1100, 450)
+    assert EDIT.connect_material_expressions(dome, "", roughened, "A"), "dome"
+    assert EDIT.connect_material_expressions(ragged, "", roughened, "B"), "ragged"
+    mask = expression(material, unreal.MaterialExpressionSubtract, -950, 500)
+    assert EDIT.connect_material_expressions(roughened, "", mask, "A"), "roughened"
+    assert EDIT.connect_material_expressions(eroded, "", mask, "B"), "eroded"
+    assert EDIT.connect_material_property(mask, "", unreal.MaterialProperty.MP_OPACITY_MASK), "opacity mask"
+    # Albedo: the hue at albedo, darkening to tailShade of that by death; matte, so the sun shades it as a solid.
+    shade = expression(material, unreal.MaterialExpressionLinearInterpolate, -1100, -150, const_a=1.0, const_b=spec["tailShade"])
+    assert EDIT.connect_material_expressions(age, "", shade, "Alpha"), "age"
+    tinted = expression(material, unreal.MaterialExpressionMultiply, -1100, -350, const_b=spec["albedo"])
+    assert EDIT.connect_material_expressions(hue, "", tinted, "A"), "hue"
+    base = expression(material, unreal.MaterialExpressionMultiply, -900, -300)
+    assert EDIT.connect_material_expressions(tinted, "", base, "A"), "tinted"
+    assert EDIT.connect_material_expressions(shade, "", base, "B"), "shade"
+    assert EDIT.connect_material_property(base, "", unreal.MaterialProperty.MP_BASE_COLOR), "base colour"
+    rough = expression(material, unreal.MaterialExpressionConstant, -900, -200, r=1.0)
+    assert EDIT.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS), "roughness"
+    # The flare: youth to the power glowFalloff, so it is brightest at birth and spent well before death.
+    flare = expression(material, unreal.MaterialExpressionPower, -1600, -50, const_exponent=spec["glowFalloff"])
+    assert EDIT.connect_material_expressions(youth, "", flare, "Base"), "youth"
+    # Glow: glowFloor + glowGain x the flare, its colour whitened by coreWhiten x the flare; brightest at the shape's
+    # heart, so a newborn reads as a white-hot core inside a rim of its colour.
+    gained = expression(material, unreal.MaterialExpressionMultiply, -1450, -50, const_b=spec["glowGain"])
+    assert EDIT.connect_material_expressions(flare, "", gained, "A"), "flare"
+    glow = expression(material, unreal.MaterialExpressionAdd, -1300, -50, const_b=spec["glowFloor"])
+    assert EDIT.connect_material_expressions(gained, "", glow, "A"), "gained"
+    heart = expression(material, unreal.MaterialExpressionMultiply, -1100, 0)
+    assert EDIT.connect_material_expressions(glow, "", heart, "A"), "glow"
+    assert EDIT.connect_material_expressions(domed, "", heart, "B"), "domed"
+    glowing = unexposed(material, heart, -800, 0)
+    heat = expression(material, unreal.MaterialExpressionMultiply, -1450, 50, const_b=spec["coreWhiten"])
+    assert EDIT.connect_material_expressions(flare, "", heat, "A"), "flare"
+    whitened = expression(material, unreal.MaterialExpressionLinearInterpolate, -900, -100, const_b=1.0)
+    assert EDIT.connect_material_expressions(hue, "", whitened, "A"), "hue"
+    assert EDIT.connect_material_expressions(heat, "", whitened, "Alpha"), "heat"
+    emissive = expression(material, unreal.MaterialExpressionMultiply, -600, -100)
+    assert EDIT.connect_material_expressions(whitened, "", emissive, "A"), "whitened"
+    assert EDIT.connect_material_expressions(glowing, "", emissive, "B"), "glowing"
+    assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
+
+
+BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "particleSmoke": build_particle_smoke,
+            "particleEffect": build_particle_effect}
 
 # -VeyraOnly=A,B builds just those materials; without it, every one.
 ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)
 SELECTED = [spec for spec in SPEC["materials"] if ONLY is None or spec["name"] in ONLY]
 assert ONLY is None or len(SELECTED) == len(ONLY), "Unknown material in -VeyraOnly: " + ",".join(ONLY)
 
-# Validate the whole spec, and that no target is locked against writing, before changing any asset.
+# The spec is valid (above); check that no target is locked against writing before changing any asset.
 destination_disk = GAME / "Content" / DEST.removeprefix("/Game/")
-for spec in SPEC["materials"]:
-    assert spec["kind"] in BUILDERS, "Unknown material kind: " + spec["kind"]
+assert set(BUILDERS) == set(RULES), "The spec checker and the builders know different kinds"
 for spec in SELECTED:
     target = destination_disk / (spec["name"] + ".uasset")
     if target.exists() and getattr(target.stat(), "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_READONLY:
