@@ -485,6 +485,12 @@ private:
 	/** Where the cursor was on the last frame of a middle-mouse drag. */
 	TOptional<FVector2D> LastDragMouse;
 
+	/** The movement the camera's controller ticks after, so it reads where the followed body is drawn this frame (ADR-065 §12). */
+	TWeakObjectPtr<UActorComponent> CameraFollowsMovement;
+
+	/** Ticks after Body's movement, and no longer after the one before it. */
+	void TickAfterMovementOf(const APawn* Body);
+
 	/** How long the cursor has rested in the screen's edge zone, for the Edge-Scroll Delay (SET-87). */
 	double EdgeHeldSeconds = 0.0;
 

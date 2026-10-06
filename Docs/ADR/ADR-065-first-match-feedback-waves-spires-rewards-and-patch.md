@@ -131,6 +131,20 @@ The author found the bodies too small for the battleground.
 - **Following the bodies:** health bars and combat numbers stand over the drawn body.
 - **Clicking:** the cursor finds a unit within 30 units of its line (a sphere sweep), so clicking a body where it is drawn picks it.
 
+### 12. Drawn bodies ease between updates
+The author found movement rough. ADR-062 §6 relied on the engine's smoothing for other machines' units. That smoothing eases only a character's mesh, and every Veyra body hung from the capsule. So on every client:
+- each unit stepped to each update the server sent, 30 times a second for Vanguards and 10 for Fluxborn;
+- each turn came in steps of 16–24°;
+- each stop overshot by a few units and snapped back.
+
+The fix:
+- **What hangs from the mesh.** A body's drawn parts (the animated skin, the grey-box shape or disc, the art) hang from the character's mesh.
+- **What follows it.** Health bars, combat numbers and a camera that follows the player's body read that place (`VeyraDrawnBody`, which movement owns). The camera ticks after that body's movement.
+- **Ease times.** A Vanguard's, companion's or Echo's body eases to each new place and facing over **0.1 s**. A Fluxborn's or creature's eases over **0.15 s**, since their updates come less often. These are client presentation settings (`DefaultGame.ini`).
+- **What stays the same.** The server's movement and every rule stay as they were: nothing the server decides reads a drawn body.
+
+Not changed here: the server's tick rate (30), the avoidance settings, and the server's frame time in a long siege. The author's second match shows that frame time rising as Fluxborn pile up in a falling base: past 700 replicated actors, 13–20 ms on average, with spikes to 200 ms. That needs profiling first.
+
 ## Consequences
 - Team B's side-lane waves arrive on time, from their own inhibitors, and no wave crosses a jungle. Lane pressure is even again.
 - Fluxborn stay with their lane: a Vanguard who steps 200 into the jungle loses them.
@@ -157,3 +171,4 @@ The author found the bodies too small for the battleground.
 8. Fluxborn and wildlife bodies last 2.5 seconds (§9).
 9. The kill feed's rows, timing, and which moments are announced (§10).
 10. The body scales 1.65 and 1.32, and the 30-unit cursor pick (§11).
+11. Ease times of 0.1 s for Vanguards, companions and Echoes, and 0.15 s for Fluxborn and creatures (§12).

@@ -531,6 +531,27 @@ public:
 	float VisualTopOf(const AActor& Unit) const;
 
 	/**
+	 * How long, in seconds, a body drawn on a machine that only shows it takes to ease to each new place and facing from the
+	 * server, after its capsule steps there (ADR-065 §12). A Vanguard's, its companion's and its Echo's place arrives every
+	 * server tick; a Fluxborn's and a creature's less often (World.json replication), so theirs ease longer. Presentation
+	 * only: the server moves every unit, and nothing it decides reads a drawn body.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float VanguardEaseLocationSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float VanguardEaseRotationSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float CreatureEaseLocationSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float CreatureEaseRotationSeconds = 0.0f;
+
+	/** How Unit's drawn body eases, in seconds, its place's and its facing's; unset for a unit that does not move. */
+	TOptional<FVector2f> EaseOf(const AActor& Unit) const;
+
+	/**
 	 * The Fluxborn kit's provisional art (Art Direction, Fluxborn greybox meshes), keyed by each kind's content ID,
 	 * drawn in place of each Fluxborn's body: active, then collapsed where it fell for its corpse's moment. A kind
 	 * without art keeps its body. Visual only: its capsule stays its only collision and movement.

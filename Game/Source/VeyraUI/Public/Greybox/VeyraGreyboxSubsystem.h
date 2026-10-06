@@ -372,8 +372,11 @@ private:
 	 */
 	void AttachHudOverlay();
 
-	/** A shape of Mesh attached to Owner, with its own material instance, or null. */
+	/** A shape of Mesh attached where Owner's body is drawn, with its own material instance, or null. */
 	UStaticMeshComponent* AddShape(AActor& Owner, UStaticMesh& Mesh, UMaterialInstanceDynamic*& OutMaterial) const;
+
+	/** Unit's drawn body eases after each update from the server, as its kind's settings say (ADR-065 §12). */
+	static void EaseBody(APawn& Unit);
 
 	/** The ground under Location, lifted for drawing; Location itself where there is none. */
 	FVector GroundUnder(const FVector& Location) const;

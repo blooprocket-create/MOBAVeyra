@@ -24,6 +24,7 @@
 #include "Hud/VeyraHudModel.h"
 #include "Ending/VeyraMatchEnding.h"
 #include "Hud/VeyraMinimapModel.h"
+#include "Movement/VeyraDrawnBody.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Structures/VeyraStructure.h"
 #include "Input/VeyraInputSettings.h"
@@ -121,7 +122,7 @@ namespace
 			return;
 		}
 		// Over the body as it is drawn, which may stand taller than its capsule (ADR-065 §11).
-		const FVector OnScreen = Canvas.Project(Unit.GetActorLocation() + FVector::UpVector * (Settings.VisualTopOf(Unit) + Settings.BarLift));
+		const FVector OnScreen = Canvas.Project(VeyraDrawnBody::LocationOf(Unit) + FVector::UpVector * (Settings.VisualTopOf(Unit) + Settings.BarLift));
 		if (OnScreen.Z <= 0.0)
 		{
 			return; // Behind the camera.
@@ -298,7 +299,7 @@ namespace
 				{
 					continue;
 				}
-				Anchor = Unit->GetActorLocation() + FVector::UpVector * (Settings.VisualTopOf(*Unit) + Rise);
+				Anchor = VeyraDrawnBody::LocationOf(*Unit) + FVector::UpVector * (Settings.VisualTopOf(*Unit) + Rise);
 			}
 			const FVector OnScreen = Canvas.Project(Anchor);
 			if (OnScreen.Z <= 0.0)

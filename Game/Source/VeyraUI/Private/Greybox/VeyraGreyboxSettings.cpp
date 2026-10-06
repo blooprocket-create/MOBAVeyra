@@ -48,6 +48,22 @@ float UVeyraGreyboxSettings::VisualTopOf(const AActor& Unit) const
 	return HalfHeight * (2.0f * VisualScaleOf(Unit) - 1.0f);
 }
 
+TOptional<FVector2f> UVeyraGreyboxSettings::EaseOf(const AActor& Unit) const
+{
+	switch (VeyraUnits::KindOf(&Unit).Get(EVeyraUnitKind::Marker))
+	{
+	case EVeyraUnitKind::Vanguard:
+	case EVeyraUnitKind::Companion:
+	case EVeyraUnitKind::Echo:
+		return FVector2f(VanguardEaseLocationSeconds, VanguardEaseRotationSeconds);
+	case EVeyraUnitKind::Fluxborn:
+	case EVeyraUnitKind::Wildlife:
+		return FVector2f(CreatureEaseLocationSeconds, CreatureEaseRotationSeconds);
+	default:
+		return {};
+	}
+}
+
 TArray<FString> UVeyraGreyboxSettings::Validate() const
 {
 	TArray<FString> Problems;
@@ -214,6 +230,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(LevelUpFontSize >= 1 && LevelUpHeightShare > 0.0f && LevelUpHeightShare < 1.0f && LevelUpBannerSeconds > 0.0f && LevelUpFadeShare > 0.0f
 		&& LevelUpFadeShare <= 1.0f, TEXT("LevelUpBannerSeconds"), TEXT("the level-up banner needs a size, a place on screen, some time to show and a share of it to fade."));
 	Require(VanguardBodyScale > 0.0f && StructureArtScale > 0.0f, TEXT("VanguardBodyScale"), TEXT("bodies need a scale above 0."));
+	Require(VanguardEaseLocationSeconds > 0.0f && VanguardEaseRotationSeconds > 0.0f && CreatureEaseLocationSeconds > 0.0f && CreatureEaseRotationSeconds > 0.0f,
+		TEXT("VanguardEaseLocationSeconds"), TEXT("a drawn body needs some time to ease to each update, or it steps with its capsule."));
 	Require(KillFeedRows >= 1 && KillFeedSeconds > 0.0f && KillFeedFaceSize >= 1.0f && AnnouncementSeconds > 0.0f && AnnouncementFontSize >= 1, TEXT("KillFeedSeconds"),
 		TEXT("the kill feed needs rows, a time to show and a face size, and the announcement a time and a size."));
 	Require(RankUpPulseSeconds > 0.0f && RankUpPulseFloor >= 0.0f && RankUpPulseFloor < 1.0f, TEXT("RankUpPulseSeconds"),

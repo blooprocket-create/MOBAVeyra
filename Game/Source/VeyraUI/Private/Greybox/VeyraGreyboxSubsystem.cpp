@@ -26,6 +26,8 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Fog/VeyraDenseFogBank.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -49,6 +51,7 @@
 #include "Layout/VeyraRiver.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Movement/VeyraDrawnBody.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "Sound/SoundAttenuation.h"
@@ -615,12 +618,12 @@ void UVeyraGreyboxSubsystem::ApplyBodyPose(const APawn& Unit, FBody& Body, bool 
 	UStaticMeshComponent* Shape = Body.Mesh.Get();
 	UStaticMeshComponent* Art = Body.Art.IsValid() && Body.Art->IsVisible() ? Body.Art.Get() : nullptr;
 	USkeletalMeshComponent* Skin = Body.Skin.IsValid() && Body.Skin->IsVisible() ? Body.Skin.Get() : nullptr;
-	const USceneComponent* Root = Unit.GetRootComponent();
+	const USceneComponent* Anchor = VeyraDrawnBody::AnchorOf(Unit);
 	// A structure stands still, and an animated body's animation acts out its fight (ADR-064 §3): they only flash.
-	if (Root && !Unit.IsA<AVeyraStructure>() && !Skin)
+	if (Anchor && !Unit.IsA<AVeyraStructure>() && !Skin)
 	{
-		// The pose moves on the ground, whichever way the unit faces.
-		const FVector Local = Root->GetComponentTransform().InverseTransformVectorNoScale(Pose.Offset);
+		// The pose moves on the ground, whichever way the drawn body faces.
+		const FVector Local = Anchor->GetComponentTransform().InverseTransformVectorNoScale(Pose.Offset);
 		float Radius = 0.0f;
 		float HalfHeight = 0.0f;
 		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
@@ -1069,10 +1072,27 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	return Side;
 }
 
+void UVeyraGreyboxSubsystem::EaseBody(APawn& Unit)
+{
+	// A machine that only shows the unit steps its capsule to each update from the server and eases its mesh, and so its
+	// drawn body, after it (ADR-065 §12). The server's own copy never eases.
+	const TOptional<FVector2f> Ease = GetDefault<UVeyraGreyboxSettings>()->EaseOf(Unit);
+	const ACharacter* Character = Cast<ACharacter>(&Unit);
+	UCharacterMovementComponent* Movement = Character ? Character->GetCharacterMovement() : nullptr;
+	if (!Ease || !Movement)
+	{
+		return;
+	}
+	Movement->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
+	Movement->NetworkSimulatedSmoothLocationTime = Ease->X;
+	Movement->NetworkSimulatedSmoothRotationTime = Ease->Y;
+}
+
 UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMesh& Mesh, UMaterialInstanceDynamic*& OutMaterial) const
 {
-	USceneComponent* Root = Owner.GetRootComponent();
-	if (!Root)
+	// It hangs from where the body is drawn, which glides after the capsule on machines that only show it (ADR-065 §12).
+	USceneComponent* Anchor = VeyraDrawnBody::AnchorOf(Owner);
+	if (!Anchor)
 	{
 		return nullptr;
 	}
@@ -1083,7 +1103,7 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMes
 	Shape->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Shape->SetGenerateOverlapEvents(false);
 	Shape->SetCanEverAffectNavigation(false);
-	Shape->SetupAttachment(Root);
+	Shape->SetupAttachment(Anchor);
 	Shape->RegisterComponent();
 	OutMaterial = Shape->CreateDynamicMaterialInstance(0, ShapeMaterial);
 	return Shape;
@@ -1174,8 +1194,8 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 
 void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
 {
-	USceneComponent* Root = Unit.GetRootComponent();
-	if (!Root)
+	USceneComponent* Anchor = VeyraDrawnBody::AnchorOf(Unit);
+	if (!Anchor)
 	{
 		return;
 	}
@@ -1187,7 +1207,7 @@ void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh
 		Art->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Art->SetGenerateOverlapEvents(false);
 		Art->SetCanEverAffectNavigation(false);
-		Art->SetupAttachment(Root);
+		Art->SetupAttachment(Anchor);
 		Art->RegisterComponent();
 		Body.Art = Art;
 		Body.ArtMesh = nullptr;
@@ -1244,6 +1264,7 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 				continue;
 			}
 			Body = &Bodies.Add(&Unit, FBody{ Mesh, Material });
+			EaseBody(Unit);
 		}
 		// Its capsule, which its Vanguard's definition shapes (ADR-008 §2).
 		float Radius = 0.0f;
