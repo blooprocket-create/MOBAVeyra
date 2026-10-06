@@ -1,0 +1,28 @@
+name: Presentation material checks
+
+on:
+  push:
+    paths:
+      - 'Game/ArtSource/Presentation/PresentationMaterials.json'
+      - 'Game/Scripts/PresentationMaterials/spec.py'
+      - 'tests/test_presentation_materials_spec.py'
+      - '.github/workflows/presentation-materials.yml'
+  pull_request:
+    paths:
+      - 'Game/ArtSource/Presentation/PresentationMaterials.json'
+      - 'Game/Scripts/PresentationMaterials/spec.py'
+      - 'tests/test_presentation_materials_spec.py'
+      - '.github/workflows/presentation-materials.yml'
+
+jobs:
+  verify-presentation-materials-spec:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check the presentation materials' spec without Unreal
+        run: python3 -m unittest discover -s tests -p 'test_presentation_materials_spec.py'

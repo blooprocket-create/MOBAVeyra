@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generator": "Game/Source/VeyraDeveloper/Private/Effects/VeyraEffectsCommandlet.cpp",
-  "generatorVersion": 1,
+  "generatorVersion": 2,
   "destination": "/Game/Veyra/UI/Presentation/Effects",
   "userVariables": {
     "color": "Color",
@@ -10,23 +10,81 @@
   "systems": [
     {
       "name": "NS_VeyraImpact",
-      "purpose": "ADR-063 §4: a hit landing; a quick burst of sparks in the colour of the side that took it.",
-      "template": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst"
+      "purpose": "ADR-063 §4: a hit landing; a quick spray of puffs that flare white-hot, cool to the colour of the side that took it and erode away as they rise, with a few fast ones throwing off fraying strands.",
+      "template": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff",
+      "ribbonMaterial": "/Game/Veyra/UI/Presentation/M_VeyraEffectStrand.M_VeyraEffectStrand",
+      "inputs": [
+        { "emitter": "OmnidirectionalBurst", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "8" },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.45] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "value": [24] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "value": [40] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [14] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 120] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "4" },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "value": [12] },
+        { "emitter": "Ribbon_Trail_Leader", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "value": [18] },
+        { "emitter": "RIbbonTrailFollower", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Ribbon Width", "value": [9] },
+        { "emitter": "RIbbonTrailFollower", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.25] }
+      ]
     },
     {
       "name": "NS_VeyraCastFlash",
-      "purpose": "ADR-063 §4: a cast committing; a burst toward where it was aimed, in the caster's side colour.",
-      "template": "/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst.DirectionalBurst"
+      "purpose": "ADR-063 §4: a cast committing; tongues of puffs thrown toward where it was aimed, flaring white-hot and cooling to the caster's side colour, each trailing a fraying strand.",
+      "template": "/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst.DirectionalBurst",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff",
+      "ribbonMaterial": "/Game/Veyra/UI/Presentation/M_VeyraEffectStrand.M_VeyraEffectStrand",
+      "inputs": [
+        { "emitter": "DirectionalBurst", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
+        { "emitter": "DirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.35] },
+        { "emitter": "DirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.55] },
+        { "emitter": "DirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(26.0, 26.0)" },
+        { "emitter": "DirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(44.0, 44.0)" },
+        { "emitter": "DirectionalBurst", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 90] },
+        { "emitter": "LocationBasedRibbon", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Ribbon Width", "value": [10] },
+        { "emitter": "LocationBasedRibbon", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.3] }
+      ]
     },
     {
       "name": "NS_VeyraDeathBurst",
-      "purpose": "ADR-063 §4: a unit dying; a larger, slower burst in its side colour.",
-      "template": "/Niagara/DefaultAssets/Templates/Systems/SimpleExplosion.SimpleExplosion"
+      "purpose": "ADR-063 §4: a unit dying; a slow billow of large puffs in its side colour inside a ring of smaller ones, white-hot at first, darkening and eroding into ragged wisps as they rise. The template's mesh burst spawns nothing.",
+      "template": "/Niagara/DefaultAssets/Templates/Systems/SimpleExplosion.SimpleExplosion",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff",
+      "inputs": [
+        { "emitter": "SimpleSpriteBurst", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "6" },
+        { "emitter": "SimpleSpriteBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [1.1] },
+        { "emitter": "SimpleSpriteBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "value": [60] },
+        { "emitter": "SimpleSpriteBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "value": [95] },
+        { "emitter": "SimpleSpriteBurst", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [28] },
+        { "emitter": "OmnidirectionalBurst", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "14" },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.6] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.9] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "value": [28] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "value": [46] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [30] },
+        { "emitter": "OmnidirectionalBurst", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 110] },
+        { "emitter": "UpwardMeshBurst", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "0" }
+      ]
     },
     {
       "name": "NS_VeyraTrail",
-      "purpose": "ADR-063 §4: a projectile's trail; a ribbon left where it flies, in its side colour.",
-      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/LocationBasedRibbon.LocationBasedRibbon"
+      "purpose": "ADR-063 §4: a projectile's trail; a stream of puffs poured where it flies, white-hot at the projectile and cooling to its side colour, darkening and eroding away behind it.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff",
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [80] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "value": [22] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "value": [34] },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [6] },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [8] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 50] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [3] }
+      ]
     },
     {
       "name": "NS_VeyraSmokeBody",

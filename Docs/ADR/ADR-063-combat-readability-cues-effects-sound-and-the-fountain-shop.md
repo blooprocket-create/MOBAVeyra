@@ -94,3 +94,32 @@ Skeletal characters and animation, the map's lighting and environment, and every
 7. The Niagara editing utilities are approved for the effect generator only (§4).
 8. The listener stands at the camera's focus, and Gameplay Effects Volume is 80% by default (§5).
 9. The shop's look, and its place in front of the fountain toward the battleground's centre (§6).
+
+## Amendment (2026-10-06): glow under the Crucible's light, and one stylized effect look
+
+The Crucible is lit physically ([ADR-040](ADR-040-crucible-world-authoring-toolchain.md); `CrucibleStyle.json`: a 22000 lux sun under a manual exposure of EV100 12). Under that exposure an unlit emissive of about 1 reads thousands of times too dark. §2's hit flash and §4's effects were made for the unlit grey-box:
+- the flash's emissive is at most 1;
+- the effects drew with the engine templates' default materials, which are unlit, with the side colour as their emissive.
+
+Under the Crucible both read as nothing. The projectile trail never drew at all: its emitter template is a ribbon fed by another emitter's location events, and alone in its system nothing fed it. The author also asked (2026-10-06) that every particle effect share one stylized look.
+
+- **Glow ignores exposure.** Every generated presentation material scales its glow by the inverse of the scene's exposure, as Nix's smoke already does ([ADR-064](ADR-064-generated-animated-vanguards.md) §1).
+  - A glow's strength (`glowGain`) is data in its spec, in multiples of what the exposure maps to white.
+  - The hit flash brightens a sunlit body the same under any light.
+  - It is also marked for skinned meshes: a cooked game draws a material without that mark on a Vanguard body as the engine's default.
+- **One effect look.** Every combat effect draws with one of two generated materials: `M_VeyraEffectPuff` for sprites, `M_VeyraEffectStrand` for ribbons. Each particle is:
+  - a solid shape with a ragged edge, sunlit like any solid (a sprite through a domed normal);
+  - white-hot as it is born, then cooling into its side colour;
+  - darker as it ages, eroding through holes that widen until it frays away.
+
+  The age is the particle's normalized age, which every Niagara renderer passes, so the look keeps its timing whatever a template does with colour. Nix's smoke is the same family, with its own darker values.
+- **The systems are restyled** in `Effects.json`: chunkier puffs, their counts and lives, and gravity that lifts them as they cool. An input may now name the one emitter it sets.
+  - The impact and the cast flash keep their templates' strands, drawn with the strand material.
+  - The death burst's template mesh emitter spawns nothing.
+  - The trail is a stream of puffs poured as the projectile flies, from the emitter template the smoke uses.
+- **No engine default.** The generator fails a system that has a sprite or ribbon renderer still on an engine default material. A `Veyra.UI` test checks the built systems too.
+- **Unchanged:**
+  - The hover outline runs after tonemapping, so exposure never reaches it.
+  - The click marker, telegraphs and swing arcs are line batches, which the exposure isn't expected to darken.
+- **Checked in engine.** `CapturePresentation.ps1` stands every one of these in the lit Crucible and captures it from the gameplay camera, so each can be judged where players see it.
+- **Provisional:** the look's values (glow strengths, erosion, shading) and each system's counts, sizes and lives.
