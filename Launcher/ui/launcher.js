@@ -69,18 +69,22 @@ async function start() {
   // The launcher updates itself first, before the game (ADR-022 §11): it closes, and Setup opens the
   // new one.
   const update = await invoke("launcher_update");
+  let updateNote = update.note;
   if (update.state === "ready") {
     element("loading-status").textContent = `Updating the launcher to ${update.version}…`;
     try {
       await invoke("apply_launcher_update");
+      return;
     } catch (problem) {
-      showProblem(String(problem), start);
+      // A Setup that did not start is tried again the next time the launcher opens; the game opens now,
+      // as it does when the update could not be downloaded.
+      updateNote = String(problem);
+      element("loading-status").textContent = "Contacting Veyra's services…";
     }
-    return;
   }
   const game = await invoke("game_status");
-  if (update.note) {
-    game.note = game.note ? `${update.note} ${game.note}` : update.note;
+  if (updateNote) {
+    game.note = game.note ? `${updateNote} ${game.note}` : updateNote;
   }
   element("build").textContent = game.buildVersion ? `Build ${game.buildVersion}` : "";
   if (game.problem) {
