@@ -25,4 +25,15 @@ namespace VeyraSurfacePlacement
 		OutLocation = Hit.ImpactPoint + FVector::UpVector * HalfHeight;
 		return true;
 	}
+
+	bool Drape(const UWorld& World, const FVector2D& Point, const FVeyraSurfaceTuning& Settings, FVector& OutLocation)
+	{
+		FHitResult Hit;
+		if (!VeyraGround::Find(World, Point, Settings.MaxZ, Settings.MinZ, Hit))
+		{
+			return false;
+		}
+		OutLocation = Hit.ImpactPoint;
+		return true;
+	}
 }
