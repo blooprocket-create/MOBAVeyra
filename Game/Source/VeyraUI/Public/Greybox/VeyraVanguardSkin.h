@@ -26,6 +26,6 @@ namespace VeyraVanguardSkin
 	/** The animation's blend times and play rates from the grey-box settings; the art fills in the rest. */
 	VEYRAUI_API FVeyraVanguardAnimShape ShapeOf(const UVeyraGreyboxSettings& Settings);
 
-	/** What Unit's body is doing as Viewer's side sees it: its ground speed, life, recall and windups. */
-	VEYRAUI_API FVeyraVanguardAnimInputs InputsOf(const APawn& Unit, EVeyraTeam Viewer);
+	/** What Unit's body is doing as Viewer's side sees it at ServerNow: its ground speed, life, recall and windups. */
+	VEYRAUI_API FVeyraVanguardAnimInputs InputsOf(const APawn& Unit, EVeyraTeam Viewer, double ServerNow);
 }

@@ -47,6 +47,10 @@ if (-not $ImportOnly) {
     }
     Select-String -LiteralPath (Join-Path $saved 'Blender.log') -Pattern 'VEYRA_VANGUARD_BODY: .*' | ForEach-Object { Write-Host $_.Matches[0].Value }
 }
+# Before anything is removed: every body the art set will hold was made from today's kit, or nothing is imported.
+$python = if (Get-Command python3 -ErrorAction SilentlyContinue) { 'python3' } else { 'python' }
+& $python (Join-Path $PSScriptRoot 'VanguardBodies/inputs.py') $game
+if ($LASTEXITCODE -ne 0) { throw 'Stale Vanguard bodies: regenerate them before importing (see above). Nothing was removed or imported.' }
 # A regenerated body may have new bones or stand differently, which a reimport onto its old skeleton does not take: its
 # previous assets go, and it imports fresh. They are generated output; acquire their Git LFS locks first (ADR-006 section 9).
 $kit = Get-Content (Join-Path $game 'ArtSource/Vanguards/VanguardKit.json') -Raw | ConvertFrom-Json

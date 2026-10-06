@@ -166,6 +166,19 @@ void VeyraVanguardAnim::Advance(FVeyraVanguardAnimState& State, float DeltaSecon
 	{
 		State.Current.bFadingOut = true;
 	}
+	// A body first seen mid-windup or mid-cast (out of the fog, say) had no cue for it: it takes up what it is seen doing,
+	// so the warning still shows, the windup timed to land as the attack commits. What a cue began, it leaves be.
+	const bool bShowing = State.Current.IsActive();
+	const EVeyraVanguardClip Showing = bShowing ? State.Current.Clip : EVeyraVanguardClip::None;
+	const bool bAttacking = Showing == EVeyraVanguardClip::AttackWindup || Showing == EVeyraVanguardClip::AttackStrike;
+	if (Inputs.bAlive && Inputs.bAttackWindingUp && !bAttacking && Showing != EVeyraVanguardClip::Death)
+	{
+		NoteCue(State, EVeyraCombatCueKind::AttackWindup, Inputs.AttackWindupSecondsLeft, Shape);
+	}
+	else if (Inputs.bAlive && Inputs.bCastHeld && Showing != EVeyraVanguardClip::Cast && Showing != EVeyraVanguardClip::Death && !bAttacking)
+	{
+		NoteCue(State, EVeyraCombatCueKind::CastWindup, 0.0f, Shape);
+	}
 	// A windup held at its end gives way once nothing holds it: an attack's that will not commit fades out, and a cast's
 	// hands lower. A channel keeps them at the release. Only a held pose gives way, so inputs a frame behind the cues
 	// cut nothing short.
