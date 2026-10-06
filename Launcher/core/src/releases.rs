@@ -1,10 +1,11 @@
-//! The launcher's conversation with a release store over HTTP (ADR-022 §3): a channel's current
-//! release, its manifest and its chunks. Everything fetched is bounded in size and checked: the
-//! manifest against the hash the channel names, and each chunk (by `release::decode_chunk`) against
-//! the hash the manifest names.
+//! The launcher's conversation with a release store over HTTP (ADR-022 §3, §11): a channel's current
+//! release, its manifest and its chunks, and the launcher's own release and its Setup. Everything
+//! fetched is bounded in size and checked: the manifest against the hash the channel names, each chunk
+//! (by `release::decode_chunk`) against the hash the manifest names, and a Setup against the hash its
+//! launcher channel names.
 
 use crate::install::{ChunkStore, Target};
-use crate::release::{self, Channel, ReleaseChunk};
+use crate::release::{self, Channel, LauncherChannel, ReleaseChunk};
 use std::fmt;
 use std::time::Duration;
 use ureq::Agent;
@@ -86,6 +87,29 @@ impl ReleaseServer {
             what,
             problem: problems.join("; "),
         })
+    }
+
+    /// The launcher's own release on the channel (ADR-022 §11).
+    pub fn launcher(&self, channel: &str) -> Result<LauncherChannel, ReleaseError> {
+        let what = format!("launcher release for channel {channel}");
+        let bytes = self.get(&release::launcher_channel_object(channel), &what, release::MAX_CHANNEL_BYTES)?;
+        release::parse_launcher_channel(&bytes).map_err(|problems| ReleaseError::Invalid {
+            what,
+            problem: problems.join("; "),
+        })
+    }
+
+    /// The Veyra Setup that `launcher` names, checked against its size and hash.
+    pub fn setup(&self, launcher: &LauncherChannel) -> Result<Vec<u8>, ReleaseError> {
+        let what = "launcher update";
+        let bytes = self.get(&release::setup_object(&launcher.setup), what, launcher.size)?;
+        if bytes.len() as u64 != launcher.size || release::sha256_hex(&bytes) != launcher.setup {
+            return Err(ReleaseError::Invalid {
+                what: what.to_string(),
+                problem: "it is not the Setup the channel names".to_string(),
+            });
+        }
+        Ok(bytes)
     }
 
     /// The bytes at `object`, refused if longer than `limit`.

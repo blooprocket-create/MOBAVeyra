@@ -18,17 +18,24 @@
     workspace's (Cargo.toml), or VeyraSetup-<version>-public.exe with -Config public.
 .PARAMETER Config
     The launcher configuration Setup installs: installed (default) or public.
+.PARAMETER Publish
+    Also publishes Setup to the release store, Game/Saved/Releases, as the launcher release on the
+    channel the configuration names (ADR-022 §11): every launcher installed from that channel then
+    updates itself to it when it next opens. Publishing writes files only; serving them is Publish.ps1's
+    releases service locally, or Game/Scripts/Host.ps1 for players.
 
-    Exit codes: 0 Setup was built; 1 a step failed; 2 infrastructure error.
+    Exit codes: 0 Setup was built (and published); 1 a step failed; 2 infrastructure error.
 .EXAMPLE
     ./Launcher/Package.ps1
 .EXAMPLE
-    ./Launcher/Package.ps1 -Config public
+    ./Launcher/Package.ps1 -Config public -Publish
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('installed', 'public')]
-    [string]$Config = 'installed'
+    [string]$Config = 'installed',
+
+    [switch]$Publish
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,8 +85,8 @@ $outFile = Join-Path $setupDir $(if ($Config -eq 'public') { "VeyraSetup-$versio
 
 Push-Location $PSScriptRoot
 try {
-    Write-Host 'Building the launcher and the art tool in release.'
-    & $cargo build --release --locked --package veyra-launcher --package veyra-setup-art
+    Write-Host 'Building the launcher, the art tool and the publisher in release.'
+    & $cargo build --release --locked --package veyra-launcher --package veyra-setup-art --package veyra-publish
     if ($LASTEXITCODE -ne 0) {
         Write-Host 'The launcher did not build.'
         exit $ExitFailed
@@ -110,6 +117,22 @@ try {
     if ($LASTEXITCODE -ne 0) {
         Write-Host 'makensis did not compile Setup.'
         exit $ExitFailed
+    }
+
+    if ($Publish) {
+        $channel = (Get-Content -LiteralPath (Join-Path $PSScriptRoot "config\$Config.json") -Raw | ConvertFrom-Json).game.install.channel
+        if (-not $channel) {
+            Write-Host "config/$Config.json installs no game from a release store, so its launcher has no channel to publish to."
+            exit $ExitFailed
+        }
+        $storeDir = Join-Path (Split-Path -Parent $PSScriptRoot) 'Game\Saved\Releases'
+        New-Item -ItemType Directory -Force -Path $storeDir | Out-Null
+        Write-Host "Publishing Setup $version to the release store, channel $channel."
+        & (Join-Path $targetDir 'release\veyra-publish.exe') --setup $outFile --version $version --store $storeDir --channel $channel
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host 'Setup was not published.'
+            exit $ExitFailed
+        }
     }
 }
 finally {

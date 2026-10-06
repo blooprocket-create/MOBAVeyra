@@ -1,9 +1,9 @@
 //! The Veyra launcher's core (ADR-005 L1–L5, ADR-010 §5, ADR-022): its configuration, the backend
 //! conversation, players' accounts (Firebase sign-in and registration, ADR-038), the game build it launches, the launch handshake, and installing, updating,
 //! repairing and uninstalling the game from a release store. The Tauri app and the headless
-//! `veyra-launch-cli` and `veyra-install` are thin shells over it, so they all behave the same.
-//!
-//! The launcher's own signed updates are still to come (ADR-022 §10).
+//! `veyra-launch-cli` and `veyra-install` are thin shells over it, so they all behave the same. An
+//! installed launcher also updates itself from the same release store (`update`, ADR-022 §11); signing
+//! those updates waits for the code-signing certificate (ADR-022 §10).
 
 pub mod backend;
 pub mod config;
@@ -17,6 +17,7 @@ pub mod player;
 pub mod release;
 pub mod releases;
 pub mod secret;
+pub mod update;
 
 use std::path::{Path, PathBuf};
 

@@ -6,8 +6,7 @@ It does its canon jobs:
 - **Install, patch and repair.** It installs the game from a release store, updates it when the store's channel moves, and repairs it (ADR-022 §3–§5).
 - **Login.** Players sign in, or create an account, with an email and password through Firebase Authentication (ADR-038). The core trades Firebase's ID token with the backend for a Veyra launcher session, kept in memory only; a remembered login is not offered yet (ADR-005 L4). On a local backend the seeded development accounts are still there, folded away beneath the sign-in, with no password.
 - **Launch.** It starts the game and hands it a launch code through the launch handshake, then closes once the game has signed in.
-
-The launcher's own signed updates are still to come (ADR-022 §10).
+- **Update itself.** An installed launcher updates itself from the same release store, before the game (ADR-022 §11): it runs the Setup its channel names, silently, and Setup opens the new launcher. Signing those updates waits for a code-signing certificate (ADR-022 §10).
 
 ## Layout
 
@@ -16,8 +15,8 @@ The launcher's own signed updates are still to come (ADR-022 §10).
 | `core/` | `veyra-launcher-core`: the configuration, the build manifest, the backend client, Firebase sign-in and registration (`firebase.rs`, `player.rs`) and the launch handshake. All HTTP is here, in Rust over rustls, so the web view makes no requests. |
 | `app/` | `veyra-launcher`: the Tauri window, commands over the core. `build.rs` draws the app icon into the git-ignored `app/icons/`, so no binary icon is committed. |
 | `ui/` | The window's static HTML, CSS and JavaScript. No Node toolchain and no bundler. |
-| `cli/` | The launcher without its window, for scripts and tests:<br>• `veyra-launch-cli` launches (`Game/Scripts/Smoke.ps1 -Flow Practice -Launcher Cli`, and the opponent of `Play.ps1 -Opponent`);<br>• `veyra-install` installs, updates, repairs and uninstalls;<br>• `veyra-fake-game` is a stand-in game that speaks the handshake. |
-| `publish/` | `veyra-publish`: turns a packaged client into a release in a release store (ADR-022 §4). |
+| `cli/` | The launcher without its window, for scripts and tests:<br>• `veyra-launch-cli` launches (`Game/Scripts/Smoke.ps1 -Flow Practice -Launcher Cli`, and the opponent of `Play.ps1 -Opponent`);<br>• `veyra-install` installs, updates, repairs and uninstalls;<br>• `veyra-fake-game` is a stand-in game that speaks the handshake;<br>• `veyra-fake-setup` is a stand-in Setup that records the switches it was started with, for the self-update tests. |
+| `publish/` | `veyra-publish`: turns a packaged client into a release in a release store (ADR-022 §4), or publishes the Setup launchers update themselves with (`--setup`, ADR-022 §11). |
 | `setup/` | Veyra Setup:<br>• `VeyraSetup.nsi`, the NSIS script;<br>• `veyra-setup-art`, which draws Setup's bitmaps;<br>• `art.json`, which says which splash art they come from and how each is framed. |
 | `config/local.json` | The configuration for development: a local backend and the packaged build. |
 | `config/installed.json` | The configuration Setup installs beside the launcher: a local backend, and the game from the local release server. |
@@ -91,13 +90,27 @@ The launcher opens on its Install screen. Publish again after a change, and the 
 
 Without a window: `veyra-install --config config/installed.json install`, and likewise `repair`, `uninstall` and `status`.
 
+## The launcher updating itself
+
+The store also holds the launcher's own release on each channel (ADR-022 §11):
+- `launcher/<channel>.json` names the launcher version and its Setup by hash and size;
+- `setups/<sha256>.exe` is that Setup;
+- `setup/VeyraSetup-<version>-<channel>.exe` is the same file, for people to download.
+
+To ship a launcher update, raise the version in `Cargo.toml` (`[workspace.package]`), then build and publish Setup on the configuration's channel: `./Launcher/Package.ps1 -Config public -Publish`. Each launcher installed from that channel finds it when it next opens:
+1. It downloads the Setup and checks it against the hash.
+2. It starts the Setup with `/S /RELAUNCH` and closes.
+3. Setup waits for the launcher's file to be free, replaces it, and opens the new launcher.
+
+A launcher that is still the old version after its Setup ran says so and does not try again until the channel moves. Launchers from before this (0.1.0) update the game but not themselves: their players run the new Setup once.
+
 ## Veyra Setup
 
 Setup (ADR-022 §2) installs the launcher for the current Windows user, with no administrator prompt:
 - **Where:** `%LOCALAPPDATA%\Programs\Veyra` by default.
 - **What it adds:** a Start menu shortcut, an optional desktop shortcut, and an entry in Windows' installed apps.
 - **Upgrades:** running it again upgrades in place.
-- **Silent:** `/S` installs with no pages.
+- **Silent:** `/S` installs with no pages. With `/RELAUNCH` as well, as the self-updater starts it, it waits for a launcher that is closing, then opens the new one.
 - **Art:** Raska's splash art, framed as `setup/art.json` says.
 - **Unsigned:** until there is a code-signing certificate, SmartScreen warns.
 

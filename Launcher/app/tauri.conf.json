@@ -1,6 +1,5 @@
 {
   "productName": "Veyra Launcher",
-  "version": "0.1.0",
   "identifier": "com.wayfinder.veyra.launcher",
   "build": {
     "frontendDist": "../ui"

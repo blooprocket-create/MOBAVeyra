@@ -9,9 +9,11 @@
 ;   ICON          the launcher's icon, which Launcher/app/build.rs draws
 ;   OUTFILE       where Setup goes
 ;
-; /S installs with no pages, for the launcher's self-updater (ADR-005 L2). The uninstaller removes
-; only Setup's own files; it asks the launcher to remove the game (`--uninstall-game`), which deletes
-; only what the launcher installed. A silent uninstall keeps the game.
+; /S installs with no pages, for the launcher's self-updater (ADR-005 L2, ADR-022 §11), which starts
+; Setup with /S /RELAUNCH and closes: Setup waits for the launcher's file to be free, replaces it, then
+; opens the new launcher. The uninstaller removes only Setup's own files; it asks the launcher to remove
+; the game (`--uninstall-game`), which deletes only what the launcher installed. A silent uninstall
+; keeps the game.
 
 Unicode true
 ManifestDPIAware true
@@ -37,6 +39,11 @@ RequestExecutionLevel user
 !define WEBVIEW2_USER_KEY "Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 !define WEBVIEW2_PAGE "https://developer.microsoft.com/microsoft-edge/webview2/"
 
+; How long Setup waits for a launcher that is closing to let go of its file, as it does when it
+; updates itself: this many tries, this many milliseconds apart (30 seconds in all).
+!define LAUNCHER_WAIT_TRIES 120
+!define LAUNCHER_WAIT_MS 250
+
 ; The launcher's palette (Launcher/ui/launcher.css): ink behind, its text on it.
 !define INK "07090E"
 !define TEXT "ECEEF2"
@@ -59,6 +66,7 @@ VIAddVersionKey "LegalCopyright" "© 2026 ${PUBLISHER}"
 
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
+!include "FileFunc.nsh"
 
 !define MUI_ICON "${ICON}"
 !define MUI_UNICON "${ICON}"
@@ -115,6 +123,25 @@ FunctionEnd
 Section "Veyra launcher"
   SetOutPath "$INSTDIR"
   SetOverwrite on
+  ; A launcher updating itself has just started Setup and is closing: wait until its file can be
+  ; written, which it cannot while the launcher runs.
+  ${If} ${FileExists} "$INSTDIR\${LAUNCHER_EXE}"
+    StrCpy $1 0
+    ${Do}
+      ClearErrors
+      FileOpen $0 "$INSTDIR\${LAUNCHER_EXE}" a
+      ${IfNot} ${Errors}
+        FileClose $0
+        ${Break}
+      ${EndIf}
+      IntOp $1 $1 + 1
+      ${If} $1 >= ${LAUNCHER_WAIT_TRIES}
+        MessageBox MB_OK|MB_ICONEXCLAMATION "The Veyra launcher is still open. Close it, then run Setup again." /SD IDOK
+        Abort
+      ${EndIf}
+      Sleep ${LAUNCHER_WAIT_MS}
+    ${Loop}
+  ${EndIf}
   File "${PAYLOAD}\${LAUNCHER_EXE}"
   File "${PAYLOAD}\${CONFIG_FILE}"
   WriteUninstaller "$INSTDIR\${UNINSTALLER}"
@@ -134,6 +161,19 @@ SectionEnd
 Function OpenLauncher
   SetOutPath "$INSTDIR"
   Exec '"$INSTDIR\${LAUNCHER_EXE}"'
+FunctionEnd
+
+Function .onInstSuccess
+  ; The launcher that updated itself (/S /RELAUNCH) opens again, now the new one. With pages, the
+  ; finish page offers to open it instead.
+  ${If} ${Silent}
+    ${GetParameters} $0
+    ClearErrors
+    ${GetOptions} $0 "/RELAUNCH" $1
+    ${IfNot} ${Errors}
+      Call OpenLauncher
+    ${EndIf}
+  ${EndIf}
 FunctionEnd
 
 Function AddDesktopShortcut
