@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Teams/VeyraTeam.h"
 
 class APlayerController;
 class AVeyraGameState;
@@ -14,6 +15,8 @@ class UVeyraGreyboxSettings;
 struct FSlateFontInfo;
 struct FVeyraHudArrangement;
 struct FVeyraInterfacePreferences;
+struct FVeyraKillFeedRow;
+struct FVeyraAnnouncement;
 
 /**
  * The in-match HUD's deck and strips, drawn on the canvas (ADR-008 §1). The Art Bible leaves the
@@ -44,4 +47,15 @@ namespace VeyraHudDeck
 	 * skill point while one waits, fading through its last part. Shown runs from 0 as it comes to 1 as it goes.
 	 */
 	void DrawLevelUp(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, int32 Level, int32 UnspentPoints, double Shown);
+
+	/**
+	 * The kill feed down the top right inside the safe area's Inset (ADR-065 §10): each row the killer's face and name, then
+	 * the fallen's or the structure's, in the colours of their sides as OwnSide sees them, fading at the end.
+	 */
+	void DrawKillFeed(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font,
+		TConstArrayView<FVeyraKillFeedRow> Rows, EVeyraTeam OwnSide, const FVector2D& Inset);
+
+	/** The announcement of a moment under the top strip, in the player's side's colour for good news and the enemy's for bad. */
+	void DrawAnnouncement(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font,
+		const FVeyraAnnouncement& Announcement, const FVector2D& Inset);
 }

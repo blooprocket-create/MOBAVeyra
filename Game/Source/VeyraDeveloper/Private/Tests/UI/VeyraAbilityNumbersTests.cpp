@@ -1,11 +1,12 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+
+#if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
+
 #include "Text/VeyraAbilityNumbers.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
-
-#if WITH_AUTOMATION_WORKER
 
 namespace VeyraAbilityNumbersTests
 {
@@ -60,4 +61,4 @@ namespace VeyraAbilityNumbersTests
 	};
 }
 
-#endif // WITH_AUTOMATION_WORKER
+#endif // WITH_AUTOMATION_WORKER && WITH_VEYRA_UI

@@ -11,11 +11,14 @@
 #include "Battleground/VeyraBattlegroundLink.h"
 #include "Echoes/VeyraEchoLink.h"
 #include "Feedback/VeyraCombatTextLink.h"
+#include "Feedback/VeyraKillFeedLink.h"
 #include "Echoes/VeyraEchoSubsystem.h"
 #include "Buyback/VeyraBuybackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Bots/VeyraMatchEvents.h"
 #include "EngineUtils.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameSession.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "HAL/IConsoleManager.h"
@@ -242,6 +245,8 @@ void AVeyraGameMode::StartPlay()
 	EchoLink->Start(*GetWorld());
 	CombatText = MakeShared<FVeyraCombatTextLink>();
 	CombatText->Start(*GetWorld());
+	KillFeed = MakeShared<FVeyraKillFeedLink>();
+	KillFeed->Start(*GetWorld());
 	if (Roster)
 	{
 		NoteConnectedParticipants();
@@ -267,6 +272,7 @@ void AVeyraGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Battleground.Reset();
 	EchoLink.Reset();
 	CombatText.Reset();
+	KillFeed.Reset();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -1323,10 +1329,10 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 		return;
 	}
 
-	// The body leaves the map; the PlayerState, with its cooldowns and permanent effects, stays. The
-	// death arrives from inside the damage that caused it, so the body goes on the next tick. The
-	// timer manager ignores a delay of 0, so an immediate respawn follows the body out on that tick.
-	// The timer grows with the Vanguard's level and the match clock (Economy & Progression Bible §14).
+	// The body stays where it fell, out of play, until its Vanguard returns (ADR-065 §9), so every client that sees it
+	// sees it fall and lie there; the PlayerState, with its cooldowns and permanent effects, stays too. The timer
+	// manager ignores a delay of 0, so an immediate respawn comes on the next tick. The timer grows with the Vanguard's
+	// level and the match clock (Economy & Progression Bible §14).
 	const UVeyraProgressionComponent* Progression = PlayerState->FindComponentByClass<UVeyraProgressionComponent>();
 	const int32 Level = Progression && Progression->IsInitialized() ? Progression->GetLevel() : 1;
 	const double Delay = VeyraMatchRules::RespawnDelaySeconds(Level, GetVeyraGameState().GetMatchClockSeconds(), UVeyraMatchTuningSubsystem::Get().Respawn);
@@ -1338,19 +1344,18 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	}
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s died at level %d; respawning in %g s."), *PlayerState->GetPlayerName(), Level, Delay);
 	const TWeakObjectPtr<AVeyraPlayerState> Participant(PlayerState);
-	const TWeakObjectPtr<APawn> Body(PlayerState->GetPawn());
+	// It never moves again, and nothing meets it, as a fallen Fluxborn's body.
+	if (ACharacter* Body = Cast<ACharacter>(PlayerState->GetPawn()))
+	{
+		Body->GetCharacterMovement()->DisableMovement();
+		Body->SetActorEnableCollision(false);
+	}
 	const bool bRespawnAtOnce = Delay <= 0.0;
-	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, Participant, Body, bRespawnAtOnce] {
-		if (APawn* OldBody = Body.Get())
-		{
-			OldBody->Destroy();
-		}
-		if (bRespawnAtOnce)
-		{
-			Respawn(Participant);
-		}
-	}));
-	if (!bRespawnAtOnce)
+	if (bRespawnAtOnce)
+	{
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, Participant] { Respawn(Participant); }));
+	}
+	else
 	{
 		GetWorldTimerManager().SetTimer(RespawnTimers.FindOrAdd(PlayerState), FTimerDelegate::CreateUObject(this, &AVeyraGameMode::Respawn, Participant),
 			static_cast<float>(Delay), /*bLoop*/ false);
@@ -1460,7 +1465,16 @@ void AVeyraGameMode::RecoverAtFountains()
 void AVeyraGameMode::Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
 {
 	UAbilitySystemComponent* AbilitySystem = PlayerState.IsValid() ? PlayerState->GetAbilitySystemComponent() : nullptr;
-	if (!AbilitySystem || !VeyraCombat::Revive(*AbilitySystem))
+	if (!AbilitySystem || VeyraTargeting::IsAlive(PlayerState.Get()))
+	{
+		return;
+	}
+	// The body it fell in goes as it returns in a new one (ADR-065 §9).
+	if (APawn* Fallen = PlayerState->GetPawn())
+	{
+		Fallen->Destroy();
+	}
+	if (!VeyraCombat::Revive(*AbilitySystem))
 	{
 		return;
 	}

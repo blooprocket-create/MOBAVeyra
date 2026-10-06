@@ -514,6 +514,23 @@ public:
 	static FName StructureArtId(EVeyraStructureKind Kind);
 
 	/**
+	 * How much larger than its capsule a body is drawn (ADR-065 §11): a Vanguard's, its companion's and its Echo's
+	 * animated body by VanguardBodyScale, a structure's art by StructureArtScale, from the foot. Presentation only: the
+	 * capsule, and so collision, reach and every range, keeps its size.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.1"))
+	float VanguardBodyScale = 1.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.1"))
+	float StructureArtScale = 1.0f;
+
+	/** The scale Unit's body is drawn at: its kind's (VanguardBodyScale, StructureArtScale), or 1. */
+	float VisualScaleOf(const AActor& Unit) const;
+
+	/** How far above Unit's centre the top of its drawn body stands: its capsule's top, raised by its visual scale. */
+	float VisualTopOf(const AActor& Unit) const;
+
+	/**
 	 * The Fluxborn kit's provisional art (Art Direction, Fluxborn greybox meshes), keyed by each kind's content ID,
 	 * drawn in place of each Fluxborn's body: active, then collapsed where it fell for its corpse's moment. A kind
 	 * without art keeps its body. Visual only: its capsule stays its only collision and movement.
@@ -707,6 +724,26 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0", ClampMax = "1"))
 	float LevelUpFadeShare = 0.0f;
+
+	/**
+	 * The kill feed (ADR-065 §10): at most KillFeedRows lines down the top right, each KillFeedSeconds, its faces
+	 * KillFeedFaceSize at the reference height; and the announcement of the player's own moments under the top strip, for
+	 * AnnouncementSeconds at AnnouncementFontSize, fading through the banner's LevelUpFadeShare.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 KillFeedRows = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float KillFeedSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float KillFeedFaceSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float AnnouncementSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 AnnouncementFontSize = 0;
 
 	/**
 	 * While a skill point waits, the rank-up marks pulse between RankUpPulseFloor of their opacity and all of it, once

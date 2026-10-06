@@ -697,6 +697,12 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 	}
 	CombatTextSource.Reset();
 	CombatText.Reset();
+	if (AVeyraPlayerController* Source = KillFeedSource.Get())
+	{
+		Source->OnKillFeed.Remove(KillFeedHandle);
+	}
+	KillFeedSource.Reset();
+	KillFeed.Reset();
 	bReady = false;
 	Super::Deinitialize();
 }
@@ -857,10 +863,23 @@ void UVeyraGreyboxSubsystem::RefreshCombatText()
 		}
 		CombatTextSource = Local;
 		CombatTextHandle = Local ? Local->OnCombatText.AddUObject(this, &UVeyraGreyboxSubsystem::OnCombatText) : FDelegateHandle();
+		if (AVeyraPlayerController* Previous = KillFeedSource.Get())
+		{
+			Previous->OnKillFeed.Remove(KillFeedHandle);
+		}
+		KillFeedSource = Local;
+		KillFeedHandle = Local ? Local->OnKillFeed.AddUObject(this, &UVeyraGreyboxSubsystem::OnKillFeed) : FDelegateHandle();
 	}
 	// Forgotten as they are drawn: a running total keeps all of its parts while it shows.
-	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(GetWorld()));
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(GetWorld()));
 	VeyraCombatTextView::Forget(CombatText, FPlatformTime::Seconds(), Preferences.CombatText);
+	VeyraKillFeedView::Forget(KillFeed, FPlatformTime::Seconds(), FMath::Max(Settings.KillFeedSeconds, Settings.AnnouncementSeconds));
+}
+
+void UVeyraGreyboxSubsystem::OnKillFeed(const FVeyraKillFeedLine& Line)
+{
+	KillFeed.Add(FVeyraKillFeedArrival{ Line, FPlatformTime::Seconds() });
 }
 
 void UVeyraGreyboxSubsystem::OnCombatText(const FVeyraCombatTextLine& Line)
@@ -1077,6 +1096,11 @@ void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structur
 	if (UStaticMesh* Mesh = Art ? (Structure.IsDestroyed() ? Art->Fallen : Art->Intact).Get() : nullptr)
 	{
 		ShowArt(Structure, Body, *Mesh, *StructureArt, SideColorOf(Structure));
+		// Drawn larger than its capsule, from its foot (ADR-065 §11).
+		if (UStaticMeshComponent* Shown = Body.Art.Get())
+		{
+			Shown->SetRelativeScale3D(FVector(GetDefault<UVeyraGreyboxSettings>()->VisualScaleOf(Structure)));
+		}
 	}
 }
 
@@ -1128,11 +1152,13 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	const FVeyraVanguardBody& Worn = VeyraVanguardSkin::BodyOf(Unit, *Art);
 	VeyraVanguardSkin::Dress(*Skin, Worn, VeyraVanguardSkin::ShapeOf(Settings));
 	RefreshBodyEffects(Body, *Skin, Worn);
-	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2).
+	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2), drawn larger than
+	// the capsule from there (ADR-065 §11).
 	float Radius = 0.0f;
 	float HalfHeight = 0.0f;
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
 	Skin->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
+	Skin->SetRelativeScale3D(FVector(Settings.VisualScaleOf(Unit)));
 	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()))
 	{
 		Animation->SetInputs(VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow()));

@@ -3,8 +3,10 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 
 #include "Algo/AnyOf.h"
+#include "GameFramework/Actor.h"
 
 #include "Greybox/VeyraUnitArtSet.h"
+#include "Units/VeyraUnit.h"
 
 FName UVeyraGreyboxSettings::StructureArtId(EVeyraStructureKind Kind)
 {
@@ -20,6 +22,30 @@ FName UVeyraGreyboxSettings::StructureArtId(EVeyraStructureKind Kind)
 		break;
 	}
 	return TEXT("laneSpire");
+}
+
+float UVeyraGreyboxSettings::VisualScaleOf(const AActor& Unit) const
+{
+	switch (VeyraUnits::KindOf(&Unit).Get(EVeyraUnitKind::Marker))
+	{
+	case EVeyraUnitKind::Vanguard:
+	case EVeyraUnitKind::Companion:
+	case EVeyraUnitKind::Echo:
+		return VanguardBodyScale;
+	case EVeyraUnitKind::Structure:
+		return StructureArtScale;
+	default:
+		return 1.0f;
+	}
+}
+
+float UVeyraGreyboxSettings::VisualTopOf(const AActor& Unit) const
+{
+	// A body drawn from the capsule's foot reaches the capsule's height times its scale.
+	float Radius = 0.0f;
+	float HalfHeight = 0.0f;
+	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
+	return HalfHeight * (2.0f * VisualScaleOf(Unit) - 1.0f);
 }
 
 TArray<FString> UVeyraGreyboxSettings::Validate() const
@@ -187,6 +213,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("must not be negative, and must be shorter than CombatTextShowSeconds."));
 	Require(LevelUpFontSize >= 1 && LevelUpHeightShare > 0.0f && LevelUpHeightShare < 1.0f && LevelUpBannerSeconds > 0.0f && LevelUpFadeShare > 0.0f
 		&& LevelUpFadeShare <= 1.0f, TEXT("LevelUpBannerSeconds"), TEXT("the level-up banner needs a size, a place on screen, some time to show and a share of it to fade."));
+	Require(VanguardBodyScale > 0.0f && StructureArtScale > 0.0f, TEXT("VanguardBodyScale"), TEXT("bodies need a scale above 0."));
+	Require(KillFeedRows >= 1 && KillFeedSeconds > 0.0f && KillFeedFaceSize >= 1.0f && AnnouncementSeconds > 0.0f && AnnouncementFontSize >= 1, TEXT("KillFeedSeconds"),
+		TEXT("the kill feed needs rows, a time to show and a face size, and the announcement a time and a size."));
 	Require(RankUpPulseSeconds > 0.0f && RankUpPulseFloor >= 0.0f && RankUpPulseFloor < 1.0f, TEXT("RankUpPulseSeconds"),
 		TEXT("a pulse needs a period above 0 and a floor below whole."));
 	Require(CombatTextScale > 0.0f, TEXT("CombatTextScale"), TEXT("must be above 0."));

@@ -357,11 +357,13 @@ TArray<FVeyraCursorUnit> AVeyraPlayerController::UnitsUnderCursor() const
 	{
 		return Under;
 	}
-	// As the cursor's own trace would, but past each unit it meets, until the ground or a wall stops it.
+	// As the cursor's own trace would, but past each unit it meets, until the ground or a wall stops it; a little wide,
+	// as bodies are drawn larger than their capsules (ADR-065 §11).
 	FCollisionQueryParams Query(SCENE_QUERY_STAT(VeyraCursorUnits), /*bTraceComplex*/ false);
 	const FVector End = Origin + Direction * HitResultTraceDistance;
+	const FCollisionShape Pick = FCollisionShape::MakeSphere(GetKeys().CursorPickRadius);
 	FHitResult Hit;
-	while (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_Pawn, Query))
+	while (GetWorld()->SweepSingleByChannel(Hit, Origin, End, FQuat::Identity, ECC_Pawn, Pick, Query))
 	{
 		AActor* Actor = Hit.GetActor();
 		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Actor);
@@ -1333,6 +1335,11 @@ const AActor* AVeyraPlayerController::GetHoveredUnit() const
 void AVeyraPlayerController::ClientCombatText_Implementation(const FVeyraCombatTextLine& Line)
 {
 	OnCombatText.Broadcast(Line);
+}
+
+void AVeyraPlayerController::ClientKillFeed_Implementation(const FVeyraKillFeedLine& Line)
+{
+	OnKillFeed.Broadcast(Line);
 }
 
 bool AVeyraPlayerController::IsShowingAttackRange() const

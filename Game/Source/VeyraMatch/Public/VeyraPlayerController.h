@@ -17,6 +17,7 @@
 #include "VeyraMatchTypes.h"
 #include "Chat/VeyraChatTypes.h"
 #include "Feedback/VeyraCombatTextTypes.h"
+#include "Feedback/VeyraKillFeedTypes.h"
 #include "Pings/VeyraPingTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
@@ -290,6 +291,13 @@ public:
 	/** Server: sends Line to this player's client. Unreliable: a lost number costs nothing that matters. */
 	UFUNCTION(Client, Unreliable)
 	void ClientCombatText(const FVeyraCombatTextLine& Line);
+
+	/** Owning client: a kill feed line the server sent every player (ADR-065 §10), which the UI shows. */
+	TMulticastDelegate<void(const FVeyraKillFeedLine&)> OnKillFeed;
+
+	/** Server: sends Line to this player's client. Reliable: a fall is few and worth knowing. */
+	UFUNCTION(Client, Reliable)
+	void ClientKillFeed(const FVeyraKillFeedLine& Line);
 
 	/**
 	 * Owning client: the units the player targets now, for When Targeted bars (ADR-052 §2): the unit its last

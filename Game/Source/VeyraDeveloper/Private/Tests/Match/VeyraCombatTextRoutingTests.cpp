@@ -6,6 +6,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Feedback/VeyraCombatTextRules.h"
+#include "Feedback/VeyraKillFeedTypes.h"
+#include "VeyraPlayerState.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "VeyraVanguardCharacter.h"
@@ -20,6 +22,29 @@ namespace VeyraAbilitiesTests
 		static UAbilitySystemComponent& UnitOf(AVeyraVanguardCharacter& Vanguard)
 		{
 			return *Vanguard.GetAbilitySystemComponent();
+		}
+
+		TEST_METHOD(AVanguardsFallIsATakedownWithItsKillerOrElseAnExecution)
+		{
+			// The kill feed's lines (ADR-065 §10).
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Killer = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Helper = World.Spawn(EVeyraTeam::A, FVector(0.0, 300.0, 0.0));
+			AVeyraVanguardCharacter& Victim = World.Spawn(EVeyraTeam::B, FVector(300.0, 0.0, 0.0));
+			FVeyraDeathEvent Death;
+			Death.Victim = &UnitOf(Victim);
+			Death.CreditedKiller = &UnitOf(Killer);
+			Death.Assisters.Add(&UnitOf(Helper));
+			const TOptional<FVeyraKillFeedLine> Takedown = VeyraKillFeedRules::LineFor(Death);
+			const AVeyraPlayerState* KillerState = Killer.GetPlayerState<AVeyraPlayerState>();
+			const AVeyraPlayerState* VictimState = Victim.GetPlayerState<AVeyraPlayerState>();
+			ASSERT_THAT(IsTrue(Takedown.IsSet() && Takedown->Kind == EVeyraKillFeedKind::Takedown && Takedown->Assists == 1 && !Takedown->bFirstBlood));
+			ASSERT_THAT(IsTrue(Takedown->KillerPlayerId == KillerState->GetPlayerId() && Takedown->KillerSide == EVeyraTeam::A));
+			ASSERT_THAT(IsTrue(Takedown->VictimPlayerId == VictimState->GetPlayerId() && Takedown->VictimSide == EVeyraTeam::B));
+
+			Death.CreditedKiller.Reset();
+			const TOptional<FVeyraKillFeedLine> Execution = VeyraKillFeedRules::LineFor(Death);
+			ASSERT_THAT(IsTrue(Execution.IsSet() && Execution->Kind == EVeyraKillFeedKind::Execution && Execution->KillerPlayerId == INDEX_NONE));
 		}
 
 		TEST_METHOD(GoldShowsWhereAFallEarnedItOrOverThePlayersVanguardButNeverForIncome)

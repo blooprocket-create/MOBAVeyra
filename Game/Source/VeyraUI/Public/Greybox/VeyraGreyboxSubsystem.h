@@ -5,6 +5,7 @@
 #include "Greybox/VeyraBodyFeedback.h"
 #include "Greybox/VeyraOrderMarks.h"
 #include "Hud/VeyraCombatTextModel.h"
+#include "Hud/VeyraKillFeedModel.h"
 #include "Shapes/VeyraShapes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
@@ -183,6 +184,9 @@ public:
 	/** This machine's player's latest level-up, by this machine's clock, for the HUD's banner (ADR-065 §5). */
 	const TOptional<FVeyraLevelUpMoment>& GetOwnLevelUp() const { return OwnLevelUp; }
 
+	/** The kill feed this machine's player received and still shows, oldest first, by this machine's clock (ADR-065 §10). */
+	const TArray<FVeyraKillFeedArrival>& GetKillFeed() const { return KillFeed; }
+
 	/** The colour of Team as the viewer sees it: ally, enemy or neutral. */
 	FLinearColor ColorOfSide(EVeyraTeam Team) const;
 
@@ -200,18 +204,27 @@ public:
 	FLinearColor BodyColorOf(const AActor& Unit) const;
 
 private:
-	/** Listens to the local player's combat text once its controller exists, and forgets the numbers done showing. */
+	/**
+	 * Listens to the local player's combat text and kill feed once its controller exists, and forgets the numbers and lines
+	 * done showing.
+	 */
 	void RefreshCombatText();
 
 	/** Darkens the ground the viewer's side does not see, redrawn only when its seen ground changes (ADR-054 §3). */
 	void RefreshFogOfWar();
 	void OnCombatText(const FVeyraCombatTextLine& Line);
+	void OnKillFeed(const FVeyraKillFeedLine& Line);
 
 	TArray<FVeyraCombatTextArrival> CombatText;
+
+	/** The kill feed lines this machine's player received and still shows, oldest first, by this machine's clock (ADR-065 §10). */
+	TArray<FVeyraKillFeedArrival> KillFeed;
 
 	TOptional<FVeyraLevelUpMoment> OwnLevelUp;
 	TWeakObjectPtr<class AVeyraPlayerController> CombatTextSource;
 	FDelegateHandle CombatTextHandle;
+	TWeakObjectPtr<class AVeyraPlayerController> KillFeedSource;
+	FDelegateHandle KillFeedHandle;
 
 	bool bAuthoredTerrain = false;
 	TMap<FVector2D, double> FogSurfaceHeights;

@@ -120,10 +120,8 @@ namespace
 		{
 			return;
 		}
-		float Radius = 0.0f;
-		float HalfHeight = 0.0f;
-		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
-		const FVector OnScreen = Canvas.Project(Unit.GetActorLocation() + FVector::UpVector * (HalfHeight + Settings.BarLift));
+		// Over the body as it is drawn, which may stand taller than its capsule (ADR-065 §11).
+		const FVector OnScreen = Canvas.Project(Unit.GetActorLocation() + FVector::UpVector * (Settings.VisualTopOf(Unit) + Settings.BarLift));
 		if (OnScreen.Z <= 0.0)
 		{
 			return; // Behind the camera.
@@ -300,10 +298,7 @@ namespace
 				{
 					continue;
 				}
-				float Radius = 0.0f;
-				float HalfHeight = 0.0f;
-				Unit->GetSimpleCollisionCylinder(Radius, HalfHeight);
-				Anchor = Unit->GetActorLocation() + FVector::UpVector * (HalfHeight + Rise);
+				Anchor = Unit->GetActorLocation() + FVector::UpVector * (Settings.VisualTopOf(*Unit) + Rise);
 			}
 			const FVector OnScreen = Canvas.Project(Anchor);
 			if (OnScreen.Z <= 0.0)
@@ -547,6 +542,16 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 		{
 			const UVeyraProgressionComponent* Progression = Own->FindComponentByClass<UVeyraProgressionComponent>();
 			VeyraHudDeck::DrawLevelUp(Canvas, Settings, Greybox.GetHudFont(), LevelUp->Level, Progression ? Progression->GetUnspentSkillPoints() : 0, Shown);
+		}
+		// Who fell to whom, and the moments that are the player's own (ADR-065 §10).
+		const double RealNow = FPlatformTime::Seconds();
+		const EVeyraTeam OwnSide = Own ? Own->GetVeyraTeam() : EVeyraTeam::None;
+		VeyraHudDeck::DrawKillFeed(Canvas, Settings, Preferences, Greybox.GetHudFont(),
+			VeyraKillFeedView::Rows(Greybox.GetKillFeed(), RealNow, Settings.KillFeedSeconds, Settings.KillFeedRows), OwnSide, Layout.Inset);
+		if (const TOptional<FVeyraAnnouncement> Announcement =
+				VeyraKillFeedView::Announcement(Greybox.GetKillFeed(), RealNow, Settings.AnnouncementSeconds, Own ? Own->GetPlayerId() : INDEX_NONE, OwnSide))
+		{
+			VeyraHudDeck::DrawAnnouncement(Canvas, Settings, Preferences, Greybox.GetHudFont(), Announcement.GetValue(), Layout.Inset);
 		}
 		// How the match ended, while its players watch the end (ADR-020 §1).
 		if (GameState->GetPhase() == EVeyraMatchPhase::Ended)

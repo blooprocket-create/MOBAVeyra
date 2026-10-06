@@ -188,7 +188,7 @@
       "leashRange": 550,
       "waypointAcceptance": 150
     },
-    "corpseSeconds": 1,
+    "corpseSeconds": 2.5,
     "avoidanceConsiderationRadius": 200,
     "avoidanceWeight": 0.5
   },
@@ -393,7 +393,7 @@
     },
     "ai": {
       "thinkSeconds": 0.25,
-      "corpseSeconds": 1,
+      "corpseSeconds": 2.5,
       "homeAcceptance": 100
     },
     "camps": [

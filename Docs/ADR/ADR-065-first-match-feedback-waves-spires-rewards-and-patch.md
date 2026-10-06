@@ -1,6 +1,6 @@
 # ADR-065: First-match feedback: waves, Spires, reward and level feedback, ability numbers, and Patch
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the pull request that adds it.
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. The closing section lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the pull request that adds it.
 **Date:** 2026-10-06
 **Related:**
 - [ADR-011](ADR-011-battleground-runtime.md): §7 Fluxborn, §12 layout, §17 values. This record amends the leash and the Spire distances.
@@ -103,6 +103,34 @@ The Roster Bible's Patch is a protector who holds an enemy close. The siphon mak
 
 **Text:** both abilities' descriptions say what they now do, without numbers.
 
+### 9. A fallen body lies where it fell
+The author's second match found that kills vanished. A dead Vanguard's body left the map on the next tick, so no client saw it fall: its death animation and collapse never played.
+
+Now the body stays where it fell until its Vanguard returns:
+- **Out of play:** it doesn't move, collides with nothing, gives no sight, and is no target.
+- **Seen falling:** every client that sees it sees it fall and lie there.
+- **At respawn:** the game mode removes it as the Vanguard returns in a new body.
+
+The fallen of Fluxborn and wildlife stay for 2.5 seconds (`corpseSeconds`, was 1), so a Gold number and the fall finish before the body goes.
+
+### 10. A kill feed
+**The feed.** Every player gets a line for each fall: Vanguards and structures. A fall is no secret, as the scoreboard's kills are not. The match's link sends it, mirroring combat text (ADR-052 §1).
+- **Down the top right:**
+  - the killer's face and name, the number of assists, then the fallen's face and name, in the colours of their sides;
+  - "Executed" when no Vanguard is credited; the structure's name for a structure;
+  - First Blood outlined in gold.
+- **Announcements**, under the top strip, for:
+  - the player's own takedown ("You slew Oriel") and death ("Oriel slew you", "You were executed");
+  - First Blood, whoever drew it;
+  - a structure of either side ("Enemy top outer Spire destroyed").
+
+### 11. Bodies drawn larger
+The author found the bodies too small for the battleground.
+- **Sizes:** Vanguards' animated bodies (and their companions' and Echoes') are drawn **1.65 times** their capsule, structures' art **1.32 times**, each from its foot.
+- **Presentation only:** the capsule, and so collision, reach, ranges and hit areas, keeps its size. This matches how a body's look commonly reaches past its hitbox.
+- **Following the bodies:** health bars and combat numbers stand over the drawn body.
+- **Clicking:** the cursor finds a unit within 30 units of its line (a sphere sweep), so clicking a body where it is drawn picks it.
+
 ## Consequences
 - Team B's side-lane waves arrive on time, from their own inhibitors, and no wave crosses a jungle. Lane pressure is even again.
 - Fluxborn stay with their lane: a Vanguard who steps 200 into the jungle loses them.
@@ -118,7 +146,7 @@ The Roster Bible's Patch is a protector who holds an enemy close. The siphon mak
 - Patch: siphon and aura-damage tests (a tether heals its source by the Health its target lost; an aura's damage each second).
 - The full suite, the Editor, Client and Linux Server builds, and the flow smokes.
 
-## 9. Provisional answers for the author
+## Provisional answers for the author
 1. Leash 550 from the lane's path, for the Fluxborn and its target (§2).
 2. Spire distances (§3).
 3. Which Gold grants show, and where (§4).
@@ -126,3 +154,6 @@ The Roster Bible's Patch is a protector who holds an enemy close. The siphon mak
 5. The last-hit cue ignores critical hits and on-hit effects, and is on by default (§6).
 6. Tooltip format and role names (§7).
 7. Patch's siphon values and his ultimate's new values (§8).
+8. Fluxborn and wildlife bodies last 2.5 seconds (§9).
+9. The kill feed's rows, timing, and which moments are announced (§10).
+10. The body scales 1.65 and 1.32, and the 30-unit cursor pick (§11).
