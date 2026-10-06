@@ -12,8 +12,9 @@ from pathlib import Path
 
 GENERATOR_VERSION = 1
 # What a body's recorded content hash covers (GenerateVanguardBodies.content_of): 2 adds the UV each corner exports to
-# its vertices, weights, colours, skeleton and takes. A body recorded under another cannot be compared and is stale.
-CONTENT_VERSION = 2
+# its vertices, weights, colours, skeleton and takes; 3 adds each face's smoothing and material slot and the options it
+# is exported with. A body recorded under another is stale until a full build records it again.
+CONTENT_VERSION = 3
 
 
 def bodies_of(spec):
