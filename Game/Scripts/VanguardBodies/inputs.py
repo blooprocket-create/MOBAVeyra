@@ -18,6 +18,11 @@ def bodies_of(spec):
         yield dict(spec, **status_body["body"]), status_body["status"], "_" + status_body["name"]
 
 
+def body_name(vanguard_id, suffix):
+    """A body's asset name: SK_, its Vanguard's ID in title case, then its status body's suffix (SK_Raska_Hound)."""
+    return "SK_" + vanguard_id.title().replace("_", "") + suffix
+
+
 def input_hash(kit, vanguards, body_spec):
     """The hash of everything body_spec's body is generated from: its entry, its archetype's settings, the kit's frame
     rate, the generator version, and its Vanguard's capsule and whether it fights in melee (Vanguards.json)."""
@@ -31,12 +36,17 @@ def input_hash(kit, vanguards, body_spec):
 
 
 def stale_assets(kit, vanguards, assets):
-    """Every manifest asset whose recorded inputs are not what the kit and Vanguards.json give it now, by name."""
+    """Every body the manifest does not hold as the kit and Vanguards.json give it now, by name: one whose recorded
+    inputs differ or that the kit no longer has, and one the kit has that the manifest lacks (a partial build that kept
+    a manifest from before the kit gave a Vanguard a new body)."""
     current = {}
     for spec in kit["vanguards"]:
-        for body_spec, status, _ in bodies_of(spec):
-            current[(spec["id"], status)] = input_hash(kit, vanguards, body_spec)
-    return [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status"))) != asset.get("inputSha256")]
+        for body_spec, status, suffix in bodies_of(spec):
+            current[(spec["id"], status)] = (input_hash(kit, vanguards, body_spec), body_name(spec["id"], suffix))
+    recorded = {(asset["id"], asset.get("status")) for asset in assets}
+    changed = [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status")), (None,))[0] != asset.get("inputSha256")]
+    missing = [name for key, (_, name) in current.items() if key not in recorded]
+    return changed + missing
 
 
 def stale_in(game):

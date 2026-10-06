@@ -56,15 +56,22 @@ if ($LASTEXITCODE -ne 0) { throw 'Stale Vanguard bodies: regenerate them before 
 $kit = Get-Content (Join-Path $game 'ArtSource/Vanguards/VanguardKit.json') -Raw | ConvertFrom-Json
 $manifest = Get-Content (Join-Path $game 'ArtSource/Vanguards/manifest.json') -Raw | ConvertFrom-Json
 $selected = @($Vanguards | ForEach-Object { $_ -split ',' })
+$destination = Join-Path $game ('Content' + $kit.destination.Substring('/Game'.Length))
+$replaced = @()
 foreach ($asset in $manifest.assets) {
     if ($selected.Count -gt 0 -and $asset.id -notin $selected) { continue }
-    $folder = Join-Path $game ('Content' + $kit.destination.Substring('/Game'.Length) + '/' + $asset.name.Substring('SK_'.Length))
-    if (-not (Test-Path -LiteralPath $folder)) { continue }
-    foreach ($file in Get-ChildItem -LiteralPath $folder -Filter *.uasset) {
-        if ($file.IsReadOnly) { throw "Acquire the Git LFS lock before reimporting: $($file.FullName)" }
-        Remove-Item -LiteralPath $file.FullName
-    }
+    $folder = Join-Path $destination $asset.name.Substring('SK_'.Length)
+    if (Test-Path -LiteralPath $folder) { $replaced += @(Get-ChildItem -LiteralPath $folder -Filter *.uasset) }
 }
+# Every import also rewrites the bodies' material and the art set (ImportVanguardBodies.py). Each file it will write is
+# checked before any is removed, so a missing lock stops the build with nothing changed.
+$shared = @('M_VeyraVanguardBody.uasset', 'DA_VanguardArt.uasset') | ForEach-Object { Join-Path $destination $_ } |
+    Where-Object { Test-Path -LiteralPath $_ } | ForEach-Object { Get-Item -LiteralPath $_ }
+$locked = @(@($replaced) + @($shared) | Where-Object { $_.IsReadOnly })
+if ($locked.Count -gt 0) {
+    throw "Acquire the Git LFS locks before reimporting; nothing was removed or imported:`n$(($locked | ForEach-Object FullName) -join "`n")"
+}
+foreach ($file in $replaced) { Remove-Item -LiteralPath $file.FullName }
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor-Cmd.exe'
 $script = Join-Path $PSScriptRoot 'ImportVanguardBodies.py'
 $log = Join-Path $saved 'Import.log'

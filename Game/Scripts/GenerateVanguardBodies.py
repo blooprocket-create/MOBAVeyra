@@ -22,7 +22,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
-from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, input_hash, stale_assets  # noqa: E402
+from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, body_name, input_hash, stale_assets  # noqa: E402
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -202,7 +202,7 @@ def build(spec, status=None, suffix=""):
     melee = not TUNING[spec["id"]]["basicAttack"].get("projectile")
     reset_scene()
     layout, dims = archetype.layout(spec, capsule)
-    name = "SK_" + spec["id"].title().replace("_", "") + suffix
+    name = body_name(spec["id"], suffix)
     armature = build_armature(name, archetype.BONES, layout)
     body = archetype.body(spec, layout, dims)
     body.anchor_unweighted({bone: heads[0] for bone, heads in layout.items()})
