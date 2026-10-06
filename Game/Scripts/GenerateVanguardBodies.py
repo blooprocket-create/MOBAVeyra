@@ -22,7 +22,8 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
-from VanguardBodies.inputs import GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash, input_hash, pinned_blender, removed_assets, stale_assets, units  # noqa: E402
+from VanguardBodies.inputs import (GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash, input_hash,  # noqa: E402
+                                   pending_changed, pending_removed, pinned_blender, removed_assets, stale_assets, units)
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -58,10 +59,17 @@ GROUND_SLACK = 2.0
 CONTENT_PLACES = 3
 # The code that builds a body (VanguardBodies.inputs): a body built by other code is stale.
 GENERATOR = generator_hash(Path(__file__).resolve().parent)
-# The changed bodies' Vanguards, which the import takes; the rest kept their FBX and their imported assets.
+# The Vanguards whose bodies changed since the last import, which the next import takes; the rest kept their FBX and their
+# imported assets.
 CHANGED = SAVED / "changed.json"
-# The bodies a build dropped (removed or renamed in the kit): their FBX is deleted here, their imported assets by the import.
+# The bodies dropped (removed or renamed in the kit) since the last import: their FBX is deleted here, their imported
+# assets by the import.
 REMOVED = SAVED / "removed.json"
+
+
+def read_list(path):
+    """A JSON list this generator wrote earlier, or an empty one."""
+    return json.loads(path.read_text()) if path.exists() else []
 
 
 # ---------------------------------------------------------------------------------------------- the skeleton
@@ -354,12 +362,14 @@ def main():
                 "assets": sorted(kept + built, key=lambda asset: (asset["id"], asset.get("status", "")))}
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", newline="\n")
     SAVED.mkdir(parents=True, exist_ok=True)
-    CHANGED.write_text(json.dumps(changed) + "\n")
+    # Added to what earlier builds left to import, until an import takes it (BuildVanguardBodies.ps1 clears both): a body
+    # this build kept as it was is current only if it was imported, and a run of this generator alone imports nothing.
+    CHANGED.write_text(json.dumps(pending_changed(read_list(CHANGED), changed, manifest["assets"])) + "\n")
     dropped = removed_assets(list(previous.values()), manifest["assets"], ONLY)
     for asset in dropped:
         (SOURCE / asset["file"]).unlink(missing_ok=True)
         print("VEYRA_VANGUARD_BODY_REMOVED: " + asset["name"])
-    REMOVED.write_text(json.dumps([asset["name"] for asset in dropped]) + "\n")
+    REMOVED.write_text(json.dumps(pending_removed(read_list(REMOVED), [asset["name"] for asset in dropped], manifest["assets"])) + "\n")
     # A body kept from an earlier build whose inputs have changed since (a shared setting, its generator's code, the
     # Blender that built it) is stale: say which to rebuild, rather than let the importer take it.
     stale = stale_assets(KIT, TUNING, manifest["assets"], GENERATOR, manifest["blender"])

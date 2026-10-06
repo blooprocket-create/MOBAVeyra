@@ -89,6 +89,21 @@ def removed_assets(previous, current, only=None):
     return [asset for asset in previous if (only is None or asset["id"] in only) and asset["name"] not in names]
 
 
+def pending_changed(pending, fresh, assets):
+    """The Vanguards (by ID) whose bodies are still to import after a build: those an earlier build changed that no
+    import has taken yet (a generator run on its own, a failed import), with those this build changed (fresh), less
+    any the manifest (its assets) no longer has. A body kept as it was is only current if it was imported."""
+    ids = {asset["id"] for asset in assets}
+    return sorted((set(pending) | set(fresh)) & ids)
+
+
+def pending_removed(pending, dropped, assets):
+    """The bodies (by name) whose imported assets are still to delete after a build: those dropped earlier and not yet
+    deleted, with those this build dropped, less any the manifest holds again (its import replaces their folder)."""
+    names = {asset["name"] for asset in assets}
+    return sorted((set(pending) | set(dropped)) - names)
+
+
 def pinned_blender(kit, version):
     """Whether version (as Blender gives it, "5.2.0") is the release the kit pins (its "blender", major.minor)."""
     return version is not None and version.split(".")[:2] == kit["blender"].split(".")[:2]
