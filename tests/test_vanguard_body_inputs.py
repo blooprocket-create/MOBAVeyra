@@ -19,6 +19,7 @@ spec.loader.exec_module(inputs)
 KIT = {
     "fps": 30,
     "blender": "5.2",
+    "destination": "/Game/Veyra/Vanguards",
     "archetypes": {
         "humanoid": {"triangleBudget": 9000, "animations": {"Run": {"seconds": 0.6, "loop": True}}},
         "rider": {"triangleBudget": 16000, "animations": {"Run": {"seconds": 0.6, "loop": True}}},
@@ -151,6 +152,22 @@ class VanguardBodyInputs(unittest.TestCase):
         (game / "ArtSource" / "Vanguards" / "manifest.json").write_text(json.dumps({"blender": blender, "assets": assets}))
         write_fbx(game, assets)
         return game
+
+    def test_a_kit_that_moves_its_bodies_elsewhere_stales_every_body(self):
+        # The bodies were imported where the manifest says; a build does not move them, so the import refuses them all
+        # until they are moved (or deleted and built afresh) and the manifest says so.
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = self.project(folder)
+            path = game / "ArtSource" / "Vanguards" / "manifest.json"
+            manifest = json.loads(path.read_text())
+            manifest["destination"] = KIT["destination"]
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(inputs.stale_in(game), [])
+            manifest["destination"] = "/Game/Veyra/Elsewhere"
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(inputs.stale_in(game), ["SK_A", "SK_A_Ride", "SK_B"])
 
     def test_the_preflight_names_a_missing_or_changed_fbx_and_reads_a_pointer_for_its_file(self):
         import subprocess

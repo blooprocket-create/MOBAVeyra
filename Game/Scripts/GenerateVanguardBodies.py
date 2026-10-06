@@ -23,7 +23,7 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
 from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, generator_hash, input_hash,  # noqa: E402
-                                   pending_changed, pending_removed, pinned_blender, removed_assets, stale_assets)
+                                   pending_changed, pending_removed, pinned_blender, removed_assets, same_destination, stale_assets)
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -364,12 +364,16 @@ def main():
             assert body["archetype"] in KIT["archetypes"], (spec["id"], status, "has no archetype in the kit")
     manifest_path = SOURCE / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"assets": []}
+    # The bodies were imported where the manifest says. Moving them is no build step (the editor moves them and fixes
+    # their references), so a kit naming another destination is refused before anything is written.
+    assert same_destination(KIT, manifest), ("The kit moves the bodies from " + str(manifest.get("destination")) + " to " + KIT["destination"]
+                                             + ": move them in the editor and the manifest's destination with them, or delete them and the manifest and build afresh")
     previous = {(asset["id"], asset.get("status")): asset for asset in manifest["assets"]}
     kept = [asset for asset in manifest["assets"] if ONLY and asset["id"] not in ONLY]
     results = [build(*body, previous=previous.get((spec["id"], body[1]))) for spec in entries for body in bodies_of(spec)]
     built = [asset for asset, _ in results]
     changed = sorted({asset["id"] for asset, fresh in results if fresh})
-    manifest = {"generatorVersion": GENERATOR_VERSION, "blender": bpy.app.version_string,
+    manifest = {"generatorVersion": GENERATOR_VERSION, "blender": bpy.app.version_string, "destination": KIT["destination"],
                 "kitSha256": hashlib.sha256(KIT_BYTES).hexdigest(),
                 "assets": sorted(kept + built, key=lambda asset: (asset["id"], asset.get("status", "")))}
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", newline="\n")
