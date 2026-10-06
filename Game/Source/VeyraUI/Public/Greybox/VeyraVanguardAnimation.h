@@ -67,6 +67,9 @@ struct FVeyraVanguardAnimSlot
 	/** Whether what holds it (a windup's input) has been seen since it began: only then can that input's end cancel it. */
 	bool bHoldSeen = false;
 
+	/** Whether the cast it shows has committed: its release plays once nothing holds it, where a cancelled one's would not. */
+	bool bReleased = false;
+
 	bool IsActive() const { return Clip != EVeyraVanguardClip::None && !bFadingOut; }
 };
 

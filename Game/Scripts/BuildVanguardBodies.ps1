@@ -22,7 +22,7 @@
     Also renders each body in its key poses to Game/Saved/VanguardKit/Preview for review.
 .PARAMETER ImportOnly
     Imports the FBX already written, without running Blender. As a full build does, it deletes the imported assets of
-    bodies the generator dropped and takes what the generator left to import.
+    bodies the generator dropped and imports what the generator left to import, or only the Vanguards it names.
 #>
 [CmdletBinding()]
 param(
@@ -61,9 +61,9 @@ $changedList = Join-Path $saved 'changed.json'
 $removedList = Join-Path $saved 'removed.json'
 $pending = @(if (Test-Path -LiteralPath $changedList) { Get-Content -LiteralPath $changedList -Raw | ConvertFrom-Json })
 $removedNames = @(if (Test-Path -LiteralPath $removedList) { Get-Content -LiteralPath $removedList -Raw | ConvertFrom-Json })
-if (-not $ImportOnly) {
+if (-not $ImportOnly -or -not $Vanguards) {
     # A body rebuilt as it was kept its FBX, and keeps its imported assets: only the Vanguards whose bodies changed are
-    # imported again (the art set is written whatever changed).
+    # imported again (the art set is written whatever changed). -ImportOnly takes the same unless it names Vanguards.
     $Vanguards = $pending
     $importNone = $Vanguards.Count -eq 0
 }
