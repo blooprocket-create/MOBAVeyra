@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "17c8e433d27c30453a67a7e44e6277f3b1ef29643767878fc70ccdbf27dfc0aa",
+  "kitSha256": "ed0a3136ed43d624e7200bdf60dbf8a51835042c1922d6b8a9d4aa7716777e4b",
   "assets": [
     {
       "id": "angeru",
@@ -1111,8 +1111,8 @@
       "name": "SK_Relay",
       "archetype": "colossus",
       "file": "FBX/SK_Relay.fbx",
-      "sha256": "7e1131cbf0cf8fd06fca672d45785def518c119e5a1d343a1ec09d7b1585810d",
-      "triangles": 1992,
+      "sha256": "17fa8f781cab2913bf2a41498da627710a686aee6abed601554883bbd8f2b68a",
+      "triangles": 4112,
       "triangleBudget": 14000,
       "bones": 23,
       "heightCm": 240.53,
