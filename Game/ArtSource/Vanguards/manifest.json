@@ -1,14 +1,14 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "3c90cc81223e421883e50b6cab239ac829a7d579fb8b3faa7ff5f85ac49b7023",
+  "kitSha256": "6f91f006b4002e53021f7aec2de4f710fbb7706e49988bf81a85e81a653248bd",
   "assets": [
     {
       "id": "angeru",
       "name": "SK_Angeru",
       "archetype": "humanoid",
       "file": "FBX/SK_Angeru.fbx",
-      "sha256": "ab6d491aa7c18c297868611ca9e9342f3f79b32b19e70244b50acc03b88d399f",
+      "sha256": "2d814ff5d903b4f0c7b97fad2e2e3abf0f3ce8c813d91b3d2e337aab2a55a3d0",
       "triangles": 2412,
       "triangleBudget": 9000,
       "bones": 29,
@@ -60,14 +60,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "dc045d0da9221807926aefb39963225b8cbc168035963582af19669d6f8350b9"
+      "inputSha256": "dc045d0da9221807926aefb39963225b8cbc168035963582af19669d6f8350b9",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "46a01bfb030a600afa04e23c8ae717155af4c3119cdec2d8468cc2c32589499c"
     },
     {
       "id": "aurelisse",
       "name": "SK_Aurelisse",
       "archetype": "construct",
       "file": "FBX/SK_Aurelisse.fbx",
-      "sha256": "1777d95e67bf75b7038b6d064839a01954b145d614efc0b73bb0ef58b68274d8",
+      "sha256": "d8afa5644ef02da8fc37f3807edbcc0e0e7b63bfec4f9d0e26a70cfa012e4c37",
       "triangles": 2256,
       "triangleBudget": 12000,
       "bones": 23,
@@ -119,14 +122,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "68583042e11c413a4eac025333b915a2e77d3d0cff65ebced3190bd469a1504a"
+      "inputSha256": "68583042e11c413a4eac025333b915a2e77d3d0cff65ebced3190bd469a1504a",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "61a8f3ec765a2b0132e7546e67c5b3b264345a4fe911760b9bc3735873b14960"
     },
     {
       "id": "bryn",
       "name": "SK_Bryn",
       "archetype": "humanoid",
       "file": "FBX/SK_Bryn.fbx",
-      "sha256": "4d951374c82673c172abfd3cf2f80f19e80ecb5b250672da2e5cdfa4eb20371f",
+      "sha256": "2e1f390bfeae07a9b17d446f78c8391eb6f34f20ee29fbb852defe637fd21088",
       "triangles": 2412,
       "triangleBudget": 9000,
       "bones": 29,
@@ -178,14 +184,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "44ca0033f038c227f9372fc89836dd2a374a3e5f56aca50d9b53b70e5474efe1"
+      "inputSha256": "44ca0033f038c227f9372fc89836dd2a374a3e5f56aca50d9b53b70e5474efe1",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "dc219fdd7654bb2542ef045b7e12bcf940711acd6aebf2d1783a807c8693fa30"
     },
     {
       "id": "cairn",
       "name": "SK_Cairn",
       "archetype": "colossus",
       "file": "FBX/SK_Cairn.fbx",
-      "sha256": "a918d5bdbabfb5b1c12a2bfdb910168c1a82c5ca560c4a8ed15a238bbd261045",
+      "sha256": "cfa99743ecd867b72220a35e945a7ef1325ec4e89e13512cbc8f844d4f8e8ed6",
       "triangles": 4152,
       "triangleBudget": 14000,
       "bones": 23,
@@ -237,14 +246,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "f69a234530d79beb51ea0211ba756677fa1d3dce9c060677c0e9dbeda55470f5"
+      "inputSha256": "f69a234530d79beb51ea0211ba756677fa1d3dce9c060677c0e9dbeda55470f5",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "df3b879a5d73c9fa07532e17fa8aef8fac05581a6087d4b27078cb5c08fed76c"
     },
     {
       "id": "celandrine",
       "name": "SK_Celandrine",
       "archetype": "humanoid",
       "file": "FBX/SK_Celandrine.fbx",
-      "sha256": "e02cf150e7b4a323397d1891bbe857d8586f281ca9aacb7704ecd5b865ffba37",
+      "sha256": "3605f1627a70bca24e22431d580c420bc57f177d679a2ea7c324e5a2eab4b1ce",
       "triangles": 2640,
       "triangleBudget": 9000,
       "bones": 29,
@@ -296,14 +308,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "9a454d86898fdf201d8707644948c93c6b22e75bc3af10863cd7f8622817ff79"
+      "inputSha256": "9a454d86898fdf201d8707644948c93c6b22e75bc3af10863cd7f8622817ff79",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "bbe86b81d431d27e65372d8073c82459e47f98094ae40e734594216d297468bf"
     },
     {
       "id": "eudora",
       "name": "SK_Eudora",
       "archetype": "humanoid",
       "file": "FBX/SK_Eudora.fbx",
-      "sha256": "f058223cff0ae885329f5d88adb36bdfc4785aff6bbf412511771f36fbf3fafb",
+      "sha256": "b12dfcbfa85e4c0f914d6f430ea9755b21b04e829c0e7ff61557f04fc449f61f",
       "triangles": 2604,
       "triangleBudget": 9000,
       "bones": 29,
@@ -355,14 +370,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "a5b88704c696470d52887d5fe49a44f13c4544cf44f3083298a36a7fa3c42bbf"
+      "inputSha256": "a5b88704c696470d52887d5fe49a44f13c4544cf44f3083298a36a7fa3c42bbf",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "cf27fb3c47e040e005d9c2395d86b1950943e8e3405b8a2b5c1a65bd3265e6c6"
     },
     {
       "id": "gorraveth",
       "name": "SK_Gorraveth",
       "archetype": "humanoid",
       "file": "FBX/SK_Gorraveth.fbx",
-      "sha256": "28f3e9ad3c67da64794cb3a1389297269ed6af1e8687e86773ddc8e7d5627e8f",
+      "sha256": "e1428e2b7145eaf017cfb0ec518630bd52c7d49b94131996290d153dbb011b18",
       "triangles": 2076,
       "triangleBudget": 9000,
       "bones": 29,
@@ -414,14 +432,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "1b532860c4ecda8dd6dfcba9aea6c7013aa42618d694c116d638e717b8145bf1"
+      "inputSha256": "1b532860c4ecda8dd6dfcba9aea6c7013aa42618d694c116d638e717b8145bf1",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "dc432a4ab967191d0c6b0d272d038f5c55c30886f63a08b7548705c5463a4379"
     },
     {
       "id": "kade",
       "name": "SK_Kade",
       "archetype": "humanoid",
       "file": "FBX/SK_Kade.fbx",
-      "sha256": "14d5596abbad41440f28879cc3fb7139c0c62c9a587dce17a927133800d9438e",
+      "sha256": "56c89ab6d97cc1e940f48d8276691bb1406182454e265abb73fa79d4a4c14cdd",
       "triangles": 2424,
       "triangleBudget": 9000,
       "bones": 29,
@@ -473,14 +494,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "b19c48c190f2230c562df9babb7ddf930de54e5c24b96b7144d94c0d1cf25c61"
+      "inputSha256": "b19c48c190f2230c562df9babb7ddf930de54e5c24b96b7144d94c0d1cf25c61",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "6a59ba0eeed63172f7a92f71156965f9ccbf07788e2b49bf874732303074d95e"
     },
     {
       "id": "korruk",
       "name": "SK_Korruk",
       "archetype": "beast",
       "file": "FBX/SK_Korruk.fbx",
-      "sha256": "f797f5ef881f445262cbd88d1c93c1d81f35b7ecdf4919cc0ee1439a41747da5",
+      "sha256": "e9212cefc94eba8e0aff64c03b0c1f48ff3931998ed0b96fa8940fc903cd7bfa",
       "triangles": 3064,
       "triangleBudget": 12000,
       "bones": 27,
@@ -532,14 +556,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "7417053106155dd881dfe3332b6cc5916a5c1ee9453d6799d7dc7f5ba75186f8"
+      "inputSha256": "7417053106155dd881dfe3332b6cc5916a5c1ee9453d6799d7dc7f5ba75186f8",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "da87abc5355ef78bd31e86e2997d1412d2e33df48f0bcdab982525b16c8444ce"
     },
     {
       "id": "marek",
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "ce66300b128555d358648ada1b292906a5fa7e061ad9dc47a062cc20aa0d055e",
+      "sha256": "78b30754d7e11c24feceb9616b2285856dd6fa32b5878f1ca7df94474c019c26",
       "triangles": 5240,
       "triangleBudget": 9000,
       "bones": 29,
@@ -591,14 +618,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "a2f68c9d76a54e9f7c6dc8f099b74204c778aecf598aa53c8d49f27a1d8fc054"
+      "inputSha256": "a2f68c9d76a54e9f7c6dc8f099b74204c778aecf598aa53c8d49f27a1d8fc054",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "c8b7f18d491ee361132205bfa35bad1984016c0c06013845ef51be615289ee5a"
     },
     {
       "id": "marek_nix",
       "name": "SK_MarekNix",
       "archetype": "beast",
       "file": "FBX/SK_MarekNix.fbx",
-      "sha256": "238cb8267f0630f34373de0da0ca1f9ad975e90bbaf52dd03391c22b94cd14b4",
+      "sha256": "f190a94c04f27411bf7cbae2575260fdde3a219e68784ee548df342dc5d73bb9",
       "triangles": 3444,
       "triangleBudget": 12000,
       "bones": 27,
@@ -651,6 +681,9 @@
         }
       ],
       "inputSha256": "81d1126b421e2fc0aefe70e01c1edb03d66dc1398cb4c5ccad7cf9677c7ac0de",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "89a86eb530b6b50e1d0e0f267ea2e95159647c2ccc8612a49375a8794a381e20",
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSmokeBody.NS_VeyraSmokeBody",
         "bones": [
@@ -685,7 +718,7 @@
       "name": "SK_MarekNix_TrueForm",
       "archetype": "beast",
       "file": "FBX/SK_MarekNix_TrueForm.fbx",
-      "sha256": "efe9002c12676f20def3167f5bc6579524ad1c879b731736fdffe090c5b2945f",
+      "sha256": "2545b6cf12b1b7f3bb19e8b1eb9023f06d234e78fe805ab328dd2f5231d21917",
       "triangles": 3476,
       "triangleBudget": 12000,
       "bones": 27,
@@ -738,6 +771,9 @@
         }
       ],
       "inputSha256": "32272e0e33b241dbbfb1bdb3bb3151df33c765d3d375d7d2a149804555e4e2c3",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "7afda4daa1fccbb33f57581a05b96182382614e02a1c383c15bc12a0babf5e92",
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSmokeBody.NS_VeyraSmokeBody",
         "bones": [
@@ -773,7 +809,7 @@
       "name": "SK_Mavra",
       "archetype": "humanoid",
       "file": "FBX/SK_Mavra.fbx",
-      "sha256": "7c23734af3ae1cb1f29b1e95275cb10b439de52e27c65aa2eb4444568c6f1e09",
+      "sha256": "092b491335f875ab31f1d91e6e7c7a582520ead2c09ab9341b6fc35b3bc70b95",
       "triangles": 2676,
       "triangleBudget": 9000,
       "bones": 29,
@@ -825,14 +861,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "adb4116fbbb2dd8909919fd05d7d69ed46cb9a898cecd0f799fe232023d8cdff"
+      "inputSha256": "adb4116fbbb2dd8909919fd05d7d69ed46cb9a898cecd0f799fe232023d8cdff",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "7a9d0b4344a536385f8f0e931e1a97d7aa8a46029420544724f23c16c8536b56"
     },
     {
       "id": "mimzi",
       "name": "SK_Mimzi",
       "archetype": "humanoid",
       "file": "FBX/SK_Mimzi.fbx",
-      "sha256": "84cbfabd1401b415c27c2cb198b11eed3877c2b35789120ddde6637cf5cc68a3",
+      "sha256": "542cdc2cbce2cb341157cb3638f49310801a2624eedb479d76d1f3500e2da823",
       "triangles": 3216,
       "triangleBudget": 9000,
       "bones": 29,
@@ -884,14 +923,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "9156865daad63ced8876cc2d73e07bcacfb385e5d16063b291ea45c382ca7ad7"
+      "inputSha256": "9156865daad63ced8876cc2d73e07bcacfb385e5d16063b291ea45c382ca7ad7",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "850dc34b9ca31ab0e3f6d1abe43ada3ef041c32b833f498654b7a01e553b8e60"
     },
     {
       "id": "moro",
       "name": "SK_Moro",
       "archetype": "beast",
       "file": "FBX/SK_Moro.fbx",
-      "sha256": "fec4cbadc5a94d9b7c7c9521b084061928a901711f6f4cb211b7462c5886ffb7",
+      "sha256": "e9b48c7d9b64c9bd4a3c54d6d353da35b328a03fa273bbfaacea1b81f6b23cff",
       "triangles": 3240,
       "triangleBudget": 12000,
       "bones": 27,
@@ -943,14 +985,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "771a2bb20acb26ed4b62c8c245c73049d85f6bfa38683ee6b5c7d0622446a1c1"
+      "inputSha256": "771a2bb20acb26ed4b62c8c245c73049d85f6bfa38683ee6b5c7d0622446a1c1",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "02c6f3156fcfc48c498271e754ade8982724bb2a366cd57b49bf26fece70ae56"
     },
     {
       "id": "neris",
       "name": "SK_Neris",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris.fbx",
-      "sha256": "135174ad7150608fd787eff4b7a239db880928e55245295b3776de0d04ec0cf4",
+      "sha256": "95059171c9ca81feb5c741254f1a06e8fec28537b43fd96f99ce7e17fe4c4495",
       "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1003,6 +1048,9 @@
         }
       ],
       "inputSha256": "a0f5fbbe672ddf9292f03475cff9c4ed779ae16f34e787f00e3c2668845749bc",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "a9f52df28604c48b210c4ded1d123094bbec676bbf73f73124e4cc544e8d1d19",
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1024,7 +1072,7 @@
       "name": "SK_Neris_Tidebreaker",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Tidebreaker.fbx",
-      "sha256": "9347cb553490f8b79b6be3cb3cf5b752ee007c46b5a9a970ea0effcaf822d8f6",
+      "sha256": "52c4ec6f7ec5e219ae67e6f4e1682f2f8c6fa3af77443457ed5d0123d4915b68",
       "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1077,6 +1125,9 @@
         }
       ],
       "inputSha256": "8524488a86ea4ccad45ae3e9d76dbfe33e5af68600325455d84822b4557f5f44",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "cf2a70daa40c49920114ec2b88a2a806e46955f228f66460d294a49b74eabcb9",
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1099,7 +1150,7 @@
       "name": "SK_Neris_Wave",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Wave.fbx",
-      "sha256": "097e4d0c73c8264327a1c4d8e2a51d45bcb411a8d9fed4d3e9855815c52e88f4",
+      "sha256": "9db39c769f5781f4e43cf69e11d5abc0007e04fd57d8ce10838c02034a7c4c4c",
       "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1152,6 +1203,9 @@
         }
       ],
       "inputSha256": "501a574e051664f5e0b5e140ed17072490c3e34551efeceeb5e1da80cbdea0e0",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "b2a6de440c4ad7987fb44bda8ce944be98a9416ba8d52a14327108b975c2a266",
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1174,7 +1228,7 @@
       "name": "SK_NerisWaterling",
       "archetype": "beast",
       "file": "FBX/SK_NerisWaterling.fbx",
-      "sha256": "836598b4362f72d431d680f57f10cc1924027e5227734f2e1b6c9ac5ffd288ce",
+      "sha256": "3166ec586ddab4af190f1c95a60a0e3d6e60d8bc66704c1db7fff2e8b46d8da7",
       "triangles": 3684,
       "triangleBudget": 12000,
       "bones": 27,
@@ -1227,6 +1281,9 @@
         }
       ],
       "inputSha256": "edab63812c296450a177504fb8a37617dd08a79f74937bfb6507c4f5ad41caf6",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "d76cf56cc299a7f7f5fdb600b4ea281f4897c7b9e6f9ef922b1d669b8b9e7cd0",
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1248,7 +1305,7 @@
       "name": "SK_Oriel",
       "archetype": "construct",
       "file": "FBX/SK_Oriel.fbx",
-      "sha256": "3ea19e9424b9e80be37652dbb2a3828d4b011d3d1ecc36b5750f487679d53b69",
+      "sha256": "fab65783bfe7426419819d357a2b0dd23ccde33687c53436a6e7ca9161e7ab8e",
       "triangles": 1140,
       "triangleBudget": 12000,
       "bones": 23,
@@ -1300,14 +1357,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "1b7e5245b2e1bc0ea78d152e3b187969b0af068ae27a81b1091bb296d74ad1e1"
+      "inputSha256": "1b7e5245b2e1bc0ea78d152e3b187969b0af068ae27a81b1091bb296d74ad1e1",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "9ac8fdfea50c54a556d17712ada7f9d34c9a7845ff6d6d81ba01d2b42969869f"
     },
     {
       "id": "patch",
       "name": "SK_Patch",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch.fbx",
-      "sha256": "ef05858d74d210865afbf5bcc4f708ed41f7481424b2526708a1a29d911831bf",
+      "sha256": "61d2f96be0fdf6dc787d4bd69fc279929143f86084acfef8be6616b825256027",
       "triangles": 2484,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1359,14 +1419,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "d95a888fe2ecce1e72d57698f53f9af11c02ca65ba8680b64c661ec73ee12c91"
+      "inputSha256": "d95a888fe2ecce1e72d57698f53f9af11c02ca65ba8680b64c661ec73ee12c91",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "9a2b83f4bc5f8b4341356257e2b89c7d2e6f4f4677216660e19daa475108da1c"
     },
     {
       "id": "patch",
       "name": "SK_Patch_Dormant",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch_Dormant.fbx",
-      "sha256": "e27120fd421de6be483a7fb7af7e330d3f2b281e271c7962a7123d6bc59a0a0b",
+      "sha256": "18b202d38dabf24f35e046ea04f2e3534c995b5cb82121536333462247ba39e0",
       "triangles": 2484,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1419,6 +1482,9 @@
         }
       ],
       "inputSha256": "e72ae755c42cb51f5436493d644a69ed5a5f08f19ffc1af94143121ed6679aa6",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "344df0bdac43ef0b49a37c76fea0c3009d4ae488ffb721e1caad4818310ced5a",
       "status": "patch_dormant"
     },
     {
@@ -1426,7 +1492,7 @@
       "name": "SK_Patch_Inside",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch_Inside.fbx",
-      "sha256": "e2d666808c1a8c0d388c7f4dbd0f8b204ea30e497b28b3ef454535c6bc138f80",
+      "sha256": "6ea08963234e1144511e42990e478e74b07f6d6a1753ae5c916c7316e26f28f9",
       "triangles": 3456,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1479,6 +1545,9 @@
         }
       ],
       "inputSha256": "ba0c76d1010751ea5ef4dc17c5c8e603404cd09a6b0ea2e87a6c1f5247ea51a5",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "1545d2414b50352472a4d545902b58d583f5b89922328f995efc11ddd1c84052",
       "status": "patch_inside_body"
     },
     {
@@ -1486,7 +1555,7 @@
       "name": "SK_Qazharr",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr.fbx",
-      "sha256": "bc1cb269a9efa549beac23ea7ebaac7b463e2eb1d7038675a02e1d2160baaecf",
+      "sha256": "35f88b00054065d0d14de901ac934d9d4fe90bb39d75553f16cd09f12b355ff1",
       "triangles": 2460,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1538,14 +1607,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "b9ecf484d3c7f0fc8962e475c1f4bfc8d0f35acf4204399cc7d6fc335b9e5b6f"
+      "inputSha256": "b9ecf484d3c7f0fc8962e475c1f4bfc8d0f35acf4204399cc7d6fc335b9e5b6f",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "282841447322dccede4227152fa2dad664826f9febe83772cec9bb8559697d0b"
     },
     {
       "id": "raska",
       "name": "SK_Raska",
       "archetype": "humanoid",
       "file": "FBX/SK_Raska.fbx",
-      "sha256": "ed8d4838f251112208f2e733ca42a34ae8d898f24eaa3afc5df7c2dd354c9425",
+      "sha256": "52de67bb62579412046b531d19c62af2ed44d202f4edcb23f7bead23209ce192",
       "triangles": 3756,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1597,14 +1669,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "45e2ffa7f285f686ff13df8d91deda1f502c18e3ee61ed262db2e56838e0b7ce"
+      "inputSha256": "45e2ffa7f285f686ff13df8d91deda1f502c18e3ee61ed262db2e56838e0b7ce",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "5f204464d1f8bef23159f4b391d784d9cd3f454116eca96b75ea0fb8ea59fc39"
     },
     {
       "id": "raska",
       "name": "SK_Raska_Ride",
       "archetype": "rider",
       "file": "FBX/SK_Raska_Ride.fbx",
-      "sha256": "67469e6297fbd6dc7c99d3bddf79ab54e6dda2c90a138f8947154361a3c323d3",
+      "sha256": "cdf7913b637dc11f3ea5892d14fa0c11ea5d142e55b78387da5129c196c47d79",
       "triangles": 6520,
       "triangleBudget": 16000,
       "bones": 32,
@@ -1657,6 +1732,9 @@
         }
       ],
       "inputSha256": "fad92def12e4d9babcce9a4da1c8cebc95653fbcdc22581494f8987769ca193f",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "daf91200fb4e5c49d7c8fa20b87434bf70154d74315bf4a43d80b256c8b80edf",
       "status": "raska_ride_body"
     },
     {
@@ -1664,7 +1742,7 @@
       "name": "SK_Relay",
       "archetype": "colossus",
       "file": "FBX/SK_Relay.fbx",
-      "sha256": "d25028f665106c238ee839e13424b416f069c06a3cf990b6f98adcb5d1e94d52",
+      "sha256": "cb23ec74c2bcf70f170df4a8aa48a2c71f63c7404b6d6c0021c8464be4f00143",
       "triangles": 4592,
       "triangleBudget": 14000,
       "bones": 23,
@@ -1716,14 +1794,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "96f3c76e3738f62cc2d21e3388896044c762c79e81a68f7705942bddfdb3a2c9"
+      "inputSha256": "96f3c76e3738f62cc2d21e3388896044c762c79e81a68f7705942bddfdb3a2c9",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "2975498f8fc45dce6d9d15e2238a1c3227f5b81d395e14382c033fc7582e7fc9"
     },
     {
       "id": "silt",
       "name": "SK_Silt",
       "archetype": "colossus",
       "file": "FBX/SK_Silt.fbx",
-      "sha256": "5bed1ea0f0eb5e544046defcefab5f2a3a506c4796d681df5bf137a0fcc070f5",
+      "sha256": "b3f2c0ae40c2180307b23fed7531dea0619210493178b19aa202a65a3717368b",
       "triangles": 9148,
       "triangleBudget": 14000,
       "bones": 23,
@@ -1775,14 +1856,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "7de81433775094a85e957cacd1c758dabf81aba03415428349e97e5a321d185e"
+      "inputSha256": "7de81433775094a85e957cacd1c758dabf81aba03415428349e97e5a321d185e",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "d6faf2b0a14b36619578de982fc2d5a0213f687b0fb4697a5a8d2cc30be7cccd"
     },
     {
       "id": "sylra",
       "name": "SK_Sylra",
       "archetype": "humanoid",
       "file": "FBX/SK_Sylra.fbx",
-      "sha256": "f3b6260408de9a8d1390ecf1ef219a7d949e8ad5bf687eb7731f835b59af7510",
+      "sha256": "ea1d455763f19339c084a18d7ea9fd9ce5d23b187a58d393f7c6ae2726242345",
       "triangles": 2484,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1834,14 +1918,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "34a30551f0506edf099092bd3e3106a920e1460ab934811b25a279862d2d1bcc"
+      "inputSha256": "34a30551f0506edf099092bd3e3106a920e1460ab934811b25a279862d2d1bcc",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "20705c7b11fbb52d9b60a03c8002f7a401e1f1196a173b4022c5783938f9e1c3"
     },
     {
       "id": "tavi",
       "name": "SK_Tavi",
       "archetype": "humanoid",
       "file": "FBX/SK_Tavi.fbx",
-      "sha256": "a948a14f2ece89d242bd1645b28fc7436b13d1d916c860b93179c5214ac1b2ca",
+      "sha256": "7c50b84ae07e0787dddf5e8803730a94affafc9aa3674d768b99d3f8414b1b0f",
       "triangles": 4236,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1893,14 +1980,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "28553718c5dcdef73a71ddfa9aa2a3770f66d11efce7b58a286cdfb994726060"
+      "inputSha256": "28553718c5dcdef73a71ddfa9aa2a3770f66d11efce7b58a286cdfb994726060",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "92c347ca684f08f567206db3a9f103ba6633fa08f436f5736c0cfd899042f7a8"
     },
     {
       "id": "torr",
       "name": "SK_Torr",
       "archetype": "construct",
       "file": "FBX/SK_Torr.fbx",
-      "sha256": "f830403e7459eac016b34b4ebd7577f54c11af4a933769f17bce5442cd040ae8",
+      "sha256": "4b02fb9601fca3d12d211170f2e7c9d74c57e7615adb5b4ef589740fbb378f86",
       "triangles": 7624,
       "triangleBudget": 12000,
       "bones": 23,
@@ -1952,14 +2042,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "74cc56de149c0fe00ff8aa1dee150f196d1a8a431c6e3ce6fbad197acc059733"
+      "inputSha256": "74cc56de149c0fe00ff8aa1dee150f196d1a8a431c6e3ce6fbad197acc059733",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "250a6ab1c74682af1a98703660003d9f2c91f708f3e273fb625dde380c5cfc33"
     },
     {
       "id": "torr",
       "name": "SK_Torr_Fortify",
       "archetype": "construct",
       "file": "FBX/SK_Torr_Fortify.fbx",
-      "sha256": "4c5ee5934632e2a6fd6112d35dcbcb53a749a28866d4bba729bb471eab21c4f7",
+      "sha256": "3a46777f0e15e1252c2b34af65673970200bc56e811d281c897f303cba26f755",
       "triangles": 7624,
       "triangleBudget": 12000,
       "bones": 23,
@@ -2012,6 +2105,9 @@
         }
       ],
       "inputSha256": "8f1e17616dc353ffc605cdee3adef4ef8339ed4dbc6ade3d3bc92598cbd2de1b",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "bb406fd847b47e44aab88c56c09b25dfcc4723d1e2bac1eba5c2e163aabf40c3",
       "status": "torr_fortify_guard"
     },
     {
@@ -2019,7 +2115,7 @@
       "name": "SK_Torr_Overcapacity",
       "archetype": "construct",
       "file": "FBX/SK_Torr_Overcapacity.fbx",
-      "sha256": "37fbcdc758a002e464dbea3c02676f1e34bceb3fc874c06cbf92cea0bd7bceea",
+      "sha256": "5367e717bb8d24cdd1b5a6ac94523a77e8d0c974f420c47434b107699b7d5534",
       "triangles": 7624,
       "triangleBudget": 12000,
       "bones": 23,
@@ -2072,6 +2168,9 @@
         }
       ],
       "inputSha256": "c86212f772ed6a551450af404b6611ddd66c18a85700e2092c166c3d865de453",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "ae2069998777597573ccdb85bff20bd534837e1040854b23f9430e42fcb71a61",
       "status": "torr_overcapacity_size"
     },
     {
@@ -2079,7 +2178,7 @@
       "name": "SK_Varkesh",
       "archetype": "colossus",
       "file": "FBX/SK_Varkesh.fbx",
-      "sha256": "cf5a932163a5cd9b70fad8d1edbf4b65e67a37d7d8b986bc33cbda4a412dce70",
+      "sha256": "a0770892d4d6a6b86fe5090178882fa09e8f9c1ed536c32887227974aaed9740",
       "triangles": 2472,
       "triangleBudget": 14000,
       "bones": 23,
@@ -2131,14 +2230,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "ad7309b1890b970fa3029b8e400a8cd90790be9854a61b9344334b355d8d5040"
+      "inputSha256": "ad7309b1890b970fa3029b8e400a8cd90790be9854a61b9344334b355d8d5040",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "cf731d01ed38041eaa7d629b21411b59cb5fa33ed3a25122f86207a4d9ae62a9"
     },
     {
       "id": "vera",
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "3686c8a22a2753b3122f3cc73f710e42ea4670bbfe15f40ccdcffd1ccbd6127e",
+      "sha256": "950ae58a9c9e44f4aad758173bcc8e1fc6b9be8c7e49fb19bde24ac9709e0883",
       "triangles": 3672,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2190,14 +2292,17 @@
           "loop": true
         }
       ],
-      "inputSha256": "142d896bd79954f3cc49522067f36148a5c78a78164328be703eb753215b7b87"
+      "inputSha256": "142d896bd79954f3cc49522067f36148a5c78a78164328be703eb753215b7b87",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "4c1d90766f06a27289a30921bf840893408e803e17a5a8a54efbc1ab05474c8f"
     },
     {
       "id": "vera",
       "name": "SK_Vera_DigIn",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera_DigIn.fbx",
-      "sha256": "f3a5da3dfaf4b15d6d24aca7d985f93267138777f236f7bdf6ecc499e5ef28b3",
+      "sha256": "64f5f98850269660516107958d4b4a61d835a4804f417a6a9145b0c294628603",
       "triangles": 3672,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2250,6 +2355,9 @@
         }
       ],
       "inputSha256": "8db0ae65d8d4e6146be6c32bbbbb8feef8b7dc208d922cbb3df4e02b662a6ec7",
+      "generatorSha256": "40ff48e33fa53fcaaa2a704c9cba521baf5f27924a8229cf046e2ca6f5dc1f1b",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "729e01a79d27c5a87696213437c2809a86b1d6c4256f2de2e2ddff3dfa554f6c",
       "status": "vera_dig_in_stance"
     }
   ]
