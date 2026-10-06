@@ -8,11 +8,11 @@
       "name": "SK_Angeru",
       "archetype": "humanoid",
       "file": "FBX/SK_Angeru.fbx",
-      "sha256": "8eeb3961717f54563dbbcdb71fa4701e5106e5ba93f86cbcb56da8855ca12caf",
-      "triangles": 1452,
+      "sha256": "ab6d491aa7c18c297868611ca9e9342f3f79b32b19e70244b50acc03b88d399f",
+      "triangles": 2412,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 125.5,
+      "bones": 29,
+      "heightCm": 125.72,
       "capsuleHalfHeightCm": 66,
       "melee": true,
       "runStrideCm": 125.26,
@@ -59,18 +59,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "dc045d0da9221807926aefb39963225b8cbc168035963582af19669d6f8350b9"
     },
     {
       "id": "aurelisse",
       "name": "SK_Aurelisse",
       "archetype": "construct",
       "file": "FBX/SK_Aurelisse.fbx",
-      "sha256": "170122633cbc1b0983b0daf20c3b70594a10fce54c747382fd04c288b4a47c5a",
-      "triangles": 1896,
+      "sha256": "1777d95e67bf75b7038b6d064839a01954b145d614efc0b73bb0ef58b68274d8",
+      "triangles": 2256,
       "triangleBudget": 12000,
       "bones": 23,
-      "heightCm": 157.15,
+      "heightCm": 178.53,
       "capsuleHalfHeightCm": 92,
       "melee": false,
       "runStrideCm": 214.18,
@@ -117,18 +118,19 @@
           "frames": 73,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "68583042e11c413a4eac025333b915a2e77d3d0cff65ebced3190bd469a1504a"
     },
     {
       "id": "bryn",
       "name": "SK_Bryn",
       "archetype": "humanoid",
       "file": "FBX/SK_Bryn.fbx",
-      "sha256": "edea637f3cccc7e8cab968a9d256219fed667d36dfa194aa7b3221ba2bc374a5",
-      "triangles": 1452,
+      "sha256": "4d951374c82673c172abfd3cf2f80f19e80ecb5b250672da2e5cdfa4eb20371f",
+      "triangles": 2412,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 163.82,
+      "bones": 29,
+      "heightCm": 164.13,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 163.54,
@@ -175,18 +177,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "44ca0033f038c227f9372fc89836dd2a374a3e5f56aca50d9b53b70e5474efe1"
     },
     {
       "id": "cairn",
       "name": "SK_Cairn",
       "archetype": "colossus",
       "file": "FBX/SK_Cairn.fbx",
-      "sha256": "95b4f5d18dad84dd7793e0907a4d02aff6ff421ea2759628cb9921ee3a4768ce",
-      "triangles": 3792,
+      "sha256": "a918d5bdbabfb5b1c12a2bfdb910168c1a82c5ca560c4a8ed15a238bbd261045",
+      "triangles": 4152,
       "triangleBudget": 14000,
       "bones": 23,
-      "heightCm": 219.09,
+      "heightCm": 219.2,
       "capsuleHalfHeightCm": 100,
       "melee": true,
       "runStrideCm": 76.87,
@@ -233,18 +236,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "f69a234530d79beb51ea0211ba756677fa1d3dce9c060677c0e9dbeda55470f5"
     },
     {
       "id": "celandrine",
       "name": "SK_Celandrine",
       "archetype": "humanoid",
       "file": "FBX/SK_Celandrine.fbx",
-      "sha256": "f66197301b33557a2ee8ce83589c24eefb74eb358c16881b55e898f43c4a2c35",
-      "triangles": 1920,
+      "sha256": "e02cf150e7b4a323397d1891bbe857d8586f281ca9aacb7704ecd5b865ffba37",
+      "triangles": 2640,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 181.7,
+      "bones": 29,
+      "heightCm": 182.62,
       "capsuleHalfHeightCm": 88,
       "melee": false,
       "runStrideCm": 155.28,
@@ -291,18 +295,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "9a454d86898fdf201d8707644948c93c6b22e75bc3af10863cd7f8622817ff79"
     },
     {
       "id": "eudora",
       "name": "SK_Eudora",
       "archetype": "humanoid",
       "file": "FBX/SK_Eudora.fbx",
-      "sha256": "f4fb59e9bdba586ee0c1c3bcb7c6641c94f7cbae7c88597d831bb6e432f6983e",
-      "triangles": 1644,
+      "sha256": "f058223cff0ae885329f5d88adb36bdfc4785aff6bbf412511771f36fbf3fafb",
+      "triangles": 2604,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 167.46,
+      "bones": 29,
+      "heightCm": 167.78,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 167.17,
@@ -349,18 +354,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "a5b88704c696470d52887d5fe49a44f13c4544cf44f3083298a36a7fa3c42bbf"
     },
     {
       "id": "gorraveth",
       "name": "SK_Gorraveth",
       "archetype": "humanoid",
       "file": "FBX/SK_Gorraveth.fbx",
-      "sha256": "e29d1ca537f405501a2faea6a8486e745352b07a6e33b5be62f947179728b3d9",
-      "triangles": 1596,
+      "sha256": "28f3e9ad3c67da64794cb3a1389297269ed6af1e8687e86773ddc8e7d5627e8f",
+      "triangles": 2076,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 221.73,
+      "bones": 29,
+      "heightCm": 223.51,
       "capsuleHalfHeightCm": 110,
       "melee": true,
       "runStrideCm": 218.54,
@@ -407,18 +413,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "1b532860c4ecda8dd6dfcba9aea6c7013aa42618d694c116d638e717b8145bf1"
     },
     {
       "id": "kade",
       "name": "SK_Kade",
       "archetype": "humanoid",
       "file": "FBX/SK_Kade.fbx",
-      "sha256": "7e43f99f4a0cd25aee6770c1a1c45e994e0fc0eda5a718eaab7231783e9b4328",
-      "triangles": 1824,
+      "sha256": "14d5596abbad41440f28879cc3fb7139c0c62c9a587dce17a927133800d9438e",
+      "triangles": 2424,
       "triangleBudget": 9000,
       "bones": 29,
-      "heightCm": 172.95,
+      "heightCm": 173.25,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 172.62,
@@ -465,18 +472,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "b19c48c190f2230c562df9babb7ddf930de54e5c24b96b7144d94c0d1cf25c61"
     },
     {
       "id": "korruk",
       "name": "SK_Korruk",
       "archetype": "beast",
       "file": "FBX/SK_Korruk.fbx",
-      "sha256": "ea0730395996f0d867513c9111eebbd53c1d86de2d23d9f4bac59bf8a19325ce",
-      "triangles": 1708,
+      "sha256": "9013729a84336bea5e1d47ac44e28f250ba062fe62cbd28121cdeaa986d9d4d6",
+      "triangles": 1828,
       "triangleBudget": 12000,
       "bones": 27,
-      "heightCm": 127.91,
+      "heightCm": 129.71,
       "capsuleHalfHeightCm": 70,
       "melee": false,
       "runStrideCm": 116.2,
@@ -523,18 +531,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "5c157278e8445c7a43d5cf16473dcc7fe9ad7fa3781b89be9dcd7897afb37598"
     },
     {
       "id": "marek",
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "a209e292789df4c1901cdffdde9d5038a4dc105449a8f5124ef85f758522116d",
-      "triangles": 2928,
+      "sha256": "91316453fc8dfe8b20edb95127ebab5f0a57c269078fc4f48e777ef281394824",
+      "triangles": 3888,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 172.95,
+      "bones": 29,
+      "heightCm": 173.25,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 172.62,
@@ -581,18 +590,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "e05cdd92bf3686aa074cd5d1833d010915869335ffed82c511f312cc3f216052"
     },
     {
       "id": "mavra",
       "name": "SK_Mavra",
       "archetype": "humanoid",
       "file": "FBX/SK_Mavra.fbx",
-      "sha256": "0987d2f3e4c79e28c977a62c2ee95365b2aa393083e8c4d38b4cca5f1e01cc7a",
-      "triangles": 1716,
+      "sha256": "7c23734af3ae1cb1f29b1e95275cb10b439de52e27c65aa2eb4444568c6f1e09",
+      "triangles": 2676,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 165.55,
+      "bones": 29,
+      "heightCm": 165.83,
       "capsuleHalfHeightCm": 88,
       "melee": false,
       "runStrideCm": 165.23,
@@ -639,18 +649,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "adb4116fbbb2dd8909919fd05d7d69ed46cb9a898cecd0f799fe232023d8cdff"
     },
     {
       "id": "mimzi",
       "name": "SK_Mimzi",
       "archetype": "humanoid",
       "file": "FBX/SK_Mimzi.fbx",
-      "sha256": "8a0dd6d010422c82920a3d37bbbb0eb5e3dd06c4e183e00b632fe073aee8d6c8",
-      "triangles": 2736,
+      "sha256": "84cbfabd1401b415c27c2cb198b11eed3877c2b35789120ddde6637cf5cc68a3",
+      "triangles": 3216,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 131.67,
+      "bones": 29,
+      "heightCm": 132.56,
       "capsuleHalfHeightCm": 70,
       "melee": false,
       "runStrideCm": 98.51,
@@ -697,18 +708,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "9156865daad63ced8876cc2d73e07bcacfb385e5d16063b291ea45c382ca7ad7"
     },
     {
       "id": "moro",
       "name": "SK_Moro",
       "archetype": "beast",
       "file": "FBX/SK_Moro.fbx",
-      "sha256": "18e6045fe0463c01a92019d653218c36f7bab4be4a1d9595f537d15098912e10",
-      "triangles": 2400,
+      "sha256": "fec4cbadc5a94d9b7c7c9521b084061928a901711f6f4cb211b7462c5886ffb7",
+      "triangles": 3240,
       "triangleBudget": 12000,
       "bones": 27,
-      "heightCm": 257.07,
+      "heightCm": 259.46,
       "capsuleHalfHeightCm": 95,
       "melee": true,
       "runStrideCm": 203.79,
@@ -755,17 +767,18 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "771a2bb20acb26ed4b62c8c245c73049d85f6bfa38683ee6b5c7d0622446a1c1"
     },
     {
       "id": "neris",
       "name": "SK_Neris",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris.fbx",
-      "sha256": "18f4fe82ae5903b871b08ea4d76c4ec3d6319198a25edf414426eae7ff18f755",
-      "triangles": 1692,
+      "sha256": "6d5637026d39e07ba46ed32c41f39704605816bc3c91f2dcc0481cca0fee9e79",
+      "triangles": 2652,
       "triangleBudget": 9000,
-      "bones": 26,
+      "bones": 29,
       "heightCm": 170.31,
       "capsuleHalfHeightCm": 90,
       "melee": false,
@@ -813,18 +826,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "0c5a63c789fff1f1f9108789e6f29928717387d7a48d1aebfd7d28b560727876"
     },
     {
       "id": "oriel",
       "name": "SK_Oriel",
       "archetype": "construct",
       "file": "FBX/SK_Oriel.fbx",
-      "sha256": "6524d7271bce568ddef25733ab097e92f33d26e82b9e22bacb9ae5d5968c954d",
-      "triangles": 900,
+      "sha256": "3ea19e9424b9e80be37652dbb2a3828d4b011d3d1ecc36b5750f487679d53b69",
+      "triangles": 1140,
       "triangleBudget": 12000,
       "bones": 23,
-      "heightCm": 160.02,
+      "heightCm": 180.46,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 205.2,
@@ -871,76 +885,19 @@
           "frames": 73,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "1b7e5245b2e1bc0ea78d152e3b187969b0af068ae27a81b1091bb296d74ad1e1"
     },
     {
       "id": "patch",
       "name": "SK_Patch",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch.fbx",
-      "sha256": "b7c9c71a5638e8494d817a4bae671162b46dd62c520987525d3778b576f487d9",
-      "triangles": 1884,
+      "sha256": "ef05858d74d210865afbf5bcc4f708ed41f7481424b2526708a1a29d911831bf",
+      "triangles": 2484,
       "triangleBudget": 9000,
       "bones": 29,
-      "heightCm": 113.92,
-      "capsuleHalfHeightCm": 70,
-      "melee": true,
-      "runStrideCm": 77.09,
-      "upperBodyBone": "spine_01",
-      "castReleaseShare": 0.4,
-      "animations": [
-        {
-          "name": "Idle",
-          "frames": 61,
-          "loop": true
-        },
-        {
-          "name": "Run",
-          "frames": 19,
-          "loop": true
-        },
-        {
-          "name": "AttackWindup",
-          "frames": 13,
-          "loop": false
-        },
-        {
-          "name": "AttackStrike",
-          "frames": 11,
-          "loop": false
-        },
-        {
-          "name": "Cast",
-          "frames": 16,
-          "loop": false
-        },
-        {
-          "name": "Hit",
-          "frames": 10,
-          "loop": false
-        },
-        {
-          "name": "Death",
-          "frames": 31,
-          "loop": false
-        },
-        {
-          "name": "Recall",
-          "frames": 61,
-          "loop": true
-        }
-      ]
-    },
-    {
-      "id": "patch",
-      "name": "SK_Patch_Dormant",
-      "archetype": "humanoid",
-      "file": "FBX/SK_Patch_Dormant.fbx",
-      "sha256": "2afdd0671b2d5a5971080fda650660d87e008eba68035805f142cea077902ec3",
-      "triangles": 1884,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 113.92,
+      "heightCm": 114.47,
       "capsuleHalfHeightCm": 70,
       "melee": true,
       "runStrideCm": 77.09,
@@ -988,6 +945,66 @@
           "loop": true
         }
       ],
+      "inputSha256": "d95a888fe2ecce1e72d57698f53f9af11c02ca65ba8680b64c661ec73ee12c91"
+    },
+    {
+      "id": "patch",
+      "name": "SK_Patch_Dormant",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Patch_Dormant.fbx",
+      "sha256": "e27120fd421de6be483a7fb7af7e330d3f2b281e271c7962a7123d6bc59a0a0b",
+      "triangles": 2484,
+      "triangleBudget": 9000,
+      "bones": 29,
+      "heightCm": 114.47,
+      "capsuleHalfHeightCm": 70,
+      "melee": true,
+      "runStrideCm": 77.09,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "e72ae755c42cb51f5436493d644a69ed5a5f08f19ffc1af94143121ed6679aa6",
       "status": "patch_dormant"
     },
     {
@@ -995,11 +1012,11 @@
       "name": "SK_Patch_Inside",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch_Inside.fbx",
-      "sha256": "c5d06bd6a0533a2a9e7ded86b97dfa6b0e49fcbfd989f374474b9ea7d6c9e4dc",
-      "triangles": 2856,
+      "sha256": "e2d666808c1a8c0d388c7f4dbd0f8b204ea30e497b28b3ef454535c6bc138f80",
+      "triangles": 3456,
       "triangleBudget": 9000,
       "bones": 29,
-      "heightCm": 248.98,
+      "heightCm": 249.53,
       "capsuleHalfHeightCm": 70,
       "melee": true,
       "runStrideCm": 77.09,
@@ -1047,6 +1064,7 @@
           "loop": true
         }
       ],
+      "inputSha256": "ba0c76d1010751ea5ef4dc17c5c8e603404cd09a6b0ea2e87a6c1f5247ea51a5",
       "status": "patch_inside_body"
     },
     {
@@ -1054,11 +1072,11 @@
       "name": "SK_Qazharr",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr.fbx",
-      "sha256": "2965d7561bf7a6e60cc4edb7276006a66da9acbcaa8ec5b6be02c369650d76f8",
-      "triangles": 1500,
+      "sha256": "bc1cb269a9efa549beac23ea7ebaac7b463e2eb1d7038675a02e1d2160baaecf",
+      "triangles": 2460,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 188.04,
+      "bones": 29,
+      "heightCm": 188.49,
       "capsuleHalfHeightCm": 95,
       "melee": true,
       "runStrideCm": 192.67,
@@ -1105,15 +1123,16 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "b9ecf484d3c7f0fc8962e475c1f4bfc8d0f35acf4204399cc7d6fc335b9e5b6f"
     },
     {
       "id": "raska",
       "name": "SK_Raska",
       "archetype": "humanoid",
       "file": "FBX/SK_Raska.fbx",
-      "sha256": "a80b5fcff3f8dc0364a2936da2250d144300236d655a538a19a58d3120e2e214",
-      "triangles": 2676,
+      "sha256": "ed8d4838f251112208f2e733ca42a34ae8d898f24eaa3afc5df7c2dd354c9425",
+      "triangles": 3756,
       "triangleBudget": 9000,
       "bones": 29,
       "heightCm": 182.33,
@@ -1163,18 +1182,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "45e2ffa7f285f686ff13df8d91deda1f502c18e3ee61ed262db2e56838e0b7ce"
     },
     {
       "id": "raska",
       "name": "SK_Raska_Ride",
       "archetype": "rider",
       "file": "FBX/SK_Raska_Ride.fbx",
-      "sha256": "2790c6dda5795ba6cdcd29e6e33b815b9f4b51d347129f4b3d240491ccd478a6",
-      "triangles": 5440,
+      "sha256": "67469e6297fbd6dc7c99d3bddf79ab54e6dda2c90a138f8947154361a3c323d3",
+      "triangles": 6520,
       "triangleBudget": 16000,
       "bones": 32,
-      "heightCm": 174.12,
+      "heightCm": 174.19,
       "capsuleHalfHeightCm": 95,
       "melee": true,
       "runStrideCm": 213.21,
@@ -1222,6 +1242,7 @@
           "loop": true
         }
       ],
+      "inputSha256": "fad92def12e4d9babcce9a4da1c8cebc95653fbcdc22581494f8987769ca193f",
       "status": "raska_ride_body"
     },
     {
@@ -1229,11 +1250,11 @@
       "name": "SK_Relay",
       "archetype": "colossus",
       "file": "FBX/SK_Relay.fbx",
-      "sha256": "17fa8f781cab2913bf2a41498da627710a686aee6abed601554883bbd8f2b68a",
-      "triangles": 4112,
+      "sha256": "d25028f665106c238ee839e13424b416f069c06a3cf990b6f98adcb5d1e94d52",
+      "triangles": 4592,
       "triangleBudget": 14000,
       "bones": 23,
-      "heightCm": 240.53,
+      "heightCm": 240.63,
       "capsuleHalfHeightCm": 105,
       "melee": false,
       "runStrideCm": 91.57,
@@ -1280,18 +1301,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "96f3c76e3738f62cc2d21e3388896044c762c79e81a68f7705942bddfdb3a2c9"
     },
     {
       "id": "silt",
       "name": "SK_Silt",
       "archetype": "colossus",
       "file": "FBX/SK_Silt.fbx",
-      "sha256": "7f6342f795c6a092f65c3ada91158aacd434d7b4acc4b9623423cc5c1d6241cd",
-      "triangles": 8548,
+      "sha256": "5bed1ea0f0eb5e544046defcefab5f2a3a506c4796d681df5bf137a0fcc070f5",
+      "triangles": 9148,
       "triangleBudget": 14000,
       "bones": 23,
-      "heightCm": 225.29,
+      "heightCm": 225.42,
       "capsuleHalfHeightCm": 92,
       "melee": false,
       "runStrideCm": 64.85,
@@ -1338,18 +1360,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "7de81433775094a85e957cacd1c758dabf81aba03415428349e97e5a321d185e"
     },
     {
       "id": "sylra",
       "name": "SK_Sylra",
       "archetype": "humanoid",
       "file": "FBX/SK_Sylra.fbx",
-      "sha256": "6e4d4be52466be7c0e00879517adbd2875eab2cf43f2d02daeea211687dc3fa3",
-      "triangles": 1524,
+      "sha256": "f3b6260408de9a8d1390ecf1ef219a7d949e8ad5bf687eb7731f835b59af7510",
+      "triangles": 2484,
       "triangleBudget": 9000,
-      "bones": 26,
-      "heightCm": 168.84,
+      "bones": 29,
+      "heightCm": 169.12,
       "capsuleHalfHeightCm": 88,
       "melee": false,
       "runStrideCm": 165.23,
@@ -1396,15 +1419,16 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "34a30551f0506edf099092bd3e3106a920e1460ab934811b25a279862d2d1bcc"
     },
     {
       "id": "tavi",
       "name": "SK_Tavi",
       "archetype": "humanoid",
       "file": "FBX/SK_Tavi.fbx",
-      "sha256": "f700d383670cced818a1f6f5c8d0e3e681f573ed4585d85bef7b8b4bea133c25",
-      "triangles": 3276,
+      "sha256": "a948a14f2ece89d242bd1645b28fc7436b13d1d916c860b93179c5214ac1b2ca",
+      "triangles": 4236,
       "triangleBudget": 9000,
       "bones": 29,
       "heightCm": 116.08,
@@ -1454,18 +1478,19 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "28553718c5dcdef73a71ddfa9aa2a3770f66d11efce7b58a286cdfb994726060"
     },
     {
       "id": "torr",
       "name": "SK_Torr",
       "archetype": "construct",
       "file": "FBX/SK_Torr.fbx",
-      "sha256": "f9a2da52a364f98b6ebb0233b0e0cf9e45598f96fe871543376b1449276bd3f0",
-      "triangles": 672,
+      "sha256": "cb5bf0effc5e99748e40cbaa18dc1281e2a47256ed789e68da5e4c92f8b40beb",
+      "triangles": 1032,
       "triangleBudget": 12000,
       "bones": 23,
-      "heightCm": 225.75,
+      "heightCm": 236.75,
       "capsuleHalfHeightCm": 120,
       "melee": true,
       "runStrideCm": 273.6,
@@ -1512,18 +1537,19 @@
           "frames": 73,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "1b0c6a49fdd7acc399efeb0125796a671665a0151d0fcf871aae1a052af9dbfa"
     },
     {
       "id": "varkesh",
       "name": "SK_Varkesh",
       "archetype": "colossus",
       "file": "FBX/SK_Varkesh.fbx",
-      "sha256": "6c639b90046899d3aacf5817024bce6a05412f5c651986dee1e1b37ba502d8ce",
-      "triangles": 2232,
+      "sha256": "cf5a932163a5cd9b70fad8d1edbf4b65e67a37d7d8b986bc33cbda4a412dce70",
+      "triangles": 2472,
       "triangleBudget": 14000,
       "bones": 23,
-      "heightCm": 204.16,
+      "heightCm": 204.25,
       "capsuleHalfHeightCm": 100,
       "melee": false,
       "runStrideCm": 96.92,
@@ -1570,73 +1596,16 @@
           "frames": 61,
           "loop": true
         }
-      ]
+      ],
+      "inputSha256": "ad7309b1890b970fa3029b8e400a8cd90790be9854a61b9344334b355d8d5040"
     },
     {
       "id": "vera",
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "2a2de1da7cad531c8edf8cb9801057bd8052e11b94eb291acc85f4cd6a34db7f",
-      "triangles": 2712,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 168.94,
-      "capsuleHalfHeightCm": 90,
-      "melee": false,
-      "runStrideCm": 162.99,
-      "upperBodyBone": "spine_01",
-      "castReleaseShare": 0.4,
-      "animations": [
-        {
-          "name": "Idle",
-          "frames": 61,
-          "loop": true
-        },
-        {
-          "name": "Run",
-          "frames": 19,
-          "loop": true
-        },
-        {
-          "name": "AttackWindup",
-          "frames": 13,
-          "loop": false
-        },
-        {
-          "name": "AttackStrike",
-          "frames": 11,
-          "loop": false
-        },
-        {
-          "name": "Cast",
-          "frames": 16,
-          "loop": false
-        },
-        {
-          "name": "Hit",
-          "frames": 10,
-          "loop": false
-        },
-        {
-          "name": "Death",
-          "frames": 31,
-          "loop": false
-        },
-        {
-          "name": "Recall",
-          "frames": 61,
-          "loop": true
-        }
-      ]
-    },
-    {
-      "id": "vera",
-      "name": "SK_Vera_DigIn",
-      "archetype": "humanoid",
-      "file": "FBX/SK_Vera_DigIn.fbx",
-      "sha256": "23dd05f46b647c811baa0d14aea4fdc1b554eaefbf5c4be088b41090663655f7",
-      "triangles": 2712,
+      "sha256": "3686c8a22a2753b3122f3cc73f710e42ea4670bbfe15f40ccdcffd1ccbd6127e",
+      "triangles": 3672,
       "triangleBudget": 9000,
       "bones": 29,
       "heightCm": 168.94,
@@ -1687,6 +1656,66 @@
           "loop": true
         }
       ],
+      "inputSha256": "142d896bd79954f3cc49522067f36148a5c78a78164328be703eb753215b7b87"
+    },
+    {
+      "id": "vera",
+      "name": "SK_Vera_DigIn",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Vera_DigIn.fbx",
+      "sha256": "f3a5da3dfaf4b15d6d24aca7d985f93267138777f236f7bdf6ecc499e5ef28b3",
+      "triangles": 3672,
+      "triangleBudget": 9000,
+      "bones": 29,
+      "heightCm": 168.94,
+      "capsuleHalfHeightCm": 90,
+      "melee": false,
+      "runStrideCm": 162.99,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "8db0ae65d8d4e6146be6c32bbbbb8feef8b7dc208d922cbb3df4e02b662a6ec7",
       "status": "vera_dig_in_stance"
     }
   ]

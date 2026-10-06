@@ -642,7 +642,8 @@ def pose(name, t, melee, d):
             settle = ease(max(0.0, (t - 0.35) / 0.65))
             recoil = math.sin(min(1.0, t / 0.4) * math.pi)
         hold = 1.0 - settle
-        if melee and d["strike"]["style"] == "punch":
+        # Archetypes that borrow these poses (the colossi) swing, as a figure without a strike of its own does.
+        if melee and d.get("strike", {}).get("style") == "punch":
             # A brawler's punch: the shoulder loads back with the fist by the jaw and the other hand up in guard, then
             # the body lunges and the fist drives straight out, landing as the windup ends.
             side = d["strike"]["hand"][0]

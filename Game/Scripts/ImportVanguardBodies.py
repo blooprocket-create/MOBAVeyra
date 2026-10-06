@@ -8,23 +8,33 @@ body in the manifest by Vanguard ID. A validation report records each body's hei
 import hashlib
 import json
 import stat
+import sys
 from pathlib import Path
 
 import unreal
 
 GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
+sys.path.insert(0, str(GAME / "Scripts"))
+from VanguardBodies.inputs import stale_assets  # noqa: E402
+
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
 KIT_BYTES = (SOURCE / "VanguardKit.json").read_bytes()
 KIT = json.loads(KIT_BYTES)
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text())
+VANGUARDS = json.loads((GAME / "Tuning" / "Vanguards.json").read_text())["vanguards"]
 DEST = KIT["destination"]
 MATERIAL_PATH = DEST + "/M_VeyraVanguardBody"
+# The generator's rest-pose take (GenerateVanguardBodies.py BIND_TAKE).
+BIND_TAKE = "_Bind"
 EDIT = unreal.MaterialEditingLibrary
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)
 
-assert MANIFEST["kitSha256"] == hashlib.sha256(KIT_BYTES).hexdigest(), "Run GenerateVanguardBodies.py after changing the kit"
+# Every body the art set will hold, not only those imported now, must have been made from what the kit and
+# Vanguards.json give it today: a partial build cannot pass off a body made from an older kit.
+STALE = stale_assets(KIT, VANGUARDS, MANIFEST["assets"])
+assert not STALE, "Regenerate these bodies (GenerateVanguardBodies.py): their inputs changed since they were built: " + ", ".join(STALE)
 assert DEST.startswith("/Game/Veyra/"), "Vanguard bodies live under /Game/Veyra"
 SELECTED = [asset for asset in MANIFEST["assets"] if ONLY is None or asset["id"] in ONLY]
 assert ONLY is None or len({asset["id"] for asset in SELECTED}) == len(ONLY), "Unknown Vanguard in -VeyraOnly"
@@ -130,6 +140,10 @@ def import_body(asset, material):
     anim_data.set_editor_property("animation_length", unreal.FBXAnimationLengthImportType.FBXALIT_EXPORTED_TIME)
     task.set_editor_property("options", options)
     TOOLS.import_asset_tasks([task])
+    # The rest-pose take the generator puts first, so the skeleton binds at rest, is no animation of the body's.
+    bind_take = folder + "/" + sequence_name(asset, BIND_TAKE)
+    if unreal.EditorAssetLibrary.does_asset_exist(bind_take):
+        assert unreal.EditorAssetLibrary.delete_asset(bind_take), "Could not remove " + bind_take
     mesh = unreal.load_asset(folder + "/" + asset["name"])
     assert isinstance(mesh, unreal.SkeletalMesh), asset["name"] + " did not import as a skeletal mesh"
     materials = mesh.get_editor_property("materials")
@@ -151,6 +165,8 @@ def import_body(asset, material):
         animations[clip["name"]] = {"asset": sequence.get_path_name(), "seconds": round(sequence.get_play_length(), 3)}
     bounds = mesh.get_bounds()
     height = 2 * bounds.box_extent.z
+    # Imported at its scale and in its rest pose. Taller would mean the import rebound the body to a posed frame, as
+    # it does when a bone has no bind pose (the generator anchors every bone so that none lacks one).
     assert abs(height - asset["heightCm"]) < max(2.0, asset["heightCm"] * 0.02), (asset["name"], "height changed on import", height, asset["heightCm"])
     return {"asset": mesh.get_path_name(), "skeleton": skeleton.get_path_name(), "heightCm": round(height, 2),
             "capsuleHalfHeightCm": asset["capsuleHalfHeightCm"], "triangles": asset["triangles"], "animations": animations}

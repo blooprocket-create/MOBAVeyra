@@ -1,0 +1,26 @@
+name: Vanguard body checks
+
+on:
+  push:
+    paths:
+      - 'Game/Scripts/VanguardBodies/inputs.py'
+      - 'tests/test_vanguard_body_inputs.py'
+      - '.github/workflows/vanguard-bodies.yml'
+  pull_request:
+    paths:
+      - 'Game/Scripts/VanguardBodies/inputs.py'
+      - 'tests/test_vanguard_body_inputs.py'
+      - '.github/workflows/vanguard-bodies.yml'
+
+jobs:
+  verify-vanguard-body-inputs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regression-test what makes a generated body stale
+        run: python3 -m unittest discover -s tests -p 'test_vanguard_body_inputs.py'

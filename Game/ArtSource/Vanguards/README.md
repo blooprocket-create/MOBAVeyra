@@ -90,7 +90,11 @@ section 9. The existing LFS rules cover the FBX files.
   rotations on the Vanguard's own skeleton. There is no root motion.
 - **Checks:** the triangle budget, that nothing sinks below the ground and that a
   walking body stands on it, in the generator; source hashes, height, every
-  animation and its skeleton, in the import.
+  animation and its skeleton, in the import. Each body records the hash of what it is made from (its kit entry, its
+  archetype's settings, the frame rate, the generator version, its capsule: `VanguardBodies/inputs.py`), and the
+  import refuses any body in the manifest whose inputs have changed since, so a partial build cannot keep a stale one.
+- **Binding at rest:** every bone has skin (an unused one gets a speck), and every FBX begins with a one-frame rest
+  take (`_Bind`, removed on import), so a skeleton always binds at rest and the import measures the rest pose.
 
 ## The other archetypes
 

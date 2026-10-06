@@ -50,12 +50,20 @@ unreal.SystemLibrary.execute_console_command(WORLD, "r.ScreenPercentage 100")
 
 
 def stage():
-    """The Bottom lane's straight run along +Y: its centre line, level at the lane's height, clear of base and river."""
+    """The Bottom lane's straight run along +Y: its centre line, clear of base and river."""
     lane = next(lane for lane in WORLD_LAYOUT["lanes"] if lane["lane"] == "Bottom")
     start, turn = lane["points"][0], lane["points"][1]
     assert start["x"] == turn["x"], "The Bottom lane's first run no longer runs along +Y"
     along = start["y"] + (turn["y"] - start["y"]) * 0.25
-    return unreal.Vector(start["x"], along, WORLD_LAYOUT["terrain"]["laneZ"]), lane["width"]
+    return standing(start["x"], along), lane["width"]
+
+
+def standing(x, y):
+    """Where a unit's feet stand at (x, y) on the loaded battleground's playable ground, as the game places units."""
+    result = unreal.VeyraWorldToolsLibrary.standing_point(WORLD, unreal.Vector2D(x, y))
+    found, location = result if isinstance(result, tuple) else (result is not None, result)
+    assert found, f"No playable ground under ({x}, {y})"
+    return location
 
 
 def clip_seconds(asset, clip, share):
@@ -76,7 +84,8 @@ def spawn_rows(asset):
         x = centre.x + (row - (len(ROWS) - 1) / 2) * width * ROW_GAP
         for index, (clip, share) in enumerate(POSES):
             y = centre.y + (index - (len(POSES) - 1) / 2) * gap
-            actor = ACTORS.spawn_actor_from_class(unreal.SkeletalMeshActor, unreal.Vector(x, y, centre.z), unreal.Rotator(0.0, 0.0, yaw))
+            # Each on the ground under it: the lane is level only where the terrain lets it be.
+            actor = ACTORS.spawn_actor_from_class(unreal.SkeletalMeshActor, standing(x, y), unreal.Rotator(0.0, 0.0, yaw))
             component = actor.skeletal_mesh_component
             component.set_skeletal_mesh_asset(mesh)
             sequence = unreal.load_asset(f"{root}/AS_{folder}_Armature_{clip}")
