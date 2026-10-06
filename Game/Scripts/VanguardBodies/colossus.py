@@ -9,7 +9,7 @@ reach the ground), an overhead throw for a ranged attack and a two-fisted slam t
 import math
 import random
 
-from mathutils import Euler, Vector
+from mathutils import Euler, Matrix, Vector
 
 from . import humanoid
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
@@ -84,8 +84,10 @@ def layout(spec, capsule):
         L["hand_" + side] = (wrist, hand_end)
         L["prop_" + side] = (hand_end, hand_end + Vector((length * 0.15, 0, 0)))
         hip_point = Vector((0, sign * hip, pelvis_z))
-        hock = Vector((0, sign * hip * 1.1, sole))
-        knee = Vector((leg * 0.06, sign * hip * 1.05, (pelvis_z + sole) / 2))
+        # Feet planted wider apart for a braced body (stanceSpread).
+        spread = spec.get("stanceSpread", 1.0)
+        hock = Vector((0, sign * hip * 1.1 * spread, sole))
+        knee = Vector((leg * 0.06, sign * hip * 1.05 * spread, (pelvis_z + sole) / 2))
         L["thigh_" + side] = (hip_point, knee)
         L["calf_" + side] = (knee, hock)
         L["foot_" + side] = (hock, Vector((hock.x + leg * 0.35, hock.y, sole * 0.8)))
@@ -110,14 +112,43 @@ def mass(body, style, bone, start, end, r0, r1, spec, rng):
         body.slab(bone, start + (end - start) * 0.06, end - (end - start) * 0.06, (r0 + r1) * 0.95, (r0 + r1) * 0.85, primary,
                   roll=rng.uniform(-6, 6))
     elif style == "iron":
-        # Interlocking iron plates; the molten interior glows through the seams between them.
-        body.limb(bone, start, end, r0 * 0.7, r1 * 0.7, accent, glow=True)
-        body.slab(bone, start + (end - start) * 0.1, end - (end - start) * 0.1, (r0 + r1) * 0.95, (r0 + r1) * 0.9, primary,
-                  roll=rng.uniform(-8, 8))
+        # The plates of his forearms and shins ride a little clear of him.
+        iron_plates(body, bone, start, end, r0, r1, spec, rng, clear=0.15 if bone.startswith(("lowerarm_", "calf_")) else 0.0)
     elif style == "riverstone":
         body.rocks(bone, start, end, r0, r1, [primary, secondary, mix(primary, secondary, 0.5)], rng)
     else:
         raise AssertionError("Unknown colossus style: " + style)
+
+
+def iron_plates(body, bone, start, end, r0, r1, spec, rng, clear=0.0):
+    """Dark interlocking iron plates over a molten interior: rings of plates staggered along the segment, each a little
+    askew, the interior glowing through the seams between them (seamGap of each plate's share of the ring). A plate
+    riding clear of the body (clear, a share of its radius) leaves a lit gap under it, as at his extremities."""
+    primary, secondary, accent = spec["primary"], spec["secondary"], spec["accent"]
+    axis = end - start
+    length = max(axis.length, 0.01)
+    axis = axis / length
+    across = axis.cross(Vector((0, 0, 1)) if abs(axis.z) < 0.9 else Vector((1, 0, 0))).normalized()
+    up = axis.cross(across).normalized()
+    body.limb(bone, start, end, r0 * 0.78, r1 * 0.78, accent, glow=True)
+    radius = (r0 + r1) / 2
+    count = max(4, min(8, round(radius / max(length, 1.0) * 9)))
+    gap = spec.get("seamGap", 0.2)
+    rows = 2
+    for row in range(rows):
+        share = (row + 0.5) / rows
+        ring_radius = r0 + (r1 - r0) * share
+        for index in range(count):
+            angle = (index + 0.5 * row) / count * math.tau + rng.uniform(-0.12, 0.12)
+            normal = across * math.cos(angle) + up * math.sin(angle)
+            tangent = axis.cross(normal).normalized()
+            center = start + axis * length * share + normal * ring_radius * (0.9 + clear)
+            tilt = Matrix.Rotation(rng.uniform(-0.15, 0.15), 3, tangent) @ Matrix.Rotation(rng.uniform(-0.1, 0.1), 3, normal)
+            basis = tilt @ Matrix((normal, tangent, axis)).transposed()
+            size = (ring_radius * 0.24, ring_radius * math.tau / count * (1.0 - gap) * rng.uniform(0.9, 1.1),
+                    length / rows * (1.0 - gap * 0.6) * rng.uniform(0.9, 1.15))
+            shade = mix(primary, secondary, rng.uniform(0.0, 0.5))
+            body.box(bone, center, size, shade, rotation=basis.to_euler())
 
 
 def segmented(body, bone, start, end, r0, r1, spec, rng, count=3):
@@ -154,6 +185,20 @@ def body(spec, L, d):
     mass(body, style, "spine_01", *L["spine_01"], hip * 1.0, shoulder * 0.75, spec, rng)
     mass(body, style, "spine_02", *L["spine_02"], shoulder * 0.8, shoulder * 0.95, spec, rng)
     mass(body, style, "spine_03", *L["spine_03"], shoulder * 0.95, shoulder * 0.8, spec, rng)
+    if style == "iron":
+        # Plated over the top of his shoulders too, so the camera above sees iron with molten seams, not the open heart
+        # of him: a ring of plates tipped over the crown and one across its middle.
+        top = L["spine_03"][1]
+        for index in range(7):
+            angle = index / 7 * math.tau + rng.uniform(-0.1, 0.1)
+            out = Vector((math.cos(angle), math.sin(angle), 0))
+            normal = (out * 0.55 + Vector((0, 0, 1))).normalized()
+            tangent = Vector((0, 0, 1)).cross(out).normalized()
+            basis = Matrix((normal, tangent, normal.cross(tangent))).transposed()
+            body.box("spine_03", top + out * shoulder * 0.55, (shoulder * 0.2, shoulder * 0.55, shoulder * 0.42),
+                     mix(primary, secondary, rng.uniform(0.0, 0.5)), rotation=basis.to_euler())
+        body.box("spine_03", top + Vector((0, 0, shoulder * 0.12)), (shoulder * 0.6, shoulder * 0.6, shoulder * 0.16), primary,
+                 rotation=Euler((0, 0, rng.uniform(0, math.pi / 2))))
     # Enormous shoulders.
     for side in ("l", "r"):
         s0, s1 = L["clavicle_" + side]
@@ -207,29 +252,41 @@ def hand(body, spec, features, side, L, thick, rng):
             tip = h0 + reach * 1.3 + Vector((reach.length * 0.25, across * thick * 1.6, 0))
             body.limb(bone, h0 + reach * 0.5 + Vector((0, across * thick * 1.2, 0)), tip, thick * 0.22, thick * 0.12, secondary)
         if "openHands" in features:
-            # Molten fragments torn from his plating, held ready to throw.
-            for index in range(4):
-                angle = index / 4 * math.tau + rng.uniform(-0.3, 0.3)
-                around = Vector((math.cos(angle), math.sin(angle), rng.uniform(-0.3, 0.3))) * thick * 1.6
-                body.box("prop_" + side, h1 + reach * 0.4 + around, (thick * 0.35,) * 3, accent, glow=True,
-                         rotation=Euler((rng.uniform(0, 3), rng.uniform(0, 3), 0)))
+            # Molten fragments torn from his plating orbit the open hand, ready to throw: jagged shards, the larger
+            # still dark plate on one face.
+            centre = h1 + reach * 0.4
+            for index in range(6):
+                angle = index / 6 * math.tau + rng.uniform(-0.3, 0.3)
+                around = Vector((math.cos(angle), math.sin(angle), rng.uniform(-0.4, 0.6))) * thick * rng.uniform(1.5, 2.1)
+                spin = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))).normalized()
+                flat = spin.cross(Vector((0, 0, 1)) if abs(spin.z) < 0.9 else Vector((1, 0, 0))).normalized()
+                size = thick * rng.uniform(0.25, 0.4)
+                shard = centre + around
+                body.blob("prop_" + side, shard, (spin * size * 0.35, flat * size, spin.cross(flat) * size * 1.6), accent, glow=True, segments=4)
+                if index % 2 == 0:
+                    body.blob("prop_" + side, shard - spin * size * 0.25, (spin * size * 0.2, flat * size * 1.05, spin.cross(flat) * size * 1.5), primary, segments=4)
     else:
         # A fist of stone.
         body.rocks(bone, h0, h1 + reach * 0.3, thick * 1.1, thick * 1.0, [primary, secondary], rng, chunks=2)
     if "hookArm" in features and side == "r":
-        # The rusted iron crescent, the size of his head, hung on heavy chain from the hook arm.
+        # The rusted iron crescent hung on heavy chain from the hook arm: outsized, the thing his silhouette is, a broad
+        # band of iron sweeping round to a sharpened point.
         grip = L["prop_" + side][0]
         iron = mix(accent, [0.1, 0.08, 0.07], 0.2)
-        radius = thick * 0.9
+        radius = thick * 1.45
         # Hung short below the hand, and never into the ground.
-        drop = min(thick * 1.3, grip.z - radius - thick * 0.3)
-        for index in range(2):
-            body.ball("prop_" + side, grip + Vector((0, 0, -drop * (index + 1) / 3)), thick * 0.22, mix(accent, secondary, 0.5))
-        center = grip + Vector((thick * 0.6, 0, -drop))
-        for index in range(7):
-            angle = math.radians(-40 + index * 35)
+        drop = min(thick * 1.1, grip.z - radius - thick * 0.6)
+        center = grip + Vector((thick * 0.9, 0, -drop))
+        humanoid.chain_links(body, "prop_" + side, [grip, grip + Vector((thick * 0.3, 0, -drop * 0.5)), center + Vector((-radius * 0.55, 0, radius * 0.8))],
+                             thick * 0.3, mix(accent, secondary, 0.35))
+        for index in range(9):
+            angle = math.radians(-60 + index * 30)
             point = center + Vector((math.cos(angle) * radius, 0, math.sin(angle) * radius))
-            body.box("prop_" + side, point, (thick * 0.55, thick * 0.35, thick * 0.6), iron, rotation=Euler((0, -angle, 0)))
+            body.box("prop_" + side, point, (thick * 0.7, thick * 0.5, thick * 0.95), mix(iron, [0.32, 0.14, 0.06], rng.uniform(0, 0.4)),
+                     rotation=Euler((0, -angle, 0)))
+        tip_angle = math.radians(-60 + 8 * 30)
+        tip = center + Vector((math.cos(tip_angle) * radius, 0, math.sin(tip_angle) * radius))
+        body.limb("prop_" + side, tip, tip + Vector((-thick * 0.6, 0, thick * 0.55)), thick * 0.42, thick * 0.03, iron, segments=4)
 
 
 def head(body, spec, features, L, d, rng):
@@ -268,13 +325,39 @@ def extras(body, spec, features, L, d, rng):
             top = (b0 + b1) / 2 + Vector((0, 0, shoulder * 0.3 if bone.startswith("clavicle") else shoulder * 0.18))
             body.ball(bone, top, shoulder * rng.uniform(0.18, 0.26), MOSS, scale=(1.3, 1.3, 0.45))
     if "chainWrap" in features:
-        # Heavy chain wound about his torso and shoulders.
+        # Heavy rusted chain wound about his torso and up over the shoulder to the hook arm, its loose end trailing behind
+        # him along the ground, as though he has just dragged it up out of the river.
+        rust = mix(accent, secondary, 0.35)
+        link = shoulder * 0.18
         c0, c1 = L["spine_02"]
-        for index in range(18):
-            angle = index / 18 * math.tau * 1.5
-            z = c0.z + (c1.z - c0.z) * (index / 18)
-            point = Vector((c0.x + math.cos(angle) * shoulder * 0.95, math.sin(angle) * shoulder * 0.95, z))
-            body.ball("spine_02", point, shoulder * 0.09, mix(accent, secondary, 0.4))
+        coil = [Vector((c0.x + math.cos(index / 12 * math.tau * 1.25) * shoulder * 1.0, math.sin(index / 12 * math.tau * 1.25) * shoulder * 1.0,
+                        c0.z + (c1.z - c0.z) * index / 12)) for index in range(13)]
+        humanoid.chain_links(body, "spine_02", coil, link, rust)
+        shoulder_r = L["clavicle_r"][1] + Vector((0, 0, shoulder * 0.35))
+        humanoid.chain_links(body, "clavicle_r", [coil[-1], shoulder_r, L["upperarm_r"][1] + Vector((0, 0, shoulder * 0.2))], link, rust)
+        p0, p1 = L["pelvis"]
+        trail = [p0 + Vector((-d["hip"] * 1.1, d["hip"] * 0.4, 0)), p0 + Vector((-d["hip"] * 2.0, d["hip"] * 0.5, -p0.z * 0.6)),
+                 Vector((p0.x - d["hip"] * 3.0, d["hip"] * 0.6, link * 0.8)), Vector((p0.x - d["hip"] * 4.2, d["hip"] * 0.4, link * 0.8))]
+        humanoid.chain_links(body, "pelvis", trail, link, rust)
+    if "masonry" in features:
+        # Collapsed masonry worked into him: dressed blocks from an old bridge, squared and carved with inset panels, on
+        # the hook arm's shoulder and a thigh.
+        dressed = mix(primary, [0.62, 0.56, 0.46], 0.35)
+        for bone, offset, size in (("clavicle_r", Vector((0, -shoulder * 0.2, shoulder * 0.42)), shoulder * 0.62), ("thigh_l", Vector((d["hip"] * 0.45, d["hip"] * 0.3, 0)), d["hip"] * 0.62)):
+            b0, b1 = L[bone]
+            centre = b0.lerp(b1, 0.55) + offset
+            body.box(bone, centre, (size * 0.9, size * 1.1, size * 0.7), dressed, rotation=Euler((0, 0, rng.uniform(-0.15, 0.15))))
+            for inset in (0.6, 0.32):
+                body.box(bone, centre + Vector((0, 0, size * 0.36)), (size * 0.9 * inset, size * 1.1 * inset, 1.0), mix(dressed, [0.15, 0.13, 0.11], 0.35 if inset > 0.5 else 0.1))
+    if spec.get("reinforced"):
+        # Planted and reinforced: further layers of riverstone heaved up over his trunk, shoulders and legs.
+        layer = [mix(secondary, primary, 0.4), mix(secondary, [0.18, 0.16, 0.14], 0.3), primary]
+        for bone, r0, r1 in (("spine_02", shoulder * 1.0, shoulder * 1.1), ("clavicle_l", shoulder * 0.5, shoulder * 0.55), ("clavicle_r", shoulder * 0.55, shoulder * 0.6),
+                             ("thigh_l", d["hip"] * 0.75, d["hip"] * 0.7), ("thigh_r", d["hip"] * 0.75, d["hip"] * 0.7), ("calf_l", d["hip"] * 0.7, d["hip"] * 0.65),
+                             ("calf_r", d["hip"] * 0.7, d["hip"] * 0.65)):
+            b0, b1 = L[bone]
+            # Turned chunks stop well above the ankle, so none sinks below the ground.
+            body.rocks(bone, b0.lerp(b1, 0.15), b0.lerp(b1, 0.55 if bone.startswith("calf") else 0.85), r0, r1, layer, rng, chunks=2)
     if "mast" in features:
         # A slender antenna mast from his back, lit at its tip.
         foot = s1 + Vector((-shoulder * 0.6, shoulder * 0.3, -d["torso"] * 0.1))
@@ -315,20 +398,37 @@ def extras(body, spec, features, L, d, rng):
             h0, h1 = L["hand_" + side]
             body.ball("hand_" + side, h0.lerp(h1, 0.4) + Vector((shoulder * 0.18, 0, shoulder * 0.12)), shoulder * 0.06, accent, glow=True)
     if "coreSpiral" in features:
-        # The bright core spiral set into his chest.
+        # The bright orange-white core spiral set into his chest, in a dark socket of plate: a coil winding out from a
+        # white-hot heart. It stays lit when his outer body cools.
         c0, c1 = L["spine_02"]
-        core = c1 + Vector((shoulder * 0.85, 0, 0))
-        body.ball("spine_02", core, shoulder * 0.28, accent, glow=True)
-        for index in range(5):
-            angle = index * 1.3
-            body.ball("spine_02", core + Vector((shoulder * 0.08, math.cos(angle) * shoulder * 0.3 * (index + 1) / 5,
-                                                  math.sin(angle) * shoulder * 0.3 * (index + 1) / 5)), shoulder * 0.07, accent, glow=True)
+        core_color = spec.get("core", mix(accent, [1.0, 1.0, 1.0], 0.45))
+        face = c1 + Vector((shoulder * 0.9, 0, -d["torso"] * 0.05))
+        body.limb("spine_02", face - Vector((shoulder * 0.12, 0, 0)), face, shoulder * 0.42, shoulder * 0.42, mix(primary, [0, 0, 0], 0.3), segments=12)
+        body.ball("spine_02", face, shoulder * 0.1, mix(core_color, [1.0, 1.0, 1.0], 0.4), glow=True, segments=8)
+        coil = [face + Vector((shoulder * 0.02, math.cos(k * 0.55) * shoulder * 0.035 * k, math.sin(k * 0.55) * shoulder * 0.035 * k)) for k in range(1, 12)]
+        for a, b in zip(coil, coil[1:]):
+            body.limb("spine_02", a, b, shoulder * 0.045, shoulder * 0.045, core_color, glow=True, segments=6)
     if "clothDrape" in features:
-        # A heavy cloth drape at the waist, held by iron rings.
+        # A heavy, tattered drape hanging from the waist front and back to below the knee, held on a dark iron band by
+        # iron rings.
         p0, p1 = L["pelvis"]
-        for sign in (1, -1):
-            body.box("pelvis", p0 + Vector((sign * d["hip"] * 0.95, 0, -d["leg"] * 0.25)), (d["hip"] * 0.15, d["hip"] * 1.6, d["leg"] * 0.6), detail)
-        body.limb("pelvis", p0 + Vector((0, 0, d["torso"] * 0.05)), p0 + Vector((0, 0, d["torso"] * 0.1)), d["hip"] * 1.2, d["hip"] * 1.2, secondary)
+        hip, leg = d["hip"], d["leg"]
+        band = p0 + Vector((0, 0, d["torso"] * 0.08))
+        body.limb("pelvis", band - Vector((0, 0, d["torso"] * 0.04)), band + Vector((0, 0, d["torso"] * 0.04)), hip * 1.25, hip * 1.25, mix(primary, [0, 0, 0], 0.3))
+        cloth = [detail, mix(detail, [0.15, 0.04, 0.03], 0.35), mix(detail, [0.55, 0.25, 0.18], 0.2)]
+        for facing in (1, -1):
+            for strip in range(5):
+                across = (strip - 2) * hip * 0.38
+                top = band + Vector((facing * hip * 1.25, across, -d["torso"] * 0.02))
+                drop = leg * rng.uniform(0.55, 0.8)
+                bottom = top + Vector((facing * hip * 0.25, across * 0.15, -drop))
+                body.slab("pelvis", top, bottom, hip * 0.42, 2.0, cloth[(strip + facing) % len(cloth)])
+        iron = mix(secondary, [0.05, 0.05, 0.05], 0.3)
+        for across in (-0.55, 0.0, 0.55):
+            ring = band + Vector((hip * 1.3, across * hip, -hip * 0.1))
+            points = [ring + Vector((0, math.cos(k / 8 * math.tau) * hip * 0.16, math.sin(k / 8 * math.tau) * hip * 0.16)) for k in range(9)]
+            for a, b in zip(points, points[1:]):
+                body.limb("pelvis", a, b, hip * 0.035, hip * 0.035, iron, segments=5)
     if "flakes" in features:
         # The hump is shingled over on top too, so from above it reads as layered sediment, not as its wet core; a few
         # sheets peel up off the back as he moves.

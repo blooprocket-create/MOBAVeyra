@@ -112,11 +112,14 @@ namespace VeyraAbilitiesTests
 
 		TEST_METHOD(ItSwapsTheSlotsItNamesAndBack)
 		{
+			ASSERT_THAT(IsFalse(Loadout->GetStance().IsValid(), TEXT("its own set first")));
 			ASSERT_THAT(IsTrue(Cast(EVeyraAbilitySlot::R) == EVeyraCastRejection::None, TEXT("learnt from the start, with no point spent")));
 			ASSERT_THAT(IsTrue(In(EVeyraAbilitySlot::Q) == ArchetypeTestId(TEXT("test_blade_q")) && In(EVeyraAbilitySlot::W) == ArchetypeTestId(TEXT("test_blade_w"))));
 			ASSERT_THAT(IsTrue(In(EVeyraAbilitySlot::R) == ArchetypeTestId(TEXT("test_switch")), TEXT("the stance keeps its own slot")));
+			ASSERT_THAT(IsTrue(Loadout->GetStance() == ArchetypeTestId(TEXT("test_switch")), TEXT("the stance it is in, for its body to show")));
 			ASSERT_THAT(IsTrue(Cast(EVeyraAbilitySlot::R) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(In(EVeyraAbilitySlot::Q) == ArchetypeTestId(TEXT("test_veil_q")) && In(EVeyraAbilitySlot::W) == ArchetypeTestId(TEXT("test_veil_w"))));
+			ASSERT_THAT(IsFalse(Loadout->GetStance().IsValid(), TEXT("back in its own set")));
 		}
 
 		TEST_METHOD(EachSetKeepsItsOwnCooldownsAndEachSlotItsRank)

@@ -19,6 +19,7 @@ spec.loader.exec_module(inputs)
 KIT = {
     "fps": 30,
     "blender": "5.2",
+    "destination": "/Game/Veyra/Vanguards",
     "archetypes": {
         "humanoid": {"triangleBudget": 9000, "animations": {"Run": {"seconds": 0.6, "loop": True}}},
         "rider": {"triangleBudget": 16000, "animations": {"Run": {"seconds": 0.6, "loop": True}}},
@@ -47,7 +48,7 @@ def built(kit, vanguards, generator=GENERATOR, blender=BLENDER):
         for body, status, suffix in inputs.bodies_of(vanguard):
             name = inputs.body_name(vanguard["id"], suffix)
             asset = {"id": vanguard["id"], "name": name, "inputSha256": inputs.input_hash(kit, vanguards, body),
-                     "generatorSha256": generator, "blender": blender,
+                     "generatorSha256": generator, "blender": blender, "contentVersion": inputs.CONTENT_VERSION,
                      # Its FBX, written by write_fbx: the body's name as its bytes.
                      "file": "FBX/" + name + ".fbx", "sha256": hashlib.sha256(name.encode()).hexdigest()}
             if status:
@@ -64,8 +65,25 @@ def write_fbx(game, assets):
 
 
 class VanguardBodyInputs(unittest.TestCase):
+    def test_a_body_worn_in_a_stance_is_keyed_by_the_stance_ability(self):
+        # A stance is no status, but its body is found the same way: by the stance ability's ID.
+        spec = {"id": "c", "archetype": "humanoid", "seed": 3, "features": [],
+                "statusBodies": [{"status": "c_ride", "name": "Ride", "body": {}}, {"stance": "c_forms", "name": "Blade", "body": {"seed": 4}}]}
+        self.assertEqual([(status, suffix) for _, status, suffix in inputs.bodies_of(spec)], [(None, ""), ("c_ride", "_Ride"), ("c_forms", "_Blade")])
+        for wrong in ({"name": "Neither", "body": {}}, {"status": "c_ride", "stance": "c_forms", "name": "Both", "body": {}}):
+            with self.assertRaises(AssertionError):
+                list(inputs.bodies_of(dict(spec, statusBodies=[wrong])))
+
     def test_a_full_build_is_current(self):
         self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS)), [])
+
+    def test_a_body_recorded_before_its_content_hash_covered_what_it_exports_is_stale(self):
+        # Its recorded content (from before UVs counted) cannot be compared with a build's now: a full build records it
+        # again, and the preflight refuses it until then.
+        assets = built(KIT, VANGUARDS)
+        del assets[0]["contentVersion"]
+        assets[1]["contentVersion"] = inputs.CONTENT_VERSION - 1
+        self.assertEqual(inputs.stale_assets(KIT, VANGUARDS, assets), ["SK_A", "SK_A_Ride"])
 
     def test_a_shared_setting_changed_since_stales_every_body_that_uses_it(self):
         # One Vanguard rebuilt after the humanoid's Run timing changed: the other, kept from before, is stale.
@@ -97,6 +115,14 @@ class VanguardBodyInputs(unittest.TestCase):
         kit = copy.deepcopy(KIT)
         kit["vanguards"][0]["statusBodies"][0]["body"]["archetype"] = "humanoid"
         self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_A_Ride"])
+
+    def test_a_status_body_the_kit_renames_is_stale_though_its_inputs_are_not(self):
+        # Its name is no input of its body, so a build of another Vanguard keeps the body under its old name: the
+        # kit now names another, which the import would never make.
+        kit = copy.deepcopy(KIT)
+        kit["vanguards"][0]["statusBodies"][0]["name"] = "Mount"
+        assets = built(KIT, VANGUARDS)
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, assets), ["SK_A_Ride"])
 
     def test_the_preflight_reads_a_project_and_fails_on_a_stale_body(self):
         import json
@@ -136,6 +162,22 @@ class VanguardBodyInputs(unittest.TestCase):
         write_fbx(game, assets)
         return game
 
+    def test_a_kit_that_moves_its_bodies_elsewhere_stales_every_body(self):
+        # The bodies were imported where the manifest says; a build does not move them, so the import refuses them all
+        # until they are moved (or deleted and built afresh) and the manifest says so.
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = self.project(folder)
+            path = game / "ArtSource" / "Vanguards" / "manifest.json"
+            manifest = json.loads(path.read_text())
+            manifest["destination"] = KIT["destination"]
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(inputs.stale_in(game), [])
+            manifest["destination"] = "/Game/Veyra/Elsewhere"
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(inputs.stale_in(game), ["SK_A", "SK_A_Ride", "SK_B"])
+
     def test_the_preflight_names_a_missing_or_changed_fbx_and_reads_a_pointer_for_its_file(self):
         import subprocess
         import tempfile
@@ -164,6 +206,31 @@ class VanguardBodyInputs(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             # A patch release of the pinned one is that release.
             self.assertEqual(inputs.stale_in(self.project(folder, blender="5.2.1")), [])
+
+    def test_a_build_drops_the_bodies_the_kit_no_longer_makes_and_only_among_those_it_built(self):
+        previous = built(KIT, VANGUARDS)
+        # The ride body renamed (a new name for the same status) and Vanguard b removed.
+        kit = copy.deepcopy(KIT)
+        kit["vanguards"][0]["statusBodies"][0]["name"] = "Mount"
+        del kit["vanguards"][1]
+        current = built(kit, VANGUARDS)
+        self.assertEqual([asset["name"] for asset in inputs.removed_assets(previous, current)], ["SK_A_Ride", "SK_B"])
+        # A build of a alone keeps b's bodies, which it did not make.
+        self.assertEqual([asset["name"] for asset in inputs.removed_assets(previous, current, only={"a"})], ["SK_A_Ride"])
+
+    def test_what_a_build_leaves_to_import_waits_until_an_import_takes_it(self):
+        assets = built(KIT, VANGUARDS)
+        # A build that only generated (no import) changed a; a later build changes nothing more, but a is still to import.
+        self.assertEqual(inputs.pending_changed([], ["a"], assets), ["a"])
+        self.assertEqual(inputs.pending_changed(["a"], [], assets), ["a"])
+        self.assertEqual(inputs.pending_changed(["a"], ["b", "a"], assets), ["a", "b"])
+        # A Vanguard the kit has since dropped has nothing left to import.
+        self.assertEqual(inputs.pending_changed(["gone", "b"], [], assets), ["b"])
+        # A dropped body's imported assets are still to delete after a build that only generated, unless the body is
+        # back (imported again, which replaces its folder).
+        self.assertEqual(inputs.pending_removed([], ["SK_Gone"], assets), ["SK_Gone"])
+        self.assertEqual(inputs.pending_removed(["SK_Gone"], [], assets), ["SK_Gone"])
+        self.assertEqual(inputs.pending_removed(["SK_Gone", "SK_A_Ride"], ["SK_Old"], assets), ["SK_Gone", "SK_Old"])
 
     @staticmethod
     def copy_generator(game):

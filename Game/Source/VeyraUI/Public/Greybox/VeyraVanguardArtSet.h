@@ -53,6 +53,13 @@ struct VEYRAUI_API FVeyraVanguardBody
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
 	float EffectScale = 1.0f;
 
+	/**
+	 * As a status body, which wins when its unit holds several statuses with bodies: the highest, as a brief burst's body
+	 * over one its unit holds all the while in some ground. Ties go by status ID.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	int32 Priority = 0;
+
 	/** The animation Clip, or null. */
 	UAnimSequence* Find(EVeyraVanguardClip Clip) const;
 
@@ -73,11 +80,14 @@ struct VEYRAUI_API FVeyraVanguardArt : public FVeyraVanguardBody
 {
 	GENERATED_BODY()
 
-	/** The bodies it wears while it holds a status, by status ID (Abilities.json statuses). */
+	/**
+	 * The bodies it wears while it holds a status, by status ID (Abilities.json statuses), and while a stance's set is in
+	 * its slots, by the stance ability's ID (Abilities.json stance; ADR-031 §3).
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
 	TMap<FName, FVeyraVanguardBody> StatusBodies;
 
-	/** The body to wear: the first status body (by status ID) whose status Holds says it holds, else its own. */
+	/** The body to wear: of the status bodies whose status or stance Holds says it holds, the highest Priority's (then the first by ID), else its own. */
 	const FVeyraVanguardBody& BodyFor(TFunctionRef<bool(FName)> Holds) const;
 };
 

@@ -119,9 +119,10 @@ void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueK
 		}
 		else
 		{
-			// A cast with no windup releases at once.
+			// A cast with no windup (or whose windup gave way a frame before its commit came) releases at once.
 			Play(State, EVeyraVanguardClip::Cast, Shape.Lengths.Of(EVeyraVanguardClip::Cast) * Shape.CastReleaseShare, 1.0f, -1.0f, false);
 		}
+		State.Current.bReleased = true;
 		break;
 	case EVeyraCombatCueKind::Hit:
 	{
@@ -182,25 +183,44 @@ void VeyraVanguardAnim::Advance(FVeyraVanguardAnimState& State, float DeltaSecon
 	{
 		NoteCue(State, EVeyraCombatCueKind::CastWindup, 0.0f, Shape);
 	}
-	// A windup held at its end gives way once nothing holds it: an attack's that will not commit fades out, and a cast's
-	// hands lower. A channel keeps them at the release. Only a held pose gives way, so inputs a frame behind the cues
-	// cut nothing short.
+	// A windup gives way once nothing holds it: an attack's that will not commit fades out (a cast's: below). An attack's
+	// cancelled midway (a move order, a new target: its input seen and now gone while its blow is more than a blend away)
+	// fades at once, so no strike shows that will not land. Its input a frame behind its cue (not yet seen), or its commit a
+	// frame behind its input (within a blend of the blow), cuts nothing short: held at its end, it waits for that commit
+	// and gives way only if none comes.
 	FVeyraVanguardAnimSlot& Held = State.Current;
 	const bool bAtHold = Held.HoldAt >= 0.0f && Held.Position >= Held.HoldAt;
-	if (Held.IsActive() && Held.Clip == EVeyraVanguardClip::AttackWindup && bAtHold && !Inputs.bAttackWindingUp)
+	const bool bWindup = Held.IsActive() && Held.Clip == EVeyraVanguardClip::AttackWindup;
+	if (bWindup && Inputs.bAttackWindingUp)
+	{
+		Held.bHoldSeen = true;
+	}
+	const float ToBlow = Held.Rate > 0.0f ? (Held.HoldAt - Held.Position) / Held.Rate : 0.0f;
+	if (bWindup && !Inputs.bAttackWindingUp && (bAtHold || (Held.bHoldSeen && ToBlow > Shape.BlendSeconds)))
 	{
 		Held.bFadingOut = true;
 	}
 	else if (Held.IsActive() && Held.Clip == EVeyraVanguardClip::Cast)
 	{
+		// A cast's hands wait at the release while it winds up or channels. Committed, they play the release once nothing
+		// holds them. Cancelled before its commit (an interrupt: its hold seen and now gone, or none come by the release),
+		// they lower without it. Its input a frame behind its cue cuts nothing short.
 		const float Release = Shape.Lengths.Of(EVeyraVanguardClip::Cast) * Shape.CastReleaseShare;
-		if (Inputs.bCastHeld && Held.Position <= Release)
+		if (Inputs.bCastHeld)
 		{
-			Held.HoldAt = Release;
+			Held.bHoldSeen = true;
+			if (Held.Position <= Release)
+			{
+				Held.HoldAt = Release;
+			}
 		}
-		else if (!Inputs.bCastHeld && bAtHold)
+		else if (Held.bReleased)
 		{
 			Held.HoldAt = -1.0f;
+		}
+		else if (Held.bHoldSeen || bAtHold)
+		{
+			Held.bFadingOut = true;
 		}
 	}
 

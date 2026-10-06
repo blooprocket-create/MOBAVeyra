@@ -83,10 +83,13 @@ TArray<FString> FVeyraVanguardBody::Validate(const FString& Label) const
 
 const FVeyraVanguardBody& FVeyraVanguardArt::BodyFor(TFunctionRef<bool(FName)> Holds) const
 {
-	// By status ID, so a unit holding two statuses with bodies always wears the same one.
+	// By priority, then status ID, so a unit holding two statuses with bodies always wears the same one.
 	TArray<FName> Statuses;
 	StatusBodies.GetKeys(Statuses);
-	Statuses.Sort(FNameLexicalLess());
+	Statuses.Sort([this](FName A, FName B) {
+		const int32 First = StatusBodies[A].Priority, Second = StatusBodies[B].Priority;
+		return First != Second ? First > Second : FNameLexicalLess()(A, B);
+	});
 	for (const FName& Status : Statuses)
 	{
 		if (Holds(Status))

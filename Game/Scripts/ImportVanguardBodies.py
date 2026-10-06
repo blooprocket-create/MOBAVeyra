@@ -192,6 +192,7 @@ def fill_body(asset, body):
     body.set_editor_property("run_stride", asset["runStrideCm"])
     body.set_editor_property("cast_release_share", asset["castReleaseShare"])
     body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
+    body.set_editor_property("priority", asset.get("priority", 0))
     if asset.get("effect"):
         effect = unreal.load_asset(asset["effect"]["system"])
         assert isinstance(effect, unreal.NiagaraSystem), (asset["name"], "its effect does not load; build it with BuildEffects.ps1", asset["effect"]["system"])

@@ -140,6 +140,32 @@ namespace VeyraVanguardAnimationTests
 			ASSERT_THAT(IsTrue(State.Current.bFadingOut, TEXT("held at its end with no windup left, as a cancelled attack")));
 		}
 
+		TEST_METHOD(ACancelledWindupGivesWayBeforeItsBlowLands)
+		{
+			FVeyraVanguardAnimInputs WindingUp;
+			WindingUp.bAttackWindingUp = true;
+			const FVeyraVanguardAnimInputs Cancelled;
+			// Cancelled a quarter of the way in (a move order, a new target): it fades at once, never reaching the blow.
+			FVeyraVanguardAnimState State;
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::AttackWindup, WindupSeconds, Shape());
+			Elapse(State, WindupSeconds / 4.0f, WindingUp);
+			VeyraVanguardAnim::Advance(State, Step, Cancelled, Shape());
+			ASSERT_THAT(IsTrue(State.Current.bFadingOut, TEXT("a strike that will not come is not shown")));
+			// Its input a frame behind its cue cuts nothing short.
+			FVeyraVanguardAnimState Cued;
+			VeyraVanguardAnim::NoteCue(Cued, EVeyraCombatCueKind::AttackWindup, WindupSeconds, Shape());
+			VeyraVanguardAnim::Advance(Cued, Step, Cancelled, Shape());
+			ASSERT_THAT(IsFalse(Cued.Current.bFadingOut, TEXT("the windup the cue began plays on")));
+			// Nor does its commit a frame behind its input, at the end of the windup: the strike still follows on.
+			FVeyraVanguardAnimState Landing;
+			VeyraVanguardAnim::NoteCue(Landing, EVeyraCombatCueKind::AttackWindup, WindupSeconds, Shape());
+			Elapse(Landing, WindupSeconds - BlendSeconds / 2.0f, WindingUp);
+			VeyraVanguardAnim::Advance(Landing, Step, Cancelled, Shape());
+			ASSERT_THAT(IsFalse(Landing.Current.bFadingOut, TEXT("within a blend of its blow, it waits for the commit")));
+			VeyraVanguardAnim::NoteCue(Landing, EVeyraCombatCueKind::AttackCommit, 0.0f, Shape());
+			ASSERT_THAT(IsTrue(Landing.Current.Clip == EVeyraVanguardClip::AttackStrike));
+		}
+
 		TEST_METHOD(AHitNeverCutsAnAttackOrACastShort)
 		{
 			FVeyraVanguardAnimState State;
@@ -168,6 +194,37 @@ namespace VeyraVanguardAnimationTests
 			ASSERT_THAT(IsNear(State.Current.Position, Release, Slack, TEXT("channelling, they stay there")));
 			Elapse(State, Step * 2.0f);
 			ASSERT_THAT(IsTrue(State.Current.Position > Release, TEXT("once nothing holds the cast, they lower")));
+		}
+
+		TEST_METHOD(ACastCancelledBeforeItsReleaseLowersWithoutReleasing)
+		{
+			FVeyraVanguardAnimInputs Holding;
+			Holding.bCastHeld = true;
+			const FVeyraVanguardAnimInputs Cancelled;
+			const float Release = CastSeconds * CastReleaseShare;
+			// Interrupted as its hands rise (a stun, say): seen held and now not, with no commit, it fades at once.
+			FVeyraVanguardAnimState State;
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::CastWindup, 0.0f, Shape());
+			Elapse(State, Release / 4.0f, Holding);
+			VeyraVanguardAnim::Advance(State, Step, Cancelled, Shape());
+			ASSERT_THAT(IsTrue(State.Current.bFadingOut, TEXT("a release that will not come is not shown")));
+			// Interrupted at the release, waiting for its commit: the hands lower without playing it.
+			FVeyraVanguardAnimState Waiting;
+			VeyraVanguardAnim::NoteCue(Waiting, EVeyraCombatCueKind::CastWindup, 0.0f, Shape());
+			Elapse(Waiting, CastSeconds, Holding);
+			VeyraVanguardAnim::Advance(Waiting, Step, Cancelled, Shape());
+			ASSERT_THAT(IsTrue(Waiting.Current.bFadingOut));
+			Elapse(Waiting, BlendSeconds / 2.0f);
+			ASSERT_THAT(IsTrue(Waiting.Current.Position <= Release + Slack, TEXT("never past the release")));
+			// Its input a frame behind its cue cuts nothing short.
+			FVeyraVanguardAnimState Cued;
+			VeyraVanguardAnim::NoteCue(Cued, EVeyraCombatCueKind::CastWindup, 0.0f, Shape());
+			VeyraVanguardAnim::Advance(Cued, Step, Cancelled, Shape());
+			ASSERT_THAT(IsFalse(Cued.Current.bFadingOut, TEXT("the cast the cue began rises on")));
+			// Its commit a frame behind its input still releases, from the release, as a cast with no windup does.
+			VeyraVanguardAnim::NoteCue(Waiting, EVeyraCombatCueKind::CastCommit, 0.0f, Shape());
+			ASSERT_THAT(IsTrue(Waiting.Current.IsActive() && Waiting.Current.Clip == EVeyraVanguardClip::Cast));
+			ASSERT_THAT(IsNear(Waiting.Current.Position, Release, Slack));
 		}
 
 		TEST_METHOD(ACastWithNoWindupReleasesAtOnce)
