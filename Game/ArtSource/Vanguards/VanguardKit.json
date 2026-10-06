@@ -162,9 +162,15 @@
       "style": "slab", "primary": [0.74, 0.70, 0.62], "secondary": [0.12, 0.12, 0.13], "accent": [1.00, 0.62, 0.12], "detail": [0.55, 0.08, 0.08],
       "forearmScale": 1.3,
       "features": ["optic", "manipulators", "mast", "banner", "moss", "pauldrons", "jointDiscs", "segmentedArms", "amberPoints"] },
-    { "id": "varkesh", "archetype": "colossus", "seed": 303, "heightShare": 0.98, "build": "heavy", "headShare": 0.09, "legShare": 0.33, "armShare": 0.52, "lean": 0.15,
-      "style": "iron", "primary": [0.13, 0.12, 0.12], "secondary": [0.24, 0.21, 0.19], "accent": [1.00, 0.55, 0.15], "detail": [0.32, 0.11, 0.06],
-      "features": ["openHands", "coreSpiral", "headSpines", "clothDrape"] },
+    { "id": "varkesh", "archetype": "colossus", "seed": 303, "heightShare": 1.3, "build": "heavy", "headShare": 0.09, "legShare": 0.4, "armShare": 0.52, "lean": 0.15,
+      "style": "iron", "primary": [0.13, 0.12, 0.12], "secondary": [0.24, 0.21, 0.19], "accent": [1.00, 0.45, 0.10], "detail": [0.45, 0.10, 0.08],
+      "features": ["openHands", "coreSpiral", "headSpines", "clothDrape"],
+      "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraEmbers.NS_VeyraEmbers", "color": [1.00, 0.40, 0.08, 1.0],
+        "bones": ["hand_l", "hand_r", "lowerarm_l", "lowerarm_r", "spine_02"] },
+      "statusBodies": [
+        { "status": "varkesh_shell_tenacity", "name": "Tempered",
+          "body": { "primary": [0.06, 0.06, 0.07], "accent": [0.22, 0.07, 0.04], "core": [1.00, 0.70, 0.40], "seamGap": 0.06, "effect": null } }
+      ] },
     { "id": "cairn", "archetype": "colossus", "seed": 304, "heightShare": 0.95, "build": "heavy", "headShare": 0.08, "legShare": 0.27, "armShare": 0.55, "lean": 0.2,
       "style": "riverstone", "primary": [0.46, 0.48, 0.47], "secondary": [0.28, 0.30, 0.30], "accent": [0.48, 0.25, 0.12], "detail": [0.22, 0.40, 0.14],
       "features": ["hookArm", "chainWrap", "moss"] },

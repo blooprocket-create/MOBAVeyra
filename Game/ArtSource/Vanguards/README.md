@@ -150,7 +150,12 @@ section 9. The existing LFS rules cover the FBX files.
   sediment sheets over a dark wet core (Silt, who walks on his clawed forelimbs),
   bone-white slabs over dark mechanism (Relay), iron plates whose seams glow (Varkesh),
   or rough riverstone (Cairn, whose hook arm is the larger). A ranged colossus throws
-  overhead; a cast is a two-fisted slam.
+  overhead; a cast is a two-fisted slam. Varkesh towers near twice a person's height (`heightShare` above 1: his
+  capsule stays the same): rings of dark plates, a little askew, over a molten core that glows through every seam
+  (`seamGap`), the plates of his forearms and shins riding clear, his crown plated over. An orange-white spiral burns
+  in his chest, a tattered crimson drape hangs on iron rings, molten shards orbit his open hands, and
+  `NS_VeyraEmbers` sheds from them. Tempered Shell (`varkesh_shell_tenacity`, held while its shield holds) cools him:
+  black plates, dark closed seams, no embers, the core still lit.
 - **Beast:** a horizontal skeleton: hips at the back (the pelvis), the spine running
   forward to the chest, neck and head ahead; forelegs on the arm bones, hind legs on
   the leg bones, and a middle pair for six legs (Korruk). It trots (a tripod gait on six
