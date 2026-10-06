@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
-  "kitSha256": "8d10b897ed17e39eb32c56995f378cf15a9736c221363b0e84b03b24b3fc3049",
+  "kitSha256": "5fff2144c3d8e4badadedc7112bfb917bcc707eb446e53c49f4397a495f9da38",
   "assets": [
     {
       "id": "angeru",
@@ -539,11 +539,11 @@
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "91316453fc8dfe8b20edb95127ebab5f0a57c269078fc4f48e777ef281394824",
-      "triangles": 3888,
+      "sha256": "ce66300b128555d358648ada1b292906a5fa7e061ad9dc47a062cc20aa0d055e",
+      "triangles": 5240,
       "triangleBudget": 9000,
       "bones": 29,
-      "heightCm": 173.25,
+      "heightCm": 174.32,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 172.62,
@@ -591,7 +591,7 @@
           "loop": true
         }
       ],
-      "inputSha256": "e05cdd92bf3686aa074cd5d1833d010915869335ffed82c511f312cc3f216052"
+      "inputSha256": "a2f68c9d76a54e9f7c6dc8f099b74204c778aecf598aa53c8d49f27a1d8fc054"
     },
     {
       "id": "mavra",

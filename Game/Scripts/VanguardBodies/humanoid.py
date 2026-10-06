@@ -335,6 +335,28 @@ def body(spec, L, d, bones=BONES):
                 body.limb("lowerarm_" + side, e0.lerp(e1, 0.35 + band * 0.22), e0.lerp(e1, 0.47 + band * 0.22), limb * 1.25, limb * 1.25, [0.22, 0.21, 0.22], segments=8)
     if "spectralBear" in features:
         spectral_bear(body, spec, L, d)
+    if "chainLoops" in features:
+        # Loops of heavy chain over the coat: across the chest from the left shoulder to the right hip, and round the
+        # waist, witchfire running along them.
+        iron = [0.16, 0.14, 0.15]
+        size = d["height"] * 0.02
+        top = L["clavicle_l"][1] + Vector((d["shoulder"] * 0.35, -d["shoulder"] * 0.1, 0))
+        low = p1 + Vector((d["hip"] * 1.0, -d["hip"] * 0.9, -d["torso"] * 0.05))
+        chain_links(body, "spine_03", [top, top.lerp(low, 0.5) + Vector((d["shoulder"] * 0.3, 0, 0)), low], size, iron, accent)
+        ring = [p1 + Vector((math.cos(angle) * d["hip"] * 1.15, math.sin(angle) * d["hip"] * 1.2, -d["torso"] * 0.05 - math.cos(angle) * d["torso"] * 0.04))
+                for angle in [index / 8 * math.tau for index in range(9)]]
+        chain_links(body, "pelvis", ring, size, iron)
+    if "witchfire" in features:
+        # Violet-black witchfire gathered in both hands: a burning core and tongues of flame rising from it.
+        for side in ("l", "r"):
+            h0, h1 = L["hand_" + side]
+            centre = (h0 + h1) / 2 + Vector((d["height"] * 0.02, 0, 0))
+            body.ball("hand_" + side, centre, limb * 1.6, accent, glow=True)
+            for index in range(4):
+                angle = index / 4 * math.tau
+                root = centre + Vector((math.cos(angle) * limb * 0.9, math.sin(angle) * limb * 0.9, 0))
+                body.limb("hand_" + side, root, root + Vector((math.cos(angle) * limb * 0.6, math.sin(angle) * limb * 0.6, limb * 3.0)), limb * 0.5, limb * 0.05,
+                          mix(accent, [0.05, 0.0, 0.1], 0.3 * (index % 2)), glow=True, segments=5)
     if "patches" in features:
         # Repairs all over: square patches of other cloth sewn on.
         for bone, at, size in (("spine_02", 0.6, 0.35), ("upperarm_r", 0.5, 0.18), ("thigh_l", 0.4, 0.2)):
@@ -418,6 +440,24 @@ def body(spec, L, d, bones=BONES):
     for prop in spec["props"]:
         add_prop(body, prop, L, d, spec)
     return body
+
+
+def chain_links(body, bone, points, size, iron, fire=None):
+    """Heavy iron chain along points: links of size, each turned a quarter about the chain from the last, with
+    witchfire running along it if fire is given."""
+    for a, b in zip(points, points[1:]):
+        span = (b - a).length
+        count = max(1, round(span / (size * 1.6)))
+        axis = (b - a).normalized()
+        for index in range(count):
+            centre = a.lerp(b, (index + 0.5) / count)
+            across = axis.cross(Vector((0, 0, 1)) if abs(axis.z) < 0.9 else Vector((1, 0, 0))).normalized()
+            if index % 2:
+                across = axis.cross(across).normalized()
+            depth = axis.cross(across).normalized()
+            body.blob(bone, centre, (axis * size, across * size * 0.6, depth * size * 0.2), iron, segments=6)
+        if fire:
+            body.limb(bone, a, b, size * 0.14, size * 0.14, fire, glow=True, segments=4)
 
 
 def spectral_bear(body, spec, L, d):
@@ -528,9 +568,10 @@ def add_prop(body, prop, L, d, spec):
         body.box(bone, pennant - up * unit * 0.08 + Vector((0, unit * 0.001, 0)), (unit * 0.05, 1.5, unit * 0.05), [0.92, 0.90, 0.86],
                  rotation=Euler((0, math.radians(45), 0)))
     elif kind == "chain":
-        for index in range(7):
-            angle = index * 0.9
-            body.ball(bone, grip + Vector((math.cos(angle) * unit * 0.06, math.sin(angle) * unit * 0.06, -index * unit * 0.03)), unit * 0.018, accent, glow=True)
+        # A length of heavy chain hanging from the hand in a loose curve, witchfire running along it: the pact made
+        # physical, and what his kit throws and leashes with.
+        sweep = [grip + Vector((unit * 0.06 * k, -unit * 0.04 * math.sin(k * 1.4), -unit * (0.05 * k + 0.005 * k * k))) for k in (0.0, 1.0, 2.0, 3.0, 4.0)]
+        chain_links(body, bone, sweep, unit * 0.022, [0.16, 0.14, 0.15], accent)
     elif kind == "boardingBlade":
         body.limb(bone, grip, grip + forward * unit * 0.08, unit * 0.015, unit * 0.015, wood)
         body.box(bone, grip + forward * unit * 0.4 + Vector((0, 0, unit * 0.02)), (unit * 0.62, unit * 0.015, unit * 0.11), metal)
