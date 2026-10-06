@@ -7,6 +7,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
 #include "TimerManager.h"
+#include "VeyraCombatVerbs.h"
 
 #include "VeyraTetherSubsystem.generated.h"
 
@@ -33,6 +34,16 @@ struct FVeyraTetherSpec
 
 	/** Held on the target while the tether lasts, and removed when it ends. */
 	TArray<FVeyraStatusSpec> TargetStatuses;
+
+	/**
+	 * A siphon (ADR-065 §8): every SiphonIntervalSeconds while the tether holds, and once more as its time runs out, it
+	 * deals SiphonDamage to the target, and its source restores SiphonHealShare of the Health the target lost to it,
+	 * never above Max Health. The caller prepares SiphonDamage, as at a cast's Commit (Combat Bible §50); invalid for no
+	 * siphon. With one, the interval is above 0 and the share at least 0.
+	 */
+	FVeyraPreparedDamage SiphonDamage;
+	double SiphonIntervalSeconds = 0.0;
+	double SiphonHealShare = 0.0;
 };
 
 /** Why a tether ended (Combat Bible §43). */
@@ -101,10 +112,25 @@ private:
 		TWeakObjectPtr<UAbilitySystemComponent> Target;
 		FVeyraTetherSpec Spec;
 		double EndsAt = 0.0;
+
+		/** When its siphon next pulses, if it has one. */
+		double NextPulseAt = 0.0;
 	};
 
-	/** Judges every tether: its time, its units' lives and its range. */
+	/** One siphon pulse, taken from its link before any is dealt: dealing one may end lives and tethers. */
+	struct FPulse
+	{
+		TWeakObjectPtr<UAbilitySystemComponent> Source;
+		TWeakObjectPtr<UAbilitySystemComponent> Target;
+		FVeyraPreparedDamage Damage;
+		double HealShare = 0.0;
+	};
+
+	/** Judges every tether: its siphon's pulses, then its time, its units' lives and its range. */
 	void Check();
+
+	/** Deals Pulse's damage and restores its source's share of the Health its target lost. */
+	static void Siphon(const FPulse& Pulse);
 
 	/** Why the link ends now, if it does. */
 	TOptional<EVeyraTetherEndReason> Judge(const FLink& Link, double Now) const;

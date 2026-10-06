@@ -66,9 +66,9 @@ namespace
 
 double DamageAmount(const UAbilitySystemComponent& Caster, const FVeyraDamageTuning& Damage, int32 Rank)
 {
-	return VeyraAbilityRules::ValueAtRank(Damage.AmountByRank, Rank)
-		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()) * Damage.PhysicalPowerRatio
-		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Damage.MagicPowerRatio;
+	// The formula an ability's numbers show too (ADR-065 §7).
+	return VeyraAbilityRules::DamageAmount(Damage, Rank, Caster.GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()),
+		Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()));
 }
 
 TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids, int32 SourceLevel)

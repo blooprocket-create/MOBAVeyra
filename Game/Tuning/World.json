@@ -59,7 +59,7 @@
         "points": [{ "x": -3700, "y": -6500 }, { "x": 6500, "y": -6500 }, { "x": 6500, "y": 3700 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [2600, 4600, 6900],
+        "spireDistances": [900, 3900, 7300],
         "fluxbornSpawnDistance": 350
       },
       {
@@ -67,7 +67,7 @@
         "points": [{ "x": -4520, "y": -4520 }, { "x": 4520, "y": 4520 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [2400, 3600, 4800],
+        "spireDistances": [800, 2700, 4600],
         "fluxbornSpawnDistance": 350
       },
       {
@@ -75,7 +75,7 @@
         "points": [{ "x": -6500, "y": -3700 }, { "x": -6500, "y": 6500 }, { "x": 3700, "y": 6500 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [2600, 4600, 6900],
+        "spireDistances": [900, 3900, 7300],
         "fluxbornSpawnDistance": 350
       }
     ],
@@ -185,10 +185,10 @@
     "ai": {
       "thinkSeconds": 0.25,
       "aggressionResponseRange": 700,
-      "leashRange": 900,
+      "leashRange": 550,
       "waypointAcceptance": 150
     },
-    "corpseSeconds": 1,
+    "corpseSeconds": 2.5,
     "avoidanceConsiderationRadius": 200,
     "avoidanceWeight": 0.5
   },
@@ -393,7 +393,7 @@
     },
     "ai": {
       "thinkSeconds": 0.25,
-      "corpseSeconds": 1,
+      "corpseSeconds": 2.5,
       "homeAcceptance": 100
     },
     "camps": [

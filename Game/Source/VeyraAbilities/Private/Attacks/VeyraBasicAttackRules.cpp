@@ -2,6 +2,11 @@
 
 #include "Attacks/VeyraBasicAttackTypes.h"
 
+#include "AbilitySystemComponent.h"
+#include "Attributes/VeyraDefenceSet.h"
+#include "Damage/VeyraDamageResolver.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
+
 const TCHAR* LexToString(EVeyraAttackRejection Rejection)
 {
 	switch (Rejection)
@@ -112,5 +117,26 @@ FVeyraRawDamageEvent AgainstStructure(const FVeyraAttackPlan& Plan, double Effec
 		Component.Amount = Own + (Component.Amount - Own) * Effectiveness;
 	}
 	return Damage;
+}
+
+double RawHit(const FVeyraBasicAttackProfile& Profile, double PhysicalPower, double MagicPower)
+{
+	return PhysicalPower * Profile.PhysicalPowerRatio + MagicPower * Profile.MagicPowerRatio;
+}
+
+double ShareTaken(const FVeyraBasicAttackProfile& Profile, const UAbilitySystemComponent& Target)
+{
+	if (Profile.DamageType == EVeyraDamageType::TrueDamage)
+	{
+		return 1.0;
+	}
+	const FGameplayAttribute Resistance = Profile.DamageType == EVeyraDamageType::Magic ? UVeyraDefenceSet::GetMagicResistAttribute() : UVeyraDefenceSet::GetArmorAttribute();
+	const double Value = Target.HasAttributeSetForAttribute(Resistance) ? Target.GetNumericAttribute(Resistance) : 0.0;
+	return VeyraDamage::ResistanceDamageMultiplier(Value, UVeyraCombatTuningSubsystem::Get().Resistance.MitigationConstant);
+}
+
+double ExpectedHit(const FVeyraBasicAttackProfile& Profile, double PhysicalPower, double MagicPower, const UAbilitySystemComponent& Target)
+{
+	return RawHit(Profile, PhysicalPower, MagicPower) * ShareTaken(Profile, Target);
 }
 }

@@ -462,7 +462,7 @@ void UVeyraMatchStatisticsSubsystem::OnFluxWellSecured(const FVeyraFluxWellSecur
 	}
 }
 
-void UVeyraMatchStatisticsSubsystem::OnGoldGranted(double Amount, EVeyraGoldReason Reason, TWeakObjectPtr<AVeyraPlayerState> Participant)
+void UVeyraMatchStatisticsSubsystem::OnGoldGranted(double Amount, EVeyraGoldReason Reason, const FVeyraGoldSource& /*From*/, TWeakObjectPtr<AVeyraPlayerState> Participant)
 {
 	FRecord* Record = bRecording ? Find(Participant.Get()) : nullptr;
 	if (Record)

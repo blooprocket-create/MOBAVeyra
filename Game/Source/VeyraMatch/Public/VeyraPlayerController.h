@@ -17,6 +17,7 @@
 #include "VeyraMatchTypes.h"
 #include "Chat/VeyraChatTypes.h"
 #include "Feedback/VeyraCombatTextTypes.h"
+#include "Feedback/VeyraKillFeedTypes.h"
 #include "Pings/VeyraPingTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
@@ -291,6 +292,13 @@ public:
 	UFUNCTION(Client, Unreliable)
 	void ClientCombatText(const FVeyraCombatTextLine& Line);
 
+	/** Owning client: a kill feed line the server sent every player (ADR-065 §10), which the UI shows. */
+	TMulticastDelegate<void(const FVeyraKillFeedLine&)> OnKillFeed;
+
+	/** Server: sends Line to this player's client. Reliable: a fall is few and worth knowing. */
+	UFUNCTION(Client, Reliable)
+	void ClientKillFeed(const FVeyraKillFeedLine& Line);
+
 	/**
 	 * Owning client: the units the player targets now, for When Targeted bars (ADR-052 §2): the unit its last
 	 * attack order named, the one its body is attacking, and the one under the cursor. Presentation only.
@@ -476,6 +484,12 @@ private:
 
 	/** Where the cursor was on the last frame of a middle-mouse drag. */
 	TOptional<FVector2D> LastDragMouse;
+
+	/** The movement the camera's controller ticks after, so it reads where the followed body is drawn this frame (ADR-065 §12). */
+	TWeakObjectPtr<UActorComponent> CameraFollowsMovement;
+
+	/** Ticks after Body's movement, and no longer after the one before it. */
+	void TickAfterMovementOf(const APawn* Body);
 
 	/** How long the cursor has rested in the screen's edge zone, for the Edge-Scroll Delay (SET-87). */
 	double EdgeHeldSeconds = 0.0;

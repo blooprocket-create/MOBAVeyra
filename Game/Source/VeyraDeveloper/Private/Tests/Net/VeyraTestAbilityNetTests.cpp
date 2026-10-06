@@ -168,8 +168,8 @@ namespace VeyraNetTests
 				});
 		}
 
-		// A dead Vanguard's body leaves the map, so a client has nothing left to aim at; the rule that a
-		// dead target is refused is covered by Veyra.Abilities.TargetedCasting.
+		// A dead Vanguard's body lies where it fell until it returns (ADR-065 §9): a client can aim at it, and the cast
+		// is refused. The rule itself is covered by Veyra.Abilities.TargetedCasting.
 		TEST_METHOD(ADeadVanguardCannotBeTargeted)
 		{
 			Identify(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
@@ -184,9 +184,11 @@ namespace VeyraNetTests
 					const AVeyraPlayerState* Target = ParticipantOf(State.World, TargetId);
 					return Target && !Target->FindComponentByClass<UVeyraLifeComponent>()->IsAlive();
 				})
-				.UntilClient(TEXT("Its body leaves the map"), 0, [this](FState& State) { return FindVanguard(State.World, TargetId) == nullptr; })
+				.UntilClient(TEXT("Its body lies where it fell"), 0, [this](FState& State) { return FindVanguard(State.World, TargetId) != nullptr; })
 				.ThenClient(0, [this](FState& State) { CastFromClient0(State, TargetId); })
-				.UntilClient(0, [](FState& State) { return LocalControllerOf(State.World)->GetLastCastRejection() == EVeyraCastRejection::InvalidTarget; });
+				.UntilClient(TEXT("The cast is refused: its target is dead"), 0, [](FState& State) {
+					return LocalControllerOf(State.World)->GetLastCastRejection() == EVeyraCastRejection::TargetDead;
+				});
 		}
 
 		TEST_METHOD(TheMatchRefusesCastsBeforeItIsLiveAndWhilePaused)

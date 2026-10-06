@@ -29,6 +29,16 @@ void FVeyraCombatTextLink::Start(UWorld& World)
 	ShieldHandle = Subsystem->OnShieldGranted.AddRaw(this, &FVeyraCombatTextLink::OnShieldGranted);
 }
 
+void FVeyraCombatTextLink::WatchGold(AVeyraPlayerState& Participant)
+{
+	UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>();
+	if (!Gold || WatchedGold.ContainsByPredicate([Gold](const FWatchedGold& Each) { return Each.Gold.Get() == Gold; }))
+	{
+		return;
+	}
+	WatchedGold.Add({ Gold, Gold->OnGoldGranted.AddRaw(this, &FVeyraCombatTextLink::OnGoldGranted, TWeakObjectPtr<AVeyraPlayerState>(&Participant)) });
+}
+
 void FVeyraCombatTextLink::Stop()
 {
 	if (UVeyraCombatEventSubsystem* Subsystem = Events.Get())
@@ -38,6 +48,44 @@ void FVeyraCombatTextLink::Stop()
 		Subsystem->OnShieldGranted.Remove(ShieldHandle);
 	}
 	Events.Reset();
+	for (const FWatchedGold& Each : WatchedGold)
+	{
+		if (UVeyraGoldComponent* Gold = Each.Gold.Get())
+		{
+			Gold->OnGoldGranted.Remove(Each.Handle);
+		}
+	}
+	WatchedGold.Reset();
+}
+
+void FVeyraCombatTextLink::OnGoldGranted(double Amount, EVeyraGoldReason Reason, const FVeyraGoldSource& From, TWeakObjectPtr<AVeyraPlayerState> Participant)
+{
+	AVeyraPlayerState* Player = Participant.Get();
+	AVeyraPlayerController* Controller = Player ? Cast<AVeyraPlayerController>(Player->GetPlayerController()) : nullptr;
+	TOptional<FVeyraCombatTextLine> Line = Controller ? VeyraCombatTextRouting::ForGold(Amount, Reason, From, Player->GetPawn()) : TOptional<FVeyraCombatTextLine>();
+	if (!Line.IsSet())
+	{
+		return;
+	}
+	// A fall the player's side did not see shows over the player's own Vanguard instead: a number never reveals a place
+	// in the fog. The body itself never travels; its place does.
+	if (Line->bFixed)
+	{
+		const AActor* Fallen = Line->Unit.Get();
+		if (!Fallen || !VeyraVisibility::IsVisibleToTeam(Player->GetVeyraTeam(), *Fallen))
+		{
+			Line->bFixed = false;
+			Line->Unit = Player->GetPawn();
+		}
+		else
+		{
+			Line->Unit = nullptr;
+		}
+	}
+	if (Line->bFixed || Line->Unit)
+	{
+		Controller->ClientCombatText(Line.GetValue());
+	}
 }
 
 void FVeyraCombatTextLink::OnDamageTaken(const FVeyraDamageDealtEvent& Event)

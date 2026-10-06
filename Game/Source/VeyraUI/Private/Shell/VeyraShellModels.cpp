@@ -10,6 +10,7 @@
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Slots/VeyraAbilitySlot.h"
+#include "Text/VeyraAbilityNumbers.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
@@ -382,7 +383,8 @@ namespace
 			if (!Key.Value->IsEmpty())
 			{
 				const FVeyraContentId& Ability = (*Key.Value)[0];
-				Lines.Add(FVeyraAbilityLineModel{ Key.Key, VeyraContentText::AbilityName(Ability), VeyraContentText::AbilityDescription(Ability), Ability.ToString() });
+				Lines.Add(FVeyraAbilityLineModel{ Key.Key, VeyraContentText::AbilityName(Ability), VeyraContentText::AbilityDescription(Ability), Ability.ToString(),
+					VeyraAbilityNumbers::ByRank(Ability) });
 			}
 		}
 		return Lines;

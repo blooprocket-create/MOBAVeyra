@@ -5,6 +5,7 @@
 #include "Greybox/VeyraBodyFeedback.h"
 #include "Greybox/VeyraOrderMarks.h"
 #include "Hud/VeyraCombatTextModel.h"
+#include "Hud/VeyraKillFeedModel.h"
 #include "Shapes/VeyraShapes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
@@ -38,6 +39,13 @@ enum class EVeyraTelegraphSource : uint8
 	LingeringAreaEnding,
 	/** The local player's indicator: where an ability would land, before it is cast (ADR-041 §2). */
 	Indicator,
+};
+
+/** The player's own level-up as this machine announces it (ADR-065 §5): the new Level, and when it came by this machine's clock. */
+struct FVeyraLevelUpMoment
+{
+	int32 Level = 0;
+	double At = 0.0;
 };
 
 /** A melee attack's swing as this machine draws it: an arc from its attacker toward its target, fading (ADR-063 §2). */
@@ -173,6 +181,12 @@ public:
 	/** The combat text this machine's player received and still shows, oldest first, by this machine's clock (ADR-052 §1). */
 	const TArray<FVeyraCombatTextArrival>& GetCombatText() const { return CombatText; }
 
+	/** This machine's player's latest level-up, by this machine's clock, for the HUD's banner (ADR-065 §5). */
+	const TOptional<FVeyraLevelUpMoment>& GetOwnLevelUp() const { return OwnLevelUp; }
+
+	/** The kill feed this machine's player received and still shows, oldest first, by this machine's clock (ADR-065 §10). */
+	const TArray<FVeyraKillFeedArrival>& GetKillFeed() const { return KillFeed; }
+
 	/** The colour of Team as the viewer sees it: ally, enemy or neutral. */
 	FLinearColor ColorOfSide(EVeyraTeam Team) const;
 
@@ -190,16 +204,27 @@ public:
 	FLinearColor BodyColorOf(const AActor& Unit) const;
 
 private:
-	/** Listens to the local player's combat text once its controller exists, and forgets the numbers done showing. */
+	/**
+	 * Listens to the local player's combat text and kill feed once its controller exists, and forgets the numbers and lines
+	 * done showing.
+	 */
 	void RefreshCombatText();
 
 	/** Darkens the ground the viewer's side does not see, redrawn only when its seen ground changes (ADR-054 §3). */
 	void RefreshFogOfWar();
 	void OnCombatText(const FVeyraCombatTextLine& Line);
+	void OnKillFeed(const FVeyraKillFeedLine& Line);
 
 	TArray<FVeyraCombatTextArrival> CombatText;
+
+	/** The kill feed lines this machine's player received and still shows, oldest first, by this machine's clock (ADR-065 §10). */
+	TArray<FVeyraKillFeedArrival> KillFeed;
+
+	TOptional<FVeyraLevelUpMoment> OwnLevelUp;
 	TWeakObjectPtr<class AVeyraPlayerController> CombatTextSource;
 	FDelegateHandle CombatTextHandle;
+	TWeakObjectPtr<class AVeyraPlayerController> KillFeedSource;
+	FDelegateHandle KillFeedHandle;
 
 	bool bAuthoredTerrain = false;
 	TMap<FVector2D, double> FogSurfaceHeights;
@@ -347,8 +372,14 @@ private:
 	 */
 	void AttachHudOverlay();
 
-	/** A shape of Mesh attached to Owner, with its own material instance, or null. */
+	/** A shape of Mesh attached where Owner's body is drawn, with its own material instance, or null. */
 	UStaticMeshComponent* AddShape(AActor& Owner, UStaticMesh& Mesh, UMaterialInstanceDynamic*& OutMaterial) const;
+
+	/** Unit's drawn body eases after each update from the server, as its kind's settings say (ADR-065 §12). */
+	static void EaseBody(APawn& Unit);
+
+	/** Whether Unit is the local player's own Vanguard. */
+	bool IsViewersVanguard(const AActor* Unit) const;
 
 	/** The ground under Location, lifted for drawing; Location itself where there is none. */
 	FVector GroundUnder(const FVector& Location) const;
@@ -376,6 +407,9 @@ private:
 	TObjectPtr<class UNiagaraSystem> DeathEffect;
 
 	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> LevelUpEffect;
+
+	UPROPERTY(Transient)
 	TObjectPtr<class UNiagaraSystem> TrailEffect;
 
 	/** The fight's sounds (ADR-063 §5), how far they carry and how many play at once. */
@@ -393,6 +427,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<class USoundBase> ClickSound;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoundBase> LevelUpSound;
 
 	UPROPERTY(Transient)
 	TObjectPtr<class USoundAttenuation> CueAttenuation;

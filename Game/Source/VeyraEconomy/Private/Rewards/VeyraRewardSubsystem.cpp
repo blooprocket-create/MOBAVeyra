@@ -17,6 +17,16 @@
 #include "Units/VeyraUnit.h"
 #include "VeyraEconomyLog.h"
 
+namespace
+{
+	/** The unit Death names and where it fell: what the Gold its fall earns shows at (ADR-065 §4). */
+	FVeyraGoldSource FallOf(const FVeyraDeathEvent& Death)
+	{
+		const UAbilitySystemComponent* Victim = Death.Victim.Get();
+		return FVeyraGoldSource{ Victim ? Victim->GetAvatarActor() : nullptr, Death.Location };
+	}
+}
+
 void UVeyraRewardSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -77,7 +87,7 @@ void UVeyraRewardSubsystem::RewardWildlifeDeath(const FVeyraDeathEvent& Death, c
 	const FRecipient* Killer = FindRecipient(All, Death.CreditedKiller.Get());
 	if (Killer)
 	{
-		Killer->Gold->Grant(Tuning.Gold.Wildlife.FindRef(Species), EVeyraGoldReason::Wildlife);
+		Killer->Gold->Grant(Tuning.Gold.Wildlife.FindRef(Species), EVeyraGoldReason::Wildlife, FallOf(Death));
 	}
 	// Its XP for the credited side's living Vanguards near it; with no Vanguard credited, each side's (§7).
 	const double Experience = Tuning.Experience.Wildlife.FindRef(Species);
@@ -120,7 +130,7 @@ void UVeyraRewardSubsystem::RewardWardDestroyed(const FVeyraDeathEvent& Death)
 	const TArray<FRecipient> All = Recipients();
 	if (const FRecipient* Destroyer = FindRecipient(All, Death.CreditedKiller.Get()))
 	{
-		Destroyer->Gold->Grant(UVeyraEconomyTuningSubsystem::Get().VisionTools.WardBounty, EVeyraGoldReason::WardDestroyed);
+		Destroyer->Gold->Grant(UVeyraEconomyTuningSubsystem::Get().VisionTools.WardBounty, EVeyraGoldReason::WardDestroyed, FallOf(Death));
 	}
 }
 
@@ -192,7 +202,7 @@ void UVeyraRewardSubsystem::RewardFluxbornDeath(const FVeyraDeathEvent& Death, c
 	const FRecipient* LastHitter = FindRecipient(All, Death.Killer.Get());
 	if (LastHitter && LastHitter->Team == Allies)
 	{
-		LastHitter->Gold->Grant(Gold, EVeyraGoldReason::LastHit);
+		LastHitter->Gold->Grant(Gold, EVeyraGoldReason::LastHit, FallOf(Death));
 	}
 	else
 	{
@@ -219,7 +229,7 @@ void UVeyraRewardSubsystem::RewardFluxbornDeath(const FVeyraDeathEvent& Death, c
 		{
 			if (Recipient != LastHitter)
 			{
-				Recipient->Gold->Grant(Gold * Tuning.Gold.ParticipationFraction, EVeyraGoldReason::Participation);
+				Recipient->Gold->Grant(Gold * Tuning.Gold.ParticipationFraction, EVeyraGoldReason::Participation, FallOf(Death));
 			}
 		}
 	}

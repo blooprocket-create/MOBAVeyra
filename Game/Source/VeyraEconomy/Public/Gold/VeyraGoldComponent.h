@@ -42,6 +42,16 @@ enum class EVeyraGoldReason : uint8
 VEYRAECONOMY_API const TCHAR* LexToString(EVeyraGoldReason Reason);
 
 /**
+ * What earned a grant, when a unit's fall did (ADR-065 §4): that unit, and where it stood as it fell, which outlasts its
+ * body. Empty for Gold earned nowhere in particular, such as a kill's, passive income or a sale.
+ */
+struct FVeyraGoldSource
+{
+	TWeakObjectPtr<const AActor> Unit;
+	TOptional<FVector> Where;
+};
+
+/**
  * Gold set aside for a purchase not yet delivered (§11.1): spent already, and refunded in full if the
  * purchase is cancelled (§11.3). The owner sees its holds, so the shop can show what waits.
  */
@@ -69,16 +79,19 @@ class VEYRAECONOMY_API UVeyraGoldComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGoldGranted, double /*Amount*/, EVeyraGoldReason);
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGoldGranted, double /*Amount*/, EVeyraGoldReason, const FVeyraGoldSource& /*From*/);
 
 	UVeyraGoldComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	/** Server only: adds Amount Gold for Reason and logs it. Refused unless finite and above 0. */
-	bool Grant(double Amount, EVeyraGoldReason Reason);
+	/** Server only: adds Amount Gold for Reason, earned From, and logs it. Refused unless finite and above 0. */
+	bool Grant(double Amount, EVeyraGoldReason Reason, const FVeyraGoldSource& From = {});
 
-	/** Server: every grant, as it lands, for the match statistics (ADR-017 §2). Economy keeps no statistic. */
+	/**
+	 * Server: every grant, as it lands, for the match statistics (ADR-017 §2) and the owner's Gold numbers (ADR-065 §4).
+	 * Economy keeps no statistic and draws nothing.
+	 */
 	FOnGoldGranted OnGoldGranted;
 
 	/**

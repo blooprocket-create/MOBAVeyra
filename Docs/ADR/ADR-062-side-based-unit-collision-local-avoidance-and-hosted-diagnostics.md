@@ -80,6 +80,7 @@ When the Worker's recorded tunnel is gone, Cloudflare answers with an origin err
 - **Smoothing:** no change.
   - Vanguards already replicate every server tick: the engine's default rate is above the 30 Hz tick. Fluxborn replicate every third tick (ADR-011 §7).
   - Clients draw both as simulated units, with the movement component's exponential smoothing between updates.
+  - **Amended by ADR-065 §12:** that smoothing eases only a character's mesh, and bodies hung from the capsule, so it never reached them. Drawn bodies now hang from the mesh.
 - **No prediction:** movement prediction stays out of scope (ADR-009 §6).
 
 ### 7. Provisional answers where canon is open

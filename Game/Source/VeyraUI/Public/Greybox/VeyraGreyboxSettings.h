@@ -108,6 +108,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ShieldColor = FLinearColor::Transparent;
 
+	/**
+	 * The last-hit cue (ADR-065 §6): a mark across an enemy Fluxborn's or creature's bar at the Health the player's next
+	 * basic attack would finish, and the colour its Health takes once it falls that low.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor LastHitMarkColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor LastHitColor = FLinearColor::Transparent;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ResourceColor = FLinearColor::Transparent;
 
@@ -371,6 +381,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Effects")
 	TSoftObjectPtr<class UNiagaraSystem> DeathEffect;
 
+	/** A Vanguard levelling up (ADR-065 §5), rising round its body in its side colour. */
+	UPROPERTY(Config, EditAnywhere, Category = "Effects")
+	TSoftObjectPtr<class UNiagaraSystem> LevelUpEffect;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Effects")
 	FName EffectColorParameter;
 
@@ -433,6 +447,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sounds")
 	TSoftObjectPtr<class USoundBase> ClickSound;
 
+	/** The player's own level-up (ADR-065 §5), heard as the click is, from nowhere in particular. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sounds")
+	TSoftObjectPtr<class USoundBase> LevelUpSound;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Sounds", meta = (ClampMin = "1"))
 	float SoundAudibleRadius = 0.0f;
 
@@ -494,6 +512,44 @@ public:
 
 	/** A kind of structure's stable ID in its art kit, as the kit's manifest names it: "laneSpire" and the like. */
 	static FName StructureArtId(EVeyraStructureKind Kind);
+
+	/**
+	 * How much larger than its capsule a body is drawn (ADR-065 §11): a Vanguard's, its companion's and its Echo's
+	 * animated body by VanguardBodyScale, a structure's art by StructureArtScale, from the foot. Presentation only: the
+	 * capsule, and so collision, reach and every range, keeps its size.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.1"))
+	float VanguardBodyScale = 1.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.1"))
+	float StructureArtScale = 1.0f;
+
+	/** The scale Unit's body is drawn at: its kind's (VanguardBodyScale, StructureArtScale), or 1. */
+	float VisualScaleOf(const AActor& Unit) const;
+
+	/** How far above Unit's centre the top of its drawn body stands: its capsule's top, raised by its visual scale. */
+	float VisualTopOf(const AActor& Unit) const;
+
+	/**
+	 * How long, in seconds, a body drawn on a machine that only shows it takes to ease to each new place and facing from the
+	 * server, after its capsule steps there (ADR-065 §12). A Vanguard's, its companion's and its Echo's place arrives every
+	 * server tick; a Fluxborn's and a creature's less often (World.json replication), so theirs ease longer. Presentation
+	 * only: the server moves every unit, and nothing it decides reads a drawn body.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float VanguardEaseLocationSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float VanguardEaseRotationSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float CreatureEaseLocationSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float CreatureEaseRotationSeconds = 0.0f;
+
+	/** How Unit's drawn body eases, in seconds, its place's and its facing's; unset for a unit that does not move. */
+	TOptional<FVector2f> EaseOf(const AActor& Unit) const;
 
 	/**
 	 * The Fluxborn kit's provisional art (Art Direction, Fluxborn greybox meshes), keyed by each kind's content ID,
@@ -674,6 +730,52 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	int32 HudHeadlineFontSize = 0;
 
+	/**
+	 * The player's own level-up (ADR-065 §5): "Level N" at LevelUpFontSize, centred LevelUpHeightShare of the way down
+	 * the screen, for LevelUpBannerSeconds, fading out through the last LevelUpFadeShare of it.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 LevelUpFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0", ClampMax = "1"))
+	float LevelUpHeightShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float LevelUpBannerSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0", ClampMax = "1"))
+	float LevelUpFadeShare = 0.0f;
+
+	/**
+	 * The kill feed (ADR-065 §10): at most KillFeedRows lines down the top right, each KillFeedSeconds, its faces
+	 * KillFeedFaceSize at the reference height; and the announcement of the player's own moments under the top strip, for
+	 * AnnouncementSeconds at AnnouncementFontSize, fading through the banner's LevelUpFadeShare.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 KillFeedRows = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float KillFeedSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float KillFeedFaceSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float AnnouncementSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 AnnouncementFontSize = 0;
+
+	/**
+	 * While a skill point waits, the rank-up marks pulse between RankUpPulseFloor of their opacity and all of it, once
+	 * every RankUpPulseSeconds; Reduce UI Animation holds them whole (ADR-065 §5; ADR-055 §3).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float RankUpPulseSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0", ClampMax = "1"))
+	float RankUpPulseFloor = 0.0f;
+
 	/** A hovered slot's tooltip, at the reference height. */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	float TooltipWidth = 0.0f;
@@ -729,6 +831,10 @@ public:
 	/** Reduced density merges a number arriving within this many seconds of the last it would join. */
 	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
 	float CombatTextMergeSeconds = 0.0f;
+
+	/** At any density, Gold arriving within this many seconds of the last Gold at the same place joins it (ADR-065 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))
+	float CombatTextGoldMergeSeconds = 0.0f;
 
 	/** The numbers' size against the HUD's small type, and a crit's against that. */
 	UPROPERTY(Config, EditAnywhere, Category = "Combat text", meta = (ClampMin = "0"))

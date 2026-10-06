@@ -212,7 +212,7 @@ AVeyraFluxborn* UVeyraBattlegroundSubsystem::SpawnFluxborn(const FVeyraContentId
 	TArray<FVector2D> Waypoints = VeyraLayout::Waypoints(*LaneLayout, Team);
 	Waypoints.Add(VeyraLayout::ForTeam(VeyraLayout::ToVector(Layout->Base.PrimeWell), VeyraTeams::Opposing(Team)));
 	// It spawns in front of its inhibitor, on the floor, facing up the lane.
-	const FVector2D SpawnPoint = VeyraLayout::ForTeam(VeyraLayout::PointAlong(LaneLayout->Points, LaneLayout->FluxbornSpawnDistance), Team);
+	const FVector2D SpawnPoint = VeyraLayout::FluxbornSpawnPoint(*LaneLayout, Team);
 	FVector Start;
 	if (!VeyraSurfacePlacement::Resolve(*World, SpawnPoint, Definition->CapsuleHalfHeight, Layout->Surface, Start))
 	{

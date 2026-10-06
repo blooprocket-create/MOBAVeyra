@@ -170,6 +170,33 @@ namespace VeyraWorldTests
 			}
 		}
 
+		TEST_METHOD(EachTeamsWavesSpawnOnTheLaneTheyWalkBeforeTheirOwnInhibitor)
+		{
+			// Team B's spawn is its own end of the lane, never Team A's spawn rotated: the half turn carries the top lane
+			// onto the bottom.
+			const FVeyraBattlegroundLayout& Layout = Committed();
+			const TArray<FVeyraStructurePlacement> Placements = VeyraLayout::Structures(Layout);
+			const auto InhibitorOf = [&Placements](EVeyraTeam Team, EVeyraLane Lane) {
+				return Placements.FindByPredicate([Team, Lane](const FVeyraStructurePlacement& P) {
+					return P.Team == Team && P.Lane == Lane && P.Kind == EVeyraStructureKind::Inhibitor;
+				});
+			};
+			for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+			{
+				for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+				{
+					const FVector2D Spawn = VeyraLayout::FluxbornSpawnPoint(Lane, Team);
+					ASSERT_THAT(IsTrue(VeyraLayout::DistanceToPath(Lane.Points, Spawn) < Tolerance, TEXT("on the lane it walks")));
+					ASSERT_THAT(IsTrue(FVector2D::Distance(Spawn, VeyraLayout::Waypoints(Lane, Team)[0]) <= Lane.FluxbornSpawnDistance + Tolerance,
+						TEXT("by the end it walks from")));
+					const FVeyraStructurePlacement* Own = InhibitorOf(Team, Lane.Lane);
+					const FVeyraStructurePlacement* Enemy = InhibitorOf(VeyraTeams::Opposing(Team), Lane.Lane);
+					ASSERT_THAT(IsTrue(Own && Enemy && FVector2D::Distance(Spawn, Own->Location) < FVector2D::Distance(Spawn, Enemy->Location),
+						TEXT("before its own inhibitor")));
+				}
+			}
+		}
+
 		TEST_METHOD(ALanesStructuresFallFromTheOuterSpireInward)
 		{
 			const FVeyraBattlegroundLayout& Layout = Committed();

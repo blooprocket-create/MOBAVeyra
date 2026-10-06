@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Damage/VeyraDamageTypes.h"
+#include "Engine/NetSerialization.h"
 #include "GameFramework/Actor.h"
 
 #include "VeyraCombatTextTypes.generated.h"
@@ -19,6 +20,8 @@ enum class EVeyraCombatTextKind : uint8
 	Healing,
 	/** A shield granted, given or received by the player. */
 	Shielding,
+	/** Gold the player earned (ADR-065 §4). */
+	Gold,
 };
 
 /**
@@ -51,4 +54,14 @@ struct VEYRAMATCH_API FVeyraCombatTextLine
 
 	UPROPERTY()
 	float Amount = 0.0f;
+
+	/**
+	 * Gold earned by a unit's fall shows where it fell, and stays there though the body goes (ADR-065 §4); every other
+	 * number follows its unit.
+	 */
+	UPROPERTY()
+	bool bFixed = false;
+
+	UPROPERTY()
+	FVector_NetQuantize Where = FVector::ZeroVector;
 };

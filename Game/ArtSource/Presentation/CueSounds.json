@@ -11,6 +11,7 @@
     { "name": "S_VeyraSwing", "kind": "swing", "seconds": 0.16, "gain": 0.45, "smoothing": 0.18 },
     { "name": "S_VeyraCast", "kind": "cast", "seconds": 0.28, "gain": 0.45, "fromHz": 420.0, "toHz": 1260.0, "vibratoHz": 18.0, "vibratoDepth": 0.04 },
     { "name": "S_VeyraDeath", "kind": "death", "seconds": 0.55, "gain": 0.65, "fromHz": 320.0, "toHz": 70.0, "noiseShare": 0.25 },
-    { "name": "S_VeyraClick", "kind": "click", "seconds": 0.03, "gain": 0.3, "hz": 1900.0 }
+    { "name": "S_VeyraClick", "kind": "click", "seconds": 0.03, "gain": 0.3, "hz": 1900.0 },
+    { "name": "S_VeyraLevelUp", "kind": "cast", "seconds": 0.5, "gain": 0.5, "fromHz": 523.0, "toHz": 1568.0, "vibratoHz": 7.0, "vibratoDepth": 0.02 }
   ]
 }

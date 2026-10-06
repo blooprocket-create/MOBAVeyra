@@ -114,9 +114,10 @@ namespace VeyraWorldTests
 	{
 		static constexpr double Tolerance = 1e-3;
 
-		// Fixture values: a strength, and a hit to take some Health.
+		// Fixture values: a strength, a hit to take some Health, and how far either side of the leash a stray test stands.
 		static constexpr double Stronger = 1.1;
 		static constexpr double Hit = 100.0;
+		static constexpr double StrayMargin = 60.0;
 
 		FActorTestSpawner Spawner;
 		UVeyraBattlegroundSubsystem* Battleground = nullptr;
@@ -221,6 +222,25 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Attacker.GetAbilitySystemComponent(), *Ally.GetAbilitySystemComponent(), Damage)));
 			Controller->Think();
 			ASSERT_THAT(IsTrue(Controller->GetTarget() == &Attacker && Controller->IsResponding(), TEXT("it turns on the attacker")));
+		}
+
+		TEST_METHOD(BeyondItsLeashItLetsItsTargetGoThoughTheTargetStandsWithin)
+		{
+			AVeyraFluxborn* Strider = Battleground->SpawnFluxborn(Kind(TEXT("strider")), EVeyraTeam::A, EVeyraLane::Mid);
+			const double Leash = UVeyraWorldTuningSubsystem::Get().Fluxborn.Ai.LeashRange;
+			const FVector Here = Strider->GetActorLocation();
+			// Across the compact mid lane, which runs along X = Y: fixture placements either side of the leash.
+			const FVector Across = FVector(1.0, -1.0, 0.0).GetSafeNormal();
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Champion = World.Spawn(EVeyraTeam::B, Here + Across * (Leash * 0.5));
+			AVeyraFluxbornController* Controller = Cast<AVeyraFluxbornController>(Strider->GetController());
+			Controller->Think();
+			ASSERT_THAT(IsTrue(Controller->GetTarget() == &Champion, TEXT("a Vanguard near the lane is chased")));
+
+			Champion.SetActorLocation(Here + Across * (Leash - StrayMargin));
+			Strider->SetActorLocation(Here + Across * (Leash + StrayMargin));
+			Controller->Think();
+			ASSERT_THAT(IsNull(Controller->GetTarget(), TEXT("strayed past its leash, it lets go")));
 		}
 
 		TEST_METHOD(AFallenFluxbornIsRemoved)

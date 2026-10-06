@@ -12,14 +12,16 @@
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Movement/VeyraDrawnBody.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 
 USkeletalMeshComponent* VeyraVanguardSkin::Attach(APawn& Unit)
 {
-	USceneComponent* Root = Unit.GetRootComponent();
-	if (!Root)
+	// It hangs from where the body is drawn, which glides after the capsule on machines that only show it (ADR-065 §12).
+	USceneComponent* Anchor = VeyraDrawnBody::AnchorOf(Unit);
+	if (!Anchor)
 	{
 		return nullptr;
 	}
@@ -29,7 +31,7 @@ USkeletalMeshComponent* VeyraVanguardSkin::Attach(APawn& Unit)
 	Skin->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Skin->SetGenerateOverlapEvents(false);
 	Skin->SetCanEverAffectNavigation(false);
-	Skin->SetupAttachment(Root);
+	Skin->SetupAttachment(Anchor);
 	float Radius = 0.0f;
 	float HalfHeight = 0.0f;
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);

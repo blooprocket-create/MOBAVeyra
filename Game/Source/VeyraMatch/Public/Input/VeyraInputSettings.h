@@ -23,6 +23,13 @@ class VEYRAMATCH_API UVeyraInputSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
+	/**
+	 * How far from the cursor's line a unit's capsule may stand and still be under the cursor, in units: bodies are drawn
+	 * larger than their capsules (ADR-065 §11), so a click on one's head finds it. 0 for the line alone.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Cursor", meta = (ClampMin = "0"))
+	float CursorPickRadius = 0.0f;
+
 	/** Orders the Vanguard to the ground under the cursor, or to attack the enemy under it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey MoveOrderKey;

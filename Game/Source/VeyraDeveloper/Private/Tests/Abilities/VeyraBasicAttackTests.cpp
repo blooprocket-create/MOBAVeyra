@@ -1,8 +1,10 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Attacks/VeyraBasicAttackComponent.h"
+#include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "CombatState/VeyraCombatStateComponent.h"
+#include "Damage/VeyraDamageResolver.h"
 #include "CQTest.h"
 #include "VeyraVisionSubsystem.h"
 #include "Delivery/VeyraProjectile.h"
@@ -43,6 +45,7 @@ namespace VeyraAbilitiesTests
 		static constexpr double QuickWindup = 0.5;
 		static constexpr double PierceSeconds = 3.0;
 		static constexpr double BriefSeconds = 0.2;
+		static constexpr double ExpectedPower = 80.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -172,6 +175,24 @@ namespace VeyraAbilitiesTests
 			{
 				World.Tick(LEVELTICK_TimeOnly, StepSeconds);
 			}
+		}
+
+		TEST_METHOD(AnExpectedHitIsTheAttackersPowerPastTheTargetsResistance)
+		{
+			// The one formula for the bots' last hits and the player's last-hit cue (ADR-065 §6).
+			FArchetypeTestWorld World{ Spawner };
+			const UAbilitySystemComponent& Defender = *World.Spawn(EVeyraTeam::B, FVector(Range, 0.0, 0.0)).GetAbilitySystemComponent();
+			FVeyraBasicAttackProfile Physical = Melee();
+			Physical.DamageType = EVeyraDamageType::Physical;
+			Physical.MagicPowerRatio = PowerRatio / 2.0;
+			const double Raw = VeyraBasicAttacks::RawHit(Physical, ExpectedPower, ExpectedPower);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Raw, ExpectedPower * PowerRatio * 1.5, Tolerance)));
+			const double Armor = Defender.GetNumericAttribute(UVeyraDefenceSet::GetArmorAttribute());
+			const double Past = Raw * VeyraDamage::ResistanceDamageMultiplier(Armor, UVeyraCombatTuningSubsystem::Get().Resistance.MitigationConstant);
+			ASSERT_THAT(IsTrue(Armor > 0.0 && FMath::IsNearlyEqual(VeyraBasicAttacks::ExpectedHit(Physical, ExpectedPower, ExpectedPower, Defender), Past, Tolerance),
+				TEXT("Armor takes its share of a physical hit")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraBasicAttacks::ExpectedHit(Melee(), ExpectedPower, ExpectedPower, Defender), ExpectedPower * PowerRatio, Tolerance),
+				TEXT("True Damage keeps it all")));
 		}
 
 		TEST_METHOD(AMeleeAttackWindsUpThenHitsAtCommit)

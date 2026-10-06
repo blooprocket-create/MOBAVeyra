@@ -973,6 +973,14 @@ struct FVeyraAuraTuning
 	/** Put on each allied Fluxborn in range at every refresh, as Full Grid overclocks them (ADR-033 §6). */
 	UPROPERTY()
 	TArray<FVeyraContentId> AllyFluxbornStatuses;
+
+	/**
+	 * Damage each second to each living enemy unit in range, never a structure or a ward (ADR-065 §8), as The Thing
+	 * Inside's: worked out from the caster's power at Commit, dealt at every refresh in proportion. One component per
+	 * type; empty for none.
+	 */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> EnemyDamagePerSecond;
 };
 
 /**
@@ -1728,6 +1736,29 @@ struct FVeyraVolleyAbilityTuning
 };
 
 /**
+ * What a tether drains while it holds (ADR-065 §8): every interval, and once more as its time runs out, it deals its
+ * damage to the target, worked out from the caster's power at Commit, and the caster regains a share of the Health the
+ * target lost.
+ */
+USTRUCT()
+struct FVeyraTetherSiphonTuning
+{
+	GENERATED_BODY()
+
+	/** Seconds between pulses; above 0. */
+	UPROPERTY()
+	double IntervalSeconds = 0.0;
+
+	/** Each pulse's damage: one component per type. */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	/** The share of the Health each pulse takes that the caster regains; at least 0. */
+	UPROPERTY()
+	double HealShare = 0.0;
+};
+
+/**
  * An ability that tethers an enemy to its caster (Combat Bible §43; ADR-018), as Patch's Don't Leave
  * Me: while it holds, the caster's side sees the target; stretched beyond its range, it may snap the
  * target back toward the caster once, and ends.
@@ -1766,6 +1797,10 @@ struct FVeyraTetherAbilityTuning
 	/** Status IDs held on the target while the tether lasts. */
 	UPROPERTY()
 	TArray<FVeyraContentId> TargetStatuses;
+
+	/** At most one: what the tether drains from its target while it holds (ADR-065 §8), as Don't Leave Me's. */
+	UPROPERTY()
+	TArray<FVeyraTetherSiphonTuning> Siphon;
 };
 
 /**
@@ -2474,7 +2509,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 25;
+	static constexpr int32 SchemaVersion = 26;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -2589,4 +2624,25 @@ namespace VeyraAbilityRules
 	 * hold one value, or exactly RankCount (ADR-008 §3).
 	 */
 	VEYRAABILITIES_API TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 RankCount);
+
+	/**
+	 * One damage component's amount at Rank for an attacker with these powers, before the target's defences: the rank's
+	 * amount plus the powers times the ratios. The one formula a cast prepares its damage with and an ability's numbers
+	 * show (ADR-065 §7).
+	 */
+	VEYRAABILITIES_API double DamageAmount(const FVeyraDamageTuning& Damage, int32 Rank, double PhysicalPower, double MagicPower);
+
+	/** One damage list an ability's tuning holds, with the role its place there plays (ADR-065 §7). */
+	struct FVeyraAbilityDamagePart
+	{
+		/**
+		 * The field it sits in, its role: "hostEffects", "contactEffects", "pulseEffects", "endEffects", "siphon",
+		 * "enemyDamagePerSecond" and so on; "damage" for the ability's own damage with no other role.
+		 */
+		FString Role;
+		TArray<FVeyraDamageTuning> Damage;
+	};
+
+	/** Every damage list Ability's tuning holds, in the order its validation reads them; empty for one that deals none. */
+	VEYRAABILITIES_API TArray<FVeyraAbilityDamagePart> DamageParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 }

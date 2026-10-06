@@ -17,6 +17,7 @@
 #include "Hud/VeyraChatLogModel.h"
 #include "Hud/VeyraHudLayout.h"
 #include "Hud/VeyraHudModel.h"
+#include "Hud/VeyraKillFeedModel.h"
 #include "Input/VeyraInputSettings.h"
 #include "Rendering/SlateRenderer.h"
 #include "Engine/GameInstance.h"
@@ -163,6 +164,8 @@ namespace
 		FString Title;
 		FString Detail;
 		FString Description;
+		/** An ability's numbers, a line each, between its detail and its description (ADR-065 §7). */
+		TArray<FString> Numbers;
 	};
 
 	FString KeyName(const FKey& Key)
@@ -180,6 +183,24 @@ namespace
 		FCanvasTileItem Tile(At, Icon->GetResource(), FVector2D(Size), FLinearColor::White);
 		Paint.Canvas.DrawItem(Tile);
 		return true;
+	}
+
+	FString Monogram(const FString& Name);
+
+	/** Vanguard's face in the square at At, Size across: its hero art cropped to a portrait, or its monogram at MonogramSize. */
+	void DrawFace(const FPainter& Paint, const FVeyraContentId& Vanguard, const FVector2D& At, float Size, int32 MonogramSize)
+	{
+		const FString VanguardId = Vanguard.ToString();
+		if (UTexture2D* Hero = VeyraShellArt::HeroOf(VanguardId); Hero && Hero->GetResource())
+		{
+			const FBox2f Crop = VeyraShellArt::Crop(VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, true);
+			FCanvasTileItem Face(At, Hero->GetResource(), FVector2D(Size), FVector2D(Crop.Min), FVector2D(Crop.Max), FLinearColor::White);
+			Paint.Canvas.DrawItem(Face);
+			return;
+		}
+		Paint.Rect(At, FVector2D(Size), Paint.Settings.BarBackgroundColor);
+		Paint.TextCentred(At + FVector2D(Size / 2.0f), Monogram(VeyraContentText::VanguardName(Vanguard).ToString()), Paint.Font(TEXT("Black"), MonogramSize),
+			Paint.Settings.TextColor);
 	}
 
 	/** Two letters that stand for Name on a tile without an icon: its words' initials. */
@@ -507,10 +528,17 @@ namespace
 		const FSlateFontInfo DetailFont = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
 		const FSlateFontInfo BodyFont = Paint.Font(TEXT("Regular"), Settings.HudBodyFontSize);
 		const TArray<FString> Lines = Paint.Wrap(Hover.Description, BodyFont, Width - Pad * 2.0f);
+		TArray<FString> NumberLines;
+		for (const FString& Number : Hover.Numbers)
+		{
+			NumberLines.Append(Paint.Wrap(Number, DetailFont, Width - Pad * 2.0f));
+		}
 		const float LineHeight = Paint.Measure(TEXT("Ag"), BodyFont).Y;
+		const float NumberHeight = Paint.Measure(TEXT("Ag"), DetailFont).Y;
 		const float TitleHeight = Paint.Measure(Hover.Title, TitleFont).Y;
 		const float DetailHeight = Hover.Detail.IsEmpty() ? 0.0f : Paint.Measure(Hover.Detail, DetailFont).Y;
-		const float Height = Pad * 2.0f + TitleHeight + DetailHeight + (Lines.IsEmpty() ? 0.0f : Paint.S(6.0f) + LineHeight * Lines.Num());
+		const float NumbersHeight = NumberLines.IsEmpty() ? 0.0f : Paint.S(6.0f) + NumberHeight * NumberLines.Num();
+		const float Height = Pad * 2.0f + TitleHeight + DetailHeight + NumbersHeight + (Lines.IsEmpty() ? 0.0f : Paint.S(6.0f) + LineHeight * Lines.Num());
 		const float Left = FMath::Clamp(DeckCentre - Width / 2.0f, 0.0f, FMath::Max(0.0f, Paint.Canvas.ClipX - Width));
 		const FVector2D TopLeft(Left, DeckTop - Height - Paint.S(Settings.DeckGap));
 		Paint.Surface(TopLeft, FVector2D(Width, Height));
@@ -522,6 +550,15 @@ namespace
 		{
 			Paint.Text(FVector2D(TopLeft.X + Pad, Y), Hover.Detail.ToUpper(), DetailFont, Settings.HudAccentColor);
 			Y += DetailHeight;
+		}
+		if (!NumberLines.IsEmpty())
+		{
+			Y += Paint.S(6.0f);
+			for (const FString& Line : NumberLines)
+			{
+				Paint.Text(FVector2D(TopLeft.X + Pad, Y), Line, DetailFont, Settings.TextColor);
+				Y += NumberHeight;
+			}
 		}
 		Y += Paint.S(6.0f);
 		for (const FString& Line : Lines)
@@ -629,7 +666,7 @@ namespace
 	 */
 	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns,
 		const FVeyraStatusDisplay& Statuses, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey,
-		const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
+		const TOptional<FVector2D>& Mouse, double Now, float RankMarkOpacity, TOptional<FHover>& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
@@ -644,19 +681,7 @@ namespace
 		// The portrait, with the level on it and XP along its foot.
 		const float Portrait = Deck.Portrait;
 		const FVector2D PortraitAt = TopLeft + Deck.PortraitAt;
-		const FString VanguardId = Player.Vanguard.ToString();
-		if (UTexture2D* Hero = VeyraShellArt::HeroOf(VanguardId); Hero && Hero->GetResource())
-		{
-			const FBox2f Crop = VeyraShellArt::Crop(VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, true);
-			FCanvasTileItem Face(PortraitAt, Hero->GetResource(), FVector2D(Portrait), FVector2D(Crop.Min), FVector2D(Crop.Max), FLinearColor::White);
-			Bar.Canvas.DrawItem(Face);
-		}
-		else
-		{
-			Bar.Rect(PortraitAt, FVector2D(Portrait), Settings.BarBackgroundColor);
-			Bar.TextCentred(PortraitAt + FVector2D(Portrait / 2.0f), Monogram(VeyraContentText::VanguardName(Player.Vanguard).ToString()),
-				Bar.Font(TEXT("Black"), Settings.HudClockFontSize), Settings.TextColor);
-		}
+		DrawFace(Bar, Player.Vanguard, PortraitAt, Portrait, Settings.HudClockFontSize);
 		Bar.Outline(PortraitAt, FVector2D(Portrait), Settings.HudHairlineColor);
 		const float XpHeight = Bar.S(5.0f);
 		const double Xp = Player.ExperienceToNextLevel > 0 ? static_cast<double>(Player.Experience) / Player.ExperienceToNextLevel : 1.0;
@@ -733,12 +758,12 @@ namespace
 				const FVector2D PipAt(At.X + Rank * (PipWidth + Bar.S(2.0f)), At.Y + Ability + Gap / 2.0f);
 				Bar.Rect(PipAt, FVector2D(PipWidth, Pip), Rank < Slot.Rank ? Settings.HudAccentColor : Settings.BarBackgroundColor);
 			}
-			// A skill point to spend on it: a lit mark above the tile.
+			// A skill point to spend on it: a lit mark above the tile, pulsing while it waits (ADR-065 §5).
 			if (Slot.bCanRankUp)
 			{
 				const FVector2D MarkSize(Bar.S(22.0f), Bar.S(16.0f));
 				const FVector2D MarkAt(At.X + (Ability - MarkSize.X) / 2.0f, At.Y - MarkSize.Y - Bar.S(4.0f));
-				Bar.Rect(MarkAt, MarkSize, Settings.HudAccentColor);
+				Bar.Rect(MarkAt, MarkSize, Settings.HudAccentColor.CopyWithNewOpacity(Settings.HudAccentColor.A * RankMarkOpacity));
 				Bar.TextCentred(MarkAt + MarkSize / 2.0, TEXT("+"), Bar.Font(TEXT("Black"), Settings.HudBodyFontSize), Settings.HudSurfaceColor.CopyWithNewOpacity(1.0f));
 			}
 			if (Slot.Ability.IsValid() && Contains(At, FVector2D(Ability), Mouse))
@@ -752,7 +777,7 @@ namespace
 				{
 					Detail += FString::Printf(TEXT("   next attack empowered %.1f s"), Slot.EmpoweredSeconds);
 				}
-				Hover = FHover{ Name, Detail, VeyraContentText::AbilityDescription(Slot.Ability).ToString() };
+				Hover = FHover{ Name, Detail, VeyraContentText::AbilityDescription(Slot.Ability).ToString(), Slot.Numbers };
 			}
 			X += Ability + Gap;
 		}
@@ -945,8 +970,12 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
 	const UVeyraMatchMenuSubsystem* Screens = World.GetGameInstance() ? World.GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
 	const FString ShopKey = KeyName(Screens ? Screens->GetKeys().ShopKey : GetDefault<UVeyraUIInputSettings>()->ShopKey);
-	const float DeckTop =
-		DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
+	// The rank-up marks pulse while a point waits, unless the player reduced UI animation (ADR-065 §5; ADR-055 §3).
+	const double Phase = FMath::Fmod(FPlatformTime::Seconds(), static_cast<double>(Settings.RankUpPulseSeconds)) / Settings.RankUpPulseSeconds;
+	const float RankMarkOpacity = Preferences.bReduceUiAnimation ? 1.0f
+		: FMath::Lerp(Settings.RankUpPulseFloor, 1.0f, static_cast<float>(0.5 + 0.5 * FMath::Cos(UE_DOUBLE_TWO_PI * Phase)));
+	const float DeckTop = DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own,
+		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, Hover);
 	if (Player)
 	{
 		DrawChat(Paint, Preferences, Layout.Chat, *Player, GameState, Side, Screens && Screens->IsChatOpen());
@@ -967,5 +996,97 @@ void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const 
 	// A band of shade behind it, so it reads over the fallen Well.
 	Paint.Rect(FVector2D(0.0f, Centre.Y - Size.Y), FVector2D(Canvas.ClipX, Size.Y * 2.0f), Settings.ShadeColor);
 	Paint.TextCentred(Centre, Text.ToUpper(), Font, Color, true);
+}
+
+void DrawLevelUp(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* FontAsset, int32 Level, int32 UnspentPoints, double Shown)
+{
+	const FPainter Paint(Canvas, Settings, FontAsset);
+	// Whole until its last part, then fading out.
+	const float Opacity = static_cast<float>(FMath::Clamp((1.0 - Shown) / Settings.LevelUpFadeShare, 0.0, 1.0));
+	FSlateFontInfo Font = Paint.Font(TEXT("Black"), Settings.LevelUpFontSize);
+	Font.LetterSpacing = 120;
+	const FString Headline = FString::Printf(TEXT("LEVEL %d"), Level);
+	const FVector2D Centre(Canvas.ClipX / 2.0f, Canvas.ClipY * Settings.LevelUpHeightShare);
+	Paint.TextCentred(Centre, Headline, Font, Settings.GoldColor.CopyWithNewOpacity(Opacity), true);
+	if (UnspentPoints > 0)
+	{
+		const FSlateFontInfo Note = Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize);
+		const float Below = Paint.Measure(Headline, Font).Y * 0.5f + Paint.Measure(TEXT("Ag"), Note).Y;
+		Paint.TextCentred(Centre + FVector2D(0.0f, Below), UnspentPoints > 1 ? FString::Printf(TEXT("%d skill points to spend"), UnspentPoints) : FString(TEXT("A skill point to spend")),
+			Note, Settings.TextColor.CopyWithNewOpacity(Opacity), true);
+	}
+}
+
+void DrawKillFeed(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* FontAsset,
+	TConstArrayView<FVeyraKillFeedRow> Rows, EVeyraTeam OwnSide, const FVector2D& Inset)
+{
+	const FPainter Paint(Canvas, Settings, FontAsset, Preferences.HudScale);
+	const FSlateFontInfo NameFont = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
+	const float Face = Paint.S(Settings.KillFeedFaceSize);
+	const float Gap = Paint.S(6.0f);
+	const float Right = Canvas.ClipX - Inset.X - Paint.S(Settings.DeckGap);
+	// Under the top strip's readouts on the right.
+	float Y = Inset.Y + Paint.S(Settings.DeckGap) + Paint.S(64.0f);
+	const auto SideColor = [&Preferences, OwnSide](EVeyraTeam Side) {
+		return Side == EVeyraTeam::None ? Preferences.SideColors.Neutral : Side == OwnSide ? Preferences.SideColors.Ally : Preferences.SideColors.Enemy;
+	};
+	constexpr double FadeShare = 0.2;
+	for (const FVeyraKillFeedRow& Row : Rows)
+	{
+		const FVeyraKillFeedLine& Line = Row.Line;
+		const float Opacity = static_cast<float>(FMath::Clamp((1.0 - Row.Progress) / FadeShare, 0.0, 1.0));
+		// The killer's side: a takedown's killer, else the side that took the fallen.
+		const bool bKiller = Line.KillerPlayerId != INDEX_NONE;
+		const FString KillerText = bKiller ? Line.KillerName : Line.Kind == EVeyraKillFeedKind::Execution ? FString(TEXT("Executed")) : FString(TEXT("Fluxborn"));
+		const FLinearColor KillerColor = SideColor(bKiller ? Line.KillerSide : Line.Kind == EVeyraKillFeedKind::Execution ? EVeyraTeam::None : VeyraTeams::Opposing(Line.VictimSide));
+		const bool bStructure = Line.Kind == EVeyraKillFeedKind::Structure;
+		const FString VictimText = bStructure ? VeyraKillFeedView::StructureName(Line) : Line.VictimName;
+		const FString Arrow = Line.Assists > 0 ? FString::Printf(TEXT("+%d  >"), Line.Assists) : FString(TEXT(">"));
+		const float KillerWidth = (bKiller ? Face + Gap : 0.0f) + Paint.Measure(KillerText, NameFont).X;
+		const float ArrowWidth = Paint.Measure(Arrow, NameFont).X;
+		const float VictimWidth = (bStructure ? 0.0f : Face + Gap) + Paint.Measure(VictimText, NameFont).X;
+		const float Width = Gap * 6.0f + KillerWidth + ArrowWidth + VictimWidth;
+		const float Height = Face + Gap;
+		const FVector2D TopLeft(Right - Width, Y);
+		Paint.Rect(TopLeft, FVector2D(Width, Height), Settings.HudSurfaceColor.CopyWithNewOpacity(Settings.HudSurfaceColor.A * Opacity));
+		if (Line.bFirstBlood)
+		{
+			Paint.Outline(TopLeft, FVector2D(Width, Height), Settings.GoldColor.CopyWithNewOpacity(Opacity));
+		}
+		const float TextY = Y + (Height - Paint.Measure(TEXT("Ag"), NameFont).Y) / 2.0f;
+		float X = TopLeft.X + Gap * 2.0f;
+		if (bKiller)
+		{
+			DrawFace(Paint, Line.KillerVanguard, FVector2D(X, Y + Gap / 2.0f), Face, Settings.HudSmallFontSize);
+			X += Face + Gap;
+		}
+		Paint.Text(FVector2D(X, TextY), KillerText, NameFont, KillerColor.CopyWithNewOpacity(Opacity), true);
+		X += Paint.Measure(KillerText, NameFont).X + Gap;
+		Paint.Text(FVector2D(X, TextY), Arrow, NameFont, Settings.TextColor.CopyWithNewOpacity(Opacity), true);
+		X += ArrowWidth + Gap;
+		if (!bStructure)
+		{
+			DrawFace(Paint, Line.VictimVanguard, FVector2D(X, Y + Gap / 2.0f), Face, Settings.HudSmallFontSize);
+			X += Face + Gap;
+		}
+		Paint.Text(FVector2D(X, TextY), VictimText, NameFont, SideColor(Line.VictimSide).CopyWithNewOpacity(Opacity), true);
+		Y += Height + Gap / 2.0f;
+	}
+}
+
+void DrawAnnouncement(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* FontAsset,
+	const FVeyraAnnouncement& Announcement, const FVector2D& Inset)
+{
+	const FPainter Paint(Canvas, Settings, FontAsset, Preferences.HudScale);
+	const float Opacity = static_cast<float>(FMath::Clamp((1.0 - Announcement.Progress) / Settings.LevelUpFadeShare, 0.0, 1.0));
+	FSlateFontInfo Font = Paint.Font(TEXT("Black"), Settings.AnnouncementFontSize);
+	Font.LetterSpacing = 60;
+	const FVector2D Size = Paint.Measure(Announcement.Text, Font) + FVector2D(Paint.S(32.0f), Paint.S(12.0f));
+	// Below the top strip and its notices, above the battleground's middle.
+	const FVector2D TopLeft((Canvas.ClipX - Size.X) / 2.0f, Inset.Y + Paint.S(Settings.DeckGap) + Paint.S(120.0f));
+	Paint.Rect(TopLeft, Size, Settings.HudSurfaceColor.CopyWithNewOpacity(Settings.HudSurfaceColor.A * Opacity));
+	const FLinearColor Color = Announcement.bGood ? Preferences.SideColors.Ally : Preferences.SideColors.Enemy;
+	Paint.Outline(TopLeft, Size, Color.CopyWithNewOpacity(0.6f * Opacity));
+	Paint.TextCentred(TopLeft + Size / 2.0, Announcement.Text, Font, Color.CopyWithNewOpacity(Opacity), true);
 }
 }

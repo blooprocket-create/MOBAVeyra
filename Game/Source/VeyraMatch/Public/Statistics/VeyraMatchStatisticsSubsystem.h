@@ -102,7 +102,7 @@ private:
 	void OnStatusApplied(const FVeyraStatusApplied& Event);
 	void OnWardPlaced(const AVeyraWard& Ward, APlayerState& Placer);
 	void OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event);
-	void OnGoldGranted(double Amount, EVeyraGoldReason Reason, TWeakObjectPtr<AVeyraPlayerState> Participant);
+	void OnGoldGranted(double Amount, EVeyraGoldReason Reason, const FVeyraGoldSource& From, TWeakObjectPtr<AVeyraPlayerState> Participant);
 	void OnBoughtBack(double Cost, TWeakObjectPtr<AVeyraPlayerState> Participant);
 
 	/** Record's scoreboard line: as it stands, or as it was when its participant left. Unset if neither. */

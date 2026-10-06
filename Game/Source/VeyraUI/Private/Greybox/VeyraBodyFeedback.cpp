@@ -57,6 +57,7 @@ void Note(FVeyraBodyFeedbackState& State, const FVeyraCombatCue& Cue, double Now
 	}
 	case EVeyraCombatCueKind::CastWindup:
 	case EVeyraCombatCueKind::CastCommit:
+	case EVeyraCombatCueKind::LevelUp:
 		break;
 	}
 }

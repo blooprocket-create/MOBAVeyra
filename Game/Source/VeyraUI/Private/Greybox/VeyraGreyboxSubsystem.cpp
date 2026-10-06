@@ -26,6 +26,8 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Fog/VeyraDenseFogBank.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -49,6 +51,7 @@
 #include "Layout/VeyraRiver.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Movement/VeyraDrawnBody.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "Sound/SoundAttenuation.h"
@@ -201,7 +204,8 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		CastSound = Settings.CastSound.LoadSynchronous();
 		DeathSound = Settings.DeathSound.LoadSynchronous();
 		ClickSound = Settings.ClickSound.LoadSynchronous();
-		if (!ImpactSound || !SwingSound || !CastSound || !DeathSound || !ClickSound)
+		LevelUpSound = Settings.LevelUpSound.LoadSynchronous();
+		if (!ImpactSound || !SwingSound || !CastSound || !DeathSound || !ClickSound || !LevelUpSound)
 		{
 			Problems.Add(TEXT("ImpactSound: the cue sounds do not all load; run BuildCueSounds.ps1."));
 		}
@@ -217,10 +221,11 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ImpactEffect = Settings.ImpactEffect.LoadSynchronous();
 		CastEffect = Settings.CastEffect.LoadSynchronous();
 		DeathEffect = Settings.DeathEffect.LoadSynchronous();
+		LevelUpEffect = Settings.LevelUpEffect.LoadSynchronous();
 		TrailEffect = Settings.TrailEffect.LoadSynchronous();
-		if (!ImpactEffect || !CastEffect || !DeathEffect || !TrailEffect)
+		if (!ImpactEffect || !CastEffect || !DeathEffect || !LevelUpEffect || !TrailEffect)
 		{
-			Problems.Add(TEXT("ImpactEffect: the impact, cast, death and trail effects do not all load; run BuildEffects.ps1."));
+			Problems.Add(TEXT("ImpactEffect: the impact, cast, death, level-up and trail effects do not all load; run BuildEffects.ps1."));
 		}
 		HoverOutlineMaterial = Settings.HoverOutlineMaterial.LoadSynchronous();
 		if (!HoverOutlineMaterial)
@@ -269,6 +274,18 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	PlayEffect(Cue);
 	PlaySound(Cue);
 	NoteSwing(Cue);
+	// The player's own level-up is announced on the HUD (ADR-065 §5).
+	if (Cue.Kind == EVeyraCombatCueKind::LevelUp && IsViewersVanguard(Cue.Unit.Get()))
+	{
+		OwnLevelUp = FVeyraLevelUpMoment{ static_cast<int32>(Cue.Amount), FPlatformTime::Seconds() };
+	}
+}
+
+bool UVeyraGreyboxSubsystem::IsViewersVanguard(const AActor* Unit) const
+{
+	// The local controller possesses nothing: its participant's Vanguard is the player's own (ADR-006 §6).
+	const AVeyraPlayerController* Viewer = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	return Unit && Viewer && Unit == Viewer->GetVanguard();
 }
 
 void UVeyraGreyboxSubsystem::NoteSwing(const FVeyraCombatCue& Cue)
@@ -328,6 +345,8 @@ USoundBase* UVeyraGreyboxSubsystem::SoundFor(EVeyraCombatCueKind Kind) const
 		return CastSound;
 	case EVeyraCombatCueKind::Death:
 		return DeathSound;
+	case EVeyraCombatCueKind::LevelUp:
+		return LevelUpSound;
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::CastWindup:
 		break;
@@ -343,12 +362,24 @@ void UVeyraGreyboxSubsystem::PlaySound(const FVeyraCombatCue& Cue)
 	{
 		return;
 	}
-	const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
-	if (Volume > 0.0f)
+	// A level-up is heard only by the player whose Vanguard it is, as the HUD's own sounds are (ADR-065 §5).
+	const bool bOwnLevelUp = Cue.Kind == EVeyraCombatCueKind::LevelUp;
+	if (bOwnLevelUp && !IsViewersVanguard(Unit))
 	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Unit->GetActorLocation(), FRotator::ZeroRotator, Volume, /*PitchMultiplier*/ 1.0f,
-			/*StartTime*/ 0.0f, CueAttenuation, CueConcurrency);
+		return;
 	}
+	const float Volume = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).EffectsVolume;
+	if (Volume <= 0.0f)
+	{
+		return;
+	}
+	if (bOwnLevelUp)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), Sound, Volume);
+		return;
+	}
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Unit->GetActorLocation(), FRotator::ZeroRotator, Volume, /*PitchMultiplier*/ 1.0f,
+		/*StartTime*/ 0.0f, CueAttenuation, CueConcurrency);
 }
 
 TArray<AVeyraFountainShop*> UVeyraGreyboxSubsystem::GetShops() const
@@ -451,6 +482,8 @@ UNiagaraSystem* UVeyraGreyboxSubsystem::EffectFor(EVeyraCombatCueKind Kind) cons
 		return CastEffect;
 	case EVeyraCombatCueKind::Death:
 		return DeathEffect;
+	case EVeyraCombatCueKind::LevelUp:
+		return LevelUpEffect;
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::AttackCommit:
 	case EVeyraCombatCueKind::CastWindup:
@@ -590,12 +623,12 @@ void UVeyraGreyboxSubsystem::ApplyBodyPose(const APawn& Unit, FBody& Body, bool 
 	UStaticMeshComponent* Shape = Body.Mesh.Get();
 	UStaticMeshComponent* Art = Body.Art.IsValid() && Body.Art->IsVisible() ? Body.Art.Get() : nullptr;
 	USkeletalMeshComponent* Skin = Body.Skin.IsValid() && Body.Skin->IsVisible() ? Body.Skin.Get() : nullptr;
-	const USceneComponent* Root = Unit.GetRootComponent();
+	const USceneComponent* Anchor = VeyraDrawnBody::AnchorOf(Unit);
 	// A structure stands still, and an animated body's animation acts out its fight (ADR-064 §3): they only flash.
-	if (Root && !Unit.IsA<AVeyraStructure>() && !Skin)
+	if (Anchor && !Unit.IsA<AVeyraStructure>() && !Skin)
 	{
-		// The pose moves on the ground, whichever way the unit faces.
-		const FVector Local = Root->GetComponentTransform().InverseTransformVectorNoScale(Pose.Offset);
+		// The pose moves on the ground, whichever way the drawn body faces.
+		const FVector Local = Anchor->GetComponentTransform().InverseTransformVectorNoScale(Pose.Offset);
 		float Radius = 0.0f;
 		float HalfHeight = 0.0f;
 		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
@@ -672,6 +705,12 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 	}
 	CombatTextSource.Reset();
 	CombatText.Reset();
+	if (AVeyraPlayerController* Source = KillFeedSource.Get())
+	{
+		Source->OnKillFeed.Remove(KillFeedHandle);
+	}
+	KillFeedSource.Reset();
+	KillFeed.Reset();
 	bReady = false;
 	Super::Deinitialize();
 }
@@ -832,10 +871,23 @@ void UVeyraGreyboxSubsystem::RefreshCombatText()
 		}
 		CombatTextSource = Local;
 		CombatTextHandle = Local ? Local->OnCombatText.AddUObject(this, &UVeyraGreyboxSubsystem::OnCombatText) : FDelegateHandle();
+		if (AVeyraPlayerController* Previous = KillFeedSource.Get())
+		{
+			Previous->OnKillFeed.Remove(KillFeedHandle);
+		}
+		KillFeedSource = Local;
+		KillFeedHandle = Local ? Local->OnKillFeed.AddUObject(this, &UVeyraGreyboxSubsystem::OnKillFeed) : FDelegateHandle();
 	}
 	// Forgotten as they are drawn: a running total keeps all of its parts while it shows.
-	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(GetWorld()));
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraInterfacePreferences Preferences = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(GetWorld()));
 	VeyraCombatTextView::Forget(CombatText, FPlatformTime::Seconds(), Preferences.CombatText);
+	VeyraKillFeedView::Forget(KillFeed, FPlatformTime::Seconds(), FMath::Max(Settings.KillFeedSeconds, Settings.AnnouncementSeconds));
+}
+
+void UVeyraGreyboxSubsystem::OnKillFeed(const FVeyraKillFeedLine& Line)
+{
+	KillFeed.Add(FVeyraKillFeedArrival{ Line, FPlatformTime::Seconds() });
 }
 
 void UVeyraGreyboxSubsystem::OnCombatText(const FVeyraCombatTextLine& Line)
@@ -1025,10 +1077,27 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	return Side;
 }
 
+void UVeyraGreyboxSubsystem::EaseBody(APawn& Unit)
+{
+	// A machine that only shows the unit steps its capsule to each update from the server and eases its mesh, and so its
+	// drawn body, after it (ADR-065 §12). The server's own copy never eases.
+	const TOptional<FVector2f> Ease = GetDefault<UVeyraGreyboxSettings>()->EaseOf(Unit);
+	const ACharacter* Character = Cast<ACharacter>(&Unit);
+	UCharacterMovementComponent* Movement = Character ? Character->GetCharacterMovement() : nullptr;
+	if (!Ease || !Movement)
+	{
+		return;
+	}
+	Movement->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
+	Movement->NetworkSimulatedSmoothLocationTime = Ease->X;
+	Movement->NetworkSimulatedSmoothRotationTime = Ease->Y;
+}
+
 UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMesh& Mesh, UMaterialInstanceDynamic*& OutMaterial) const
 {
-	USceneComponent* Root = Owner.GetRootComponent();
-	if (!Root)
+	// It hangs from where the body is drawn, which glides after the capsule on machines that only show it (ADR-065 §12).
+	USceneComponent* Anchor = VeyraDrawnBody::AnchorOf(Owner);
+	if (!Anchor)
 	{
 		return nullptr;
 	}
@@ -1039,7 +1108,7 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::AddShape(AActor& Owner, UStaticMes
 	Shape->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Shape->SetGenerateOverlapEvents(false);
 	Shape->SetCanEverAffectNavigation(false);
-	Shape->SetupAttachment(Root);
+	Shape->SetupAttachment(Anchor);
 	Shape->RegisterComponent();
 	OutMaterial = Shape->CreateDynamicMaterialInstance(0, ShapeMaterial);
 	return Shape;
@@ -1052,6 +1121,11 @@ void UVeyraGreyboxSubsystem::RefreshStructureArt(const AVeyraStructure& Structur
 	if (UStaticMesh* Mesh = Art ? (Structure.IsDestroyed() ? Art->Fallen : Art->Intact).Get() : nullptr)
 	{
 		ShowArt(Structure, Body, *Mesh, *StructureArt, SideColorOf(Structure));
+		// Drawn larger than its capsule, from its foot (ADR-065 §11).
+		if (UStaticMeshComponent* Shown = Body.Art.Get())
+		{
+			Shown->SetRelativeScale3D(FVector(GetDefault<UVeyraGreyboxSettings>()->VisualScaleOf(Structure)));
+		}
 	}
 }
 
@@ -1103,11 +1177,13 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	const FVeyraVanguardBody& Worn = VeyraVanguardSkin::BodyOf(Unit, *Art);
 	VeyraVanguardSkin::Dress(*Skin, Worn, VeyraVanguardSkin::ShapeOf(Settings));
 	RefreshBodyEffects(Body, *Skin, Worn);
-	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2).
+	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2), drawn larger than
+	// the capsule from there (ADR-065 §11).
 	float Radius = 0.0f;
 	float HalfHeight = 0.0f;
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
 	Skin->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
+	Skin->SetRelativeScale3D(FVector(Settings.VisualScaleOf(Unit)));
 	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()))
 	{
 		Animation->SetInputs(VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow()));
@@ -1123,8 +1199,8 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 
 void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
 {
-	USceneComponent* Root = Unit.GetRootComponent();
-	if (!Root)
+	USceneComponent* Anchor = VeyraDrawnBody::AnchorOf(Unit);
+	if (!Anchor)
 	{
 		return;
 	}
@@ -1136,7 +1212,7 @@ void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh
 		Art->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Art->SetGenerateOverlapEvents(false);
 		Art->SetCanEverAffectNavigation(false);
-		Art->SetupAttachment(Root);
+		Art->SetupAttachment(Anchor);
 		Art->RegisterComponent();
 		Body.Art = Art;
 		Body.ArtMesh = nullptr;
@@ -1193,6 +1269,7 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 				continue;
 			}
 			Body = &Bodies.Add(&Unit, FBody{ Mesh, Material });
+			EaseBody(Unit);
 		}
 		// Its capsule, which its Vanguard's definition shapes (ADR-008 §2).
 		float Radius = 0.0f;

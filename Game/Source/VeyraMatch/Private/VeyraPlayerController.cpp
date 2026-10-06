@@ -7,6 +7,8 @@
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Input/VeyraControlPreferences.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
+#include "Movement/VeyraDrawnBody.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Developer/VeyraDeveloperCommandRoute.h"
@@ -357,11 +359,13 @@ TArray<FVeyraCursorUnit> AVeyraPlayerController::UnitsUnderCursor() const
 	{
 		return Under;
 	}
-	// As the cursor's own trace would, but past each unit it meets, until the ground or a wall stops it.
+	// As the cursor's own trace would, but past each unit it meets, until the ground or a wall stops it; a little wide,
+	// as bodies are drawn larger than their capsules (ADR-065 §11).
 	FCollisionQueryParams Query(SCENE_QUERY_STAT(VeyraCursorUnits), /*bTraceComplex*/ false);
 	const FVector End = Origin + Direction * HitResultTraceDistance;
+	const FCollisionShape Pick = FCollisionShape::MakeSphere(GetKeys().CursorPickRadius);
 	FHitResult Hit;
-	while (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_Pawn, Query))
+	while (GetWorld()->SweepSingleByChannel(Hit, Origin, End, FQuat::Identity, ECC_Pawn, Pick, Query))
 	{
 		AActor* Actor = Hit.GetActor();
 		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Actor);
@@ -1258,10 +1262,13 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 			return;
 		}
 	}
-	// The camera follows the body the player's orders move: its Vanguard, or the Echo it commands (ADR-050 §6).
-	if (const APawn* Commanded = GetCommandedBody())
+	// The camera follows the body the player's orders move: its Vanguard, or the Echo it commands (ADR-050 §6), where it is
+	// drawn, so a body easing after the server's updates stays still on screen (ADR-065 §12).
+	const APawn* Commanded = GetCommandedBody();
+	TickAfterMovementOf(Commanded);
+	if (Commanded)
 	{
-		CameraInput.Vanguard = Commanded->GetActorLocation();
+		CameraInput.Vanguard = VeyraDrawnBody::LocationOf(*Commanded);
 	}
 	else if (!View.bFreeWhileDead && CameraRig->GetMode() != EVeyraCameraMode::Free)
 	{
@@ -1271,6 +1278,24 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 		CameraInput.Drag = FVector2D::ZeroVector;
 	}
 	CameraRig->Step(CameraInput, DeltaTime, &View);
+}
+
+void AVeyraPlayerController::TickAfterMovementOf(const APawn* Body)
+{
+	UActorComponent* Movement = Body ? Body->GetMovementComponent() : nullptr;
+	if (CameraFollowsMovement.Get() == Movement)
+	{
+		return;
+	}
+	if (UActorComponent* Before = CameraFollowsMovement.Get())
+	{
+		RemoveTickPrerequisiteComponent(Before);
+	}
+	if (Movement)
+	{
+		AddTickPrerequisiteComponent(Movement);
+	}
+	CameraFollowsMovement = Movement;
 }
 
 void AVeyraPlayerController::TickZoom()
@@ -1333,6 +1358,11 @@ const AActor* AVeyraPlayerController::GetHoveredUnit() const
 void AVeyraPlayerController::ClientCombatText_Implementation(const FVeyraCombatTextLine& Line)
 {
 	OnCombatText.Broadcast(Line);
+}
+
+void AVeyraPlayerController::ClientKillFeed_Implementation(const FVeyraKillFeedLine& Line)
+{
+	OnKillFeed.Broadcast(Line);
 }
 
 bool AVeyraPlayerController::IsShowingAttackRange() const

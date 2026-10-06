@@ -334,6 +334,18 @@ const FVeyraContentId& CombatTextShielding()
 	return Id;
 }
 
+const FVeyraContentId& CombatTextGold()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_gold"));
+	return Id;
+}
+
+const FVeyraContentId& LastHitCue()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("interface_last_hit_cue"));
+	return Id;
+}
+
 const FVeyraContentId& CombatTextCrits()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_crits"));
@@ -495,6 +507,7 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.ChatFadeSeconds = Hud.ChatFadeSeconds;
 	Preferences.IndicatorThickness = Hud.IndicatorThickness;
 	Preferences.CombatText.MergeSeconds = Hud.CombatTextMergeSeconds;
+	Preferences.CombatText.GoldMergeSeconds = Hud.CombatTextGoldMergeSeconds;
 	Preferences.CombatText.ShowSeconds = Hud.CombatTextShowSeconds;
 	if (!Store)
 	{
@@ -549,10 +562,12 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.AlliedFluxbornBars = ParseBars(Store->Get(AlliedFluxbornBars()));
 	Preferences.EnemyFluxbornBars = ParseBars(Store->Get(EnemyFluxbornBars()));
 	Preferences.JungleBars = ParseBars(Store->Get(JungleBars()));
+	Preferences.bLastHitCue = Store->IsOn(LastHitCue());
 	Preferences.CombatText.bDamageDealt = Store->IsOn(CombatTextDamageDealt());
 	Preferences.CombatText.bDamageReceived = Store->IsOn(CombatTextDamageReceived());
 	Preferences.CombatText.bHealing = Store->IsOn(CombatTextHealing());
 	Preferences.CombatText.bShielding = Store->IsOn(CombatTextShielding());
+	Preferences.CombatText.bGold = Store->IsOn(CombatTextGold());
 	Preferences.CombatText.bCritEmphasis = Store->IsOn(CombatTextCrits());
 	Preferences.CombatText.bReduced = Store->Get(CombatTextDensity()) == Reduced;
 	Preferences.bUniformDamageColors = Store->Get(DamageNumberColors()) == Uniform;

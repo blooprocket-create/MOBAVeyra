@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "CQTest.h"
 #include "Engine/World.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -31,6 +32,7 @@ namespace VeyraAbilitiesTests
 		static constexpr double Tolerance = 1e-3;
 		static constexpr double PushDistance = 300.0;
 		static constexpr double PushSpeed = 1000.0;
+		static constexpr double BurnPerSecond = 40.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -72,6 +74,11 @@ namespace VeyraAbilitiesTests
 			Aura.RefreshSeconds = WorldStep * 5.0;
 			Aura.EnemyStatuses.Add(ArchetypeTestId(TEXT("test_chill")));
 			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_giant")), Giant);
+
+			// A giant whose aura also burns the enemies near it (ADR-065 §8).
+			FVeyraSelfBuffAbilityTuning Burning = Giant;
+			Burning.Aura[0].EnemyDamagePerSecond.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { BurnPerSecond }, 0.0, 0.0 });
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_burning_giant")), Burning);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -194,6 +201,26 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::Q, FVector::ZeroVector) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Has(Close, TEXT("test_chill")) && FArchetypeTestWorld::Has(Minion, TEXT("test_chill"))));
 			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(Distant, TEXT("test_chill")) || FArchetypeTestWorld::Has(Friend, TEXT("test_chill"))));
+		}
+
+		TEST_METHOD(AnAurasDamageEachSecondComesInProportionAtEachRefreshToEnemiesInRange)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Close = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraVanguardCharacter& Distant = World.Spawn(EVeyraTeam::B, FVector(Far, 0.0, 0.0));
+			AVeyraVanguardCharacter& Friend = World.Spawn(EVeyraTeam::A, FVector(0.0, Near, 0.0));
+			const auto Health = [](const AActor& Unit) {
+				return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit)->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
+			};
+			const double Full = Health(Close);
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_burning_giant")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::Q, FVector::ZeroVector) == EVeyraCastRejection::None));
+			const double Refresh = Tuning.SelfBuff.FindChecked(ArchetypeTestId(TEXT("test_burning_giant"))).Aura[0].RefreshSeconds;
+			const double PerRefresh = BurnPerSecond * Refresh;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Full - Health(Close), PerRefresh, Tolerance), TEXT("its first refresh comes with the cast")));
+			AdvanceWorld(Refresh + WorldStep);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Full - Health(Close), PerRefresh * 2.0, Tolerance), *FString::Printf(TEXT("lost %g"), Full - Health(Close))));
+			ASSERT_THAT(IsTrue(Health(Distant) == Full && Health(Friend) == Full, TEXT("never out of range, never an ally")));
 		}
 
 		TEST_METHOD(AnAuraReachesWhoComesNearAfterItsCast)

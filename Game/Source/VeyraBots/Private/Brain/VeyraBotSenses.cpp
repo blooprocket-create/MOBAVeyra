@@ -290,13 +290,13 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 	View.MaxResource = AttributeOf(AbilitySystem, UVeyraResourceSet::GetMaxResourceAttribute());
 	View.Resource = AttributeOf(AbilitySystem, UVeyraResourceSet::GetResourceAttribute());
 	const UVeyraBasicAttackComponent* Attacks = Bot.FindComponentByClass<UVeyraBasicAttackComponent>();
-	const bool bPhysicalAttack = !Attacks || Attacks->GetProfile().DamageType != EVeyraDamageType::Magic;
-	if (Attacks && Attacks->HasProfile())
+	const FVeyraBasicAttackProfile* Profile = Attacks && Attacks->HasProfile() ? &Attacks->GetProfile() : nullptr;
+	if (Profile)
 	{
-		const FVeyraBasicAttackProfile& Profile = Attacks->GetProfile();
+		// The formula the player's last-hit cue uses too (ADR-065 §6).
 		View.AttackRange = Attacks->GetRange(nullptr);
-		View.AttackDamage = AttributeOf(AbilitySystem, UVeyraOffenceSet::GetPhysicalPowerAttribute()) * Profile.PhysicalPowerRatio
-			+ AttributeOf(AbilitySystem, UVeyraOffenceSet::GetMagicPowerAttribute()) * Profile.MagicPowerRatio;
+		View.AttackDamage = VeyraBasicAttacks::RawHit(*Profile, AttributeOf(AbilitySystem, UVeyraOffenceSet::GetPhysicalPowerAttribute()),
+			AttributeOf(AbilitySystem, UVeyraOffenceSet::GetMagicPowerAttribute()));
 	}
 
 	// Vanguards in sight, by side.
@@ -347,8 +347,8 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 		{
 			FVeyraBotUnit& Seen = View.EnemyFluxborn.Add_GetRef(UnitOf(*Fluxborn));
 			const UAbilitySystemComponent* Defender = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Fluxborn);
-			const double Resistance = AttributeOf(Defender, bPhysicalAttack ? UVeyraDefenceSet::GetArmorAttribute() : UVeyraDefenceSet::GetMagicResistAttribute());
-			Seen.DamageTaken = VeyraDamage::ResistanceDamageMultiplier(Resistance, MitigationConstant);
+			Seen.DamageTaken = Profile && Defender ? VeyraBasicAttacks::ShareTaken(*Profile, *Defender)
+				: VeyraDamage::ResistanceDamageMultiplier(AttributeOf(Defender, UVeyraDefenceSet::GetArmorAttribute()), MitigationConstant);
 		}
 	}
 

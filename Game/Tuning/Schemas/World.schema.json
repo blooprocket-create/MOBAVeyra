@@ -417,7 +417,7 @@
           "properties": {
             "thinkSeconds": { "description": "How often it reconsiders its target and path, in seconds of world time.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "aggressionResponseRange": { "description": "How far past its edge an enemy Vanguard hurting a nearby ally draws it (§19).", "type": "number", "minimum": 0 },
-            "leashRange": { "description": "How far from its lane's path it engages a target: a chase that would take it farther ends, and it returns.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "leashRange": { "description": "How far from its lane's path it engages a target, and strays itself: a target farther out is let go, and so is any target once the Fluxborn itself is farther out; then it returns (ADR-065 §2).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "waypointAcceptance": { "description": "How close to a waypoint counts as reaching it.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         },

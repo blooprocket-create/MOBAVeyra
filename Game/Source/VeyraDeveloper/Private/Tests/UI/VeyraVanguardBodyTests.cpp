@@ -15,6 +15,8 @@
 #include "Companions/VeyraCompanionSubsystem.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
 #include "Engine/SkeletalMesh.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Movement/VeyraDrawnBody.h"
 #include "NiagaraComponent.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
@@ -22,6 +24,7 @@
 #include "Greybox/VeyraVanguardArtSet.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "VeyraPlayerController.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 
@@ -40,6 +43,10 @@ namespace VeyraVanguardBodyTests
 		static constexpr double LeastHeightShare = 0.5;
 		static constexpr double MostHeightShare = 1.4;
 		static constexpr double MostHoverShare = 0.2;
+		/** How far an easing mesh trails its capsule in the fixture, in centimetres. */
+		static constexpr double EasingOffset = 30.0;
+		/** The Level a fixture Vanguard rises to. */
+		static constexpr double RisenLevel = 4.0;
 
 		FActorTestSpawner Spawner;
 
@@ -177,6 +184,29 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsNear(Disc.GetSize().Z, static_cast<double>(GetDefault<UVeyraGreyboxSettings>()->VanguardFootDiscHeight), Tolerance));
 			ASSERT_THAT(IsNear(Disc.Min.Z, Unit.GetActorLocation().Z - HalfHeight, Tolerance));
 			ASSERT_THAT(IsNear(Disc.GetExtent().X, static_cast<double>(Radius), Tolerance));
+		}
+
+		TEST_METHOD(ItsDrawnBodyHangsFromTheMeshItsMovementEases)
+		{
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			ASSERT_THAT(IsNotNull(Skin));
+			// Skin and disc hang from the character's mesh, which its movement eases after each update from the server.
+			ASSERT_THAT(IsTrue(Skin->GetAttachParent() == Unit.GetMesh(), TEXT("the skin hangs from the eased mesh")));
+			ASSERT_THAT(IsTrue(Presentation.FindBody(Unit)->GetAttachParent() == Unit.GetMesh(), TEXT("and so does its disc")));
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const UCharacterMovementComponent& Movement = *Unit.GetCharacterMovement();
+			ASSERT_THAT(IsTrue(Movement.NetworkSmoothingMode == ENetworkSmoothingMode::Exponential));
+			ASSERT_THAT(IsNear(Movement.NetworkSimulatedSmoothLocationTime, Settings.VanguardEaseLocationSeconds, KINDA_SMALL_NUMBER));
+			ASSERT_THAT(IsNear(Movement.NetworkSimulatedSmoothRotationTime, Settings.VanguardEaseRotationSeconds, KINDA_SMALL_NUMBER));
+			// At rest it is drawn where it stands; while the mesh eases, the body and the place drawn over it go with the mesh.
+			ASSERT_THAT(IsTrue(VeyraDrawnBody::LocationOf(Unit).Equals(Unit.GetActorLocation(), Tolerance)));
+			const FVector Before = Skin->GetComponentLocation();
+			const FVector Easing(EasingOffset, 0.0, 0.0);
+			Unit.GetMesh()->SetRelativeLocation(Unit.GetBaseTranslationOffset() + Easing);
+			ASSERT_THAT(IsTrue(Skin->GetComponentLocation().Equals(Before + Easing, Tolerance), TEXT("the skin goes with the mesh")));
+			ASSERT_THAT(IsTrue(VeyraDrawnBody::LocationOf(Unit).Equals(Unit.GetActorLocation() + Easing, Tolerance), TEXT("and so does the drawn place")));
 		}
 
 		TEST_METHOD(AVanguardWearsAStatusBodyOnlyWhileItHoldsTheStatus)
@@ -332,6 +362,28 @@ namespace VeyraVanguardBodyTests
 			RefreshedGreybox();
 			ASSERT_THAT(IsTrue(Skin->GetSkeletalMeshAsset() == Art.Mesh));
 			ASSERT_THAT(IsTrue(PoursFrom(Art)));
+		}
+
+		TEST_METHOD(OnlyThePlayersOwnVanguardsLevelUpIsTheirs)
+		{
+			// As in a match: the local controller possesses nothing; its participant's Vanguard is its own (ADR-006 §6).
+			AVeyraVanguardCharacter& Own = SpawnPlaying(DressedId());
+			AVeyraVanguardCharacter& Other = SpawnPlaying(DressedId());
+			AVeyraPlayerController& Local = Spawner.SpawnActor<AVeyraPlayerController>();
+			Local.PlayerState = Own.GetPlayerState();
+			ASSERT_THAT(IsTrue(Local.GetPawn() == nullptr && Local.GetVanguard() == &Own));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			UVeyraCombatCueSubsystem* Cues = Spawner.GetWorld().GetSubsystem<UVeyraCombatCueSubsystem>();
+			FVeyraCombatCue LevelUp;
+			LevelUp.Kind = EVeyraCombatCueKind::LevelUp;
+			LevelUp.Unit = &Other;
+			LevelUp.Amount = RisenLevel;
+			Cues->OnCue.Broadcast(LevelUp);
+			ASSERT_THAT(IsFalse(Presentation.GetOwnLevelUp().IsSet(), TEXT("another Vanguard's level-up is only its burst")));
+			LevelUp.Unit = &Own;
+			Cues->OnCue.Broadcast(LevelUp);
+			ASSERT_THAT(IsTrue(Presentation.GetOwnLevelUp().IsSet() && Presentation.GetOwnLevelUp()->Level == static_cast<int32>(RisenLevel),
+				TEXT("the player's own is announced")));
 		}
 
 		TEST_METHOD(AVanguardWithoutArtKeepsItsBody)

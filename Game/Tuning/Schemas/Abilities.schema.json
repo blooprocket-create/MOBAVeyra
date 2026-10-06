@@ -384,7 +384,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [25]
+      "enum": [26]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -653,14 +653,15 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses", "enemyStatuses", "allyFluxbornStatuses"],
+                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses", "enemyStatuses", "allyFluxbornStatuses", "enemyDamagePerSecond"],
                 "properties": {
                   "radius": { "description": "Units from the caster's centre to an ally's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "refreshSeconds": { "description": "How often allies in range get the statuses again; the statuses should outlast it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "allyStatuses": { "$ref": "#/definitions/statusIds" },
                   "enemyStatuses": { "description": "Put on each living enemy unit in range at every refresh, never a structure or a ward (ADR-018 §6).", "$ref": "#/definitions/statusIds" },
-                  "allyFluxbornStatuses": { "description": "Put on each allied Fluxborn in range at every refresh, as Full Grid overclocks them (ADR-033 §6).", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+                  "allyFluxbornStatuses": { "description": "Put on each allied Fluxborn in range at every refresh, as Full Grid overclocks them (ADR-033 §6).", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+                  "enemyDamagePerSecond": { "description": "Damage each second to each living enemy unit in range, never a structure or a ward, worked out at Commit and dealt at every refresh in proportion (ADR-065 §8); one component per type, empty for none.", "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } }
                 }
               }
             },
@@ -1059,7 +1060,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "targetKinds", "maxRange", "durationSeconds", "snapDistance", "snapSpeed", "targetStatuses"],
+          "required": ["provenance", "cast", "targetKinds", "maxRange", "durationSeconds", "snapDistance", "snapSpeed", "targetStatuses", "siphon"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -1068,7 +1069,23 @@
             "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "snapDistance": { "description": "Stretched, the pull toward the caster, in units before Displacement Resistance; 0 for none.", "type": "number", "minimum": 0 },
             "snapSpeed": { "description": "The pull's units per second: above 0 with a pull, 0 without.", "type": "number", "minimum": 0 },
-            "targetStatuses": { "description": "Held on the target while the tether lasts.", "$ref": "#/definitions/statusIds" }
+            "targetStatuses": { "description": "Held on the target while the tether lasts.", "$ref": "#/definitions/statusIds" },
+            "siphon": {
+              "description": "At most one: every interval while the tether holds, and once more as its time runs out, it deals its damage to the target, worked out at Commit, and the caster regains a share of the Health the target lost (ADR-065 §8).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["intervalSeconds", "damage", "healShare"],
+                "properties": {
+                  "intervalSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "damage": { "description": "Each pulse's damage: one component per type.", "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
+                  "healShare": { "description": "The share of the Health each pulse takes that the caster regains.", "type": "number", "minimum": 0 }
+                }
+              }
+            }
           }
         }
       }

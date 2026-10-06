@@ -13,6 +13,7 @@
 #include "Gold/VeyraGoldComponent.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "VeyraCombatVerbs.h"
@@ -21,9 +22,9 @@
 
 namespace VeyraNetTests
 {
-	// Veyra.Net.DeathRespawn.*: a Vanguard that dies leaves the map and returns at its fountain after
-	// the tuned delay, with a new body; its PlayerState, and so its cooldowns, carry on (ADR-006 §4,
-	// Combat Bible §18, §44).
+	// Veyra.Net.DeathRespawn.*: a Vanguard that dies lies where it fell and returns at its fountain after
+	// the tuned delay, in a new body as the old one goes; its PlayerState, and so its cooldowns, carry on
+	// (ADR-006 §4, Combat Bible §18, §44; ADR-065 §9).
 	NETWORK_TEST_CLASS(DeathRespawn, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState
@@ -86,6 +87,13 @@ namespace VeyraNetTests
 			return *ServerControllerOf(State, ClientIndex)->GetPlayerState<AVeyraPlayerState>();
 		}
 
+		/** Whether State's machine sees the victim's body lying where it fell: there, and dead (ADR-065 §9). */
+		bool LiesFallen(FState& State) const
+		{
+			const APawn* Body = FindVanguard(State.World, VictimId);
+			return Body && !VeyraTargeting::IsAlive(Body);
+		}
+
 		double RemainingCooldown(const AVeyraPlayerState& Participant, double Now) const
 		{
 			return Participant.FindComponentByClass<UVeyraCooldownComponent>()->GetRemainingSeconds(TestVanguardAbilityQ(), Now);
@@ -115,7 +123,7 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*ServerParticipant(State, 1).GetAbilitySystemComponent(), *Victim.GetAbilitySystemComponent(), Lethal)));
 					ASSERT_THAT(IsFalse(Victim.FindComponentByClass<UVeyraLifeComponent>()->IsAlive()));
 				})
-				.UntilClients(TEXT("Every machine sees the body leave"), [this](FState& State) { return FindVanguard(State.World, VictimId) == nullptr; })
+				.UntilClients(TEXT("Every machine sees the body lie where it fell"), [this](FState& State) { return LiesFallen(State); })
 				.UntilClient(TEXT("The victim's client learns when it returns"), 0, [](FState& State) {
 					return LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>()->GetRespawnAt() > 0.0;
 				})
@@ -127,6 +135,7 @@ namespace VeyraNetTests
 					AVeyraPlayerState& Victim = ServerParticipant(State, 0);
 					UAbilitySystemComponent& Abilities = *Victim.GetAbilitySystemComponent();
 					ASSERT_THAT(IsTrue(Victim.GetPawn() != FirstBody.Get()));
+					ASSERT_THAT(IsTrue(!FirstBody.IsValid() || FirstBody->IsActorBeingDestroyed(), TEXT("the body it fell in went as it returned")));
 					// The same controller outlived the old body and moves the new one.
 					ASSERT_THAT(IsTrue(FirstController.IsValid() && Victim.GetVanguardController() == FirstController.Get()));
 					ASSERT_THAT(IsTrue(Victim.GetPawn()->GetController() == FirstController.Get()));
@@ -183,7 +192,7 @@ namespace VeyraNetTests
 					FirstDeathAt = State.World->GetTimeSeconds();
 					KillVictim(State);
 				})
-				.UntilClients(TEXT("Every machine sees the body leave"), [this](FState& State) { return FindVanguard(State.World, VictimId) == nullptr; })
+				.UntilClients(TEXT("Every machine sees the body lie where it fell"), [this](FState& State) { return LiesFallen(State); })
 				.ThenClient(TEXT("Its player buys back from the shop"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestBuyback(); })
 				.UntilServer(TEXT("It respawns"), [this](FState& State) {
 					AVeyraPlayerState& Victim = ServerParticipant(State, 0);

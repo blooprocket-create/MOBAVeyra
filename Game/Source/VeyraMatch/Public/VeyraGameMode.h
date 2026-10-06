@@ -21,6 +21,7 @@ class AVeyraPlayerController;
 class FVeyraBattlegroundLink;
 class FVeyraEchoLink;
 class FVeyraCombatTextLink;
+class FVeyraKillFeedLink;
 class AVeyraVanguardController;
 class AVeyraPlayerState;
 class AVeyraVanguardCharacter;
@@ -223,7 +224,10 @@ private:
 	/** Equips the participant's starting Flux Spells in its spell slots, locked until its team's Flux opens them. */
 	void EquipFluxSpells(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem) const;
 
-	/** A Vanguard died: its body leaves the map, and it respawns after the tuned delay (Combat Bible §18). */
+	/**
+	 * A Vanguard died: its body lies where it fell, out of play, and it respawns in a new one after the tuned delay
+	 * (Combat Bible §18; ADR-065 §9).
+	 */
 	void OnDeath(const FVeyraDeathEvent& Death);
 
 	/** The result's scoreboard: each participant the match prepared, one who left too, side A first, in seat order (ADR-017 §5). */
@@ -271,6 +275,9 @@ private:
 
 	/** Sends each player its floating combat text (ADR-052 §1). */
 	TSharedPtr<FVeyraCombatTextLink> CombatText;
+
+	/** Sends every player each fall (ADR-065 §10). */
+	TSharedPtr<FVeyraKillFeedLink> KillFeed;
 
 	/** The controller Participant's move and attack orders reach: its commanded Echo's, else its Vanguard's. */
 	AVeyraVanguardController* OrderedControllerOf(const AVeyraPlayerState* Participant) const;

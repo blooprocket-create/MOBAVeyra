@@ -6,6 +6,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Feedback/VeyraCombatTextRules.h"
+#include "Feedback/VeyraKillFeedTypes.h"
+#include "VeyraPlayerState.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "VeyraVanguardCharacter.h"
@@ -20,6 +22,46 @@ namespace VeyraAbilitiesTests
 		static UAbilitySystemComponent& UnitOf(AVeyraVanguardCharacter& Vanguard)
 		{
 			return *Vanguard.GetAbilitySystemComponent();
+		}
+
+		TEST_METHOD(AVanguardsFallIsATakedownWithItsKillerOrElseAnExecution)
+		{
+			// The kill feed's lines (ADR-065 §10).
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Killer = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Helper = World.Spawn(EVeyraTeam::A, FVector(0.0, 300.0, 0.0));
+			AVeyraVanguardCharacter& Victim = World.Spawn(EVeyraTeam::B, FVector(300.0, 0.0, 0.0));
+			FVeyraDeathEvent Death;
+			Death.Victim = &UnitOf(Victim);
+			Death.CreditedKiller = &UnitOf(Killer);
+			Death.Assisters.Add(&UnitOf(Helper));
+			const TOptional<FVeyraKillFeedLine> Takedown = VeyraKillFeedRules::LineFor(Death);
+			const AVeyraPlayerState* KillerState = Killer.GetPlayerState<AVeyraPlayerState>();
+			const AVeyraPlayerState* VictimState = Victim.GetPlayerState<AVeyraPlayerState>();
+			ASSERT_THAT(IsTrue(Takedown.IsSet() && Takedown->Kind == EVeyraKillFeedKind::Takedown && Takedown->Assists == 1 && !Takedown->bFirstBlood));
+			ASSERT_THAT(IsTrue(Takedown->KillerPlayerId == KillerState->GetPlayerId() && Takedown->KillerSide == EVeyraTeam::A));
+			ASSERT_THAT(IsTrue(Takedown->VictimPlayerId == VictimState->GetPlayerId() && Takedown->VictimSide == EVeyraTeam::B));
+
+			Death.CreditedKiller.Reset();
+			const TOptional<FVeyraKillFeedLine> Execution = VeyraKillFeedRules::LineFor(Death);
+			ASSERT_THAT(IsTrue(Execution.IsSet() && Execution->Kind == EVeyraKillFeedKind::Execution && Execution->KillerPlayerId == INDEX_NONE));
+		}
+
+		TEST_METHOD(GoldShowsWhereAFallEarnedItOrOverThePlayersVanguardButNeverForIncome)
+		{
+			AActor& Own = Spawner.SpawnActor<AActor>();
+			AActor& Fallen = Spawner.SpawnActor<AActor>();
+			const FVector Fell(400.0, -200.0, 0.0);
+			const TOptional<FVeyraCombatTextLine> LastHit = VeyraCombatTextRouting::ForGold(21.0, EVeyraGoldReason::LastHit, FVeyraGoldSource{ &Fallen, Fell }, &Own);
+			ASSERT_THAT(IsTrue(LastHit.IsSet() && LastHit->Kind == EVeyraCombatTextKind::Gold && LastHit->bFixed && LastHit->Unit.Get() == &Fallen
+				&& FVector(LastHit->Where).Equals(Fell) && LastHit->Amount == 21.0f, TEXT("where the unit fell")));
+			const TOptional<FVeyraCombatTextLine> Kill = VeyraCombatTextRouting::ForGold(300.0, EVeyraGoldReason::Kill, {}, &Own);
+			ASSERT_THAT(IsTrue(Kill.IsSet() && !Kill->bFixed && Kill->Unit.Get() == &Own, TEXT("over the player's own Vanguard")));
+			for (const EVeyraGoldReason Income : { EVeyraGoldReason::Starting, EVeyraGoldReason::Passive, EVeyraGoldReason::Sale, EVeyraGoldReason::Undo, EVeyraGoldReason::Developer })
+			{
+				ASSERT_THAT(IsFalse(VeyraCombatTextRouting::ForGold(300.0, Income, {}, &Own).IsSet(), LexToString(Income)));
+			}
+			ASSERT_THAT(IsFalse(VeyraCombatTextRouting::ForGold(300.0, EVeyraGoldReason::Kill, {}, nullptr).IsSet(), TEXT("nowhere to show")));
 		}
 
 		TEST_METHOD(ADamageInstanceGivesItsDealerAndItsReceiverANumberPerType)

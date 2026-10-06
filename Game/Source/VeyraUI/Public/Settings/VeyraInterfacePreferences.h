@@ -122,6 +122,8 @@ struct FVeyraInterfacePreferences
 	/** The connection and low-performance warnings (SET-21, SET-110; ADR-055 §5). */
 	bool bConnectionWarning = true;
 	bool bPerformanceWarning = true;
+	/** The last-hit cue on enemy Fluxborn's and creatures' bars (ADR-065 §6). */
+	bool bLastHitCue = true;
 	/** The HUD deck's size, as a multiple of its designed size. */
 	float HudScale = 1.0f;
 	/** Each component's scale on top of HUD Scale (ADR-059 §1). */
@@ -228,6 +230,8 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& CombatTextDamageReceived();
 	VEYRAUI_API const FVeyraContentId& CombatTextHealing();
 	VEYRAUI_API const FVeyraContentId& CombatTextShielding();
+	VEYRAUI_API const FVeyraContentId& CombatTextGold();
+	VEYRAUI_API const FVeyraContentId& LastHitCue();
 	VEYRAUI_API const FVeyraContentId& CombatTextCrits();
 	VEYRAUI_API const FVeyraContentId& CombatTextDensity();
 	VEYRAUI_API const FVeyraContentId& DamageNumberColors();

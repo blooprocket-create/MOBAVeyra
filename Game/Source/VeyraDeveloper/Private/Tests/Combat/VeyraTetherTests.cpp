@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Attributes/VeyraVitalsSet.h"
 #include "CQTest.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
@@ -103,6 +104,13 @@ namespace VeyraCombatTests
 		static constexpr double Snap = 300.0;
 		static constexpr double SnapSpeed = 1000.0;
 		static constexpr float Step = 0.05f;
+		// A siphon: a second of pulses, a quarter-second apart, each taking a little; the source regains half.
+		static constexpr double SiphonSeconds = 1.0;
+		static constexpr double SiphonInterval = 0.25;
+		static constexpr double PulseDamage = 20.0;
+		static constexpr double HealShare = 0.5;
+		static constexpr double WoundAmount = 200.0;
+		static constexpr double HealthTolerance = 0.01;
 
 		FActorTestSpawner Spawner;
 		AVeyraVanguardCharacter* Source = nullptr;
@@ -157,6 +165,11 @@ namespace VeyraCombatTests
 			return UVeyraCombatTuningSubsystem::Get().Tethers.CheckSeconds;
 		}
 
+		static double Health(const UAbilitySystemComponent& Unit)
+		{
+			return Unit.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
+		}
+
 		TEST_METHOD(StretchedItSnapsItsTargetBackOnceAndEnds)
 		{
 			ASSERT_THAT(IsTrue(Tether(Spec(LongSeconds, Snap))));
@@ -193,6 +206,34 @@ namespace VeyraCombatTests
 			Source->GetPlayerState()->FindComponentByClass<UVeyraLifeComponent>()->SetState(EVeyraLifeState::Dead);
 			Wait(CheckSeconds() * 2.0);
 			ASSERT_THAT(IsTrue(Ends.Num() == 2 && Ends[1].Reason == EVeyraTetherEndReason::Died));
+		}
+
+		TEST_METHOD(ASiphonDrainsItsTargetEachIntervalAndItsSourceRegainsItsShare)
+		{
+			UAbilitySystemComponent& From = *Source->GetAbilitySystemComponent();
+			UAbilitySystemComponent& Into = *Target->GetAbilitySystemComponent();
+			// Hurt first, the source has room to regain what the siphon returns.
+			FVeyraRawDamageEvent Wound;
+			Wound.Components.Add({ EVeyraDamageType::TrueDamage, WoundAmount });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Into, From, Wound)));
+
+			FVeyraTetherSpec Drain = Spec(SiphonSeconds);
+			FVeyraRawDamageEvent Pulse;
+			Pulse.Components.Add({ EVeyraDamageType::TrueDamage, PulseDamage });
+			Drain.SiphonDamage = VeyraCombat::PrepareDamage(From, Pulse);
+			Drain.SiphonIntervalSeconds = SiphonInterval;
+			Drain.SiphonHealShare = HealShare;
+			const double SourceBefore = Health(From);
+			const double TargetBefore = Health(Into);
+			ASSERT_THAT(IsTrue(Tether(Drain)));
+			Wait(SiphonSeconds + CheckSeconds() * 2.0);
+
+			// A pulse each interval, the last as its time runs out.
+			const double Taken = TargetBefore - Health(Into);
+			const double Pulses = SiphonSeconds / SiphonInterval;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Taken, PulseDamage * Pulses, HealthTolerance), *FString::Printf(TEXT("took %g"), Taken)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Health(From) - SourceBefore, Taken * HealShare, HealthTolerance), TEXT("its source regains its share")));
+			ASSERT_THAT(IsTrue(Ends.Num() == 1 && Ends[0].Reason == EVeyraTetherEndReason::Expired));
 		}
 
 		TEST_METHOD(ANewerTetherReplacesItsSourcesOlderAndItsSideSeesTheTarget)

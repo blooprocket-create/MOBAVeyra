@@ -9,6 +9,7 @@
 #include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
@@ -27,6 +28,7 @@
 #include "State/VeyraVisionTeamState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
+#include "Text/VeyraAbilityNumbers.h"
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Wildlife/VeyraWildlife.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -342,6 +344,12 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	const UVeyraAbilityLoadoutComponent* Loadout = Participant.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
 	const UVeyraCooldownComponent* Cooldowns = Participant.FindComponentByClass<UVeyraCooldownComponent>();
 	const UVeyraBasicAttackComponent* Attacks = Participant.FindComponentByClass<UVeyraBasicAttackComponent>();
+	// The power its abilities' numbers are worked out with, which only its owner receives (ADR-065 §7).
+	const UAbilitySystemComponent* Offence = Participant.GetAbilitySystemComponent();
+	const double PhysicalPower = Offence ? Offence->GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()) : 0.0;
+	const double MagicPower = Offence ? Offence->GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) : 0.0;
+	const FVeyraVanguardDefinition* Kit = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard);
+	const FString ResourceName = Kit ? UEnum::GetDisplayValueAsText(Kit->Resource).ToString() : FString();
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 	{
 		FVeyraHudSlot& Shown = Player.Slots.AddDefaulted_GetRef();
@@ -366,6 +374,10 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		{
 			Shown.Rank = Progression->GetRank(Slot);
 			Shown.bCanRankUp = VeyraProgression::CheckRankUp(Slot, Shown.Rank, Player.Level, Player.UnspentSkillPoints, Tuning) == EVeyraRankRefusal::None;
+		}
+		if (Shown.Ability.IsValid())
+		{
+			Shown.Numbers = VeyraAbilityNumbers::AtRank(Shown.Ability, FMath::Max(1, Shown.Rank), PhysicalPower, MagicPower, ResourceName);
 		}
 	}
 	if (const UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>())

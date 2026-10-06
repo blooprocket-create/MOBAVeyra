@@ -428,7 +428,10 @@ struct FVeyraFluxbornAiTuning
 	UPROPERTY()
 	double AggressionResponseRange = 0.0;
 
-	/** How far from its lane's path it engages a target, in units: a chase that would take it farther ends, and it returns. */
+	/**
+	 * How far from its lane's path it engages a target, and strays itself, in units: a target farther out is let go, and
+	 * so is any target once the Fluxborn itself is farther out; then it returns (ADR-065 §2).
+	 */
 	UPROPERTY()
 	double LeashRange = 0.0;
 
