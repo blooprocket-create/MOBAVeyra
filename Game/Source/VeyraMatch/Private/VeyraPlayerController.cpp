@@ -443,6 +443,15 @@ AActor* AVeyraPlayerController::GetSelectedUnit() const
 	return Unit && !Unit->IsHidden() ? Unit : nullptr;
 }
 
+void AVeyraPlayerController::RefreshSelection()
+{
+	// Gone for good once hidden: a unit that shows again, as a banished companion reforming, is not selected again.
+	if (!GetSelectedUnit())
+	{
+		SelectedUnit.Reset();
+	}
+}
+
 TOptional<FVector> AVeyraPlayerController::MinimapPointUnderCursor(EMinimapClick Purpose) const
 {
 	FVector2D Mouse;
@@ -1213,6 +1222,7 @@ void AVeyraPlayerController::PlayerTick(float DeltaTime)
 	Super::PlayerTick(DeltaTime);
 	if (IsLocalController())
 	{
+		RefreshSelection();
 		TickPings();
 		TickCastInput();
 		// The cursor tells an enemy that a click would attack (ADR-063 §3).

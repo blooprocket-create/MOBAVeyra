@@ -18,6 +18,7 @@
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
 
 namespace VeyraTargetFrameTests
@@ -103,6 +104,20 @@ namespace VeyraTargetFrameTests
 			ASSERT_THAT(IsTrue(Layout.TargetFrame.Min.X >= Layout.Inset.X && Layout.TargetFrame.Min.Y > Layout.Inset.Y));
 			ASSERT_THAT(IsNear(Layout.TargetFrame.GetSize().X, static_cast<double>(Settings.TargetFrameWidth * Layout.TeamPanels), 1e-3));
 			ASSERT_THAT(IsTrue(Layout.TargetFrame.Max.Y < Layout.DeckTopLeft.Y, TEXT("clear of the deck")));
+		}
+
+		TEST_METHOD(ASelectionEndsForGoodWhenItsUnitHides)
+		{
+			// As a banished companion hides and later reforms as the same body (ADR-066 §2).
+			AVeyraVanguardCharacter& Enemy = SpawnEnemy();
+			AVeyraPlayerController& Local = Spawner.SpawnActor<AVeyraPlayerController>();
+			Local.SelectUnit(&Enemy);
+			ASSERT_THAT(IsTrue(Local.GetSelectedUnit() == &Enemy));
+			Enemy.SetActorHiddenInGame(true);
+			ASSERT_THAT(IsNull(Local.GetSelectedUnit(), TEXT("nothing is selected while it hides")));
+			Local.RefreshSelection();
+			Enemy.SetActorHiddenInGame(false);
+			ASSERT_THAT(IsNull(Local.GetSelectedUnit(), TEXT("and it is not selected again when it shows")));
 		}
 
 		TEST_METHOD(AKindWithoutTextIsNamedByItsWords)

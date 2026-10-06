@@ -284,6 +284,12 @@ public:
 	/** Owning client: selects Unit, or clears the selection with null. */
 	void SelectUnit(AActor* Unit) { SelectedUnit = Unit; }
 
+	/**
+	 * Owning client, each tick: a selection whose unit has hidden or left this machine ends, so it does not come back when
+	 * the unit shows again (ADR-066 §2).
+	 */
+	void RefreshSelection();
+
 	/** Owning client: the indicator the player sees, while a cast waits or Show Cast Range previews one (ADR-041 §1). */
 	const TOptional<FVeyraCastIndicator>& GetCastIndicator() const { return CastInput.GetIndicator(); }
 
