@@ -231,3 +231,11 @@ section 9. The existing LFS rules cover the FBX files.
   under a crest of shards. A ring of gold framework stands behind it, tilted back and throwing rays. Kite panes, each
   cut in four like a harlequin, fan from her shoulders like a window opened out: four on her left, three on her
   right. Shards drift about her, two to each orbit.
+  Aurelisse is soft cloth and cool air, never faceted glass, which keeps her apart from Oriel at a distance. She is
+  a slender pale-blue body of air with currents of light spiralling down it. Her face is only suggested, its eyes
+  glimmering, and fine streams of air pour back from her head like hair. White and teal `cloth` streams away
+  behind her in long waving ribbons from her shoulders, forearms and waist. They lie flat to the sky, so her
+  silhouette is horizontal and soft-edged. The waist ribbons ride the trail, so they sweep as she glides. A brass
+  ring stands behind her shoulders (`haloBehind`), hung with tube chimes and blue crystal pendants on fine chains,
+  and more hang from her sash. Crystals drift about her. Below the waist she is a compact cyclone, a column of air
+  narrowing to a point with currents spiralling round it, and `NS_VeyraMist` wells pale off it and her chest.

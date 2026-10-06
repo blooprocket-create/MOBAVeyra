@@ -363,46 +363,123 @@ def stained_glass(body, spec, L, d, rng):
 
 
 def air(body, spec, L, d, rng):
-    """Aurelisse: shifting air, pale mineral dust and drifting crystals; brass chimes and blue crystal pendants on fine
-    chains; long white and teal cloth streaming away; eyes glimmering in a face only suggested; a cyclone for legs."""
-    dust, cloth, crystal, brass = spec["primary"], spec["secondary"], spec["accent"], spec["detail"]
-    shoulder = d["shoulder"]
+    """Aurelisse: a tall figure of moving air and pale mineral dust, nonhuman, all ribbon and current. A slender
+    pale-blue body with currents of light spiralling down it and a face only suggested, its eyes glimmering; streams of
+    air pouring back from her head like hair. White and teal cloth streams away behind her in long waving ribbons that
+    lie flat to the sky, so her silhouette is horizontal and soft-edged. A brass ring stands behind her shoulders, hung
+    with tube chimes and blue crystal pendants on fine chains, and more chimes hang from her sash. Crystals drift about
+    her. Below the waist she is a compact cyclone of spiralling currents narrowing to a point. Soft cloth and cool air,
+    never faceted glass."""
+    air_color, teal, crystal, brass = spec["primary"], spec["secondary"], spec["accent"], spec["detail"]
+    cloth = spec.get("cloth", [0.95, 0.95, 0.92])
+    current = mix(air_color, [1.0, 1.0, 1.0], 0.6)
+    shoulder, head = d["shoulder"], d["head"]
+    p0, p1 = L["pelvis"]
     s0, s1 = L["spine_03"]
-    # A soft body of dust from her middle to her shoulders: overlapping pale puffs, narrowing at the waist.
-    p0 = L["pelvis"][0]
-    for index in range(7):
-        share = index / 6
-        bone = "pelvis" if share < 0.4 else "spine_03"
-        spot = p0.lerp(s1, share) + Vector((rng.uniform(-0.1, 0.1), rng.uniform(-0.15, 0.15), 0)) * shoulder
-        body.ball(bone, spot, shoulder * (0.35 + 0.3 * share), mix(dust, [1, 1, 1], rng.uniform(0, 0.3)), scale=(0.8, 1.0, 0.7))
+
+    def bipyramid(bone, centre, axis, size, color):
+        """A cut crystal: two points meeting at its girdle."""
+        body.limb(bone, centre, centre + axis * size, size * 0.4, size * 0.04, color, glow=True, segments=6)
+        body.limb(bone, centre, centre - axis * size * 0.8, size * 0.4, size * 0.04, color, glow=True, segments=6)
+
+    def hanging(bone, top, drop, tube):
+        """A brass chime tube, or a crystal pendant, hung from top on a fine chain drop long."""
+        body.limb(bone, top, top - Vector((0, 0, drop)), shoulder * 0.006, shoulder * 0.006, brass, segments=4)
+        end = top - Vector((0, 0, drop))
+        if tube:
+            body.limb(bone, end, end - Vector((0, 0, shoulder * 0.38)), shoulder * 0.04, shoulder * 0.04, brass, segments=8)
+        else:
+            bipyramid(bone, end - Vector((0, 0, shoulder * 0.12)), Vector((0, 0, -1)), shoulder * 0.12, crystal)
+
+    def ribbon(bone, start, back, length, width, color, phase):
+        """A long ribbon of cloth streaming back from start, waving from side to side and up and down as it goes, and
+        lying flat to the sky."""
+        side = back.cross(Vector((0, 0, 1))).normalized()
+        points = [start + back * length * k / 6 + side * math.sin(phase + k * 0.9) * width * 0.9 + Vector((0, 0, math.sin(phase * 0.7 + k * 1.1) * width * 0.5))
+                  for k in range(7)]
+        for k, (a, b) in enumerate(zip(points, points[1:])):
+            body.slab(bone, a, b, width * (1.0 - 0.06 * k), 1.2, color)
+
+    # The trunk: a slender waisted body of air, broad at the shoulders.
+    body.limb("pelvis", p0, p1, shoulder * 0.3, shoulder * 0.34, air_color, segments=10)
+    body.limb("spine_03", s0, s1 - Vector((0, 0, shoulder * 0.1)), shoulder * 0.34, shoulder * 0.46, air_color, segments=10)
+    body.ball("spine_03", s1 - Vector((0, 0, shoulder * 0.2)), shoulder * 0.5, air_color, scale=(0.7, 1.0, 0.6), segments=10)
+    body.limb("neck_01", *L["neck_01"], shoulder * 0.13, shoulder * 0.12, air_color, segments=8)
+    # Currents of light spiralling down her from the shoulders to the waist.
+    for strand in range(3):
+        points = []
+        for k in range(9):
+            share = k / 8
+            angle = strand / 3 * math.tau + share * 2.2
+            radius = shoulder * (0.36 + 0.14 * share)
+            points.append(p0.lerp(s1 - Vector((0, 0, shoulder * 0.15)), share) + Vector((math.cos(angle) * radius * 0.8, math.sin(angle) * radius, 0)))
+        for k, (a, b) in enumerate(zip(points, points[1:])):
+            body.limb("pelvis" if k < 3 else "spine_03", a, b, shoulder * 0.022, shoulder * 0.022, current, glow=True, segments=4)
+    # The head: a face only suggested, two eyes glimmering in it; streams of air pour back from it like hair.
     h0, h1 = L["head"]
-    center = (h0 + h1) / 2
-    body.ball("head", center, d["head"] * 0.5, dust, scale=(0.9, 0.85, 1.0))
+    centre = (h0 + h1) / 2
+    body.ball("head", centre, head * 0.42, air_color, scale=(0.95, 0.82, 1.1), segments=10)
     for sign in (1, -1):
-        body.ball("head", center + Vector((d["head"] * 0.42, sign * d["head"] * 0.17, d["head"] * 0.05)), d["head"] * 0.08, crystal, glow=True)
+        body.ball("head", centre + Vector((head * 0.36, sign * head * 0.15, head * 0.05)), head * 0.07, [0.85, 0.95, 1.0], glow=True, scale=(0.5, 1.4, 0.7), segments=6)
+    for index, spread in enumerate((-0.6, -0.3, 0.0, 0.3, 0.6)):
+        start = centre + Vector((-head * 0.2, spread * head * 0.35, head * 0.3))
+        stream = [start + Vector((-head * 0.75 * k, spread * head * 0.4 * k, head * (0.3 * math.sin(k * 1.2 + index) - 0.3 * k))) for k in range(6)]
+        for k, (a, b) in enumerate(zip(stream, stream[1:])):
+            body.limb("head", a, b, head * (0.11 - k * 0.018), head * (0.09 - k * 0.016), mix(cloth, current, 0.3 * (index % 2)), segments=6)
+    # Slender arms of air with brass bangles at the wrists.
     for side, sign in (("l", 1), ("r", -1)):
-        for part in ARM[1:]:
+        for part, radius in (("upperarm", 0.11), ("lowerarm", 0.085)):
             b0, b1 = L[part + "_" + side]
-            body.limb(part + "_" + side, b0, b1, shoulder * 0.16, shoulder * 0.12, dust)
-        # Cloth streaming away from the shoulders and arms.
-        c0, c1 = L["clavicle_" + side]
-        for index in range(2):
-            start = c1 + Vector((0, 0, -index * shoulder * 0.4))
-            body.slab("clavicle_" + side, start, start + Vector((-shoulder * 2.4, sign * shoulder * 0.5, -shoulder * 0.5)), shoulder * 0.35, shoulder * 0.03,
-                      cloth if index == 0 else mix(cloth, [1, 1, 1], 0.8), roll=90)
-        # Brass tube chimes on fine chains.
-        for index in range(3):
-            top = c1.lerp(c0, index * 0.3) + Vector((shoulder * 0.2, 0, -shoulder * 0.1))
-            body.limb("clavicle_" + side, top, top - Vector((0, 0, shoulder * (0.5 + index * 0.15))), shoulder * 0.04, shoulder * 0.04, brass)
-    # Drifting crystals and pendants.
+            body.limb(part + "_" + side, b0, b1, shoulder * radius, shoulder * radius * 0.8, air_color, segments=8)
+        e0, e1 = L["lowerarm_" + side]
+        body.limb("lowerarm_" + side, e0.lerp(e1, 0.78), e0.lerp(e1, 0.88), shoulder * 0.1, shoulder * 0.1, brass, segments=8)
+        h0, h1 = L["hand_" + side]
+        body.ball("hand_" + side, h0.lerp(h1, 0.5), shoulder * 0.08, air_color, scale=(1.0, 0.6, 1.3), segments=8)
+        # Cloth streaming back from the shoulders and the forearms, flat to the sky.
+        c1 = L["clavicle_" + side][1]
+        back = Vector((-1.0, sign * 0.25, -0.05)).normalized()
+        ribbon("clavicle_" + side, c1 + Vector((-shoulder * 0.2, 0, shoulder * 0.05)), back, d["height"] * 0.6, shoulder * 0.42, cloth, 0.5 * sign)
+        ribbon("clavicle_" + side, c1 + Vector((-shoulder * 0.3, -sign * shoulder * 0.2, -shoulder * 0.15)), back, d["height"] * 0.48, shoulder * 0.3, teal, 1.7 * sign)
+        ribbon("lowerarm_" + side, e0.lerp(e1, 0.5), Vector((-1.0, sign * 0.4, 0.0)).normalized(), d["height"] * 0.28, shoulder * 0.18, teal if side == "l" else cloth, 2.5)
+    # A sash at the waist, white wound over teal, a brass disc on the hip, chimes and pendants hanging from it.
+    body.limb("pelvis", p1 - Vector((0, 0, shoulder * 0.12)), p1 + Vector((0, 0, shoulder * 0.05)), shoulder * 0.4, shoulder * 0.38, cloth, segments=10)
+    body.limb("pelvis", p1 - Vector((0, 0, shoulder * 0.2)), p1 - Vector((0, 0, shoulder * 0.1)), shoulder * 0.41, shoulder * 0.41, teal, segments=10)
+    body.limb("pelvis", p1 + Vector((shoulder * 0.25, shoulder * 0.32, -shoulder * 0.08)), p1 + Vector((shoulder * 0.29, shoulder * 0.36, -shoulder * 0.08)),
+              shoulder * 0.14, shoulder * 0.14, brass, segments=10)
+    for index in range(6):
+        angle = math.radians(-100 + index * 40)
+        top = p1 + Vector((math.cos(angle) * shoulder * 0.42, math.sin(angle) * shoulder * 0.42, -shoulder * 0.2))
+        hanging("pelvis", top, shoulder * (0.1 + 0.08 * (index % 3)), tube=index % 3 != 1)
+    for side in ("l", "r"):
+        ribbon(TRAIL[0], p1 + Vector((-shoulder * 0.3, 0, -shoulder * 0.15)), Vector((-1.0, 0.2 if side == "l" else -0.2, -0.15)).normalized(),
+               d["height"] * 0.68, shoulder * 0.36, teal if side == "l" else cloth, 0.9 if side == "l" else 2.2)
+    # A brass ring standing behind her shoulders, tilted back, hung with chimes and pendants on fine chains.
+    ring_centre = Vector((-shoulder * 0.75, 0, s1.z + head * 0.25))
+    up = Vector((-math.sin(math.radians(25)), 0, math.cos(math.radians(25))))
+    radius = shoulder * 1.05
+    at = lambda angle, share: ring_centre + Vector((0, math.cos(angle), 0)) * radius * share + up * math.sin(angle) * radius * share
+    for index in range(20):
+        a, b = index / 20 * math.tau, (index + 1) / 20 * math.tau
+        body.limb("halo", at(a, 1.0), at(b, 1.0), shoulder * 0.035, shoulder * 0.035, brass, segments=6)
+        body.limb("halo", at(a, 0.86), at(b, 0.86), shoulder * 0.015, shoulder * 0.015, brass, segments=4)
+    for index in range(7):
+        angle = math.radians(200 + index * 20)
+        hanging("halo", at(angle, 1.0), shoulder * (0.12 + 0.1 * (index % 2)), tube=index % 2 == 0)
+    # Crystals drifting about her.
     for name in ORBITS:
         o0, o1 = L[name]
-        body.limb(name, o1 - Vector((0, 0, shoulder * 0.12)), o1 + Vector((0, 0, shoulder * 0.12)), shoulder * 0.08, shoulder * 0.01, crystal, glow=True, segments=4)
-    # A compact cyclone below her: rings narrowing to the ground, ribbons trailing.
+        bipyramid(name, o1, Vector((rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3), 1.0)).normalized(), shoulder * rng.uniform(0.14, 0.2), crystal)
+    # Below the waist, a compact cyclone: a column of air narrowing to a point, currents spiralling round it.
+    radii = (0.34, 0.22, 0.12, 0.03)
     for index, name in enumerate(TRAIL):
         t0, t1 = L[name]
-        body.limb(name, t0, t1, shoulder * (0.55 - index * 0.13), shoulder * (0.42 - index * 0.13), mix(dust, cloth, 0.2 + index * 0.25))
-        body.slab(name, t1, t1 + Vector((-shoulder * 1.2, (index - 1) * shoulder * 0.4, -shoulder * 0.1)), shoulder * 0.2, shoulder * 0.02, cloth, roll=90)
+        body.limb(name, t0, t1, shoulder * radii[index], shoulder * radii[index + 1], mix(air_color, cloth, 0.25 * index), segments=10)
+        for strand in range(3):
+            turn = lambda share: strand / 3 * math.tau + (index + share) * 2.4
+            width = lambda share: shoulder * (radii[index] + (radii[index + 1] - radii[index]) * share + 0.06)
+            ring = [t0.lerp(t1, share) + Vector((math.cos(turn(share)) * width(share), math.sin(turn(share)) * width(share), 0)) for share in (0.0, 0.5, 1.0)]
+            for a, b in zip(ring, ring[1:]):
+                body.limb(name, a, b, shoulder * 0.025, shoulder * 0.025, current, glow=True, segments=4)
 
 
 def halo(body, center, radius, color, rng, gap, size, upright=False):
