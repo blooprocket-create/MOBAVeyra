@@ -203,7 +203,11 @@ fn launcher_update(launcher: State<'_, Arc<Launcher>>) -> LauncherUpdate {
 #[tauri::command]
 fn apply_launcher_update(app: AppHandle, launcher: State<'_, Arc<Launcher>>) -> Result<(), String> {
     let waiting = launcher.setup.lock().unwrap().take().ok_or("No launcher update is waiting.")?;
-    update::start_setup(&waiting).map_err(|error| sentence(format!("Veyra Setup could not start ({error})")))?;
+    update::start_setup(&waiting).map_err(|error| {
+        sentence(format!(
+            "Veyra Setup could not start to update the launcher ({error}). It tries again the next time the launcher opens"
+        ))
+    })?;
     app.exit(0);
     Ok(())
 }

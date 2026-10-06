@@ -89,7 +89,8 @@ pub fn download(server: &ReleaseServer, launcher: &LauncherChannel, folder: &Pat
 
 /// Starts the downloaded Setup `waiting` (from `download`) to update the launcher, and returns where
 /// it now is. The launcher must close straight after, so Setup can replace it; Setup waits for it to go
-/// (Launcher/setup/VeyraSetup.nsi).
+/// (Launcher/setup/VeyraSetup.nsi). A Setup the system will not start goes back under its part name, or
+/// failing that is removed: only one that started may read as tried, so the next open tries again.
 pub fn start_setup(waiting: &Path) -> io::Result<PathBuf> {
     let name = waiting
         .file_name()
@@ -98,11 +99,17 @@ pub fn start_setup(waiting: &Path) -> io::Result<PathBuf> {
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "not a downloaded Setup"))?;
     let path = waiting.with_file_name(name);
     fs::rename(waiting, &path)?;
-    Command::new(&path)
+    let started = Command::new(&path)
         .args(SETUP_ARGUMENTS)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .spawn()?;
+        .spawn();
+    if let Err(error) = started {
+        if fs::rename(&path, waiting).is_err() {
+            let _ = fs::remove_file(&path);
+        }
+        return Err(error);
+    }
     Ok(path)
 }

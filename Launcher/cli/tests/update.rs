@@ -104,6 +104,27 @@ fn a_launcher_runs_the_channels_setup_once_then_counts_it_failed_until_it_is_cur
 }
 
 #[test]
+fn a_setup_that_does_not_start_is_not_counted_as_tried() {
+    let fixture = Fixture::new("unstarted");
+    // Downloaded and checked against its hash, but not a program the system will start, as when
+    // security software holds a fresh executable back.
+    let not_a_program = fixture.root.join("not-a-program.exe");
+    fs::write(&not_a_program, b"not a program").unwrap();
+    publish_setup(&not_a_program, "9.9.9", &fixture.store, CHANNEL).unwrap();
+    let releases = fixture.releases();
+    let Check::Update(release) = update::check(&releases, CHANNEL, "0.1.0", &fixture.folder).unwrap() else {
+        panic!("an update");
+    };
+    let waiting = update::download(&releases, &release, &fixture.folder, ATTEMPTS).expect("download Setup");
+
+    assert!(update::start_setup(&waiting).is_err(), "it does not start");
+    assert!(
+        matches!(update::check(&releases, CHANNEL, "0.1.0", &fixture.folder).unwrap(), Check::Update(_)),
+        "a Setup that never started leaves nothing that reads as having run, so the next open tries again"
+    );
+}
+
+#[test]
 fn a_moved_channel_is_tried_again() {
     let fixture = Fixture::new("moved");
     fixture.publish("9.9.9");
