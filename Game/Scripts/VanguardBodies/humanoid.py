@@ -20,6 +20,9 @@ BONES = [
     ("cape_01", "spine_03"), ("cape_02", "cape_01"), ("cape_03", "cape_02"),
 ]
 BUILD = {"lean": 0.9, "normal": 1.0, "heavy": 1.3, "round": 1.15}
+# A long skirt's chains (ADR-069): round the hips from the belt, by their angle from the front toward the left (degrees),
+# open at the front.
+SKIRT_CHAINS = {"skirt_fl": 50.0, "skirt_bl": 140.0, "skirt_br": -140.0, "skirt_fr": -50.0}
 # Loose parts a body's kit may give it spring chains for (ADR-069), each a list of chains: (name, its bones root to
 # tip, the bone it hangs from). A chain's last bone is its tip, which only marks where the chain ends.
 SPRING_PARTS = {
@@ -29,7 +32,20 @@ SPRING_PARTS = {
     "coatTails": [("coat_l", ["coat_l_01", "coat_l_02", "coat_l_end"], "pelvis"),
                   ("coat_r", ["coat_r_01", "coat_r_02", "coat_r_end"], "pelvis")],
     "hair": [(chain, [chain + "_01", chain + "_02", chain + "_end"], "head") for chain in ("hair_b", "hair_l", "hair_r", "hair_f")],
+    "skirt": [(chain, [chain + "_01", chain + "_02", chain + "_03", chain + "_end"], "pelvis") for chain in SKIRT_CHAINS],
+    "sleeves": [("sleeve_" + side, ["sleeve_%s_01" % side, "sleeve_%s_02" % side, "sleeve_%s_end" % side], "lowerarm_" + side) for side in ("l", "r")],
+    "lantern": [("lantern", ["lantern_01", "lantern_end"], "prop_l")],
 }
+# Loose parts that hang plumb in every clip but a death: each chain's first bone turns back against the limb it hangs
+# from, so a sleeve's drape or a lantern on its chain falls straight down however that limb is raised.
+HANGING_PARTS = ("sleeves", "lantern")
+# How a skirt hangs: its chains start round the hips this far out (a share of the hip joints' spacing), at the belt (a
+# share of the torso above the pelvis), flare out as they fall, and end above the ground by a share of the leg.
+SKIRT_OUT, SKIRT_BELT, SKIRT_FLARE, SKIRT_HEM = 1.7, 0.12, 0.25, 0.08
+# A sleeve's drape: where it hangs from along the forearm, and how far it falls, as a share of the height.
+SLEEVE_ALONG, SLEEVE_FALL = 0.3, 0.3
+# A lantern hung on its chain from the hand: its centre below the grip, as a share of the height.
+LANTERN_DROP = 0.19
 # Hair's chains (ADR-069): where each starts on the skull and which way it falls, in the head's frame (x forward, y
 # left, z up) as shares of the head's length, and how long it falls, as a share of it: down the back, over each ear and
 # over the brow.
@@ -202,6 +218,33 @@ def layout(spec, capsule):
             for index in range(2):
                 L["coat_%s_%02d" % (side, index + 1)] = (start + direction * length * index / 2, start + direction * length * (index + 1) / 2)
             L["coat_%s_end" % side] = (start + direction * length, start + direction * length * 1.05)
+    if "skirt" in spec.get("springs", {}):
+        # A long skirt hangs on four chains round the hips, from the belt nearly to the ground, open at the front.
+        belt = pelvis_z + torso * SKIRT_BELT
+        for chain, degrees in SKIRT_CHAINS.items():
+            angle = math.radians(degrees)
+            out = Vector((math.cos(angle), math.sin(angle), 0.0))
+            start = Vector((0, 0, belt)) + out * hip * SKIRT_OUT
+            fall = belt - (base + leg * SKIRT_HEM)
+            end = start + out * fall * SKIRT_FLARE - Vector((0, 0, fall))
+            for index in range(3):
+                L["%s_%02d" % (chain, index + 1)] = (start.lerp(end, index / 3), start.lerp(end, (index + 1) / 3))
+            L[chain + "_end"] = (end, end + (end - start) * 0.05)
+    if "sleeves" in spec.get("springs", {}):
+        # A sleeve's drape hangs straight down from the forearm.
+        for side in ("l", "r"):
+            e, w = L["lowerarm_" + side]
+            start = e.lerp(w, SLEEVE_ALONG)
+            end = start - Vector((0, 0, height * SLEEVE_FALL))
+            L["sleeve_%s_01" % side] = (start, start.lerp(end, 0.5))
+            L["sleeve_%s_02" % side] = (start.lerp(end, 0.5), end)
+            L["sleeve_%s_end" % side] = (end, end - Vector((0, 0, height * SLEEVE_FALL * 0.05)))
+    if "lantern" in spec.get("springs", {}):
+        # A lantern hangs on its chain from the left hand's grip.
+        grip = L["prop_l"][0]
+        centre = grip - Vector((0, 0, height * LANTERN_DROP))
+        L["lantern_01"] = (grip, centre)
+        L["lantern_end"] = (centre, centre - Vector((0, 0, height * LANTERN_DROP * 0.25)))
     if "hair" in spec.get("springs", {}):
         # Hair hangs on four short chains from the head: down the back, over each ear and over the brow.
         for chain, (start, direction, length) in HAIR_CHAINS.items():
@@ -289,7 +332,8 @@ def layout(spec, capsule):
             "hunch": spec.get("hunch", 0.0),
             "footprint": footprint, "ride": "wave" if "waveBase" in features else None, "gun": gun, "holds": held,
             "springs": bool(spec.get("springs")),
-            "layout": {bone: (head.copy(), tail.copy()) for bone, (head, tail) in L.items()} if held else None,
+            "hanging": [(names[0], parent) for part in HANGING_PARTS if part in spec.get("springs", {}) for _chain, names, parent in SPRING_PARTS[part]],
+            "layout": {bone: (head.copy(), tail.copy()) for bone, (head, tail) in L.items()} if held or spec.get("springs") else None,
             "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base)}
     # Each leg's rest joints, for the clips that solve the legs from where the feet must be (ADR-069 §6).
     dims["legRest"] = {side: {"hip": L["thigh_" + side][0].copy(), "knee": L["calf_" + side][0].copy(), "ankle": L["foot_" + side][0].copy(),
@@ -1785,6 +1829,11 @@ def pose(name, t, melee, d):
     elif not d.get("springs"):
         # A cloak on spring chains moves as cloth does at runtime (ADR-069); others sway by their clips.
         pose.update(cape_pose(name, t))
+    if d.get("hanging") and name != "Death":
+        # Hung plumb: each hanging chain turned back against the limb it hangs from, so it falls straight down.
+        turned, _head = holds.fk(BONES, d["layout"], pose, LIFT_BONE, lift)
+        for root, parent in d["hanging"]:
+            pose[root] = tuple(turned[parent].inverted().to_euler("XYZ"))
     return pose, lift
 
 
