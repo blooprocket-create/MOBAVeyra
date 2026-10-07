@@ -50,8 +50,9 @@ def bones_of(spec):
     return bones
 
 
-def springs_of(spec, dims):
-    """Its loose parts' chains and the capsules they hang outside, for its art (ADR-069): a plain dict."""
+def springs_of(spec, L, dims):
+    """Its loose parts' chains and the capsules they hang outside, for its art (ADR-069): a plain dict. No chain's joint
+    rests inside a capsule, or the engine would push its cloth off where the model hangs it."""
     springs = spec.get("springs", {})
     chains = [{"bones": names, "stiffness": springs[part]["stiffness"], "drag": springs[part]["drag"], "damping": springs[part]["damping"],
                "maxAngle": springs[part]["maxAngle"]}
@@ -61,6 +62,14 @@ def springs_of(spec, dims):
     for side in ("l", "r"):
         colliders += [{"from": "thigh_" + side, "to": "calf_" + side, "radius": dims["hip"] * 0.75},
                       {"from": "calf_" + side, "to": "foot_" + side, "radius": dims["hip"] * 0.55}]
+    for collider in colliders:
+        a, b = L[collider["from"]][0], L[collider["to"]][0]
+        ab = b - a
+        for chain in chains:
+            for bone in chain["bones"][1:]:
+                p = L[bone][0]
+                nearest = a + ab * max(0.0, min(1.0, (p - a).dot(ab) / max(ab.dot(ab), 1e-9)))
+                assert (p - nearest).length >= collider["radius"], (spec["id"], bone, "rests inside its body", collider)
     return {"chains": chains, "colliders": colliders} if chains else None
 # A leg's radius as a share of the body's height, and the foot's radius at heel and toe as shares of it.
 LEG_SHARE = 0.052

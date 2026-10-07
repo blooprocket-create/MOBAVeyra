@@ -738,6 +738,56 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsNear(Behind(), AtRest, Tolerance, *FString::Printf(TEXT("and settles: %.2f behind, %.2f at rest"), Behind(), AtRest)));
 		}
 
+		TEST_METHOD(ItsLoosePartsStayOutsideItsBodyAsDrawn)
+		{
+			// Fixture values: a frame of the world, a run's step each frame (cm), how long it backs up, and how far inside a
+			// joint may sit (the solver keeps each bone's length after pushing it out).
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr double Step = 12.0;
+			constexpr float Backing = 1.0f;
+			constexpr double Slack = 1.0;
+			FName Id;
+			const FVeyraVanguardBody* Art = nullptr;
+			for (const TPair<FName, FVeyraVanguardArt>& Entry : ArtSet().Art)
+			{
+				if (!Entry.Value.SpringChains.IsEmpty() && !Entry.Value.SpringColliders.IsEmpty())
+				{
+					Id = Entry.Key;
+					Art = ArtSet().Find(Id);
+					break;
+				}
+			}
+			ASSERT_THAT(IsNotNull(Art, TEXT("a body whose loose parts hang outside it")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(Id);
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(RefreshedGreybox().FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			// Backing up at a run: drag presses the cloak and the coat's tails forward, into the body.
+			for (int32 Index = 0; Index < FMath::RoundToInt32(Backing / Frame); ++Index)
+			{
+				Skin->SetWorldLocation(Skin->GetComponentLocation() - FVector(Step, 0.0, 0.0));
+				Skin->TickAnimation(Frame, false);
+				Skin->RefreshBoneTransforms();
+			}
+			// Each collider as the body is drawn, at its scale.
+			const double Scale = Skin->GetComponentScale().GetMax();
+			for (const FVeyraSpringColliderArt& Collider : Art->SpringColliders)
+			{
+				const FVector A = Skin->GetBoneLocation(Collider.From);
+				const FVector B = Skin->GetBoneLocation(Collider.To);
+				const double Radius = Collider.Radius * Scale;
+				for (const FVeyraSpringChainArt& Chain : Art->SpringChains)
+				{
+					for (int32 Joint = 1; Joint < Chain.Bones.Num(); ++Joint)
+					{
+						const FVector Point = Skin->GetBoneLocation(Chain.Bones[Joint]);
+						const double Distance = FMath::PointDistToSegment(Point, A, B);
+						ASSERT_THAT(IsTrue(Distance >= Radius - Slack, *FString::Printf(TEXT("%s is %.1f inside %s-%s (radius %.1f drawn)"),
+							*Chain.Bones[Joint].ToString(), Radius - Distance, *Collider.From.ToString(), *Collider.To.ToString(), Radius)));
+					}
+				}
+			}
+		}
+
 		TEST_METHOD(TheToonLightFollowsTheMapsSun)
 		{
 			// Fixture values: a sun low in the south-east, in a warm colour.

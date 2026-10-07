@@ -231,6 +231,8 @@ namespace
 			// before its parent has turned.
 			FCSPose<FCompactPose> Clip;
 			Clip.InitPose(Pose);
+			// The colliders in the world, as the body is drawn: their radii scaled with it, as their ends are.
+			const double Scale = ToWorld.GetMaximumAxisScale();
 			TArray<VeyraSpringChain::FCollider, TInlineAllocator<8>> Colliders;
 			for (const FVeyraSpringColliderArt& Collider : Limbs.SpringColliders)
 			{
@@ -238,7 +240,7 @@ namespace
 				if (From.IsValid() && To.IsValid())
 				{
 					Colliders.Add({ ToWorld.TransformPosition(Clip.GetComponentSpaceTransform(From).GetLocation()),
-						ToWorld.TransformPosition(Clip.GetComponentSpaceTransform(To).GetLocation()), Collider.Radius });
+						ToWorld.TransformPosition(Clip.GetComponentSpaceTransform(To).GetLocation()), static_cast<float>(Collider.Radius * Scale) });
 				}
 			}
 			FCSPose<FCompactPose> Space;

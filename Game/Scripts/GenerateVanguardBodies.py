@@ -371,7 +371,7 @@ def build(spec, status=None, suffix="", previous=None):
         asset["ik"] = {"feet": [list(chain) for chain in archetype.IK_FEET]}
         if spec.get("stance") in getattr(archetype, "IK_TWO_HANDED_STANCES", ()):
             asset["ik"]["offHand"] = {"chain": list(archetype.IK_OFF_HAND), "anchor": archetype.IK_OFF_HAND_ANCHOR}
-    springs = archetype.springs_of(spec, dims) if hasattr(archetype, "springs_of") else None
+    springs = archetype.springs_of(spec, layout, dims) if hasattr(archetype, "springs_of") else None
     if springs:
         # Its loose parts' chains and the capsules they hang outside, for the engine's secondary motion (ADR-069).
         asset["springs"] = springs
