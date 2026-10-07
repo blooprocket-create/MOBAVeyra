@@ -296,11 +296,12 @@ def build(spec, status=None, suffix="", previous=None):
     reset_scene()
     layout, dims = archetype.layout(spec, capsule)
     name = body_name(spec["id"], suffix)
-    armature = build_armature(name, archetype.BONES, layout)
-    textures = None
+    # Its archetype's bones, and any its kit adds (a loose part's spring chains, ADR-069).
+    bones = archetype.bones_of(spec) if hasattr(archetype, "bones_of") else archetype.BONES
+    armature = build_armature(name, bones, layout)
     if spec.get("model"):
-        # A production model (ADR-069): its script's sculpt, meshed, baked and skinned; its textures beside the FBX.
-        obj, textures, triangles = model.build(spec, layout, dims, name, [bone for bone, _ in archetype.BONES], SOURCE / "Textures")
+        # A production model (ADR-069): its script's sculpt, meshed, reduced, skinned and flat-coloured.
+        obj, triangles = model.build(spec, layout, dims, name, [bone for bone, _ in bones])
         mesh = obj.data
     else:
         body = archetype.body(spec, layout, dims)
@@ -313,7 +314,7 @@ def build(spec, status=None, suffix="", previous=None):
         mesh.color_attributes.active_color = mesh.color_attributes["Col"]
         obj = bpy.data.objects.new(name, mesh)
         bpy.context.scene.collection.objects.link(obj)
-        for bone_name, _ in archetype.BONES:
+        for bone_name, _ in bones:
             obj.vertex_groups.new(name=bone_name)
     material = bpy.data.materials.new("M_VeyraVanguardBody")
     mesh.materials.append(material)
@@ -335,10 +336,6 @@ def build(spec, status=None, suffix="", previous=None):
     (SOURCE / "FBX").mkdir(parents=True, exist_ok=True)
     path = SOURCE / "FBX" / (name + ".fbx")
     assert_covered(obj)
-    if textures:
-        # A model's textures are part of what it is: a texture changed is a body changed (ADR-069 §3).
-        for kind in sorted(textures):
-            digest.update((kind + ":" + hashlib.sha256(textures[kind].read_bytes()).hexdigest()).encode())
     content = content_of(obj, armature, digest.copy())
     # Built again as it was (new generator code or a new Blender that changes nothing in it): its FBX and imported
     # assets stand, and only its record of what built it moves on. A body recorded under an earlier CONTENT_VERSION is
@@ -361,25 +358,27 @@ def build(spec, status=None, suffix="", previous=None):
         render_preview(name, armature, obj, archetype, dims, melee)
     asset = {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,
              "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "triangles": triangles, "triangleBudget": budget,
-             "bones": len(archetype.BONES), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
+             "bones": len(bones), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
              "melee": melee, "runStrideCm": round(archetype.run_stride(dims), 2), "upperBodyBone": archetype.UPPER_BODY_BONE,
              "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions,
              # What it was made from and by, so a later partial build cannot pass it off as current (VanguardBodies.inputs),
              # and what it is, so a rebuild that changes nothing in it keeps it.
              "inputSha256": input_hash(KIT, TUNING, spec), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
              "contentSha256": content, "contentVersion": CONTENT_VERSION}
-    if textures:
-        asset["textures"] = model.texture_records(textures, SOURCE)
     if getattr(archetype, "IK_FEET", None):
         # The limbs the engine's inverse kinematics holds (ADR-069): its legs on the ground, and an off hand on a weapon
         # its stance holds in both hands.
         asset["ik"] = {"feet": [list(chain) for chain in archetype.IK_FEET]}
         if spec.get("stance") in getattr(archetype, "IK_TWO_HANDED_STANCES", ()):
             asset["ik"]["offHand"] = {"chain": list(archetype.IK_OFF_HAND), "anchor": archetype.IK_OFF_HAND_ANCHOR}
+    springs = archetype.springs_of(spec, dims) if hasattr(archetype, "springs_of") else None
+    if springs:
+        # Its loose parts' chains and the capsules they hang outside, for the engine's secondary motion (ADR-069).
+        asset["springs"] = springs
     if spec.get("effect"):
         # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
         effect = spec["effect"]
-        missing = [bone for bone in effect["bones"] if bone not in dict(archetype.BONES)]
+        missing = [bone for bone in effect["bones"] if bone not in dict(bones)]
         assert not missing, (spec["id"], "the effect pours from bones it lacks", missing)
         # Sized as the body is grown (a larger form pours larger smoke).
         asset["effect"] = {"system": effect["system"], "bones": effect["bones"], "color": effect["color"],

@@ -79,8 +79,8 @@ def _start(recipe):
 
 
 def _run(task):
-    fn, name, mode, reach, args = task
-    tree.MODE[0], tree.REACH[0] = mode, reach
+    fn, name, reach, args = task
+    tree.REACH[0] = reach
     return fn(_ROOTS[name], *args)
 
 
@@ -122,6 +122,6 @@ class Pool:
         return False
 
     def map(self, fn, name, args_list):
-        mode, reach = tree.MODE[0], tree.REACH[0]
+        reach = tree.REACH[0]
         chunk = max(1, len(args_list) // (PROCESSES * 8))
-        return self.pool.map(_run, [(fn, name, mode, reach, args) for args in args_list], chunk)
+        return self.pool.map(_run, [(fn, name, reach, args) for args in args_list], chunk)

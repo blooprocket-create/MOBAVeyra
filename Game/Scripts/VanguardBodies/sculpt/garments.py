@@ -1,5 +1,5 @@
 """Garments and gear for a sculpt (ADR-069): regions a garment covers, layered shells with fabric folds, straps that
-wrap a body along a band, and hard-surface pieces (buckle frames, studs, pouches) set onto a surface facing out."""
+wrap a body along a band, pouches and boots."""
 import math
 
 import numpy as np
@@ -282,47 +282,7 @@ def f_at(node, p):
     return float(tree.evaluate(node, np.asarray(p, dtype=np.float32)[None, :], box).d[0])
 
 
-def facing_frame(normal, up=(0, 0, 1)):
-    """Axes (columns x, y, z) of a piece set on a surface: z out along normal, y as near up as allowed."""
-    z = unit(normal)
-    y = V(*up) - z * (V(*up) @ z)
-    y = unit(y) if np.linalg.norm(y) > 1e-3 else unit(np.cross(z, V(1, 0, 0)))
-    x = np.cross(y, z)
-    return np.stack([x, y, z], axis=1)
-
-
 # ---------------------------------------------------------------------------------------------- hard-surface pieces
-def buckle(S, name, centre, axes, width, height, bar, depth, material, bones=None, detail=True):
-    """A buckle's frame on a strap: a rounded rectangle ring width x height (cm), its bar bar thick, depth proud of the
-    strap, with a prong across it. axes: columns x (across the strap), y (along it), z (out)."""
-    c = V(*centre)
-    R = np.asarray(axes)
-
-    def distance(P):
-        Q = (P - c) @ R
-        outer = sdf.box(Q, (0, 0, depth * 0.5), (width * 0.5, height * 0.5, depth * 0.5), None, bar * 0.4)
-        inner = sdf.box(Q, (0, 0, depth * 0.5), (width * 0.5 - bar, height * 0.5 - bar, depth), None, bar * 0.3)
-        ring = np.maximum(outer, -inner)
-        prong = sdf.capsule(Q, (0, -height * 0.5 + bar, depth * 0.6), (0, height * 0.15, depth * 0.75), bar * 0.28)
-        return np.minimum(ring, prong)
-    r = max(width, height)
-    return tree.leaf(S, name, distance, Box(c - r, c + r), material, bones, detail)
-
-
-def studs(S, name, points, normals, radius, material, bones=None, detail=True):
-    """Round studs (rivets) at points, each a flattened dome along its normal."""
-    pts = [V(*p) for p in points]
-    ns = [unit(n) for n in normals]
-
-    def distance(P):
-        d = None
-        for p, n in zip(pts, ns):
-            piece = sdf.ellipsoid(P, p, (radius, radius, radius * 0.55), facing_frame(n))
-            d = piece if d is None else np.minimum(d, piece)
-        return d
-    return tree.leaf(S, name, distance, Box.around(pts, radius * 2), material, bones, detail)
-
-
 def pouch(S, name, centre, axes, size, flap, material, flap_material=None, bones=None, rounding=0.6):
     """A leather pouch: a rounded box size (x across, y up, z out) at centre, its flap over the top third, a little
     proud of the face."""
@@ -344,10 +304,10 @@ def pouch(S, name, centre, axes, size, flap, material, flap_material=None, bones
 
 
 # ---------------------------------------------------------------------------------------------- boots
-def boot(S, name, L, side, top, materials, bones, strap_heights=(), shaft=1.0, toe=1.0):
+def boot(S, name, L, side, top, materials, bones, shaft=1.0, toe=1.0):
     """A heavy boot on one leg: a shaft fitted over the calf from the ankle to top (cm), the foot's upper over the
-    instep tapering to a rounded toe, a thick sole with a raised heel, and straps round the shaft at strap_heights,
-    each buckled on the outside. materials: {"boot", "sole", "strap", "buckle"}. Returns its node."""
+    instep tapering to a rounded toe, and a thick sole with a raised heel. materials: {"boot", "sole"}. Returns its
+    node."""
     sign = 1.0 if side == "l" else -1.0
     knee, ankle = V(*L["calf_" + side][0]), V(*L["calf_" + side][1])
     f0, f1 = V(*L["foot_" + side][0]), V(*L["foot_" + side][1])
@@ -375,16 +335,4 @@ def boot(S, name, L, side, top, materials, bones, strap_heights=(), shaft=1.0, t
                         Box((toe_x - 9, y - 7, 0), (toe_x + 2, y + 7, 10)), materials["boot"], bones)
     soles = Union([tree.leaf(S, name + "_sole", sole, Box.around(sole.bounds_points()), materials["sole"], bones),
                    tree.leaf(S, name + "_heel", heel, Box.around(heel.bounds_points()), materials["sole"], bones)], k=0.3)
-    # Lugs cut across the tread (detail, baked into the textures).
-    lugs = tree.leaf(S, name + "_lugs", lambda P: np.maximum(np.abs(((P[:, 0] - heel_x) % 2.4) - 1.2) - 0.35, P[:, 2] - 0.8),
-                     Box((heel_x - 2, y - 7, -1), (toe_x + 2, y + 7, 1.2)), materials["sole"], bones, True)
-    soles = tree.Subtract(soles, lugs, k=0.15)
-    straps = []
-    for i, height in enumerate(strap_heights):
-        point = ankle + (knee - ankle) * ((height - ankle[2]) / max(knee[2] - ankle[2], 1e-6))
-        band = band_z(height - 1.3, height + 1.3)
-        straps.append(Shell(S, "%s_strap_%d" % (name, i), body, 0.0, 0.7, band, materials["strap"], hem=0.15, bones=None, detail=True))
-        out = unit(V(0.25, sign, 0.0))
-        p = point + out * (6.6 * shaft + 0.7)
-        straps.append(buckle(S, "%s_buckle_%d" % (name, i), p, facing_frame(out, (0, 0, 1)), 2.3, 2.9, 0.42, 0.55, materials["buckle"], bones))
-    return Union([body, toe_cap, soles] + straps, k=0.0)
+    return Union([body, toe_cap, soles], k=0.0)

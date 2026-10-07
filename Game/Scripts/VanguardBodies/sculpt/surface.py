@@ -27,9 +27,8 @@ def to_object(name, points, triangles, quads):
 
 
 def labels_at(root, points, cell=8.0):
-    """The label of the part whose surface is nearest each point (every part, detail included), evaluated in cells so
-    each evaluates only the parts near it."""
-    tree.MODE[0] = "detail"
+    """The label of the part whose surface is nearest each point, evaluated in cells so each evaluates only the parts
+    near it."""
     tree.REACH[0] = 2.0
     P = np.asarray(points, dtype=np.float32)
     (labels,) = tree.in_cells(root, P, workers.labels, cell)

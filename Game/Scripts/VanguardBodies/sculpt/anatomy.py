@@ -72,19 +72,19 @@ class Figure:
     def p(self, name, i):
         return V(*self.L[name][i])
 
-    def add(self, name, distance, bounds, bones, detail=False, protect=0.0, group=None):
-        node = tree.leaf(self.S, name, distance, bounds, self.skin_material, bones, detail, protect)
+    def add(self, name, distance, bounds, bones, protect=0.0, group=None):
+        node = tree.leaf(self.S, name, distance, bounds, self.skin_material, bones, protect)
         (self.parts if group is None else group).append(node)
         return node
 
-    def ellipsoid(self, name, c, r, axes, bones, group=None, detail=False, protect=0.0):
+    def ellipsoid(self, name, c, r, axes, bones, group=None, protect=0.0):
         c = V(*c)
         rr = V(*r)
-        return self.add(name, lambda P: sdf.ellipsoid(P, c, rr, axes), Box(c - rr.max(), c + rr.max()), bones, detail, protect, group)
+        return self.add(name, lambda P: sdf.ellipsoid(P, c, rr, axes), Box(c - rr.max(), c + rr.max()), bones, protect, group)
 
-    def cone(self, name, a, b, ra, rb, bones, group=None, detail=False, protect=0.0):
+    def cone(self, name, a, b, ra, rb, bones, group=None, protect=0.0):
         a, b = V(*a), V(*b)
-        return self.add(name, lambda P: sdf.round_cone(P, a, b, ra, rb), Box.around([a, b], max(ra, rb)), bones, detail, protect, group)
+        return self.add(name, lambda P: sdf.round_cone(P, a, b, ra, rb), Box.around([a, b], max(ra, rb)), bones, protect, group)
 
     # ------------------------------------------------------------------------------------------ build
     def build(self):
@@ -104,7 +104,7 @@ class Figure:
 
     def loft(self, name, a, b, up, stations, bones, group, cap=0.0, protect=0.0):
         shape = sdf.Loft(a, b, up, stations, cap)
-        return self.add(name, shape, Box.around(shape.bounds_points()), bones, False, protect, group)
+        return self.add(name, shape, Box.around(shape.bounds_points()), bones, protect, group)
 
     def torso_parts(self):
         """One loft up the spine, crotch to neck root, its sections a heroic V: hips, a narrow waist, a deep chest
@@ -223,16 +223,16 @@ class Head:
         self.bones = rigid(bones) if isinstance(bones, str) else bones
         self.nodes = []
 
-    def e(self, name, c, r, axes=None, detail=False, protect=1.0):
+    def e(self, name, c, r, axes=None, protect=1.0):
         u = self.size / 24.0
         c, r = V(*c) * u, V(*r) * u
-        node = tree.leaf(self.S, name, lambda P: sdf.ellipsoid(P, c, r, axes), Box(c - r.max(), c + r.max()), self.skin, self.bones, detail, protect)
+        node = tree.leaf(self.S, name, lambda P: sdf.ellipsoid(P, c, r, axes), Box(c - r.max(), c + r.max()), self.skin, self.bones, protect)
         return node
 
-    def c(self, name, a, b, ra, rb, detail=False, protect=1.0):
+    def c(self, name, a, b, ra, rb, protect=1.0):
         u = self.size / 24.0
         a, b, ra, rb = V(*a) * u, V(*b) * u, ra * u, rb * u
-        return tree.leaf(self.S, name, lambda P: sdf.round_cone(P, a, b, ra, rb), Box.around([a, b], max(ra, rb)), self.skin, self.bones, detail, protect)
+        return tree.leaf(self.S, name, lambda P: sdf.round_cone(P, a, b, ra, rb), Box.around([a, b], max(ra, rb)), self.skin, self.bones, protect)
 
     def build(self):
         """The head as one loft up its axis, chin to crown, its sections giving the jaw's taper, the cheeks, the brow
@@ -249,7 +249,7 @@ class Head:
                     (z(10.1), -0.2, 0, 9.7, 6.9, 2.8), (z(11.8), -0.6, 0, 9.9, 7.2, 2.7), (z(15.0), -1.0, 0, 9.8, 7.4, 2.5),
                     (z(18.6), -1.5, 0, 8.8, 6.9, 2.3), (z(20.6), -1.9, 0, 6.4, 5.2, 2.1), (z(21.9), -2.1, 0, 3.0, 2.4, 2.0)]
         shape = sdf.Loft(V(0, 0, bottom) * u, V(0, 0, top) * u, (1, 0, 0), [(s[0], s[1] * u, s[2] * u, s[3] * u, s[4] * u, s[5]) for s in stations], 1.2 * u)
-        skull = tree.leaf(self.S, "skull", shape, Box.around(shape.bounds_points()), self.skin, self.bones, False, 1.0)
+        skull = tree.leaf(self.S, "skull", shape, Box.around(shape.bounds_points()), self.skin, self.bones, 1.0)
         forms = [skull,
                  self.e("cheekbone_l", (4.8, 5.3, 8.4), (2.3, 1.2, 0.9)), self.e("cheekbone_r", (4.8, -5.3, 8.4), (2.3, 1.2, 0.9)),
                  self.c("brow_l", (9.0, 0.7, 11.8), (8.2, 4.3, 12.0), 0.7, 0.55),
@@ -300,9 +300,9 @@ class Hand:
         self.s = 1.0 if side == "r" else -1.0
         self.tips = {}
 
-    def cone(self, name, a, b, ra, rb, detail=False):
+    def cone(self, name, a, b, ra, rb):
         a, b = V(*a), V(*b)
-        return tree.leaf(self.S, name, lambda P: sdf.round_cone(P, a, b, ra, rb), Box.around([a, b], max(ra, rb)), self.skin, self.bones, detail, 1.0)
+        return tree.leaf(self.S, name, lambda P: sdf.round_cone(P, a, b, ra, rb), Box.around([a, b], max(ra, rb)), self.skin, self.bones, 1.0)
 
     def chain(self, name, base, direction, bend_axis, lengths, radii, angles):
         """Bones from base along direction, each turned by its angle about bend_axis (toward the palm)."""
@@ -322,16 +322,16 @@ class Hand:
         u, s = self.u, self.s
         nodes = []
         palm = tree.leaf(self.S, "palm", lambda P: sdf.box(P, V(5.0, 0, 0) * u, V(4.6, 3.9, 1.25) * u, None, 1.1 * u),
-                         Box(V(0, -4, -1.5) * u, V(10, 4, 1.5) * u), self.skin, self.bones, False, 1.0)
+                         Box(V(0, -4, -1.5) * u, V(10, 4, 1.5) * u), self.skin, self.bones, 1.0)
         thenar_c, thenar_r = V(3.4, s * 2.6, -0.55) * u, V(2.6, 1.6, 1.3) * u
         thenar = tree.leaf(self.S, "thenar", lambda P: sdf.ellipsoid(P, thenar_c, thenar_r), Box(thenar_c - 3 * u, thenar_c + 3 * u),
-                           self.skin, self.bones, False, 1.0)
+                           self.skin, self.bones, 1.0)
         hypo_c, hypo_r = V(3.8, -s * 2.8, -0.4) * u, V(3.0, 1.2, 1.1) * u
         hypothenar = tree.leaf(self.S, "hypothenar", lambda P: sdf.ellipsoid(P, hypo_c, hypo_r), Box(hypo_c - 3 * u, hypo_c + 3 * u),
-                               self.skin, self.bones, False, 1.0)
+                               self.skin, self.bones, 1.0)
         wrist_c, wrist_r = V(0.4, 0, 0) * u, V(1.6, 2.9, 1.9) * u
         wrist = tree.leaf(self.S, "wrist", lambda P: sdf.ellipsoid(P, wrist_c, wrist_r), Box(wrist_c - 3 * u, wrist_c + 3 * u),
-                          self.skin, self.bones, False, 1.0)
+                          self.skin, self.bones, 1.0)
         nodes += [palm, thenar, hypothenar, wrist]
         for finger, (across, lengths, scale) in FINGERS.items():
             base = V(9.4 - abs(across) * 0.9, s * across * 3.9, 0.15) * u

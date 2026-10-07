@@ -48,12 +48,11 @@ def guide(root, direction, normal, length, droop, curl, samples=7):
 
 
 def messy(S, material, bones, skull_centre, skull_radii, hairline, seed, count=56, length=(7.0, 13.0), radius=(1.3, 2.0),
-          wind=(0.0, -0.35, 0.0), fringe=0.8, volume=0.6, core=0.85, unit_scale=1.0):
+          wind=(0.0, -0.35, 0.0), fringe=0.8, volume=0.6, unit_scale=1.0, cap_bones=None):
     """Messy, windswept hair over a skull (an ellipsoid at skull_centre, skull_radii, in the head's frame): a cap to
     hairline (its height above the frame's origin at the brow, falling to the nape at the back) and count locks.
     wind sweeps them; fringe is how long the front locks are, as a share of the others; volume how much the locks high on
-    the head stand up and out. Returns (the solid core, the locks' guides for hair cards): core is how much of each lock
-    the solid keeps under its cards."""
+    the head stand up and out. bones skins the locks; cap_bones the cap (bones when None). Returns its node."""
     rng = random.Random(seed)
     c = V(*skull_centre) * unit_scale
     r = V(*skull_radii) * unit_scale
@@ -70,10 +69,9 @@ def messy(S, material, bones, skull_centre, skull_radii, hairline, seed, count=5
         front = np.clip((P[:, 0] - c[0]) / r[0], -1, 1)
         line = nape + (brow - nape) * (front * 0.5 + 0.5)
         return np.maximum(shell, (line * unit_scale) - P[:, 2])
-    cap = tree.leaf(S, "hair_cap", cap_distance, Box(c - r - 2 * unit_scale, c + r + 2 * unit_scale), material, bones)
+    cap = tree.leaf(S, "hair_cap", cap_distance, Box(c - r - 2 * unit_scale, c + r + 2 * unit_scale), material, cap_bones or bones)
     nodes.append(cap)
     crown = c + V(-0.25 * r[0], 0, 0.95 * r[2])
-    guides = []
     for i in range(count):
         # Roots over the scalp above the hairline: azimuth all round, elevation from near the hairline to the crown.
         azimuth = rng.uniform(-math.pi, math.pi)
@@ -99,40 +97,46 @@ def messy(S, material, bones, skull_centre, skull_radii, hairline, seed, count=5
         droop = rng.uniform(0.1, 0.35) * (1.0 - 0.6 * lift)
         # Tips flick out from the head at the sides and back, as wind-tossed hair does.
         curl = rng.uniform(-0.05, 0.35) + (0.2 if abs(math.sin(azimuth)) > 0.5 else 0.0)
-        # The solid core is a little smaller than the lock its cards lay over, so the cards' strands make its surface.
-        nodes.append(clump(S, "hair_lock_%02d" % i, root, flow, normal, reach * core, thick * core, droop, curl, material, bones))
-        guides.append({"points": guide(root, flow, normal, reach, droop, curl), "normal": normal, "radius": thick})
-    return Union(nodes, k=0.7 * unit_scale), guides
+        nodes.append(clump(S, "hair_lock_%02d" % i, root, flow, normal, reach, thick, droop, curl, material, bones))
+    return Union(nodes, k=0.7 * unit_scale)
 
 
-def card_material(S, name, colour, highlight, strands=14, preview=None):
-    """Hair cards' paint (ADR-069): strands running along each card (v from root to tip), darker at the root and lit in
-    streaks, each strand ending at its own length so the tips fray; between strands the card is open (its opacity)."""
-    from . import paint
-    base = paint.linear(colour)
-    light = paint.linear(highlight)
+def on_chains(chains, head, centre, radii, reach):
+    """Skinning for locks that sway (ADR-069 §7): a point at the scalp holds to head; out along its lock it passes, by
+    how far beyond the skull it lies (reach: where it has passed whole), to the chains it lies nearest, and down each
+    chain's bones (<chain>_01, _02, ..., one per span) by how far along it it lies. chains: {chain: its joints, root to
+    tip, world}; centre and radii: the skull, an ellipsoid. Returns bones(P) -> {bone: weights}."""
+    c, r = V(*centre), V(*radii)
+    joints = {name: np.asarray(points, dtype=np.float64) for name, points in chains.items()}
 
-    def strand_index(u):
-        return np.floor(u * strands)
-
-    def hashed(x, salt):
-        return np.modf(np.sin(x * 12.9898 + salt * 78.233) * 43758.5453)[0] % 1.0
-
-    def colour_of(ctx):
-        u, v = ctx["uv"][:, 0], ctx["uv"][:, 1]
-        index = strand_index(u)
-        streak = np.abs(hashed(index, 1.0))
-        tone = np.clip(0.55 + 0.45 * v, 0, 1)[:, None] * (base[None, :] * (1 - 0.35 * streak[:, None]) + light[None, :] * 0.35 * streak[:, None])
-        return np.clip(tone * (0.6 + 0.4 * ctx["ao"])[:, None], 0, 1).astype(np.float32)
-
-    def opacity_of(ctx):
-        u, v = ctx["uv"][:, 0], ctx["uv"][:, 1]
-        index = strand_index(u)
-        across = (u * strands) % 1.0
-        # Each strand a little narrower toward its tip; the edge strands sparser.
-        width = 0.7 - 0.35 * v
-        edge = np.minimum(u, 1 - u) * 2.0
-        keep = np.abs(across - 0.5) < width * 0.5 * np.clip(edge * 1.6, 0.4, 1.0)
-        ends = 0.72 + 0.28 * np.abs(hashed(index, 2.0))
-        return (keep & (v < ends)).astype(np.float32)
-    return S.material(name, colour_of, opacity=opacity_of, preview=preview or colour)
+    def bones(P):
+        P = np.asarray(P, dtype=np.float64)
+        out = np.clip((np.linalg.norm((P - c) / r, axis=1) - 1.0) * r.mean() / reach, 0.0, 1.0)
+        weights = {head: 1.0 - out}
+        nearness, spans_of = {}, {}
+        for name, points in joints.items():
+            # How near the chain each point lies, and where along it (in spans from its root).
+            best = np.full(len(P), np.inf)
+            along = np.zeros(len(P))
+            for k in range(len(points) - 1):
+                a, ab = points[k], points[k + 1] - points[k]
+                t = np.clip(((P - a) @ ab) / max(ab @ ab, 1e-9), 0.0, 1.0)
+                d = np.linalg.norm(P - (a + t[:, None] * ab), axis=1)
+                along = np.where(d < best, k + t, along)
+                best = np.minimum(best, d)
+            # Shared among the chains by inverse square distance, so a lock between two blends.
+            nearness[name] = 1.0 / np.maximum(best, 1e-3) ** 2
+            spans_of[name] = along
+        total = sum(nearness.values())
+        for name, points in joints.items():
+            share = out * nearness[name] / total
+            spans = len(points) - 1
+            # Each span's bone most at its middle, blending into its neighbours'; the root's and tip's ends wholly theirs.
+            x = np.clip(spans_of[name], 0.5, spans - 0.5)
+            hats = [np.clip(1.0 - np.abs(x - (k + 0.5)), 0.0, 1.0) for k in range(spans)]
+            whole = sum(hats)
+            for k, hat in enumerate(hats):
+                bone = "%s_%02d" % (name, k + 1)
+                weights[bone] = weights.get(bone, 0.0) + share * hat / whole
+        return {bone: np.asarray(w, dtype=np.float32) for bone, w in weights.items()}
+    return bones

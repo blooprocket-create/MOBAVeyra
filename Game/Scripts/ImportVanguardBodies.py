@@ -68,31 +68,12 @@ def writable(asset_path):
         raise RuntimeError("Acquire the Git LFS lock before reimporting: " + str(target))
 
 
-# A production model's textures (ADR-069 §3): how each imports, by its kind in the manifest, and its asset suffix.
-TEXTURE_KINDS = {"colour": ("BaseColor", True, "TC_DEFAULT"), "mask": ("Mask", False, "TC_MASKS"), "normal": ("Normal", False, "TC_NORMALMAP")}
-
-
-def texture_path(asset, kind):
-    return folder_of(asset) + "/T_" + asset["name"].removeprefix("SK_") + "_" + TEXTURE_KINDS[kind][0]
-
-
-def instance_path(asset):
-    return folder_of(asset) + "/MI_" + asset["name"].removeprefix("SK_")
-
-
 # Validate every source and target before changing any asset.
 for asset in SELECTED:
     source = (SOURCE / asset["file"]).resolve()
     assert source.is_relative_to(SOURCE.resolve()), "An FBX path escapes the kit"
     assert hashlib.sha256(source.read_bytes()).hexdigest() == asset["sha256"], asset["name"] + " differs from the manifest"
     writable(folder_of(asset) + "/" + asset["name"])
-    for kind, texture in asset.get("textures", {}).items():
-        file = (SOURCE / texture["file"]).resolve()
-        assert file.is_relative_to(SOURCE.resolve()), "A texture path escapes the kit"
-        assert hashlib.sha256(file.read_bytes()).hexdigest() == texture["sha256"], (asset["name"], kind, "texture differs from the manifest")
-        writable(texture_path(asset, kind))
-    if asset.get("textures"):
-        writable(instance_path(asset))
 
 
 # The engine's temporal dither function.
@@ -107,80 +88,6 @@ float Shows = Opacity * lerp(1.0, Band, ShimmerDepth);
 float Silhouette = saturate((Edge - RimStart) / max(fwidth(Edge), 1e-5) + 0.5);
 return float2(lerp(1.0, max(Shows, Silhouette), Veil), Veil * Silhouette * lerp(1.0 - ShimmerDepth, 1.0, Band));
 """
-
-
-def import_texture(filename, folder, name, srgb, compression, flip_green=False):
-    """A texture imported from a PNG to folder/name with its colour space and compression; a character's group."""
-    task = unreal.AssetImportTask()
-    task.set_editor_property("filename", str(filename))
-    task.set_editor_property("destination_path", folder)
-    task.set_editor_property("destination_name", name)
-    task.set_editor_property("automated", True)
-    task.set_editor_property("replace_existing", True)
-    task.set_editor_property("save", False)
-    TOOLS.import_asset_tasks([task])
-    texture = unreal.load_asset(folder + "/" + name)
-    assert isinstance(texture, unreal.Texture2D), (name, "did not import as a texture")
-    texture.set_editor_property("srgb", srgb)
-    texture.set_editor_property("compression_settings", getattr(unreal.TextureCompressionSettings, compression))
-    texture.set_editor_property("lod_group", unreal.TextureGroup.TEXTUREGROUP_CHARACTER)
-    # Baked in Blender's tangent frame, whose green runs the other way from the engine's.
-    texture.set_editor_property("flip_green_channel", flip_green)
-    assert unreal.EditorAssetLibrary.save_loaded_asset(texture, only_if_is_dirty=False), "Save failed: " + name
-    return texture
-
-
-def _png(path, rgb):
-    """A 4x4 PNG of one colour (rgb 0..255), written without any image library."""
-    import struct
-    import zlib
-    raw = b"".join(b"\x00" + bytes(rgb) * 4 for _ in range(4))
-
-    def chunk(tag, data):
-        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 4, 4, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
-
-
-def default_textures():
-    """The body material's texture defaults (ADR-069 §4), which leave a vertex-coloured body as it was: white colour,
-    a white mask (fully open, every marked glow, opaque) and a flat normal."""
-    defaults = {}
-    for key, name, rgb, srgb, compression in (("base", "T_VeyraBodyWhite", (255, 255, 255), True, "TC_DEFAULT"),
-                                              ("mask", "T_VeyraBodyMaskWhite", (255, 255, 255), False, "TC_MASKS"),
-                                              ("normal", "T_VeyraBodyFlatNormal", (128, 128, 255), False, "TC_NORMALMAP")):
-        path = DEST + "/" + name
-        if unreal.EditorAssetLibrary.does_asset_exist(path):
-            defaults[key] = unreal.load_asset(path)
-            continue
-        png = SAVED / "Defaults" / (name + ".png")
-        _png(png, rgb)
-        defaults[key] = import_texture(png, DEST, name, srgb, compression)
-    return defaults
-
-
-def model_material(asset, material):
-    """A production model's material (ADR-069 §4): MI_<Body>, the body material with its baked textures."""
-    textures = {}
-    for kind, texture in asset["textures"].items():
-        suffix, srgb, compression = TEXTURE_KINDS[kind]
-        textures[kind] = import_texture(SOURCE / texture["file"], folder_of(asset), "T_" + asset["name"].removeprefix("SK_") + "_" + suffix,
-                                        srgb, compression, flip_green=kind == "normal")
-    path = instance_path(asset)
-    if unreal.EditorAssetLibrary.does_asset_exist(path):
-        instance = unreal.load_asset(path)
-    else:
-        instance = TOOLS.create_asset(path.rsplit("/", 1)[1], folder_of(asset), unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
-    EDIT.set_material_instance_parent(instance, material)
-    EDIT.update_material_instance(instance)
-    for kind, parameter in (("colour", "BaseMap"), ("mask", "MaskMap"), ("normal", "NormalMap")):
-        # The setter reports false even when it sets the value (UE 5.8), so the value is read back instead.
-        EDIT.set_material_instance_texture_parameter_value(instance, parameter, textures[kind])
-        assert EDIT.get_material_instance_texture_parameter_value(instance, parameter) == textures[kind], (
-            path, parameter, "the body material's texture parameters:", [str(name) for name in EDIT.get_texture_parameter_names(material)])
-    EDIT.update_material_instance(instance)
-    assert unreal.EditorAssetLibrary.save_loaded_asset(instance, only_if_is_dirty=False), "Save failed: " + path
-    return instance
 
 
 def toon_light():
@@ -246,22 +153,8 @@ def body_material(collection):
     # A vertex colour's colour output is unnamed; R, G, B and A are its others. A connection to a name that is not an
     # output fails quietly, leaving the body black, so every connection is checked (Graph.link asserts).
     color = g.node(unreal.MaterialExpressionVertexColor, 0)
-    # A production model's baked textures (ADR-069 §4); their defaults leave a vertex-coloured body as it was.
-    defaults = default_textures()
-    base_map = g.node(unreal.MaterialExpressionTextureSampleParameter2D, 0, parameter_name="BaseMap", texture=defaults["base"],
-                      sampler_type=unreal.MaterialSamplerType.SAMPLERTYPE_COLOR, group="Textures")
-    mask_map = g.node(unreal.MaterialExpressionTextureSampleParameter2D, 0, parameter_name="MaskMap", texture=defaults["mask"],
-                      sampler_type=unreal.MaterialSamplerType.SAMPLERTYPE_MASKS, group="Textures")
-    normal_map = g.node(unreal.MaterialExpressionTextureSampleParameter2D, 0, parameter_name="NormalMap", texture=defaults["normal"],
-                        sampler_type=unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL, group="Textures")
-    albedo = g.op(unreal.MaterialExpressionMultiply, 1, color, base_map, "", "RGB")
-    # The normal the bands and rim read: the normal map's, in the world, turned with the side shown (two-sided cloth).
-    to_world = g.node(unreal.MaterialExpressionTransform, 1, transform_source_type=unreal.MaterialVectorCoordTransformSource.TRANSFORMSOURCE_TANGENT,
-                      transform_type=unreal.MaterialVectorCoordTransform.TRANSFORM_WORLD)
-    g.link(normal_map, "RGB", to_world, "")
-    unit_normal = g.node(unreal.MaterialExpressionNormalize, 2)
-    g.link(to_world, "", unit_normal, "")
-    normal = g.op(unreal.MaterialExpressionMultiply, 2, unit_normal, g.node(unreal.MaterialExpressionTwoSidedSign, 1))
+    # The normal the bands and rim read: the vertex normal, turned with the side shown (a cloth sheet shows both).
+    normal = g.op(unreal.MaterialExpressionMultiply, 2, g.node(unreal.MaterialExpressionVertexNormalWS, 1), g.node(unreal.MaterialExpressionTwoSidedSign, 1))
     # How squarely the surface faces the sun, from -1 (away) to 1.
     to_sun = g.node(unreal.MaterialExpressionNormalize, 2)
     g.link(light(0, "ToSun"), "", to_sun, "")
@@ -272,8 +165,8 @@ def body_material(collection):
     g.link(facing, "", band, "Value")
     # Lit and shadowed colour, and the band between them.
     sun = light(0, "SunColor")
-    lit = g.op(unreal.MaterialExpressionMultiply, 3, g.op(unreal.MaterialExpressionMultiply, 2, albedo, vector(1, "LitTint", toon["litTint"]), "", "RGB"), sun)
-    shadow = g.op(unreal.MaterialExpressionMultiply, 3, albedo, vector(2, "ShadowTint", toon["shadowTint"]), "", "RGB")
+    lit = g.op(unreal.MaterialExpressionMultiply, 3, g.op(unreal.MaterialExpressionMultiply, 2, color, vector(1, "LitTint", toon["litTint"]), "", "RGB"), sun)
+    shadow = g.op(unreal.MaterialExpressionMultiply, 3, color, vector(2, "ShadowTint", toon["shadowTint"]), "", "RGB")
     shaded = g.node(unreal.MaterialExpressionLinearInterpolate, 4)
     g.link(shadow, "", shaded, "A")
     g.link(lit, "", shaded, "B")
@@ -285,16 +178,10 @@ def body_material(collection):
     g.link(fresnel, "", rim_edge, "Value")
     rim_strength = g.scalar(3, "RimStrength", toon["rimStrength"], "Toon")
     rim = g.op(unreal.MaterialExpressionMultiply, 5, g.op(unreal.MaterialExpressionMultiply, 4, rim_edge, band), rim_strength)
-    # Baked occlusion darkens the bands by aoStrength of itself (white where no model sets it).
-    occlusion = g.node(unreal.MaterialExpressionLinearInterpolate, 4, const_a=1.0)
-    g.link(mask_map, "R", occlusion, "B")
-    g.link(g.scalar(3, "AOStrength", values["aoStrength"], "Toon"), "", occlusion, "Alpha")
-    occluded = g.op(unreal.MaterialExpressionMultiply, 5, shaded, occlusion)
-    rimmed = g.op(unreal.MaterialExpressionAdd, 6, occluded, g.op(unreal.MaterialExpressionMultiply, 5, sun, rim))
+    rimmed = g.op(unreal.MaterialExpressionAdd, 6, shaded, g.op(unreal.MaterialExpressionMultiply, 5, sun, rim))
     bright = g.op(unreal.MaterialExpressionMultiply, 7, rimmed, g.scalar(6, "Brightness", toon["brightness"], "Toon"))
     # The glow, on top: what the vertex alpha marks, at glowGain.
-    marked = g.op(unreal.MaterialExpressionMultiply, 1, color, mask_map, "A", "G")
-    glow = g.op(unreal.MaterialExpressionMultiply, 2, g.op(unreal.MaterialExpressionMultiply, 1, albedo, marked),
+    glow = g.op(unreal.MaterialExpressionMultiply, 2, g.op(unreal.MaterialExpressionMultiply, 1, color, color, "", "A"),
                 g.scalar(1, "GlowStrength", values["glowGain"], "Toon"))
     total = g.op(unreal.MaterialExpressionAdd, 8, bright, glow)
     # The veil (ADR-068 §6): while the presentation raises Veil, a body on the viewer's side hidden from its enemies
@@ -323,9 +210,7 @@ def body_material(collection):
     # The engine's temporal dither, which the upscaler resolves into a smooth fade.
     dither = g.node(unreal.MaterialExpressionMaterialFunctionCall, 8, material_function=unreal.load_asset(DITHER))
     link_named(g, shows, "", dither, ("Alpha Threshold", "AlphaThreshold"))
-    # And where a model's cloth is torn through (the mask's opacity), nothing at all.
-    opacity = g.op(unreal.MaterialExpressionMultiply, 9, dither, mask_map, "", "B")
-    assert EDIT.connect_material_property(opacity, "", unreal.MaterialProperty.MP_OPACITY_MASK), "opacity mask"
+    assert EDIT.connect_material_property(dither, "", unreal.MaterialProperty.MP_OPACITY_MASK), "opacity mask"
     lit_rim = g.node(unreal.MaterialExpressionComponentMask, 7, r=False, g=True, b=False, a=False)
     g.link(shimmer, "", lit_rim, "")
     veil_rim = g.op(unreal.MaterialExpressionMultiply, 8, lit_rim, g.scalar(7, "VeilRimStrength", veil["rimStrength"], "Veil"))
@@ -390,14 +275,13 @@ def import_body(asset, material):
     mesh = unreal.load_asset(folder + "/" + asset["name"])
     assert isinstance(mesh, unreal.SkeletalMesh), asset["name"] + " did not import as a skeletal mesh"
     materials = mesh.get_editor_property("materials")
-    worn = model_material(asset, material) if asset.get("textures") else material
     # Each slot by index: iterating the array gives copies of its structs, which would change nothing.
     for index in range(len(materials)):
         slot = materials[index]
-        slot.set_editor_property("material_interface", worn)
+        slot.set_editor_property("material_interface", material)
         materials[index] = slot
     mesh.set_editor_property("materials", materials)
-    assert all(slot.get_editor_property("material_interface") == worn for slot in mesh.get_editor_property("materials")), (asset["name"], "a slot does not wear its material")
+    assert all(slot.get_editor_property("material_interface") == material for slot in mesh.get_editor_property("materials")), (asset["name"], "a slot does not wear its material")
     assert unreal.EditorAssetLibrary.save_loaded_asset(mesh), "Save failed: " + asset["name"]
     skeleton = mesh.get_editor_property("skeleton")
     assert skeleton, asset["name"] + " has no skeleton"
@@ -443,6 +327,25 @@ def fill_body(asset, body):
     if ik.get("offHand"):
         body.set_editor_property("off_hand", chain(ik["offHand"]["chain"]))
         body.set_editor_property("off_hand_anchor", unreal.Name(ik["offHand"]["anchor"]))
+    springs = asset.get("springs", {})
+    loose = []
+    for entry in springs.get("chains", []):
+        art = unreal.VeyraSpringChainArt()
+        art.set_editor_property("bones", [unreal.Name(bone) for bone in entry["bones"]])
+        art.set_editor_property("stiffness", entry["stiffness"])
+        art.set_editor_property("drag", entry["drag"])
+        art.set_editor_property("damping", entry["damping"])
+        art.set_editor_property("max_angle_degrees", entry["maxAngle"])
+        loose.append(art)
+    body.set_editor_property("spring_chains", loose)
+    colliders = []
+    for entry in springs.get("colliders", []):
+        collider = unreal.VeyraSpringColliderArt()
+        collider.set_editor_property("from", unreal.Name(entry["from"]))
+        collider.set_editor_property("to", unreal.Name(entry["to"]))
+        collider.set_editor_property("radius", entry["radius"])
+        colliders.append(collider)
+    body.set_editor_property("spring_colliders", colliders)
     if asset.get("effect"):
         effect = unreal.load_asset(asset["effect"]["system"])
         assert isinstance(effect, unreal.NiagaraSystem), (asset["name"], "its effect does not load; build it with BuildEffects.ps1", asset["effect"]["system"])

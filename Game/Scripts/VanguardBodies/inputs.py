@@ -149,16 +149,14 @@ LFS_POINTER = b"version https://git-lfs.github.com/spec/v1"
 
 
 def committed_mismatches(game):
-    """Every manifest asset whose FBX, or one of whose textures (a production model's, ADR-069 §3), is missing or is
-    not the file the manifest recorded, by name. A file Git LFS has not checked out is its pointer, which names its
-    object by the same SHA-256, so CI need not fetch the large files."""
+    """Every manifest asset whose FBX is missing or is not the file the manifest recorded, by name. A file Git LFS has
+    not checked out is its pointer, which names its object by the same SHA-256, so CI need not fetch the FBX."""
     game = Path(game)
     source = game / "ArtSource" / "Vanguards"
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     mismatches = []
     for asset in manifest["assets"]:
-        files = [(asset["file"], asset.get("sha256"))] + [(texture["file"], texture["sha256"]) for texture in asset.get("textures", {}).values()]
-        if any(_committed_sha(source / file) != sha for file, sha in files):
+        if _committed_sha(source / asset["file"]) != asset.get("sha256"):
             mismatches.append(asset["name"])
     return mismatches
 
@@ -182,6 +180,6 @@ if __name__ == "__main__":
               " generator code or Blender changed since they were built, or their Blender is not the kit's: " + ", ".join(stale))
     mismatched = committed_mismatches(sys.argv[1])
     if mismatched:
-        print("These bodies' FBX or textures are missing or are not what the manifest recorded: " + ", ".join(mismatched))
+        print("These bodies' FBX are missing or are not what the manifest recorded: " + ", ".join(mismatched))
     if stale or mismatched:
         sys.exit(1)

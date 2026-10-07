@@ -85,17 +85,13 @@ def _tint(value):
 
 def body_problems(kit):
     """Every problem with the Vanguard bodies' material (VanguardKit.json bodyMaterial): the strength of what the
-    vertex alpha marks as glowing, above 0, how much baked occlusion darkens a model's bands, and its toon light
-    (ADR-068 §2)."""
+    vertex alpha marks as glowing, above 0, and its toon light (ADR-068 §2)."""
     material = kit.get("bodyMaterial")
     if not isinstance(material, dict):
         return ["bodyMaterial: needs glowGain and toon"]
     problems = []
     if not _positive(material.get("glowGain")):
         problems.append("bodyMaterial.glowGain: must be a number above 0")
-    # How much of a production model's baked occlusion darkens its bands (ADR-069 §4).
-    if not _unit(material.get("aoStrength")):
-        problems.append("bodyMaterial.aoStrength: must be a number from 0 to 1")
     toon = material.get("toon")
     if not isinstance(toon, dict):
         return problems + ["bodyMaterial.toon: needs the toon light's values"]
@@ -146,8 +142,8 @@ def _veil_problems(veil):
 
 def model_problems(kit, models):
     """Every problem with the kit's production models (ADR-069 §3): each entry naming a model names a script in models
-    (the scripts there, by name), a triangle budget above 0, a texture size that is a power of two from 256, a voxel
-    size above 0 and a dense-texel factor of at least 1."""
+    (the scripts there, by name), a triangle budget above 0 and a voxel size above 0. A model is flat-coloured: it
+    names no texture settings."""
     problems = []
     for spec in list(kit.get("vanguards", [])) + list(kit.get("companions", [])):
         model = spec.get("model")
@@ -161,11 +157,37 @@ def model_problems(kit, models):
             problems.append(where + ".script: must name a script in VanguardBodies/models")
         if not (isinstance(model.get("triangleBudget"), int) and model["triangleBudget"] > 0):
             problems.append(where + ".triangleBudget: must be a whole number above 0")
-        size = model.get("textureSize")
-        if not (isinstance(size, int) and size >= 256 and size & (size - 1) == 0):
-            problems.append(where + ".textureSize: must be a power of two from 256")
         if not _positive(model.get("voxelCm")):
             problems.append(where + ".voxelCm: must be a number above 0")
-        if not (_number(model.get("denseTexels")) and model["denseTexels"] >= 1.0):
-            problems.append(where + ".denseTexels: must be a number of at least 1")
+        for key in ("textureSize", "denseTexels"):
+            if key in model:
+                problems.append(where + "." + key + ": models are flat-coloured (ADR-069 §2); remove it")
+    return problems
+
+
+def spring_problems(kit):
+    """Every problem with the kit's loose parts (ADR-069 §7): each entry's springs map a part to its spring back to its
+    clip (stiffness, above 0, per second squared), the speed it loses through the air (drag) and relative to its clip
+    (damping), each 0 or more per second, and how far it may turn from its clip (maxAngle, degrees above 0, at most
+    180)."""
+    problems = []
+    for spec in list(kit.get("vanguards", [])) + list(kit.get("companions", [])):
+        springs = spec.get("springs")
+        if springs is None:
+            continue
+        where = "%s.springs" % spec.get("id")
+        if not isinstance(springs, dict) or not springs:
+            problems.append(where + ": must map at least one part to its spring")
+            continue
+        for part, values in springs.items():
+            if not isinstance(values, dict):
+                problems.append("%s.%s: must be an object" % (where, part))
+                continue
+            if not _positive(values.get("stiffness")):
+                problems.append("%s.%s.stiffness: must be a number above 0" % (where, part))
+            for key in ("drag", "damping"):
+                if not (_number(values.get(key)) and values[key] >= 0.0):
+                    problems.append("%s.%s.%s: must be a number of at least 0" % (where, part, key))
+            if not (_positive(values.get("maxAngle")) and values["maxAngle"] <= 180.0):
+                problems.append("%s.%s.maxAngle: must be degrees above 0, at most 180" % (where, part))
     return problems

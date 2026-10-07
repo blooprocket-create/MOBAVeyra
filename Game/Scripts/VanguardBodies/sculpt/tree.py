@@ -12,8 +12,6 @@ from . import sdf
 
 # Where a culled node's distance is unknown, it is at least this far: beyond any band the mesher or baker resolves.
 FAR = 1.0e3
-# "form" builds the game mesh (detail parts left out); "detail" bakes textures (every part).
-MODE = ["form"]
 # How far beyond a box a node must lie to be skipped: the caller's band.
 REACH = [1.0]
 # The step a shell widens the reach by (cm).
@@ -55,22 +53,21 @@ class Box:
 
 
 class Material:
-    """How a surface is painted, at bake time: colour(ctx) -> (n, 3) linear colour; glow(ctx) -> (n,) in [0, 1]; and
-    opacity(ctx) -> (n,) in [0, 1] for cloth with holes. ctx carries P, N, ao, cavity and the part labels."""
+    """A surface's flat colour (sRGB, as seen; the toon material shades it) and whether it glows."""
 
-    def __init__(self, name, colour, glow=None, opacity=None, preview=(0.8, 0.8, 0.8)):
-        self.name, self.colour, self.glow, self.opacity, self.preview = name, colour, glow, opacity, preview
+    def __init__(self, name, colour, glow=False):
+        self.name, self.colour, self.glow = name, colour, glow
 
 
 class Part:
     """A leaf of the sculpt: distance(P) -> (n,), its bounds, its material, and its skinning: bones(P) -> {bone: (n,)}
-    weights, or None to take the weights of the body beneath it. A detail part is baked into textures but left out
-    of the game mesh."""
+    weights, or None to take the weights of the body beneath it. protect in [0, 1]: how much the reduction keeps its
+    detail (a hand, a weapon)."""
 
-    def __init__(self, sculpt, name, distance, bounds, material, bones=None, detail=False, protect=0.0):
+    def __init__(self, sculpt, name, distance, bounds, material, bones=None, protect=0.0):
         self.label = len(sculpt.parts)
         self.name, self.distance, self.bounds, self.material = name, distance, bounds, material
-        self.bones, self.detail, self.protect = bones, detail, protect
+        self.bones, self.protect = bones, protect
         sculpt.parts.append(self)
 
 
@@ -79,8 +76,8 @@ class Sculpt:
         self.parts = []
         self.materials = {}
 
-    def material(self, name, colour=None, glow=None, opacity=None, preview=(0.8, 0.8, 0.8)):
-        self.materials[name] = Material(name, colour, glow, opacity, preview)
+    def material(self, name, colour, glow=False):
+        self.materials[name] = Material(name, colour, glow)
         return self.materials[name]
 
 
@@ -130,9 +127,8 @@ class Node:
     def field(self, P, box):
         """This node's field over P, evaluated once per evaluate(). Culling is its parent's call: only a parent knows
         how far its blend reaches (a child culled here but blended there would seam the bricks)."""
-        # Keyed by the reach and mode too: a shell widens the reach to see its base's true distances farther out, and
-        # reads its base as meshed.
-        key = (id(self), REACH[0], MODE[0])
+        # Keyed by the reach too: a shell widens the reach to see its base's true distances farther out.
+        key = (id(self), REACH[0])
         cache = _CACHE[0]
         if key not in cache:
             field = self.eval(P, box)
@@ -157,8 +153,6 @@ class Leaf(Node):
         self.bounds = part.bounds
 
     def eval(self, P, box):
-        if self.part.detail and MODE[0] == "form":
-            return _far(len(P), 0.0)
         return sdf.Field.of(self.part.distance(P).astype(np.float32), self.part.label)
 
 
@@ -244,14 +238,13 @@ class Shell(Node):
     it, its edge stands as thick as offset + thickness. It is a part of its own (label, material, skinning by
     inheritance)."""
 
-    def __init__(self, sculpt, name, base, offset, thickness, region, material, hem=0.15, bones=None, detail=False,
-                 displace=None, reach=0.0, fine=None):
+    def __init__(self, sculpt, name, base, offset, thickness, region, material, hem=0.15, bones=None, displace=None,
+                 reach=0.0):
         self.base, self.offset, self.thickness, self.region, self.hem = base, offset, thickness, region, hem
-        # displace(P): folds raising the outer face, meshed; fine(P): relief too small to mesh (stitching, quilting),
-        # baked into the textures only. reach: the most either raises it, which its bounds must cover.
-        self.displace, self.fine = displace, fine
+        # displace(P): folds raising the outer face; reach: the most it raises it, which its bounds must cover.
+        self.displace = displace
         self.extra = reach
-        self.part = Part(sculpt, name, None, None, material, bones, detail)
+        self.part = Part(sculpt, name, None, None, material, bones)
         self.bounds = base.bounds.grown(offset + thickness + reach).intersection(region.bounds.grown(hem))
         self.part.bounds = self.bounds
 
@@ -259,25 +252,18 @@ class Shell(Node):
         return self.extra
 
     def eval(self, P, box):
-        if self.part.detail and MODE[0] == "form":
-            return _far(len(P), 0.0)
         # Its base out to the shell's own extent: a base culled nearer would answer a placeholder there, and a shell
         # standing off a placeholder would be a wall at every brick's edge.
-        saved, mode = REACH[0], MODE[0]
+        saved = REACH[0]
         # Rounded up to a whole step, so the layers of a stack share one evaluation of what lies beneath them (each
         # distinct reach evaluates the stack afresh); a wider reach is only ever more exact.
         REACH[0] = saved + REACH_STEP * math.ceil((self.offset + self.thickness + self.extra) / REACH_STEP)
-        # It rests on its base as meshed: relief baked into a layer beneath (quilting, a strap's stitching) does not
-        # show through the cloth over it.
-        MODE[0] = "form"
         try:
             under = self.base.field(P, box).d
         finally:
-            REACH[0], MODE[0] = saved, mode
+            REACH[0] = saved
         # Folds raise its outer face only: it stays solid down into its base however high a fold stands.
         rise = self.displace(P) if self.displace is not None else 0.0
-        if self.fine is not None and MODE[0] == "detail":
-            rise = rise + self.fine(P)
         d = sdf.solid_layer(under, self.offset + self.thickness, rise)
         d = sdf.smax(d, self.region.field(P, box).d, self.hem)
         return sdf.Field.of(d.astype(np.float32), self.part.label)
@@ -343,8 +329,8 @@ class Placed(Node):
         return (P - self.origin) @ self.axes
 
 
-def leaf(sculpt, name, distance, bounds, material, bones=None, detail=False, protect=0.0):
-    return Leaf(Part(sculpt, name, distance, bounds, material, bones, detail, protect))
+def leaf(sculpt, name, distance, bounds, material, bones=None, protect=0.0):
+    return Leaf(Part(sculpt, name, distance, bounds, material, bones, protect))
 
 
 def zone(distance, bounds):

@@ -1,6 +1,5 @@
-"""A production model's body (ADR-069): its script's sculpt meshed, reduced, unwrapped, baked and skinned, ready for
-the generator to rig, animate and export like any body. Its textures are written beside the FBX."""
-import hashlib
+"""A production model's body (ADR-069): its script's sculpt meshed, reduced, skinned and flat-coloured, ready for the
+generator to rig, animate and export like any body."""
 import importlib
 import time
 
@@ -9,23 +8,19 @@ import bpy
 import numpy as np
 
 from .parts import ANCHOR_RADIUS
-from .sculpt import bake, gamemesh, mesher, sheet, skin, surface, tree, workers
-
-# The texture each bake writes, whether it is colour (sRGB), and its file suffix.
-TEXTURES = (("colour", True, "BaseColor"), ("mask", False, "Mask"), ("normal", False, "Normal"))
+from .sculpt import gamemesh, mesher, paint, sheet, skin, surface, tree, workers
 
 
-def build(spec, layout, dims, name, bones, texture_dir, log=print):
-    """The body object of spec's model on layout, skinned to bones (names), with its textures written to texture_dir:
-    (object, {kind: path}, triangles)."""
+def build(spec, layout, dims, name, bones, log=print):
+    """The body object of spec's model on layout, skinned to bones (names): (object, triangles)."""
     settings = spec["model"]
     shaped = {bone: (tuple(a), tuple(b)) for bone, (a, b) in layout.items()}
     # Its sculpt is evaluated in worker processes, each building it as the generator does (sculpt/workers.py).
     with workers.Pool({"script": settings["script"], "layout": shaped, "dims": dims, "spec": spec}) as pool:
-        return _build(spec, shaped, layout, dims, name, bones, texture_dir, log, pool)
+        return _build(spec, shaped, layout, dims, name, bones, log, pool)
 
 
-def _build(spec, shaped, layout, dims, name, bones, texture_dir, log, pool):
+def _build(spec, shaped, layout, dims, name, bones, log, pool):
     settings = spec["model"]
     script = importlib.import_module("VanguardBodies.models." + settings["script"])
     sculpt = tree.Sculpt()
@@ -42,8 +37,9 @@ def _build(spec, shaped, layout, dims, name, bones, texture_dir, log, pool):
     labels = surface.labels_at(root, points)
     protect = np.array([sculpt.parts[label].protect if label >= 0 else 0.0 for label in labels], dtype=np.float32)
     sheets = info.get("sheets", [])
-    # The sculpt's share of the budget; its cloth sheets are built at the density they keep.
-    budget = settings["triangleBudget"] - sum(2 * s.columns * s.rows for s in sheets)
+    # The sculpt's share of the budget: its cloth sheets are built at the density they keep, and each bone may need an
+    # anchor's one triangle.
+    budget = settings["triangleBudget"] - sum(2 * s.columns * s.rows for s in sheets) - len(bones)
     count = gamemesh.reduce(obj, budget, protect)
     count -= gamemesh.drop_specks(obj)
     gamemesh.shade(obj)
@@ -60,50 +56,67 @@ def _build(spec, shaped, layout, dims, name, bones, texture_dir, log, pool):
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
         bpy.ops.object.join()
-        count += sum(2 * s.columns * s.rows for s in sheets)
-    co = np.zeros(len(obj.data.vertices) * 3, dtype=np.float32)
-    obj.data.vertices.foreach_get("co", co)
-    near = np.array([sculpt.parts[label].protect if label >= 0 else 0.0 for label in surface.labels_at(root, co.reshape(-1, 3))])
-    dense = [polygon.index for polygon in obj.data.polygons if np.mean(near[list(polygon.vertices)]) > 0.5]
-    # Charts: each face's material (its centre's part's), split by the way it faces; each sheet whole, numbered past
-    # every material and direction.
-    centres = np.zeros(len(obj.data.polygons) * 3, dtype=np.float32)
-    obj.data.polygons.foreach_get("center", centres)
-    material_index = {name: i for i, name in enumerate(sculpt.materials)}
-    part_material = np.array([material_index[part.material.name] for part in sculpt.parts] + [len(material_index)], dtype=np.int64)
-    groups = part_material[surface.labels_at(root, centres.reshape(-1, 3)).astype(np.int64)]
-    charts = gamemesh.charts_of(obj, groups)
+    # Flat colour (ADR-069 §2): each face its material's, read by the toon material through the vertex colour.
+    faces = _flat_colours(obj, root, sculpt, sheets)
     if "sheet" in obj.data.attributes:
-        marks = np.zeros(len(obj.data.polygons), dtype=np.int32)
-        obj.data.attributes["sheet"].data.foreach_get("value", marks)
-        charts = np.where(marks > 0, (len(material_index) + 1) * len(gamemesh.DIRECTIONS) + marks, charts)
-    gamemesh.unwrap(obj, charts, dense, dense_scale=settings["denseTexels"])
-    stage("unwrapped")
-    maps = bake.bake(obj, root, sculpt, settings["textureSize"], sheets=sheets, log=log)
-    # What only the bake read goes before export (the content hash covers what the FBX holds).
-    for attribute in ("sheet", "sheet_uv"):
-        if attribute in obj.data.attributes:
-            obj.data.attributes.remove(obj.data.attributes[attribute])
-    texture_dir.mkdir(parents=True, exist_ok=True)
-    paths = {}
-    for kind, srgb, suffix in TEXTURES:
-        path = texture_dir / ("T_%s_%s.png" % (name[3:] if name.startswith("SK_") else name, suffix))
-        bake.save(maps[kind], path, srgb)
-        paths[kind] = path
+        obj.data.attributes.remove(obj.data.attributes["sheet"])
+    _project_uvs(obj)
     _anchor(obj, layout, bones)
     # Counted as exported, anchors and all, so the budget's check and the manifest see every triangle.
     obj.data.calc_loop_triangles()
     count = len(obj.data.loop_triangles)
-    # Its colour is its textures': the vertex colour stays white, and its alpha lets the mask say what glows.
-    colour = obj.data.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
-    colour.data.foreach_set("color", np.ones(len(obj.data.loops) * 4, dtype=np.float32))
-    obj.data.color_attributes.active_color = colour
-    obj.data.uv_layers.active.name = "UVMap"
-    return obj, paths, count
+    _set_colours(obj, faces)
+    stage("coloured")
+    return obj, count
+
+
+def _flat_colours(obj, root, sculpt, sheets):
+    """Each face's colour (linear) and glow (alpha 1 where it glows): its sheet's material, or the material of the part
+    nearest its centre. (faces, 4) float32."""
+    mesh = obj.data
+    centres = np.zeros(len(mesh.polygons) * 3, dtype=np.float32)
+    mesh.polygons.foreach_get("center", centres)
+    labels = surface.labels_at(root, centres.reshape(-1, 3)).astype(np.int64)
+    marks = np.zeros(len(mesh.polygons), dtype=np.int32)
+    if "sheet" in mesh.attributes:
+        mesh.attributes["sheet"].data.foreach_get("value", marks)
+    # One row per part and then per sheet; a face nearest no part (none should be) stays white.
+    def row(material):
+        return list(paint.linear(material.colour)) + [1.0 if material.glow else 0.0]
+    table = np.array([row(part.material) for part in sculpt.parts] + [row(s.material) for s in sheets] + [[1.0, 1.0, 1.0, 0.0]], dtype=np.float32)
+    index = np.where(marks > 0, len(sculpt.parts) + marks - 1, np.where(labels >= 0, labels, len(table) - 1))
+    return table[index]
+
+
+def _set_colours(obj, faces):
+    """The vertex colour "Col" at every corner: its face's (faces made after them, the anchors, white)."""
+    mesh = obj.data
+    totals = np.zeros(len(mesh.polygons), dtype=np.int32)
+    mesh.polygons.foreach_get("loop_total", totals)
+    per_face = np.vstack([faces, np.tile([1.0, 1.0, 1.0, 0.0], (len(mesh.polygons) - len(faces), 1))]).astype(np.float32)
+    colour = mesh.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
+    colour.data.foreach_set("color", np.repeat(per_face, totals, axis=0).ravel())
+    mesh.color_attributes.active_color = colour
+
+
+def _project_uvs(obj):
+    """A UV map projected from the side (nothing samples it: a flat-coloured body reads only its vertex colour), so the
+    import has one to compute tangents from."""
+    mesh = obj.data
+    co = np.zeros(len(mesh.vertices) * 3, dtype=np.float32)
+    mesh.vertices.foreach_get("co", co)
+    co = co.reshape(-1, 3)
+    loops = np.zeros(len(mesh.loops), dtype=np.int64)
+    mesh.loops.foreach_get("vertex_index", loops)
+    span = max(float(np.ptp(co[:, 1])), float(np.ptp(co[:, 2])), 1e-6)
+    uv = np.stack([(co[:, 0] - co[:, 0].min()) / span, (co[:, 2] - co[:, 2].min()) / span], axis=1)[loops]
+    layer = mesh.uv_layers.new(name="UVMap") if not mesh.uv_layers else mesh.uv_layers.active
+    layer.data.foreach_set("uv", uv.astype(np.float32).ravel())
 
 
 def _anchor(obj, layout, bones):
-    """A speck at the head of each bone no vertex is weighted to (ADR-064's anchors), so every bone binds at rest."""
+    """A speck at the head of each bone no vertex is weighted to (ADR-064's anchors), so every bone binds at rest: one
+    tiny triangle, as a low-poly body counts every one."""
     weighted = {obj.vertex_groups[g.group].name for v in obj.data.vertices for g in v.groups if g.weight > 0}
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -112,16 +125,12 @@ def _anchor(obj, layout, bones):
         if bone in weighted:
             continue
         head = layout[bone][0]
-        made = bmesh.ops.create_icosphere(bm, subdivisions=1, radius=ANCHOR_RADIUS)
         group = obj.vertex_groups[bone].index
-        for vert in made["verts"]:
-            vert.co = vert.co + type(vert.co)(head)
+        corners = []
+        for offset in ((ANCHOR_RADIUS, 0.0, 0.0), (0.0, ANCHOR_RADIUS, 0.0), (0.0, 0.0, ANCHOR_RADIUS)):
+            vert = bm.verts.new([h + o for h, o in zip(head, offset)])
             vert[deform][group] = 1.0
+            corners.append(vert)
+        bm.faces.new(corners)
     bm.to_mesh(obj.data)
     bm.free()
-
-
-def texture_records(paths, source):
-    """The manifest's record of a body's textures: each file relative to source and its SHA-256."""
-    return {kind: {"file": path.relative_to(source).as_posix(), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            for kind, path in paths.items()}

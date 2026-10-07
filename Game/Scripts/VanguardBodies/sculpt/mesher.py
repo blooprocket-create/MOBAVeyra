@@ -17,10 +17,9 @@ BAND_VOXELS = 3.0
 SAFETY = 1.5
 
 
-def level_set(root, voxel, pad=2.0, log=print, mode="form"):
+def level_set(root, voxel, pad=2.0, log=print):
     """The level set of root at voxel centimetres: (grid, index origin)."""
     band = BAND_VOXELS * voxel
-    tree.MODE[0] = mode
     tree.REACH[0] = band
     lo = root.bounds.lo - pad
     hi = root.bounds.hi + pad

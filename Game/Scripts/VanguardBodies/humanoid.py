@@ -4,7 +4,7 @@ import random
 
 from mathutils import Euler, Matrix, Vector
 
-from . import locomotion
+from . import holds, locomotion
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
 # The humanoid skeleton: every humanoid has every bone, so all share one definition. A bone a body does not use (a
@@ -20,6 +20,48 @@ BONES = [
     ("cape_01", "spine_03"), ("cape_02", "cape_01"), ("cape_03", "cape_02"),
 ]
 BUILD = {"lean": 0.9, "normal": 1.0, "heavy": 1.3, "round": 1.15}
+# Loose parts a body's kit may give it spring chains for (ADR-069), each a list of chains: (name, its bones root to
+# tip, the bone it hangs from). A chain's last bone is its tip, which only marks where the chain ends.
+SPRING_PARTS = {
+    "cloak": [("cloak", ["cape_01", "cape_02", "cape_03", "cape_end"], "spine_03"),
+              ("cloak_l", ["cape_l_01", "cape_l_02", "cape_l_03", "cape_l_end"], "spine_03"),
+              ("cloak_r", ["cape_r_01", "cape_r_02", "cape_r_03", "cape_r_end"], "spine_03")],
+    "coatTails": [("coat_l", ["coat_l_01", "coat_l_02", "coat_l_end"], "pelvis"),
+                  ("coat_r", ["coat_r_01", "coat_r_02", "coat_r_end"], "pelvis")],
+    "hair": [(chain, [chain + "_01", chain + "_02", chain + "_end"], "head") for chain in ("hair_b", "hair_l", "hair_r", "hair_f")],
+}
+# Hair's chains (ADR-069): where each starts on the skull and which way it falls, in the head's frame (x forward, y
+# left, z up) as shares of the head's length, and how long it falls, as a share of it: down the back, over each ear and
+# over the brow.
+HAIR_CHAINS = {"hair_b": ((-0.34, 0.0, 0.62), (-0.45, 0.0, -1.0), 0.34), "hair_l": ((-0.08, 0.3, 0.66), (-0.2, 0.45, -1.0), 0.3),
+               "hair_r": ((-0.08, -0.3, 0.66), (-0.2, -0.45, -1.0), 0.3), "hair_f": ((0.3, 0.0, 0.8), (0.5, 0.0, -0.85), 0.24)}
+
+
+def bones_of(spec):
+    """Its bones: every humanoid's, and the chains its loose parts hang on (each after its parent)."""
+    bones, known = list(BONES), {name for name, _ in BONES}
+    for part in spec.get("springs", {}):
+        for _chain, names, parent in SPRING_PARTS[part]:
+            for name in names:
+                if name not in known:
+                    bones.append((name, parent))
+                    known.add(name)
+                parent = name
+    return bones
+
+
+def springs_of(spec, dims):
+    """Its loose parts' chains and the capsules they hang outside, for its art (ADR-069): a plain dict."""
+    springs = spec.get("springs", {})
+    chains = [{"bones": names, "stiffness": springs[part]["stiffness"], "drag": springs[part]["drag"], "damping": springs[part]["damping"],
+               "maxAngle": springs[part]["maxAngle"]}
+              for part in springs for _chain, names, _parent in SPRING_PARTS[part]]
+    # Its torso and each leg, as wide as the figure is: a cloak falls behind them, a coat's tails beside them.
+    colliders = [{"from": "pelvis", "to": "spine_03", "radius": dims["shoulder"] * 0.62}]
+    for side in ("l", "r"):
+        colliders += [{"from": "thigh_" + side, "to": "calf_" + side, "radius": dims["hip"] * 0.75},
+                      {"from": "calf_" + side, "to": "foot_" + side, "radius": dims["hip"] * 0.55}]
+    return {"chains": chains, "colliders": colliders} if chains else None
 # A leg's radius as a share of the body's height, and the foot's radius at heel and toe as shares of it.
 LEG_SHARE = 0.052
 FOOT_HEEL_SHARE = 0.75
@@ -132,6 +174,33 @@ def layout(spec, capsule):
     cape_length = (cape_start.z - base) * CAPE_REACH
     for index, name in enumerate(("cape_01", "cape_02", "cape_03")):
         L[name] = (cape_start + cape_dir * cape_length * index / 3, cape_start + cape_dir * cape_length * (index + 1) / 3)
+    L["cape_end"] = (L["cape_03"][1], L["cape_03"][1] + cape_dir * cape_length * 0.05)
+    if "cloak" in spec.get("springs", {}):
+        # A cloak hangs on three chains (ADR-069): down the middle of the back, and down each side behind the arm.
+        for side, sign in (("l", 1.0), ("r", -1.0)):
+            start = Vector((-shoulder * 0.2, sign * shoulder * 0.8, chest_z - torso * 0.08))
+            direction = Vector((-0.25, sign * 0.3, -1.0)).normalized()
+            length = (start.z - base) * CAPE_REACH
+            for index in range(3):
+                L["cape_%s_%02d" % (side, index + 1)] = (start + direction * length * index / 3, start + direction * length * (index + 1) / 3)
+            L["cape_%s_end" % side] = (start + direction * length, start + direction * length * 1.05)
+    if "coatTails" in spec.get("springs", {}):
+        # A long coat's tails hang on a chain down each side of the back, from the belts to the knees.
+        for side, sign in (("l", 1.0), ("r", -1.0)):
+            start = Vector((-hip * 0.6, sign * hip * 1.1, pelvis_z + torso * 0.15))
+            direction = Vector((-0.12, sign * 0.1, -1.0)).normalized()
+            length = start.z - (base + leg * 0.32)
+            for index in range(2):
+                L["coat_%s_%02d" % (side, index + 1)] = (start + direction * length * index / 2, start + direction * length * (index + 1) / 2)
+            L["coat_%s_end" % side] = (start + direction * length, start + direction * length * 1.05)
+    if "hair" in spec.get("springs", {}):
+        # Hair hangs on four short chains from the head: down the back, over each ear and over the brow.
+        for chain, (start, direction, length) in HAIR_CHAINS.items():
+            root = L["head"][0] + Vector(start) * head
+            way = Vector(direction).normalized() * length * head
+            for index in range(2):
+                L["%s_%02d" % (chain, index + 1)] = (root + way * index / 2, root + way * (index + 1) / 2)
+            L[chain + "_end"] = (root + way, root + way * 1.05)
     if "waveBase" in features:
         # The wave's crest rides the cape bones in a cloak's place: from the back of the swell it rises behind the rider
         # and curls forward at its lip, as tall as the swell is deep.
@@ -146,6 +215,8 @@ def layout(spec, capsule):
     stance = spec.get("stance")
     # A gun carried across the body (braced): its breech and muzzle, for the prop to lie between.
     gun = None
+    # A weapon the hands hold (ADR-069 §6): what the clips reach the arms to, the body resting empty-handed.
+    held = None
     if stance == "aim":
         # Mid-sight: a long arm held two-handed at the shoulder, its optic at the eye and the left hand forward under the
         # barrel, elbows bent out and down. The weapon points the way the body faces.
@@ -162,14 +233,21 @@ def layout(spec, capsule):
             grip_r = Vector((arm * 0.28, -shoulder * 0.2, chest_z - torso * 0.03))
             grips = {"r": grip_r, "l": grip_r + Vector((arm * 0.5, 0.0, -arm * 0.04))}
             poles = {"r": Vector((0.0, -0.7, -0.7)), "l": Vector((0.0, 0.7, -0.7))}
+        aimed = {}
         for side, sign in (("l", 1.0), ("r", -1.0)):
             shoulder_point = L["upperarm_" + side][0]
             wrist = grips[side] - Vector((arm * 0.12, 0.0, 0.0))
             elbow = two_bone(shoulder_point, wrist, arm * 0.48, arm * 0.40, poles[side])
-            L["upperarm_" + side] = (shoulder_point, elbow)
-            L["lowerarm_" + side] = (elbow, wrist)
-            L["hand_" + side] = (wrist, grips[side])
-            L["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
+            aimed["upperarm_" + side] = (shoulder_point, elbow)
+            aimed["lowerarm_" + side] = (elbow, wrist)
+            aimed["hand_" + side] = (wrist, grips[side])
+            aimed["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
+        if aim and "carry" in aim:
+            # Held, not posed: the body rests empty-handed and its clips reach the arms to the weapon, carried low and
+            # raised to this aim only to attack.
+            held = holds.prepare(L, aimed, grips, poles, aim, height)
+        else:
+            L.update(aimed)
     elif stance == "braced":
         # A heavy gun carried across the body on both sides of her: its barrel forward and down under the right arm to
         # the muzzle, its breech up over the left shoulder. The right hand grips under the barrel, the left the breech.
@@ -195,7 +273,9 @@ def layout(spec, capsule):
     dims = {"height": height, "full": full, "base": base, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
             "hip": hip, "arm": arm, "build": build, "stance": stance, "strike": strike, "stillPose": still, "idle": spec.get("idle"), "kneel": spec.get("kneel", False),
             "hunch": spec.get("hunch", 0.0),
-            "footprint": footprint, "ride": "wave" if "waveBase" in features else None, "gun": gun,
+            "footprint": footprint, "ride": "wave" if "waveBase" in features else None, "gun": gun, "holds": held,
+            "springs": bool(spec.get("springs")),
+            "layout": {bone: (head.copy(), tail.copy()) for bone, (head, tail) in L.items()} if held else None,
             "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base)}
     # Each leg's rest joints, for the clips that solve the legs from where the feet must be (ADR-069 §6).
     dims["legRest"] = {side: {"hip": L["thigh_" + side][0].copy(), "knee": L["calf_" + side][0].copy(), "ankle": L["foot_" + side][0].copy(),
@@ -1668,7 +1748,9 @@ def pose(name, t, melee, d):
         pose["spine_01"] = combine(pose.get("spine_01", (0.0, 0.0, 0.0)), lean(bow * 0.6))
         pose["spine_02"] = combine(pose.get("spine_02", (0.0, 0.0, 0.0)), lean(bow * 0.4))
         pose["head"] = combine(pose.get("head", (0.0, 0.0, 0.0)), lean(-bow * 0.85))
-    if d.get("stance") in ("aim", "braced"):
+    if d.get("holds"):
+        holds.pose_arms(pose, name, t, melee, d, BONES, LIFT_BONE, lift)
+    elif d.get("stance") in ("aim", "braced"):
         aim_pose(pose, name, t, melee, sight=d["stance"] == "aim")
     if d.get("stance") == "shoulderCarry":
         carry_pose(pose, name, t)
@@ -1686,7 +1768,8 @@ def pose(name, t, melee, d):
             # Carried, not running: the wave's motion replaces the stride's.
             lift = (0.0 if name == "Run" else lift) + wave_ride(pose, name, t, d)
         pose.update(crest_pose(name, t))
-    else:
+    elif not d.get("springs"):
+        # A cloak on spring chains moves as cloth does at runtime (ADR-069); others sway by their clips.
         pose.update(cape_pose(name, t))
     return pose, lift
 

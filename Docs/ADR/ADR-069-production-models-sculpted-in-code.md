@@ -13,10 +13,11 @@ The author's roadmap (2026-10-06) gives M59 to "high fidelity models": "AAA indi
 
 Asked how models should be made, the author first chose procedural modelling with no generative AI. They then tried a generative 3D service themselves and set it aside (2026-10-07): "maybe just use the image of the a pose as a reference and go procedurally". They supply a full-body reference image of a Vanguard on request.
 
-What exists:
-- Every body is built by `GenerateVanguardBodies.py` from parts (tubes, balls and panes) weighted rigidly to the humanoid skeleton.
-- Bodies are coloured by vertex colours and fitted to the capsule within a 9,000-triangle humanoid budget.
-- The kit and its manifest make every body reproducible and checked in CI.
+A first production Kade then copied his reference closely: 24,000 triangles, 2048² baked textures, a painted face, quilting, laces and a tattoo. The author set the target (2026-10-07):
+- **Silhouette, not detail.** A Vanguard's silhouette from the game camera should resemble its splash art as closely as possible. The splash art's detail is not the target, and 24,000 triangles are not needed.
+- **Low poly, stylised.** A simple low-poly model in the toon style.
+- **Loose parts move.** Hair, cloth and anything like them are dynamic.
+- **Believable states.** A body with a gun does not run or walk with it at its face, nor die sighting down the barrel. The first Kade's aim was sculpted into his rest pose, so every clip inherited it.
 
 ## Decision
 
@@ -25,70 +26,62 @@ What exists:
 - **What it does.** It sculpts the body as signed distance fields with the sculpt toolkit, `VanguardBodies/sculpt/`:
   - lofted cross-sections for torso, limbs and head;
   - primitives blended with a C2 smooth minimum;
-  - garments as shells standing off the body, cut by regions;
-  - frames of their own for the head and the hands, so a head bows to a sight and fingers curl round a grip.
-- **Fit.** It is fitted to the same humanoid layout, skeleton and animations as every body (ADR-064). Its stance is sculpted in, as the layout's stance is.
-- **References.** The author's reference images guide it. Proportions are measured from the reference, in pixels against the figure's height, and so is the palette, sampled and converted to linear light. The reference is never traced into the asset.
+  - garments over the body, cut by regions;
+  - frames of their own for the head and the hands, so fingers curl round a grip.
+- **What it models.** The big forms that make the Vanguard's outline from the game camera, and its colour regions. Nothing the camera cannot see.
+- **Fit.** It is fitted to the same humanoid layout, skeleton and animations as every body (ADR-064). It rests in the A pose, empty-handed: a stance is the clips' (§6), never sculpted in.
+- **References.** The author's reference images guide it: the splash art for the silhouette, a full-body reference for proportions, measured in pixels against the figure's height, and the palette, sampled. The reference is never traced into the asset.
 - **Provenance.** No generative or third-party content enters a model: every form and colour is written in its script.
 
 ### 2. The pipeline
 The generator runs it in the pinned Blender, with the numpy and OpenVDB it bundles:
-1. **Mesh.** The field is evaluated brick by brick, only where its surface may pass, into an OpenVDB level set, which OpenVDB meshes. A part marked detail is left out of this mesh.
-2. **Reduce.** The mesh is reduced to the entry's triangle budget, keeping the face and hands denser. It is shaded smooth, with hard edges where it folds sharply.
-3. **Unwrap.** The mesh is unwrapped at one texel density, the face and hands at twice it.
-4. **Bake.** The textures are baked from the field itself, detail parts included. Each texel's point on the game mesh is moved onto the full surface along the field's gradient. That gives:
-   - its true normal, as a tangent-space normal map in MikkTSpace, as the engine computes tangents on import;
-   - its material, which paints the base colour (sRGB): a stylised material model of grain, occluded crevices darkened and worn edges lightened;
-   - its occlusion, glow and opacity, in a mask texture.
-5. **Skin.** Each vertex takes the bones of the part it lies on; a garment's vertex takes those of the body part beneath it. The weights are then smoothed across the surface, so joints bend in a blend.
-6. **Export.** The skeleton, animations and FBX export are ADR-064's. The three textures are written as PNGs beside the FBX.
+1. **Mesh.** The field is evaluated brick by brick, only where its surface may pass, into an OpenVDB level set, which OpenVDB meshes.
+2. **Reduce.** The mesh is reduced to the entry's triangle budget, less its cloth sheets and a triangle for each bone's anchor, keeping the hands, face and weapon denser. Specks the reduction leaves are dropped, and it is shaded smooth.
+3. **Skin.** Each vertex takes the bones of the part it lies on; a garment's vertex takes those of the body part beneath it. The weights are then smoothed across the surface, so joints bend in a blend.
+4. **Colour.** Each face takes its material's colour flat (the author's ruling, 2026-10-07): the material of the part nearest its centre, or its sheet's. The vertex colour carries it, and its alpha marks what glows; the toon material shades it. There is no texture to bake.
+5. **Export.** The skeleton, animations and FBX export are ADR-064's.
 
-- **Workers.** The field is evaluated in worker processes, each rebuilding the sculpt from the model's script (every random draw is seeded, so each holds the generator's sculpt). Meshing, labelling and baking spread across them.
+- **Workers.** The field is evaluated in worker processes, each rebuilding the sculpt from the model's script (every random draw is seeded, so each holds the generator's sculpt). Meshing and labelling spread across them.
   - A point's result depends only on its own brick or cell, so the output is the same however many workers share it.
-  - A full build of every body fell from 28 to 7 minutes on the author's machine (Kade's own from about 20 to 4).
   - The worker count is the build machine's setting (`VEYRA_SCULPT_PROCESSES`), half its logical cores by default.
+- **Speed.** A low-poly model builds in about 20 seconds.
 
-### 2a. Cloth, hair and faces
+### 2a. Garments, cloth and hair
 - **Layers.** A garment is solid down into what it covers. Its outer face stands its thickness (and its folds) out from the layer beneath, and none of that layer's surface remains under it.
-  - It rests on that layer as meshed. Relief baked into the layer beneath (a coat's quilting) does not show through the cloth or belt over it.
-  - A hollow skin would leave air thinner than a voxel between layers. The mesher tunnels that air into handles that no unwrap can flatten, and the reduction spends triangles on surface no one sees.
+  - A hollow skin would leave air thinner than a voxel between layers. The mesher tunnels that air into handles, and the reduction spends triangles on surface no one sees.
 - **Regions keep to limbs.** A garment's region names the limbs it covers, and a point belongs to it where it lies nearer those limbs' surfaces than any other limb's.
-  - So a sleeve stays on its arm and trousers on the legs in every stance. A height band alone wraps whatever limb passes through it, such as an arm hanging at the hip or raised to a sight.
-- **Drapes.** Cloth bunched over the body, such as a mantle's folds round the neck, is laid as folds. A fold is a soft ridge along a curve placed on the surface, tapering toward both ends and solid beneath.
+  - So a sleeve stays on its arm and trousers on the legs in every pose. A height band alone wraps whatever limb passes through it.
+- **Drapes.** Cloth bunched over the body, such as a mantle's folds round the neck, is laid as folds. A fold is a ridge along a curve placed on the surface, tapering toward both ends and solid beneath, its crest hanging below its line as cloth folds over its own weight.
 - **Sheets.** A cloak or a coat's tails is a single sheet, not a solid: a grid surface the model drapes by a function, built at the density it keeps.
-  - It joins the game mesh after the sculpt is skinned, weighted by its builder: a cloak down the cape bones, tails half after each thigh.
-  - The bake paints it by its own material over its own (u, v). That material tears its hem into strips and holes through the mask's opacity, and it takes its occlusion from the sculpt around it.
+  - It joins the game mesh after the sculpt is skinned, weighted by its builder down its spring chains (§7).
+  - Its hem is torn in its geometry: each strip ends at its own length, pointed.
   - A sheet is pushed clear of the limbs it would pass through.
-- **Hair.** Hair is a solid core of locks under hair cards: ribbons laid along each lock, carrying a strand paint whose strands fray at their own lengths through the opacity.
-  - Ruling (the author, 2026-10-07): cards rather than strand grooms. The engine's strand hair is production-ready, but it renders realistic rather than toon and costs GPU time for every Vanguard on screen.
-- **Faces.** Eyes, brows, lips and stubble are painted onto the skin in the head's own frame, so the paint stays on the face however the head turns. A toon face is painted, not sculpted.
-- **Unwrapping.** The game mesh is cut into charts: each face's material, split by the way it faces (normals smoothed). Each sheet stays whole, fragments merge into their neighbours, and specks the reduction left are dropped. Then each chart is unwrapped angle-based. A smart projection left thousands of islands, and their margins wasted most of the texture.
+- **Hair.** Hair is a few big solid locks, the mass and spikes the silhouette shows. Where the kit gives hair springs, each lock passes from the head to the nearest hair chain (§7) the farther it lies beyond the skull; the cap over the scalp stays with the head.
 
 ### 3. Budget and records
-- **Budget.** A model entry carries its own triangle budget, texture size and voxel size. Kade's is 24,000 triangles and 2048² textures.
-- **Records.** The manifest records each model body's textures and their SHA-256 values. The content hash covers them, so a texture change is a change. CI checks committed textures as it checks committed FBX.
+- **Budget.** A model entry carries its own triangle budget and voxel size. Kade's is 5,000 triangles.
 - **Staleness.** The generator's hash covers the whole `VanguardBodies` package, its sculpt toolkit and models included, so changing either makes the bodies stale until rebuilt.
 
 ### 4. The material
-- **New inputs.** `M_VeyraVanguardBody` (ADR-068 §2) gains three texture parameters, with neutral defaults so a vertex-coloured body renders exactly as before:
-  - `BaseMap` multiplies the vertex colour;
-  - `MaskMap` holds occlusion (R), what glows (G, times the vertex alpha) and opacity (B, times the veil);
-  - `NormalMap` bends the toon bands and rim.
-- **Occlusion strength.** `aoStrength` (kit data) sets how much of the occlusion darkens the bands.
-- **Instances.** A model body wears its own instance, `MI_<Body>`, which sets its textures.
+- A model body wears the body material every body wears (ADR-068 §2), coloured by its vertex colour.
 - **Two-sided.** The material is two-sided, so cloth can be a single sheet; the normal turns with the side shown.
 
 ### 5. The layout
-The humanoid layout gains three kit fields, each optional:
+The humanoid layout gains kit fields, each optional:
 - `legShare`: the leg's share of the height.
 - `hipShare`: the hip joints' spacing.
-- `aimBore`: the aim stance fitted to the model's rifle. The bore line's height and offset, where each hand holds it, and which way each elbow bends.
+- `aimBore`: a weapon held in both hands at its sight: the bore line's height and offset, where each hand holds it, which way each elbow bends, how the head bows to the sight, and the weapon's `carry` (§6).
+- `springs`: the loose parts that hang on spring chains (§7), each with its spring, drag, damping and turn (`stiffness`, `drag`, `damping`, `maxAngle`).
 
 A body that sets none is laid out as before.
 
-### 6. Limb inverse kinematics
+### 6. Holds and limb inverse kinematics
 The author's direction (2026-10-07): production models come with IK rigs and animations, IK used where a limb must hold to something fixed and FK everywhere else.
-- **What holds.**
+- **Holds.** A weapon held in both hands is a hold, not a pose sculpted in.
+  - The body rests empty-handed in the A pose. Its weapon hangs from the right hand's prop bone, and its hands are built as they hold it.
+  - Each clip reaches both arms to where the weapon is: carried low across the body as it stands, runs, casts, recalls or is struck; raised to the sight only through the attack's windup and strike, the head bowing to it; let go as the body dies, the weapon tipping out of the hand to lie flat.
+  - The arms are two-bone solves in the generator, each elbow hinged as it bends at rest so a forearm never twists. The carry rides the chest; the sight holds where the layout aims it.
+- **What holds at runtime.**
   - A body's feet are held to the ground under them, so a Vanguard stands on the battleground's slopes and steps rather than floating or sinking.
   - A weapon carried in both hands keeps the off hand on it, however the carrying hand moves.
   - Every free motion (a run's swings, a strike, a cast) stays the clips' forward kinematics.
@@ -99,20 +92,38 @@ The author's direction (2026-10-07): production models come with IK rigs and ani
   - **Pelvis.** The pelvis lowers so the lower foot reaches its ground.
   - **Joints.** Each leg is a two-bone solve whose knee keeps the plane it bends in now, so it never flips. A bone stretches by at most `LimbMaxStretch` of its length.
   - **Slope.** A planted foot tilts toward the ground's slope.
-  - **Off hand.** The off hand returns to where it rests on the weapon hand in the rest pose. It is held as fully as its clip keeps it near there, so a drift is corrected while a clip that takes the hand away (a gesture) is let go.
+  - **Off hand.** The off hand returns to where it holds the weapon hand in the idle clip (the rest only for a body without one). It is held as fully as its clip keeps it near there, so a drift is corrected while a clip that takes the hand away (a gesture, a death) is let go.
 - **Pure rules.** `VeyraLimbIK` holds the solve, the plant weight, the hold weight, the pelvis drop and the speed share, each tested.
 - **Data.** Every value is a presentation setting (`Vanguards|Limb IK`).
 - **Presentation only.** Nothing reads it back; the capsule stays the unit's place.
 
+### 7. Loose parts
+Hair, cloaks, coat tails and sashes move as such things do (the author, 2026-10-07).
+- **Chains.** A loose part hangs on spring chains: short bone chains from the bone it hangs from to a tip. The generator adds them for the parts a kit's `springs` names, and the body's art lists them (`SpringChains`), with the capsules they hang outside (`SpringColliders`: torso and legs).
+  - A cloak hangs on three chains (down the back and behind each arm), a coat's tails on two, hair on four (down the back, over each ear, over the brow).
+- **The motion.** In the native proxy, after the limbs, each chain trails where the clips put it, in the world. Each joint is a mass on a spring to where its clip has it:
+  - `stiffness` is the spring (per second squared, its natural frequency squared);
+  - `drag` is the speed it loses through the air, so a running body's cloak streams behind it;
+  - `damping` is the speed it loses relative to its clip, so a lock of hair bounces and settles without streaming;
+  - each bone keeps its length, turns at most `maxAngle` from its clip's bone, and stays outside the colliders.
+  - There is no gravity: the clips already hang the cloth, and a spring to them would only pull it back.
+  - So a running body drags its cloak behind it, and a body that stops lets it swing forward, back and settle.
+- **Time.** The motion is stepped in substeps of at most `SpringSubstepSeconds`, the clip moving evenly across them, so a chain moves alike at any frame rate. A long frame counts as `SpringMaxStepSeconds`; a body that jumps farther than `SpringTeleportDistance` (a respawn, a blink) settles its chains on its clips.
+- **The clips.** A body whose cloak hangs on chains does not sway it in its clips: its chains do.
+- **Pure rules.** `VeyraSpringChain` holds the step, tested (including the same trail at 30 and 144 frames a second).
+- **Data.** Each part's motion is its kit data; the timing is presentation settings (`Vanguards|Loose Parts`).
+- **Presentation only.** Nothing reads it back.
+
 ## Consequences
 - Production models are reproducible from source and reviewable as code. A model is regenerated, never hand-edited.
-- A model's quality is the quality of its script. The toolkit grows with each Vanguard: garments, hard-surface pieces and hair families become shared modules.
-- Bodies cost more: 24,000 triangles and three 2048² textures a Vanguard where they had 9,000 triangles and none. ADR-068 §5's measurement is repeated once the first models are in.
+- A model's quality is the quality of its silhouette. The toolkit grows with each Vanguard: garments, hard-surface pieces and hair families become shared modules.
+- Bodies stay cheap: about 5,000 triangles each, flat colour, no textures. ADR-068 §5's measurement is repeated once the first models are in.
 
 ## Provisional answers for the author
 1. Production models are sculpted in code from the author's references, without generative content (§1, the author's ruling of 2026-10-07).
-2. A 24,000-triangle budget and 2048² textures for a model Vanguard (§3).
-3. Textures baked from the field rather than painted (§2).
+2. A 5,000-triangle budget for a model Vanguard (§3).
+3. Flat colour regions, no baked textures (§2, the author's ruling of 2026-10-07).
 4. One two-sided body material for skin, garments and cloth (§4).
-5. Cloth as sheets and hair as cards over a solid core, the latter the author's ruling (§2a).
-6. Runtime IK for planted feet and a two-handed weapon's off hand only, eased by plant and speed (§6).
+5. Cloth as sheets torn in their geometry, hair as a few big solid locks (§2a).
+6. Runtime IK for planted feet and a two-handed weapon's off hand only, eased by plant, speed and distance; weapons held by holds the clips reach, never sculpted in (§6).
+7. Loose parts on spring chains solved at runtime, rather than cloth simulation (§7); Kade's cloak, coat tails and hair (springs and turns are provisional art values).
