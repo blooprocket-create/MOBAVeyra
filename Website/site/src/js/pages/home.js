@@ -110,6 +110,9 @@ function startHero(hero, vanguards, holdSeconds) {
 
   let current = -1;
   let cutting = false;
+  // Choices made while the art loads or a cut runs: only the latest is shown, after the cut in progress.
+  let latest = 0;
+  let queued = null;
   let timer = 0;
   let startedAt = 0;
   let remaining = holdMs;
@@ -140,9 +143,11 @@ function startHero(hero, vanguards, holdSeconds) {
   }
 
   async function show(index) {
-    if (index === current || cutting) {
+    if (cutting) {
+      queued = index;
       return;
     }
+    const ticket = ++latest;
     const next = slides[index];
     // Wait for the art, so the cut never reveals an empty frame.
     next.image.loading = "eager";
@@ -150,6 +155,17 @@ function startHero(hero, vanguards, holdSeconds) {
       await next.image.decode();
     } catch {
       // Shown anyway: a broken image leaves the stage's own gradient.
+    }
+    // A later choice, or a cut that began meanwhile, takes precedence over this one.
+    if (ticket !== latest) {
+      return;
+    }
+    if (cutting) {
+      queued = index;
+      return;
+    }
+    if (index === current) {
+      return;
     }
     const previous = slides[current];
     current = index;
@@ -174,6 +190,11 @@ function startHero(hero, vanguards, holdSeconds) {
     next.slide.classList.add("is-current");
     hero.classList.remove("is-cutting");
     cutting = false;
+    if (queued !== null) {
+      const waiting = queued;
+      queued = null;
+      show(waiting);
+    }
   }
 
   function pause() {

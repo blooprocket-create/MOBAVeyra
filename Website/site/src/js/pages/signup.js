@@ -17,6 +17,7 @@ const clients = { firebase: createFirebase(config.firebase), backend: createBack
 const card = document.querySelector(".auth__card");
 const form = card.querySelector("[data-signup-form]");
 const chooseForm = card.querySelector("[data-choose-form]");
+const passwordInput = document.getElementById("signup-password");
 const checkName = displayNameField(form.elements.displayName, nameRules);
 const checkChosenName = displayNameField(chooseForm.elements.displayName, nameRules);
 card.querySelector("[data-password-hint]").textContent = `At least ${passwordMinLength} characters.`;
@@ -95,13 +96,13 @@ form.addEventListener("submit", (event) => {
   const notice = form.querySelector("[data-notice]");
   const displayName = form.elements.displayName.value.trim();
   const email = form.elements.email.value.trim();
-  const password = form.elements.password.value;
+  const password = passwordInput.value;
   form.elements.displayName.value = displayName;
   const nameOk = checkName();
   const emailOk = looksLikeEmail(email);
   const passwordOk = password.length >= passwordMinLength;
   form.elements.email.setAttribute("aria-invalid", String(!emailOk));
-  form.elements.password.setAttribute("aria-invalid", String(!passwordOk));
+  passwordInput.setAttribute("aria-invalid", String(!passwordOk));
   if (!nameOk) {
     notify(notice, "problem", NAME_PROBLEM);
     form.elements.displayName.focus();
@@ -114,7 +115,7 @@ form.addEventListener("submit", (event) => {
   }
   if (!passwordOk) {
     notify(notice, "problem", `Your password needs at least ${passwordMinLength} characters.`);
-    form.elements.password.focus();
+    passwordInput.focus();
     return;
   }
   notify(notice, null, null);

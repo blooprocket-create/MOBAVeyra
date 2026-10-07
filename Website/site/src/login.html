@@ -25,14 +25,14 @@
         <p class="eyebrow">Welcome back</p>
         <h1 class="heading heading--small">Log in</h1>
         <p class="lede">Use the email and password of your Veyra account.</p>
-        <form class="form" data-login-form novalidate>
+        <form class="form" data-login-form method="post" novalidate>
           <div class="field">
             <label class="field__label" for="login-email">Email</label>
             <div class="field__control"><input id="login-email" name="email" type="email" autocomplete="username" spellcheck="false" required></div>
           </div>
           <div class="field">
             <label class="field__label" for="login-password">Password</label>
-            <div class="field__control"><input id="login-password" name="password" type="password" autocomplete="current-password" required><button class="reveal-button" type="button" data-reveal-password aria-controls="login-password" aria-pressed="false">Show</button></div>
+            <div class="field__control"><input id="login-password" type="password" autocomplete="current-password" required><button class="reveal-button" type="button" data-reveal-password aria-controls="login-password" aria-pressed="false">Show</button></div>
           </div>
           <p class="notice" data-notice hidden role="alert"></p>
           <button class="btn btn--primary btn--large btn--block" type="submit"><span class="btn__label">Log in</span></button>
@@ -48,7 +48,7 @@
         <p class="eyebrow">Locked out?</p>
         <h1 class="heading heading--small">Reset your password</h1>
         <p class="lede">Enter your account's email. We'll send a link to choose a new password.</p>
-        <form class="form" data-reset-form novalidate>
+        <form class="form" data-reset-form method="post" novalidate>
           <div class="field">
             <label class="field__label" for="reset-email">Email</label>
             <div class="field__control"><input id="reset-email" name="email" type="email" autocomplete="email" spellcheck="false" required></div>

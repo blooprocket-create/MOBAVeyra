@@ -12,6 +12,7 @@ const firebase = createFirebase(config.firebase);
 const card = document.querySelector(".auth__card");
 const loginForm = card.querySelector("[data-login-form]");
 const resetForm = card.querySelector("[data-reset-form]");
+const passwordInput = document.getElementById("login-password");
 
 /** Where to go once signed in: ?next= when it is a path on this site, else the account page. */
 function destination() {
@@ -28,7 +29,7 @@ loginForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const notice = loginForm.querySelector("[data-notice]");
   const email = loginForm.elements.email.value.trim();
-  const password = loginForm.elements.password.value;
+  const password = passwordInput.value;
   if (!looksLikeEmail(email)) {
     notify(notice, "problem", "Enter the email address of your account.");
     loginForm.elements.email.focus();
@@ -36,7 +37,7 @@ loginForm.addEventListener("submit", (event) => {
   }
   if (password === "") {
     notify(notice, "problem", "Enter your password.");
-    loginForm.elements.password.focus();
+    passwordInput.focus();
     return;
   }
   notify(notice, null, null);

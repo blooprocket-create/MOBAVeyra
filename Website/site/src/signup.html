@@ -25,7 +25,7 @@
         <p class="eyebrow">Join the public tests</p>
         <h1 class="heading heading--small">Create your account</h1>
         <p class="lede">One account for this website and the Veyra launcher.</p>
-        <form class="form" data-signup-form novalidate>
+        <form class="form" data-signup-form method="post" novalidate>
           <div class="field">
             <label class="field__label" for="signup-name"><span>Display name</span><span class="field__count" data-name-count aria-hidden="true"></span></label>
             <div class="field__control"><input id="signup-name" name="displayName" type="text" autocomplete="nickname" autocapitalize="off" spellcheck="false" required aria-describedby="signup-name-rules"></div>
@@ -40,7 +40,7 @@
           </div>
           <div class="field">
             <label class="field__label" for="signup-password">Password</label>
-            <div class="field__control"><input id="signup-password" name="password" type="password" autocomplete="new-password" required aria-describedby="signup-password-hint"><button class="reveal-button" type="button" data-reveal-password aria-controls="signup-password" aria-pressed="false">Show</button></div>
+            <div class="field__control"><input id="signup-password" type="password" autocomplete="new-password" required aria-describedby="signup-password-hint"><button class="reveal-button" type="button" data-reveal-password aria-controls="signup-password" aria-pressed="false">Show</button></div>
             <p class="field__hint" id="signup-password-hint" data-password-hint></p>
           </div>
           <p class="notice" data-notice hidden role="alert"></p>
@@ -53,7 +53,7 @@
         <p class="eyebrow">One more step</p>
         <h1 class="heading heading--small">Choose your name</h1>
         <p class="lede" data-choose-intro></p>
-        <form class="form" data-choose-form novalidate>
+        <form class="form" data-choose-form method="post" novalidate>
           <div class="field">
             <label class="field__label" for="choose-name"><span>Display name</span><span class="field__count" data-name-count aria-hidden="true"></span></label>
             <div class="field__control"><input id="choose-name" name="displayName" type="text" autocomplete="nickname" autocapitalize="off" spellcheck="false" required aria-describedby="choose-name-rules"></div>
