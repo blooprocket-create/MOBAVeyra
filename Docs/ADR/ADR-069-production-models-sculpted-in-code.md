@@ -60,7 +60,10 @@ The generator runs it in the pinned Blender, with the numpy and OpenVDB it bundl
 
 ### 3. Budget and records
 - **Budget.** A model entry carries its own triangle budget and voxel size. Kade's is 5,000 triangles.
-- **Staleness.** The generator's hash covers the whole `VanguardBodies` package, its sculpt toolkit and models included, so changing either makes the bodies stale until rebuilt.
+- **Staleness.** The generator's hash covers the whole `VanguardBodies` package except the model scripts, so changing the sculpt toolkit makes every body stale until rebuilt.
+  - A model script is an input of the bodies that name it (its text's hash joins their input hash, a status body's included), so changing it makes only those stale, and a script no body names yet (a draft) makes none.
+  - A model script imports only the toolkit, never another model, since its hash covers its own text alone.
+- **A status body's model.** A status body may carry its own `model` settings (a larger budget for a ride that carries its mount, or `null` to stay generated). The script receives the status body's spec, so one script can build both: Raska's builds Hound only under her Ride body's rider archetype.
 
 ### 4. The material
 - A model body wears the body material every body wears (ADR-068 §2), coloured by its vertex colour.

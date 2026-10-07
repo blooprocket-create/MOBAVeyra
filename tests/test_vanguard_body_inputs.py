@@ -41,13 +41,13 @@ GENERATOR = inputs.generator_hash(SCRIPTS)
 BLENDER = "5.2.0"
 
 
-def built(kit, vanguards, generator=GENERATOR, blender=BLENDER):
+def built(kit, vanguards, generator=GENERATOR, blender=BLENDER, models=None):
     """The manifest assets a full build of kit writes: one per body, each with its input hash and what built it."""
     assets = []
     for vanguard in kit["vanguards"]:
         for body, status, suffix in inputs.bodies_of(vanguard):
             name = inputs.body_name(vanguard["id"], suffix)
-            asset = {"id": vanguard["id"], "name": name, "inputSha256": inputs.input_hash(kit, vanguards, body),
+            asset = {"id": vanguard["id"], "name": name, "inputSha256": inputs.input_hash(kit, vanguards, body, models),
                      "generatorSha256": generator, "blender": blender, "contentVersion": inputs.CONTENT_VERSION,
                      # Its FBX, written by write_fbx: the body's name as its bytes.
                      "file": "FBX/" + name + ".fbx", "sha256": hashlib.sha256(name.encode()).hexdigest()}
@@ -238,25 +238,56 @@ class VanguardBodyInputs(unittest.TestCase):
         import shutil
         (game / "Scripts").mkdir(parents=True)
         shutil.copy(SCRIPTS / "GenerateVanguardBodies.py", game / "Scripts")
-        # The whole package: its sculpt toolkit and production models are generator code too (ADR-069 §3).
+        # The whole package: its sculpt toolkit is generator code, its production models each the input of the bodies
+        # that name it (ADR-069 §3).
         package = SCRIPTS / "VanguardBodies"
         for module in package.rglob("*.py"):
             target = game / "Scripts" / "VanguardBodies" / module.relative_to(package)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(module, target)
 
-    def test_a_change_to_the_sculpt_toolkit_or_a_model_is_a_generator_change(self):
+    def test_a_change_to_the_sculpt_toolkit_is_a_generator_change_and_one_to_a_model_is_not(self):
         import tempfile
         with tempfile.TemporaryDirectory() as folder:
             game = Path(folder) / "Game"
             self.copy_generator(game)
             before = inputs.generator_hash(game / "Scripts")
             self.assertEqual(before, GENERATOR, "the copy hashes as the generator")
-            for module in ("sculpt/sdf.py", "models/kade.py"):
-                path = game / "Scripts" / "VanguardBodies" / module
-                path.write_bytes(path.read_bytes() + b"\n# changed\n")
-                self.assertNotEqual(inputs.generator_hash(game / "Scripts"), before, module)
-                before = inputs.generator_hash(game / "Scripts")
+            path = game / "Scripts" / "VanguardBodies" / "sculpt" / "sdf.py"
+            path.write_bytes(path.read_bytes() + b"\n# changed\n")
+            self.assertNotEqual(inputs.generator_hash(game / "Scripts"), before)
+            before = inputs.generator_hash(game / "Scripts")
+            # A model is the input of the bodies that name it, not code every body is built by: neither a change to one
+            # nor a new one, named by no body yet (a draft), makes every body stale.
+            models = inputs.model_hashes(game / "Scripts")
+            path = game / "Scripts" / "VanguardBodies" / "models" / "kade.py"
+            path.write_bytes(path.read_bytes() + b"\n# changed\n")
+            (game / "Scripts" / "VanguardBodies" / "models" / "draft.py").write_text("# a draft\n")
+            self.assertEqual(inputs.generator_hash(game / "Scripts"), before)
+            changed = inputs.model_hashes(game / "Scripts")
+            self.assertNotEqual(changed["kade"], models["kade"])
+            self.assertIn("draft", changed)
+            self.assertNotIn("__init__", changed)
+
+    def test_a_model_script_is_an_input_of_the_bodies_that_name_it(self):
+        kit = copy.deepcopy(KIT)
+        kit["vanguards"][0]["model"] = {"script": "a_model", "triangleBudget": 5000, "voxelCm": 0.6}
+        models = {"a_model": "1", "b_draft": "1"}
+        assets = built(kit, VANGUARDS, models=models)
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, assets, models=models), [])
+        # Its script changed: the bodies that name it (its ride's too, which wears its entry) and no other.
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, assets, models=dict(models, a_model="2")), ["SK_A", "SK_A_Ride"])
+        # A script no body names changes nothing.
+        self.assertEqual(inputs.stale_assets(kit, VANGUARDS, assets, models=dict(models, b_draft="2", c_new="1")), [])
+        # A body without a model has the input hash it always had.
+        self.assertEqual(inputs.input_hash(KIT, VANGUARDS, KIT["vanguards"][1], models), inputs.input_hash(KIT, VANGUARDS, KIT["vanguards"][1]))
+
+    def test_a_model_script_imports_only_the_toolkit(self):
+        # Its hash covers its own text alone, so it may not share code with another model.
+        import re
+        for path in (SCRIPTS / "VanguardBodies" / "models").glob("*.py"):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                self.assertIsNone(re.match(r"\s*(from \.\w*\s+import|import VanguardBodies\.models|from VanguardBodies\.models)", line), (path.name, line))
     def test_a_body_built_by_other_generator_code_or_another_blender_is_stale(self):
         # A selective build after the generator's code changed keeps bodies the old code built.
         self.assertEqual(sorted(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS, generator="old"), GENERATOR, BLENDER)),
@@ -283,6 +314,9 @@ class VanguardBodyInputs(unittest.TestCase):
             # The same code checked out with other line endings is the same code.
             module = game / "Scripts" / "VanguardBodies" / "parts.py"
             module.write_bytes(module.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+            self.assertEqual(inputs.stale_in(game), [])
+            # Nor is a model script no body names (a draft beside the code).
+            (game / "Scripts" / "VanguardBodies" / "models" / "draft.py").write_text("# a draft\n")
             self.assertEqual(inputs.stale_in(game), [])
             # Changed code is not.
             module.write_bytes(module.read_bytes() + b"\n# changed\n")
