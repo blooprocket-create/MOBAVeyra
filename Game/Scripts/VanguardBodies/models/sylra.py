@@ -257,7 +257,6 @@ def cloak(S, L, dims, mats, worn):
     def position(u, v):
         theta = t0 + (t1 - t0) * u
         side = np.abs(np.sin(theta))
-        v = v * sheet.torn(u, strips, 0.5, 0.18, 4.0)
         top = np.stack([np.interp(u, samples, tops[:, k]) for k in range(3)], axis=1)
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
         flare = (H * 0.05 + H * 0.24 * side) * v ** 1.3
@@ -271,7 +270,7 @@ def cloak(S, L, dims, mats, worn):
     def bones(P, u, v):
         hold = np.clip(1 - v / 0.1, 0, 1)
         return sheet.down_chains(chains, across, P, u, hold, "spine_03")
-    return sheet.Sheet("cloak", position, material, bones, columns, rows)
+    return sheet.Sheet("cloak", position, material, bones, columns, rows, reach=lambda u: sheet.torn(u, strips, 0.5, 0.18, 4.0))
 
 
 def skirt(S, L, dims, mats):
@@ -292,7 +291,6 @@ def skirt(S, L, dims, mats):
 
     def position(u, v):
         theta = t0 + (t1 - t0) * u
-        v = v * sheet.torn(u, strips, 0.6, 0.15, 6.0)
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
         top = np.stack([rx * np.cos(theta), ry * np.sin(theta), np.full_like(theta, belt_z)], axis=1)
         flare = H * 0.12 * v ** 1.2
@@ -306,7 +304,7 @@ def skirt(S, L, dims, mats):
     def bones(P, u, v):
         hold = np.clip(1 - v / 0.1, 0, 1)
         return sheet.down_chains(chains, across, P, u, hold, "pelvis")
-    return sheet.Sheet("skirt", position, material, bones, columns, rows)
+    return sheet.Sheet("skirt", position, material, bones, columns, rows, reach=lambda u: sheet.torn(u, strips, 0.6, 0.15, 6.0))
 
 
 def drape(S, L, dims, mats, side):
@@ -330,7 +328,6 @@ def drape(S, L, dims, mats, side):
         return np.where(u < 0.5, first, second) + out * 1.6
 
     def position(u, v):
-        v = v * sheet.torn(u, strips, 0.45, 0.22, 9.0 + sign)
         top = edge(u)
         p = top + out * (H * 0.17 * v ** 0.9)[:, None] - V(1, 0, 0) * (2.0 * v)[:, None]
         p[:, 2] = top[:, 2] - fall * v * (0.8 + 0.2 * u)
@@ -346,4 +343,4 @@ def drape(S, L, dims, mats, side):
              "upperarm_" + side: hold * (1 - along), "lowerarm_" + side: hold * along}
         total = sum(w.values())
         return {k: (np.asarray(x) / np.maximum(total, 1e-6)).astype(np.float32) for k, x in w.items()}
-    return sheet.Sheet("drape_" + side, position, material, bones, columns, rows)
+    return sheet.Sheet("drape_" + side, position, material, bones, columns, rows, reach=lambda u: sheet.torn(u, strips, 0.45, 0.22, 9.0 + sign))

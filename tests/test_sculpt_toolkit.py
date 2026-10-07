@@ -12,6 +12,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Game" / "Scripts"))
 from VanguardBodies.sculpt import garments, sdf, sheet, tree  # noqa: E402
 from VanguardBodies.sculpt.tree import Box  # noqa: E402
+from VanguardBodies.models import silt  # noqa: E402
 
 # Fixture sizes (cm): a ball standing in for a body part, the cloth over it, a fold's height above it.
 RADIUS = 10.0
@@ -198,6 +199,26 @@ class SheetsOnChains(unittest.TestCase):
             carried = sum(w.sum() for bone, w in weights.items() if bone.startswith(name + "_0"))
             self.assertGreater(carried, 1.0, name)
         np.testing.assert_allclose(sum(weights.values()), 1.0, atol=1e-5)
+
+
+class TornSheetsOnChains(unittest.TestCase):
+    def test_a_torn_ribbon_is_weighted_where_its_tongues_end(self):
+        # Fixture: one ribbon's chain, three 20 cm spans straight back from a shoulder, on a 180 cm body.
+        joints = [np.array([-10.0 - 20.0 * k, 40.0, 150.0]) for k in range(4)]
+        L = {"ribbon_l_%02d" % (k + 1): (joints[k], joints[k + 1]) for k in range(3)}
+        L["ribbon_l_end"] = (joints[3], joints[3] + np.array([-1.0, 0, 0]))
+        S = tree.Sculpt()
+        ribbon = silt.flung(S, L, {"height": 180.0}, silt.materials(S), "l")
+        u, v, P = ribbon.grid()
+        weights = ribbon.bones(P, u, v)
+        # Every vertex is weighted most to the span it lies along, however short its tongue is torn.
+        along = np.clip((-10.0 - P[:, 0]) / 20.0, 0, 2.999).astype(int)
+        names = sorted(weights)
+        heaviest = np.array(names)[np.argmax(np.stack([weights[n] for n in names]), axis=0)]
+        held = weights["clavicle_l"] > 0.5
+        for k, name in enumerate(heaviest):
+            if not held[k]:
+                self.assertEqual(name, "ribbon_l_%02d" % (along[k] + 1), (k, P[k]))
 
 
 if __name__ == "__main__":
