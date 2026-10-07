@@ -19,7 +19,8 @@ BONES = [bone for bone in humanoid.BONES if not bone[0].startswith(("tail_", "ca
 # shoulder, each on a chain from its clavicle; and a banner tied at the chest, on a chain from it.
 SPRING_PARTS = {"ribbons": [("ribbon_" + side, ["ribbon_%s_%02d" % (side, i) for i in (1, 2, 3)] + ["ribbon_%s_end" % side], "clavicle_" + side)
                             for side in ("l", "r")],
-                "banner": [("banner", ["banner_01", "banner_02", "banner_end"], "spine_03")]}
+                "banner": [("banner", ["banner_01", "banner_02", "banner_end"], "spine_03")],
+                "drape": [("drape_" + end, ["drape_%s_01" % end, "drape_%s_02" % end, "drape_%s_end" % end], "pelvis") for end in ("f", "b")]}
 # A flung ribbon's arc, as shares of the height: where it leaves the back of the shoulder (back, out, up), how far it
 # trails back and out, how high it rises and how far it falls by its end.
 RIBBON_START = (-0.09, 0.02, 0.03)
@@ -28,6 +29,9 @@ RIBBON_BACK, RIBBON_OUT, RIBBON_RISE, RIBBON_FALL = 0.34, 0.2, 0.06, 0.18
 # and a little below the left shoulder), and how far it falls straight down.
 BANNER_TOP = (0.161, -0.154, -0.01)
 BANNER_FALL = 0.42
+# A waist drape's chains, before and behind him: where each leaves the belt (out from the hips' middle by a share of the
+# shoulders, so clear of the trunk), and how far it falls straight down (a share of the leg: to the shins).
+DRAPE_OUT, DRAPE_FALL = 0.62, 0.72
 UPPER_BODY_BONE = "spine_01"
 LIFT_BONE = "pelvis"
 GROUNDED = True
@@ -120,6 +124,14 @@ def layout(spec, capsule):
         L["banner_01"] = (joints[0], joints[1])
         L["banner_02"] = (joints[1], joints[2])
         L["banner_end"] = (joints[2], joints[2] + Vector((0.0, 0.0, -height * 0.01)))
+    if "drape" in spec.get("springs", {}):
+        # The drape hangs from the belt before and behind him, each in two spans.
+        for end, sign in (("f", 1.0), ("b", -1.0)):
+            top = L["pelvis"][0] + Vector((sign * shoulder * DRAPE_OUT, 0.0, 0.0))
+            joints = [top + Vector((0.0, 0.0, -DRAPE_FALL * leg * k / 2)) for k in range(3)]
+            L["drape_%s_01" % end] = (joints[0], joints[1])
+            L["drape_%s_02" % end] = (joints[1], joints[2])
+            L["drape_%s_end" % end] = (joints[2], joints[2] + Vector((0.0, 0.0, -height * 0.01)))
     dims = {"height": height, "full": full, "base": 0.0, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
             "hip": hip, "arm": arm, "build": build, "sole": sole, "knuckle": "knuckleWalk" in features}
     return L, dims
