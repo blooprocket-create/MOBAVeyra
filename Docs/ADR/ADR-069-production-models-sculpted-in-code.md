@@ -43,8 +43,14 @@ The generator runs it in the pinned Blender, with the numpy and OpenVDB it bundl
 5. **Skin.** Each vertex takes the bones of the part it lies on; a garment's vertex takes those of the body part beneath it. The weights are then smoothed across the surface, so joints bend in a blend.
 6. **Export.** The skeleton, animations and FBX export are ADR-064's. The three textures are written as PNGs beside the FBX.
 
+- **Workers.** The field is evaluated in worker processes, each rebuilding the sculpt from the model's script (every random draw is seeded, so each holds the generator's sculpt). Meshing, labelling and baking spread across them.
+  - A point's result depends only on its own brick or cell, so the output is the same however many workers share it.
+  - A full build of every body fell from 28 to 7 minutes on the author's machine (Kade's own from about 20 to 4).
+  - The worker count is the build machine's setting (`VEYRA_SCULPT_PROCESSES`), half its logical cores by default.
+
 ### 2a. Cloth, hair and faces
 - **Layers.** A garment is solid down into what it covers. Its outer face stands its thickness (and its folds) out from the layer beneath, and none of that layer's surface remains under it.
+  - It rests on that layer as meshed. Relief baked into the layer beneath (a coat's quilting) does not show through the cloth or belt over it.
   - A hollow skin would leave air thinner than a voxel between layers. The mesher tunnels that air into handles that no unwrap can flatten, and the reduction spends triangles on surface no one sees.
 - **Regions keep to limbs.** A garment's region names the limbs it covers, and a point belongs to it where it lies nearer those limbs' surfaces than any other limb's.
   - So a sleeve stays on its arm and trousers on the legs in every stance. A height band alone wraps whatever limb passes through it, such as an arm hanging at the hip or raised to a sight.

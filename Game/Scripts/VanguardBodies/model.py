@@ -9,7 +9,7 @@ import bpy
 import numpy as np
 
 from .parts import ANCHOR_RADIUS
-from .sculpt import bake, gamemesh, mesher, sheet, skin, surface, tree
+from .sculpt import bake, gamemesh, mesher, sheet, skin, surface, tree, workers
 
 # The texture each bake writes, whether it is colour (sRGB), and its file suffix.
 TEXTURES = (("colour", True, "BaseColor"), ("mask", False, "Mask"), ("normal", False, "Normal"))
@@ -19,11 +19,21 @@ def build(spec, layout, dims, name, bones, texture_dir, log=print):
     """The body object of spec's model on layout, skinned to bones (names), with its textures written to texture_dir:
     (object, {kind: path}, triangles)."""
     settings = spec["model"]
+    shaped = {bone: (tuple(a), tuple(b)) for bone, (a, b) in layout.items()}
+    # Its sculpt is evaluated in worker processes, each building it as the generator does (sculpt/workers.py).
+    with workers.Pool({"script": settings["script"], "layout": shaped, "dims": dims, "spec": spec}) as pool:
+        return _build(spec, shaped, layout, dims, name, bones, texture_dir, log, pool)
+
+
+def _build(spec, shaped, layout, dims, name, bones, texture_dir, log, pool):
+    settings = spec["model"]
     script = importlib.import_module("VanguardBodies.models." + settings["script"])
     sculpt = tree.Sculpt()
     started = time.time()
     stage = lambda what: log("model %s: %s (%.1f s)" % (name, what, time.time() - started))  # noqa: E731
-    root, info = script.build(sculpt, {bone: (tuple(a), tuple(b)) for bone, (a, b) in layout.items()}, dims, spec)
+    root, info = script.build(sculpt, shaped, dims, spec)
+    pool.adopt("root", root)
+    pool.adopt("body", info["body"])
     stage("sculpted, %d parts" % len(sculpt.parts))
     grid = mesher.level_set(root, settings["voxelCm"], log=log)
     points, triangles, quads = mesher.polygons(grid)

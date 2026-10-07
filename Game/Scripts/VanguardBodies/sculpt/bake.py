@@ -8,14 +8,11 @@ import time
 import bpy
 import numpy as np
 
-from . import sdf, tree
+from . import sdf, tree, workers
 
 # Distances along the normal the occlusion samples (cm), and how much each counts.
 AO_STEPS = np.array([0.4, 0.9, 1.8, 3.5, 7.0], dtype=np.float32)
 AO_WEIGHTS = np.array([0.5, 0.3, 0.18, 0.1, 0.06], dtype=np.float32)
-# The tetrahedron the gradient is sampled on, and its size (cm).
-TETRA = np.array([[1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, 1, 1]], dtype=np.float32)
-GRADIENT_STEP = 0.02
 # Texels the islands are grown by into the empty texture around them (for filtering and mip levels).
 DILATE = 12
 
@@ -89,39 +86,8 @@ def rasterise(obj, size):
 
 
 def _bricked(root, P, fn, cell=12.0):
-    """fn(root, Q, box) over P grouped into cells, so each group evaluates only the parts near it."""
-    keys = np.floor(P / cell).astype(np.int64)
-    order = np.lexsort((keys[:, 2], keys[:, 1], keys[:, 0]))
-    sk = keys[order]
-    change = np.any(np.diff(sk, axis=0) != 0, axis=1)
-    bounds = np.concatenate([[0], np.nonzero(change)[0] + 1, [len(P)]])
-    results = None
-    for a, b in zip(bounds[:-1], bounds[1:]):
-        idx = order[a:b]
-        Q = P[idx]
-        out = fn(root, Q, tree.Box.around(Q, 0.5))
-        if results is None:
-            results = [np.empty((len(P),) + np.shape(o)[1:], dtype=np.asarray(o).dtype) for o in out]
-        for r, o in zip(results, out):
-            r[idx] = o
-    return results
-
-
-def _field(root, Q, box):
-    f = tree.evaluate(root, Q.astype(np.float32), box)
-    return (f.d, f.m)
-
-
-def _distance_and_gradient(root, Q, box):
-    """The distance at Q and its gradient (tetrahedral differences)."""
-    h = GRADIENT_STEP
-    d = tree.evaluate(root, Q.astype(np.float32), box.grown(h * 2))
-    grad = np.zeros_like(Q, dtype=np.float32)
-    for corner in TETRA:
-        dv = tree.evaluate(root, (Q + corner * h).astype(np.float32), box.grown(h * 2)).d
-        grad += corner[None, :] * dv[:, None]
-    norm = np.linalg.norm(grad, axis=1, keepdims=True)
-    return (d.d, d.m, grad / np.maximum(norm, 1e-9))
+    """fn(root, Q, box) over P grouped into cells, so each group evaluates only the parts near it (in the workers while a pool is open)."""
+    return tree.in_cells(root, P, fn, cell)
 
 
 def bake(obj, root, sculpt, size, sheets=(), log=print):
@@ -149,9 +115,9 @@ def bake(obj, root, sculpt, size, sheets=(), log=print):
         # Onto the full-detail surface: two steps along the field's gradient.
         q = Q[on_sculpt]
         for _ in range(2):
-            d, _m, g = _bricked(root, q, _distance_and_gradient)
+            d, _m, g = _bricked(root, q, workers.distance_and_gradient)
             q = q - g * d[:, None]
-        d, lab, g = _bricked(root, q, _distance_and_gradient)
+        d, lab, g = _bricked(root, q, workers.distance_and_gradient)
         # Where the low surface lies far from any detail (a gap the reduction bridged), its own normal stands.
         far = np.abs(d) > 0.5
         g[far] = N[on_sculpt][far]
@@ -160,13 +126,13 @@ def bake(obj, root, sculpt, size, sheets=(), log=print):
     # Occlusion: how much nearer the surface is than open space would be, out along the normal.
     ao = np.zeros(len(Q), dtype=np.float32)
     for step, weight in zip(AO_STEPS, AO_WEIGHTS):
-        (dist, _l) = _bricked(root, Q + G * step, _field)
+        (dist, _l) = _bricked(root, Q + G * step, workers.field)
         ao += weight * np.clip(step - dist, 0.0, step) / step
     ao = np.clip(1.0 - ao, 0.0, 1.0)
     # How the surface turns: out along the normal a convex edge opens faster than a flat face (sheets lie flat).
     convex = np.zeros(len(Q), dtype=np.float32)
     if on_sculpt.any():
-        (near, _l) = _bricked(root, Q[on_sculpt] + G[on_sculpt] * 0.35, _field)
+        (near, _l) = _bricked(root, Q[on_sculpt] + G[on_sculpt] * 0.35, workers.field)
         convex[on_sculpt] = np.clip((near - 0.35) / 0.15, -1.0, 1.0)
     log("bake: occlusion (%.1f s)" % (time.time() - started))
     uv = np.zeros((len(Q), 2), dtype=np.float32)

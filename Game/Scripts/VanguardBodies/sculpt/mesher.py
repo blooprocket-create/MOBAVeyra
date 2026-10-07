@@ -6,7 +6,7 @@ import time
 import numpy as np
 import openvdb
 
-from . import tree
+from . import tree, workers
 
 # A brick's edge in voxels.
 BRICK = 32
@@ -30,28 +30,18 @@ def level_set(root, voxel, pad=2.0, log=print, mode="form"):
     grid = openvdb.FloatGrid(band)
     grid.transform = openvdb.createLinearTransform(voxelSize=voxel)
     grid.gridClass = openvdb.GridClass.LEVEL_SET
-    axis = np.arange(BRICK, dtype=np.float32)
-    local = np.stack(np.meshgrid(axis, axis, axis, indexing="ij"), axis=-1).reshape(-1, 3)
     half = BRICK * voxel * 0.5
     reach = half * math.sqrt(3.0) * SAFETY + band
-    started, kept, total = time.time(), 0, int(np.prod(bricks))
-    for bi in range(bricks[0]):
-        for bj in range(bricks[1]):
-            for bk in range(bricks[2]):
-                start = origin + np.array([bi, bj, bk]) * BRICK
-                corner = start.astype(np.float32) * voxel
-                box = tree.Box(corner, corner + BRICK * voxel)
-                if root.bounds.gap(box) > band:
-                    continue
-                centre = (corner + half)[None, :]
-                d0 = float(tree.evaluate(root, centre, box).d[0])
-                if abs(d0) > reach:
-                    continue
-                P = corner + local * voxel
-                field = tree.evaluate(root, P, box)
-                values = np.clip(field.d, -band, band).astype(np.float32).reshape(BRICK, BRICK, BRICK)
-                grid.copyFromArray(values, ijk=tuple(int(v) for v in start), tolerance=0.0)
-                kept += 1
+    started, total = time.time(), int(np.prod(bricks))
+    starts = [origin + np.array([bi, bj, bk]) * BRICK for bi in range(bricks[0]) for bj in range(bricks[1]) for bk in range(bricks[2])]
+    # Evaluated in the workers while a pool is open; written into the grid in one order, so the grid is the same
+    # however many share the work.
+    kept = 0
+    values_of = tree.spread(workers.brick, root, [(start, voxel, BRICK, band, reach) for start in starts])
+    for start, values in zip(starts, values_of):
+        if values is not None:
+            grid.copyFromArray(values, ijk=tuple(int(v) for v in start), tolerance=0.0)
+            kept += 1
     grid.signedFloodFill()
     log("level set: %d of %d bricks, %.1f s, %d active voxels" % (kept, total, time.time() - started, grid.activeVoxelCount()))
     return grid

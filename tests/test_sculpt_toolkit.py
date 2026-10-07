@@ -72,6 +72,13 @@ class SolidLayers(unittest.TestCase):
         self.assertAlmostEqual(surfaces["form"], RADIUS + CLOTH, delta=STEP * 2)
         self.assertAlmostEqual(surfaces["detail"], RADIUS + CLOTH + 0.3, delta=STEP * 2)
 
+    def test_cloth_over_baked_relief_lies_as_on_the_mesh(self):
+        quilted = tree.Shell(self.S, "quilted", self.body, 0.0, CLOTH, self.everywhere, self.S.material("quilted"),
+                             fine=lambda P: np.full(len(P), 0.3, dtype=np.float32), reach=0.3)
+        over = tree.Shell(self.S, "over", quilted, 0.0, CLOTH, self.everywhere, self.S.material("over"))
+        _ts, d = along(tree.Over([self.body, quilted, over]), (0, 0, 1), mode="detail")
+        self.assertAlmostEqual(float(np.argmin(d < 0)) * STEP, RADIUS + 2 * CLOTH, delta=STEP * 2)
+
 
 class KeepingToLimbs(unittest.TestCase):
     def setUp(self):

@@ -1,8 +1,6 @@
 """Cloth as single sheets (ADR-069): a cloak or a coat's tails is a grid surface (u across, v down) draped by a
 function, built at the density the game mesh keeps, two-sided, tattered through the mask's opacity, skinned by its
 builder. Sheets join the game mesh after it is reduced, and the bake paints them by their own material."""
-import bmesh
-import bpy
 import numpy as np
 
 
@@ -18,6 +16,10 @@ class Sheet:
 def build(sheet, bone_names, number):
     """A mesh object of sheet: its grid's vertices, quads, a "sheet_uv" attribute (u, v per corner, for its paint),
     and vertex groups weighted by its builder."""
+    # Blender's modules only here: a model's script, which makes sheets, also runs in workers without Blender.
+    import bmesh
+    import bpy
+
     cols, rows = sheet.columns, sheet.rows
     u = np.linspace(0.0, 1.0, cols + 1)
     v = np.linspace(0.0, 1.0, rows + 1)

@@ -2,7 +2,7 @@
 import bpy
 import numpy as np
 
-from . import tree
+from . import tree, workers
 
 
 def to_object(name, points, triangles, quads):
@@ -32,14 +32,5 @@ def labels_at(root, points, cell=8.0):
     tree.MODE[0] = "detail"
     tree.REACH[0] = 2.0
     P = np.asarray(points, dtype=np.float32)
-    keys = np.floor(P / cell).astype(np.int64)
-    order = np.lexsort((keys[:, 2], keys[:, 1], keys[:, 0]))
-    sk = keys[order]
-    change = np.any(np.diff(sk, axis=0) != 0, axis=1)
-    bounds = np.concatenate([[0], np.nonzero(change)[0] + 1, [len(P)]])
-    labels = np.empty(len(P), dtype=np.int16)
-    for a, b in zip(bounds[:-1], bounds[1:]):
-        idx = order[a:b]
-        Q = P[idx]
-        labels[idx] = tree.evaluate(root, Q, tree.Box.around(Q, 0.5)).m
-    return labels
+    (labels,) = tree.in_cells(root, P, workers.labels, cell)
+    return labels.astype(np.int16)
