@@ -135,7 +135,9 @@ class Figure:
         for sign in (1, -1):
             side = "l" if sign > 0 else "r"
             pec = sdf.rotation(roll=sign * -14.0)
-            self.ellipsoid("pectoral", (h(8.6), sign * S * 0.36, cz - T * 0.21), (h(3.2), S * 0.4 * wide, h(5.2)), pec, weights, group)
+            # A child's chest is flat (the look's pecs, 1 a grown figure's).
+            pecs = look.get("pecs", 1.0)
+            self.ellipsoid("pectoral", (h(8.6 - 3.0 * (1.0 - pecs)), sign * S * 0.36, cz - T * 0.21), (h(3.2) * pecs, S * 0.4 * wide, h(5.2)), pec, weights, group)
             bust = look.get("bust", 0.0)
             if bust > 0.0:
                 # A woman's chest (the look's bust, 1 full): rounder forms set lower on the chest.

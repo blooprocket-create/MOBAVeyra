@@ -23,8 +23,8 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from VanguardBodies import beast, colossus, construct, humanoid, model, rider  # noqa: E402
 from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash,  # noqa: E402
-                                   input_hash, pending_changed, pending_removed, pinned_blender, removed_assets, same_destination,
-                                   stale_assets, units)
+                                   input_hash, model_hashes, pending_changed, pending_removed, pinned_blender, removed_assets,
+                                   same_destination, stale_assets, units)
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -65,8 +65,10 @@ FBX_EXPORT = dict(use_selection=True, object_types={"ARMATURE", "MESH"}, apply_u
                   bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0, mesh_smooth_type="FACE",
                   # Unreal's materials read vertex colours as linear, so they go out linear.
                   colors_type="LINEAR")
-# The code that builds a body (VanguardBodies.inputs): a body built by other code is stale.
+# The code that builds a body (VanguardBodies.inputs): a body built by other code is stale. Each production model's
+# script is an input of the bodies that name it, read once as the build starts.
 GENERATOR = generator_hash(Path(__file__).resolve().parent)
+MODELS = model_hashes(Path(__file__).resolve().parent)
 # The Vanguards whose bodies changed since the last import, which the next import takes; the rest kept their FBX and their
 # imported assets.
 CHANGED = SAVED / "changed.json"
@@ -363,7 +365,7 @@ def build(spec, status=None, suffix="", previous=None):
              "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions,
              # What it was made from and by, so a later partial build cannot pass it off as current (VanguardBodies.inputs),
              # and what it is, so a rebuild that changes nothing in it keeps it.
-             "inputSha256": input_hash(KIT, TUNING, spec), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
+             "inputSha256": input_hash(KIT, TUNING, spec, MODELS), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
              "contentSha256": content, "contentVersion": CONTENT_VERSION}
     if getattr(archetype, "IK_FEET", None):
         # The limbs the engine's inverse kinematics holds (ADR-069): its legs on the ground, and an off hand on a weapon
@@ -430,7 +432,7 @@ def main():
     REMOVED.write_text(json.dumps(pending_removed(read_list(REMOVED), [asset["name"] for asset in dropped], manifest["assets"])) + "\n")
     # A body kept from an earlier build whose inputs have changed since (a shared setting, its generator's code, the
     # Blender that built it) is stale: say which to rebuild, rather than let the importer take it.
-    stale = stale_assets(KIT, TUNING, manifest["assets"], GENERATOR, manifest["blender"])
+    stale = stale_assets(KIT, TUNING, manifest["assets"], GENERATOR, manifest["blender"], MODELS)
     if stale:
         print("VEYRA_VANGUARD_BODIES_STALE: " + ", ".join(stale))
     for asset, fresh in results:

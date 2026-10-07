@@ -2,21 +2,21 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "8abe3b34de28c2311cdc6bd51a8c716d5ae6d9b5554326e559e81d3223fab0c1",
+  "kitSha256": "5641f159f13a7628b4268c409c12be4d8ebbd7af8780e77383433775ae3148da",
   "assets": [
     {
       "id": "angeru",
       "name": "SK_Angeru",
       "archetype": "humanoid",
       "file": "FBX/SK_Angeru.fbx",
-      "sha256": "a61eec320fe62d31e6bb3fa57af0c80b9ab35292c234fffdeca0a9c824e730c1",
-      "triangles": 3036,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 125.72,
+      "sha256": "81f9ab4b1129fe5670962285a9474acaba68121340b3deec128ecf02a275d990",
+      "triangles": 4925,
+      "triangleBudget": 5000,
+      "bones": 56,
+      "heightCm": 128.61,
       "capsuleHalfHeightCm": 66,
       "melee": true,
-      "runStrideCm": 125.26,
+      "runStrideCm": 133.8,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -61,10 +61,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "edeea6f3c5569b851cb517d35c15ffad59e0b7117f082689ca71f806929ab623",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "8d540f9db799fc9936db89827b665f6ff631cd337c6a9a87baacec5662cd2236",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "f7e1fa003392cf8a94d6d7ddecfa1b71cdb5bd2539d4f356170a9db09aa13320",
+      "contentSha256": "d3c92b23a931bf6e80f9e4f5229933e5069f5ac9decaf508b033e147a5f066ff",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -79,6 +79,139 @@
             "foot_r"
           ]
         ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 8.65458
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 5.862780000000001
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 4.299372000000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 5.862780000000001
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 4.299372000000001
+          }
+        ]
       }
     },
     {
@@ -86,14 +219,14 @@
       "name": "SK_Angeru_Blade",
       "archetype": "humanoid",
       "file": "FBX/SK_Angeru_Blade.fbx",
-      "sha256": "3ae0dbb231ee4079a83cc1d8709a90e0b1f37f24a84de2e06cb1f7cfb2891012",
-      "triangles": 3132,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 125.72,
+      "sha256": "65c71112d9a2f8158f803decb73a5e8d2644789cf9c3620b44498f82b6747da8",
+      "triangles": 4934,
+      "triangleBudget": 5000,
+      "bones": 56,
+      "heightCm": 128.66,
       "capsuleHalfHeightCm": 66,
       "melee": true,
-      "runStrideCm": 125.26,
+      "runStrideCm": 133.8,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -138,10 +271,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "73ce2501a49f253f8835d6fbe982fe991b3023d6e9813a41869a4f64f9c457b3",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "5de8a64fac9aa8373f32481ac85c3e9011343f5553aba2c6d51c69b7be449020",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "18f396360833573306752733c26732c9c4be83f76ab014ff6a3ad18cd90b997e",
+      "contentSha256": "e0df2b31c8bc275e109c9feb220d1cfbe453a7cb19de06c074a757bc00c5da59",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -155,6 +288,139 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 8.65458
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 5.862780000000001
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 4.299372000000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 5.862780000000001
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 4.299372000000001
+          }
         ]
       },
       "status": "angeru_forsake_the_schools"
@@ -217,7 +483,7 @@
         }
       ],
       "inputSha256": "ec2fe14d0984bb1e7bb648fc31596182767d53d9715819058ee7c4fc97365b79",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "31599896d7c5ce1c5d7f411382778beab64998eb5a9d4ac68ccb6bab6b91e25e",
       "contentVersion": 3,
@@ -295,8 +561,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "99307be34ca3e62ff1728d3beb5075d7808fe6fe2275233493fa924728d34b51",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "b7ad47332c63526dcd518455419d3c19a8024a76526ff85c7c2616d6c7a0dbc6",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "36e052f4f42c0422bd1d5008d1fa7a5a08ee14c70f759fcaf87c81c109efc5ea",
       "contentVersion": 3,
@@ -478,7 +744,7 @@
         }
       ],
       "inputSha256": "8db7c30da727b4f9dfeb9936012cc604547d2e30f477d14b8eef262f9e46791d",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "3644904891f2914e183b7befd88db00102d04e85091b398d7c7a8ffbdad55f86",
       "contentVersion": 3,
@@ -558,7 +824,7 @@
         }
       ],
       "inputSha256": "3966b92d3ccc0f149070d9add24ab7172e05555439348f7abb85f1f838682f38",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "e6b2fee05e32d1f04c3467e26d69537e1892ba919a05a13eb0a91e0926914a61",
       "contentVersion": 3,
@@ -639,7 +905,7 @@
         }
       ],
       "inputSha256": "f965117e84ef6292324ad3556a97d518afafb1ef8a6da477be523e0d3a070b0e",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "de3831ab0985de55171f7ea8b9e7a6eeb164ec40b4512e7588d98089c302df95",
       "contentVersion": 3,
@@ -663,11 +929,11 @@
       "name": "SK_Eudora",
       "archetype": "humanoid",
       "file": "FBX/SK_Eudora.fbx",
-      "sha256": "a4374e60c6b1e95ec7305a2fcd48ee93859b3058b904aea554a7f311ff5194bb",
-      "triangles": 4692,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 169.19,
+      "sha256": "c91b838d4665b5c7da885ba757f7c73347cb78402d542e4fa7e07ec8c72da492",
+      "triangles": 4873,
+      "triangleBudget": 5000,
+      "bones": 47,
+      "heightCm": 169.59,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 167.17,
@@ -715,10 +981,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "ada22c283ec572d70b1ec13436eb84a9e11ebda4fa5324cac56f0f997fd199cc",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "5a629ae2b4f3b0124801a09c3d4bece1c80443d4a5b5b3f3d38a884836d97d21",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "abbaeed7185419b7e37cf108eaa095949bedf8d033d205865e5f3a53579222d2",
+      "contentSha256": "d18523896b6078d1ea062668313f434d7e01efb451f89c50aee2b238547f37f8",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -732,6 +998,103 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 18.848000000000003
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 14.136000000000003
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 10.366400000000002
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 14.136000000000003
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 10.366400000000002
+          }
         ]
       }
     },
@@ -793,7 +1156,7 @@
         }
       ],
       "inputSha256": "f0729c58ab2e58921d01862904eedf940f77e3025fb47101595b3ed6d1ff10cd",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "9199c232f6f44c2a84193a429fde66beaf3e49a52ebf4416f45769df539e16b4",
       "contentVersion": 3,
@@ -857,7 +1220,7 @@
         }
       ],
       "inputSha256": "a92ed3a78a453de285a9c237bef98979133cae27ded33e0f42bc1945b7519550",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "310c91e77b0466bd4c32e7ed4761990bd8c7f33f556fc218f9e65230f73a5056",
       "contentVersion": 3,
@@ -869,11 +1232,11 @@
       "name": "SK_Gorraveth",
       "archetype": "humanoid",
       "file": "FBX/SK_Gorraveth.fbx",
-      "sha256": "800ae1ffad99ea102282120c5c63b8a7a53f253a62a42b19ba91f6cbd54dd3cd",
-      "triangles": 6308,
-      "triangleBudget": 9000,
+      "sha256": "d44fee3c62838f6c435abcdcd12e159ddc39fdc9b8f88321443ee32682879022",
+      "triangles": 5456,
+      "triangleBudget": 5500,
       "bones": 29,
-      "heightCm": 242.07,
+      "heightCm": 239.7,
       "capsuleHalfHeightCm": 110,
       "melee": true,
       "runStrideCm": 218.54,
@@ -921,10 +1284,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "f76d16d922d0f16d9a7c74af2ecf8a2ded691cf6b74bbe8e5f75e40f8b906f1a",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "cb55af5a7a0d33c0db71c0b395f16c37fe44a4b89663ed4420851130fc94fe7b",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "90fe5902f205ea4aa217983a8464d8c322af714a4e13271aa3ca8d355ab92557",
+      "contentSha256": "966e9f1ea539a9ac4eb4f3c8eb04f24049cc74f6b0d752cc1d783309171fd659",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -1013,8 +1376,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "fc1fe55c988a4c521ead930f17a449ee8813fdc6b7ab4e8de3967645c2cda1eb",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "53de43331e057a71015957a7bb97c7f697ebdf0c473c3b760b65c3f090094e2e",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "7e971513428a0c87f93281204898ad5e0f7a43d78096c0e402bf96d713d62cc8",
       "contentVersion": 3,
@@ -1232,7 +1595,7 @@
         }
       ],
       "inputSha256": "7417053106155dd881dfe3332b6cc5916a5c1ee9453d6799d7dc7f5ba75186f8",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "2265b39f6418c486c12c9d28c8de5ead1bd6c84a6ba68d3d1f8c1b5a61284e30",
       "contentVersion": 3
@@ -1242,14 +1605,14 @@
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "27fbe51d5cde4d76640426336f79ecf4a91c83672e385c74895c94ab4c395e99",
-      "triangles": 5240,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 174.32,
+      "sha256": "02932d2ef0682ae3a8a4efd40c7329297a6f60e799ef9799468f395f2d806f95",
+      "triangles": 4900,
+      "triangleBudget": 5000,
+      "bones": 56,
+      "heightCm": 171.29,
       "capsuleHalfHeightCm": 90,
       "melee": false,
-      "runStrideCm": 172.62,
+      "runStrideCm": 196.16,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -1294,10 +1657,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "a2f68c9d76a54e9f7c6dc8f099b74204c778aecf598aa53c8d49f27a1d8fc054",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "201f1899ca22ae74ed3de85e94aa3909223be332c772f02db7f5ac0f4d52b24c",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "c25f9b4a4a32a3b63190db311bd1d4cec78d5c80023e5af033b0f27cf97452e8",
+      "contentSha256": "9598a93f58dc9c6d4d4b155b0e7673a003198fb05feee352615d4f13b652ea69",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -1311,6 +1674,139 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 11.45016
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 7.61805
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 5.586570000000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 7.61805
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 5.586570000000001
+          }
         ]
       }
     },
@@ -1372,7 +1868,7 @@
         }
       ],
       "inputSha256": "81d1126b421e2fc0aefe70e01c1edb03d66dc1398cb4c5ccad7cf9677c7ac0de",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "2aaac75a112602e2db74e7ce51950a65d062444c066fb96c837010dc9ae913dc",
       "contentVersion": 3,
@@ -1463,7 +1959,7 @@
         }
       ],
       "inputSha256": "32272e0e33b241dbbfb1bdb3bb3151df33c765d3d375d7d2a149804555e4e2c3",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "17e3303b0106d85de2ba3a3ac942803ee0841f84af1a835ffa16e4a56b21b6ab",
       "contentVersion": 3,
@@ -1502,14 +1998,14 @@
       "name": "SK_Mavra",
       "archetype": "humanoid",
       "file": "FBX/SK_Mavra.fbx",
-      "sha256": "881faf3c5f2cb6b91a39c85d7e7a04f4395d45659b2242fb7efcfeec53c03593",
-      "triangles": 4036,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 166.85,
+      "sha256": "74960d06e49786d1569431fefa9d3bc8634a8cca5bea192c74601f71866b8e9a",
+      "triangles": 4878,
+      "triangleBudget": 5000,
+      "bones": 47,
+      "heightCm": 166.79,
       "capsuleHalfHeightCm": 88,
       "melee": false,
-      "runStrideCm": 165.23,
+      "runStrideCm": 187.77,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -1554,10 +2050,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "89b2e530d5d674156e1598f7e3227b86719f0c0806f178e49e9a8007dac652ea",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "dc94ed92a776988dec40289a71fb56f896799265054a07dfa220b0b6ab89125d",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "79ec77bb3a949561cf7a8c829857d46f134bb8c91d90825288863293b6fd7599",
+      "contentSha256": "dc20d8c2ea7f8baa3abf14879425b1ad66abd33a1b8b5922bb7d402da715100d",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -1571,6 +2067,103 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 9.49867776
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 6.850008000000001
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 5.023339200000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 6.850008000000001
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 5.023339200000001
+          }
         ]
       }
     },
@@ -1632,7 +2225,7 @@
         }
       ],
       "inputSha256": "8e5fb04991e20e857e9ea674c6c1b263c4036f671f7790491f0ac7b2e4be3450",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "78d3ff889b78b6cb2985499673c82ca349abe7b747a5a6ac5db14cde1a30abef",
       "contentVersion": 3,
@@ -1709,7 +2302,7 @@
         }
       ],
       "inputSha256": "dc02d8d9cc8970e95a537ec4e7e2164f78ed2c397a5de2932c7b3ab83960c621",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "0e661eecb5740be526314290e3d1efced64c557c99514a55b4c48eb0bc7eb5da",
       "contentVersion": 3
@@ -1772,7 +2365,7 @@
         }
       ],
       "inputSha256": "414c10238b83f343ebcb7aebe2ea5bbc1a03691a42178e0f8d6f4ffd0df864ac",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "dff40fb998202f8ec0dd314c5fc10952cf8069bc516e95fbf35abe6a606f34e1",
       "contentVersion": 3,
@@ -1836,7 +2429,7 @@
         }
       ],
       "inputSha256": "7945cc5e7eac53f171ff439b7dae7bca34b55982a3d805995a92b794c54b3a10",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "dff40fb998202f8ec0dd314c5fc10952cf8069bc516e95fbf35abe6a606f34e1",
       "contentVersion": 3,
@@ -1917,7 +2510,7 @@
         }
       ],
       "inputSha256": "a0f5fbbe672ddf9292f03475cff9c4ed779ae16f34e787f00e3c2668845749bc",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "58053db98afcec785b11abf2a8e81d96e6d1ec0790a53e9cca91e82ccf7036c7",
       "contentVersion": 3,
@@ -2009,7 +2602,7 @@
         }
       ],
       "inputSha256": "418aa5b6e74ec5a8868cf47e9f56f88fde32fa6fa9b182a138576cb0ed3853df",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "1508ea465a552d9a7396408e47ccb59d8665ef98edb4f70f8158867e1d07af41",
       "contentVersion": 3,
@@ -2102,7 +2695,7 @@
         }
       ],
       "inputSha256": "864211223f70d5aa896b89fff757f6b48ff5cd08e7884bdbbdc747215d5f27d3",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "170555a4267fe841473147bf9240406bfc835cf71109355bb6b41f5a7d97bb7c",
       "contentVersion": 3,
@@ -2196,7 +2789,7 @@
         }
       ],
       "inputSha256": "774cc2f59b4feca1a55231303e3d54197e902338020113dbb1eb41a8f0612c8f",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "95331a4747ddf0cf70528ed687ca11d10d8eff9e3ac5fce571348f2ef6131dac",
       "contentVersion": 3,
@@ -2290,7 +2883,7 @@
         }
       ],
       "inputSha256": "edab63812c296450a177504fb8a37617dd08a79f74937bfb6507c4f5ad41caf6",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "30af87ffaa2065fa4d7263cfb647cb8ba2b269e936ce9a95817634c9d3ed9cfe",
       "contentVersion": 3,
@@ -2368,7 +2961,7 @@
         }
       ],
       "inputSha256": "8317d15621f812cdb3972517beb7851ef1a985b69471c0ea40432af45107fe08",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "e12537ffac565dce6eabe54a3c6b2d69228262ae3edda4ab7f071908bb73b4eb",
       "contentVersion": 3
@@ -2431,7 +3024,7 @@
         }
       ],
       "inputSha256": "d95a888fe2ecce1e72d57698f53f9af11c02ca65ba8680b64c661ec73ee12c91",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "b33038e49daf7be18d6a394f8d388198cfe371b8c956ac0dbb30114bbaedda5a",
       "contentVersion": 3,
@@ -2508,7 +3101,7 @@
         }
       ],
       "inputSha256": "e72ae755c42cb51f5436493d644a69ed5a5f08f19ffc1af94143121ed6679aa6",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "2747a1723c3c24fd5d8612f2bd297ed0c857c35c0f08a9aa05ad6afaf52c329d",
       "contentVersion": 3,
@@ -2586,7 +3179,7 @@
         }
       ],
       "inputSha256": "ba0c76d1010751ea5ef4dc17c5c8e603404cd09a6b0ea2e87a6c1f5247ea51a5",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "2365f3fa3f7397a046247f5a18dfb20574733713295797e04e7c52bc17e53ae3",
       "contentVersion": 3,
@@ -2611,14 +3204,14 @@
       "name": "SK_Qazharr",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr.fbx",
-      "sha256": "c3a399765785553c97853aebb3014b402c466a2ab9882b1df279c849350ac9e5",
-      "triangles": 4936,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 190.19,
+      "sha256": "c225c41854578fc5c6fd2bb04c53fb5a4d0f1aa7cdd9ecf21166d710017d8e8b",
+      "triangles": 4868,
+      "triangleBudget": 5000,
+      "bones": 47,
+      "heightCm": 193.48,
       "capsuleHalfHeightCm": 95,
       "melee": true,
-      "runStrideCm": 192.67,
+      "runStrideCm": 196.51,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -2663,87 +3256,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "b605680a405a066ceebb7a19d35f039a1e1b2b4673aa9f8581cbf3be4810c739",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "577d8a574c96d686595a6579fd5809c267c560a6838b74ee81d3ae37d2f5f442",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "c50c0dc331f136f3cbe21820cedf31cbee7bd539e24391c95ee9a4afd2000e1b",
-      "contentVersion": 3,
-      "ik": {
-        "feet": [
-          [
-            "thigh_l",
-            "calf_l",
-            "foot_l"
-          ],
-          [
-            "thigh_r",
-            "calf_r",
-            "foot_r"
-          ]
-        ]
-      }
-    },
-    {
-      "id": "qazharr",
-      "name": "SK_Qazharr_NoQuarter",
-      "archetype": "humanoid",
-      "file": "FBX/SK_Qazharr_NoQuarter.fbx",
-      "sha256": "e24a0d34e6a0a8c98f5aee072aaebe96bbfd93bbd2dc25634d31c09c1440466a",
-      "triangles": 4936,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 190.19,
-      "capsuleHalfHeightCm": 95,
-      "melee": true,
-      "runStrideCm": 192.67,
-      "upperBodyBone": "spine_01",
-      "castReleaseShare": 0.4,
-      "animations": [
-        {
-          "name": "Idle",
-          "frames": 61,
-          "loop": true
-        },
-        {
-          "name": "Run",
-          "frames": 19,
-          "loop": true
-        },
-        {
-          "name": "AttackWindup",
-          "frames": 13,
-          "loop": false
-        },
-        {
-          "name": "AttackStrike",
-          "frames": 11,
-          "loop": false
-        },
-        {
-          "name": "Cast",
-          "frames": 16,
-          "loop": false
-        },
-        {
-          "name": "Hit",
-          "frames": 10,
-          "loop": false
-        },
-        {
-          "name": "Death",
-          "frames": 31,
-          "loop": false
-        },
-        {
-          "name": "Recall",
-          "frames": 61,
-          "loop": true
-        }
-      ],
-      "inputSha256": "7dddf5ad08c90987d59379110f0ac5fc64e1cd604d5a2629f15a1542d279f3de",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
-      "blender": "5.2.1 LTS",
-      "contentSha256": "6de49510bbab9f6ae8f62e598a84a8fa5d2bf564fd2fe60b7fefa72efe21e3f4",
+      "contentSha256": "bdbae61993c4c93eb7bbe7031239b16e14da1a0237bd506aecc570377623180c",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -2759,6 +3275,277 @@
           ]
         ]
       },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 17.258878
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 12.708150000000002
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 9.319310000000002
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 12.708150000000002
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 9.319310000000002
+          }
+        ]
+      }
+    },
+    {
+      "id": "qazharr",
+      "name": "SK_Qazharr_NoQuarter",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Qazharr_NoQuarter.fbx",
+      "sha256": "f303837042666c02dbe221170401ba3e6f981f219ad504e1ae195908e20f6f0c",
+      "triangles": 4868,
+      "triangleBudget": 5000,
+      "bones": 47,
+      "heightCm": 193.48,
+      "capsuleHalfHeightCm": 95,
+      "melee": true,
+      "runStrideCm": 196.51,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "648f01e643e60665e4aa2df7e3ba08bb8627bc7fb5e1da87ab0cd88bcb437f2e",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "b66fd02685bdfe0f4394574e30fec3df385bf861aeb9fa39e42b765791b4fe1b",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 17.258878
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 12.708150000000002
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 9.319310000000002
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 12.708150000000002
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 9.319310000000002
+          }
+        ]
+      },
       "status": "qazharr_no_quarter_frenzy"
     },
     {
@@ -2766,11 +3553,11 @@
       "name": "SK_Raska",
       "archetype": "humanoid",
       "file": "FBX/SK_Raska.fbx",
-      "sha256": "7b731bc60331772de139d47e90861bf1d07dcdba535f6ce8ec4c3ffb88fa7d25",
-      "triangles": 3756,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 182.33,
+      "sha256": "77cfae654e6f281d6c1f846e77d4b6c776d093c2a4631ee67784e57d6055e9c5",
+      "triangles": 4963,
+      "triangleBudget": 5000,
+      "bones": 41,
+      "heightCm": 182.41,
       "capsuleHalfHeightCm": 95,
       "melee": true,
       "runStrideCm": 180.3,
@@ -2818,10 +3605,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "45e2ffa7f285f686ff13df8d91deda1f502c18e3ee61ed262db2e56838e0b7ce",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "6a87e5057a205c80146794441ac02e1c89d098ad970db13d480ddd5ded250486",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "0ef090867a11205c82abe61db5387f812e1554486c5cf1a85fbbb3863da24bb9",
+      "contentSha256": "690fe2e7fc0fc29706c024bfa6dc579063b996f8b36bed93eac8f5e53f66d37c",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -2836,6 +3623,81 @@
             "foot_r"
           ]
         ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 12.0,
+            "maxAngle": 40.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 12.0,
+            "maxAngle": 40.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 12.0,
+            "maxAngle": 40.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 12.0,
+            "maxAngle": 40.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 22.32
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 16.740000000000002
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 12.276000000000002
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 16.740000000000002
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 12.276000000000002
+          }
+        ]
       }
     },
     {
@@ -2843,11 +3705,11 @@
       "name": "SK_Raska_Ride",
       "archetype": "rider",
       "file": "FBX/SK_Raska_Ride.fbx",
-      "sha256": "cdf7913b637dc11f3ea5892d14fa0c11ea5d142e55b78387da5129c196c47d79",
-      "triangles": 6520,
-      "triangleBudget": 16000,
+      "sha256": "dbb00ef7fb2be42c4bbeb468bca3c49a075ffaa7f66b6433dbcda05a25b937ee",
+      "triangles": 7925,
+      "triangleBudget": 8000,
       "bones": 32,
-      "heightCm": 174.19,
+      "heightCm": 174.02,
       "capsuleHalfHeightCm": 95,
       "melee": true,
       "runStrideCm": 213.21,
@@ -2895,10 +3757,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "fad92def12e4d9babcce9a4da1c8cebc95653fbcdc22581494f8987769ca193f",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "397c9d95e40954b405e6599e871626b006a14f41d7a14325e7cd0ee14bcc8515",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "bdccccca092fbf3134f511caba571bf3107b9a9a0dddc6924ab2a985eb4729f0",
+      "contentSha256": "c86566c426c7d7d5a72d84e925413db074b11b30250e6a39182b2fa78dfa52f0",
       "contentVersion": 3,
       "status": "raska_ride_body"
     },
@@ -2960,7 +3822,7 @@
         }
       ],
       "inputSha256": "96f3c76e3738f62cc2d21e3388896044c762c79e81a68f7705942bddfdb3a2c9",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "b59dbbd02d3bdd48d22cd78f2af8b3f441c4d3177976f9f283b33468c97f9059",
       "contentVersion": 3
@@ -3022,8 +3884,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "0b3472ee892ae663f1f5b4f11b64823c0b85cd0c4074f5cc8c69a59dd5942e54",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "ab2ebbe41688a334301eb397369c99355a4f959d56ed7bd9fc75fe1d25434150",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "114e770ce1ff3346ed6aaea75b96273a5efe9a1135029d2303881e4b17acc16f",
       "contentVersion": 3,
@@ -3130,8 +3992,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "bbabfdaed80e571706116869870c2e5da6074324bb04ce9549f475a0775196b7",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "a3364d759beceaf1428b7101b76829a85cfc786c71f4a3cbcc74b41ef3d41e10",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "9fae785524d61489fa8b6db3c051363d9556a0b0ff9622022205bf65ae1952f5",
       "contentVersion": 3,
@@ -3318,11 +4180,11 @@
       "name": "SK_Tavi",
       "archetype": "humanoid",
       "file": "FBX/SK_Tavi.fbx",
-      "sha256": "c099f7ec065ea4cffdb8df5a9874a23632994d240913d2c286aa009f68e9c9df",
-      "triangles": 4236,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 116.08,
+      "sha256": "5e461c5522e4a426eca1fecdc3bfe904cf50303a0b537e0d31d0518227360e83",
+      "triangles": 4940,
+      "triangleBudget": 5000,
+      "bones": 41,
+      "heightCm": 118.93,
       "capsuleHalfHeightCm": 66,
       "melee": true,
       "runStrideCm": 103.14,
@@ -3370,10 +4232,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "28553718c5dcdef73a71ddfa9aa2a3770f66d11efce7b58a286cdfb994726060",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "f55d82d3289ddfe43cdfd923eb4bfefcfc90f05487f961da89c679f2f9f2aa7d",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "3c8c59fbe38ce8d0343a74299548278c9be3236bd538becd81ff95fbf7286407",
+      "contentSha256": "e8805e5c6daf9f256862aa85346b698a080367ad49ad1502b9b0ec751f732853",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3387,6 +4249,81 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 10.0,
+            "maxAngle": 45.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 10.0,
+            "maxAngle": 45.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 10.0,
+            "maxAngle": 45.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 300.0,
+            "drag": 2.0,
+            "damping": 10.0,
+            "maxAngle": 45.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 14.284800000000002
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 10.713600000000001
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 7.856640000000002
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 10.713600000000001
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 7.856640000000002
+          }
         ]
       }
     },
@@ -3448,7 +4385,7 @@
         }
       ],
       "inputSha256": "74cc56de149c0fe00ff8aa1dee150f196d1a8a431c6e3ce6fbad197acc059733",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "7b9e4f9804c3ce74f8f0508cc8c55533e4157f5ec4b83fd26c530891ec781425",
       "contentVersion": 3
@@ -3511,7 +4448,7 @@
         }
       ],
       "inputSha256": "8f1e17616dc353ffc605cdee3adef4ef8339ed4dbc6ade3d3bc92598cbd2de1b",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "aaea3d55659656139c204614c12cd2e15d64eea25669ea69c646a9ceed9f9b6a",
       "contentVersion": 3,
@@ -3575,7 +4512,7 @@
         }
       ],
       "inputSha256": "c86212f772ed6a551450af404b6611ddd66c18a85700e2092c166c3d865de453",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "2818da11214dccb3ace176c866199e310ddb88267423524cd26e0f3128dff70c",
       "contentVersion": 3,
@@ -3639,7 +4576,7 @@
         }
       ],
       "inputSha256": "78fc2fc13816adcf97225ee10b89701f36b533a455bd8293eaf95f576ed60470",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "213234c31fe54d6b8f64a5fa71eb77fc3d0d55db6423028c2fd7e37598340990",
       "contentVersion": 3,
@@ -3719,7 +4656,7 @@
         }
       ],
       "inputSha256": "5840e7325367203443b01b459c3c0d14fd7b9bccb0351d2db78191dec1e695a1",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
       "contentSha256": "f37b149e67ac95760e955a745cae5607520d3d1c7a3d0bcb0af4cb341110848f",
       "contentVersion": 3,
@@ -3730,14 +4667,14 @@
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "5bde73428c537126a1f97129e31a8868da9599267499626cf03664dcb8b14bd9",
-      "triangles": 3672,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 168.94,
+      "sha256": "0c0eb3e0510ff07a6f6ded742e09134cad17efccc82ff19373479ae2793445fc",
+      "triangles": 4932,
+      "triangleBudget": 5000,
+      "bones": 47,
+      "heightCm": 169.0,
       "capsuleHalfHeightCm": 90,
       "melee": false,
-      "runStrideCm": 162.99,
+      "runStrideCm": 174.77,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -3782,10 +4719,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "761cc4ea257f8d32dbfa98db804afc40827e3afbc88952f9f40be1259fb188ee",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "98e745efbe3923745508a119e9cd91ee505639f29700e369161affc6568037f5",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "57a5b50f99128d239d9bd73f8c69f8ca8bc6ead0b0e08a828e1459fff06a851f",
+      "contentSha256": "cd7b0d2f95070444c8aa1c4bb918cebd0a56432ee29966ced5077a0636dbc7c6",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3808,6 +4745,103 @@
           ],
           "anchor": "hand_r"
         }
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 17.856
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 13.392000000000001
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 9.820800000000002
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 13.392000000000001
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 9.820800000000002
+          }
+        ]
       }
     },
     {
@@ -3815,14 +4849,14 @@
       "name": "SK_Vera_DigIn",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera_DigIn.fbx",
-      "sha256": "8985bcd817499e4d780c04a1e1d512126677a46651f324e2ae896fa84b2b2ba2",
-      "triangles": 3672,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 168.94,
+      "sha256": "6b584a45d2ec052d804b91a6f44af3756cd0c4d29f62f389f24e5a66433b0652",
+      "triangles": 4932,
+      "triangleBudget": 5000,
+      "bones": 47,
+      "heightCm": 169.0,
       "capsuleHalfHeightCm": 90,
       "melee": false,
-      "runStrideCm": 162.99,
+      "runStrideCm": 174.77,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -3867,10 +4901,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "0faa005edf3f599d8dda399b19dbeaec79714b645a8df1ce53e65375c4b1d967",
-      "generatorSha256": "251677e3c2614a82f35e528b814c7ac991414958e5c5049a914df174544ba580",
+      "inputSha256": "d11ed34538a239d10befbcc8c55147324ee4c5533325acc2125405d8570ef4a2",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "b02a653aa845d0d93c8dd83eceb8aa546b5a9982249af3a5b9d20023b99428f9",
+      "contentSha256": "88d701e935475cc820cfeb679a64644fd9c68db133c54dcfd650ceff85c7e18b",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3893,6 +4927,103 @@
           ],
           "anchor": "hand_r"
         }
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "coat_l_01",
+              "coat_l_02",
+              "coat_l_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "coat_r_01",
+              "coat_r_02",
+              "coat_r_end"
+            ],
+            "stiffness": 80.0,
+            "drag": 6.0,
+            "damping": 4.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "hair_b_01",
+              "hair_b_02",
+              "hair_b_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_l_01",
+              "hair_l_02",
+              "hair_l_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_r_01",
+              "hair_r_02",
+              "hair_r_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          },
+          {
+            "bones": [
+              "hair_f_01",
+              "hair_f_02",
+              "hair_f_end"
+            ],
+            "stiffness": 400.0,
+            "drag": 2.0,
+            "damping": 14.0,
+            "maxAngle": 35.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 17.856
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 13.392000000000001
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 9.820800000000002
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 13.392000000000001
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 9.820800000000002
+          }
+        ]
       },
       "status": "vera_dig_in_stance"
     }

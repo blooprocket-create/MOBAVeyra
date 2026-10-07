@@ -1,8 +1,9 @@
 """What a generated body is made from (ADR-064 §4): the inputs whose change makes it stale.
 
 Pure Python, shared by the generator (Blender), the importer (Unreal) and CI, so all derive the same answer. A body
-is stale when its own kit entry, its archetype's settings, the kit's frame rate, the generator version or its
-Vanguard's capsule and attack range class change, whichever Vanguard was rebuilt last; and when the generator's code
+is stale when its own kit entry, its production model's script, its archetype's settings, the kit's frame rate, the
+generator version or its Vanguard's capsule and attack range class change, whichever Vanguard was rebuilt last; and when
+the generator's code
 or the Blender that built it differ from the manifest's. A full rebuild redoes every body and rewrites only those whose
 content changed (GenerateVanguardBodies.py), so it costs little when little changed.
 """
@@ -47,42 +48,66 @@ def body_name(unit_id, suffix):
     return "SK_" + unit_id.title().replace("_", "") + suffix
 
 
+def _text_hash(path):
+    """A source file's text, its line endings made alike, so a Windows checkout and CI agree."""
+    return path.read_bytes().replace(b"\r\n", b"\n")
+
+
+def _is_model(package, path):
+    """Whether path is a production model script (VanguardBodies/models/<name>.py), not the package's own module."""
+    relative = path.relative_to(package)
+    return relative.parts[0] == "models" and relative.name != "__init__.py"
+
+
 def generator_hash(scripts):
-    """The hash of the code that builds a body: GenerateVanguardBodies.py and every module of the VanguardBodies package
-    in scripts (the Game/Scripts folder), its sculpt toolkit and production models included (ADR-069 §3), each by its
-    path in the package and its text with line endings made alike, so a Windows checkout and CI agree."""
+    """The hash of the code that builds every body: GenerateVanguardBodies.py and every module of the VanguardBodies
+    package in scripts (the Game/Scripts folder), its sculpt toolkit included, each by its path in the package and its
+    text. A production model script is not among them (ADR-069 §3): it is an input of the bodies that name it alone
+    (model_hashes), so a model no body names yet (a draft) leaves every body as it was."""
     scripts = Path(scripts)
     package = scripts / "VanguardBodies"
     digest = hashlib.sha256()
-    modules = sorted(package.rglob("*.py"), key=lambda path: path.relative_to(package).as_posix())
+    modules = sorted((path for path in package.rglob("*.py") if not _is_model(package, path)), key=lambda path: path.relative_to(package).as_posix())
     for path in [scripts / "GenerateVanguardBodies.py"] + modules:
         name = path.name if path.parent == scripts or path.parent == package else path.relative_to(package).as_posix()
-        digest.update(name.encode("utf-8") + b"\0" + path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+        digest.update(name.encode("utf-8") + b"\0" + _text_hash(path) + b"\0")
     return digest.hexdigest()
 
 
-def input_hash(kit, vanguards, body_spec):
+def model_hashes(scripts):
+    """Each production model script in scripts (the Game/Scripts folder), by the name a kit entry's model gives it: the
+    hash of its text. A script imports only the sculpt toolkit, so its text is all of it the toolkit's hash leaves out."""
+    package = Path(scripts) / "VanguardBodies"
+    return {path.stem: hashlib.sha256(_text_hash(path)).hexdigest()
+            for path in sorted((package / "models").glob("*.py")) if _is_model(package, path)}
+
+
+def input_hash(kit, vanguards, body_spec, models=None):
     """The hash of everything body_spec's body is generated from: its entry, its archetype's settings, the kit's frame
-    rate, the generator version, and its Vanguard's capsule and whether it fights in melee (Vanguards.json)."""
+    rate, the generator version, its Vanguard's capsule and whether it fights in melee (Vanguards.json), and the script
+    of the production model it names, if any (models: model_hashes)."""
     vanguard = vanguards[body_spec["id"]]
     # Its other bodies' entries are not among its inputs: changing a ride's body leaves the rider's own as it was.
     own = {key: value for key, value in body_spec.items() if key != "statusBodies"}
     inputs = {"spec": own, "archetype": kit["archetypes"][body_spec["archetype"]], "fps": kit["fps"],
               "generatorVersion": GENERATOR_VERSION, "capsule": vanguard["body"],
               "melee": not vanguard["basicAttack"].get("projectile")}
+    if body_spec.get("model"):
+        inputs["modelScript"] = (models or {}).get(body_spec["model"]["script"])
     return hashlib.sha256(json.dumps(inputs, sort_keys=True).encode("utf-8")).hexdigest()
 
 
-def stale_assets(kit, vanguards, assets, generator=None, blender=None):
+def stale_assets(kit, vanguards, assets, generator=None, blender=None, models=None):
     """Every body the manifest does not hold as the kit and Vanguards.json give it now, by name: one whose recorded
-    inputs differ, that the kit no longer has, or that the kit now names otherwise (a status body renamed: its name is
-    no input of its body); one whose content was recorded under another CONTENT_VERSION; one the kit has that the
-    manifest lacks (a partial build that kept a manifest from before the kit gave a Vanguard a new body); and, when
-    given, one built by other generator code than generator or another Blender than blender."""
+    inputs differ (its model's script among them, models: model_hashes), that the kit no longer has, or that the kit now
+    names otherwise (a status body renamed: its name is no input of its body); one whose content was recorded under
+    another CONTENT_VERSION; one the kit has that the manifest lacks (a partial build that kept a manifest from before the
+    kit gave a Vanguard a new body); and, when given, one built by other generator code than generator or another
+    Blender than blender."""
     current = {}
     for spec in entries(kit):
         for body_spec, status, suffix in bodies_of(spec):
-            current[(spec["id"], status)] = (input_hash(kit, vanguards, body_spec), body_name(spec["id"], suffix))
+            current[(spec["id"], status)] = (input_hash(kit, vanguards, body_spec, models), body_name(spec["id"], suffix))
     recorded = {(asset["id"], asset.get("status")) for asset in assets}
     changed = [asset["name"] for asset in assets if current.get((asset["id"], asset.get("status")), (None, None)) != (asset.get("inputSha256"), asset["name"])
                or asset.get("contentVersion") != CONTENT_VERSION
@@ -132,7 +157,8 @@ def stale_in(game):
     vanguards = json.loads((game / "Tuning" / "Vanguards.json").read_text(encoding="utf-8"))["vanguards"]
     abilities = game / "Tuning" / "Abilities.json"
     companions = json.loads(abilities.read_text(encoding="utf-8")).get("companions", {}) if abilities.exists() else {}
-    stale = stale_assets(kit, units(vanguards, companions), manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"))
+    stale = stale_assets(kit, units(vanguards, companions), manifest["assets"], generator_hash(game / "Scripts"), manifest.get("blender"),
+                         model_hashes(game / "Scripts"))
     if not pinned_blender(kit, manifest.get("blender")) or not same_destination(kit, manifest):
         stale = sorted(set(stale) | {asset["name"] for asset in manifest["assets"]})
     return stale
