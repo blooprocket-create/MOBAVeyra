@@ -57,6 +57,15 @@ namespace VeyraBodyLeadTests
 			const FVeyraBodyLead Turn = Lead(Fresh, FVector::ZeroVector, /*bRun*/ false);
 			ASSERT_THAT(IsTrue(Turn.bLeads && Turn.GroundSpeed == 0.0));
 		}
+
+		TEST_METHOD(AFacingLeadStandsWhileARunningLeadRunsAtLeastItsSpeed)
+		{
+			// Running when the click came: an attack's target within reach is faced standing, not run at for a round trip.
+			const FVector Away(0.0, -Speed, 0.0);
+			ASSERT_THAT(IsNear(VeyraBodyLead::GroundSpeedOf(Lead(Fresh, Away, /*bRun*/ false), Speed), 0.0, 1e-6));
+			ASSERT_THAT(IsNear(VeyraBodyLead::GroundSpeedOf(Lead(Fresh, FVector::ZeroVector), 0.0), Speed, 1e-6));
+			ASSERT_THAT(IsNear(VeyraBodyLead::GroundSpeedOf(FVeyraBodyLead(), Speed / 2.0), Speed / 2.0, 1e-6, TEXT("no lead, the server's")));
+		}
 	};
 }
 

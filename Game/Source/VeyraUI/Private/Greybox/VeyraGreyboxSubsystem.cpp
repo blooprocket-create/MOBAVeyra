@@ -297,10 +297,12 @@ FVeyraBodyLead UVeyraGreyboxSubsystem::OwnLeadOf(const APawn& Unit, double Radiu
 	{
 		return FVeyraBodyLead();
 	}
-	// An attack's target is faced, not run to; a move or an Attack Move is run toward.
+	// A move or an Attack Move is run toward, and so is an attack's target beyond the body's reach, which it chases; one
+	// within reach is only faced.
 	const AActor* Target = Mark->Target.Get();
 	const FVector Point = Target ? Target->GetActorLocation() : Mark->Location;
-	const bool bRun = Mark->Kind != EVeyraOrderMarkKind::Attack;
+	const TOptional<double> Reach = VeyraHud::AttackReachOf(Unit);
+	const bool bRun = Mark->Kind != EVeyraOrderMarkKind::Attack || (Target && Reach && FVector::Dist2D(Point, Unit.GetActorLocation()) > *Reach);
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	return VeyraBodyLead::For(Point, GetWorld()->GetRealTimeSeconds() - Mark->GivenAt, Unit.GetActorLocation(), Unit.GetVelocity(),
 		Abilities->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute()), bRun, Settings.OwnLeadSeconds, Settings.OwnLeadAlignDegrees, Radius);
@@ -1212,7 +1214,7 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	// The player's own body leads its latest order until the server's movement reaches it (ADR-067 §2).
 	const FVeyraBodyLead Lead = OwnLeadOf(Unit, Radius);
 	FVeyraVanguardAnimInputs Inputs = VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow());
-	Inputs.GroundSpeed = FMath::Max(Inputs.GroundSpeed, static_cast<float>(Lead.GroundSpeed));
+	Inputs.GroundSpeed = static_cast<float>(VeyraBodyLead::GroundSpeedOf(Lead, Inputs.GroundSpeed));
 	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()))
 	{
 		Animation->SetInputs(Inputs);

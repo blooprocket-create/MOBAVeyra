@@ -31,7 +31,7 @@ On the player's own machine only, and in presentation only:
 - **What the lead does.** The body the player commands turns toward its latest order's point at once, as fast as a set turn rate allows. For a move or an Attack Move it also starts its run.
 - **When it ends.** As soon as the server's movement heads within a set angle of the point, or after a set time, whichever comes first.
 - **When it never starts.** No lead runs while the body is dead, while its statuses forbid moving, or for a point within the body's own reach.
-- **An attack order** turns the body toward its target without running.
+- **An attack order** turns the body toward its target. It runs only if the target lies beyond its reach, since the server will chase it; within reach the body stands, whatever its last movement was.
 - **The server stays in charge.** Its movement is what the body then shows. A refused order simply ends the lead, and nothing reaches the server.
 - **Values:** a lead of at most **0.35 s**, turning at **1,080°** a second, ending once the server's movement is within **30°** of the point.
 

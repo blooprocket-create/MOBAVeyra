@@ -22,3 +22,12 @@ FVeyraBodyLead VeyraBodyLead::For(const FVector& Point, double OrderAge, const F
 	Lead.GroundSpeed = bRun ? MoveSpeed : 0.0;
 	return Lead;
 }
+
+double VeyraBodyLead::GroundSpeedOf(const FVeyraBodyLead& Lead, double ServerSpeed)
+{
+	if (!Lead.bLeads)
+	{
+		return ServerSpeed;
+	}
+	return Lead.GroundSpeed > 0.0 ? FMath::Max(ServerSpeed, Lead.GroundSpeed) : 0.0;
+}

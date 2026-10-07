@@ -27,4 +27,11 @@ namespace VeyraBodyLead
 	 */
 	VEYRAUI_API FVeyraBodyLead For(const FVector& Point, double OrderAge, const FVector& BodyLocation, const FVector& Velocity, double MoveSpeed, bool bRun,
 		double LeadSeconds, double AlignDegrees, double ArrivalRadius);
+
+	/**
+	 * The ground speed the body's animation runs at, given the server's movement's ServerSpeed: a lead that runs, at least its
+	 * own; a lead that only faces, as toward an attack's target within reach, none, whatever the server last moved it at; no
+	 * lead, the server's.
+	 */
+	VEYRAUI_API double GroundSpeedOf(const FVeyraBodyLead& Lead, double ServerSpeed);
 }
