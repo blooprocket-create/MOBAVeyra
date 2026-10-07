@@ -30,8 +30,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogVeyraEffects, Log, All);
 #if WITH_EDITOR
 namespace
 {
-	/** The generator version this code is; the spec must name it. */
-	constexpr int32 GeneratorVersion = 2;
+	/**
+	 * The generator version this code is; the spec must name it. Version 3: a system made of named emitters, each from
+	 * an emitter template with materials and sprite settings of its own (ADR-068 §4).
+	 */
+	constexpr int32 GeneratorVersion = 3;
 
 	/**
 	 * A module input the spec sets to a value of its own (1 number a float, 3 a vector, 4 a colour), or to an expression
@@ -83,17 +86,41 @@ namespace
 	}
 
 	/**
-	 * One system of the spec: its name, the engine system or emitter template it starts from, the inputs it sets, and
-	 * the generated materials its sprites and its ribbons draw with.
+	 * One emitter of a system made of named emitters: its name in the system, the engine emitter template it starts from,
+	 * the generated materials its sprites and ribbons draw with (the system's where it names none), and settings of its
+	 * sprite renderers, by their property names as the renderer's data spells them (as Alignment).
+	 */
+	struct FEmitterSpec
+	{
+		FString Name;
+		FString Template;
+		FString Material;
+		FString RibbonMaterial;
+		TSharedPtr<FJsonObject> Sprite;
+	};
+
+	/**
+	 * One system of the spec: its name; the engine system template or emitter template it starts from, or the named
+	 * emitters it is made of; the inputs it sets; and the generated materials its sprites and its ribbons draw with.
 	 */
 	struct FEffectSpec
 	{
 		FString Name;
 		FString Template;
 		FString Emitter;
+		TArray<FEmitterSpec> Emitters;
 		FString Material;
 		FString RibbonMaterial;
+		/** Settings of every sprite renderer whose emitter gives none of its own. */
+		TSharedPtr<FJsonObject> Sprite;
 		TArray<FEffectInput> Inputs;
+	};
+
+	/** What an emitter's renderers of one class draw with: a generated material, and settings of their own. */
+	struct FRendererSetup
+	{
+		FString Material;
+		TSharedPtr<FJsonObject> Properties;
 	};
 
 	/** Sets Input on the emitter it names, or on every emitter of System that has it; how many it set. */
@@ -147,35 +174,29 @@ namespace
 		return Set;
 	}
 
-	/** How many renderers of RendererClass System's emitters have. */
-	int32 CountRenderers(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, UClass* RendererClass, FNiagaraExternalEditContext& Edit)
-	{
-		int32 Count = 0;
-		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
-		{
-			FNiagaraExt_EmitterTopology Topology;
-			UNiagaraExternalEditUtilities::GetEmitterTopology(FNiagaraExt_StackItemReference(&System, Emitter.EmitterName), Topology, Edit);
-			for (int32 Index = 0; Index < Topology.RendererClasses.Num(); ++Index)
-			{
-				Count += Topology.RendererClasses[Index] == RendererClass ? 1 : 0;
-			}
-		}
-		return Count;
-	}
-
-	/** Draws every renderer of RendererClass (sprites or ribbons, whose material is their own "Material") with Material; how many it set. */
-	int32 SetRendererMaterial(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, UClass* RendererClass, const FString& Material,
-		FNiagaraExternalEditContext& Edit)
+	/**
+	 * Draws every renderer of RendererClass (sprites or ribbons, whose material is their own "Material") with what SetupOf
+	 * gives its emitter, its material and its settings; how many it set. Missing counts those whose emitter has no
+	 * material, which would keep the engine's default; Used names the emitters that drew with one.
+	 */
+	int32 SetRenderers(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, UClass* RendererClass, TFunctionRef<FRendererSetup(FName)> SetupOf,
+		int32& Missing, TSet<FName>& Used, FNiagaraExternalEditContext& Edit)
 	{
 		int32 Set = 0;
 		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
 		{
 			FNiagaraExt_EmitterTopology Topology;
 			UNiagaraExternalEditUtilities::GetEmitterTopology(FNiagaraExt_StackItemReference(&System, Emitter.EmitterName), Topology, Edit);
+			const FRendererSetup Setup = SetupOf(Emitter.EmitterName);
 			for (int32 Index = 0; Index < Topology.RendererClasses.Num(); ++Index)
 			{
 				if (Topology.RendererClasses[Index] != RendererClass)
 				{
+					continue;
+				}
+				if (Setup.Material.IsEmpty())
+				{
+					++Missing;
 					continue;
 				}
 				FNiagaraExt_StackItemReference Renderer(&System, Emitter.EmitterName);
@@ -187,14 +208,50 @@ namespace
 				{
 					continue;
 				}
-				Properties->SetStringField(TEXT("Material"), Material);
+				Properties->SetStringField(TEXT("Material"), Setup.Material);
+				if (Setup.Properties)
+				{
+					for (const TPair<FString, TSharedPtr<FJsonValue>>& Property : Setup.Properties->Values)
+					{
+						Properties->SetField(Property.Key, Property.Value);
+					}
+				}
 				const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Data.PropertyValues);
 				FJsonSerializer::Serialize(Properties.ToSharedRef(), Writer);
 				UNiagaraExternalEditUtilities::SetRendererData(Renderer, Data, Edit);
+				Used.Add(Emitter.EmitterName);
 				++Set;
 			}
 		}
 		return Set;
+	}
+
+	/** Every renderer of System's emitters, its class and its data as the renderer spells it, to write a spec against. */
+	TArray<TSharedPtr<FJsonValue>> DescribeRenderers(UNiagaraSystem& System, const FNiagaraExt_SystemSummary& Summary, FNiagaraExternalEditContext& Edit)
+	{
+		TArray<TSharedPtr<FJsonValue>> Renderers;
+		for (const FNiagaraExt_EmitterSummary& Emitter : Summary.Emitters)
+		{
+			FNiagaraExt_EmitterTopology Topology;
+			UNiagaraExternalEditUtilities::GetEmitterTopology(FNiagaraExt_StackItemReference(&System, Emitter.EmitterName), Topology, Edit);
+			for (int32 Index = 0; Index < Topology.RendererClasses.Num(); ++Index)
+			{
+				FNiagaraExt_StackItemReference Renderer(&System, Emitter.EmitterName);
+				Renderer.RendererIndex = Index;
+				FNiagaraExt_RendererData Data;
+				UNiagaraExternalEditUtilities::GetRendererData(Renderer, Data, Edit);
+				const TSharedRef<FJsonObject> Entry = MakeShared<FJsonObject>();
+				Entry->SetStringField(TEXT("emitter"), Emitter.EmitterName.ToString());
+				Entry->SetStringField(TEXT("class"), GetNameSafe(Topology.RendererClasses[Index]));
+				TSharedPtr<FJsonObject> Properties;
+				if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Data.PropertyValues), Properties) && Properties)
+				{
+					Entry->SetObjectField(TEXT("properties"), Properties);
+				}
+				Renderers.Add(MakeShared<FJsonValueObject>(Entry));
+			}
+		}
+		return Renderers;
 	}
 
 	/** The input every particle starts its colour from: a module's own "Color", as the templates' Initialize Particle has. */
@@ -283,13 +340,42 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		FEffectSpec& Effect = Effects.AddDefaulted_GetRef();
 		const bool bTemplate = Object && Object->TryGetStringField(TEXT("template"), Effect.Template);
 		const bool bEmitter = Object && Object->TryGetStringField(TEXT("emitter"), Effect.Emitter);
-		if (!Object || !Object->TryGetStringField(TEXT("name"), Effect.Name) || bTemplate == bEmitter)
+		const TArray<TSharedPtr<FJsonValue>>* EmitterList = nullptr;
+		const bool bEmitters = Object && Object->TryGetArrayField(TEXT("emitters"), EmitterList) && !EmitterList->IsEmpty();
+		if (!Object || !Object->TryGetStringField(TEXT("name"), Effect.Name) || int32(bTemplate) + int32(bEmitter) + int32(bEmitters) != 1)
 		{
-			UE_LOG(LogVeyraEffects, Error, TEXT("%s: each system needs a name and either a system template or an emitter template."), *SpecFile);
+			UE_LOG(LogVeyraEffects, Error, TEXT("%s: each system needs a name and one of a system template, an emitter template or a list of named emitters."), *SpecFile);
 			return 1;
+		}
+		if (bEmitters)
+		{
+			for (const TSharedPtr<FJsonValue>& EmitterValue : *EmitterList)
+			{
+				const TSharedPtr<FJsonObject> EmitterObject = EmitterValue->AsObject();
+				FEmitterSpec& Emitter = Effect.Emitters.AddDefaulted_GetRef();
+				const TSharedPtr<FJsonObject>* Sprite = nullptr;
+				if (!EmitterObject || !EmitterObject->TryGetStringField(TEXT("name"), Emitter.Name) || Emitter.Name.IsEmpty()
+					|| !EmitterObject->TryGetStringField(TEXT("template"), Emitter.Template)
+					|| Effect.Emitters.FilterByPredicate([&Emitter](const FEmitterSpec& Other) { return Other.Name == Emitter.Name; }).Num() > 1)
+				{
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each of its emitters needs a name of its own and an emitter template."), *SpecFile, *Effect.Name);
+					return 1;
+				}
+				EmitterObject->TryGetStringField(TEXT("material"), Emitter.Material);
+				EmitterObject->TryGetStringField(TEXT("ribbonMaterial"), Emitter.RibbonMaterial);
+				if (EmitterObject->TryGetObjectField(TEXT("sprite"), Sprite))
+				{
+					Emitter.Sprite = *Sprite;
+				}
+			}
 		}
 		Object->TryGetStringField(TEXT("material"), Effect.Material);
 		Object->TryGetStringField(TEXT("ribbonMaterial"), Effect.RibbonMaterial);
+		const TSharedPtr<FJsonObject>* SystemSprite = nullptr;
+		if (Object->TryGetObjectField(TEXT("sprite"), SystemSprite))
+		{
+			Effect.Sprite = *SystemSprite;
+		}
 		const TArray<TSharedPtr<FJsonValue>>* Inputs = nullptr;
 		if (Object->TryGetArrayField(TEXT("inputs"), Inputs))
 		{
@@ -364,7 +450,19 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		// A system template is copied whole; an emitter template becomes the one emitter of an empty system.
 		UNiagaraSystem* Template = Effect.Template.IsEmpty() ? nullptr : LoadObject<UNiagaraSystem>(nullptr, *Effect.Template);
 		UNiagaraEmitter* EmitterTemplate = Effect.Emitter.IsEmpty() ? nullptr : LoadObject<UNiagaraEmitter>(nullptr, *Effect.Emitter);
-		if (!Template && !EmitterTemplate)
+		// A system of named emitters: each from its own template.
+		TArray<TPair<FName, UNiagaraEmitter*>> Named;
+		for (const FEmitterSpec& Emitter : Effect.Emitters)
+		{
+			UNiagaraEmitter* Loaded = LoadObject<UNiagaraEmitter>(nullptr, *Emitter.Template);
+			if (!Loaded)
+			{
+				UE_LOG(LogVeyraEffects, Error, TEXT("%s: its emitter %s's template %s does not load."), *Effect.Name, *Emitter.Name, *Emitter.Template);
+				return 1;
+			}
+			Named.Emplace(FName(*Emitter.Name), Loaded);
+		}
+		if (!Template && !EmitterTemplate && Named.IsEmpty())
 		{
 			UE_LOG(LogVeyraEffects, Error, TEXT("%s: its template %s%s does not load."), *Effect.Name, *Effect.Template, *Effect.Emitter);
 			return 1;
@@ -423,6 +521,11 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		{
 			FNiagaraExt_EmitterTopology Added;
 			UNiagaraExternalEditUtilities::AddEmitter(EmitterTemplate, FName(*Effect.Name), Added, Edit);
+		}
+		for (const TPair<FName, UNiagaraEmitter*>& Emitter : Named)
+		{
+			FNiagaraExt_EmitterTopology Added;
+			UNiagaraExternalEditUtilities::AddEmitter(Emitter.Value, Emitter.Key, Added, Edit);
 		}
 		// One colour, the side's, set by the presentation as it spawns the system.
 		FNiagaraExt_UserVariable Color;
@@ -506,29 +609,54 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		// Every sprite and ribbon draws with a generated material. The engine's default ones are unlit, with an emissive near 1,
 		// which the Crucible's physical sun and manual exposure show black; the generated ones glow alike under any exposure.
 		// A mesh renderer draws its mesh's own materials, so a spec keeps none spawning (the death burst's template has one).
-		struct FRendererMaterial
+		// An emitter of a system of named emitters draws with its own materials and sprite settings, or the system's materials.
+		for (const bool bSprite : { true, false })
 		{
-			UClass* Class;
-			const TCHAR* What;
-			const TCHAR* Field;
-			const FString& Material;
-		};
-		for (const FRendererMaterial& Renderers : { FRendererMaterial{ UNiagaraSpriteRendererProperties::StaticClass(), TEXT("sprite"), TEXT("material"), Effect.Material },
-				 FRendererMaterial{ UNiagaraRibbonRendererProperties::StaticClass(), TEXT("ribbon"), TEXT("ribbonMaterial"), Effect.RibbonMaterial } })
-		{
-			const int32 Count = CountRenderers(*System, Summary, Renderers.Class, Edit);
-			if (Renderers.Material.IsEmpty() && Count > 0)
+			UClass* Class = bSprite ? UNiagaraSpriteRendererProperties::StaticClass() : UNiagaraRibbonRendererProperties::StaticClass();
+			const TCHAR* What = bSprite ? TEXT("sprite") : TEXT("ribbon");
+			const TCHAR* Field = bSprite ? TEXT("material") : TEXT("ribbonMaterial");
+			auto SetupOf = [&Effect, bSprite](FName Emitter)
 			{
-				UE_LOG(LogVeyraEffects, Error, TEXT("%s: %d %s renderer(s) would draw with the engine's default material, which the scene's exposure shows black; name a generated one in its spec's %s."),
-					*Effect.Name, Count, Renderers.What, Renderers.Field);
+				const FEmitterSpec* Own = Effect.Emitters.FindByPredicate([Emitter](const FEmitterSpec& Spec) { return FName(*Spec.Name) == Emitter; });
+				const FString& OwnMaterial = Own ? (bSprite ? Own->Material : Own->RibbonMaterial) : FString();
+				return FRendererSetup{ !OwnMaterial.IsEmpty() ? OwnMaterial : (bSprite ? Effect.Material : Effect.RibbonMaterial),
+					!bSprite ? nullptr : Own && Own->Sprite ? Own->Sprite : Effect.Sprite };
+			};
+			// Every material it names must load before any renderer takes it.
+			TArray<FString> Wanted = { bSprite ? Effect.Material : Effect.RibbonMaterial };
+			for (const FEmitterSpec& Emitter : Effect.Emitters)
+			{
+				Wanted.Add(bSprite ? Emitter.Material : Emitter.RibbonMaterial);
+			}
+			for (const FString& Material : Wanted)
+			{
+				if (!Material.IsEmpty() && !LoadObject<UMaterialInterface>(nullptr, *Material))
+				{
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: its %s %s does not load."), *Effect.Name, Field, *Material);
+					return 1;
+				}
+			}
+			int32 Missing = 0;
+			TSet<FName> Used;
+			SetRenderers(*System, Summary, Class, SetupOf, Missing, Used, Edit);
+			if (LogErrors(Edit, Effect.Name))
+			{
 				return 1;
 			}
-			if (!Renderers.Material.IsEmpty() && (!LoadObject<UMaterialInterface>(nullptr, *Renderers.Material) || Count == 0
-				|| SetRendererMaterial(*System, Summary, Renderers.Class, Renderers.Material, Edit) != Count))
+			if (Missing > 0)
 			{
-				LogErrors(Edit, Effect.Name);
-				UE_LOG(LogVeyraEffects, Error, TEXT("%s: its %s %s does not load, it has no %s renderer to draw with it, or not every one took it."), *Effect.Name,
-					Renderers.Field, *Renderers.Material, Renderers.What);
+				UE_LOG(LogVeyraEffects, Error, TEXT("%s: %d %s renderer(s) would draw with the engine's default material, which the scene's exposure shows black; name a generated one in its spec's %s."),
+					*Effect.Name, Missing, What, Field);
+				return 1;
+			}
+			// A material named for renderers that are not there is a mistake in the spec.
+			const bool bSystemNamed = !(bSprite ? Effect.Material : Effect.RibbonMaterial).IsEmpty();
+			const FEmitterSpec* Unused = Effect.Emitters.FindByPredicate([&Used, bSprite](const FEmitterSpec& Emitter)
+				{ return !(bSprite ? Emitter.Material : Emitter.RibbonMaterial).IsEmpty() && !Used.Contains(FName(*Emitter.Name)); });
+			if ((bSystemNamed && Used.IsEmpty()) || Unused)
+			{
+				UE_LOG(LogVeyraEffects, Error, TEXT("%s: its spec names a %s for %s, which has no %s renderer."), *Effect.Name, Field,
+					Unused ? *Unused->Name : TEXT("the system"), What);
 				return 1;
 			}
 		}
@@ -567,6 +695,8 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				}
 				Held->SetObjectField(Emitter.EmitterName.ToString(), Modules);
 			}
+			// And what each renderer draws with, as its data spells it, which a spec's sprite settings are written in.
+			Held->SetArrayField(TEXT("renderers"), DescribeRenderers(*System, Summary, Edit));
 			WriteJson(FPaths::Combine(Saved, Effect.Name + TEXT("-values.json")), Held);
 		}
 		FSavePackageArgs Save;

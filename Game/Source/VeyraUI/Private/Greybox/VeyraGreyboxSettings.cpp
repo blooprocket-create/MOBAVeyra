@@ -135,6 +135,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("CombatTextReceivedColor"), CombatTextReceivedColor },
 		{ TEXT("CombatTextHealingColor"), CombatTextHealingColor },
 		{ TEXT("CombatTextShieldingColor"), CombatTextShieldingColor },
+		{ TEXT("FogVeilColor"), FogVeilColor },
+		{ TEXT("CamouflageVeilColor"), CamouflageVeilColor },
+		{ TEXT("InvisibleVeilColor"), InvisibleVeilColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -210,6 +213,25 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(!HoverEnemyColorParameter.IsNone() && !HoverAllyColorParameter.IsNone() && !HoverNeutralColorParameter.IsNone()
 			&& !HoverEnemyStencilParameter.IsNone() && !HoverAllyStencilParameter.IsNone() && !HoverNeutralStencilParameter.IsNone(),
 		TEXT("HoverEnemyColorParameter"), TEXT("the hover outline's three colour and three stencil parameters are required."));
+	Require(!ToonInkMaterial.IsNull() && !ToonInkStencilParameter.IsNone(), TEXT("ToonInkMaterial"),
+		TEXT("the generated toon ink material and its stencil parameter are required."));
+	Require(!ToonLight.IsNull() && !ToonSunDirectionParameter.IsNone() && !ToonSunColorParameter.IsNone(), TEXT("ToonLight"),
+		TEXT("the generated toon light and its sun direction and colour parameters are required."));
+	Require(!BodyVeilParameter.IsNone() && !BodyVeilTintParameter.IsNone() && BodyVeilParameter != BodyVeilTintParameter, TEXT("BodyVeilParameter"),
+		TEXT("the body material's veil and veil tint parameters are required, and differ."));
+	Require(VeilFadeSeconds > 0.0f, TEXT("VeilFadeSeconds"), TEXT("must be above 0."));
+	Require(!TelegraphFillMaterial.IsNull() && !TelegraphFillMesh.IsNull(), TEXT("TelegraphFillMaterial"),
+		TEXT("the generated telegraph fill material and its quad are required."));
+	Require(!TelegraphShapeParameter.IsNone() && !TelegraphHalfArcParameter.IsNone() && !TelegraphLandingParameter.IsNone()
+			&& !TelegraphColorParameter.IsNone() && !TelegraphSizeParameter.IsNone(),
+		TEXT("TelegraphShapeParameter"), TEXT("the telegraph fill's shape, half-arc, landing, colour and size parameters are required."));
+	Require(TelegraphLandingSeconds > 0.0f, TEXT("TelegraphLandingSeconds"), TEXT("must be above 0."));
+	Require(HitStopSeconds > 0.0f && HitShakeSeconds > 0.0f && HitShakeFrequency > 0.0f, TEXT("HitStopSeconds"),
+		TEXT("a hit's hold and the camera's shudder each take some time, and the shudder turns."));
+	Require(HeavyHitShare > 0.0f && HeavyHitShare <= 1.0f, TEXT("HeavyHitShare"), TEXT("must be above 0 and at most 1."));
+	Require(HitShakeAmplitude > 0.0f && DeathShakeAmplitude >= HitShakeAmplitude, TEXT("HitShakeAmplitude"),
+		TEXT("a heavy hit kicks the camera, and a fall at least as hard."));
+	Require(ReducedShakeShare > 0.0f && ReducedShakeShare < 1.0f, TEXT("ReducedShakeShare"), TEXT("must be above 0 and below 1: a smaller kick, not none."));
 	Require(!HitFlashColorParameter.IsNone() && !HitFlashStrengthParameter.IsNone(), TEXT("HitFlashColorParameter"),
 		TEXT("the hit flash material's colour and strength parameters are required."));
 	Require(HitFlashSeconds > 0.0f && RecoilSeconds > 0.0f && SnapSeconds > 0.0f && CollapseSeconds > 0.0f, TEXT("HitFlashSeconds"),

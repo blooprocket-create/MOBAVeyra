@@ -7,6 +7,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Client/VeyraClientIntents.h"
 #include "Components/Border.h"
+#include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"

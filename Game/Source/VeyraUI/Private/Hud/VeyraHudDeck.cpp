@@ -14,6 +14,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraChatLogModel.h"
 #include "Hud/VeyraHudLayout.h"
 #include "Hud/VeyraHudModel.h"
@@ -33,6 +34,7 @@
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
+#include "VeyraVanguardCharacter.h"
 
 // The engine keeps a smoothed frame rate, declared only where it is defined.
 extern ENGINE_API float GAverageFPS;
@@ -593,14 +595,14 @@ namespace
 	/**
 	 * The player's own statuses in a row just above the deck at DeckTopLeft (Proposals 38, 43, 53; ADR-059 §4): the beneficial,
 	 * then the harmful, as Display orders them, each chip marked so its group reads without colour. Those that do not fit
-	 * across the deck are counted at the row's end.
+	 * across the deck are counted at the row's end. Standing in Dense Fog, which no status says, leads the row (ADR-068 §6).
 	 */
 	void DrawStatusRow(const FPainter& Paint, const FVeyraStatusDisplay& Display, const AVeyraPlayerState& Participant, double Now, const FVector2D& DeckTopLeft,
-		float DeckWidth)
+		float DeckWidth, bool bInDenseFog)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const TArray<FVeyraHudStatus> Statuses = VeyraHud::OrderOwnStatuses(VeyraHud::StatusesOf(Participant, Now, Participant.GetVeyraTeam()), Display.Sort);
-		if (Statuses.IsEmpty())
+		if (Statuses.IsEmpty() && !bInDenseFog)
 		{
 			return;
 		}
@@ -616,6 +618,25 @@ namespace
 		float X = DeckTopLeft.X;
 		int32 Unshown = 0;
 		bool bHarmfulStarted = false;
+		// Hidden from enemies outside the fog, as the body's veil shows; the player's to use, as a beneficial status is.
+		if (bInDenseFog)
+		{
+			const FString Text = TEXT("In Dense Fog");
+			const FVector2D Size(static_cast<float>(Paint.Measure(Text, Font).X) + Pad.X * 2.0f, Height);
+			const FVector2D At(X, Y);
+			if (Display.bHighContrast)
+			{
+				Paint.Rect(At, Size, Settings.HudSurfaceColor.CopyWithNewOpacity(1.0f));
+				Paint.Outline(At, Size, Settings.FogVeilColor, Paint.S(2.0f));
+			}
+			else
+			{
+				Paint.Surface(At, Size);
+				Paint.Outline(At, Size, Settings.FogVeilColor);
+			}
+			Paint.Text(At + Pad, Text, Font, Settings.TextColor, !Display.bHighContrast);
+			X += Size.X + Gap;
+		}
 		for (const FVeyraHudStatus& Status : Statuses)
 		{
 			const bool bHarmful = Status.Group != EVeyraStatusGroup::Beneficial;
@@ -667,7 +688,7 @@ namespace
 	 */
 	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns,
 		const FVeyraStatusDisplay& Statuses, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey,
-		const TOptional<FVector2D>& Mouse, double Now, float RankMarkOpacity, TOptional<FHover>& Hover)
+		const TOptional<FVector2D>& Mouse, double Now, float RankMarkOpacity, bool bInDenseFog, TOptional<FHover>& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
@@ -906,7 +927,7 @@ namespace
 		Items.Text(FVector2D(ItemsLeft + Deck.ItemsWidth - Items.Measure(Shop, ShopFont).X, GoldY + Items.S(2.0f)), Shop, ShopFont, Settings.DescriptionColor);
 
 		// The player's own statuses just above the deck (ADR-059 §4).
-		DrawStatusRow(Frame, Statuses, Participant, Now, TopLeft, Deck.Size.X);
+		DrawStatusRow(Frame, Statuses, Participant, Now, TopLeft, Deck.Size.X, bInDenseFog);
 
 		// Recalling: the channel over the deck, filling toward home (ADR-012 §8).
 		const float DeckCentre = TopLeft.X + Deck.Size.X / 2.0f;
@@ -986,8 +1007,12 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const double Phase = FMath::Fmod(FPlatformTime::Seconds(), static_cast<double>(Settings.RankUpPulseSeconds)) / Settings.RankUpPulseSeconds;
 	const float RankMarkOpacity = Preferences.bReduceUiAnimation ? 1.0f
 		: FMath::Lerp(Settings.RankUpPulseFloor, 1.0f, static_cast<float>(0.5 + 0.5 * FMath::Cos(UE_DOUBLE_TWO_PI * Phase)));
+	// Whether the player's own Vanguard stands in Dense Fog, as the presentation knows it (ADR-068 §6).
+	const UVeyraGreyboxSubsystem* Presentation = World.GetSubsystem<UVeyraGreyboxSubsystem>();
+	const APawn* Vanguard = Player ? Player->GetVanguard() : nullptr;
+	const bool bInDenseFog = Presentation && Vanguard && Presentation->HiddenKindOf(*Vanguard) == EVeyraHiddenKind::DenseFog;
 	const float DeckTop = DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own,
-		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, Hover);
+		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, bInDenseFog, Hover);
 	if (Player)
 	{
 		DrawChat(Paint, Preferences, Layout.Chat, *Player, GameState, Side, Screens && Screens->IsChatOpen());

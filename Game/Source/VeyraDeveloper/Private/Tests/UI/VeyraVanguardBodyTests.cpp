@@ -13,17 +13,24 @@
 #include "Components/StaticMeshComponent.h"
 #include "Companions/VeyraCompanion.h"
 #include "Companions/VeyraCompanionSubsystem.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
+#include "Engine/DirectionalLight.h"
 #include "Engine/SkeletalMesh.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Movement/VeyraDrawnBody.h"
 #include "NiagaraComponent.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
+#include "Greybox/VeyraToonLight.h"
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "VeyraPlayerController.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -422,6 +429,191 @@ namespace VeyraVanguardBodyTests
 			RefreshedGreybox();
 			ASSERT_THAT(IsTrue(Skin->GetOverlayMaterial() != nullptr, TEXT("the hit flash lies over the animated body")));
 			ASSERT_THAT(IsTrue(Animation.GetState().Current.Clip == EVeyraVanguardClip::AttackWindup, TEXT("the flinch never cuts the attack short")));
+		}
+
+		TEST_METHOD(EveryBodyWearsTheUnlitToonMaterial)
+		{
+			// Shaded by its own toon light rather than the scene's (ADR-068 §2).
+			for (const TPair<FString, const FVeyraVanguardBody*>& Body : EveryBody())
+			{
+				for (const FSkeletalMaterial& Slot : Body.Value->Mesh->GetMaterials())
+				{
+					const UMaterialInterface* Material = Slot.MaterialInterface;
+					ASSERT_THAT(IsTrue(Material && Material->GetShadingModels().HasOnlyShadingModel(MSM_Unlit), *Body.Key));
+					// And veils as the presentation asks (ADR-068 §6).
+					float Veil = 1.0f;
+					FLinearColor Tint = FLinearColor::Transparent;
+					ASSERT_THAT(IsTrue(Material->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(GetDefault<UVeyraGreyboxSettings>()->BodyVeilParameter), Veil)
+						&& Veil == 0.0f && Material->GetVectorParameterDefaultValue(FHashedMaterialParameterInfo(GetDefault<UVeyraGreyboxSettings>()->BodyVeilTintParameter), Tint),
+						*Body.Key));
+				}
+			}
+		}
+
+		TEST_METHOD(AGeneratedBodyIsInkedUntilItIsHovered)
+		{
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			const UStaticMeshComponent* Disc = Presentation.FindBody(Unit);
+			const int32 Ink = Presentation.GetInkStencil();
+			ASSERT_THAT(IsNotNull(Skin));
+			ASSERT_THAT(IsTrue(Ink > 0 && Ink != Presentation.HoverStencilOf(Unit), TEXT("the ink has a stencil of its own")));
+			// Its body writes the ink's stencil; the disc under its feet is no character and writes none (ADR-068 §3).
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth && Skin->CustomDepthStencilValue == Ink));
+			ASSERT_THAT(IsFalse(Disc->bRenderCustomDepth));
+			// Hovered, it takes its side's outline; let go, its ink again.
+			Presentation.ShowHover(&Unit);
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth && Skin->CustomDepthStencilValue == Presentation.HoverStencilOf(Unit)));
+			Presentation.ShowHover(nullptr);
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth && Skin->CustomDepthStencilValue == Ink, TEXT("and the ink returns")));
+			ASSERT_THAT(IsFalse(Disc->bRenderCustomDepth));
+		}
+
+		TEST_METHOD(AHiddenBodyIsVeiledWithoutInkWhileItsSideSeesWhy)
+		{
+			// Fixture values: a Camouflage's detection radius, and a frame of the world.
+			constexpr double DetectionRadius = 300.0;
+			constexpr float Frame = 0.1f;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const int32 Frames = FMath::CeilToInt32(Settings.VeilFadeSeconds / Frame) + 1;
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			ASSERT_THAT(IsNotNull(Skin));
+			ASSERT_THAT(IsTrue(Presentation.GetVeilOf(Unit) == 0.0 && Skin->bRenderCustomDepth, TEXT("solid and inked")));
+			const auto Step = [&](int32 Count) {
+				for (int32 Index = 0; Index < Count; ++Index)
+				{
+					Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+					RefreshedGreybox();
+				}
+			};
+			// Camouflaged, its side (here, a viewer on no side) sees it veiled in the Camouflage's colour, and uninked.
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Unit, DetectionRadius)));
+			ASSERT_THAT(IsTrue(Presentation.HiddenKindOf(Unit) == EVeyraHiddenKind::Camouflage));
+			Step(Frames);
+			ASSERT_THAT(IsNear(Presentation.GetVeilOf(Unit), 1.0, 1e-6));
+			const UMaterialInstanceDynamic* Veiled = Cast<UMaterialInstanceDynamic>(Skin->GetMaterial(0));
+			ASSERT_THAT(IsNotNull(Veiled, TEXT("its body has a material of its own")));
+			float Veil = 0.0f;
+			FLinearColor Tint = FLinearColor::Transparent;
+			ASSERT_THAT(IsTrue(Veiled->GetScalarParameterValue(FHashedMaterialParameterInfo(Settings.BodyVeilParameter), Veil) && FMath::IsNearlyEqual(Veil, 1.0f)));
+			ASSERT_THAT(IsTrue(Veiled->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.BodyVeilTintParameter), Tint) && Tint.Equals(Settings.CamouflageVeilColor)));
+			ASSERT_THAT(IsFalse(Skin->bRenderCustomDepth, TEXT("a ghost, not an outline")));
+			// Out of it, the veil goes and the ink returns.
+			VeyraCombat::EndStealth(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit));
+			Step(Frames);
+			ASSERT_THAT(IsTrue(Presentation.HiddenKindOf(Unit) == EVeyraHiddenKind::None && Presentation.GetVeilOf(Unit) == 0.0));
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth, TEXT("inked again")));
+			// Hidden again, it wears the material it was given rather than another made over it.
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Unit, DetectionRadius)));
+			Step(Frames);
+			ASSERT_THAT(IsTrue(Skin->GetMaterial(0) == Veiled, TEXT("one material of its own, however often it is veiled")));
+		}
+
+		TEST_METHOD(WhatAHiddenBodyPoursVeilsWithIt)
+		{
+			// Fixture values: a Camouflage's detection radius, and a frame of the world.
+			constexpr double DetectionRadius = 300.0;
+			constexpr float Frame = 0.1f;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Settings.VeiledEffectScale < 1.0f, TEXT("a veiled body's smoke thins")));
+			// The first companion (by ID) whose body pours an effect where no mesh shows it (smoke).
+			TArray<FName> Ids;
+			ArtSet().CompanionArt.GetKeys(Ids);
+			Ids.Sort(FNameLexicalLess());
+			const FName* Id = Ids.FindByPredicate([this](FName Candidate) { return ArtSet().FindCompanion(Candidate)->Effect != nullptr; });
+			ASSERT_THAT(IsNotNull(Id, TEXT("the committed art has a companion made of an effect")));
+			const FVeyraVanguardArt& Art = *ArtSet().FindCompanion(*Id);
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Summoner = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			UVeyraCompanionSubsystem* Keeper = Spawner.GetWorld().GetSubsystem<UVeyraCompanionSubsystem>();
+			ASSERT_THAT(IsTrue(Keeper && Keeper->Summon(*Summoner.GetAbilitySystemComponent(), FVeyraContentId::FromText(Id->ToString()).GetValue())));
+			AVeyraCompanion* Companion = Keeper->Find(*Summoner.GetAbilitySystemComponent());
+			ASSERT_THAT(IsNotNull(Companion));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const FNiagaraVariable Color(FNiagaraTypeDefinition::GetColorDef(), *(TEXT("User.") + Settings.EffectColorParameter.ToString()));
+			const FNiagaraVariable Scale(FNiagaraTypeDefinition::GetFloatDef(), *(TEXT("User.") + Settings.EffectScaleParameter.ToString()));
+			const auto Pours = [&](const FLinearColor& Wanted, float WantedScale) {
+				const TArray<UNiagaraComponent*> Effects = Presentation.FindBodyEffects(*Companion);
+				return !Effects.IsEmpty() && Effects.FindByPredicate([&](const UNiagaraComponent* Effect) {
+					const FNiagaraParameterStore& Parameters = Effect->GetOverrideParameters();
+					return !Parameters.GetParameterValueOrDefault(Color, FLinearColor::Transparent).Equals(Wanted, 1e-4f)
+						|| !FMath::IsNearlyEqual(Parameters.GetParameterValueOrDefault(Scale, 0.0f), WantedScale, 1e-4f);
+				}) == nullptr;
+			};
+			ASSERT_THAT(IsTrue(Pours(Art.EffectColor, Art.EffectScale), TEXT("its own smoke while seen")));
+			// Camouflaged, its smoke takes the veil's colour and thins with it; out of it, the smoke is its own again.
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(*Companion, DetectionRadius)));
+			const int32 Frames = FMath::CeilToInt32(Settings.VeilFadeSeconds / Frame) + 1;
+			for (int32 Index = 0; Index < Frames; ++Index)
+			{
+				Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+				RefreshedGreybox();
+			}
+			ASSERT_THAT(IsNear(Presentation.GetVeilOf(*Companion), 1.0, 1e-6));
+			ASSERT_THAT(IsTrue(Pours(Settings.CamouflageVeilColor, Art.EffectScale * Settings.VeiledEffectScale), TEXT("veiled smoke")));
+			VeyraCombat::EndStealth(*Companion->GetAbilitySystemComponent());
+			for (int32 Index = 0; Index < Frames; ++Index)
+			{
+				Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+				RefreshedGreybox();
+			}
+			ASSERT_THAT(IsTrue(Pours(Art.EffectColor, Art.EffectScale), TEXT("its own smoke again")));
+		}
+
+		TEST_METHOD(AStruckBodyHoldsItsPoseAMoment)
+		{
+			// Fixture value: a frame of the world.
+			constexpr float Frame = 0.02f;
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			ASSERT_THAT(IsNotNull(Skin));
+			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 1.0f, TEXT("moving")));
+			FVeyraCombatCue Hit;
+			Hit.Kind = EVeyraCombatCueKind::Hit;
+			Hit.Unit = &Unit;
+			Spawner.GetWorld().GetSubsystem<UVeyraCombatCueSubsystem>()->OnCue.Broadcast(Hit);
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 0.0f, TEXT("held as the blow lands (ADR-068 §4)")));
+			const int32 Frames = FMath::CeilToInt32(GetDefault<UVeyraGreyboxSettings>()->HitStopSeconds / Frame) + 1;
+			for (int32 Index = 0; Index < Frames; ++Index)
+			{
+				Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+			}
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 1.0f, TEXT("then moving again")));
+		}
+
+		TEST_METHOD(TheToonLightFollowsTheMapsSun)
+		{
+			// Fixture values: a sun low in the south-east, in a warm colour.
+			const FRotator SunRotation(-30.0, 135.0, 0.0);
+			const FLinearColor SunColor(1.0f, 0.5f, 0.25f);
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			// The brightest sun lights the bodies: this one outshines any the test world has.
+			const UDirectionalLightComponent* Existing = UVeyraToonLight::BrightestSun(Spawner.GetWorld());
+			ADirectionalLight& Light = Spawner.SpawnActorAt<ADirectionalLight>(FVector::ZeroVector, SunRotation);
+			UDirectionalLightComponent* Component = CastChecked<UDirectionalLightComponent>(Light.GetLightComponent());
+			Component->SetMobility(EComponentMobility::Movable);
+			Component->SetWorldRotation(SunRotation);
+			Component->SetIntensity((Existing ? Existing->Intensity : 0.0f) + Component->Intensity);
+			Component->SetLightColor(SunColor * 0.5f);
+			Component->bUseTemperature = false;
+			RefreshedGreybox();
+			UMaterialParameterCollectionInstance* Instance = Spawner.GetWorld().GetParameterCollectionInstance(Settings.ToonLight.LoadSynchronous());
+			ASSERT_THAT(IsNotNull(Instance));
+			FLinearColor ToSun = FLinearColor::Transparent;
+			FLinearColor Color = FLinearColor::Transparent;
+			ASSERT_THAT(IsTrue(Instance->GetVectorParameterValue(Settings.ToonSunDirectionParameter, ToSun)
+				&& Instance->GetVectorParameterValue(Settings.ToonSunColorParameter, Color)));
+			// Toward the sun, against its light; its colour at its brightest channel's full strength.
+			const FVector Expected = -SunRotation.Vector();
+			ASSERT_THAT(IsTrue(FVector(ToSun.R, ToSun.G, ToSun.B).Equals(Expected, 0.01),
+				*FString::Printf(TEXT("lit from the sun's side: %s, not %s"), *ToSun.ToString(), *Expected.ToString())));
+			ASSERT_THAT(IsTrue(FLinearColor(Color.R, Color.G, Color.B, 1.0f).Equals(FLinearColor(SunColor.R, SunColor.G, SunColor.B, 1.0f), 0.02f), TEXT("in its colour")));
 		}
 	};
 }

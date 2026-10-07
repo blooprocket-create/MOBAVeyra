@@ -3,7 +3,9 @@
 #pragma once
 
 #include "Greybox/VeyraBodyFeedback.h"
+#include "Greybox/VeyraHiddenBody.h"
 #include "Greybox/VeyraOrderMarks.h"
+#include "Rules/VeyraVisionRules.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Hud/VeyraKillFeedModel.h"
 #include "Shapes/VeyraShapes.h"
@@ -43,6 +45,8 @@ enum class EVeyraTelegraphSource : uint8
 	Selection,
 	/** The rest of a line projectile's flight, on the ground (ADR-067 §3). */
 	ProjectileLane,
+	/** The local player's attack range, a guide drawn as the indicator is (ADR-052 §4). */
+	AttackRange,
 };
 
 /** The player's own level-up as this machine announces it (ADR-065 §5): the new Level, and when it came by this machine's clock. */
@@ -124,6 +128,22 @@ public:
 	/** The custom-depth stencil Unit's outline is drawn with: its side's as the viewer sees it, enemy, ally or neutral. */
 	int32 HoverStencilOf(const AActor& Unit) const;
 
+	/**
+	 * The custom-depth stencil the toon ink outlines a character by (ADR-068 §3), as the generated ink material's default
+	 * gives it: every unhovered character's drawn body (a generated body, or a creature's art; never a structure's)
+	 * writes it, and the ink pass draws their lines.
+	 */
+	int32 GetInkStencil() const { return InkStencil; }
+
+	/**
+	 * Why Unit's body shows hidden from its enemies to this machine's viewer (ADR-068 §6): Invisible, Camouflaged or within
+	 * Dense Fog, for a unit on the viewer's side (or any unit, for a viewer on no side); None otherwise.
+	 */
+	EVeyraHiddenKind HiddenKindOf(const AActor& Unit) const;
+
+	/** How veiled Unit's generated body is now, from 0 (solid) to 1 (ADR-068 §6); 0 for any other body. */
+	double GetVeilOf(const AActor& Unit) const;
+
 	/** The effect a cue of Kind plays (ADR-063 §4): a hit's impact, a cast's flash, a death's burst; null for the rest. */
 	class UNiagaraSystem* EffectFor(EVeyraCombatCueKind Kind) const;
 
@@ -163,6 +183,9 @@ public:
 
 	/** What the last refresh telegraphed. */
 	const TArray<FVeyraTelegraph>& GetTelegraphs() const { return Telegraphs; }
+
+	/** The shaded fills the last refresh drew under its threatening and aimed telegraphs (ADR-068 §4). */
+	TArray<UStaticMeshComponent*> GetTelegraphFills() const;
 
 	/** The ring the last refresh drew for the local player's last order, while it shows (ADR-062 §6). */
 	const TOptional<FVeyraOrderMarkRing>& GetOrderMarkRing() const { return OrderMarkRing; }
@@ -258,7 +281,44 @@ private:
 
 		/** How far its skin is turned from its mesh's facing toward the player's order, in degrees (ADR-067 §2); 0 for any other body. */
 		double LeadYaw = 0.0;
+
+		/** Until when its generated body holds its pose after a hit, by this machine's clock (ADR-068 §4). */
+		double HitStopUntil = 0.0;
+
+		/** How veiled its generated body is, why it last was, and what its material was last given (ADR-068 §6). */
+		double Veil = 0.0;
+		EVeyraHiddenKind VeilKind = EVeyraHiddenKind::None;
+		double VeilShown = 0.0;
+		FLinearColor VeilTintShown = FLinearColor::Transparent;
 	};
+
+	/** Veils Unit's generated body while it is hidden from its enemies and its viewer sees why (ADR-068 §6). */
+	void RefreshVeil(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin, const struct FVeyraVanguardBody& Worn);
+
+	/** Kicks the player's own camera while a heavy hit's or a fall's shudder lasts, and settles it after (ADR-068 §4). */
+	void RefreshCameraShake();
+
+	/** The player's own camera's kick: how hard, and when it began by this machine's clock. */
+	double ShakeAmplitude = 0.0;
+	double ShakeStartedAt = 0.0;
+
+	/** Draws the shaded fill under each threatening or aimed telegraph (ADR-068 §4), from a pool of quads it keeps. */
+	void DrawTelegraphFills();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> TelegraphFillMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMesh> TelegraphFillMesh;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> TelegraphFills;
+
+	TWeakObjectPtr<AActor> TelegraphFillOwner;
+
+	/** The Dense Fog this machine knows: the map's own, once the battleground shows, and what abilities lay (ADR-036 §1). */
+	TArray<FVeyraFogCircle> DenseFog;
+	TArray<FVeyraFogCircle> MapFog;
 
 	/** Unit's lead toward the player's latest order, if Unit is the body the player commands; none otherwise (ADR-067 §2). */
 	struct FVeyraBodyLead OwnLeadOf(const APawn& Unit, double Radius) const;
@@ -277,8 +337,20 @@ private:
 	/** Shows the outline pass on the local camera, in the player's side colours, while anything is hovered. */
 	void RefreshHoverPass();
 
-	/** Turns Unit's drawn body and art's outline stencil on or off. */
-	void SetOutlined(const AActor& Unit, bool bOutlined) const;
+	/** Shows the toon ink pass on the local camera (ADR-068 §3). */
+	void RefreshInkPass();
+
+	/**
+	 * Lights the generated bodies' toon light by the map's sun (ADR-068 §2): the direction toward it and its colour, at
+	 * its brightest channel's full strength. A world without a sun keeps the collection's defaults, the kit's.
+	 */
+	void RefreshToonLight();
+
+	/**
+	 * Writes Unit's custom-depth stencils: while bHovered, its drawn body, art and generated body all write its hover
+	 * stencil; otherwise a character's generated body and art write the ink's, and nothing else writes any.
+	 */
+	void SetStencils(const AActor& Unit, bool bHovered) const;
 
 	TWeakObjectPtr<const AActor> Hovered;
 
@@ -294,6 +366,24 @@ private:
 	int32 EnemyStencil = 0;
 	int32 AllyStencil = 0;
 	int32 NeutralStencil = 0;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> ToonInkMaterial;
+
+	TWeakObjectPtr<class UCameraComponent> InkCamera;
+
+	/** The characters' stencil, as the generated ink material's default gives it; 0 until it loads. */
+	int32 InkStencil = 0;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMaterialParameterCollection> ToonLight;
+
+	/** The map's sun the toon light follows, once found. */
+	TWeakObjectPtr<class UDirectionalLightComponent> Sun;
+
+	/** What the toon light was last given, so an unchanged sun sets nothing. */
+	FLinearColor ToonSunShown = FLinearColor::Transparent;
+	FLinearColor ToonColorShown = FLinearColor::Transparent;
 
 	struct FProjectileVisual
 	{

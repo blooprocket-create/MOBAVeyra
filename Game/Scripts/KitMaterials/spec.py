@@ -21,6 +21,11 @@ def _unit(value):
     return _number(value) and 0.0 <= value <= 1.0
 
 
+def _open_unit(value):
+    """Strictly between 0 and 1."""
+    return _number(value) and 0.0 < value < 1.0
+
+
 def _colour(value, channels):
     return isinstance(value, list) and len(value) == channels and all(_number(channel) and channel >= 0.0 for channel in value)
 
@@ -69,15 +74,67 @@ def glyph_problems(look):
     return problems
 
 
+def _vector(value, length=3):
+    return isinstance(value, list) and len(value) == length and all(_number(channel) for channel in value)
+
+
+def _tint(value):
+    """Three channels from 0 to 1: a colour a light or a shadow multiplies a body's own by."""
+    return _vector(value) and all(0.0 <= channel <= 1.0 for channel in value)
+
+
 def body_problems(kit):
     """Every problem with the Vanguard bodies' material (VanguardKit.json bodyMaterial): the strength of what the
-    vertex alpha marks as glowing, above 0, and the surface's roughness."""
+    vertex alpha marks as glowing, above 0, and its toon light (ADR-068 §2)."""
     material = kit.get("bodyMaterial")
     if not isinstance(material, dict):
-        return ["bodyMaterial: needs glowGain and roughness"]
+        return ["bodyMaterial: needs glowGain and toon"]
     problems = []
     if not _positive(material.get("glowGain")):
         problems.append("bodyMaterial.glowGain: must be a number above 0")
-    if not _unit(material.get("roughness")):
-        problems.append("bodyMaterial.roughness: must be a number from 0 to 1")
+    toon = material.get("toon")
+    if not isinstance(toon, dict):
+        return problems + ["bodyMaterial.toon: needs the toon light's values"]
+    checks = {
+        "lightCollection": (lambda value: isinstance(value, str) and value.startswith("MPC_"), "an asset name starting MPC_"),
+        "toSun": (lambda value: _vector(value) and sum(channel * channel for channel in value) > 0.0, "a direction of three numbers, not all 0"),
+        "sunColor": (_tint, "three numbers from 0 to 1"),
+        "litTint": (_tint, "three numbers from 0 to 1"),
+        "shadowTint": (_tint, "three numbers from 0 to 1"),
+        "bandThreshold": (lambda value: _number(value) and -1.0 < value < 1.0, "a number strictly between -1 and 1"),
+        "bandSoftness": (_positive, "a number above 0"),
+        "rimExponent": (_positive, "a number above 0"),
+        "rimStart": (_unit, "a number from 0 to 1"),
+        "rimEnd": (_unit, "a number from 0 to 1"),
+        "rimStrength": (lambda value: _number(value) and value >= 0.0, "a number of at least 0"),
+        "brightness": (_positive, "a number above 0"),
+    }
+    for key, (check, wanted) in checks.items():
+        if not check(toon.get(key)):
+            problems.append(f"bodyMaterial.toon.{key}: must be {wanted}")
+    if _unit(toon.get("rimStart")) and _unit(toon.get("rimEnd")) and toon["rimEnd"] <= toon["rimStart"]:
+        problems.append("bodyMaterial.toon.rimEnd: must lie past rimStart")
+    return problems + _veil_problems(material.get("veil"))
+
+
+def _veil_problems(veil):
+    """The hidden body's veil (ADR-068 §6): the parameters the presentation drives, how much of the body shows, its
+    shimmer and its rim."""
+    if not isinstance(veil, dict):
+        return ["bodyMaterial.veil: needs the hidden body's values"]
+    name = (lambda value: isinstance(value, str) and bool(value.strip()), "a parameter name")
+    checks = {
+        "parameter": name,
+        "tintParameter": name,
+        "opacity": (lambda value: _number(value) and 0.0 < value < 1.0, "a number strictly between 0 and 1"),
+        "shimmerScale": (_positive, "a number above 0"),
+        "shimmerSpeed": (lambda value: _number(value) and value >= 0.0, "a number of at least 0"),
+        "shimmerDepth": (_unit, "a number from 0 to 1"),
+        "rimExponent": (_positive, "a number above 0"),
+        "rimStart": (_open_unit, "a number strictly between 0 and 1"),
+        "rimStrength": (lambda value: _number(value) and value >= 0.0, "a number of at least 0"),
+    }
+    problems = [f"bodyMaterial.veil.{key}: must be {wanted}" for key, (check, wanted) in checks.items() if not check(veil.get(key))]
+    if veil.get("parameter") == veil.get("tintParameter"):
+        problems.append("bodyMaterial.veil.tintParameter: must differ from parameter")
     return problems

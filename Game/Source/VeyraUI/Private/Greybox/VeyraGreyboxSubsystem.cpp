@@ -56,6 +56,11 @@
 #include "Layout/VeyraRiver.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Greybox/VeyraHitFeel.h"
+#include "Greybox/VeyraTelegraphFill.h"
+#include "Greybox/VeyraToonLight.h"
 #include "Movement/VeyraDrawnBody.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
@@ -252,6 +257,28 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 				*Stencil.Value = FMath::RoundToInt32(Value);
 			}
 		}
+		// The toon characters' ink and light (ADR-068 §2-3); the ink's stencil is the generated material's own.
+		ToonInkMaterial = Settings.ToonInkMaterial.LoadSynchronous();
+		float Ink = 0.0f;
+		if (!ToonInkMaterial || !ToonInkMaterial->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(Settings.ToonInkStencilParameter), Ink) || Ink < 1.0f)
+		{
+			Problems.Add(FString::Printf(TEXT("ToonInkMaterial: %s does not load with a stencil in its %s parameter; run BuildPresentationMaterials.ps1."),
+				*Settings.ToonInkMaterial.ToString(), *Settings.ToonInkStencilParameter.ToString()));
+		}
+		InkStencil = FMath::RoundToInt32(Ink);
+		TelegraphFillMaterial = Settings.TelegraphFillMaterial.LoadSynchronous();
+		TelegraphFillMesh = Settings.TelegraphFillMesh.LoadSynchronous();
+		if (!TelegraphFillMaterial || !TelegraphFillMesh)
+		{
+			Problems.Add(FString::Printf(TEXT("TelegraphFillMaterial: %s or its quad %s does not load; run BuildPresentationMaterials.ps1."),
+				*Settings.TelegraphFillMaterial.ToString(), *Settings.TelegraphFillMesh.ToString()));
+		}
+		ToonLight = Settings.ToonLight.LoadSynchronous();
+		if (!ToonLight || !ToonLight->GetVectorParameterByName(Settings.ToonSunDirectionParameter) || !ToonLight->GetVectorParameterByName(Settings.ToonSunColorParameter))
+		{
+			Problems.Add(FString::Printf(TEXT("ToonLight: %s does not load with its %s and %s parameters; run BuildVanguardBodies.ps1."), *Settings.ToonLight.ToString(),
+				*Settings.ToonSunDirectionParameter.ToString(), *Settings.ToonSunColorParameter.ToString()));
+		}
 	}
 	for (const FString& Problem : Problems)
 	{
@@ -274,6 +301,28 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 		if (UVeyraVanguardAnimInstance* Animation = Body->Skin.IsValid() ? Cast<UVeyraVanguardAnimInstance>(Body->Skin->GetAnimInstance()) : nullptr)
 		{
 			Animation->NoteCue(Cue.Kind, static_cast<float>(FMath::Max(0.0, Cue.EndsAt - GetServerNow())));
+		}
+	}
+	// Hit feel (ADR-068 §4): a struck generated body holds its pose a moment, and the player's own Vanguard's heavy hit or
+	// fall kicks their camera as hard as their Screen Shake allows.
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const double RealNow = GetWorld()->GetRealTimeSeconds();
+	if (FBody* Struck = Cue.Kind == EVeyraCombatCueKind::Hit && Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr; Struck && Struck->Skin.IsValid())
+	{
+		Struck->HitStopUntil = RealNow + Settings.HitStopSeconds;
+	}
+	if (IsViewersVanguard(Cue.Unit.Get()))
+	{
+		const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Cue.Unit.Get());
+		const double MaxHealth = Abilities ? Abilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) : 0.0;
+		const float Scale = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this)).ScreenShakeScale;
+		const double Amplitude = VeyraHitFeel::AmplitudeOf(Cue.Kind, Cue.Amount, MaxHealth, Settings.HeavyHitShare, Settings.HitShakeAmplitude,
+			Settings.DeathShakeAmplitude, Scale);
+		// A weaker blow does not cut a stronger kick short.
+		if (Amplitude > 0.0 && !VeyraHitFeel::Outshakes(ShakeAmplitude, RealNow - ShakeStartedAt, Settings.HitShakeSeconds, Amplitude))
+		{
+			ShakeAmplitude = Amplitude;
+			ShakeStartedAt = RealNow;
 		}
 	}
 	PlayEffect(Cue);
@@ -557,13 +606,13 @@ void UVeyraGreyboxSubsystem::ShowHover(const AActor* NewHovered)
 {
 	if (const AActor* Was = Hovered.Get(); Was && Was != NewHovered)
 	{
-		SetOutlined(*Was, false);
+		SetStencils(*Was, false);
 	}
 	Hovered = NewHovered;
 	// Every frame: the unit's art may change under the cursor, as a structure falls.
 	if (NewHovered)
 	{
-		SetOutlined(*NewHovered, true);
+		SetStencils(*NewHovered, true);
 	}
 }
 
@@ -579,14 +628,17 @@ int32 UVeyraGreyboxSubsystem::HoverStencilOf(const AActor& Unit) const
 	return Team == Allies ? AllyStencil : EnemyStencil;
 }
 
-void UVeyraGreyboxSubsystem::SetOutlined(const AActor& Unit, bool bOutlined) const
+void UVeyraGreyboxSubsystem::SetStencils(const AActor& Unit, bool bHovered) const
 {
 	const FBody* Body = Bodies.Find(&Unit);
 	if (!Body)
 	{
 		return;
 	}
-	const int32 Stencil = HoverStencilOf(Unit);
+	// Characters are inked: a generated body, and a creature's art; a structure is part of the painted world (ADR-068 §1).
+	// A veiled body draws none, so its shimmer reads as a ghost rather than a dithered outline (§6).
+	UPrimitiveComponent* Inked[] = { Body->Veil > 0.0 ? nullptr : Body->Skin.Get(), Unit.IsA<AVeyraStructure>() ? nullptr : Body->Art.Get() };
+	const int32 Hover = HoverStencilOf(Unit);
 	for (UPrimitiveComponent* Shape : { static_cast<UPrimitiveComponent*>(Body->Mesh.Get()), static_cast<UPrimitiveComponent*>(Body->Art.Get()),
 			 static_cast<UPrimitiveComponent*>(Body->Skin.Get()) })
 	{
@@ -594,14 +646,72 @@ void UVeyraGreyboxSubsystem::SetOutlined(const AActor& Unit, bool bOutlined) con
 		{
 			continue;
 		}
-		if (Shape->bRenderCustomDepth != bOutlined)
+		const bool bInked = InkStencil > 0 && (Shape == Inked[0] || Shape == Inked[1]);
+		const bool bWrites = bHovered || bInked;
+		if (Shape->bRenderCustomDepth != bWrites)
 		{
-			Shape->SetRenderCustomDepth(bOutlined);
+			Shape->SetRenderCustomDepth(bWrites);
 		}
-		if (bOutlined && Shape->CustomDepthStencilValue != Stencil)
+		const int32 Stencil = bHovered ? Hover : InkStencil;
+		if (bWrites && Shape->CustomDepthStencilValue != Stencil)
 		{
 			Shape->SetCustomDepthStencilValue(Stencil);
 		}
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshInkPass()
+{
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	UCameraComponent* Camera = Rig ? Rig->GetCamera() : nullptr;
+	if (Camera && ToonInkMaterial && InkCamera.Get() != Camera)
+	{
+		Camera->PostProcessSettings.AddBlendable(ToonInkMaterial, 1.0f);
+		InkCamera = Camera;
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshCameraShake()
+{
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	UCameraComponent* Camera = Rig ? Rig->GetCamera() : nullptr;
+	if (!Camera)
+	{
+		return;
+	}
+	// The rig places only its arm: the camera's own offset from the arm's end is the kick's alone.
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVector Offset = VeyraHitFeel::OffsetAt(ShakeAmplitude, GetWorld()->GetRealTimeSeconds() - ShakeStartedAt, Settings.HitShakeSeconds,
+		Settings.HitShakeFrequency);
+	if (!Offset.Equals(Camera->GetRelativeLocation()))
+	{
+		Camera->SetRelativeLocation(Offset);
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshToonLight()
+{
+	if (!ToonLight)
+	{
+		return;
+	}
+	// The map's brightest sun, sought until one streams in.
+	if (!Sun.IsValid())
+	{
+		Sun = UVeyraToonLight::BrightestSun(*GetWorld());
+	}
+	const UDirectionalLightComponent* Light = Sun.Get();
+	if (!Light)
+	{
+		return;
+	}
+	const FVeyraToonSun Lit = UVeyraToonLight::Of(*Light);
+	if ((!Lit.ToSun.Equals(ToonSunShown) || !Lit.Color.Equals(ToonColorShown)) && UVeyraToonLight::Apply(*GetWorld(), Lit))
+	{
+		ToonSunShown = Lit.ToSun;
+		ToonColorShown = Lit.Color;
 	}
 }
 
@@ -724,6 +834,11 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 	FogOfWarDrawn = 0;
 	// Bodies and projectile spheres belong to their actors, which the world destroys with them.
 	Bodies.Reset();
+	DenseFog.Reset();
+	MapFog.Reset();
+	// The fills belong to their owner, which the world destroys with it.
+	TelegraphFills.Reset();
+	TelegraphFillOwner.Reset();
 	Projectiles.Reset();
 	Telegraphs.Reset();
 	if (AVeyraPlayerController* Source = CombatTextSource.Get())
@@ -783,6 +898,9 @@ void UVeyraGreyboxSubsystem::Refresh()
 		}
 	}
 	RefreshHoverPass();
+	RefreshInkPass();
+	RefreshToonLight();
+	RefreshCameraShake();
 	RefreshSound();
 	RefreshCombatText();
 	RefreshFogOfWar();
@@ -1017,6 +1135,8 @@ void UVeyraGreyboxSubsystem::RefreshBodyEffects(FBody& Body, USkeletalMeshCompon
 		Effect->Activate(/*bReset*/ true);
 		Body.BodyEffects.Add(Effect);
 	}
+	// New effects start as their body made them: a veil the body wears is laid on them afresh.
+	Body.VeilShown = -1.0;
 }
 
 UStaticMeshComponent* UVeyraGreyboxSubsystem::FindProjectileVisual(const AVeyraProjectile& Projectile) const
@@ -1204,6 +1324,7 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	const FVeyraVanguardBody& Worn = VeyraVanguardSkin::BodyOf(Unit, *Art);
 	VeyraVanguardSkin::Dress(*Skin, Worn, VeyraVanguardSkin::ShapeOf(Settings));
 	RefreshBodyEffects(Body, *Skin, Worn);
+	RefreshVeil(Unit, Body, *Skin, Worn);
 	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2), drawn larger than
 	// the capsule from there (ADR-065 §11).
 	float Radius = 0.0f;
@@ -1219,6 +1340,8 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	{
 		Animation->SetInputs(Inputs);
 	}
+	// Struck, it holds its pose a moment, so the blow lands (ADR-068 §4).
+	Skin->GlobalAnimRateScale = GetWorld()->GetRealTimeSeconds() < Body.HitStopUntil ? 0.0f : 1.0f;
 	// It turns toward the lead from its mesh's facing at the lead's own rate, and back as the server's facing arrives.
 	const double TargetYaw = Lead.bLeads ? FRotator::NormalizeAxis(Lead.Yaw - Skin->GetAttachParent()->GetComponentRotation().Yaw) : 0.0;
 	Body.LeadYaw = FMath::FixedTurn(Body.LeadYaw, TargetYaw, Settings.OwnLeadTurnDegreesPerSecond * GetWorld()->GetDeltaSeconds());
@@ -1230,6 +1353,67 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 		FitGreyboxShape(*Shape, FVector(Radius, Radius, DiscHalfHeight));
 		Shape->SetRelativeLocation(Shape->GetRelativeLocation() + FVector(0.0, 0.0, DiscHalfHeight - HalfHeight));
 	}
+}
+
+EVeyraHiddenKind UVeyraGreyboxSubsystem::HiddenKindOf(const AActor& Unit) const
+{
+	// Its own side sees why it is hidden, and a viewer on no side sees every side's; the other side sees nothing of it.
+	const EVeyraTeam Viewer = GetViewerTeam();
+	const bool bShows = Viewer == EVeyraTeam::None || VeyraTeams::TeamOf(&Unit) == Viewer;
+	if (!bShows)
+	{
+		return EVeyraHiddenKind::None;
+	}
+	const TArray<FVeyraHudStatus> Statuses = VeyraHud::StatusesOf(Unit, GetServerNow(), Viewer);
+	const auto Has = [&Statuses](EVeyraStatusKind Kind) {
+		return Statuses.ContainsByPredicate([Kind](const FVeyraHudStatus& Status) { return Status.Kind == Kind; });
+	};
+	const bool bInFog = VeyraVisionRules::CircleAt(DenseFog, FVector2D(Unit.GetActorLocation())) != INDEX_NONE;
+	return VeyraHiddenBody::KindOf(bShows, Has(EVeyraStatusKind::Invisible), Has(EVeyraStatusKind::Camouflage), bInFog);
+}
+
+double UVeyraGreyboxSubsystem::GetVeilOf(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	return Body ? Body->Veil : 0.0;
+}
+
+void UVeyraGreyboxSubsystem::RefreshVeil(const APawn& Unit, FBody& Body, USkeletalMeshComponent& Skin, const FVeyraVanguardBody& Worn)
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const EVeyraHiddenKind Kind = HiddenKindOf(Unit);
+	Body.Veil = VeyraHiddenBody::StepVeil(Body.Veil, Kind != EVeyraHiddenKind::None, GetWorld()->GetDeltaSeconds(), Settings.VeilFadeSeconds);
+	// A veil fading away keeps the colour it had.
+	if (Kind != EVeyraHiddenKind::None)
+	{
+		Body.VeilKind = Kind;
+	}
+	// A body is given a material of its own only once it is first veiled; one never hidden keeps the shared one.
+	const FLinearColor Tint = VeyraHiddenBody::TintOf(Body.VeilKind, Settings);
+	if ((Body.Veil <= 0.0 && Body.VeilShown <= 0.0) || (Body.Veil == Body.VeilShown && Tint.Equals(Body.VeilTintShown)))
+	{
+		return;
+	}
+	for (int32 Slot = 0; Slot < Skin.GetNumMaterials(); ++Slot)
+	{
+		if (UMaterialInstanceDynamic* Veiled = Skin.CreateDynamicMaterialInstance(Slot))
+		{
+			Veiled->SetScalarParameterValue(Settings.BodyVeilParameter, static_cast<float>(Body.Veil));
+			Veiled->SetVectorParameterValue(Settings.BodyVeilTintParameter, Tint);
+		}
+	}
+	// What it pours veils with it, or its smoke would show it plainly.
+	const float Veil = static_cast<float>(Body.Veil);
+	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : Body.BodyEffects)
+	{
+		if (UNiagaraComponent* Live = Effect.Get())
+		{
+			Live->SetVariableLinearColor(Settings.EffectColorParameter, FMath::Lerp(Worn.EffectColor, Tint, Veil));
+			Live->SetVariableFloat(Settings.EffectScaleParameter, Worn.EffectScale * FMath::Lerp(1.0f, Settings.VeiledEffectScale, Veil));
+		}
+	}
+	Body.VeilShown = Body.Veil;
+	Body.VeilTintShown = Tint;
 }
 
 void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
@@ -1281,6 +1465,12 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 {
 	const FName ColorParameter = GetDefault<UVeyraGreyboxSettings>()->ColorParameter;
 	const bool bReduceFlashing = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).bReduceFlashing;
+	// The Dense Fog bodies may stand in: the map's, and what abilities have laid and not yet lifted (ADR-036 §1).
+	DenseFog = MapFog;
+	for (TActorIterator<AVeyraDenseFogBank> It(GetWorld()); It; ++It)
+	{
+		DenseFog.Append(It->GetCircles());
+	}
 	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
 	{
 		APawn& Unit = **It;
@@ -1330,6 +1520,8 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			RefreshVanguardArt(Unit, *Body);
 		}
+		// Its art may have just arrived or changed: a character's is inked (ADR-068 §3), and the hovered keeps its outline.
+		SetStencils(Unit, &Unit == Hovered.Get());
 		ApplyBodyPose(Unit, *Body, bReduceFlashing);
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).
@@ -1470,6 +1662,8 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 	for (const FVeyraFogPlacement& Fog : VeyraLayout::DenseFog(Layout))
 	{
 		AddGroundMarking(*Owner, *PadMesh, Settings.DenseFogColor, Fog.Center, 0.0, FVector2D(Fog.Radius), FogMarkingLayer);
+		// And a body in it on the viewer's side shows that it is hidden (ADR-068 §6).
+		MapFog.Add(FVeyraFogCircle{ Fog.Center, Fog.Radius });
 	}
 }
 
@@ -1679,7 +1873,7 @@ void UVeyraGreyboxSubsystem::AddAttackRange(const AVeyraPlayerController& Local)
 	FVeyraShape Ring;
 	Ring.Kind = EVeyraShapeKind::Circle;
 	Ring.Radius = Reach.GetValue();
-	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, Body->GetActorLocation(), FVector::ForwardVector }, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
+	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, Body->GetActorLocation(), FVector::ForwardVector }, EVeyraTelegraphSource::AttackRange, VeyraTeams::TeamOf(Body), 0.0 });
 }
 
 void UVeyraGreyboxSubsystem::AddSelectionRing(const AVeyraPlayerController& Local)
@@ -1842,7 +2036,7 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 		OnGround.Origin = GroundUnder(Telegraph.Placed.Origin);
 		// An end about to land is marked in one colour for every side, so it reads as a warning (ADR-026 §4);
 		// the player's own indicator in its own.
-		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator;
+		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator || Telegraph.Source == EVeyraTelegraphSource::AttackRange;
 		const FLinearColor Color = bIndicator ? Settings.IndicatorColor
 			: Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
 		const float Thickness = bIndicator ? IndicatorThickness : Settings.TelegraphThickness;
@@ -1852,5 +2046,94 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 			TelegraphLines->DrawLine(GroundUnder(Segment.Start), GroundUnder(Segment.End), Color, SDPG_World, Thickness, 0.0f);
 		}
 	}
+	DrawTelegraphFills();
+}
+
+void UVeyraGreyboxSubsystem::DrawTelegraphFills()
+{
+	if (!TelegraphFillMaterial || !TelegraphFillMesh)
+	{
+		return;
+	}
+	AActor* Owner = TelegraphFillOwner.Get();
+	if (!Owner)
+	{
+		// Presentation only, drawn by this machine alone.
+		FActorSpawnParameters Parameters;
+		Parameters.ObjectFlags |= RF_Transient;
+		Owner = GetWorld()->SpawnActor<AActor>(Parameters);
+		if (!Owner)
+		{
+			return;
+		}
+		USceneComponent* Root = NewObject<USceneComponent>(Owner, NAME_None, RF_Transient);
+		Owner->SetRootComponent(Root);
+		Root->RegisterComponent();
+		TelegraphFillOwner = Owner;
+		TelegraphFills.Reset();
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	// The quad's own half-size, which each fill's scale stretches to its shape's.
+	const FVector Extent = TelegraphFillMesh->GetBounds().BoxExtent;
+	int32 Used = 0;
+	for (const FVeyraTelegraph& Telegraph : Telegraphs)
+	{
+		if (!VeyraTelegraphFill::IsFilled(Telegraph.Source))
+		{
+			continue;
+		}
+		if (Used == TelegraphFills.Num())
+		{
+			UStaticMeshComponent* Quad = NewObject<UStaticMeshComponent>(Owner, NAME_None, RF_Transient);
+			Quad->SetStaticMesh(TelegraphFillMesh);
+			Quad->SetMobility(EComponentMobility::Movable);
+			Quad->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Quad->SetGenerateOverlapEvents(false);
+			Quad->SetCanEverAffectNavigation(false);
+			Quad->SetCastShadow(false);
+			Quad->SetupAttachment(Owner->GetRootComponent());
+			Quad->RegisterComponent();
+			Quad->CreateDynamicMaterialInstance(0, TelegraphFillMaterial);
+			TelegraphFills.Add(Quad);
+		}
+		UStaticMeshComponent* Quad = TelegraphFills[Used++];
+		const FVeyraTelegraphFill Fill = VeyraTelegraphFill::Of(Telegraph.Placed, GroundUnder(Telegraph.Placed.Origin));
+		Quad->SetWorldLocationAndRotation(GroundUnder(Fill.Centre), FRotator(0.0, Fill.Yaw, 0.0));
+		Quad->SetWorldScale3D(FVector(Fill.HalfSize.X / FMath::Max(Extent.X, UE_KINDA_SMALL_NUMBER), Fill.HalfSize.Y / FMath::Max(Extent.Y, UE_KINDA_SMALL_NUMBER), 1.0));
+		// In the outline's own colour.
+		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator;
+		const FLinearColor Color = bIndicator ? Settings.IndicatorColor
+			: Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
+		if (UMaterialInstanceDynamic* Material = Cast<UMaterialInstanceDynamic>(Quad->GetMaterial(0)))
+		{
+			Material->SetScalarParameterValue(Settings.TelegraphShapeParameter, static_cast<float>(Fill.Shape));
+			Material->SetScalarParameterValue(Settings.TelegraphHalfArcParameter, static_cast<float>(Fill.HalfArc));
+			Material->SetScalarParameterValue(Settings.TelegraphLandingParameter,
+				static_cast<float>(VeyraTelegraphFill::LandingOf(Telegraph.Source, Telegraph.RemainingSeconds, Settings.TelegraphLandingSeconds)));
+			Material->SetVectorParameterValue(Settings.TelegraphColorParameter, Color.CopyWithNewOpacity(1.0f));
+			Material->SetVectorParameterValue(Settings.TelegraphSizeParameter, FLinearColor(Fill.HalfSize.X, Fill.HalfSize.Y, 0.0f, 0.0f));
+		}
+		Quad->SetVisibility(true);
+	}
+	for (int32 Index = Used; Index < TelegraphFills.Num(); ++Index)
+	{
+		if (TelegraphFills[Index])
+		{
+			TelegraphFills[Index]->SetVisibility(false);
+		}
+	}
+}
+
+TArray<UStaticMeshComponent*> UVeyraGreyboxSubsystem::GetTelegraphFills() const
+{
+	TArray<UStaticMeshComponent*> Shown;
+	for (UStaticMeshComponent* Quad : TelegraphFills)
+	{
+		if (Quad && Quad->IsVisible())
+		{
+			Shown.Add(Quad);
+		}
+	}
+	return Shown;
 }
 

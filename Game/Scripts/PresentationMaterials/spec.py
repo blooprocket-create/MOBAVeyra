@@ -7,14 +7,32 @@ import numbers
 import re
 
 SCHEMA_VERSION = 1
-# The version of BuildPresentationMaterials.py's graphs; a spec names the version it was written for.
-GENERATOR_VERSION = 2
+# The version of BuildPresentationMaterials.py's graphs; a spec names the version it was written for. Version 3: the
+# toon characters' ink (ADR-068 §3), and a hover outline that looks only for the hover's own stencils. Version 4: the
+# combat effects' graphic shapes (ADR-068 §4). Version 5: the telegraphs' shaded fill (ADR-068 §4).
+GENERATOR_VERSION = 5
 # Presentation materials live where the UI's content is always cooked.
 DESTINATION_ROOT = "/Game/Veyra/UI/"
 ASSET_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 SIDES = ("enemy", "ally", "neutral")
 # The shapes an effect particle may take: a camera-facing sprite (a ball), or a ribbon (a strand).
 EFFECT_SHAPES = ("sprite", "ribbon")
+# The graphic shapes a combat effect's sprite may draw (ADR-068 §4), and the values each needs beyond the common ones: a
+# flare (a hard disc that shrinks), a ring (a band that widens out from start and thins to nothing), a star (a four-point
+# spark, its points thinner as its exponent falls, that shrinks) and a streak (a long diamond, for a sprite drawn along
+# its velocity, that shrinks).
+GRAPHIC_SHAPES = {
+    "flare": ("shrink",),
+    "ring": ("start", "thickness"),
+    "star": ("shrink", "exponent"),
+    "streak": ("shrink",),
+}
+GRAPHIC_SHAPE_RULES = {
+    "shrink": (lambda value: _is_number(value) and 0.0 <= value < 1.0, "a number from 0 to below 1"),
+    "start": (lambda value: _is_number(value) and 0.0 <= value < 1.0, "a number from 0 to below 1"),
+    "thickness": (lambda value: _is_number(value) and 0.0 < value <= 1.0, "a number above 0 and at most 1"),
+    "exponent": (lambda value: _is_number(value) and 0.0 < value < 1.0, "a number strictly between 0 and 1"),
+}
 
 
 def _is_number(value):
@@ -65,6 +83,28 @@ RULES = {
     "postProcessOutline": {
         "referenceHeight": (_positive, "a number above 0"),
     },
+    "postProcessInk": {
+        "stencilParameter": (_name, "a parameter name"),
+        "stencil": (lambda value: isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 255, "a whole number from 1 to 255"),
+        "thicknessPixels": (_positive, "a number above 0"),
+        "referenceHeight": (_positive, "a number above 0"),
+        "darken": (_unit, "a number from 0 to 1"),
+        "inkTint": (lambda value: _colour(value) and all(channel <= 1.0 for channel in value), "four numbers from 0 to 1 (RGBA), which the ink's colour is multiplied by"),
+        "solidNeighbours": (lambda value: isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 8, "a whole number from 1 to 8"),
+        "depthGap": (_positive, "a number above 0"),
+        "visibleSlack": (_non_negative, "a number of at least 0"),
+    },
+    "telegraphFill": {
+        "shapeParameter": (_name, "a parameter name"),
+        "arcParameter": (_name, "a parameter name"),
+        "progressParameter": (_name, "a parameter name"),
+        "colorParameter": (_name, "a parameter name"),
+        "sizeParameter": (_name, "a parameter name"),
+        "fillOpacity": (_unit, "a number from 0 to 1"),
+        "rimOpacity": (_unit, "a number from 0 to 1"),
+        "landingOpacity": (_unit, "a number from 0 to 1"),
+        "glowGain": (_positive, "a number above 0"),
+    },
     "particleSmoke": {
         "noiseScale": (_positive, "a number above 0"),
         "ragged": (_positive, "a number above 0"),
@@ -73,6 +113,13 @@ RULES = {
         "glowGain": (_positive, "a number above 0"),
         "albedo": (_albedo, "a number above 0 and at most 1"),
         "clip": (_open_unit, "a number strictly between 0 and 1"),
+    },
+    "graphicShape": {
+        "shape": (lambda value: value in GRAPHIC_SHAPES, "one of " + ", ".join(GRAPHIC_SHAPES)),
+        "coreShare": (_open_unit, "a number strictly between 0 and 1"),
+        "coreWhiten": (_unit, "a number from 0 to 1"),
+        "glowGain": (_positive, "a number above 0"),
+        "tailGlow": (_unit, "a number from 0 to 1"),
     },
     "particleEffect": {
         "shape": (lambda value: value in EFFECT_SHAPES, "one of " + ", ".join(EFFECT_SHAPES)),
@@ -148,4 +195,22 @@ def validate(spec):
                 problems.append(f"{where}: {key} must be {wanted}")
         if kind == "postProcessOutline":
             problems += _outline_problems(where, material)
+        if kind == "telegraphFill":
+            names = [material.get(key) for key in ("shapeParameter", "arcParameter", "progressParameter", "colorParameter", "sizeParameter")]
+            if len(set(names)) != len(names):
+                problems.append(f"{where}: its five parameters need five names")
+        if kind == "graphicShape" and material.get("shape") in GRAPHIC_SHAPES:
+            for key in GRAPHIC_SHAPES[material["shape"]]:
+                check, wanted = GRAPHIC_SHAPE_RULES[key]
+                if key not in material:
+                    problems.append(f"{where}: {key} is required")
+                elif not check(material[key]):
+                    problems.append(f"{where}: {key} must be {wanted}")
+    # The ink marks characters by a stencil of its own: one a hover outline's stencils share would outline every character
+    # as hovered, or hide the hovered one's ink (ADR-068 §3).
+    hover = {value for material in materials if isinstance(material, dict) and material.get("kind") == "postProcessOutline"
+             for value in (material.get("stencils") or {}).values()}
+    for material in materials:
+        if isinstance(material, dict) and material.get("kind") == "postProcessInk" and material.get("stencil") in hover:
+            problems.append(f"{material.get('name')}: stencil must differ from every hover outline's stencils")
     return problems

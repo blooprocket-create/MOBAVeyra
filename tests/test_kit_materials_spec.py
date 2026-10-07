@@ -78,11 +78,41 @@ class Refusals(unittest.TestCase):
             look = dict(ENVIRONMENT["look"], **{key: bad})
             self.assertTrue(checker.glyph_problems(look), (key, bad))
 
-    def test_the_body_material_needs_a_glow_and_a_roughness(self):
-        for values in ({"glowGain": 0.0, "roughness": 0.75}, {"glowGain": 2.0, "roughness": 1.5}, {"roughness": 0.75}):
+    def test_the_body_material_needs_a_glow_and_a_toon_light(self):
+        toon = VANGUARDS["bodyMaterial"]["toon"]
+        for values in ({"glowGain": 0.0, "toon": toon}, {"glowGain": 2.0}, {"toon": toon}):
             self.assertTrue(checker.body_problems(dict(VANGUARDS, bodyMaterial=values)), values)
         without = {key: value for key, value in VANGUARDS.items() if key != "bodyMaterial"}
         self.assertTrue(checker.body_problems(without))
+
+    def test_the_veil_needs_its_values_in_range(self):
+        material = VANGUARDS["bodyMaterial"]
+        without = {key: value for key, value in material.items() if key != "veil"}
+        self.assertTrue(checker.body_problems(dict(VANGUARDS, bodyMaterial=without)))
+        for key, bad in (("opacity", 1.0), ("opacity", 0.0), ("shimmerScale", 0.0), ("shimmerDepth", 1.5), ("rimStrength", -1.0), ("rimStart", 1.0),
+                         ("tintParameter", material["veil"]["parameter"]), ("parameter", "")):
+            veil = dict(material["veil"], **{key: bad})
+            problems = checker.body_problems(dict(VANGUARDS, bodyMaterial=dict(material, veil=veil)))
+            self.assertEqual(len(problems), 1, (key, bad, problems))
+
+    def test_each_toon_value_out_of_range_is_refused_alone(self):
+        cases = [
+            ("lightCollection", "ToonLight"),
+            ("toSun", [0.0, 0.0, 0.0]),
+            ("sunColor", [1.0, 1.2, 0.9]),
+            ("shadowTint", [0.5, 0.5]),
+            ("bandThreshold", 1.0),
+            ("bandSoftness", 0.0),
+            ("rimExponent", -1.0),
+            ("rimStart", 0.8),
+            ("rimStrength", -0.1),
+            ("brightness", 0.0),
+        ]
+        for key, bad in cases:
+            toon = dict(VANGUARDS["bodyMaterial"]["toon"], **{key: bad})
+            material = dict(VANGUARDS["bodyMaterial"], toon=toon)
+            problems = checker.body_problems(dict(VANGUARDS, bodyMaterial=material))
+            self.assertEqual(len(problems), 1, (key, bad, problems))
 
 
 if __name__ == "__main__":

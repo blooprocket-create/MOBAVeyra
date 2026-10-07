@@ -119,6 +119,8 @@ struct FVeyraInterfacePreferences
 	bool bReduceTransparency = false;
 	bool bReduceUiAnimation = false;
 	bool bReduceFlashing = false;
+	/** How hard the camera kicks, as Screen Shake sets it (SET-9; ADR-068 §4): 1 at Full, the HUD settings' share at Reduced, 0 Off. */
+	float ScreenShakeScale = 1.0f;
 	/** The connection and low-performance warnings (SET-21, SET-110; ADR-055 §5). */
 	bool bConnectionWarning = true;
 	bool bPerformanceWarning = true;
@@ -246,6 +248,7 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& ReduceTransparency();
 	VEYRAUI_API const FVeyraContentId& ReduceUiAnimation();
 	VEYRAUI_API const FVeyraContentId& ReduceFlashing();
+	VEYRAUI_API const FVeyraContentId& ScreenShake();
 
 	/**
 	 * The side colours for Color Vision's option Vision (ADR-055 §1): Standard's, a preset's, or under Custom the named
