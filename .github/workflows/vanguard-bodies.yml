@@ -11,6 +11,7 @@ on:
       - 'Game/Scripts/GenerateVanguardBodies.py'
       - 'Game/Scripts/VanguardBodies/**'
       - 'tests/test_vanguard_body_inputs.py'
+      - 'tests/test_sculpt_toolkit.py'
       - '.github/workflows/vanguard-bodies.yml'
   pull_request:
     paths:
@@ -20,6 +21,7 @@ on:
       - 'Game/Scripts/GenerateVanguardBodies.py'
       - 'Game/Scripts/VanguardBodies/**'
       - 'tests/test_vanguard_body_inputs.py'
+      - 'tests/test_sculpt_toolkit.py'
       - '.github/workflows/vanguard-bodies.yml'
 
 jobs:
@@ -34,5 +36,9 @@ jobs:
           python-version: '3.12'
       - name: Regression-test what makes a generated body stale
         run: python3 -m unittest discover -s tests -p 'test_vanguard_body_inputs.py'
+      - name: Install the sculpt toolkit's numpy (the version the pinned Blender bundles)
+        run: python3 -m pip install numpy==2.3.4
+      - name: Test the sculpt toolkit's garments and regions
+        run: python3 -m unittest discover -s tests -p 'test_sculpt_toolkit.py'
       - name: Every committed body is current (the import's preflight)
         run: python3 Game/Scripts/VanguardBodies/inputs.py Game

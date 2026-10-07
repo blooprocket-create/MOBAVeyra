@@ -43,6 +43,21 @@ The generator runs it in the pinned Blender, with the numpy and OpenVDB it bundl
 5. **Skin.** Each vertex takes the bones of the part it lies on; a garment's vertex takes those of the body part beneath it. The weights are then smoothed across the surface, so joints bend in a blend.
 6. **Export.** The skeleton, animations and FBX export are ADR-064's. The three textures are written as PNGs beside the FBX.
 
+### 2a. Cloth, hair and faces
+- **Layers.** A garment is solid down into what it covers. Its outer face stands its thickness (and its folds) out from the layer beneath, and none of that layer's surface remains under it.
+  - A hollow skin would leave air thinner than a voxel between layers. The mesher tunnels that air into handles that no unwrap can flatten, and the reduction spends triangles on surface no one sees.
+- **Regions keep to limbs.** A garment's region names the limbs it covers, and a point belongs to it where it lies nearer those limbs' surfaces than any other limb's.
+  - So a sleeve stays on its arm and trousers on the legs in every stance. A height band alone wraps whatever limb passes through it, such as an arm hanging at the hip or raised to a sight.
+- **Drapes.** Cloth bunched over the body, such as a mantle's folds round the neck, is laid as folds. A fold is a soft ridge along a curve placed on the surface, tapering toward both ends and solid beneath.
+- **Sheets.** A cloak or a coat's tails is a single sheet, not a solid: a grid surface the model drapes by a function, built at the density it keeps.
+  - It joins the game mesh after the sculpt is skinned, weighted by its builder: a cloak down the cape bones, tails half after each thigh.
+  - The bake paints it by its own material over its own (u, v). That material tears its hem into strips and holes through the mask's opacity, and it takes its occlusion from the sculpt around it.
+  - A sheet is pushed clear of the limbs it would pass through.
+- **Hair.** Hair is a solid core of locks under hair cards: ribbons laid along each lock, carrying a strand paint whose strands fray at their own lengths through the opacity.
+  - Ruling (the author, 2026-10-07): cards rather than strand grooms. The engine's strand hair is production-ready, but it renders realistic rather than toon and costs GPU time for every Vanguard on screen.
+- **Faces.** Eyes, brows, lips and stubble are painted onto the skin in the head's own frame, so the paint stays on the face however the head turns. A toon face is painted, not sculpted.
+- **Unwrapping.** The game mesh is cut into charts: each face's material, split by the way it faces (normals smoothed). Each sheet stays whole, fragments merge into their neighbours, and specks the reduction left are dropped. Then each chart is unwrapped angle-based. A smart projection left thousands of islands, and their margins wasted most of the texture.
+
 ### 3. Budget and records
 - **Budget.** A model entry carries its own triangle budget, texture size and voxel size. Kade's is 24,000 triangles and 2048² textures.
 - **Records.** The manifest records each model body's textures and their SHA-256 values. The content hash covers them, so a texture change is a change. CI checks committed textures as it checks committed FBX.
@@ -65,6 +80,24 @@ The humanoid layout gains three kit fields, each optional:
 
 A body that sets none is laid out as before.
 
+### 6. Limb inverse kinematics
+The author's direction (2026-10-07): production models come with IK rigs and animations, IK used where a limb must hold to something fixed and FK everywhere else.
+- **What holds.**
+  - A body's feet are held to the ground under them, so a Vanguard stands on the battleground's slopes and steps rather than floating or sinking.
+  - A weapon carried in both hands keeps the off hand on it, however the carrying hand moves.
+  - Every free motion (a run's swings, a strike, a cast) stays the clips' forward kinematics.
+- **The art names its limbs.** The body art's `FootChains` (root, joint, end), `OffHand` and `OffHandAnchor`. The generator writes them for an archetype that names them: the humanoid's legs, and its left arm when its stance holds a weapon in both hands.
+- **The ground.** The animation instance traces the ground under each foot from where the feet stood the frame before: world-static objects only, within a band above and below the floor the capsule stands on. It eases each foot's offset and the ground's slope toward what it finds. It traces only for a body drawn lately.
+- **The solve.** In the native proxy, over the blended clips and in the skin's space:
+  - **Planted feet only.** A foot is held as far as it is planted in its clip, freed as it lifts above its rest. A moving body keeps a share of the hold that falls with its speed, so IK eases in and out and never sits at full weight.
+  - **Pelvis.** The pelvis lowers so the lower foot reaches its ground.
+  - **Joints.** Each leg is a two-bone solve whose knee keeps the plane it bends in now, so it never flips. A bone stretches by at most `LimbMaxStretch` of its length.
+  - **Slope.** A planted foot tilts toward the ground's slope.
+  - **Off hand.** The off hand returns to where it rests on the weapon hand in the rest pose. It is held as fully as its clip keeps it near there, so a drift is corrected while a clip that takes the hand away (a gesture) is let go.
+- **Pure rules.** `VeyraLimbIK` holds the solve, the plant weight, the hold weight, the pelvis drop and the speed share, each tested.
+- **Data.** Every value is a presentation setting (`Vanguards|Limb IK`).
+- **Presentation only.** Nothing reads it back; the capsule stays the unit's place.
+
 ## Consequences
 - Production models are reproducible from source and reviewable as code. A model is regenerated, never hand-edited.
 - A model's quality is the quality of its script. The toolkit grows with each Vanguard: garments, hard-surface pieces and hair families become shared modules.
@@ -75,3 +108,5 @@ A body that sets none is laid out as before.
 2. A 24,000-triangle budget and 2048² textures for a model Vanguard (§3).
 3. Textures baked from the field rather than painted (§2).
 4. One two-sided body material for skin, garments and cloth (§4).
+5. Cloth as sheets and hair as cards over a solid core, the latter the author's ruling (§2a).
+6. Runtime IK for planted feet and a two-handed weapon's off hand only, eased by plant and speed (§6).

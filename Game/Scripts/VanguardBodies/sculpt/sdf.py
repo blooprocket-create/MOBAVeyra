@@ -172,9 +172,11 @@ def over(a, b):
     return Field(d, np.where(b.d <= a.d, b.m, a.m))
 
 
-def shell(d, offset, thickness):
-    """A skin thickness thick standing offset out from the surface of d: cloth over a body."""
-    return np.abs(d - offset - thickness * 0.5) - thickness * 0.5
+
+def solid_layer(d, out, rise=0.0):
+    """What lies within out of the surface of d (out + rise on its outer side, rise an array of folds), from out deep
+    inside it: a garment solid down into what it covers."""
+    return np.maximum(d - out - rise, -d - out)
 
 
 # ---------------------------------------------------------------------------------------------- noise

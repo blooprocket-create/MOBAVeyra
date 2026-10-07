@@ -46,8 +46,10 @@ def rasterise(obj, size):
     tris = np.zeros(len(mesh.loop_triangles) * 3, dtype=np.int64)
     mesh.loop_triangles.foreach_get("loops", tris)
     tris = tris.reshape(-1, 3)
-    out_xy, out_p, out_n, out_t, out_s = [], [], [], [], []
-    for tri in tris:
+    polygon_of = np.zeros(len(mesh.loop_triangles), dtype=np.int64)
+    mesh.loop_triangles.foreach_get("polygon_index", polygon_of)
+    out_xy, out_p, out_n, out_t, out_s, out_f, out_l, out_w = [], [], [], [], [], [], [], []
+    for index, tri in enumerate(tris):
         t_uv = uv[tri] * size - 0.5
         lo = np.floor(t_uv.min(axis=0)).astype(int)
         hi = np.ceil(t_uv.max(axis=0)).astype(int)
@@ -75,15 +77,18 @@ def rasterise(obj, size):
         out_n.append(w @ normals[tri])
         out_t.append(w @ tangents[tri])
         out_s.append(np.full(inside.sum(), signs[tri[0]], dtype=np.float32))
+        out_f.append(np.full(inside.sum(), polygon_of[index], dtype=np.int64))
+        out_l.append(np.repeat(tri[None, :], inside.sum(), axis=0))
+        out_w.append(w.astype(np.float32))
     xy = np.concatenate(out_xy)
     # A texel covered twice (an edge) keeps the first triangle's.
     keys = xy[:, 1].astype(np.int64) * size + xy[:, 0]
     _, first = np.unique(keys, return_index=True)
     return (xy[first], np.concatenate(out_p)[first], np.concatenate(out_n)[first], np.concatenate(out_t)[first],
-            np.concatenate(out_s)[first])
+            np.concatenate(out_s)[first], np.concatenate(out_f)[first], np.concatenate(out_l)[first], np.concatenate(out_w)[first], loop_vert)
 
 
-def _bricked(root, P, fn, cell=6.0):
+def _bricked(root, P, fn, cell=12.0):
     """fn(root, Q, box) over P grouped into cells, so each group evaluates only the parts near it."""
     keys = np.floor(P / cell).astype(np.int64)
     order = np.lexsort((keys[:, 2], keys[:, 1], keys[:, 0]))
@@ -119,44 +124,67 @@ def _distance_and_gradient(root, Q, box):
     return (d.d, d.m, grad / np.maximum(norm, 1e-9))
 
 
-def bake(obj, root, sculpt, size, log=print):
+def bake(obj, root, sculpt, size, sheets=(), log=print):
     """The baked textures of obj from root: (base colour rgb linear, mask rgb [ao, glow, opacity], normal rgb encoded),
-    each (size, size, 3) float32, rows from the bottom as Blender stores images."""
+    each (size, size, 3) float32, rows from the bottom as Blender stores images. Faces a sheet made (their "sheet"
+    attribute, numbering sheets from 1) are painted by that sheet's material over their own (u, v) ("sheet_uv"), with
+    the low surface's own normal; every texel's occlusion comes from the sculpt around it."""
     started = time.time()
     tree.MODE[0] = "detail"
     tree.REACH[0] = 1.0
-    xy, P, N, T, S = rasterise(obj, size)
+    xy, P, N, T, S, face, loops, weights, loop_vert = rasterise(obj, size)
     log("bake: %d texels (%.1f s)" % (len(xy), time.time() - started))
     N = N / np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-9)
-    # Onto the full-detail surface: two steps along the field's gradient.
+    mesh = obj.data
+    sheet_of = np.zeros(len(xy), dtype=np.int64)
+    if "sheet" in mesh.attributes:
+        marks = np.zeros(len(mesh.polygons), dtype=np.int32)
+        mesh.attributes["sheet"].data.foreach_get("value", marks)
+        sheet_of = marks[face]
+    on_sculpt = sheet_of == 0
     Q = P.astype(np.float32).copy()
-    for _ in range(2):
-        d, _m, g = _bricked(root, Q, _distance_and_gradient)
-        Q = Q - g * d[:, None]
-    d, label, G = _bricked(root, Q, _distance_and_gradient)
+    G = N.astype(np.float32).copy()
+    label = np.full(len(xy), -1, dtype=np.int16)
+    if on_sculpt.any():
+        # Onto the full-detail surface: two steps along the field's gradient.
+        q = Q[on_sculpt]
+        for _ in range(2):
+            d, _m, g = _bricked(root, q, _distance_and_gradient)
+            q = q - g * d[:, None]
+        d, lab, g = _bricked(root, q, _distance_and_gradient)
+        # Where the low surface lies far from any detail (a gap the reduction bridged), its own normal stands.
+        far = np.abs(d) > 0.5
+        g[far] = N[on_sculpt][far]
+        Q[on_sculpt], G[on_sculpt], label[on_sculpt] = q, g, lab
     log("bake: projected (%.1f s)" % (time.time() - started))
-    # Where the low surface lies far from any detail (a gap the reduction bridged), its own normal stands.
-    far = np.abs(d) > 0.5
-    G[far] = N[far]
     # Occlusion: how much nearer the surface is than open space would be, out along the normal.
     ao = np.zeros(len(Q), dtype=np.float32)
     for step, weight in zip(AO_STEPS, AO_WEIGHTS):
         (dist, _l) = _bricked(root, Q + G * step, _field)
         ao += weight * np.clip(step - dist, 0.0, step) / step
     ao = np.clip(1.0 - ao, 0.0, 1.0)
-    # How the surface turns: out along the normal a convex edge opens faster than a flat face.
-    (near, _l) = _bricked(root, Q + G * 0.35, _field)
-    convex = np.clip((near - 0.35) / 0.15, -1.0, 1.0)
+    # How the surface turns: out along the normal a convex edge opens faster than a flat face (sheets lie flat).
+    convex = np.zeros(len(Q), dtype=np.float32)
+    if on_sculpt.any():
+        (near, _l) = _bricked(root, Q[on_sculpt] + G[on_sculpt] * 0.35, _field)
+        convex[on_sculpt] = np.clip((near - 0.35) / 0.15, -1.0, 1.0)
     log("bake: occlusion (%.1f s)" % (time.time() - started))
-    ctx = {"P": Q, "N": G, "ao": ao, "convex": convex, "label": label}
+    uv = np.zeros((len(Q), 2), dtype=np.float32)
+    if "sheet_uv" in mesh.attributes:
+        values = np.zeros(len(mesh.vertices) * 2, dtype=np.float32)
+        mesh.attributes["sheet_uv"].data.foreach_get("vector", values)
+        values = values.reshape(-1, 2)
+        uv = np.einsum("nk,nkj->nj", weights, values[loop_vert[loops]])
+    ctx = {"P": Q, "N": G, "ao": ao, "convex": convex, "label": label, "uv": uv}
     colour = np.ones((len(Q), 3), dtype=np.float32)
     glow = np.zeros(len(Q), dtype=np.float32)
     opacity = np.ones(len(Q), dtype=np.float32)
-    materials = {}
+    jobs = {}
     for part in sculpt.parts:
-        materials.setdefault(part.material.name, (part.material, []))[1].append(part.label)
-    for name, (material, labels) in materials.items():
-        sel = np.isin(label, labels)
+        jobs.setdefault(part.material.name, (part.material, []))[1].append(part.label)
+    selections = [(material, on_sculpt & np.isin(label, labels)) for material, labels in jobs.values()]
+    selections += [(sheet.material, sheet_of == number) for number, sheet in enumerate(sheets, start=1)]
+    for material, sel in selections:
         if not sel.any():
             continue
         sub = {k: (v[sel] if isinstance(v, np.ndarray) else v) for k, v in ctx.items()}
@@ -183,7 +211,6 @@ def bake(obj, root, sculpt, size, log=print):
         out[key] = _dilate(img, filled, DILATE)
     log("bake: done (%.1f s)" % (time.time() - started))
     return out
-
 
 def _dilate(img, filled, steps):
     """Grows the filled texels outward into the empty ones by averaging, steps texels."""

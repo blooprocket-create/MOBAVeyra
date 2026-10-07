@@ -30,3 +30,14 @@ def painted(base, grain=0.08, scale=3.0, wear=0.12, cavity=0.55, seed=0, tint=No
 
 def glowing(strength=1.0):
     return lambda ctx: np.full(len(ctx["P"]), strength, dtype=np.float32)
+
+
+def inked(base, coverage, ink, strength=0.85):
+    """base's colour with ink laid over it where coverage(P) (0 to 1) says: a tattoo, a painted mark."""
+    ink_l = linear(ink)
+
+    def colour(ctx):
+        c = base(ctx)
+        a = (np.clip(coverage(ctx["P"]), 0.0, 1.0) * strength)[:, None]
+        return (c * (1.0 - a) + ink_l[None, :] * a).astype(np.float32)
+    return colour

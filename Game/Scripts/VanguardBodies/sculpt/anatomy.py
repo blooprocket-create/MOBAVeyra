@@ -64,6 +64,9 @@ class Figure:
         self.H = dims["height"]
         self.parts = []
         self.head_parts = []
+        # The body divided into limbs, each part in one (torso, upperarm_l, forearm_l, leg_l, head; a model adds its
+        # hands), so a garment's region can keep to limbs (garments.keep_to).
+        self.limbs = {}
 
     # ------------------------------------------------------------------------------------------ helpers
     def p(self, name, i):
@@ -111,6 +114,9 @@ class Figure:
         h = lambda cm: H * cm / 171.0  # noqa: E731
         weights = spine_weights(self.L)
         wide, hips = look.get("chest", 1.0), look.get("hips", 1.0)
+        # How broad the whole torso is, apart from its chest and hips (1 a heroic build; less a leaner one).
+        breadth = look.get("breadth", 1.0)
+        wide, hips = wide * breadth, hips * breadth
         bottom, top = pz - h(9.5), cz + h(5.0)
         span = top - bottom
         z = lambda value: (value - bottom) / span  # noqa: E731
@@ -118,11 +124,11 @@ class Figure:
                     (z(pz - h(3.4)), h(-0.8), 0, h(9.6), (hip + h(3.4)) * hips),
                     (z(pz), h(-0.5), 0, h(10.4), (hip + h(5.2)) * hips),
                     (z(pz + h(8.5)), 0.0, 0, h(10.4), (hip + h(4.6)) * hips),
-                    (z(pz + T * 0.30), h(0.4), 0, h(9.6), h(13.4)),
+                    (z(pz + T * 0.30), h(0.4), 0, h(9.6), h(13.4) * breadth),
                     (z(pz + T * 0.52), h(0.8), 0, h(10.6), h(14.8) * wide),
                     (z(pz + T * 0.72), h(1.2), 0, h(11.6), h(17.0) * wide),
                     (z(pz + T * 0.87), h(0.6), 0, h(11.0), S * 0.77 * wide),
-                    (z(cz), h(-0.2), 0, h(8.6), S * 0.58),
+                    (z(cz), h(-0.2), 0, h(8.6), S * 0.58 * breadth),
                     (z(top), h(0.6), 0, h(5.9), h(6.3))]
         group = []
         self.loft("torso", (0, 0, bottom), (0, 0, top), (1, 0, 0), stations, weights, group, cap=h(3.0))
@@ -136,9 +142,11 @@ class Figure:
                       h(4.4), h(3.0), along("spine_03", "clavicle_" + side, (0, 0, cz), (0, sign * S, self.shoulder_z)), group)
             self.cone("clavicle", (h(5.2), sign * h(2.0), cz - h(1.4)), (h(2.2), sign * S * 0.86, self.shoulder_z + h(1.8)), h(1.3), h(1.2),
                       rigid("clavicle_" + side), group)
-        self.cone("neck", (0.0, 0, cz - h(2.0)), (h(1.6), 0, self.L["head"][0][2] + h(3.0)), h(5.9), h(5.3),
+        # The neck rises into the head behind the jaw, so the jaw's line stands clear of it.
+        self.cone("neck", (0.0, 0, cz - h(2.0)), (h(-0.6), 0, self.L["head"][0][2] + h(2.2)), h(5.6) * self.look.get("neck", 1.0), h(4.7) * self.look.get("neck", 1.0),
                   along("spine_03", "neck_01", (0, 0, cz - 4), (0, 0, self.L["head"][0][2]), 0.2, 0.6), group)
         self.torso_node = Union(group, k=h(2.6))
+        self.limbs["torso"] = self.torso_node
         self.parts.append(self.torso_node)
 
     def arm(self, side, muscle):
@@ -150,17 +158,21 @@ class Figure:
         # The front of the upper arm faces the forearm's fold.
         front = fore - upper * (fore @ upper)
         front = unit(front) if np.linalg.norm(front) > 0.2 else V(1, 0, 0)
-        bulk = 0.85 + muscle * 0.25
+        bulk = (0.85 + muscle * 0.25) * self.look.get("limb", 1.0)
+        delt = self.look.get("deltoid", 1.0)
         group = []
         self.loft("upperarm", s0, e, front, [(0.0, 0, 0, h(5.0) * bulk, h(5.2) * bulk), (0.35, h(0.4), 0, h(4.5) * bulk, h(4.4) * bulk),
                                             (0.58, h(0.7), 0, h(4.4) * bulk, h(3.9) * bulk), (0.86, h(0.1), 0, h(3.5), h(3.4)),
                                             (1.0, 0, 0, h(3.3), h(3.3))], rigid("upperarm_" + side), group, cap=h(2.0))
-        self.ellipsoid("deltoid", s0 + upper * h(3.2) + V(0, 0, h(0.6)), (h(5.6) * bulk, h(5.0) * bulk, h(7.6)), sdf.frame(upper, front),
+        self.ellipsoid("deltoid", s0 + upper * h(3.2) + V(0, 0, h(0.6)), (h(5.6) * bulk * delt, h(5.0) * bulk * delt, h(7.6) * delt), sdf.frame(upper, front),
                        along("clavicle_" + side, "upperarm_" + side, s0 - upper * 6, s0 + upper * 8, 0.3, 0.6), group)
         self.add("elbow", lambda P, c=e: sdf.sphere(P, c, h(3.3)), Box(e - h(4), e + h(4)), rigid("lowerarm_" + side), group=group)
-        self.loft("forearm", e, w, front, [(0.0, 0, 0, h(3.4), h(3.7)), (0.22, h(0.3), h(0.2), h(3.9) * bulk, h(4.0) * bulk),
-                                         (0.6, h(0.1), 0, h(2.9), h(3.1)), (1.0, 0, 0, h(2.2), h(2.6))], rigid("lowerarm_" + side), group, cap=h(1.5))
+        thin = self.look.get("limb", 1.0)
+        self.loft("forearm", e, w, front, [(0.0, 0, 0, h(3.4) * thin, h(3.7) * thin), (0.22, h(0.3), h(0.2), h(3.9) * bulk, h(4.0) * bulk),
+                                         (0.6, h(0.1), 0, h(2.9) * thin, h(3.1) * thin), (1.0, 0, 0, h(2.2) * thin, h(2.6) * thin)], rigid("lowerarm_" + side), group, cap=h(1.5))
         self.arm_node = Union(group, k=h(2.2))
+        self.limbs["upperarm_" + side] = Union(group[:2], k=h(2.2))
+        self.limbs["forearm_" + side] = Union(group[2:], k=h(2.2))
         self.parts.append(self.arm_node)
         setattr(self, "fore_" + side, (e, w, fore, front))
 
@@ -169,6 +181,9 @@ class Figure:
         h = lambda cm: H * cm / 171.0  # noqa: E731
         hp, k = self.p("thigh_" + side, 0), self.p("thigh_" + side, 1)
         a = self.p("calf_" + side, 1)
+        # Every leg radius scales with the look's leg (1 a heroic build).
+        g = self.look.get("leg", 1.0)
+        h = lambda cm: H * cm * g / 171.0  # noqa: E731
         group = []
         self.loft("thigh", hp + V(0, 0, h(2.0)), k, (1, 0, 0), [(0.0, 0, 0, h(8.6), h(8.0)), (0.25, h(0.6), 0, h(8.4), h(7.9)),
                                                              (0.6, h(1.0), 0, h(7.4), h(6.9)), (0.9, h(0.4), 0, h(5.5), h(5.3)),
@@ -185,10 +200,17 @@ class Figure:
         toe = V(f1[0] + h(1.7), f1[1], h(2.4))
         self.cone("foot", heel, toe, h(2.9), h(2.5), bones_foot, group)
         self.leg_node = Union(group, k=h(2.4))
+        self.limbs["leg_" + side] = self.leg_node
         self.parts.append(self.leg_node)
     def body(self):
-        """The skin of everything built so far (torso, limbs, and any head and hands added)."""
-        return Union(self.parts, k=self.H * 0.016)
+        """The skin of everything built so far: torso and limbs blended broadly, then the head (attach_head) joined to
+        its neck by a tight blend, so the jaw's line stands clear of the neck."""
+        trunk = Union(self.parts, k=self.H * 0.016)
+        return Union([trunk] + self.head_parts, k=self.H * 0.005) if self.head_parts else trunk
+
+    def attach_head(self, node):
+        self.head_parts.append(node)
+        self.limbs["head"] = node
 
 
 # ---------------------------------------------------------------------------------------------- head
@@ -215,41 +237,43 @@ class Head:
     def build(self):
         """The head as one loft up its axis, chin to crown, its sections giving the jaw's taper, the cheeks, the brow
         and the skull; then the brow ridge, the cheekbones and the jaw's angles, the eye sockets, the nose, the lips and
-        the ears. Sizes are a 24 cm head's centimetres, scaled. Returns a Node in the head frame."""
+        the ears. In a 24 cm head's centimetres (scaled by size), the chin at the frame's origin and the features spaced
+        as a compact heroic face: mouth 3.2 above the chin, nose 6, eyes 9.9, brow 11.4, the crown at 21.9."""
         look = self.look
         jaw = look.get("jaw", 1.0)
         u = self.size / 24.0
-        bottom, top = 1.6, 26.0
+        bottom, top = 0.2, 21.9
         z = lambda value: (value - bottom) / (top - bottom)  # noqa: E731
-        stations = [(z(1.6), 6.6, 0, 1.6, 1.8 * jaw, 2.2), (z(3.2), 6.0, 0, 3.0, 2.9 * jaw, 2.3), (z(5.4), 4.0, 0, 5.4, 4.4 * jaw, 2.5),
-                    (z(8.0), 1.8, 0, 7.8, 5.6 * jaw, 2.7), (z(10.6), 0.7, 0, 9.1, 6.4, 2.8), (z(13.4), -0.1, 0, 9.7, 6.95, 2.8),
-                    (z(16.0), -0.6, 0, 9.95, 7.3, 2.7), (z(19.5), -1.0, 0, 9.8, 7.45, 2.5), (z(22.6), -1.5, 0, 8.9, 7.0, 2.3),
-                    (z(24.8), -1.9, 0, 6.6, 5.3, 2.1), (z(26.0), -2.1, 0, 3.2, 2.6, 2.0)]
+        stations = [(z(0.2), 6.0, 0, 1.4, 1.5 * jaw, 2.2), (z(1.2), 5.6, 0, 2.6, 2.4 * jaw, 2.3), (z(2.4), 4.3, 0, 4.4, 3.8 * jaw, 2.5),
+                    (z(3.9), 2.5, 0, 6.9, 5.0 * jaw, 2.7), (z(5.8), 1.0, 0, 8.6, 6.0, 2.8), (z(8.0), 0.2, 0, 9.4, 6.6, 2.8),
+                    (z(10.1), -0.2, 0, 9.7, 6.9, 2.8), (z(11.8), -0.6, 0, 9.9, 7.2, 2.7), (z(15.0), -1.0, 0, 9.8, 7.4, 2.5),
+                    (z(18.6), -1.5, 0, 8.8, 6.9, 2.3), (z(20.6), -1.9, 0, 6.4, 5.2, 2.1), (z(21.9), -2.1, 0, 3.0, 2.4, 2.0)]
         shape = sdf.Loft(V(0, 0, bottom) * u, V(0, 0, top) * u, (1, 0, 0), [(s[0], s[1] * u, s[2] * u, s[3] * u, s[4] * u, s[5]) for s in stations], 1.2 * u)
         skull = tree.leaf(self.S, "skull", shape, Box.around(shape.bounds_points()), self.skin, self.bones, False, 1.0)
         forms = [skull,
-                 self.e("cheekbone_l", (5.0, 5.4, 12.3), (2.4, 1.2, 0.95)), self.e("cheekbone_r", (5.0, -5.4, 12.3), (2.4, 1.2, 0.95)),
-                 self.c("brow_l", (8.85, 0.7, 15.75), (8.0, 4.4, 15.9), 0.75, 0.6),
-                 self.c("brow_r", (8.85, -0.7, 15.75), (8.0, -4.4, 15.9), 0.75, 0.6),
-                 self.e("chin_point", (8.0, 0, 3.4), (1.3, 1.9 * jaw, 1.4))]
-        face = Union(forms, k=1.6 * u)
-        sockets = Union([self.e("socket_l", (9.6, 3.2, 13.5), (1.6, 1.9, 1.15)), self.e("socket_r", (9.6, -3.2, 13.5), (1.6, 1.9, 1.15))])
+                 self.e("cheekbone_l", (4.8, 5.3, 8.4), (2.3, 1.2, 0.9)), self.e("cheekbone_r", (4.8, -5.3, 8.4), (2.3, 1.2, 0.9)),
+                 self.c("brow_l", (9.0, 0.7, 11.8), (8.2, 4.3, 12.0), 0.7, 0.55),
+                 self.c("brow_r", (9.0, -0.7, 11.8), (8.2, -4.3, 12.0), 0.7, 0.55),
+                 self.e("chin_point", (7.5, 0, 1.0), (1.1, 1.6 * jaw, 1.0)),
+                 self.e("jaw_angle_l", (0.3, 5.0 * jaw, 3.9), (1.6, 0.9, 1.4)), self.e("jaw_angle_r", (0.3, -5.0 * jaw, 3.9), (1.6, 0.9, 1.4))]
+        face = Union(forms, k=1.4 * u)
+        sockets = Union([self.e("socket_l", (9.5, 3.0, 10.2), (1.5, 1.8, 1.05)), self.e("socket_r", (9.5, -3.0, 10.2), (1.5, 1.8, 1.05))])
         face = tree.Subtract(face, sockets, k=1.0 * u)
-        features = [self.c("nose_bridge", (9.35, 0, 15.0), (11.05, 0, 10.75), 0.55, 0.85),
-                    self.e("nose_tip", (10.9, 0, 10.4), (0.95, 0.9, 0.85)),
-                    self.e("nostril_wing_l", (10.0, 1.1, 9.95), (0.7, 0.62, 0.6)), self.e("nostril_wing_r", (10.0, -1.1, 9.95), (0.7, 0.62, 0.6)),
-                    self.e("lip_upper", (9.35, 0, 8.25), (0.75, 2.1, 0.5)),
-                    self.e("lip_lower", (9.1, 0, 7.35), (0.75, 1.8, 0.5))]
-        face = Union([face] + features, k=0.5 * u)
-        cuts = Union([self.e("mouth_line", (9.95, 0, 7.8), (0.75, 2.05, 0.08)),
-                      self.e("nostril_l", (10.2, 0.68, 9.45), (0.42, 0.3, 0.26)), self.e("nostril_r", (10.2, -0.68, 9.45), (0.42, 0.3, 0.26))])
-        face = tree.Subtract(face, cuts, k=0.16 * u)
+        features = [self.c("nose_bridge", (9.4, 0, 11.2), (10.85, 0, 6.6), 0.5, 0.78),
+                    self.e("nose_tip", (10.7, 0, 6.35), (0.85, 0.8, 0.75)),
+                    self.e("nostril_wing_l", (9.9, 1.0, 5.95), (0.62, 0.56, 0.54)), self.e("nostril_wing_r", (9.9, -1.0, 5.95), (0.62, 0.56, 0.54)),
+                    self.e("lip_upper", (9.25, 0, 3.75), (0.7, 1.9, 0.45)),
+                    self.e("lip_lower", (9.0, 0, 2.95), (0.7, 1.65, 0.48))]
+        face = Union([face] + features, k=0.45 * u)
+        cuts = Union([self.e("mouth_line", (9.85, 0, 3.38), (0.7, 1.85, 0.07)),
+                      self.e("nostril_l", (10.1, 0.62, 5.55), (0.38, 0.27, 0.24)), self.e("nostril_r", (10.1, -0.62, 5.55), (0.38, 0.27, 0.24))])
+        face = tree.Subtract(face, cuts, k=0.14 * u)
         ears = []
         for sign, side in ((1, "l"), (-1, "r")):
             axes = sdf.rotation(yaw=sign * 15.0, roll=sign * -6.0)
-            ear = self.e("ear_" + side, (-1.0, sign * 6.95, 12.6), (2.2, 0.62, 3.1), axes)
-            bowl = self.e("ear_bowl_" + side, (-0.7, sign * 7.55, 12.4), (1.45, 0.42, 2.15), axes)
-            ears.append(tree.Subtract(ear, bowl, k=0.25 * u))
+            ear = self.e("ear_" + side, (-1.0, sign * 6.85, 8.6), (2.0, 0.58, 2.9), axes)
+            bowl = self.e("ear_bowl_" + side, (-0.7, sign * 7.4, 8.4), (1.3, 0.4, 2.0), axes)
+            ears.append(tree.Subtract(ear, bowl, k=0.22 * u))
         return Union([face] + ears, k=0.8 * u)
 
 # ---------------------------------------------------------------------------------------------- hands

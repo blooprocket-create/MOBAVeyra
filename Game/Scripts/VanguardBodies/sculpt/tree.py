@@ -4,6 +4,7 @@ Every leaf is a Part: a named piece with its own label (to paint and skin by), i
 Evaluate a tree with evaluate(root, P, box): each node is evaluated once per call however many layers above read it
 (a coat's shell reads the shirt and body beneath it, which the union above reads again)."""
 import itertools
+import math
 
 import numpy as np
 
@@ -15,6 +16,8 @@ FAR = 1.0e3
 MODE = ["form"]
 # How far beyond a box a node must lie to be skipped: the caller's band.
 REACH = [1.0]
+# The step a shell widens the reach by (cm).
+REACH_STEP = 4.0
 _CACHE = [{}]
 
 
@@ -97,7 +100,8 @@ class Node:
     def field(self, P, box):
         """This node's field over P, evaluated once per evaluate(). Culling is its parent's call: only a parent knows
         how far its blend reaches (a child culled here but blended there would seam the bricks)."""
-        key = id(self)
+        # Keyed by the reach too: a shell widens it to see its base's true distances farther out.
+        key = (id(self), REACH[0])
         cache = _CACHE[0]
         if key not in cache:
             field = self.eval(P, box)
@@ -202,13 +206,19 @@ class Over(Node):
 
 
 class Shell(Node):
-    """A garment: a skin thickness thick standing offset out from base's surface, kept within region (a zone),
-    its cut edges rounded by hem. It is a part of its own (label, material, skinning by inheritance)."""
+    """A garment: cloth whose outer face stands offset + thickness out from base's surface, kept within region (a
+    zone), its cut edges rounded by hem. It is solid down into its base rather than a skin with air beneath it: a
+    layered outfit is then one outer surface, where a gap thinner than the mesher's voxel would tunnel the mesh
+    with handles and leave the layer beneath as hidden surface spending the triangle budget. Where its region cuts
+    it, its edge stands as thick as offset + thickness. It is a part of its own (label, material, skinning by
+    inheritance)."""
 
     def __init__(self, sculpt, name, base, offset, thickness, region, material, hem=0.15, bones=None, detail=False,
-                 displace=None, reach=0.0):
+                 displace=None, reach=0.0, fine=None):
         self.base, self.offset, self.thickness, self.region, self.hem = base, offset, thickness, region, hem
-        self.displace = displace
+        # displace(P): folds raising the outer face, meshed; fine(P): relief too small to mesh (stitching, quilting),
+        # baked into the textures only. reach: the most either raises it, which its bounds must cover.
+        self.displace, self.fine = displace, fine
         self.extra = reach
         self.part = Part(sculpt, name, None, None, material, bones, detail)
         self.bounds = base.bounds.grown(offset + thickness + reach).intersection(region.bounds.grown(hem))
@@ -220,12 +230,48 @@ class Shell(Node):
     def eval(self, P, box):
         if self.part.detail and MODE[0] == "form":
             return _far(len(P), 0.0)
-        under = self.base.field(P, box).d
-        if self.displace is not None:
-            under = under - self.displace(P)
-        d = sdf.shell(under, self.offset, self.thickness)
+        # Its base out to the shell's own extent: a base culled nearer would answer a placeholder there, and a shell
+        # standing off a placeholder would be a wall at every brick's edge.
+        saved = REACH[0]
+        # Rounded up to a whole step, so the layers of a stack share one evaluation of what lies beneath them (each
+        # distinct reach evaluates the stack afresh); a wider reach is only ever more exact.
+        REACH[0] = saved + REACH_STEP * math.ceil((self.offset + self.thickness + self.extra) / REACH_STEP)
+        try:
+            under = self.base.field(P, box).d
+        finally:
+            REACH[0] = saved
+        # Folds raise its outer face only: it stays solid down into its base however high a fold stands.
+        rise = self.displace(P) if self.displace is not None else 0.0
+        if self.fine is not None and MODE[0] == "detail":
+            rise = rise + self.fine(P)
+        d = sdf.solid_layer(under, self.offset + self.thickness, rise)
         d = sdf.smax(d, self.region.field(P, box).d, self.hem)
         return sdf.Field.of(d.astype(np.float32), self.part.label)
+
+
+class Nearer(Node):
+    """A region: where a point lies nearer the surfaces of inside's nodes than of outside's, so a garment keeps to its
+    limbs whatever the pose (a sleeve to its arm, never the hip that arm hangs by). Negative inside, about a distance
+    across its border; no label of its own. A node beyond reach of the box counts by its bounds' distance."""
+
+    def __init__(self, inside, outside, margin):
+        self.inside, self.outside = list(inside), list(outside)
+        bounds = self.inside[0].bounds
+        for node in self.inside[1:]:
+            bounds = bounds.union(node.bounds)
+        self.margin = margin
+        self.bounds = bounds.grown(margin)
+
+    def _nearest(self, nodes, P, box):
+        d = np.full(len(P), FAR, dtype=np.float32)
+        for node in nodes:
+            gap = node.bounds.gap(box)
+            d = np.minimum(d, np.float32(gap) if gap > REACH[0] + self.margin else node.field(P, box).d)
+        return d
+
+    def eval(self, P, box):
+        inside, outside = self._nearest(self.inside, P, box), self._nearest(self.outside, P, box)
+        return sdf.Field((0.5 * (inside - outside)).astype(np.float32), np.full(len(P), -1, dtype=np.int16))
 
 
 class Zone(Node):
