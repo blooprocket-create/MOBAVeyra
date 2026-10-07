@@ -74,6 +74,17 @@ Animation is not part of this milestone. The author's roadmap (2026-10-06) gives
 ### 5. Budget
 Every gate records the frame time and draw cost it adds at the gameplay camera, in a ten-Vanguard fight. An effect family that cannot fit is cut back before it ships.
 
+*Measured at the milestone's gate (2026-10-06, the author's machine):*
+- **Setup.** `Smoke.ps1 -PerfSeconds` renders a packaged client at 1920x1080, uncapped, in a direct match on the one-lane grey box.
+- **The comparison.** Each match ran twice: as shipped, and with the post-process materials and custom depth off (`ShowFlag.PostProcessMaterial 0, r.CustomDepth 0`). The second run drops the ink, the hover outline and the characters' custom-depth pass.
+
+| Match | As shipped: frame / GPU, ms (median, 95th, 99th) | Ink off: frame / GPU, ms (median, 95th, 99th) |
+|---|---|---|
+| Two Vanguards | 4.58, 5.12, 5.36 / 4.20, 4.55, 4.63 | 4.59, 5.12, 5.37 / 4.19, 4.54, 4.64 |
+| Ten Vanguards (eight playing bots fighting in the lane, with waves) | 4.82, 5.49, 5.78 / 4.43, 4.90, 5.00 | 4.60, 5.27, 5.60 / 4.24, 4.71, 4.87 |
+
+**Result.** With two Vanguards the ink costs nothing measurable. In a ten-Vanguard fight it costs about 0.2 ms of GPU time, well inside the 8.33 ms frame target. Both runs drew the graphic effects, telegraph fills and veils; their own cost was not separated.
+
 ### 6. Hidden bodies
 After a playtest the author reported: "its damn near impossible to tell when you're in the dense fog, or when you're camouflaged, or invis". Since generated bodies replaced the capsules (ADR-064), the Camouflage tint fell on the disc under a body's feet, and nothing showed Invisibility or Dense Fog.
 - **The veil.** A body on the viewer's side that is hidden from its enemies wears a veil. Its interior thins to `opacity` of itself, dithered (the temporal upscaler resolves the dither into a fade), under bands that rise through it. Its silhouette, where the surface turns from the view past `rimStart`, stays whole and glows in the hidden state's colour. The values are kit data (`bodyMaterial.veil`), and the material's `Veil` and `VeilTint` parameters carry it; the body material is masked for it.
