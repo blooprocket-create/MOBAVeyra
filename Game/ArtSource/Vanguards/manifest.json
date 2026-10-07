@@ -2,7 +2,7 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "5641f159f13a7628b4268c409c12be4d8ebbd7af8780e77383433775ae3148da",
+  "kitSha256": "337b3e20dc1d29f0239d8c4a249d5c213bf27890093cacc785137462b8d27a73",
   "assets": [
     {
       "id": "angeru",
@@ -852,14 +852,14 @@
       "name": "SK_Celandrine",
       "archetype": "humanoid",
       "file": "FBX/SK_Celandrine.fbx",
-      "sha256": "995eaa121982065b78693e4e2d39a9d674a469d4aba375325b94dafcf71323fe",
-      "triangles": 3960,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 171.95,
+      "sha256": "b0396c373f6a6e28d51337ae41813aff8b98de9ac1b86ff13010db205bbb3947",
+      "triangles": 4950,
+      "triangleBudget": 5000,
+      "bones": 54,
+      "heightCm": 167.95,
       "capsuleHalfHeightCm": 88,
       "melee": false,
-      "runStrideCm": 143.91,
+      "runStrideCm": 167.17,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -904,10 +904,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "f965117e84ef6292324ad3556a97d518afafb1ef8a6da477be523e0d3a070b0e",
+      "inputSha256": "eabdd10732181ed756948b0f891afe105a0fd5aec252a6cc616d1527f81307c5",
       "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "de3831ab0985de55171f7ea8b9e7a6eeb164ec40b4512e7588d98089c302df95",
+      "contentSha256": "3009c7f3ddb50fafbc2d86b8b09fd237113b10408ce9f0e72e628206047b2d89",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -921,6 +921,121 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40,
+            "drag": 8,
+            "damping": 2,
+            "maxAngle": 70
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40,
+            "drag": 8,
+            "damping": 2,
+            "maxAngle": 70
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40,
+            "drag": 8,
+            "damping": 2,
+            "maxAngle": 70
+          },
+          {
+            "bones": [
+              "skirt_fl_01",
+              "skirt_fl_02",
+              "skirt_fl_03",
+              "skirt_fl_end"
+            ],
+            "stiffness": 60,
+            "drag": 6,
+            "damping": 3,
+            "maxAngle": 60
+          },
+          {
+            "bones": [
+              "skirt_bl_01",
+              "skirt_bl_02",
+              "skirt_bl_03",
+              "skirt_bl_end"
+            ],
+            "stiffness": 60,
+            "drag": 6,
+            "damping": 3,
+            "maxAngle": 60
+          },
+          {
+            "bones": [
+              "skirt_br_01",
+              "skirt_br_02",
+              "skirt_br_03",
+              "skirt_br_end"
+            ],
+            "stiffness": 60,
+            "drag": 6,
+            "damping": 3,
+            "maxAngle": 60
+          },
+          {
+            "bones": [
+              "skirt_fr_01",
+              "skirt_fr_02",
+              "skirt_fr_03",
+              "skirt_fr_end"
+            ],
+            "stiffness": 60,
+            "drag": 6,
+            "damping": 3,
+            "maxAngle": 60
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 12.374208000000001
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 9.280656
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 6.805814400000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 9.280656
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 6.805814400000001
+          }
         ]
       }
     },
@@ -2172,11 +2287,11 @@
       "name": "SK_Mimzi",
       "archetype": "humanoid",
       "file": "FBX/SK_Mimzi.fbx",
-      "sha256": "e7d44fea8b4d43ccd6677103521593856b782bd31ba45714779ac14c1961e06e",
-      "triangles": 5328,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 133.42,
+      "sha256": "7955d30b15b10bf090e59989fa943ee539fc6dba67d14aacda22513ecf2c4ef3",
+      "triangles": 4905,
+      "triangleBudget": 5000,
+      "bones": 54,
+      "heightCm": 136.26,
       "capsuleHalfHeightCm": 70,
       "melee": false,
       "runStrideCm": 88.19,
@@ -2224,10 +2339,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "8e5fb04991e20e857e9ea674c6c1b263c4036f671f7790491f0ac7b2e4be3450",
+      "inputSha256": "173ed6f18f07b8f6230302aaae8c1877b4493ac3a68fd753023d7c0fef90355c",
       "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "78d3ff889b78b6cb2985499673c82ca349abe7b747a5a6ac5db14cde1a30abef",
+      "contentSha256": "fb2e01cddd93626bcb4fe02e5138bf390fa1ec498812b91b370d18d052e5c9f7",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -2241,6 +2356,121 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "skirt_fl_01",
+              "skirt_fl_02",
+              "skirt_fl_03",
+              "skirt_fl_end"
+            ],
+            "stiffness": 60.0,
+            "drag": 6.0,
+            "damping": 3.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "skirt_bl_01",
+              "skirt_bl_02",
+              "skirt_bl_03",
+              "skirt_bl_end"
+            ],
+            "stiffness": 60.0,
+            "drag": 6.0,
+            "damping": 3.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "skirt_br_01",
+              "skirt_br_02",
+              "skirt_br_03",
+              "skirt_br_end"
+            ],
+            "stiffness": 60.0,
+            "drag": 6.0,
+            "damping": 3.0,
+            "maxAngle": 60.0
+          },
+          {
+            "bones": [
+              "skirt_fr_01",
+              "skirt_fr_02",
+              "skirt_fr_03",
+              "skirt_fr_end"
+            ],
+            "stiffness": 60.0,
+            "drag": 6.0,
+            "damping": 3.0,
+            "maxAngle": 60.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 7.785960000000001
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 6.9615
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 5.1051
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 6.9615
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 5.1051
+          }
         ]
       }
     },
@@ -2971,14 +3201,14 @@
       "name": "SK_Patch",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch.fbx",
-      "sha256": "92cecb8649b32efb0f89b94e660139083fcce8ab6d6ffc357a5de1261f2d455a",
-      "triangles": 2484,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 114.47,
+      "sha256": "7d864879d35ed21971a20da40a00af6a932c86aa3b6a8e2ab435c940af96b30f",
+      "triangles": 4957,
+      "triangleBudget": 5000,
+      "bones": 40,
+      "heightCm": 114.08,
       "capsuleHalfHeightCm": 70,
       "melee": true,
-      "runStrideCm": 77.09,
+      "runStrideCm": 61.67,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -3023,87 +3253,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "d95a888fe2ecce1e72d57698f53f9af11c02ca65ba8680b64c661ec73ee12c91",
+      "inputSha256": "48f412414e208a2245d634c63a59abdedb628aaa4960c5857567992c672e3ecc",
       "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "b33038e49daf7be18d6a394f8d388198cfe371b8c956ac0dbb30114bbaedda5a",
-      "contentVersion": 3,
-      "ik": {
-        "feet": [
-          [
-            "thigh_l",
-            "calf_l",
-            "foot_l"
-          ],
-          [
-            "thigh_r",
-            "calf_r",
-            "foot_r"
-          ]
-        ]
-      }
-    },
-    {
-      "id": "patch",
-      "name": "SK_Patch_Dormant",
-      "archetype": "humanoid",
-      "file": "FBX/SK_Patch_Dormant.fbx",
-      "sha256": "18b202d38dabf24f35e046ea04f2e3534c995b5cb82121536333462247ba39e0",
-      "triangles": 2484,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 114.47,
-      "capsuleHalfHeightCm": 70,
-      "melee": true,
-      "runStrideCm": 77.09,
-      "upperBodyBone": "spine_01",
-      "castReleaseShare": 0.4,
-      "animations": [
-        {
-          "name": "Idle",
-          "frames": 61,
-          "loop": true
-        },
-        {
-          "name": "Run",
-          "frames": 19,
-          "loop": true
-        },
-        {
-          "name": "AttackWindup",
-          "frames": 13,
-          "loop": false
-        },
-        {
-          "name": "AttackStrike",
-          "frames": 11,
-          "loop": false
-        },
-        {
-          "name": "Cast",
-          "frames": 16,
-          "loop": false
-        },
-        {
-          "name": "Hit",
-          "frames": 10,
-          "loop": false
-        },
-        {
-          "name": "Death",
-          "frames": 31,
-          "loop": false
-        },
-        {
-          "name": "Recall",
-          "frames": 61,
-          "loop": true
-        }
-      ],
-      "inputSha256": "e72ae755c42cb51f5436493d644a69ed5a5f08f19ffc1af94143121ed6679aa6",
-      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
-      "blender": "5.2.1 LTS",
-      "contentSha256": "2747a1723c3c24fd5d8612f2bd297ed0c857c35c0f08a9aa05ad6afaf52c329d",
+      "contentSha256": "de08d5e1ef2643934fbbba3f3071fcaa473f23cf905dcc1a4d8353b222d7bc94",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3119,21 +3272,97 @@
           ]
         ]
       },
-      "status": "patch_dormant"
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "lantern_01",
+              "lantern_end"
+            ],
+            "stiffness": 120.0,
+            "drag": 1.5,
+            "damping": 3.0,
+            "maxAngle": 40.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 11.9784
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 8.9838
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 6.588120000000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 8.9838
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 6.588120000000001
+          }
+        ]
+      }
     },
     {
       "id": "patch",
-      "name": "SK_Patch_Inside",
+      "name": "SK_Patch_Dormant",
       "archetype": "humanoid",
-      "file": "FBX/SK_Patch_Inside.fbx",
-      "sha256": "218b4a7ca1795c4210fc26a1b24195b9c32abc2946404cc9045d4d50d942307b",
-      "triangles": 3456,
-      "triangleBudget": 9000,
-      "bones": 29,
-      "heightCm": 249.53,
+      "file": "FBX/SK_Patch_Dormant.fbx",
+      "sha256": "8770c3f34a5bab298dcdf2d307c3cef82a98e7a858b460969f1915d56d3187cc",
+      "triangles": 4957,
+      "triangleBudget": 5000,
+      "bones": 40,
+      "heightCm": 114.08,
       "capsuleHalfHeightCm": 70,
       "melee": true,
-      "runStrideCm": 77.09,
+      "runStrideCm": 61.67,
       "upperBodyBone": "spine_01",
       "castReleaseShare": 0.4,
       "animations": [
@@ -3178,10 +3407,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "ba0c76d1010751ea5ef4dc17c5c8e603404cd09a6b0ea2e87a6c1f5247ea51a5",
+      "inputSha256": "09ce13ca6cd1aafb5e774f4511831edd7dc321a7d97816ea8976c2fbf8b6aaa3",
       "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "2365f3fa3f7397a046247f5a18dfb20574733713295797e04e7c52bc17e53ae3",
+      "contentSha256": "d9eeba648fb0aa8c00a304e6cd19d6fad740a9922e6964cac05c8ac437028326",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3195,6 +3424,238 @@
             "calf_r",
             "foot_r"
           ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "lantern_01",
+              "lantern_end"
+            ],
+            "stiffness": 120.0,
+            "drag": 1.5,
+            "damping": 3.0,
+            "maxAngle": 40.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 11.9784
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 8.9838
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 6.588120000000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 8.9838
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 6.588120000000001
+          }
+        ]
+      },
+      "status": "patch_dormant"
+    },
+    {
+      "id": "patch",
+      "name": "SK_Patch_Inside",
+      "archetype": "humanoid",
+      "file": "FBX/SK_Patch_Inside.fbx",
+      "sha256": "fa6bf7aae4250af971167f037a2a296d62e96f9630f93db81f677cacf8a63f15",
+      "triangles": 5957,
+      "triangleBudget": 6000,
+      "bones": 40,
+      "heightCm": 235.0,
+      "capsuleHalfHeightCm": 70,
+      "melee": true,
+      "runStrideCm": 61.67,
+      "upperBodyBone": "spine_01",
+      "castReleaseShare": 0.4,
+      "animations": [
+        {
+          "name": "Idle",
+          "frames": 61,
+          "loop": true
+        },
+        {
+          "name": "Run",
+          "frames": 19,
+          "loop": true
+        },
+        {
+          "name": "AttackWindup",
+          "frames": 13,
+          "loop": false
+        },
+        {
+          "name": "AttackStrike",
+          "frames": 11,
+          "loop": false
+        },
+        {
+          "name": "Cast",
+          "frames": 16,
+          "loop": false
+        },
+        {
+          "name": "Hit",
+          "frames": 10,
+          "loop": false
+        },
+        {
+          "name": "Death",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Recall",
+          "frames": 61,
+          "loop": true
+        }
+      ],
+      "inputSha256": "f49899e95b993c2b6d4e26315051d4ffc529196c49d072e27279d08832930b1b",
+      "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
+      "blender": "5.2.1 LTS",
+      "contentSha256": "ce8686811a9945c1cbe7b87e2efd7d9565ed0954145f397a3151bf35084c880d",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "lantern_01",
+              "lantern_end"
+            ],
+            "stiffness": 120.0,
+            "drag": 1.5,
+            "damping": 3.0,
+            "maxAngle": 40.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 11.9784
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 8.9838
+          },
+          {
+            "from": "calf_l",
+            "to": "foot_l",
+            "radius": 6.588120000000001
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 8.9838
+          },
+          {
+            "from": "calf_r",
+            "to": "foot_r",
+            "radius": 6.588120000000001
+          }
         ]
       },
       "status": "patch_inside_body"
