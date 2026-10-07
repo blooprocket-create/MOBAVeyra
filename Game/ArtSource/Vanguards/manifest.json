@@ -2,7 +2,7 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "337b3e20dc1d29f0239d8c4a249d5c213bf27890093cacc785137462b8d27a73",
+  "kitSha256": "dd0d63cfb514f68c336a1b7152c3f7aa094363d59e5fcbe4aeaad738734e8d05",
   "assets": [
     {
       "id": "angeru",
@@ -4230,11 +4230,11 @@
       "name": "SK_Relay",
       "archetype": "colossus",
       "file": "FBX/SK_Relay.fbx",
-      "sha256": "cb23ec74c2bcf70f170df4a8aa48a2c71f63c7404b6d6c0021c8464be4f00143",
-      "triangles": 4592,
-      "triangleBudget": 14000,
+      "sha256": "9d4a252f4eb1c03813f2ebd940df3defc0cd7ef3f4111874036532b231f0c10d",
+      "triangles": 5965,
+      "triangleBudget": 6000,
       "bones": 23,
-      "heightCm": 240.63,
+      "heightCm": 244.86,
       "capsuleHalfHeightCm": 105,
       "melee": false,
       "runStrideCm": 91.57,
@@ -4282,10 +4282,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "96f3c76e3738f62cc2d21e3388896044c762c79e81a68f7705942bddfdb3a2c9",
+      "inputSha256": "3a535ebced4dc03f1f537af0e89ae629e6f8effa1c310e217811f24d17f3fc21",
       "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "b59dbbd02d3bdd48d22cd78f2af8b3f441c4d3177976f9f283b33468c97f9059",
+      "contentSha256": "4e3efa6a47f5511be6fd5c19902697910756728173de9dd91371139965a0775a",
       "contentVersion": 3
     },
     {
@@ -4293,11 +4293,11 @@
       "name": "SK_Silt",
       "archetype": "colossus",
       "file": "FBX/SK_Silt.fbx",
-      "sha256": "5b8e527785dd3dc7b76243899f609a6df0f5506cf8cd782839a89a274238b163",
-      "triangles": 5524,
+      "sha256": "02aeba20b48688aa9faa4f11d641a44489b96e35e1851015b3f7a7cd3da27f26",
+      "triangles": 5756,
       "triangleBudget": 6000,
       "bones": 31,
-      "heightCm": 215.51,
+      "heightCm": 215.33,
       "capsuleHalfHeightCm": 92,
       "melee": false,
       "runStrideCm": 91.87,
@@ -4345,10 +4345,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "ab2ebbe41688a334301eb397369c99355a4f959d56ed7bd9fc75fe1d25434150",
+      "inputSha256": "34c226b340af336e960c58ae4cade4f14a7822c36b4ffb48e5468c6499e2f557",
       "generatorSha256": "36822419e560ec630a961cac5fb3e16bec2f426bd8025dcf9ffd450139943319",
       "blender": "5.2.1 LTS",
-      "contentSha256": "114e770ce1ff3346ed6aaea75b96273a5efe9a1135029d2303881e4b17acc16f",
+      "contentSha256": "5e1e10b9e6c20c1fa2280a176663c9bf58d9853b1597f3d4f35bd4fb9f3ea09f",
       "contentVersion": 3,
       "springs": {
         "chains": [
