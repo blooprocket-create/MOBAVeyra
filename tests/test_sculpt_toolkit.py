@@ -12,7 +12,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Game" / "Scripts"))
 from VanguardBodies.sculpt import garments, sdf, sheet, tree  # noqa: E402
 from VanguardBodies.sculpt.tree import Box  # noqa: E402
-from VanguardBodies.models import bryn, silt  # noqa: E402
+from VanguardBodies.models import bryn, relay, silt  # noqa: E402
 
 # Fixture sizes (cm): a ball standing in for a body part, the cloth over it, a fold's height above it.
 RADIUS = 10.0
@@ -251,6 +251,29 @@ class TornSheetsOnChains(unittest.TestCase):
         for k, name in enumerate(heaviest):
             if not held[k]:
                 self.assertEqual(name, "ribbon_l_%02d" % (along[k] + 1), (k, P[k]))
+
+    def test_a_banner_hangs_down_its_spring_chain_below_its_tie_rod(self):
+        # Fixture: a banner's chain hanging 80 cm straight down in two spans from its tie rod at 150 cm.
+        top = np.array([40.0, 20.0, 150.0])
+        joints = [top - np.array([0.0, 0.0, 40.0 * k]) for k in range(3)]
+        L = {"banner_01": (joints[0], joints[1]), "banner_02": (joints[1], joints[2]), "banner_end": (joints[2], joints[2] - np.array([0, 0, 1.0]))}
+        top_centre, down, length = relay.banner_hang(L, None, 1.0)
+        np.testing.assert_allclose(top_centre, top)
+        np.testing.assert_allclose(down, [0.0, 0.0, -1.0], atol=1e-6)
+        self.assertAlmostEqual(length, 80.0)
+        weights = relay.banner_bones(L, top_centre, down, length)
+        # Down the cloth: held by the chest at the tie rod, then each span of the chain where the cloth hangs along it.
+        P = np.array([top - [0, 0, 1.0], top - [0, 0, 20.0], top - [0, 0, 60.0], top - [0, 0, 80.0]], dtype=np.float32)
+        w = weights(P)
+        names = sorted(w)
+        heaviest = [names[i] for i in np.argmax(np.stack([w[n] for n in names]), axis=0)]
+        self.assertEqual(heaviest, ["spine_03", "banner_01", "banner_02", "banner_02"])
+        for n in names:
+            self.assertTrue(np.all(np.isfinite(w[n])))
+        np.testing.assert_allclose(sum(w[n] for n in names), 1.0, atol=1e-5)
+        # Without a chain in its kit, it rides the chest whole.
+        rigid = relay.banner_bones({}, top_centre, down, length)(P)
+        self.assertEqual(sorted(rigid), ["spine_03"])
 
 
 if __name__ == "__main__":

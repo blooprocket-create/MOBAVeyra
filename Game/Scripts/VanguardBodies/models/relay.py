@@ -10,9 +10,8 @@ left pauldron. He carries nothing: the hands are manipulators and the mast an an
 
 Low poly and flat-coloured (author 2026-10-07): the big forms that make his outline, each a flat colour the toon
 material shades. He rests as his archetype lays him out (ADR-064), arms hanging; his clips stomp, throw and slam. The
-banner stays geometry riding his chest: his archetype's only spring chains (ribbons) trail back and out behind the
-shoulders, never where a banner tied at the chest hangs. Colours are his kit's, the mechanism lifted so it reads dark,
-not black, under the toon light."""
+banner swings on the colossus banner chain hung from his chest (ADR-069 §7). Colours are his kit's, the mechanism
+lifted so it reads dark, not black, under the toon light."""
 import numpy as np
 
 from ..sculpt import anatomy, garments, sdf, tree
@@ -289,7 +288,7 @@ def build(S, L, dims, spec):
         cyl("mast_collar", base + (tip - base) * 0.86, base + (tip - base) * 0.9, 3.4 * u, "bronze", chest_bones, protect=0.8)
         ball("mast_light", tip, U(4.4, 4.4, 4.4), "amber", chest_bones, protect=1.0)
     if "banner" in features:
-        banner(u, p, leaf, cyl)
+        banner(L, u, p, leaf, cyl)
     if "moss" in features:
         hanging_moss(u, caps, cone)
 
@@ -359,18 +358,52 @@ def hand(u, side, sign, wrist, end, features, rbox, cyl, ball):
 BANNER = [(0, 0), (26, 0), (26, 72), (24, 84), (21, 74), (17.5, 88), (14, 75), (10, 85), (6.5, 73), (3.5, 81), (0, 70)]
 SIGIL = [(13, 10), (15.2, 27), (21.5, 30), (15.2, 33), (13, 52), (10.8, 33), (4.5, 30), (10.8, 27)]
 BANNER_LENGTH = 89
+BANNER_WIDTH = 26
+# How far down the banner his chest still holds it whole, as a share of its length: the strip bound to its tie rod.
+BANNER_HOLD = 0.12
 
 
-def banner(u, p, leaf, cyl):
+def banner_hang(L, rest, u):
+    """Where the banner hangs from and how: its top centre, the way it falls (a unit vector) and how far. On its spring
+    chain where his kit hangs one (banner_01, banner_02, banner_end; ADR-069 §7): from the chain's first joint along it
+    to its end. Otherwise from rest (its top centre, tied under his left pauldron), falling straight, its outline long."""
+    if "banner_01" in L:
+        top = V(*L["banner_01"][0])
+        fall = V(*L["banner_end"][0]) - top
+        length = float(np.linalg.norm(fall))
+        return top, fall / length, length
+    return rest, unit(V(-0.12, 0.0, -1.0)), BANNER_LENGTH * u
+
+
+def banner_bones(L, top, down, length):
+    """The banner's weights: on its chain, the strip at its tie rod held by his chest and the cloth below weighted down
+    the chain's two spans by how far it hangs below the rod, so it swings and trails as he moves; without one, his
+    chest carries it whole."""
+    if "banner_01" not in L:
+        return anatomy.rigid("spine_03")
+
+    def weights(P):
+        v = np.clip(((P - top) @ down) / length, 0.0, 1.0)
+        hold = np.clip(1.0 - v / BANNER_HOLD, 0.0, 1.0)
+        x = np.clip(v * 2.0, 0.5, 1.5)
+        w = {"spine_03": hold}
+        for k in range(2):
+            w["banner_%02d" % (k + 1)] = np.clip(1.0 - np.abs(x - (k + 0.5)), 0.0, 1.0) * (1.0 - hold)
+        return {name: np.asarray(x, dtype=np.float32) for name, x in w.items()}
+    return weights
+
+
+def banner(L, u, p, leaf, cyl):
     """The faded crimson expedition banner someone tied at his chest, under his left pauldron, its pale sigil showing
-    and its torn end hanging to his waist: a flat cloth on a tie rod, riding his chest."""
-    bones = anatomy.rigid("spine_03")
+    and its torn end hanging to his waist: a flat cloth on a tie rod, swinging on its chain where his kit hangs one."""
     yaw = np.radians(12.0)
     facing = V(np.cos(yaw), np.sin(yaw), 0.0)
     across = V(-np.sin(yaw), np.cos(yaw), 0.0)
-    down = unit(V(-0.12, 0.0, -1.0))
-    down = unit(down - facing * (down @ facing))
-    origin = p("clavicle_l", 1) + V(35.5, -44, -2) * u
+    rest = p("clavicle_l", 1) + V(35.5, -44, -2) * u + across * BANNER_WIDTH * 0.5 * u
+    top, fall, length = banner_hang(L, rest, u)
+    down = unit(fall - facing * (fall @ facing))
+    origin = top - across * BANNER_WIDTH * 0.5 * u
+    bones = banner_bones(L, top, down, length)
     outline = [(x * u, y * u) for x, y in BANNER]
     sigil = [(x * u, y * u) for x, y in SIGIL]
     bottom = down * BANNER_LENGTH * u
@@ -379,7 +412,8 @@ def banner(u, p, leaf, cyl):
     # The sigil a little proud of its front face.
     face = origin + facing * 0.7 * u
     leaf("sigil", lambda P: pane(P, face, across, down, sigil, 0.9 * u), box, "sigil", bones, 0.8)
-    cyl("banner_rod", origin - across * 2.5 * u + down * 0.5 * u, origin + across * 28.5 * u + down * 0.5 * u, 1.7 * u, "steel", bones, rounding=0.5 * u, protect=0.5)
+    cyl("banner_rod", origin - across * 2.5 * u + down * 0.5 * u, origin + across * 28.5 * u + down * 0.5 * u, 1.7 * u, "steel", anatomy.rigid("spine_03"),
+        rounding=0.5 * u, protect=0.5)
 
 
 def marking(S, mats, u, cap):

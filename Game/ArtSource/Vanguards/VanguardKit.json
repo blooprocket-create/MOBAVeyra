@@ -273,6 +273,7 @@
       "features": ["faceless", "knuckleWalk", "claws", "flakes", "ribbons", "drips"] },
     { "id": "relay", "archetype": "colossus", "seed": 302, "heightShare": 0.97, "build": "heavy", "headShare": 0.11, "legShare": 0.30, "armShare": 0.56, "lean": 0.25,
       "model": { "script": "relay", "triangleBudget": 6000, "voxelCm": 0.8 },
+      "springs": { "banner": { "stiffness": 60.0, "drag": 6.0, "damping": 3.0, "maxAngle": 50.0 } },
       "style": "slab", "primary": [0.74, 0.70, 0.62], "secondary": [0.12, 0.12, 0.13], "accent": [1.00, 0.62, 0.12], "detail": [0.55, 0.08, 0.08],
       "forearmScale": 1.3,
       "features": ["optic", "manipulators", "mast", "banner", "moss", "pauldrons", "jointDiscs", "segmentedArms", "amberPoints"] },
