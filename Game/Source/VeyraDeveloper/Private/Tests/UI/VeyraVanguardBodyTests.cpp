@@ -640,6 +640,51 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Left).Z - Skin->GetBoneLocation(Right).Z, Level, Tolerance * 1.5, TEXT("and down again")));
 		}
 
+		TEST_METHOD(APlantedFootStepsDownOntoGroundBelowTheFloorAsThePelvisLowers)
+		{
+			// Fixture values: a frame of the world, how long it eases, and how far below the floor the ground under the
+			// right foot lies (as on a slope falling away under it).
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr float Seconds = 1.5f;
+			constexpr double Drop = 10.0;
+			constexpr double BlockSize = 24.0;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Settings.bFootIK && Drop < Settings.FootMaxPelvisDrop && Drop < Settings.FootTraceBelow, TEXT("the feet reach ground this low")));
+			const FVeyraVanguardBody* Art = ArtSet().Find(DressedId());
+			ASSERT_THAT(IsTrue(Art && Art->FootChains.Num() == 2, TEXT("a body with two legs")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(RefreshedGreybox().FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			const FName Left = Art->FootChains[0].End;
+			const FName Right = Art->FootChains[1].End;
+			const auto Advance = [this, Skin](float Time) {
+				for (float Elapsed = 0.0f; Elapsed < Time; Elapsed += Frame)
+				{
+					Skin->SetLastRenderTime(Spawner.GetWorld().GetTimeSeconds());
+					Skin->TickAnimation(Frame, false);
+					Skin->RefreshBoneTransforms();
+				}
+			};
+			Advance(Frame);
+			const double Floor = Skin->GetComponentLocation().Z;
+			const FVector RightAt = Skin->GetBoneLocation(Right);
+			const double LeftZ = Skin->GetBoneLocation(Left).Z;
+			// Ground only under the right foot, its top Drop below the floor the capsule stands on.
+			AStaticMeshActor& Block = Spawner.SpawnActorAt<AStaticMeshActor>(FVector(RightAt.X, RightAt.Y, Floor - Drop - BlockSize * 0.5), FRotator::ZeroRotator);
+			UStaticMeshComponent* Mesh = Block.GetStaticMeshComponent();
+			Mesh->SetMobility(EComponentMobility::Movable);
+			UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+			ASSERT_THAT(IsNotNull(Cube));
+			Mesh->SetStaticMesh(Cube);
+			Mesh->SetWorldScale3D(FVector(BlockSize / (Cube->GetBounds().BoxExtent.X * 2.0)));
+			Mesh->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+			Advance(Seconds);
+			// The pelvis lowers so the right foot reaches its ground; the left, held at its own, stays where it stood.
+			const double Lowered = RightAt.Z - Skin->GetBoneLocation(Right).Z;
+			ASSERT_THAT(IsNear(Lowered, Drop, Tolerance * 1.5, *FString::Printf(TEXT("the right foot steps down: %.2f"), Lowered)));
+			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Left).Z, LeftZ, Tolerance * 1.5, TEXT("the left stays on the floor")));
+		}
+
 		TEST_METHOD(TheToonLightFollowsTheMapsSun)
 		{
 			// Fixture values: a sun low in the south-east, in a warm colour.

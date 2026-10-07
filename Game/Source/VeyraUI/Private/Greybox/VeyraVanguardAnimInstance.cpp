@@ -127,11 +127,15 @@ namespace
 			Space.InitPose(Pose);
 			if (bFeet)
 			{
+				// How planted each foot is, read from a pose of its own: reading a foot caches its leg's transforms, and
+				// the pelvis must lower before they are cached in the pose the legs are solved in, or they stay behind.
 				TArray<float> Planted;
+				FCSPose<FCompactPose> Probe;
+				Probe.InitPose(Pose);
 				for (int32 Foot = 0; Foot < Limbs.Feet.Num(); ++Foot)
 				{
 					const FCompactPoseBoneIndex End = Index(Limbs.Feet[Foot].End);
-					const float Lift = End.IsValid() ? Space.GetComponentSpaceTransform(End).GetLocation().Z - Limbs.FootRestHeights[Foot] : 0.0f;
+					const float Lift = End.IsValid() ? Probe.GetComponentSpaceTransform(End).GetLocation().Z - Limbs.FootRestHeights[Foot] : 0.0f;
 					Planted.Add(VeyraLimbIK::PlantWeight(Lift, Limbs.PlantFade) * Limbs.FootWeight);
 				}
 				// The pelvis lowers so the lower foot reaches its ground (two feet; more legs keep their height).

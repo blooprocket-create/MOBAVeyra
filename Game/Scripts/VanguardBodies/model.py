@@ -91,6 +91,9 @@ def _build(spec, shaped, layout, dims, name, bones, texture_dir, log, pool):
         bake.save(maps[kind], path, srgb)
         paths[kind] = path
     _anchor(obj, layout, bones)
+    # Counted as exported, anchors and all, so the budget's check and the manifest see every triangle.
+    obj.data.calc_loop_triangles()
+    count = len(obj.data.loop_triangles)
     # Its colour is its textures': the vertex colour stays white, and its alpha lets the mask say what glows.
     colour = obj.data.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
     colour.data.foreach_set("color", np.ones(len(obj.data.loops) * 4, dtype=np.float32))
