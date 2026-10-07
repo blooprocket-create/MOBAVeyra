@@ -11,7 +11,7 @@
 ## Context
 The author's roadmap (2026-10-06) gives M59 to "high fidelity models": "AAA indie studio level 3d models and assets". They rejected a first sculpt-over-primitives try as programmer art ("dont take shortcuts. think of these as the production level models we need").
 
-Asked how models should be made, the author first chose procedural modelling with no generative AI. They then tried a generative 3D service themselves and set it aside (2026-10-07): "maybe just use the image of the a pose as a reference and go procedurally". They supply a full-body reference image of a Vanguard on request.
+Asked how models should be made, the author first chose procedural modelling with no generative AI. They then tried a generative 3D service themselves and set it aside (2026-10-07): "maybe just use the image of the a pose as a reference and go procedurally". They supply a full-body reference image of a Vanguard on request, or, where they have none, its full-body splash art: "the splash art is a good enough reference to get a decent model into the game" (2026-10-07).
 
 A first production Kade then copied his reference closely: 24,000 triangles, 2048² baked textures, a painted face, quilting, laces and a tattoo. The author set the target (2026-10-07):
 - **Silhouette, not detail.** A Vanguard's silhouette from the game camera should resemble its splash art as closely as possible. The splash art's detail is not the target, and 24,000 triangles are not needed.
@@ -29,8 +29,8 @@ A first production Kade then copied his reference closely: 24,000 triangles, 204
   - garments over the body, cut by regions;
   - frames of their own for the head and the hands, so fingers curl round a grip.
 - **What it models.** The big forms that make the Vanguard's outline from the game camera, and its colour regions. Nothing the camera cannot see.
-- **Fit.** It is fitted to the same humanoid layout, skeleton and animations as every body (ADR-064). It rests in the A pose, empty-handed: a stance is the clips' (§6), never sculpted in.
-- **References.** The author's reference images guide it: the splash art for the silhouette, a full-body reference for proportions, measured in pixels against the figure's height, and the palette, sampled. The reference is never traced into the asset.
+- **Fit.** It is fitted to its archetype's layout, skeleton and animations, as every body is (ADR-064): a humanoid's or a colossus's. A humanoid rests in the A pose, empty-handed: a stance is the clips' (§6), never sculpted in.
+- **References.** The author's reference images guide it: the splash art for the silhouette, a full-body reference (or the splash art, where it shows the whole figure) for proportions, measured in pixels against the figure's height, and the palette, sampled. The reference is never traced into the asset. Where it disagrees with canon or the kit (a held lantern the art omits, a forelimb canon sets on the ground), canon and the kit win; where its proportions would not read from the game camera (a head a twelfth of the height), the model fits the camera.
 - **Provenance.** No generative or third-party content enters a model: every form and colour is written in its script.
 
 ### 2. The pipeline
@@ -101,7 +101,8 @@ The author's direction (2026-10-07): production models come with IK rigs and ani
 ### 7. Loose parts
 Hair, cloaks, coat tails and sashes move as such things do (the author, 2026-10-07).
 - **Chains.** A loose part hangs on spring chains: short bone chains from the bone it hangs from to a tip. The generator adds them for the parts a kit's `springs` names, and the body's art lists them (`SpringChains`), with the capsules they hang outside (`SpringColliders`: torso and legs).
-  - A cloak hangs on three chains (down the back and behind each arm), a coat's tails on two, hair on four (down the back, over each ear, over the brow).
+  - A cloak hangs on three chains (down the back and behind each arm), a coat's tails on two, hair on four (down the back, over each ear, over the brow), a long skirt on four round the hips, each arm's drape on one from its forearm, and a lantern on one from the hand that holds it.
+  - **Hanging parts.** An arm's drape and a held lantern hang plumb in every clip but a death: the clips turn each chain's first bone back against the limb it hangs from, so it falls straight down however that limb is raised. In a death it follows the limb to the ground.
 - **The motion.** In the native proxy, after the limbs, each chain trails where the clips put it, in the world. Each joint is a mass on a spring to where its clip has it:
   - `stiffness` is the spring (per second squared, its natural frequency squared);
   - `drag` is the speed it loses through the air, so a running body's cloak streams behind it;
@@ -127,4 +128,5 @@ Hair, cloaks, coat tails and sashes move as such things do (the author, 2026-10-
 4. One two-sided body material for skin, garments and cloth (§4).
 5. Cloth as sheets torn in their geometry, hair as a few big solid locks (§2a).
 6. Runtime IK for planted feet and a two-handed weapon's off hand only, eased by plant, speed and distance; weapons held by holds the clips reach, never sculpted in (§6).
-7. Loose parts on spring chains solved at runtime, rather than cloth simulation (§7); Kade's cloak, coat tails and hair (springs and turns are provisional art values).
+7. Loose parts on spring chains solved at runtime, rather than cloth simulation (§7); Kade's cloak, coat tails and hair, and Sylra's cloak, skirt, arm drapes and lantern (springs and turns are provisional art values).
+8. Sylra and Silt modelled from their splash art, the author's supplied references (§1). Sylra's head is fitted to her hood at a size the game camera reads, and her lantern kept from canon though her art omits it; Silt's kit build and leg share follow his art (a normal build, legs 0.34 of his height), his forelimbs stay on the ground as canon sets them, and his drying sediment is cut into long plates by a cellular pattern so his wet interior shows in the cracks.

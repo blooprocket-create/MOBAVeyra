@@ -170,5 +170,35 @@ class TornHems(unittest.TestCase):
         np.testing.assert_array_equal(kept, sheet.torn(u, self.STRIPS, self.CUT, self.POINT, 3.0))
 
 
+class SheetsOnChains(unittest.TestCase):
+    # Fixture: a cloak swept round her back from 105 to 255 degrees (from the front toward the left), on three chains
+    # hung from 104 (just before its sweep begins), 180 and 256 degrees (just past its end), each three bones down.
+    T0, T1 = np.radians(105.0), np.radians(255.0)
+
+    def chains(self):
+        def hung(degrees):
+            a = np.radians(degrees)
+            top = np.array([np.cos(a), np.sin(a), 0.0]) * 10.0 + np.array([0, 0, 100.0])
+            return [top - np.array([0, 0, 20.0 * k]) for k in range(4)]
+        return {"cape_l": hung(104.0), "cape": hung(180.0), "cape_r": hung(256.0)}
+
+    def test_a_chain_just_outside_the_sweep_takes_its_nearer_end(self):
+        shares = sheet.sweep_shares(self.chains(), self.T0, self.T1)
+        self.assertAlmostEqual(shares["cape_l"], 0.0, places=6)
+        self.assertAlmostEqual(shares["cape"], 0.5, places=6)
+        self.assertAlmostEqual(shares["cape_r"], 1.0, places=6)
+
+    def test_every_chain_carries_part_of_the_sheet(self):
+        chains = self.chains()
+        shares = sheet.sweep_shares(chains, self.T0, self.T1)
+        u = np.linspace(0.0, 1.0, 41)
+        P = np.stack([np.zeros_like(u), np.zeros_like(u), np.full_like(u, 70.0)], axis=1)
+        weights = sheet.down_chains(chains, shares, P, u, np.zeros_like(u), "spine_03")
+        for name in chains:
+            carried = sum(w.sum() for bone, w in weights.items() if bone.startswith(name + "_0"))
+            self.assertGreater(carried, 1.0, name)
+        np.testing.assert_allclose(sum(weights.values()), 1.0, atol=1e-5)
+
+
 if __name__ == "__main__":
     unittest.main()

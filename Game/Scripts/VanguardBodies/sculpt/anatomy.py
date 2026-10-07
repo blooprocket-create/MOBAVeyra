@@ -136,6 +136,10 @@ class Figure:
             side = "l" if sign > 0 else "r"
             pec = sdf.rotation(roll=sign * -14.0)
             self.ellipsoid("pectoral", (h(8.6), sign * S * 0.36, cz - T * 0.21), (h(3.2), S * 0.4 * wide, h(5.2)), pec, weights, group)
+            bust = look.get("bust", 0.0)
+            if bust > 0.0:
+                # A woman's chest (the look's bust, 1 full): rounder forms set lower on the chest.
+                self.ellipsoid("breast", (h(8.0 + 2.0 * bust), sign * S * 0.4, cz - T * 0.3), (h(4.4) * bust, h(4.8) * bust, h(4.4) * bust), pec, weights, group)
             self.ellipsoid("scapula", (h(-7.6), sign * S * 0.38, cz - T * 0.2), (h(2.4), S * 0.3, h(6.4)), None, weights, group)
             self.ellipsoid("glute", (h(-5.6), sign * hip * 0.62, pz - h(1.0)), (h(5.4), h(6.8), h(7.4)), None, weights, group)
             self.cone("trapezius", (h(-1.4), sign * h(3.0), cz + h(3.5)), (h(-1.2), sign * S * 0.8, self.shoulder_z + h(2.6)),
