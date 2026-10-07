@@ -45,6 +45,8 @@ enum class EVeyraTelegraphSource : uint8
 	Selection,
 	/** The rest of a line projectile's flight, on the ground (ADR-067 §3). */
 	ProjectileLane,
+	/** The local player's attack range, a guide drawn as the indicator is (ADR-052 §4). */
+	AttackRange,
 };
 
 /** The player's own level-up as this machine announces it (ADR-065 §5): the new Level, and when it came by this machine's clock. */
@@ -182,6 +184,9 @@ public:
 	/** What the last refresh telegraphed. */
 	const TArray<FVeyraTelegraph>& GetTelegraphs() const { return Telegraphs; }
 
+	/** The shaded fills the last refresh drew under its threatening and aimed telegraphs (ADR-068 §4). */
+	TArray<UStaticMeshComponent*> GetTelegraphFills() const;
+
 	/** The ring the last refresh drew for the local player's last order, while it shows (ADR-062 §6). */
 	const TOptional<FVeyraOrderMarkRing>& GetOrderMarkRing() const { return OrderMarkRing; }
 
@@ -286,6 +291,20 @@ private:
 
 	/** Veils Unit's generated body while it is hidden from its enemies and its viewer sees why (ADR-068 §6). */
 	void RefreshVeil(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin);
+
+	/** Draws the shaded fill under each threatening or aimed telegraph (ADR-068 §4), from a pool of quads it keeps. */
+	void DrawTelegraphFills();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> TelegraphFillMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMesh> TelegraphFillMesh;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> TelegraphFills;
+
+	TWeakObjectPtr<AActor> TelegraphFillOwner;
 
 	/** The Dense Fog this machine knows: the map's own, once the battleground shows, and what abilities lay (ADR-036 §1). */
 	TArray<FVeyraFogCircle> DenseFog;

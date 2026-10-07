@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generator": "Game/Scripts/BuildPresentationMaterials.py",
-  "generatorVersion": 4,
+  "generatorVersion": 5,
   "destination": "/Game/Veyra/UI/Presentation",
   "materials": [
     {
@@ -84,6 +84,19 @@
       "glowGain": 1.4,
       "tailGlow": 0.4,
       "shrink": 0.8
+    },    {
+      "name": "M_VeyraTelegraphFill",
+      "kind": "telegraphFill",
+      "purpose": "ADR-068 §4: the shaded ground under a telegraph's outline: a faint fill of its side's colour, deepening toward its edge, and an inner fill that grows from its origin to its edge as it lands. The presentation draws it on a flat quad and gives its shape (0 a circle, 1 a sector, 2 a rectangle), half-arc, size, colour and how far it has landed.",
+      "shapeParameter": "TelegraphShape",
+      "arcParameter": "TelegraphHalfArc",
+      "progressParameter": "TelegraphLanding",
+      "colorParameter": "TelegraphColor",
+      "sizeParameter": "TelegraphSize",
+      "fillOpacity": 0.2,
+      "rimOpacity": 0.55,
+      "landingOpacity": 0.4,
+      "glowGain": 0.9
     },    {
       "name": "M_VeyraSmoke",
       "kind": "particleSmoke",

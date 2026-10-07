@@ -9,8 +9,8 @@ import re
 SCHEMA_VERSION = 1
 # The version of BuildPresentationMaterials.py's graphs; a spec names the version it was written for. Version 3: the
 # toon characters' ink (ADR-068 §3), and a hover outline that looks only for the hover's own stencils. Version 4: the
-# combat effects' graphic shapes (ADR-068 §4).
-GENERATOR_VERSION = 4
+# combat effects' graphic shapes (ADR-068 §4). Version 5: the telegraphs' shaded fill (ADR-068 §4).
+GENERATOR_VERSION = 5
 # Presentation materials live where the UI's content is always cooked.
 DESTINATION_ROOT = "/Game/Veyra/UI/"
 ASSET_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
@@ -93,6 +93,17 @@ RULES = {
         "solidNeighbours": (lambda value: isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 8, "a whole number from 1 to 8"),
         "depthGap": (_positive, "a number above 0"),
         "visibleSlack": (_non_negative, "a number of at least 0"),
+    },
+    "telegraphFill": {
+        "shapeParameter": (_name, "a parameter name"),
+        "arcParameter": (_name, "a parameter name"),
+        "progressParameter": (_name, "a parameter name"),
+        "colorParameter": (_name, "a parameter name"),
+        "sizeParameter": (_name, "a parameter name"),
+        "fillOpacity": (_unit, "a number from 0 to 1"),
+        "rimOpacity": (_unit, "a number from 0 to 1"),
+        "landingOpacity": (_unit, "a number from 0 to 1"),
+        "glowGain": (_positive, "a number above 0"),
     },
     "particleSmoke": {
         "noiseScale": (_positive, "a number above 0"),
@@ -184,6 +195,10 @@ def validate(spec):
                 problems.append(f"{where}: {key} must be {wanted}")
         if kind == "postProcessOutline":
             problems += _outline_problems(where, material)
+        if kind == "telegraphFill":
+            names = [material.get(key) for key in ("shapeParameter", "arcParameter", "progressParameter", "colorParameter", "sizeParameter")]
+            if len(set(names)) != len(names):
+                problems.append(f"{where}: its five parameters need five names")
         if kind == "graphicShape" and material.get("shape") in GRAPHIC_SHAPES:
             for key in GRAPHIC_SHAPES[material["shape"]]:
                 check, wanted = GRAPHIC_SHAPE_RULES[key]

@@ -59,7 +59,10 @@ In this order, each in its own gate. Each settles its own values and adds them t
   - status effects: stunned, slowed, shielded, healed;
   - death, recall and respawn.
   - Coloured by side, and for a Vanguard's own effects by its kit's hue.
-- **Ground telegraphs** drawn as shaded shapes rather than lines.
+- **Ground telegraphs** drawn as shaded shapes rather than lines. *Settled in the telegraph gate:*
+  - Each telegraph that threatens or aims keeps its crisp outline and gains a shaded fill under it. That covers a windup, a channel, a delayed or lingering area, the player's indicator and a projectile's lane. Marks and guides (the selection ring, the attack range) stay outlines: a filled attack range would tint a wide ground for nothing.
+  - The fill is `M_VeyraTelegraphFill` (generated, translucent, unlit, its glow independent of exposure) on a pooled flat quad fitted to the shape. The material draws the circle, sector or rectangle itself, its edge a pixel wide: a faint fill in the outline's colour, deepening toward the edge.
+  - **Landing.** What lands (a windup, a channel's tick, a delayed area, a lingering area's end) fills in from its origin to its edge over its last `TelegraphLandingSeconds`. The client knows how long is left, not how long it was, so the fill marks the last moments rather than a whole windup's share.
 - **Hit feel:** a brief hold on a struck body (hitstop), and a small camera shake on the player's own heavy hits. Both follow Screen Shake and the reduced-motion settings.
 
 Animation is not part of this milestone. The author's roadmap (2026-10-06) gives high-fidelity models and assets to M59, and character and environment animation to M60.

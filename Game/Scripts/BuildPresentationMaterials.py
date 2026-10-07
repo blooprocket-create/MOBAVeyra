@@ -504,8 +504,77 @@ def build_graphic_shape(material, spec):
     assert EDIT.connect_material_expressions(custom, "", covered, ""), "shape coverage"
     assert EDIT.connect_material_property(covered, "", unreal.MaterialProperty.MP_OPACITY), "opacity"
 
+TELEGRAPH_HLSL = """
+// The shaded ground under a telegraph (ADR-068, section 4), on a flat quad: P runs from -1 to 1 across it. A circle and a
+// sector fill the quad round its centre, a sector facing +U; a rectangle fills it from its origin end (U = 0). Each is a
+// faint fill deepening toward its edge, with an inner fill grown as far as Landing; its edge a pixel wide anywhere.
+float2 P = UV * 2.0 - 1.0;
+float R = length(P);
+float In = 1.0;
+float Rim = R * R;
+float Reach = R;
+if (Shape < 0.5)
+{
+    In = saturate((1.0 - R) / max(fwidth(R), 1e-5));
+}
+else if (Shape < 1.5)
+{
+    float Angle = abs(atan2(P.y, P.x));
+    In = saturate((1.0 - R) / max(fwidth(R), 1e-5)) * saturate((HalfArc - Angle) / max(fwidth(Angle), 1e-5));
+}
+else
+{
+    // How far inside its nearest edge, in units, against its half-width: deep at the edges.
+    float2 Inside = (1.0 - abs(P)) * Size.xy;
+    Rim = 1.0 - saturate(min(Inside.x, Inside.y) / max(Size.y, 1e-5));
+    Reach = UV.x;
+}
+float Landed = saturate((Landing - Reach) / max(fwidth(Reach), 1e-5));
+float Alpha = In * saturate(lerp(FillOpacity, RimOpacity, Rim) + Landed * LandingOpacity) * Color.a;
+return float4(Color.rgb, Alpha);
+"""
+
+
+def build_telegraph_fill(material, spec):
+    """The shaded ground under a telegraph's outline (ADR-068 §4): translucent and unlit, in its side's colour at a glow
+    that reads the same under any exposure; its shape, half-arc, size, colour and how far it has landed are parameters
+    the presentation sets on each telegraph's quad."""
+    material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    scalars = [(spec["shapeParameter"], 0.0), (spec["arcParameter"], 3.14159265), (spec["progressParameter"], 0.0)]
+    inputs = [("UV", expression(material, unreal.MaterialExpressionTextureCoordinate, -1400, -500), "")]
+    y = -350
+    for (name, default), pin in zip(scalars, ("Shape", "HalfArc", "Landing")):
+        inputs.append((pin, expression(material, unreal.MaterialExpressionScalarParameter, -1400, y, parameter_name=name, default_value=default), ""))
+        y += 120
+    colour = expression(material, unreal.MaterialExpressionVectorParameter, -1400, y, parameter_name=spec["colorParameter"], default_value=unreal.LinearColor(1.0, 1.0, 1.0, 1.0))
+    # All four channels: its alpha scales the fill.
+    inputs.append(("Color", colour, "RGBA"))
+    y += 150
+    size = expression(material, unreal.MaterialExpressionVectorParameter, -1400, y, parameter_name=spec["sizeParameter"], default_value=unreal.LinearColor(100.0, 100.0, 0.0, 0.0))
+    inputs.append(("Size", size, ""))
+    y += 150
+    for key in ("fillOpacity", "rimOpacity", "landingOpacity"):
+        inputs.append((key[0].upper() + key[1:], expression(material, unreal.MaterialExpressionConstant, -1400, y, r=float(spec[key])), ""))
+        y += 100
+    custom = expression(material, unreal.MaterialExpressionCustom, -900, 0, code=TELEGRAPH_HLSL, description="VeyraTelegraphFill",
+                        output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT4, inputs=[custom_input(name) for name, _, _ in inputs])
+    for name, node, output in inputs:
+        assert EDIT.connect_material_expressions(node, output, custom, name), "telegraph input " + name
+    rgb = expression(material, unreal.MaterialExpressionComponentMask, -700, -100, r=True, g=True, b=True, a=False)
+    assert EDIT.connect_material_expressions(custom, "", rgb, ""), "telegraph colour"
+    gained = expression(material, unreal.MaterialExpressionMultiply, -550, -100, const_b=spec["glowGain"])
+    assert EDIT.connect_material_expressions(rgb, "", gained, "A"), "telegraph glow"
+    emissive = unexposed(material, gained, -350, -100)
+    assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
+    alpha = expression(material, unreal.MaterialExpressionComponentMask, -700, 100, r=False, g=False, b=False, a=True)
+    assert EDIT.connect_material_expressions(custom, "", alpha, ""), "telegraph alpha"
+    assert EDIT.connect_material_property(alpha, "", unreal.MaterialProperty.MP_OPACITY), "opacity"
+
+
 BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "postProcessInk": build_post_process_ink,
-            "particleSmoke": build_particle_smoke, "particleEffect": build_particle_effect, "graphicShape": build_graphic_shape}
+            "particleSmoke": build_particle_smoke, "particleEffect": build_particle_effect, "graphicShape": build_graphic_shape,
+            "telegraphFill": build_telegraph_fill}
 
 # -VeyraOnly=A,B builds just those materials; without it, every one.
 ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)

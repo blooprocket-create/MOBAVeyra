@@ -576,6 +576,27 @@ namespace VeyraAbilitiesTests
 			}
 		}
 
+		TEST_METHOD(AWindupsZonesAreShadedInTheCastersColourUntilTheyLand)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_slam")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector(0.0, CastRange / 2.0, 0.0)) == EVeyraCastRejection::None));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			// One fill under each zone's outline, sized to it (ADR-068 §4).
+			const TArray<UStaticMeshComponent*> Fills = Presentation.GetTelegraphFills();
+			ASSERT_THAT(AreEqual(Presentation.GetTelegraphs().Num(), Fills.Num()));
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const FBox Outer = Fills.Last()->Bounds.GetBox();
+			ASSERT_THAT(IsNear(Outer.GetExtent().X, OuterRadius, Tolerance, TEXT("the outer circle's fill spans it")));
+			FLinearColor Color = FLinearColor::Transparent;
+			float Landing = -1.0f;
+			const UMaterialInterface* Material = Fills.Last()->GetMaterial(0);
+			ASSERT_THAT(IsTrue(Material->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.TelegraphColorParameter), Color)
+				&& Color.Equals(Presentation.ColorOfSide(EVeyraTeam::A).CopyWithNewOpacity(1.0f)), TEXT("in the caster's side colour")));
+			ASSERT_THAT(IsTrue(Material->GetScalarParameterValue(FHashedMaterialParameterInfo(Settings.TelegraphLandingParameter), Landing) && Landing == 0.0f,
+				TEXT("a long windup has not begun to land")));
+		}
+
 		TEST_METHOD(ASkillshotTelegraphsItsPath)
 		{
 			FArchetypeTestWorld World{ Spawner };

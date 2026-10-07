@@ -58,6 +58,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Greybox/VeyraTelegraphFill.h"
 #include "Greybox/VeyraToonLight.h"
 #include "Movement/VeyraDrawnBody.h"
 #include "Kismet/GameplayStatics.h"
@@ -264,6 +265,13 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 				*Settings.ToonInkMaterial.ToString(), *Settings.ToonInkStencilParameter.ToString()));
 		}
 		InkStencil = FMath::RoundToInt32(Ink);
+		TelegraphFillMaterial = Settings.TelegraphFillMaterial.LoadSynchronous();
+		TelegraphFillMesh = Settings.TelegraphFillMesh.LoadSynchronous();
+		if (!TelegraphFillMaterial || !TelegraphFillMesh)
+		{
+			Problems.Add(FString::Printf(TEXT("TelegraphFillMaterial: %s or its quad %s does not load; run BuildPresentationMaterials.ps1."),
+				*Settings.TelegraphFillMaterial.ToString(), *Settings.TelegraphFillMesh.ToString()));
+		}
 		ToonLight = Settings.ToonLight.LoadSynchronous();
 		if (!ToonLight || !ToonLight->GetVectorParameterByName(Settings.ToonSunDirectionParameter) || !ToonLight->GetVectorParameterByName(Settings.ToonSunColorParameter))
 		{
@@ -786,6 +794,9 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 	Bodies.Reset();
 	DenseFog.Reset();
 	MapFog.Reset();
+	// The fills belong to their owner, which the world destroys with it.
+	TelegraphFills.Reset();
+	TelegraphFillOwner.Reset();
 	Projectiles.Reset();
 	Telegraphs.Reset();
 	if (AVeyraPlayerController* Source = CombatTextSource.Get())
@@ -1805,7 +1816,7 @@ void UVeyraGreyboxSubsystem::AddAttackRange(const AVeyraPlayerController& Local)
 	FVeyraShape Ring;
 	Ring.Kind = EVeyraShapeKind::Circle;
 	Ring.Radius = Reach.GetValue();
-	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, Body->GetActorLocation(), FVector::ForwardVector }, EVeyraTelegraphSource::Indicator, VeyraTeams::TeamOf(Body), 0.0 });
+	Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Ring, Body->GetActorLocation(), FVector::ForwardVector }, EVeyraTelegraphSource::AttackRange, VeyraTeams::TeamOf(Body), 0.0 });
 }
 
 void UVeyraGreyboxSubsystem::AddSelectionRing(const AVeyraPlayerController& Local)
@@ -1968,7 +1979,7 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 		OnGround.Origin = GroundUnder(Telegraph.Placed.Origin);
 		// An end about to land is marked in one colour for every side, so it reads as a warning (ADR-026 §4);
 		// the player's own indicator in its own.
-		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator;
+		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator || Telegraph.Source == EVeyraTelegraphSource::AttackRange;
 		const FLinearColor Color = bIndicator ? Settings.IndicatorColor
 			: Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
 		const float Thickness = bIndicator ? IndicatorThickness : Settings.TelegraphThickness;
@@ -1978,5 +1989,94 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 			TelegraphLines->DrawLine(GroundUnder(Segment.Start), GroundUnder(Segment.End), Color, SDPG_World, Thickness, 0.0f);
 		}
 	}
+	DrawTelegraphFills();
+}
+
+void UVeyraGreyboxSubsystem::DrawTelegraphFills()
+{
+	if (!TelegraphFillMaterial || !TelegraphFillMesh)
+	{
+		return;
+	}
+	AActor* Owner = TelegraphFillOwner.Get();
+	if (!Owner)
+	{
+		// Presentation only, drawn by this machine alone.
+		FActorSpawnParameters Parameters;
+		Parameters.ObjectFlags |= RF_Transient;
+		Owner = GetWorld()->SpawnActor<AActor>(Parameters);
+		if (!Owner)
+		{
+			return;
+		}
+		USceneComponent* Root = NewObject<USceneComponent>(Owner, NAME_None, RF_Transient);
+		Owner->SetRootComponent(Root);
+		Root->RegisterComponent();
+		TelegraphFillOwner = Owner;
+		TelegraphFills.Reset();
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	// The quad's own half-size, which each fill's scale stretches to its shape's.
+	const FVector Extent = TelegraphFillMesh->GetBounds().BoxExtent;
+	int32 Used = 0;
+	for (const FVeyraTelegraph& Telegraph : Telegraphs)
+	{
+		if (!VeyraTelegraphFill::IsFilled(Telegraph.Source))
+		{
+			continue;
+		}
+		if (Used == TelegraphFills.Num())
+		{
+			UStaticMeshComponent* Quad = NewObject<UStaticMeshComponent>(Owner, NAME_None, RF_Transient);
+			Quad->SetStaticMesh(TelegraphFillMesh);
+			Quad->SetMobility(EComponentMobility::Movable);
+			Quad->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Quad->SetGenerateOverlapEvents(false);
+			Quad->SetCanEverAffectNavigation(false);
+			Quad->SetCastShadow(false);
+			Quad->SetupAttachment(Owner->GetRootComponent());
+			Quad->RegisterComponent();
+			Quad->CreateDynamicMaterialInstance(0, TelegraphFillMaterial);
+			TelegraphFills.Add(Quad);
+		}
+		UStaticMeshComponent* Quad = TelegraphFills[Used++];
+		const FVeyraTelegraphFill Fill = VeyraTelegraphFill::Of(Telegraph.Placed, GroundUnder(Telegraph.Placed.Origin));
+		Quad->SetWorldLocationAndRotation(GroundUnder(Fill.Centre), FRotator(0.0, Fill.Yaw, 0.0));
+		Quad->SetWorldScale3D(FVector(Fill.HalfSize.X / FMath::Max(Extent.X, UE_KINDA_SMALL_NUMBER), Fill.HalfSize.Y / FMath::Max(Extent.Y, UE_KINDA_SMALL_NUMBER), 1.0));
+		// In the outline's own colour.
+		const bool bIndicator = Telegraph.Source == EVeyraTelegraphSource::Indicator;
+		const FLinearColor Color = bIndicator ? Settings.IndicatorColor
+			: Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
+		if (UMaterialInstanceDynamic* Material = Cast<UMaterialInstanceDynamic>(Quad->GetMaterial(0)))
+		{
+			Material->SetScalarParameterValue(Settings.TelegraphShapeParameter, static_cast<float>(Fill.Shape));
+			Material->SetScalarParameterValue(Settings.TelegraphHalfArcParameter, static_cast<float>(Fill.HalfArc));
+			Material->SetScalarParameterValue(Settings.TelegraphLandingParameter,
+				static_cast<float>(VeyraTelegraphFill::LandingOf(Telegraph.Source, Telegraph.RemainingSeconds, Settings.TelegraphLandingSeconds)));
+			Material->SetVectorParameterValue(Settings.TelegraphColorParameter, Color.CopyWithNewOpacity(1.0f));
+			Material->SetVectorParameterValue(Settings.TelegraphSizeParameter, FLinearColor(Fill.HalfSize.X, Fill.HalfSize.Y, 0.0f, 0.0f));
+		}
+		Quad->SetVisibility(true);
+	}
+	for (int32 Index = Used; Index < TelegraphFills.Num(); ++Index)
+	{
+		if (TelegraphFills[Index])
+		{
+			TelegraphFills[Index]->SetVisibility(false);
+		}
+	}
+}
+
+TArray<UStaticMeshComponent*> UVeyraGreyboxSubsystem::GetTelegraphFills() const
+{
+	TArray<UStaticMeshComponent*> Shown;
+	for (UStaticMeshComponent* Quad : TelegraphFills)
+	{
+		if (Quad && Quad->IsVisible())
+		{
+			Shown.Add(Quad);
+		}
+	}
+	return Shown;
 }
 
