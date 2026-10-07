@@ -148,8 +148,9 @@ def clothes(S, L, dims, mats, body, limbs):
 
 def cannon(S, mats, H, breech, muzzle):
     """Mournwake: an iron barrel in brass bands from the breech riding up over her left shoulder to a wide brass muzzle
-    under her right arm, Flux light standing in its bore and in a chamber along each flank; the breech block and its
-    recoil assembly at the back. Giant, as her art draws it: it runs on past where her stance holds it, behind her
+    under her right arm, Flux light standing in its bore and in a chamber along each flank, collared in brass; the
+    breech block, its recoil assembly and housing at the back, and a stabilizing brace along each upper flank from the
+    breech (canon names the braces among what makes it recognizable). Giant, as her art draws it: it runs on past where her stance holds it, behind her
     shoulder and out ahead of her. It rides her upper body (her chest's bone), which carries it with her hands on it."""
     bones = anatomy.rigid("spine_03")
     along = unit(muzzle - breech)
@@ -175,6 +176,15 @@ def cannon(S, mats, H, breech, muzzle):
     for k, offset in enumerate((side, -side)):
         chamber = offset * r * 1.02 + up * r * 0.2
         piece("chamber_%d" % k, point(0.42) + chamber, point(0.6) + chamber, r * 0.4, mats["flux"], rounding=r * 0.15)
+        for end, share in enumerate((0.4, 0.6)):
+            piece("collar_%d_%d" % (k, end), point(share) + chamber, point(share + 0.02) + chamber, r * 0.5, mats["brass"])
+        # The stabilizing brace on this upper flank, from the breech along the barrel.
+        brace = (offset * 0.7 + up * 0.9) * r * 1.3
+        piece("brace_%d" % k, point(0.04) + brace, point(0.5) + brace, r * 0.3, mats["iron"], rounding=r * 0.1)
+    # The recoil housing over the breech.
+    housing = point(0.14) + up * r * 1.5
+    parts.append(tree.leaf(S, "recoil_housing", lambda P: sdf.box(P, housing, (r * 0.5, r * 1.2, r * 1.4), np.stack([up, side, along], axis=1), r * 0.15),
+                           Box(housing - r * 1.6, housing + r * 1.6), mats["brass"], bones, protect=0.8))
     return Union(parts, k=0.3)
 
 def coat_skirt(S, L, dims, mats):

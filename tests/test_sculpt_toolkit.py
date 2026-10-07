@@ -12,7 +12,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Game" / "Scripts"))
 from VanguardBodies.sculpt import garments, sdf, sheet, tree  # noqa: E402
 from VanguardBodies.sculpt.tree import Box  # noqa: E402
-from VanguardBodies.models import silt  # noqa: E402
+from VanguardBodies.models import bryn, silt  # noqa: E402
 
 # Fixture sizes (cm): a ball standing in for a body part, the cloth over it, a fold's height above it.
 RADIUS = 10.0
@@ -209,6 +209,28 @@ class SheetsOnChains(unittest.TestCase):
             carried = sum(w.sum() for bone, w in weights.items() if bone.startswith(name + "_0"))
             self.assertGreater(carried, 1.0, name)
         np.testing.assert_allclose(sum(weights.values()), 1.0, atol=1e-5)
+
+
+class Mournwake(unittest.TestCase):
+    def test_its_stabilizing_braces_stand_along_its_flanks(self):
+        # Canon names its stabilizing braces among what makes it recognizable: a brace stands on each upper flank of
+        # the barrel, over the breech end. Fixture: a 160 cm body's cannon from over its left shoulder to its right hip.
+        S = tree.Sculpt()
+        H = 160.0
+        breech, muzzle = np.array([5.0, 13.0, 143.0]), np.array([67.0, -12.0, 87.0])
+        gun = bryn.cannon(S, bryn.materials(S), H, breech, muzzle)
+        along = (muzzle - breech) / np.linalg.norm(muzzle - breech)
+        side = np.cross(along, [0.0, 0.0, 1.0])
+        side /= np.linalg.norm(side)
+        up = np.cross(side, along)
+        r = H * 0.062
+        middle = breech + along * 0.15 * np.linalg.norm(muzzle - breech)
+        P = np.array([middle + (s * side * 0.7 + up * 0.9) * r * 1.3 for s in (1.0, -1.0)], dtype=np.float32)
+        tree.REACH[0] = 2.0
+        field = tree.evaluate(gun, P, Box.around(P, 2.0))
+        for d, label in zip(field.d, field.m):
+            self.assertLess(float(d), 0.0)
+            self.assertTrue(S.parts[label].name.startswith("brace"), S.parts[label].name)
 
 
 class TornSheetsOnChains(unittest.TestCase):
