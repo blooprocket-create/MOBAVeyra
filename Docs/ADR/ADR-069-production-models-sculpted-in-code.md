@@ -70,7 +70,7 @@ The generator runs it in the pinned Blender, with the numpy and OpenVDB it bundl
 The humanoid layout gains kit fields, each optional:
 - `legShare`: the leg's share of the height.
 - `hipShare`: the hip joints' spacing.
-- `aimBore`: a weapon held in both hands at its sight: the bore line's height and offset, where each hand holds it, which way each elbow bends, how the head bows to the sight, and the weapon's `carry` (§6).
+- `aimBore`: a weapon held in both hands at its sight: the bore line's height and offset, where each hand holds it, which way each elbow bends, how the head bows to the sight, and the weapon's `carry` (§6). A generated body's entry may give only the head's bow and the carry: it aims where its stance puts the weapon, and its holds carry it as a model's do.
 - `springs`: the loose parts that hang on spring chains (§7), each with its spring, drag, damping and turn (`stiffness`, `drag`, `damping`, `maxAngle`).
 
 A body that sets none is laid out as before.
@@ -81,6 +81,7 @@ The author's direction (2026-10-07): production models come with IK rigs and ani
   - The body rests empty-handed in the A pose. Its weapon hangs from the right hand's prop bone, and its hands are built as they hold it.
   - Each clip reaches both arms to where the weapon is: carried low across the body as it stands, runs, casts, recalls or is struck; raised to the sight only through the attack's windup and strike, the head bowing to it; let go as the body dies, the weapon tipping out of the hand to lie flat.
   - The arms are two-bone solves in the generator, each elbow hinged as it bends at rest so a forearm never twists. The carry rides the chest; the sight holds where the layout aims it.
+  - Each hand and its prop bone rest as they are at the aim, moved unturned to the rest wrist, so the weapon built on them is the one the holds carry, and a dropped weapon tips about its grip.
 - **What holds at runtime.**
   - A body's feet are held to the ground under them, so a Vanguard stands on the battleground's slopes and steps rather than floating or sinking.
   - A weapon carried in both hands keeps the off hand on it, however the carrying hand moves.

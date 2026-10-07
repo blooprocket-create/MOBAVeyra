@@ -230,7 +230,7 @@ def layout(spec, capsule):
         # Mid-sight: a long arm held two-handed at the shoulder, its optic at the eye and the left hand forward under the
         # barrel, elbows bent out and down. The weapon points the way the body faces.
         aim = spec.get("aimBore")
-        if aim:
+        if aim and "boreShare" in aim:
             # Fitted to a production model's rifle (ADR-069 §5): its bore runs boreShare of the height above the ground,
             # rightShare to the right of the body's middle, under the eye; the right hand holds its grip and the left
             # its fore-end, each elbow bending toward its own direction.
@@ -253,8 +253,13 @@ def layout(spec, capsule):
             aimed["prop_" + side] = (grips[side], grips[side] + Vector((arm * 0.15, 0, 0)))
         if aim and "carry" in aim:
             # Held, not posed: the body rests empty-handed and its clips reach the arms to the weapon, carried low and
-            # raised to this aim only to attack.
+            # raised to this aim only to attack. Each hand and its prop rest as they are at the aim, moved unturned to
+            # the rest wrist, so the weapon built on them is the one the holds carry and turns about its grip.
             held = holds.prepare(L, aimed, grips, poles, aim, height)
+            for side in ("l", "r"):
+                offset = Vector(held["offset"][side])
+                L["hand_" + side] = (L["hand_" + side][0], aimed["hand_" + side][1] + offset)
+                L["prop_" + side] = (aimed["prop_" + side][0] + offset, aimed["prop_" + side][1] + offset)
         else:
             L.update(aimed)
     elif stance == "braced":
