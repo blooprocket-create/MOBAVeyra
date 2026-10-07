@@ -109,7 +109,9 @@ def build(S, L, dims, spec):
     worn = Over([surface, drips(S, L, mats, H)])
     # Cut flat where he meets the ground: nothing of him sinks below it.
     worn = tree.Intersect(worn, Zone(lambda P: -P[:, 2], Box(V(-500, -500, -0.5), V(500, 500, 600))))
-    return worn, {"body": core, "sheets": [flung(S, L, dims, mats, side) for side in ("l", "r")]}
+    # What he flings, where his kit hangs it on chains.
+    sheets = [flung(S, L, dims, mats, side) for side in ("l", "r")] if "ribbon_l_01" in L else []
+    return worn, {"body": core, "sheets": sheets}
 
 
 def hand(S, mats, parts, side, wrist, end, H):
@@ -171,28 +173,36 @@ def drips(S, L, mats, H):
 
 
 def flung(S, L, dims, mats, side):
-    """A broad ribbon of wet material flung up and back off one shoulder, arcing over and trailing behind him, torn into
-    tongues at its end: he is always throwing himself through the air."""
+    """A broad ribbon of wet material flung back off one shoulder, laid along its spring chain (ADR-069 §7) as the
+    archetype arcs it: back and out, rising a little before it falls behind him, narrowing and torn into tongues at its
+    end. It trails and swings as he moves: he is always throwing himself through the air."""
     H = dims["height"]
-    sign = 1.0 if side == "l" else -1.0
     material = S.material("flung_" + side, PALETTE["wet"])
-    s = V(*L["upperarm_" + side][0])
-    root = s + V(-H * 0.09, -sign * H * 0.02, H * 0.03)
-    columns, rows, strips = 6, 8, 3
+    joints = np.array([L["ribbon_%s_%02d" % (side, i)][0] for i in (1, 2, 3)] + [L["ribbon_%s_end" % side][0]], dtype=np.float64)
+    spans = len(joints) - 1
+    columns, rows, strips = 6, 9, 3
+    width = H * 0.1
+
+    def along(v):
+        """The chain's centre line at v (0 at the shoulder, 1 at its end), and which way it runs there."""
+        x = np.clip(v, 0.0, 1.0) * spans
+        k = np.minimum(np.floor(x).astype(int), spans - 1)
+        f = (x - k)[:, None]
+        return joints[k] + (joints[k + 1] - joints[k]) * f, joints[k + 1] - joints[k]
 
     def position(u, v):
-        v = v * sheet.torn(u, strips, 0.5, 0.25, 21.0 + sign)
-        across = (u - 0.5) * H * 0.1
-        # Off the back of the shoulder, swept back and out and falling away behind him, low enough never to stand
-        # above him like horns.
-        reach = H * 0.4 * v
-        p = np.stack([np.full_like(u, root[0]), np.full_like(u, root[1]), np.full_like(u, root[2])], axis=1)
-        p[:, 0] += -reach * 0.85 - across * 0.15
-        p[:, 1] += sign * (across + reach * 0.5)
-        p[:, 2] += H * 0.06 * np.sin(np.pi * np.clip(v * 0.9, 0, 1)) - H * 0.18 * v ** 1.5
-        return p
+        v = v * sheet.torn(u, strips, 0.5, 0.25, 21.0 + (1.0 if side == "l" else -1.0))
+        centre, run = along(v)
+        across = np.cross(run, np.array([0.0, 0.0, 1.0]))
+        across /= np.maximum(np.linalg.norm(across, axis=1, keepdims=True), 1e-6)
+        return centre + across * ((u - 0.5) * width * (1.0 - 0.4 * v))[:, None]
 
     def bones(P, u, v):
-        hold = np.clip(1 - v / 0.3, 0, 1)
-        return {"spine_03": (hold * 0.5 + (1 - hold)).astype(np.float32), "clavicle_" + side: (hold * 0.5).astype(np.float32)}
+        # Down its chain by how far along it lies, its root held by the clavicle it leaves from.
+        hold = np.clip(1 - v / 0.12, 0, 1)
+        x = np.clip(v * spans, 0.5, spans - 0.5)
+        w = {"ribbon_%s_%02d" % (side, k + 1): np.clip(1 - np.abs(x - (k + 0.5)), 0, 1) * (1 - hold) for k in range(spans)}
+        w["clavicle_" + side] = hold
+        total = sum(w.values())
+        return {k: (np.asarray(x) / np.maximum(total, 1e-6)).astype(np.float32) for k, x in w.items()}
     return sheet.Sheet("flung_" + side, position, material, bones, columns, rows)

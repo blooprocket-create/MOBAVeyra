@@ -11,10 +11,18 @@ import random
 
 from mathutils import Euler, Matrix, Vector
 
-from . import humanoid
+from . import humanoid, springs
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
 
 BONES = [bone for bone in humanoid.BONES if not bone[0].startswith(("tail_", "cape_"))]
+# Loose parts a colossus's kit may give it spring chains for (ADR-069 §7): ribbons of material flung back off each
+# shoulder, each on a chain from its clavicle.
+SPRING_PARTS = {"ribbons": [("ribbon_" + side, ["ribbon_%s_%02d" % (side, i) for i in (1, 2, 3)] + ["ribbon_%s_end" % side], "clavicle_" + side)
+                            for side in ("l", "r")]}
+# A flung ribbon's arc, as shares of the height: where it leaves the back of the shoulder (back, out, up), how far it
+# trails back and out, how high it rises and how far it falls by its end.
+RIBBON_START = (-0.09, 0.02, 0.03)
+RIBBON_BACK, RIBBON_OUT, RIBBON_RISE, RIBBON_FALL = 0.34, 0.2, 0.06, 0.18
 UPPER_BODY_BONE = "spine_01"
 LIFT_BONE = "pelvis"
 GROUNDED = True
@@ -91,9 +99,31 @@ def layout(spec, capsule):
         L["thigh_" + side] = (hip_point, knee)
         L["calf_" + side] = (knee, hock)
         L["foot_" + side] = (hock, Vector((hock.x + leg * 0.35, hock.y, sole * 0.8)))
+    if "ribbons" in spec.get("springs", {}):
+        # Each ribbon arcs from the back of its shoulder, back and out, rising a little before it falls behind him.
+        for side, sign in (("l", 1.0), ("r", -1.0)):
+            start = L["upperarm_" + side][0] + Vector((RIBBON_START[0], sign * RIBBON_START[1], RIBBON_START[2])) * height
+            arc = [start + Vector((-RIBBON_BACK * v, sign * RIBBON_OUT * v, RIBBON_RISE * math.sin(math.pi * v * 0.9) - RIBBON_FALL * v ** 1.5)) * height
+                   for v in (0.0, 1 / 3, 2 / 3, 1.0)]
+            for index in range(3):
+                L["ribbon_%s_%02d" % (side, index + 1)] = (arc[index], arc[index + 1])
+            L["ribbon_%s_end" % side] = (arc[3], arc[3] + (arc[3] - arc[2]) * 0.05)
     dims = {"height": height, "full": full, "base": 0.0, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
             "hip": hip, "arm": arm, "build": build, "sole": sole, "knuckle": "knuckleWalk" in features}
     return L, dims
+
+
+def bones_of(spec):
+    """Its bones: every colossus's, and the chains its loose parts hang on."""
+    return springs.bones_with(BONES, SPRING_PARTS, spec)
+
+
+def springs_of(spec, L, dims):
+    """Its loose parts' chains and the capsules they hang outside (its trunk and legs), for its art: a plain dict."""
+    colliders = [{"from": "pelvis", "to": "spine_03", "radius": dims["shoulder"] * 0.55}]
+    for side in ("l", "r"):
+        colliders.append({"from": "thigh_" + side, "to": "calf_" + side, "radius": dims["hip"] * 0.9})
+    return springs.records(SPRING_PARTS, spec, L, colliders)
 
 
 def mass(body, style, bone, start, end, r0, r1, spec, rng):

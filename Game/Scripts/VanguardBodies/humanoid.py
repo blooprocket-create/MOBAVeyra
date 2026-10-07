@@ -4,7 +4,7 @@ import random
 
 from mathutils import Euler, Matrix, Vector
 
-from . import holds, locomotion
+from . import holds, locomotion, springs
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
 # The humanoid skeleton: every humanoid has every bone, so all share one definition. A bone a body does not use (a
@@ -55,38 +55,17 @@ HAIR_CHAINS = {"hair_b": ((-0.34, 0.0, 0.62), (-0.45, 0.0, -1.0), 0.34), "hair_l
 
 def bones_of(spec):
     """Its bones: every humanoid's, and the chains its loose parts hang on (each after its parent)."""
-    bones, known = list(BONES), {name for name, _ in BONES}
-    for part in spec.get("springs", {}):
-        for _chain, names, parent in SPRING_PARTS[part]:
-            for name in names:
-                if name not in known:
-                    bones.append((name, parent))
-                    known.add(name)
-                parent = name
-    return bones
+    return springs.bones_with(BONES, SPRING_PARTS, spec)
 
 
 def springs_of(spec, L, dims):
-    """Its loose parts' chains and the capsules they hang outside, for its art (ADR-069): a plain dict. No chain's joint
-    rests inside a capsule, or the engine would push its cloth off where the model hangs it."""
-    springs = spec.get("springs", {})
-    chains = [{"bones": names, "stiffness": springs[part]["stiffness"], "drag": springs[part]["drag"], "damping": springs[part]["damping"],
-               "maxAngle": springs[part]["maxAngle"]}
-              for part in springs for _chain, names, _parent in SPRING_PARTS[part]]
+    """Its loose parts' chains and the capsules they hang outside, for its art (ADR-069): a plain dict."""
     # Its torso and each leg, as wide as the figure is: a cloak falls behind them, a coat's tails beside them.
     colliders = [{"from": "pelvis", "to": "spine_03", "radius": dims["shoulder"] * 0.62}]
     for side in ("l", "r"):
         colliders += [{"from": "thigh_" + side, "to": "calf_" + side, "radius": dims["hip"] * 0.75},
                       {"from": "calf_" + side, "to": "foot_" + side, "radius": dims["hip"] * 0.55}]
-    for collider in colliders:
-        a, b = L[collider["from"]][0], L[collider["to"]][0]
-        ab = b - a
-        for chain in chains:
-            for bone in chain["bones"][1:]:
-                p = L[bone][0]
-                nearest = a + ab * max(0.0, min(1.0, (p - a).dot(ab) / max(ab.dot(ab), 1e-9)))
-                assert (p - nearest).length >= collider["radius"], (spec["id"], bone, "rests inside its body", collider)
-    return {"chains": chains, "colliders": colliders} if chains else None
+    return springs.records(SPRING_PARTS, spec, L, colliders)
 # A leg's radius as a share of the body's height, and the foot's radius at heel and toe as shares of it.
 LEG_SHARE = 0.052
 FOOT_HEEL_SHARE = 0.75
