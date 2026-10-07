@@ -41,6 +41,8 @@ enum class EVeyraTelegraphSource : uint8
 	Indicator,
 	/** The ring under the unit the local player selected, in its side's colour (ADR-066 §2). */
 	Selection,
+	/** The rest of a line projectile's flight, on the ground (ADR-067 §3). */
+	ProjectileLane,
 };
 
 /** The player's own level-up as this machine announces it (ADR-065 §5): the new Level, and when it came by this machine's clock. */
@@ -253,7 +255,13 @@ private:
 		FVeyraBodyFeedbackState Feedback;
 		TWeakObjectPtr<UMaterialInstanceDynamic> Flash;
 		TWeakObjectPtr<class UMeshComponent> Flashing;
+
+		/** How far its skin is turned from its mesh's facing toward the player's order, in degrees (ADR-067 §2); 0 for any other body. */
+		double LeadYaw = 0.0;
 	};
+
+	/** Unit's lead toward the player's latest order, if Unit is the body the player commands; none otherwise (ADR-067 §2). */
+	struct FVeyraBodyLead OwnLeadOf(const APawn& Unit, double Radius) const;
 
 	/** Notes a cue in its unit's body, and plays its effect. */
 	void OnCombatCue(const struct FVeyraCombatCue& Cue);
@@ -351,6 +359,9 @@ private:
 
 	/** Adds the ring under the unit the local player selected, just outside its drawn body (ADR-066 §2). */
 	void AddSelectionRing(const class AVeyraPlayerController& Local);
+
+	/** Adds each line projectile's lane, the rest of its flight at server time Now (ADR-067 §3). */
+	void AddProjectileLanes(double Now);
 	void DrawTelegraphs();
 
 	/** The viewer's side's presence pings and outlines, drawn on the ground with the telegraphs (ADR-016 §8). */
