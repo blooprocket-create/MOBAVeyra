@@ -18,7 +18,7 @@ import unreal
 
 GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
 sys.path.insert(0, str(GAME / "Scripts"))
-from PresentationMaterials.spec import GENERATOR_VERSION, RULES, validate  # noqa: E402
+from PresentationMaterials.spec import GENERATOR_VERSION, GRAPHIC_SHAPES, RULES, validate  # noqa: E402
 from veyra_material_graph import unexposed  # noqa: E402
 
 SPEC_FILE = GAME / "ArtSource" / "Presentation" / "PresentationMaterials.json"
@@ -416,8 +416,96 @@ def build_particle_effect(material, spec):
     assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
 
 
+GRAPHIC_SHAPE_HLSL = {
+    # A hard disc that shrinks. Each shape gives how far inside its edge this pixel lies (Inside) and inside its core's
+    # (InCore), in the shape's own measure: positive within, negative beyond.
+    "flare": """
+float R = length(P);
+float Size = 1.0 - Shrink.r * Age;
+float Inside = Size - R;
+float InCore = Size * CoreShare.r - R;
+""",
+    # A band that bursts out from Start to the sprite's edge, fast then slowing, and thins from Thickness to nothing.
+    "ring": """
+float R = length(P);
+float Out = 1.0 - (1.0 - Age) * (1.0 - Age);
+float Outer = lerp(Start.r, 1.0, Out);
+float Width = Thickness.r * (1.0 - Age);
+float Inner = Outer - Width;
+float Inside = min(Outer - R, R - Inner);
+float InCore = min(R - Inner, Inner + Width * CoreShare.r - R);
+""",
+    # Four points, the sharper the lower their exponent (Points; an astroid at 2/3), shrinking: a star scaled by k holds
+    # |x|^e + |y|^e <= k^e.
+    "star": """
+float2 A = abs(P);
+float S = pow(A.x, Points.r) + pow(A.y, Points.r);
+float Size = pow(max(1.0 - Shrink.r * Age, 0.0), Points.r);
+float Inside = Size - S;
+float InCore = Size * pow(CoreShare.r, Points.r) - S;
+""",
+    # A diamond filling the sprite, long along its long side (a sprite drawn along its velocity), shrinking.
+    "streak": """
+float2 A = abs(P);
+float D = A.x + A.y;
+float Size = 1.0 - Shrink.r * Age;
+float Inside = Size - D;
+float InCore = Size * CoreShare.r - D;
+""",
+}
+
+GRAPHIC_HLSL = """
+// A combat effect's graphic shape (ADR-068, section 4), drawn in its sprite from the particle's normalized age: how much
+// of this pixel it covers (alpha), and its colour, white-hot in its core while young and cooling to its own colour.
+float2 P = UV * 2.0 - 1.0;
+float Age = saturate(Life);
+{shape}
+// Each edge is a pixel's width wherever the sprite stands, so the shape stays crisp and smooth at any size: how far
+// inside the edge a pixel lies, in pixels, from how fast the measure changes across the screen.
+float Edge = saturate(Inside / max(fwidth(Inside), 1e-5) + 0.5);
+float Core = saturate(InCore / max(fwidth(InCore), 1e-5) + 0.5);
+// The particle's colour folded under 1 by its brightest channel, so a template that brightens colour keeps its hue.
+float3 Hue = Color.rgb / max(max(max(Color.r, Color.g), Color.b), 1.0);
+float3 Hot = lerp(Hue, float3(1.0, 1.0, 1.0), Core * CoreWhiten.r * (1.0 - Age));
+return float4(Hot * GlowGain.r * lerp(1.0, TailGlow.r, Age), Edge);
+"""
+
+
+def build_graphic_shape(material, spec):
+    """A combat effect's graphic shape (ADR-068 §4): a hard-edged flare, ring, star or streak drawn in its sprite, unlit,
+    with a white-hot core that cools to the particle's colour and a glow that falls from glowGain to tailGlow of it as
+    it ages; its glow reads the same under any exposure. Its shape grows or shrinks with the particle's normalized age,
+    which every Niagara renderer passes.
+
+    It is translucent, its edge anti-aliased in the shader a pixel wide: masked, two such sprites in one place (a flare
+    over a ring) fought in depth, and one's whole square showed over the other."""
+    material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    material.set_editor_property("used_with_niagara_sprites", True)
+    inputs = [("UV", expression(material, unreal.MaterialExpressionTextureCoordinate, -1400, -400), ""),
+              ("Life", expression(material, unreal.MaterialExpressionParticleRelativeTime, -1400, -250), ""),
+              ("Color", expression(material, unreal.MaterialExpressionParticleColor, -1400, -100), "")]
+    y = 50
+    for key in ("coreShare", "coreWhiten", "glowGain", "tailGlow") + GRAPHIC_SHAPES[spec["shape"]]:
+        # The star's exponent goes in as Points: a custom input named Exponent does not take a connection.
+        name = "Points" if key == "exponent" else key[0].upper() + key[1:]
+        inputs.append((name, expression(material, unreal.MaterialExpressionConstant, -1400, y, r=float(spec[key])), ""))
+        y += 100
+    custom = expression(material, unreal.MaterialExpressionCustom, -900, 0, code=GRAPHIC_HLSL.replace("{shape}", GRAPHIC_SHAPE_HLSL[spec["shape"]]),
+                        description="VeyraGraphicShape", output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT4,
+                        inputs=[custom_input(name) for name, _, _ in inputs])
+    for name, node, output in inputs:
+        assert EDIT.connect_material_expressions(node, output, custom, name), "shape input " + name
+    colour = expression(material, unreal.MaterialExpressionComponentMask, -700, -100, r=True, g=True, b=True, a=False)
+    assert EDIT.connect_material_expressions(custom, "", colour, ""), "shape colour"
+    emissive = unexposed(material, colour, -450, -100)
+    assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
+    covered = expression(material, unreal.MaterialExpressionComponentMask, -700, 100, r=False, g=False, b=False, a=True)
+    assert EDIT.connect_material_expressions(custom, "", covered, ""), "shape coverage"
+    assert EDIT.connect_material_property(covered, "", unreal.MaterialProperty.MP_OPACITY), "opacity"
+
 BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "postProcessInk": build_post_process_ink,
-            "particleSmoke": build_particle_smoke, "particleEffect": build_particle_effect}
+            "particleSmoke": build_particle_smoke, "particleEffect": build_particle_effect, "graphicShape": build_graphic_shape}
 
 # -VeyraOnly=A,B builds just those materials; without it, every one.
 ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)

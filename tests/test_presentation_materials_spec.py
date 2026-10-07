@@ -83,6 +83,25 @@ class PresentationMaterialsSpec(unittest.TestCase):
             self.assertEqual(len(problems), 1, (key, value, problems))
             self.assertIn(f": {key} must be ", problems[0])
 
+    def test_every_graphic_shape_is_shipped(self):
+        shapes = {entry["shape"] for entry in SHIPPED["materials"] if entry["kind"] == "graphicShape"}
+        self.assertEqual(shapes, set(checker.GRAPHIC_SHAPES))
+
+    def test_a_graphic_shape_needs_its_own_values_in_range(self):
+        # A ring needs where it starts and how thick it is; a star how sharp its points are (ADR-068 §4).
+        ring = next(entry for entry in copy.deepcopy(SHIPPED["materials"]) if entry.get("shape") == "ring")
+        del ring["start"]
+        self.assertEqual(checker.validate(with_material(ring)), [f"materials[0] ({ring['name']}): start is required"])
+        star = next(entry for entry in copy.deepcopy(SHIPPED["materials"]) if entry.get("shape") == "star")
+        for bad in (0.0, 1.0, "sharp"):
+            star["exponent"] = bad
+            problems = checker.validate(with_material(star))
+            self.assertEqual(len(problems), 1, (bad, problems))
+            self.assertIn(": exponent must be ", problems[0])
+        flare = next(entry for entry in copy.deepcopy(SHIPPED["materials"]) if entry.get("shape") == "flare")
+        flare["shrink"] = 1.0
+        self.assertEqual(len(checker.validate(with_material(flare))), 1)
+
     def test_the_outline_needs_three_distinct_stencils(self):
         entry = material("postProcessOutline")
         entry["stencils"]["ally"] = entry["stencils"]["enemy"]

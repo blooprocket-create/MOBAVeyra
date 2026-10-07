@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generator": "Game/Scripts/BuildPresentationMaterials.py",
-  "generatorVersion": 3,
+  "generatorVersion": 4,
   "destination": "/Game/Veyra/UI/Presentation",
   "materials": [
     {
@@ -40,6 +40,51 @@
       "visibleSlack": 4.0
     },
     {
+      "name": "M_VeyraFxFlare",
+      "kind": "graphicShape",
+      "purpose": "ADR-068 §4: a graphic flash, a hard-edged disc with a white-hot heart in its colour that shrinks and dims as it ages; the heart of a hit, a death or a projectile's trail.",
+      "shape": "flare",
+      "coreShare": 0.55,
+      "coreWhiten": 1.0,
+      "glowGain": 1.4,
+      "tailGlow": 0.45,
+      "shrink": 0.85
+    },
+    {
+      "name": "M_VeyraFxRing",
+      "kind": "graphicShape",
+      "purpose": "ADR-068 §4: a graphic shockwave, a hard-edged band that bursts out from a small ring to the sprite's edge, white-hot on its inner edge, thinning to nothing as it ages; a cast, a death or a level-up.",
+      "shape": "ring",
+      "coreShare": 0.4,
+      "coreWhiten": 0.9,
+      "glowGain": 1.3,
+      "tailGlow": 0.4,
+      "start": 0.2,
+      "thickness": 0.45
+    },
+    {
+      "name": "M_VeyraFxStar",
+      "kind": "graphicShape",
+      "purpose": "ADR-068 §4: a graphic spark, a four-pointed star with a white-hot heart that shrinks to a point as it ages; the strike of a hit.",
+      "shape": "star",
+      "coreShare": 0.35,
+      "coreWhiten": 1.0,
+      "glowGain": 1.5,
+      "tailGlow": 0.5,
+      "shrink": 0.9,
+      "exponent": 0.5
+    },
+    {
+      "name": "M_VeyraFxStreak",
+      "kind": "graphicShape",
+      "purpose": "ADR-068 §4: a graphic streak, a long diamond drawn along its particle's flight with a white-hot spine that narrows away as it ages; sparks thrown off a hit, a cast's thrust, a level-up's rise.",
+      "shape": "streak",
+      "coreShare": 0.4,
+      "coreWhiten": 0.95,
+      "glowGain": 1.4,
+      "tailGlow": 0.4,
+      "shrink": 0.8
+    },    {
       "name": "M_VeyraSmoke",
       "kind": "particleSmoke",
       "purpose": "ADR-064 §1: a body of stylized smoke (Nix), drawn by particles; each puff a solid, ragged, sunlit blob that glows young and erodes through holes as it ages.",
