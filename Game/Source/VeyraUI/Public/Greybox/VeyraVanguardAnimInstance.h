@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Animation/AnimInstance.h"
+#include "Greybox/VeyraSpringChain.h"
 #include "Greybox/VeyraVanguardAnimation.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 
@@ -58,6 +59,10 @@ public:
 		FTransform OffHandFromAnchor = FTransform::Identity;
 		float OffHandWeight = 0.0f;
 		float OffHandRelease = 0.0f;
+		/** Its loose parts' chains and the capsules they hang outside (ADR-069), and how every chain keeps time. */
+		TArray<FVeyraSpringChainArt> Springs;
+		TArray<FVeyraSpringColliderArt> SpringColliders;
+		VeyraSpringChain::FTiming SpringTiming;
 		float MaxStretch = 0.0f;
 		float MaxPelvisDrop = 0.0f;
 		float PlantFade = 0.0f;

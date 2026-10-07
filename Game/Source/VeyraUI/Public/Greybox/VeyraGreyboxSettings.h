@@ -784,6 +784,24 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
 	float OffHandReleaseDistance = 0.0f;
 
+	/**
+	 * Loose parts (ADR-069): a body's spring chains (its art's SpringChains: a cloak, coat tails, hair) trail its clips'
+	 * pose, each moving as its art says. A frame longer than SpringMaxStepSeconds counts as that long; the motion is
+	 * stepped in substeps of at most SpringSubstepSeconds, so it moves alike at any frame rate; and a body that jumps
+	 * farther than SpringTeleportDistance (a respawn, a blink) settles its chains on its clips.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts")
+	bool bSpringChains = false;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts", meta = (ClampMin = "0"))
+	float SpringMaxStepSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts", meta = (ClampMin = "0"))
+	float SpringSubstepSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts", meta = (ClampMin = "0"))
+	float SpringTeleportDistance = 0.0f;
+
 	/** How thick the disc an animated Vanguard's body becomes under its feet is, in units: its side's colour and status tint. */
 	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "0.1"))
 	float VanguardFootDiscHeight = 0.0f;

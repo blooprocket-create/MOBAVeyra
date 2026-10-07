@@ -685,6 +685,59 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Left).Z, LeftZ, Tolerance * 1.5, TEXT("the left stays on the floor")));
 		}
 
+		TEST_METHOD(ALooseCloakTrailsItsMovingBodyThenSettles)
+		{
+			// Fixture values: a frame of the world, a run's step each frame (cm), how long it runs and then rests, and how far
+			// a trailing tip must fall behind to count.
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr double Step = 12.0;
+			constexpr float Running = 0.5f;
+			constexpr float Resting = 3.0f;
+			constexpr double Trail = 3.0;
+			ASSERT_THAT(IsTrue(GetDefault<UVeyraGreyboxSettings>()->bSpringChains, TEXT("loose parts move")));
+			// A Vanguard whose body has a loose part.
+			FName Id;
+			const FVeyraSpringChainArt* Chain = nullptr;
+			for (const TPair<FName, FVeyraVanguardArt>& Entry : ArtSet().Art)
+			{
+				if (!Entry.Value.SpringChains.IsEmpty())
+				{
+					Id = Entry.Key;
+					Chain = &Entry.Value.SpringChains[0];
+					break;
+				}
+			}
+			ASSERT_THAT(IsNotNull(Chain, TEXT("a body with a spring chain")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(Id);
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(RefreshedGreybox().FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			const UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance());
+			const UAnimSequence* Idle = Animation ? Animation->GetClip(EVeyraVanguardClip::Idle) : nullptr;
+			ASSERT_THAT(IsNotNull(Idle, TEXT("a body that idles")));
+			const FName Tip = Chain->Bones.Last();
+			const auto FramesOf = [](float Seconds) { return FMath::Max(1, FMath::RoundToInt32(Seconds / Frame)); };
+			const auto Advance = [Skin](int32 Frames, double Move) {
+				for (int32 Index = 0; Index < Frames; ++Index)
+				{
+					Skin->SetWorldLocation(Skin->GetComponentLocation() + FVector(Move, 0.0, 0.0));
+					Skin->TickAnimation(Frame, false);
+					Skin->RefreshBoneTransforms();
+				}
+			};
+			const auto Behind = [Skin, Tip]() { return Skin->GetComponentLocation().X - Skin->GetBoneLocation(Tip).X; };
+			Advance(FramesOf(Resting), 0.0);
+			const double AtRest = Behind();
+			// Running forward (+X), the tip falls behind where the clips hang it.
+			const int32 Ran = FramesOf(Running);
+			Advance(Ran, Step);
+			ASSERT_THAT(IsTrue(Behind() > AtRest + Trail, *FString::Printf(TEXT("it trails: %.2f behind, %.2f at rest"), Behind(), AtRest)));
+			// Stopped, it swings back to hang where it hung: compared at the same moment of its idle (whole cycles on), as
+			// the idle moves the bone the cloak hangs from.
+			const int32 Cycle = FramesOf(Idle->GetPlayLength());
+			Advance(Cycle * FMath::DivideAndRoundUp(Ran + FramesOf(Resting), Cycle) - Ran, 0.0);
+			ASSERT_THAT(IsNear(Behind(), AtRest, Tolerance, *FString::Printf(TEXT("and settles: %.2f behind, %.2f at rest"), Behind(), AtRest)));
+		}
+
 		TEST_METHOD(TheToonLightFollowsTheMapsSun)
 		{
 			// Fixture values: a sun low in the south-east, in a warm colour.

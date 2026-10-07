@@ -102,7 +102,31 @@ TArray<FString> FVeyraVanguardBody::Validate(const FString& Label) const
 				Problems.Add(FString::Printf(TEXT("%s: the limb bone %s is no bone of its skeleton."), *Label, *Bone.ToString()));
 			}
 		}
-	}	return Problems;
+	}
+	// Its loose parts' chains: bones of its skeleton, two or more, each drawn toward its clip and free to turn from it.
+	for (const FVeyraSpringChainArt& Chain : SpringChains)
+	{
+		if (Chain.Bones.Num() < 2 || !(Chain.Stiffness > 0.0f) || !(Chain.Drag >= 0.0f) || !(Chain.Damping >= 0.0f)
+			|| !(Chain.MaxAngleDegrees > 0.0f && Chain.MaxAngleDegrees <= 180.0f))
+		{
+			Problems.Add(Label + TEXT(": a spring chain needs two bones or more, a Stiffness above 0, a Drag and a Damping of 0 or more, and a MaxAngleDegrees above 0 and at most 180."));
+		}
+		for (const FName Bone : Chain.Bones)
+		{
+			if (Bones.FindBoneIndex(Bone) == INDEX_NONE)
+			{
+				Problems.Add(FString::Printf(TEXT("%s: the spring chain's bone %s is no bone of its skeleton."), *Label, *Bone.ToString()));
+			}
+		}
+	}
+	for (const FVeyraSpringColliderArt& Collider : SpringColliders)
+	{
+		if (Bones.FindBoneIndex(Collider.From) == INDEX_NONE || Bones.FindBoneIndex(Collider.To) == INDEX_NONE || !(Collider.Radius > 0.0f))
+		{
+			Problems.Add(Label + TEXT(": a spring collider needs two bones of its skeleton and a Radius above 0."));
+		}
+	}
+	return Problems;
 }
 
 const FVeyraVanguardBody& FVeyraVanguardArt::BodyFor(TFunctionRef<bool(FName)> Holds) const

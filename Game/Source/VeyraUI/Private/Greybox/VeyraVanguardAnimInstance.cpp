@@ -5,6 +5,7 @@
 #include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/AnimSequence.h"
+#include "Animation/Skeleton.h"
 #include "AnimationRuntime.h"
 #include "BonePose.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -12,6 +13,7 @@
 #include "Engine/World.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraLimbIK.h"
+#include "Greybox/VeyraSpringChain.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 
 namespace
@@ -81,6 +83,7 @@ namespace
 				Output.Pose.CopyBonesFrom(Blended.Pose);
 			}
 			SolveLimbs(Output.Pose);
+			SolveSprings(Output.Pose);
 			return true;
 		}
 
@@ -206,12 +209,91 @@ namespace
 			Space.SetComponentSpaceTransform(End, FTransform(Turn, Solved.End, EndNow.GetScale3D()));
 		}
 
+		/**
+		 * The loose parts (ADR-069), over everything else: each spring chain trails where the pose puts it, in the world,
+		 * so a body moving drags its cloak behind it. Each bone is turned to point at its next joint as the chain hangs.
+		 */
+		void SolveSprings(FCompactPose& Pose)
+		{
+			if (Limbs.Springs.IsEmpty())
+			{
+				SpringStates.Reset();
+				return;
+			}
+			SpringStates.SetNum(Limbs.Springs.Num());
+			const FBoneContainer& Bones = Pose.GetBoneContainer();
+			const auto Index = [&Bones](FName Name) {
+				const int32 Mesh = Bones.GetPoseBoneIndexForBoneName(Name);
+				return Mesh == INDEX_NONE ? FCompactPoseBoneIndex(INDEX_NONE) : Bones.MakeCompactPoseIndex(FMeshPoseBoneIndex(Mesh));
+			};
+			const FTransform& ToWorld = GetComponentTransform();
+			// Where the clips have each joint, read from a pose of its own: the one written must not cache a child's place
+			// before its parent has turned.
+			FCSPose<FCompactPose> Clip;
+			Clip.InitPose(Pose);
+			TArray<VeyraSpringChain::FCollider, TInlineAllocator<8>> Colliders;
+			for (const FVeyraSpringColliderArt& Collider : Limbs.SpringColliders)
+			{
+				const FCompactPoseBoneIndex From = Index(Collider.From), To = Index(Collider.To);
+				if (From.IsValid() && To.IsValid())
+				{
+					Colliders.Add({ ToWorld.TransformPosition(Clip.GetComponentSpaceTransform(From).GetLocation()),
+						ToWorld.TransformPosition(Clip.GetComponentSpaceTransform(To).GetLocation()), Collider.Radius });
+				}
+			}
+			FCSPose<FCompactPose> Space;
+			Space.InitPose(Pose);
+			bool bMoved = false;
+			for (int32 Chain = 0; Chain < Limbs.Springs.Num(); ++Chain)
+			{
+				const FVeyraSpringChainArt& Art = Limbs.Springs[Chain];
+				TArray<FCompactPoseBoneIndex, TInlineAllocator<8>> Joints;
+				TArray<FVector, TInlineAllocator<8>> Animated;
+				for (const FName Bone : Art.Bones)
+				{
+					const FCompactPoseBoneIndex Joint = Index(Bone);
+					if (!Joint.IsValid())
+					{
+						break;
+					}
+					Joints.Add(Joint);
+					Animated.Add(ToWorld.TransformPosition(Clip.GetComponentSpaceTransform(Joint).GetLocation()));
+				}
+				if (Joints.Num() != Art.Bones.Num() || Joints.Num() < 2)
+				{
+					continue;
+				}
+				VeyraSpringChain::FParams Params;
+				Params.Stiffness = Art.Stiffness;
+				Params.Drag = Art.Drag;
+				Params.Damping = Art.Damping;
+				Params.MaxAngleDegrees = Art.MaxAngleDegrees;
+				VeyraSpringChain::Step(SpringStates[Chain], Animated, GetDeltaSeconds(), Params, Colliders, Limbs.SpringTiming);
+				for (int32 Joint = 0; Joint + 1 < Joints.Num(); ++Joint)
+				{
+					FTransform Bone = Space.GetComponentSpaceTransform(Joints[Joint]);
+					// Toward its child as the clip has it (from the local pose, so the child is not read before it moves).
+					const FVector Toward = Bone.TransformVector(Pose[Joints[Joint + 1]].GetTranslation());
+					const FVector Wanted = ToWorld.InverseTransformPosition(SpringStates[Chain].Points[Joint + 1]) - Bone.GetLocation();
+					Bone.SetRotation(FQuat::FindBetweenVectors(Toward, Wanted) * Bone.GetRotation());
+					Space.SetComponentSpaceTransform(Joints[Joint], Bone);
+				}
+				bMoved = true;
+			}
+			if (bMoved)
+			{
+				FCSPose<FCompactPose>::ConvertComponentPosesToLocalPoses(MoveTemp(Space), Pose);
+			}
+		}
+
 		const UAnimSequence* Clips[ClipCount] = {};
 		FName UpperBodyBone;
 		FVeyraVanguardAnimState State;
 		UVeyraVanguardAnimInstance::FLimbFrame Limbs;
 		TArray<bool> UpperBody;
 		TArray<float> Weights;
+		/** Each loose part's chain as it hangs. */
+		TArray<VeyraSpringChain::FState> SpringStates;
 	};
 }
 
@@ -229,6 +311,28 @@ void UVeyraVanguardAnimInstance::Configure(const FVeyraVanguardBody& Art, const 
 	Shape.RunStride = Art.RunStride;
 	Shape.CastReleaseShare = Art.CastReleaseShare;
 	State = FVeyraVanguardAnimState();
+}
+
+namespace
+{
+	/** Where a bone stands in the skin's space at the start of a clip: its own and every parent's pose in the clip. */
+	FTransform ClipPoseOf(const UAnimSequence& Clip, const USkeletalMesh& Mesh, int32 MeshBone)
+	{
+		const FReferenceSkeleton& Reference = Mesh.GetRefSkeleton();
+		const USkeleton* Skeleton = Clip.GetSkeleton();
+		FTransform Pose = FTransform::Identity;
+		for (int32 Bone = MeshBone; Bone != INDEX_NONE; Bone = Reference.GetParentIndex(Bone))
+		{
+			FTransform Local = Reference.GetRefBonePose()[Bone];
+			const int32 SkeletonBone = Skeleton ? Skeleton->GetReferenceSkeleton().FindBoneIndex(Reference.GetBoneName(Bone)) : INDEX_NONE;
+			if (SkeletonBone != INDEX_NONE)
+			{
+				Clip.GetBoneTransform(Local, FSkeletonPoseBoneIndex(SkeletonBone), FAnimExtractContext(0.0), false);
+			}
+			Pose = Pose * Local;
+		}
+		return Pose;
+	}
 }
 
 void UVeyraVanguardAnimInstance::ConfigureLimbs(const FVeyraVanguardBody& Art)
@@ -275,10 +379,23 @@ void UVeyraVanguardAnimInstance::ConfigureLimbs(const FVeyraVanguardBody& Art)
 	{
 		Limbs.OffHand = Art.OffHand;
 		Limbs.OffHandAnchor = Art.OffHandAnchor;
-		Limbs.OffHandFromAnchor = RestOf(Art.OffHand.End).GetRelativeTransform(RestOf(Art.OffHandAnchor));
+		// Where the off hand holds the weapon hand, as its clips hold it: a body may rest empty-handed and hold its
+		// weapon only in its clips (ADR-069 §6), so the idle clip's first frame says, and the rest only without one.
+		const UAnimSequence* Idle = Art.Find(EVeyraVanguardClip::Idle);
+		const int32 Hand = Reference.FindBoneIndex(Art.OffHand.End);
+		const int32 Anchor = Reference.FindBoneIndex(Art.OffHandAnchor);
+		Limbs.OffHandFromAnchor = Idle && Hand != INDEX_NONE && Anchor != INDEX_NONE
+			? ClipPoseOf(*Idle, *Art.Mesh, Hand).GetRelativeTransform(ClipPoseOf(*Idle, *Art.Mesh, Anchor))
+			: RestOf(Art.OffHand.End).GetRelativeTransform(RestOf(Art.OffHandAnchor));
 		Limbs.OffHandWeight = Settings.OffHandIKWeight;
 		Limbs.OffHandRelease = Settings.OffHandReleaseDistance;
 	}
+	if (Settings.bSpringChains)
+	{
+		Limbs.Springs = Art.SpringChains;
+		Limbs.SpringColliders = Art.SpringColliders;
+	}
+	Limbs.SpringTiming = { Settings.SpringMaxStepSeconds, Settings.SpringSubstepSeconds, Settings.SpringTeleportDistance };
 	Limbs.MaxStretch = Settings.LimbMaxStretch;
 	Limbs.MaxPelvisDrop = Settings.FootMaxPelvisDrop;
 	Limbs.PlantFade = Settings.FootPlantFade;
