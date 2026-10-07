@@ -93,6 +93,21 @@ def capsule(P, a, b, r):
     return round_cone(P, a, b, r, r)
 
 
+def cylinder(P, a, b, r, rounding=0.0):
+    """A cylinder from a to b of radius r with flat ends, its edges rounded by rounding (a capsule's ends are
+    hemispheres as wide as it is: a short band on a barrel would cover the barrel)."""
+    a = np.asarray(a, dtype=np.float32)
+    b = np.asarray(b, dtype=np.float32)
+    axis = b - a
+    length = float(np.linalg.norm(axis))
+    axis = axis / max(length, 1e-9)
+    Q = P - (a + b) * 0.5
+    along = Q @ axis
+    across = np.linalg.norm(Q - np.outer(along, axis), axis=1)
+    d = np.stack([across - (r - rounding), np.abs(along) - (length * 0.5 - rounding)], axis=1)
+    return np.minimum(np.max(d, axis=1), 0.0) + np.linalg.norm(np.maximum(d, 0.0), axis=1) - rounding
+
+
 def box(P, c, half, axes=None, rounding=0.0):
     Q = np.abs(local(P, c, axes)) - (np.asarray(half, dtype=np.float32) - rounding)
     outside = np.linalg.norm(np.maximum(Q, 0.0), axis=1)
