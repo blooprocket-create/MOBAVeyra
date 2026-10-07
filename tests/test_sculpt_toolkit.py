@@ -154,6 +154,16 @@ class Rays(unittest.TestCase):
             self.assertAlmostEqual(float(np.linalg.norm(point - np.array([1.0, -2.0, 0.5]))), RADIUS, delta=1e-2)
 
 
+class Cylinders(unittest.TestCase):
+    def test_a_cylinder_ends_flat_where_it_ends(self):
+        # A band 4 cm long and 9 cm round, along x from 0 to 4.
+        P = np.array([[2.0, 0, 0], [2.0, 12.0, 0], [6.0, 0, 0], [-1.0, 0, 0], [2.0, 9.0, 0], [6.0, 12.0, 0]], dtype=np.float32)
+        d = sdf.cylinder(P, (0, 0, 0), (4.0, 0, 0), 9.0)
+        np.testing.assert_allclose(d, [-2.0, 3.0, 2.0, 1.0, 0.0, np.hypot(2.0, 3.0)], atol=1e-4)
+        # A capsule as wide reaches 9 cm past its end; the cylinder stops at it.
+        self.assertLess(float(sdf.capsule(P[2:3], (0, 0, 0), (4.0, 0, 0), 9.0)[0]), 0.0)
+
+
 class TornHems(unittest.TestCase):
     # Fixture values: a hem torn into strips, kept to at least cut of its length, each pointed by point.
     STRIPS, CUT, POINT = 6, 0.6, 0.15
