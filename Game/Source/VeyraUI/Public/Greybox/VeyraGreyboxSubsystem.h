@@ -293,7 +293,7 @@ private:
 	};
 
 	/** Veils Unit's generated body while it is hidden from its enemies and its viewer sees why (ADR-068 §6). */
-	void RefreshVeil(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin);
+	void RefreshVeil(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin, const struct FVeyraVanguardBody& Worn);
 
 	/** Kicks the player's own camera while a heavy hit's or a fall's shudder lasts, and settles it after (ADR-068 §4). */
 	void RefreshCameraShake();

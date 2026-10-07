@@ -506,6 +506,61 @@ namespace VeyraVanguardBodyTests
 			Step(Frames);
 			ASSERT_THAT(IsTrue(Presentation.HiddenKindOf(Unit) == EVeyraHiddenKind::None && Presentation.GetVeilOf(Unit) == 0.0));
 			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth, TEXT("inked again")));
+			// Hidden again, it wears the material it was given rather than another made over it.
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Unit, DetectionRadius)));
+			Step(Frames);
+			ASSERT_THAT(IsTrue(Skin->GetMaterial(0) == Veiled, TEXT("one material of its own, however often it is veiled")));
+		}
+
+		TEST_METHOD(WhatAHiddenBodyPoursVeilsWithIt)
+		{
+			// Fixture values: a Camouflage's detection radius, and a frame of the world.
+			constexpr double DetectionRadius = 300.0;
+			constexpr float Frame = 0.1f;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Settings.VeiledEffectScale < 1.0f, TEXT("a veiled body's smoke thins")));
+			// The first companion (by ID) whose body pours an effect where no mesh shows it (smoke).
+			TArray<FName> Ids;
+			ArtSet().CompanionArt.GetKeys(Ids);
+			Ids.Sort(FNameLexicalLess());
+			const FName* Id = Ids.FindByPredicate([this](FName Candidate) { return ArtSet().FindCompanion(Candidate)->Effect != nullptr; });
+			ASSERT_THAT(IsNotNull(Id, TEXT("the committed art has a companion made of an effect")));
+			const FVeyraVanguardArt& Art = *ArtSet().FindCompanion(*Id);
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Summoner = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			UVeyraCompanionSubsystem* Keeper = Spawner.GetWorld().GetSubsystem<UVeyraCompanionSubsystem>();
+			ASSERT_THAT(IsTrue(Keeper && Keeper->Summon(*Summoner.GetAbilitySystemComponent(), FVeyraContentId::FromText(Id->ToString()).GetValue())));
+			AVeyraCompanion* Companion = Keeper->Find(*Summoner.GetAbilitySystemComponent());
+			ASSERT_THAT(IsNotNull(Companion));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const FNiagaraVariable Color(FNiagaraTypeDefinition::GetColorDef(), *(TEXT("User.") + Settings.EffectColorParameter.ToString()));
+			const FNiagaraVariable Scale(FNiagaraTypeDefinition::GetFloatDef(), *(TEXT("User.") + Settings.EffectScaleParameter.ToString()));
+			const auto Pours = [&](const FLinearColor& Wanted, float WantedScale) {
+				const TArray<UNiagaraComponent*> Effects = Presentation.FindBodyEffects(*Companion);
+				return !Effects.IsEmpty() && Effects.FindByPredicate([&](const UNiagaraComponent* Effect) {
+					const FNiagaraParameterStore& Parameters = Effect->GetOverrideParameters();
+					return !Parameters.GetParameterValueOrDefault(Color, FLinearColor::Transparent).Equals(Wanted, 1e-4f)
+						|| !FMath::IsNearlyEqual(Parameters.GetParameterValueOrDefault(Scale, 0.0f), WantedScale, 1e-4f);
+				}) == nullptr;
+			};
+			ASSERT_THAT(IsTrue(Pours(Art.EffectColor, Art.EffectScale), TEXT("its own smoke while seen")));
+			// Camouflaged, its smoke takes the veil's colour and thins with it; out of it, the smoke is its own again.
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(*Companion, DetectionRadius)));
+			const int32 Frames = FMath::CeilToInt32(Settings.VeilFadeSeconds / Frame) + 1;
+			for (int32 Index = 0; Index < Frames; ++Index)
+			{
+				Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+				RefreshedGreybox();
+			}
+			ASSERT_THAT(IsNear(Presentation.GetVeilOf(*Companion), 1.0, 1e-6));
+			ASSERT_THAT(IsTrue(Pours(Settings.CamouflageVeilColor, Art.EffectScale * Settings.VeiledEffectScale), TEXT("veiled smoke")));
+			VeyraCombat::EndStealth(*Companion->GetAbilitySystemComponent());
+			for (int32 Index = 0; Index < Frames; ++Index)
+			{
+				Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+				RefreshedGreybox();
+			}
+			ASSERT_THAT(IsTrue(Pours(Art.EffectColor, Art.EffectScale), TEXT("its own smoke again")));
 		}
 
 		TEST_METHOD(AStruckBodyHoldsItsPoseAMoment)

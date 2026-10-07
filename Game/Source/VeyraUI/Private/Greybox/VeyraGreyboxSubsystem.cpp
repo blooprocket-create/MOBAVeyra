@@ -1135,6 +1135,8 @@ void UVeyraGreyboxSubsystem::RefreshBodyEffects(FBody& Body, USkeletalMeshCompon
 		Effect->Activate(/*bReset*/ true);
 		Body.BodyEffects.Add(Effect);
 	}
+	// New effects start as their body made them: a veil the body wears is laid on them afresh.
+	Body.VeilShown = -1.0;
 }
 
 UStaticMeshComponent* UVeyraGreyboxSubsystem::FindProjectileVisual(const AVeyraProjectile& Projectile) const
@@ -1322,7 +1324,7 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	const FVeyraVanguardBody& Worn = VeyraVanguardSkin::BodyOf(Unit, *Art);
 	VeyraVanguardSkin::Dress(*Skin, Worn, VeyraVanguardSkin::ShapeOf(Settings));
 	RefreshBodyEffects(Body, *Skin, Worn);
-	RefreshVeil(Unit, Body, *Skin);
+	RefreshVeil(Unit, Body, *Skin, Worn);
 	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2), drawn larger than
 	// the capsule from there (ADR-065 §11).
 	float Radius = 0.0f;
@@ -1376,7 +1378,7 @@ double UVeyraGreyboxSubsystem::GetVeilOf(const AActor& Unit) const
 	return Body ? Body->Veil : 0.0;
 }
 
-void UVeyraGreyboxSubsystem::RefreshVeil(const APawn& Unit, FBody& Body, USkeletalMeshComponent& Skin)
+void UVeyraGreyboxSubsystem::RefreshVeil(const APawn& Unit, FBody& Body, USkeletalMeshComponent& Skin, const FVeyraVanguardBody& Worn)
 {
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const EVeyraHiddenKind Kind = HiddenKindOf(Unit);
@@ -1398,6 +1400,16 @@ void UVeyraGreyboxSubsystem::RefreshVeil(const APawn& Unit, FBody& Body, USkelet
 		{
 			Veiled->SetScalarParameterValue(Settings.BodyVeilParameter, static_cast<float>(Body.Veil));
 			Veiled->SetVectorParameterValue(Settings.BodyVeilTintParameter, Tint);
+		}
+	}
+	// What it pours veils with it, or its smoke would show it plainly.
+	const float Veil = static_cast<float>(Body.Veil);
+	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : Body.BodyEffects)
+	{
+		if (UNiagaraComponent* Live = Effect.Get())
+		{
+			Live->SetVariableLinearColor(Settings.EffectColorParameter, FMath::Lerp(Worn.EffectColor, Tint, Veil));
+			Live->SetVariableFloat(Settings.EffectScaleParameter, Worn.EffectScale * FMath::Lerp(1.0f, Settings.VeiledEffectScale, Veil));
 		}
 	}
 	Body.VeilShown = Body.Veil;

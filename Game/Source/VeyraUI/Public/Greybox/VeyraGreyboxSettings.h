@@ -556,6 +556,12 @@ public:
 	float VeilFadeSeconds = 0.0f;
 
 	/**
+	 * What a hidden body pours where no mesh shows it (its smoke, mist or spray, ADR-064 §1) veils with it: the
+	 * effect's colour eases to the veil's tint and its size to this share of its own as the veil comes.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "0", ClampMax = "1"))
+	float VeiledEffectScale = 1.0f;
+	/**
 	 * Hit feel (ADR-068 §4). A struck generated body holds its pose for HitStopSeconds. The player's own camera kicks when
 	 * their Vanguard takes a hit of at least HeavyHitShare of its Max Health (HitShakeAmplitude units) or falls
 	 * (DeathShakeAmplitude), shuddering at HitShakeFrequency turns a second for HitShakeSeconds; Screen Shake set to

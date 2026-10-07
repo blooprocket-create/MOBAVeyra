@@ -91,6 +91,7 @@ After a playtest the author reported: "its damn near impossible to tell when you
 - **Why it is hidden** decides the colour: Invisible (violet) over Camouflaged (green) over within Dense Fog (pale mist). The colours are presentation settings, as is how long the veil takes to come and go. The kind is a pure function of the unit's statuses as its own side sees them and of the Dense Fog the client knows: the map's, and the banks abilities lay.
 - **Who sees it.** The unit's own side, and a viewer on no side. The other side sees nothing new: the fog gate (ADR-016) already decides whether they see the body at all.
 - **Ink.** A veiled body draws no ink, so it reads as a ghost rather than a dithered outline.
+- **What it pours.** A body made partly of an effect (smoke, mist, spray; ADR-064 §1) veils that effect with it. As the veil comes, the effect's colour eases to the veil's tint and its size to `VeiledEffectScale` of its own (a presentation setting).
 - **The HUD.** Camouflage and Invisibility already show as status chips in the player's own row (ADR-059 §4). Standing in Dense Fog, which no status names, leads that row as an "In Dense Fog" chip.
 - **Presentation only.** Nothing here decides anything. A body is given a material instance of its own only once it is first veiled.
 
