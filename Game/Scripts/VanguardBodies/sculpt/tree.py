@@ -3,6 +3,7 @@ Every leaf is a Part: a named piece with its own label (to paint and skin by), i
 
 Evaluate a tree with evaluate(root, P, box): each node is evaluated once per call however many layers above read it
 (a coat's shell reads the shirt and body beneath it, which the union above reads again)."""
+import contextlib
 import itertools
 import math
 
@@ -12,8 +13,10 @@ from . import sdf
 
 # Where a culled node's distance is unknown, it is at least this far: beyond any band the mesher or baker resolves.
 FAR = 1.0e3
-# How far beyond a box a node must lie to be skipped: the caller's band.
-REACH = [1.0]
+# How far beyond a box a node must lie to be skipped: the caller's band (set for a block by reaching), and what a sculpt
+# is built and probed at outside any.
+DEFAULT_REACH = 1.0
+REACH = [DEFAULT_REACH]
 # The step a shell widens the reach by (cm).
 REACH_STEP = 4.0
 _CACHE = [{}]
@@ -82,6 +85,18 @@ class Sculpt:
 
 
 # ---------------------------------------------------------------------------------------------- evaluation
+@contextlib.contextmanager
+def reaching(reach):
+    """REACH at reach while the block runs, then as it was: a band set to mesh or label one body never leaks into what is
+    evaluated after it (a model built after another in the same process sees the reach it would alone)."""
+    saved = REACH[0]
+    REACH[0] = reach
+    try:
+        yield
+    finally:
+        REACH[0] = saved
+
+
 def evaluate(root, P, box):
     _CACHE[0] = {}
     try:

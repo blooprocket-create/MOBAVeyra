@@ -20,7 +20,11 @@ SAFETY = 1.5
 def level_set(root, voxel, pad=2.0, log=print):
     """The level set of root at voxel centimetres: (grid, index origin)."""
     band = BAND_VOXELS * voxel
-    tree.REACH[0] = band
+    with tree.reaching(band):
+        return _level_set(root, voxel, pad, band, log)
+
+
+def _level_set(root, voxel, pad, band, log):
     lo = root.bounds.lo - pad
     hi = root.bounds.hi + pad
     origin = np.floor(lo / voxel).astype(np.int64)

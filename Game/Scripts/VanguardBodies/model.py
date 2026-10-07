@@ -26,7 +26,10 @@ def _build(spec, shaped, layout, dims, name, bones, log, pool):
     sculpt = tree.Sculpt()
     started = time.time()
     stage = lambda what: log("model %s: %s (%.1f s)" % (name, what, time.time() - started))  # noqa: E731
-    root, info = script.build(sculpt, shaped, dims, spec)
+    # Built at the default reach, as its workers build it: whatever an earlier body in this process was meshed or
+    # labelled at never reaches what its script probes as it builds.
+    with tree.reaching(tree.DEFAULT_REACH):
+        root, info = script.build(sculpt, shaped, dims, spec)
     pool.adopt("root", root)
     pool.adopt("body", info["body"])
     stage("sculpted, %d parts" % len(sculpt.parts))
@@ -34,6 +37,13 @@ def _build(spec, shaped, layout, dims, name, bones, log, pool):
     points, triangles, quads = mesher.polygons(grid)
     obj = surface.to_object(name, points, triangles, quads)
     stage("meshed, %d points" % len(points))
+    # Labelled, skinned and coloured within the labels' band, each part's weights and colour read where it is found.
+    with tree.reaching(surface.LABEL_REACH):
+        return _finish(settings, layout, bones, sculpt, root, info, obj, points, stage)
+
+
+def _finish(settings, layout, bones, sculpt, root, info, obj, points, stage):
+    """The meshed body reduced to its budget, skinned, joined with its cloth and flat-coloured: (object, triangles)."""
     labels = surface.labels_at(root, points)
     protect = np.array([sculpt.parts[label].protect if label >= 0 else 0.0 for label in labels], dtype=np.float32)
     sheets = info.get("sheets", [])

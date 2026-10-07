@@ -12,7 +12,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Game" / "Scripts"))
 from VanguardBodies.sculpt import garments, sdf, sheet, tree  # noqa: E402
 from VanguardBodies.sculpt.tree import Box  # noqa: E402
-from VanguardBodies.models import bryn, silt  # noqa: E402
+from VanguardBodies.models import bryn, relay, silt  # noqa: E402
 
 # Fixture sizes (cm): a ball standing in for a body part, the cloth over it, a fold's height above it.
 RADIUS = 10.0
@@ -36,8 +36,25 @@ def along(node, direction, start=(0.0, 0.0, 0.0)):
     d /= np.linalg.norm(d)
     ts = np.arange(0.0, SPAN, STEP, dtype=np.float32)
     P = np.asarray(start, dtype=np.float32)[None, :] + ts[:, None] * d[None, :]
-    tree.REACH[0] = 1.0
-    return ts, tree.evaluate(node, P, Box.around(P, 1.0)).d
+    with tree.reaching(1.0):
+        return ts, tree.evaluate(node, P, Box.around(P, 1.0)).d
+
+
+class Reach(unittest.TestCase):
+    def test_a_reach_is_set_for_its_block_and_restored_after_it(self):
+        # A model built after another in the same process must see the reach it would alone: a band set for meshing or
+        # labelling one body may not leak into the next one's build.
+        self.assertEqual(tree.REACH[0], tree.DEFAULT_REACH)
+        with tree.reaching(2.0):
+            self.assertEqual(tree.REACH[0], 2.0)
+            with tree.reaching(0.6):
+                self.assertEqual(tree.REACH[0], 0.6)
+            self.assertEqual(tree.REACH[0], 2.0)
+        self.assertEqual(tree.REACH[0], tree.DEFAULT_REACH)
+        with self.assertRaises(ValueError):
+            with tree.reaching(3.0):
+                raise ValueError("a failed evaluation")
+        self.assertEqual(tree.REACH[0], tree.DEFAULT_REACH)
 
 
 class SolidLayers(unittest.TestCase):
@@ -128,8 +145,8 @@ class Folds(unittest.TestCase):
         # Around both ends, where the curve's parameter reaches 0 and 1 (single precision overshoots pi there).
         grid = np.stack(np.meshgrid(np.linspace(-14, 14, 15), np.linspace(-14, 14, 15), np.linspace(-6, 6, 7), indexing="ij"), axis=-1).reshape(-1, 3)
         P = (grid + np.array([RADIUS, 0.0, 0.0])).astype(np.float32)
-        tree.REACH[0] = 1.0
-        d = tree.evaluate(tree.Over([body, piece]), P, Box.around(P, 1.0)).d
+        with tree.reaching(1.0):
+            d = tree.evaluate(tree.Over([body, piece]), P, Box.around(P, 1.0)).d
         self.assertTrue(np.all(np.isfinite(d)))
         # It stands high at its middle, and its crest hangs below its line: a short steep side under it.
         _ts, mid = along(tree.Over([body, piece]), (1, 0, 0.2))
@@ -226,8 +243,8 @@ class Mournwake(unittest.TestCase):
         r = H * 0.062
         middle = breech + along * 0.15 * np.linalg.norm(muzzle - breech)
         P = np.array([middle + (s * side * 0.7 + up * 0.9) * r * 1.3 for s in (1.0, -1.0)], dtype=np.float32)
-        tree.REACH[0] = 2.0
-        field = tree.evaluate(gun, P, Box.around(P, 2.0))
+        with tree.reaching(2.0):
+            field = tree.evaluate(gun, P, Box.around(P, 2.0))
         for d, label in zip(field.d, field.m):
             self.assertLess(float(d), 0.0)
             self.assertTrue(S.parts[label].name.startswith("brace"), S.parts[label].name)
@@ -251,6 +268,29 @@ class TornSheetsOnChains(unittest.TestCase):
         for k, name in enumerate(heaviest):
             if not held[k]:
                 self.assertEqual(name, "ribbon_l_%02d" % (along[k] + 1), (k, P[k]))
+
+    def test_a_banner_hangs_down_its_spring_chain_below_its_tie_rod(self):
+        # Fixture: a banner's chain hanging 80 cm straight down in two spans from its tie rod at 150 cm.
+        top = np.array([40.0, 20.0, 150.0])
+        joints = [top - np.array([0.0, 0.0, 40.0 * k]) for k in range(3)]
+        L = {"banner_01": (joints[0], joints[1]), "banner_02": (joints[1], joints[2]), "banner_end": (joints[2], joints[2] - np.array([0, 0, 1.0]))}
+        top_centre, down, length = relay.banner_hang(L, None, 1.0)
+        np.testing.assert_allclose(top_centre, top)
+        np.testing.assert_allclose(down, [0.0, 0.0, -1.0], atol=1e-6)
+        self.assertAlmostEqual(length, 80.0)
+        weights = relay.banner_bones(L, top_centre, down, length)
+        # Down the cloth: held by the chest at the tie rod, then each span of the chain where the cloth hangs along it.
+        P = np.array([top - [0, 0, 1.0], top - [0, 0, 20.0], top - [0, 0, 60.0], top - [0, 0, 80.0]], dtype=np.float32)
+        w = weights(P)
+        names = sorted(w)
+        heaviest = [names[i] for i in np.argmax(np.stack([w[n] for n in names]), axis=0)]
+        self.assertEqual(heaviest, ["spine_03", "banner_01", "banner_02", "banner_02"])
+        for n in names:
+            self.assertTrue(np.all(np.isfinite(w[n])))
+        np.testing.assert_allclose(sum(w[n] for n in names), 1.0, atol=1e-5)
+        # Without a chain in its kit, it rides the chest whole.
+        rigid = relay.banner_bones({}, top_centre, down, length)(P)
+        self.assertEqual(sorted(rigid), ["spine_03"])
 
 
 if __name__ == "__main__":
