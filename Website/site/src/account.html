@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Veyra account</title>
+<meta name="description" content="Your Veyra account: your sign-in, your display name and your next steps.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#07090e">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/Roboto-Black.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/boot.js"></script>
+<script type="module" src="/js/pages/account.js"></script>
+</head>
+<body data-page="account">
+<!--#header-->
+<main id="main">
+  <header class="page-banner">
+    <div class="page-banner__art" aria-hidden="true"><img src="/art/marek.webp" alt="" data-focus="55% 35%"></div>
+    <div class="container">
+      <p class="eyebrow">Your account</p>
+      <h1 class="page-banner__title">Welcome back</h1>
+      <span class="slash-rule" aria-hidden="true"></span>
+      <p class="lede" data-account-lede>Loading your account…</p>
+    </div>
+  </header>
+
+  <section class="section" aria-label="Account">
+    <div class="container account">
+      <div class="grid">
+        <div class="panel" data-reveal>
+          <h2 class="panel__title">Sign-in</h2>
+          <dl class="facts">
+            <dt>Email</dt>
+            <dd data-account-email><span class="skeleton"></span></dd>
+            <dt>Member since</dt>
+            <dd data-account-created><span class="skeleton"></span></dd>
+          </dl>
+          <p class="notice" data-account-notice hidden role="status"></p>
+          <div class="account__actions">
+            <button class="btn btn--ghost btn--small" type="button" data-change-password>Change password</button>
+            <button class="btn btn--ghost btn--small" type="button" data-sign-out>Log out</button>
+          </div>
+        </div>
+
+        <div class="panel panel--brass" data-reveal data-name-card>
+          <h2 class="panel__title">Finish your account</h2>
+          <p data-name-intro>If your account was made without a display name (for example, while the servers were offline), choose it here. If your account already has one, nothing changes.</p>
+          <form class="form" data-name-form method="post" novalidate>
+            <div class="field">
+              <label class="field__label" for="account-name"><span>Display name</span><span class="field__count" data-name-count aria-hidden="true"></span></label>
+              <div class="field__control"><input id="account-name" name="displayName" type="text" autocomplete="nickname" autocapitalize="off" spellcheck="false" required aria-describedby="account-name-rules"></div>
+              <ul class="rules" id="account-name-rules">
+                <li data-rule="length"></li>
+                <li data-rule="characters">Letters, digits and _ only</li>
+              </ul>
+            </div>
+            <p class="notice" data-notice hidden role="alert"></p>
+            <button class="btn btn--primary btn--block" type="submit"><span class="btn__label">Save display name</span></button>
+          </form>
+        </div>
+      </div>
+
+      <aside class="panel" data-reveal>
+        <h2 class="panel__title">Next steps</h2>
+        <p>Play in the Veyra launcher, signed in with this same email and password.</p>
+        <div class="account__actions">
+          <a class="btn btn--primary" href="/download"><span class="btn__label">Download Veyra</span></a>
+          <a class="btn btn--ghost" href="/download#install"><span class="btn__label">How to install</span></a>
+        </div>
+        <p class="download-card__note"><span class="status" data-server-status data-state="checking"><span class="status__dot"></span><span class="status__text">Checking Veyra's servers…</span></span></p>
+      </aside>
+    </div>
+  </section>
+</main>
+<!--#footer-->
+</body>
+</html>

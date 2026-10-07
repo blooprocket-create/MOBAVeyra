@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veyra — Five Vanguards a side. One Prime Well left standing.</title>
+<meta name="description" content="Veyra is an original 5v5 MOBA. Create your account, download Veyra Setup for Windows and join the public tests.">
+<meta name="theme-color" content="#07090e">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Veyra">
+<meta property="og:description" content="An original 5v5 MOBA. Shared Flux, a living Crucible, twenty-five Vanguards.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/Roboto-Black.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/boot.js"></script>
+<script type="module" src="/js/pages/home.js"></script>
+</head>
+<body data-page="home">
+<!--#header-->
+<main id="main">
+  <section class="hero" data-hero aria-labelledby="hero-title">
+    <div class="hero__stage" data-hero-stage aria-hidden="true"></div>
+    <div class="hero__speedlines" aria-hidden="true"></div>
+    <div class="hero__slash" aria-hidden="true"></div>
+    <div class="hero__shade" aria-hidden="true"></div>
+
+    <div class="hero__content">
+      <p class="eyebrow">The Meridian Crucible</p>
+      <h1 class="title" id="hero-title" aria-label="Veyra">
+        <span class="title__letter" aria-hidden="true">V</span><span class="title__letter" aria-hidden="true">e</span><span class="title__letter" aria-hidden="true">y</span><span class="title__letter" aria-hidden="true">r</span><span class="title__letter" aria-hidden="true">a</span>
+      </h1>
+      <p class="hero__tagline">Five Vanguards a side. One Prime Well left standing.</p>
+      <p class="hero__lede">An ancient Flux installation has woken, and two teams fight for it. Gather Flux together, push your lanes harder, unlock Flux Spells, and break the enemy's Prime Well.</p>
+      <div class="hero__actions">
+        <a class="btn btn--primary btn--large" href="/download">
+          <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>
+          <span class="btn__label">Download for Windows</span>
+        </a>
+        <a class="btn btn--ghost btn--large" href="/signup" data-signed-out><span class="btn__label">Create an account</span></a>
+        <a class="btn btn--ghost btn--large" href="/account" data-signed-in hidden><span class="btn__label">Your account</span></a>
+      </div>
+      <div class="hero__status">
+        <span class="status" data-server-status data-state="checking"><span class="status__dot"></span><span class="status__text">Checking Veyra's servers…</span></span>
+      </div>
+    </div>
+
+    <div class="hero__plate" data-hero-plate>
+      <span class="hero__plate-index" data-plate-index></span>
+      <span class="hero__plate-name" data-plate-name></span>
+      <span class="hero__plate-title" data-plate-title></span>
+      <span class="hero__plate-meta" data-plate-meta></span>
+    </div>
+    <div class="hero__ticks" role="group" aria-label="Featured Vanguards" data-hero-ticks></div>
+    <a class="hero__scroll" href="#steps">Into the Crucible</a>
+  </section>
+
+  <section class="section" id="steps" aria-labelledby="steps-title">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <p class="eyebrow">Getting in</p>
+        <h2 class="heading" id="steps-title">Three steps to your first match</h2>
+      </div>
+      <ol class="grid grid--3 steps" role="list">
+        <li class="panel step" data-reveal>
+          <span class="step__number" aria-hidden="true">01</span>
+          <h3 class="panel__title">Create your account</h3>
+          <p>Choose the display name every other player will see. One account works here and in the launcher.</p>
+          <a class="btn btn--ghost btn--small" href="/signup">Sign up</a>
+        </li>
+        <li class="panel step" data-reveal>
+          <span class="step__number" aria-hidden="true">02</span>
+          <h3 class="panel__title">Download Veyra Setup</h3>
+          <p>A small installer for the launcher, for 64-bit Windows. It isn't code-signed yet, so Windows will warn you first: our guide walks you through it.</p>
+          <a class="btn btn--ghost btn--small" href="/download#install">See the guide</a>
+        </li>
+        <li class="panel step" data-reveal>
+          <span class="step__number" aria-hidden="true">03</span>
+          <h3 class="panel__title">Install and play</h3>
+          <p>The launcher installs the game, keeps it up to date and repairs it. Sign in, then step into the Crucible.</p>
+          <a class="btn btn--ghost btn--small" href="/download">Download</a>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="flux" aria-labelledby="flux-title">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <p class="eyebrow">How Veyra plays</p>
+        <h2 class="heading" id="flux-title">Built around Flux</h2>
+        <p class="lede">The Crucible gives you lanes, a jungle, objectives, Gold and experience. What your team does with them is yours to decide.</p>
+      </div>
+      <div class="grid grid--3">
+        <article class="panel" data-reveal>
+          <svg class="pillar__icon" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 5"/><g class="spin"><path d="M24 3 28 7 24 11 20 7Z" fill="#d6b56e"/></g><path d="M24 15 31 24 24 33 17 24Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="24" cy="24" r="3" fill="#fff"/></svg>
+          <h3 class="panel__title">Flux is shared</h3>
+          <p>Your whole team builds Team Flux together. It strengthens your lanes' pressure and unlocks tactical Flux Spells, so every player's work counts.</p>
+        </article>
+        <article class="panel" data-reveal>
+          <svg class="pillar__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 40C14 30 14 18 6 8M24 42V6M42 40C34 30 34 18 42 8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 24h20" stroke="#d6b56e" stroke-width="2" stroke-dasharray="3 4"/></svg>
+          <h3 class="panel__title">No roles forced</h3>
+          <p>Five Vanguards load in and the team decides where they go. The map sets the stakes; it never assigns your part.</p>
+        </article>
+        <article class="panel" data-reveal>
+          <svg class="pillar__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M4 24C10 13 17 9 24 9s14 4 20 15c-6 11-13 15-20 15S10 35 4 24Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="24" cy="24" r="7" fill="none" stroke="#d6b56e" stroke-width="2"/><circle cx="24" cy="24" r="2.5" fill="#fff"/></svg>
+          <h3 class="panel__title">Readable first</h3>
+          <p>Every ability reads clearly in the middle of a fight, however spectacular it looks. You always know what just hit you.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="vanguards" aria-labelledby="vanguards-title">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <p class="eyebrow">The roster</p>
+        <h2 class="heading" id="vanguards-title">Meet the Vanguards</h2>
+        <p class="lede">Twenty-five Vanguards make up the first roster, each drawn from a corner of Veyra's world. Here are a few of them.</p>
+      </div>
+      <div class="roster" data-roster role="list"></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="cta-title">
+    <div class="container">
+      <div class="cta-band" data-reveal>
+        <div class="cta-band__inner">
+          <div>
+            <p class="eyebrow">Public tests</p>
+            <h2 class="heading heading--small" id="cta-title">The Crucible is open while our servers are</h2>
+            <p class="lede">Matches run on Veyra's test servers. When they're online, you can play.</p>
+          </div>
+          <div class="cta-band__actions">
+            <a class="btn btn--primary" href="/download"><span class="btn__label">Download</span></a>
+            <a class="btn btn--ghost" href="/signup" data-signed-out><span class="btn__label">Sign up</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<!--#footer-->
+</body>
+</html>

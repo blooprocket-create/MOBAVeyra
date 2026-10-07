@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veyra Support — installing, accounts and servers</title>
+<meta name="description" content="Help with installing Veyra, Windows warnings, your account, the launcher and Veyra's servers.">
+<meta name="theme-color" content="#07090e">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/Roboto-Black.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/boot.js"></script>
+<script type="module" src="/js/pages/support.js"></script>
+</head>
+<body data-page="support">
+<!--#header-->
+<main id="main">
+  <header class="page-banner">
+    <div class="page-banner__art" aria-hidden="true"><img src="/art/neris.webp" alt="" data-focus="52% 40%"></div>
+    <div class="container">
+      <p class="eyebrow">Help</p>
+      <h1 class="page-banner__title">Support</h1>
+      <span class="slash-rule" aria-hidden="true"></span>
+      <p class="lede">Answers to the questions players ask most, from getting Setup past Windows to signing in.</p>
+    </div>
+  </header>
+
+  <section class="section" aria-label="Questions and answers">
+    <div class="container support">
+      <div>
+        <div class="search" data-reveal>
+          <label class="visually-hidden" for="faq-search">Search the answers</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2"/></svg>
+          <input id="faq-search" type="search" placeholder="Search: SmartScreen, password, offline…" autocomplete="off" data-faq-search>
+        </div>
+        <p class="no-results" data-faq-empty hidden role="status">Nothing matches that. Try another word, or <a href="#contact">contact us</a>.</p>
+
+        <section class="faq-group" data-faq-group aria-labelledby="faq-installing">
+          <h2 class="faq-group__title" id="faq-installing">Installing</h2>
+
+          <details class="faq" id="faq-smartscreen">
+            <summary>Windows says “Windows protected your PC”</summary>
+            <div class="faq__body">
+              <p>That's Microsoft Defender SmartScreen. It appears because Veyra Setup isn't code-signed yet, so Windows can't name its publisher. Select <strong>More info</strong>, check the app is the Veyra Setup you downloaded, then select <strong>Run anyway</strong>.</p>
+              <p>For peace of mind, first <a href="/download#verify">check the file's SHA-256</a> against the one on the download page.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-browser-warning">
+            <summary>My browser says the file isn't commonly downloaded</summary>
+            <div class="faq__body">
+              <p>Browsers warn about new files that few people have downloaded yet. Keep it from the downloads list: <strong>Keep</strong> in Chrome; <strong>⋯ → Keep</strong> in Edge, then <strong>Show more → Keep anyway</strong> if asked; <strong>Allow download</strong> in Firefox.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-no-run-anyway">
+            <summary>There's no “Run anyway” button</summary>
+            <div class="faq__body">
+              <p>Two things can stop unsigned apps outright:</p>
+              <ul>
+                <li><strong>Smart App Control</strong> (on some Windows 11 PCs) blocks apps without a trusted signature and offers no way past. You can see whether it's on in <strong>Windows Security → App &amp; browser control → Smart App Control settings</strong>. Turning it off is your decision to make; Veyra will install normally once it's signed.</li>
+                <li>A PC managed by a school or workplace may block unknown apps by policy. Ask whoever manages it.</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-antivirus">
+            <summary>My antivirus removed or quarantined Veyra Setup</summary>
+            <div class="faq__body">
+              <p>Antivirus tools are more suspicious of new, unsigned installers. If your copy's <a href="/download#verify">SHA-256</a> matches the one on the download page, it is the file we published: you can restore it from quarantine or allow it. If it doesn't match, delete it and download again from this website.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-webview2">
+            <summary>Setup says the launcher needs WebView2</summary>
+            <div class="faq__body">
+              <p>The launcher's window is drawn with Microsoft's WebView2 Runtime. Windows 11 includes it. On Windows 10, Setup offers to open Microsoft's download page: install the runtime, then open Veyra from the Start menu.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-admin">
+            <summary>Do I need administrator rights?</summary>
+            <div class="faq__body">
+              <p>No. Setup installs the launcher for your Windows user only, in <code>%LOCALAPPDATA%\Programs\Veyra</code>, with no administrator prompt.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-where">
+            <summary>Where does the game go, and can I choose?</summary>
+            <div class="faq__body">
+              <p>The launcher's <strong>Install</strong> screen suggests a folder and lets you <strong>Change</strong> it before you install. Veyra runs on 64-bit Windows only.</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="faq-group" data-faq-group aria-labelledby="faq-accounts">
+          <h2 class="faq-group__title" id="faq-accounts">Your account</h2>
+
+          <details class="faq" id="faq-same-account">
+            <summary>Is my website account the same as my launcher account?</summary>
+            <div class="faq__body">
+              <p>Yes. An account you create here signs in to the launcher with the same email and password, and one made in the launcher logs in here.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-names">
+            <summary>What display names are allowed?</summary>
+            <div class="faq__body">
+              <p>A display name is <strong data-name-rules>3–16 letters, digits or underscores</strong>. Every name is unique, and capitals don't make a new one: if someone is <em>Ember</em>, nobody else can be <em>ember</em>.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-password">
+            <summary>I forgot my password</summary>
+            <div class="faq__body">
+              <p>On the <a href="/login">log in page</a>, or the launcher's sign-in, select <strong>Forgot password?</strong> and enter your email. If an account uses it, a reset link arrives by email. Check your spam folder if it doesn't show up within a few minutes.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-choose-name">
+            <summary>The launcher asks me to choose my name</summary>
+            <div class="faq__body">
+              <p>Creating an account takes two steps: your sign-in, then your Veyra account with its display name. If the second step didn't finish (for example, the servers were offline, or someone took the name a moment before you), you'll be asked for a name the next time you sign in. Pick one there, or on <a href="/account">your account page</a>.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-verify">
+            <summary>Do I need to verify my email?</summary>
+            <div class="faq__body">
+              <p>Not during the current tests: you can sign in as soon as you register. Email verification will be required later in development.</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="faq-group" data-faq-group aria-labelledby="faq-playing">
+          <h2 class="faq-group__title" id="faq-playing">Playing</h2>
+
+          <details class="faq" id="faq-servers-offline">
+            <summary>The launcher says Veyra's servers are offline</summary>
+            <div class="faq__body">
+              <p>Public tests run on Veyra's test servers, which aren't online around the clock. While they're offline you can't sign in to the launcher, download, or play. The status on this page shows whether they're up; try again when it reads <strong>Servers online</strong>.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-wont-start">
+            <summary>The game won't start, or something went wrong</summary>
+            <div class="faq__body">
+              <ol>
+                <li>Select <strong>Try Again</strong> in the launcher.</li>
+                <li>Use <strong>Repair</strong>, beside the build number on the sign-in screen. It checks every file and replaces any that are damaged.</li>
+                <li>Still stuck? Uninstall Veyra (keep the game when asked), run the latest <a href="/download">Veyra Setup</a>, and try once more.</li>
+              </ol>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-updates">
+            <summary>How do updates work?</summary>
+            <div class="faq__body">
+              <p>Automatically. Each time the launcher opens, it checks for a new launcher and a new game build and installs them before you sign in, downloading only what changed.</p>
+            </div>
+          </details>
+
+          <details class="faq" id="faq-uninstall">
+            <summary>How do I uninstall Veyra?</summary>
+            <div class="faq__body">
+              <p>Open Windows <strong>Settings → Apps → Installed apps</strong>, find <strong>Veyra</strong> and select <strong>Uninstall</strong>. You'll be asked whether to remove the game as well.</p>
+            </div>
+          </details>
+        </section>
+      </div>
+
+      <aside class="support__aside">
+        <div class="panel" data-reveal>
+          <h2 class="panel__title">Server status</h2>
+          <p><span class="status" data-server-status data-state="checking"><span class="status__dot"></span><span class="status__text">Checking Veyra's servers…</span></span></p>
+          <p>Matches, sign-in and downloads need the servers online.</p>
+        </div>
+        <div class="panel panel--brass" data-reveal id="contact">
+          <h2 class="panel__title">Contact us</h2>
+          <p data-contact-intro>Didn't find your answer? Tell us what happened, what you expected, and your display name.</p>
+          <ul class="contact-list" data-contact-list></ul>
+          <p data-contact-none hidden>Contact details are on their way. Until then, reach the Veyra team through the channel where you got your test invite.</p>
+        </div>
+        <div class="panel" data-reveal>
+          <h2 class="panel__title">Get started</h2>
+          <p>New to Veyra? Create an account, then follow the install guide.</p>
+          <div class="account__actions">
+            <a class="btn btn--primary btn--small" href="/signup">Sign up</a>
+            <a class="btn btn--ghost btn--small" href="/download#install">Install guide</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+<!--#footer-->
+</body>
+</html>
