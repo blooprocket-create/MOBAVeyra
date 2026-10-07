@@ -233,40 +233,6 @@ def lantern(S, L, dims, mats, spec):
 
 
 # ---------------------------------------------------------------------------------------------- cloth sheets
-def _across(chains, t0, t1):
-    """Where round her each chain hangs, as a share of a sheet's sweep from t0 to t1 (radians from the front)."""
-    return {name: ((np.arctan2(points[0][1], points[0][0]) - t0) % (2 * np.pi)) / (t1 - t0) for name, points in chains.items()}
-
-
-def _down_chains(chains, across, P, u, hold, holder):
-    """Weights for a sheet hung on chains round her: across the chains by where round her it hangs (each point shared
-    between the two chains either side of it), down each by height, its top held by holder."""
-    names = sorted(across, key=across.get)
-    spots = np.array([across[n] for n in names])
-    w = {}
-    for i, name in enumerate(names):
-        left = spots[i - 1] if i > 0 else spots[i] - 1.0
-        right = spots[i + 1] if i + 1 < len(names) else spots[i] + 1.0
-        share = np.where(u <= spots[i], np.clip((u - left) / max(spots[i] - left, 1e-6), 0, 1), np.clip((right - u) / max(right - spots[i], 1e-6), 0, 1))
-        if i == 0:
-            share = np.where(u <= spots[i], 1.0, share)
-        if i + 1 == len(names):
-            share = np.where(u >= spots[i], 1.0, share)
-        points = chains[name]
-        spans = len(points) - 1
-        span = points[0][2] - points[-1][2]
-        t = np.clip((points[0][2] - P[:, 2]) / span, 0, 1) * spans
-        for k in range(spans):
-            centre = k + 0.5
-            hat = np.clip(1 - np.abs(np.clip(t, 0.5, spans - 0.5) - centre), 0, 1)
-            w["%s_%02d" % (name, k + 1)] = w.get("%s_%02d" % (name, k + 1), 0.0) + hat * share
-    for k in w:
-        w[k] = w[k] * (1 - hold)
-    w[holder] = hold
-    total = sum(w.values())
-    return {k: (np.asarray(x) / np.maximum(total, 1e-6)).astype(np.float32) for k, x in w.items()}
-
-
 def cloak(S, L, dims, mats, worn):
     """Her long storm cloak: lying on her shoulders under the mantle, falling behind her arms nearly to the ground,
     flaring wide at both sides as it falls, its hem torn into long ragged tongues."""
@@ -300,11 +266,11 @@ def cloak(S, L, dims, mats, worn):
         p[:, 2] = top[:, 2] + (hem - top[:, 2]) * v
         return sheet.clear_of(p, limbs, 1.5)
     chains = {prefix: [V(*L["%s_%02d" % (prefix, i)][0]) for i in (1, 2, 3)] + [V(*L[prefix + "_end"][0])] for prefix in ("cape_l", "cape", "cape_r")}
-    across = _across(chains, t0, t1)
+    across = sheet.sweep_shares(chains, t0, t1)
 
     def bones(P, u, v):
         hold = np.clip(1 - v / 0.1, 0, 1)
-        return _down_chains(chains, across, P, u, hold, "spine_03")
+        return sheet.down_chains(chains, across, P, u, hold, "spine_03")
     return sheet.Sheet("cloak", position, material, bones, columns, rows)
 
 
@@ -335,11 +301,11 @@ def skirt(S, L, dims, mats):
         p[:, 2] = belt_z + (hem - belt_z) * v
         return sheet.clear_of(p, limbs, 1.5)
     chains = {name: [V(*L["%s_%02d" % (name, i)][0]) for i in (1, 2, 3)] + [V(*L[name + "_end"][0])] for name in ("skirt_fl", "skirt_bl", "skirt_br", "skirt_fr")}
-    across = _across(chains, t0, t1)
+    across = sheet.sweep_shares(chains, t0, t1)
 
     def bones(P, u, v):
         hold = np.clip(1 - v / 0.1, 0, 1)
-        return _down_chains(chains, across, P, u, hold, "pelvis")
+        return sheet.down_chains(chains, across, P, u, hold, "pelvis")
     return sheet.Sheet("skirt", position, material, bones, columns, rows)
 
 
