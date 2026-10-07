@@ -15,8 +15,11 @@
 #include "Companions/VeyraCompanionSubsystem.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
+#include "Engine/CollisionProfile.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialParameterCollectionInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -585,6 +588,56 @@ namespace VeyraVanguardBodyTests
 			}
 			RefreshedGreybox();
 			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 1.0f, TEXT("then moving again")));
+		}
+
+		TEST_METHOD(APlantedFootStandsOnTheGroundUnderIt)
+		{
+			// Fixture values: a frame of the world, how long it eases (several times the feet's ease), and a step under one foot.
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr float Seconds = 1.5f;
+			constexpr double Step = 12.0;
+			constexpr double StepSize = 24.0;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Settings.bFootIK && Step < Settings.FootMaxOffset && Step < Settings.FootTraceAbove, TEXT("the feet hold to a step this high")));
+			const FVeyraVanguardBody* Art = ArtSet().Find(DressedId());
+			ASSERT_THAT(IsTrue(Art && Art->FootChains.Num() == 2, TEXT("a body with two legs")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(Presentation.FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			const FName Left = Art->FootChains[0].End;
+			const FName Right = Art->FootChains[1].End;
+			// Drawn lately, standing still: its feet planted in its idle clip.
+			const auto Advance = [this, Skin](float Time) {
+				for (float Elapsed = 0.0f; Elapsed < Time; Elapsed += Frame)
+				{
+					Skin->SetLastRenderTime(Spawner.GetWorld().GetTimeSeconds());
+					Skin->TickAnimation(Frame, false);
+					Skin->RefreshBoneTransforms();
+				}
+			};
+			Advance(Frame);
+			const double Floor = Skin->GetComponentLocation().Z;
+			const FVector LeftAt = Skin->GetBoneLocation(Left);
+			const double RightZ = Skin->GetBoneLocation(Right).Z;
+			const double Level = LeftAt.Z - RightZ;
+			// A block under its left foot alone, its top Step above the floor; nothing under the right.
+			AStaticMeshActor& Block = Spawner.SpawnActorAt<AStaticMeshActor>(FVector(LeftAt.X, LeftAt.Y, Floor + Step - StepSize * 0.5), FRotator::ZeroRotator);
+			UStaticMeshComponent* Mesh = Block.GetStaticMeshComponent();
+			Mesh->SetMobility(EComponentMobility::Movable);
+			UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+			ASSERT_THAT(IsNotNull(Cube));
+			Mesh->SetStaticMesh(Cube);
+			Mesh->SetWorldScale3D(FVector(StepSize / (Cube->GetBounds().BoxExtent.X * 2.0)));
+			Mesh->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+			Advance(Seconds);
+			const double Raised = Skin->GetBoneLocation(Left).Z - Skin->GetBoneLocation(Right).Z - Level;
+			ASSERT_THAT(IsNear(Raised, Step, Tolerance * 1.5, *FString::Printf(TEXT("the left foot steps up onto the block: %.2f"), Raised)));
+			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Right).Z, RightZ, Tolerance * 1.5, TEXT("the right stays on the floor")));
+			// Off the block, it comes back down.
+			Block.Destroy();
+			Advance(Seconds);
+			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Left).Z - Skin->GetBoneLocation(Right).Z, Level, Tolerance * 1.5, TEXT("and down again")));
 		}
 
 		TEST_METHOD(TheToonLightFollowsTheMapsSun)

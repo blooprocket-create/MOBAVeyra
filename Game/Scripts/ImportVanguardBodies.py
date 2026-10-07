@@ -431,6 +431,18 @@ def fill_body(asset, body):
     body.set_editor_property("cast_release_share", asset["castReleaseShare"])
     body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
     body.set_editor_property("priority", asset.get("priority", 0))
+    ik = asset.get("ik", {})
+
+    def chain(names):
+        limb = unreal.VeyraLimbChain()
+        limb.set_editor_property("root", unreal.Name(names[0]))
+        limb.set_editor_property("joint", unreal.Name(names[1]))
+        limb.set_editor_property("end", unreal.Name(names[2]))
+        return limb
+    body.set_editor_property("foot_chains", [chain(names) for names in ik.get("feet", [])])
+    if ik.get("offHand"):
+        body.set_editor_property("off_hand", chain(ik["offHand"]["chain"]))
+        body.set_editor_property("off_hand_anchor", unreal.Name(ik["offHand"]["anchor"]))
     if asset.get("effect"):
         effect = unreal.load_asset(asset["effect"]["system"])
         assert isinstance(effect, unreal.NiagaraSystem), (asset["name"], "its effect does not load; build it with BuildEffects.ps1", asset["effect"]["system"])

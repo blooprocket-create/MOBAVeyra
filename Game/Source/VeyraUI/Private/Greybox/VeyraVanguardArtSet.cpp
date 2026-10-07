@@ -78,7 +78,31 @@ TArray<FString> FVeyraVanguardBody::Validate(const FString& Label) const
 			Problems.Add(FString::Printf(TEXT("%s: EffectBones' %s must be a bone of its mesh, with an Effect to pour."), *Label, *Bone.ToString()));
 		}
 	}
-	return Problems;
+	// Every bone its inverse kinematics names is one of its skeleton's (ADR-069).
+	const FReferenceSkeleton& Bones = Mesh->GetRefSkeleton();
+	TArray<const FVeyraLimbChain*> Chains;
+	for (const FVeyraLimbChain& Chain : FootChains)
+	{
+		Chains.Add(&Chain);
+	}
+	if (OffHand.IsSet() || !OffHandAnchor.IsNone())
+	{
+		Chains.Add(&OffHand);
+		if (Bones.FindBoneIndex(OffHandAnchor) == INDEX_NONE)
+		{
+			Problems.Add(FString::Printf(TEXT("%s: the off hand's anchor %s is no bone of its skeleton."), *Label, *OffHandAnchor.ToString()));
+		}
+	}
+	for (const FVeyraLimbChain* Chain : Chains)
+	{
+		for (const FName Bone : { Chain->Root, Chain->Joint, Chain->End })
+		{
+			if (Bones.FindBoneIndex(Bone) == INDEX_NONE)
+			{
+				Problems.Add(FString::Printf(TEXT("%s: the limb bone %s is no bone of its skeleton."), *Label, *Bone.ToString()));
+			}
+		}
+	}	return Problems;
 }
 
 const FVeyraVanguardBody& FVeyraVanguardArt::BodyFor(TFunctionRef<bool(FName)> Holds) const

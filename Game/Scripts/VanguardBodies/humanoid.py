@@ -4,6 +4,7 @@ import random
 
 from mathutils import Euler, Matrix, Vector
 
+from . import locomotion
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
 # The humanoid skeleton: every humanoid has every bone, so all share one definition. A bone a body does not use (a
@@ -49,6 +50,14 @@ LANTERN_ELBOW = 10.0
 UPPER_BODY_BONE = "spine_01"
 LIFT_BONE = "pelvis"
 GROUNDED = True
+# The limbs its inverse kinematics holds (ADR-069): each leg's chain, kept on uneven ground while its foot is planted;
+# and, for a stance that holds a weapon in both hands, the off arm kept on the weapon the right hand carries.
+IK_FEET = [("thigh_l", "calf_l", "foot_l"), ("thigh_r", "calf_r", "foot_r")]
+IK_OFF_HAND = ("upperarm_l", "lowerarm_l", "hand_l")
+IK_OFF_HAND_ANCHOR = "hand_r"
+IK_TWO_HANDED_STANCES = ("aim", "braced")
+# How far a leg the clips solve may stretch past its length at full reach, as a share of it (under a tenth).
+LEG_STRETCH = 0.04
 
 
 def layout(spec, capsule):
@@ -188,6 +197,9 @@ def layout(spec, capsule):
             "hunch": spec.get("hunch", 0.0),
             "footprint": footprint, "ride": "wave" if "waveBase" in features else None, "gun": gun,
             "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base)}
+    # Each leg's rest joints, for the clips that solve the legs from where the feet must be (ADR-069 §6).
+    dims["legRest"] = {side: {"hip": L["thigh_" + side][0].copy(), "knee": L["calf_" + side][0].copy(), "ankle": L["foot_" + side][0].copy(),
+                              "toe": L["foot_" + side][1].copy()} for side in ("l", "r")}
     return L, dims
 
 
@@ -1489,6 +1501,24 @@ def add_prop(body, prop, L, d, spec):
         raise AssertionError("Unknown prop: " + kind)
 
 
+def plant_legs(pose, d, lift, feet):
+    """Solves both legs into pose (IK, ADR-069 §6): each foot (forward of its rest, its height above its rest or None to
+    keep its rest height, its pitch in degrees, toes down) with the pelvis lifted lift, the knees bent forward."""
+    rest = d.get("legRest")
+    if not rest:
+        return
+    for side, (forward, up, pitch) in feet.items():
+        r = rest[side]
+        hip = r["hip"] + Vector((0.0, 0.0, lift))
+        target = r["ankle"] + Vector((forward, 0.0, 0.0 if up is None else up))
+        pole = r["knee"] + Vector((d["leg"], 0.0, 0.0))
+        # A little give at full reach, so a long stride eases the leg straight rather than locking it (ADR-069 §6).
+        solved = locomotion.leg_pose(r, hip, target, pitch, pole, stretch=LEG_STRETCH)
+        pose["thigh_" + side] = solved["thigh"]
+        pose["calf_" + side] = solved["calf"]
+        pose["foot_" + side] = solved["foot"]
+
+
 def run_stride(d):
     """How far one Run cycle carries the body: two steps, each the planted foot sweeping from one swing to the other."""
     return 2 * 2 * (d["leg"]) * math.sin(math.radians(RUN_THIGH_SWING))
@@ -1529,17 +1559,22 @@ def pose(name, t, melee, d):
         for side, sign in (("l", 1), ("r", -1)):
             pose["upperarm_" + side] = forward_swing(3 * math.sin(t * tau + sign))
         lift = d["height"] * 0.006 * breath
+        # The feet stay planted where they rest while the body breathes over them (IK, ADR-069 §6).
+        plant_legs(pose, d, lift, {side: (0.0, None, 0.0) for side in ("l", "r")})
     elif name == "Run":
         stride = math.sin(t * tau)
         pose["spine_01"] = lean(10)
         pose["spine_03"] = twist(8 * stride)
         for side, sign in (("l", 1), ("r", -1)):
             phase = stride * sign
-            pose["thigh_" + side] = forward_swing(RUN_THIGH_SWING * phase)
-            pose["calf_" + side] = forward_swing(-40 * max(0.0, -phase) - 15)
             pose["upperarm_" + side] = forward_swing(-30 * phase)
             pose["lowerarm_" + side] = forward_swing(45)
-        lift = d["height"] * 0.025 * abs(math.cos(t * tau))
+        # The legs are solved from where the feet must be: each planted foot slides back exactly as fast as the body
+        # runs, so it stays put on the ground, and each swinging foot arcs ahead to its next step (IK, ADR-069 §6).
+        leg = d["leg"]
+        lift = locomotion.run_pelvis(t, leg)
+        feet = locomotion.run_feet(t, run_stride(d), 0.0, leg=leg)
+        plant_legs(pose, d, lift, {side: (forward, up, pitch) for side, (forward, up, pitch) in feet.items()})
     elif name in ("AttackWindup", "AttackStrike"):
         # The windup ends on the moment the attack commits, the strike follows through from it. Melee: the chest
         # turns right and the right arm cocks out and back, weapon up, then sweeps forward across the body, landing

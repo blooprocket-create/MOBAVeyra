@@ -370,6 +370,12 @@ def build(spec, status=None, suffix="", previous=None):
              "contentSha256": content, "contentVersion": CONTENT_VERSION}
     if textures:
         asset["textures"] = model.texture_records(textures, SOURCE)
+    if getattr(archetype, "IK_FEET", None):
+        # The limbs the engine's inverse kinematics holds (ADR-069): its legs on the ground, and an off hand on a weapon
+        # its stance holds in both hands.
+        asset["ik"] = {"feet": [list(chain) for chain in archetype.IK_FEET]}
+        if spec.get("stance") in getattr(archetype, "IK_TWO_HANDED_STANCES", ()):
+            asset["ik"]["offHand"] = {"chain": list(archetype.IK_OFF_HAND), "anchor": archetype.IK_OFF_HAND_ANCHOR}
     if spec.get("effect"):
         # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
         effect = spec["effect"]
