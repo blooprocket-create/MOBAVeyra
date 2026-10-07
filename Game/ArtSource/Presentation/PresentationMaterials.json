@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generator": "Game/Scripts/BuildPresentationMaterials.py",
-  "generatorVersion": 2,
+  "generatorVersion": 3,
   "destination": "/Game/Veyra/UI/Presentation",
   "materials": [
     {
@@ -24,6 +24,20 @@
       "stencils": { "enemy": 1, "ally": 2, "neutral": 3 },
       "thicknessPixels": { "enemy": 3.0, "other": 2.0 },
       "referenceHeight": 1080.0
+    },
+    {
+      "name": "PP_VeyraToonInk",
+      "kind": "postProcessInk",
+      "purpose": "ADR-068 §3: the toon characters' ink, a screen-space line wherever a character's visible surface lies nearer than what it covers: its silhouette and its overlapping parts, as wide on screen at any distance, in a darkened tone of the nearer colour, its edge softened where fewer neighbours see that surface. Drawn before the temporal upscaler, which smooths it with the scene. Characters write their custom depth with this stencil; the hover outline keeps its own.",
+      "stencilParameter": "InkStencil",
+      "stencil": 8,
+      "thicknessPixels": 2.0,
+      "referenceHeight": 1080.0,
+      "darken": 0.1,
+      "inkTint": [0.85, 0.8, 1.0, 1.0],
+      "solidNeighbours": 2,
+      "depthGap": 12.0,
+      "visibleSlack": 4.0
     },
     {
       "name": "M_VeyraSmoke",

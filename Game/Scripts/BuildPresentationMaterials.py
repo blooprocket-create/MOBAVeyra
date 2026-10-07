@@ -74,7 +74,8 @@ OUTLINE_HLSL = """
 // The hovered unit's outline (ADR-063, section 3): a pixel outside every stencilled shape, near one, takes that shape's colour.
 // An enemy's reach wins over an ally's or a neutral's; reaches grow with the view's height past ReferenceHeight.
 float3 Base = Scene.rgb;
-if (Stencil.r > 0.5)
+float Own = round(Stencil.r);
+if (Own == EnemyStencil.r || Own == AllyStencil.r || Own == NeutralStencil.r)
 {
     return Base;
 }
@@ -95,7 +96,7 @@ float Found = 0.0;
         {
             Found = Kind;
         }
-        else if (Kind > 0.5 && Found == 0.0 && Distance <= OtherReach)
+        else if ((Kind == AllyStencil.r || Kind == NeutralStencil.r) && Found == 0.0 && Distance <= OtherReach)
         {
             Found = Kind;
         }
@@ -147,6 +148,87 @@ def build_post_process_outline(material, spec):
     for name, node, output in inputs:
         EDIT.connect_material_expressions(node, output, custom, name)
     EDIT.connect_material_property(custom, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+
+
+INK_HLSL = """
+// The toon characters' ink (ADR-068, section 3). Characters write their custom depth with InkStencil. A pixel takes ink
+// where a neighbour within reach is a character's visible surface lying nearer than this pixel by more than DepthGap:
+// the character's silhouette against what lies behind it, and one part of it in front of a farther part. The ink is
+// the nearest such surface's own colour, darkened and tinted, so a line reads as a deeper tone of what it outlines. It is
+// solid where SolidNeighbours of the eight neighbours see that surface and fainter where fewer do, which softens its
+// edge; the temporal upscaler, which runs after this pass, smooths it with the scene.
+// Places are viewport UVs, each mapped into its own scene texture. Colours are read as the pass's input is (the scene's
+// own brightness, before exposure), so darkening and tinting are multiplications.
+float2 Here = GetViewportUV(Parameters);
+float2 Reach = Thickness.r * max(View.ViewSizeAndInvSize.y / ReferenceHeight.r, 1.0) * View.ViewSizeAndInvSize.zw;
+float HereScene = SceneTextureLookup(ViewportUVToSceneTextureUV(Here, {scenedepth}), {scenedepth}, false).r;
+float HereCustom = SceneTextureLookup(ViewportUVToSceneTextureUV(Here, {customdepth}), {customdepth}, false).r;
+bool HereCharacter = round(SceneTextureLookup(ViewportUVToSceneTextureUV(Here, {stencil}), {stencil}, false).r) == InkStencil.r
+    && HereCustom <= HereScene + VisibleSlack.r;
+float Depth = HereCharacter ? HereCustom : HereScene;
+float3 Ink = Scene.rgb;
+float Nearest = Depth;
+float Seen = 0.0;
+const float2 Around[8] = { float2(1, 0), float2(-1, 0), float2(0, 1), float2(0, -1), float2(0.7071, 0.7071), float2(-0.7071, 0.7071),
+                           float2(0.7071, -0.7071), float2(-0.7071, -0.7071) };
+[unroll] for (int Index = 0; Index < 8; ++Index)
+{
+    float2 There = Here + Around[Index] * Reach;
+    if (round(SceneTextureLookup(ViewportUVToSceneTextureUV(There, {stencil}), {stencil}, false).r) != InkStencil.r)
+    {
+        continue;
+    }
+    float ThereCustom = SceneTextureLookup(ViewportUVToSceneTextureUV(There, {customdepth}), {customdepth}, false).r;
+    // Hidden behind the world, as behind a wall, a character draws no ink.
+    if (ThereCustom > SceneTextureLookup(ViewportUVToSceneTextureUV(There, {scenedepth}), {scenedepth}, false).r + VisibleSlack.r
+        || Depth - ThereCustom <= DepthGap.r)
+    {
+        continue;
+    }
+    Seen += 1.0;
+    if (ThereCustom < Nearest)
+    {
+        Nearest = ThereCustom;
+        Ink = SceneTextureLookup(Parameters, ViewportUVToSceneTextureUV(There, {scene}), {scene}, false).rgb * Darken.r * InkTint.rgb;
+    }
+}
+return lerp(Scene.rgb, Ink, saturate(Seen / SolidNeighbours.r));
+"""
+
+
+def build_post_process_ink(material, spec):
+    """A post-process pass that inks the toon characters' silhouettes and overlaps (ADR-068 §3). It runs after depth of field and before the
+    temporal upscaler, at the rendering's own resolution, so the upscaler smooths its lines as it does the scene's edges."""
+    material.set_editor_property("material_domain", unreal.MaterialDomain.MD_POST_PROCESS)
+    material.set_editor_property("blendable_location", unreal.BlendableLocation.BL_SCENE_COLOR_AFTER_DOF)
+    ids = {"{scene}": unreal.SceneTextureId.PPI_POST_PROCESS_INPUT0, "{stencil}": unreal.SceneTextureId.PPI_CUSTOM_STENCIL,
+           "{customdepth}": unreal.SceneTextureId.PPI_CUSTOM_DEPTH, "{scenedepth}": unreal.SceneTextureId.PPI_SCENE_DEPTH}
+    code = INK_HLSL
+    for token, texture in ids.items():
+        code = code.replace(token, str(int(texture.value)))
+    # Each scene texture the code reads must also be an input, so the pass binds it.
+    scene = expression(material, unreal.MaterialExpressionSceneTexture, -1200, -500, scene_texture_id=ids["{scene}"])
+    inputs = [("Scene", scene, "Color")]
+    y = -350
+    for name, texture in (("StencilTexture", ids["{stencil}"]), ("CustomDepthTexture", ids["{customdepth}"]), ("SceneDepthTexture", ids["{scenedepth}"])):
+        node = expression(material, unreal.MaterialExpressionSceneTexture, -1200, y, scene_texture_id=texture)
+        inputs.append((name, node, "Color"))
+        y += 150
+    stencil = expression(material, unreal.MaterialExpressionScalarParameter, -1200, y, parameter_name=spec["stencilParameter"], default_value=float(spec["stencil"]))
+    inputs.append(("InkStencil", stencil, ""))
+    y += 100
+    for name, value in (("Thickness", spec["thicknessPixels"]), ("ReferenceHeight", spec["referenceHeight"]), ("Darken", spec["darken"]),
+                        ("DepthGap", spec["depthGap"]), ("VisibleSlack", spec["visibleSlack"]), ("SolidNeighbours", spec["solidNeighbours"])):
+        node = expression(material, unreal.MaterialExpressionScalarParameter, -1200, y, parameter_name=name, default_value=float(value))
+        inputs.append((name, node, ""))
+        y += 100
+    tint = expression(material, unreal.MaterialExpressionVectorParameter, -1200, y, parameter_name="InkTint", default_value=unreal.LinearColor(*spec["inkTint"]))
+    inputs.append(("InkTint", tint, "RGB"))
+    custom = expression(material, unreal.MaterialExpressionCustom, -600, 0, code=code, description="VeyraToonInk",
+                        output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT3, inputs=[custom_input(name) for name, _, _ in inputs])
+    for name, node, output in inputs:
+        assert EDIT.connect_material_expressions(node, output, custom, name), "ink input " + name
+    assert EDIT.connect_material_property(custom, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "ink"
 
 
 def build_particle_smoke(material, spec):
@@ -334,8 +416,8 @@ def build_particle_effect(material, spec):
     assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
 
 
-BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "particleSmoke": build_particle_smoke,
-            "particleEffect": build_particle_effect}
+BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "postProcessInk": build_post_process_ink,
+            "particleSmoke": build_particle_smoke, "particleEffect": build_particle_effect}
 
 # -VeyraOnly=A,B builds just those materials; without it, every one.
 ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)

@@ -124,6 +124,13 @@ public:
 	/** The custom-depth stencil Unit's outline is drawn with: its side's as the viewer sees it, enemy, ally or neutral. */
 	int32 HoverStencilOf(const AActor& Unit) const;
 
+	/**
+	 * The custom-depth stencil the toon ink outlines a character by (ADR-068 §3), as the generated ink material's default
+	 * gives it: every unhovered character's drawn body (a generated body, or a creature's art; never a structure's)
+	 * writes it, and the ink pass draws their lines.
+	 */
+	int32 GetInkStencil() const { return InkStencil; }
+
 	/** The effect a cue of Kind plays (ADR-063 §4): a hit's impact, a cast's flash, a death's burst; null for the rest. */
 	class UNiagaraSystem* EffectFor(EVeyraCombatCueKind Kind) const;
 
@@ -277,8 +284,20 @@ private:
 	/** Shows the outline pass on the local camera, in the player's side colours, while anything is hovered. */
 	void RefreshHoverPass();
 
-	/** Turns Unit's drawn body and art's outline stencil on or off. */
-	void SetOutlined(const AActor& Unit, bool bOutlined) const;
+	/** Shows the toon ink pass on the local camera (ADR-068 §3). */
+	void RefreshInkPass();
+
+	/**
+	 * Lights the generated bodies' toon light by the map's sun (ADR-068 §2): the direction toward it and its colour, at
+	 * its brightest channel's full strength. A world without a sun keeps the collection's defaults, the kit's.
+	 */
+	void RefreshToonLight();
+
+	/**
+	 * Writes Unit's custom-depth stencils: while bHovered, its drawn body, art and generated body all write its hover
+	 * stencil; otherwise a character's generated body and art write the ink's, and nothing else writes any.
+	 */
+	void SetStencils(const AActor& Unit, bool bHovered) const;
 
 	TWeakObjectPtr<const AActor> Hovered;
 
@@ -294,6 +313,24 @@ private:
 	int32 EnemyStencil = 0;
 	int32 AllyStencil = 0;
 	int32 NeutralStencil = 0;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> ToonInkMaterial;
+
+	TWeakObjectPtr<class UCameraComponent> InkCamera;
+
+	/** The characters' stencil, as the generated ink material's default gives it; 0 until it loads. */
+	int32 InkStencil = 0;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UMaterialParameterCollection> ToonLight;
+
+	/** The map's sun the toon light follows, once found. */
+	TWeakObjectPtr<class UDirectionalLightComponent> Sun;
+
+	/** What the toon light was last given, so an unchanged sun sets nothing. */
+	FLinearColor ToonSunShown = FLinearColor::Transparent;
+	FLinearColor ToonColorShown = FLinearColor::Transparent;
 
 	struct FProjectileVisual
 	{

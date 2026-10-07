@@ -210,6 +210,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(!HoverEnemyColorParameter.IsNone() && !HoverAllyColorParameter.IsNone() && !HoverNeutralColorParameter.IsNone()
 			&& !HoverEnemyStencilParameter.IsNone() && !HoverAllyStencilParameter.IsNone() && !HoverNeutralStencilParameter.IsNone(),
 		TEXT("HoverEnemyColorParameter"), TEXT("the hover outline's three colour and three stencil parameters are required."));
+	Require(!ToonInkMaterial.IsNull() && !ToonInkStencilParameter.IsNone(), TEXT("ToonInkMaterial"),
+		TEXT("the generated toon ink material and its stencil parameter are required."));
+	Require(!ToonLight.IsNull() && !ToonSunDirectionParameter.IsNone() && !ToonSunColorParameter.IsNone(), TEXT("ToonLight"),
+		TEXT("the generated toon light and its sun direction and colour parameters are required."));
 	Require(!HitFlashColorParameter.IsNone() && !HitFlashStrengthParameter.IsNone(), TEXT("HitFlashColorParameter"),
 		TEXT("the hit flash material's colour and strength parameters are required."));
 	Require(HitFlashSeconds > 0.0f && RecoilSeconds > 0.0f && SnapSeconds > 0.0f && CollapseSeconds > 0.0f, TEXT("HitFlashSeconds"),

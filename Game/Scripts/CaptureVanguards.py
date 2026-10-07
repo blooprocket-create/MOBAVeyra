@@ -49,6 +49,31 @@ for name in ("ViewDistance", "AntiAliasing", "Shadow", "GlobalIllumination", "Re
 unreal.SystemLibrary.execute_console_command(WORLD, "r.ScreenPercentage 100")
 
 
+def greybox_setting(name):
+    """A value of the presentation's settings (VeyraGreyboxSettings in DefaultGame.ini), from the one place it is set."""
+    section = False
+    for line in (GAME / "Config" / "DefaultGame.ini").read_text(encoding="utf-8").splitlines():
+        if line.startswith("["):
+            section = line.strip() == "[/Script/VeyraUI.VeyraGreyboxSettings]"
+        elif section and line.startswith(name + "="):
+            return line.split("=", 1)[1].strip()
+    raise AssertionError("DefaultGame.ini has no VeyraGreyboxSettings " + name)
+
+
+def toon_presentation():
+    """What the game's presentation gives the toon bodies (ADR-068 §2-3), which an editor world does not run: the ink pass
+    and its stencil, and the toon light set from the map's brightest sun as the game sets it."""
+    ink = unreal.load_asset(greybox_setting("ToonInkMaterial"))
+    assert ink, "The toon ink does not load; run BuildPresentationMaterials.ps1"
+    stencil = round(unreal.MaterialEditingLibrary.get_material_default_scalar_parameter_value(ink, greybox_setting("ToonInkStencilParameter")))
+    assert stencil > 0, "The toon ink has no stencil"
+    assert unreal.VeyraToonLight.light_by_sun(WORLD), "The battleground has no sun to light the toon bodies by"
+    return ink, stencil
+
+
+INK, INK_STENCIL = toon_presentation()
+
+
 def stage():
     """The Bottom lane's straight run along +Y: its centre line, clear of base and river."""
     lane = next(lane for lane in WORLD_LAYOUT["lanes"] if lane["lane"] == "Bottom")
@@ -88,7 +113,10 @@ def spawn_rows(asset):
             actor = ACTORS.spawn_actor_from_class(unreal.SkeletalMeshActor, standing(x, y), unreal.Rotator(0.0, 0.0, yaw))
             component = actor.skeletal_mesh_component
             component.set_skeletal_mesh_asset(mesh)
-            sequence = unreal.load_asset(f"{root}/AS_{folder}_Armature_{clip}")
+            # Inked as a character is in the game.
+            component.set_render_custom_depth(True)
+            component.set_custom_depth_stencil_value(INK_STENCIL)
+            sequence =unreal.load_asset(f"{root}/AS_{folder}_Armature_{clip}")
             assert sequence, f"{asset['id']} has no {clip}"
             # An editor world evaluates a body's animation only when asked to.
             component.set_update_animation_in_editor(True)
@@ -119,6 +147,12 @@ def camera_at(centre, fov, distance):
     camera = ACTORS.spawn_actor_from_class(unreal.CameraActor, centre - forward * distance, unreal.Rotator(0.0, pitch, 0.0))
     camera.camera_component.set_editor_property("field_of_view", fov)
     camera.camera_component.set_editor_property("constrain_aspect_ratio", False)
+    # The ink pass, as the game's camera carries it.
+    settings = camera.camera_component.get_editor_property("post_process_settings")
+    blendables = settings.get_editor_property("weighted_blendables")
+    blendables.set_editor_property("array", [unreal.WeightedBlendable(1.0, INK)])
+    settings.set_editor_property("weighted_blendables", blendables)
+    camera.camera_component.set_editor_property("post_process_settings", settings)
     return camera
 
 

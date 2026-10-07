@@ -17,7 +17,7 @@ GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir(
 sys.path.insert(0, str(GAME / "Scripts"))
 from KitMaterials.spec import body_problems  # noqa: E402
 from VanguardBodies.inputs import stale_in  # noqa: E402
-from veyra_material_graph import unexposed  # noqa: E402
+from veyra_material_graph import Graph  # noqa: E402
 
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
@@ -76,36 +76,100 @@ for asset in SELECTED:
     writable(folder_of(asset) + "/" + asset["name"])
 
 
-def body_material():
-    """The one material every generated body wears: vertex colour for colour, vertex alpha for glow. Its graph is rebuilt
-    on every import, so the generated asset always matches this definition, and its values are the kit's bodyMaterial.
-    The glow ignores the scene's exposure, so witchfire and burning cores read the same under the Crucible's sun as
-    anywhere: glowGain is in multiples of what the exposure maps to white."""
+def toon_light():
+    """MPC_VeyraToonLight, the toon light every body is shaded by (ADR-068 §2): the direction toward the sun (ToSun) and
+    its colour (SunColor). The presentation sets both from the map's sun each frame; the kit's values are the defaults a
+    world without a sun, or an editor preview, shades by. A parameter that already exists keeps its ID, so the
+    materials that read it stay linked."""
+    toon = KIT["bodyMaterial"]["toon"]
+    path = DEST + "/" + toon["lightCollection"]
+    writable(path)
+    if unreal.EditorAssetLibrary.does_asset_exist(path):
+        collection = unreal.load_asset(path)
+    else:
+        collection = TOOLS.create_asset(toon["lightCollection"], DEST, unreal.MaterialParameterCollection, unreal.MaterialParameterCollectionFactoryNew())
+    assert isinstance(collection, unreal.MaterialParameterCollection), path
+    length = sum(channel * channel for channel in toon["toSun"]) ** 0.5
+    wanted = {"ToSun": [channel / length for channel in toon["toSun"]] + [0.0], "SunColor": toon["sunColor"] + [1.0]}
+    kept = {str(parameter.get_editor_property("parameter_name")): parameter for parameter in collection.get_editor_property("vector_parameters")}
+    parameters = []
+    for name, value in wanted.items():
+        parameter = kept.get(name) or unreal.CollectionVectorParameter()
+        parameter.set_editor_property("parameter_name", name)
+        parameter.set_editor_property("default_value", unreal.LinearColor(*value))
+        parameters.append(parameter)
+    collection.set_editor_property("scalar_parameters", [])
+    collection.set_editor_property("vector_parameters", parameters)
+    assert unreal.EditorAssetLibrary.save_loaded_asset(collection, only_if_is_dirty=False), "Save failed: " + path
+    return collection
+
+
+def body_material(collection):
+    """The one material every generated body wears (ADR-064 §4, ADR-068 §2): unlit, lit by its own toon light. Its graph
+    is rebuilt on every import, so the generated asset always matches this definition, and its values are the kit's
+    bodyMaterial.
+
+    The vertex colour is the body's colour. The side facing the collection's sun is lit (colour x litTint x SunColor),
+    the side away from it is in a painted shadow (colour x shadowTint), and the two meet in one soft band where the
+    surface turns from the sun past bandThreshold. A rim of the sun's light (a fresnel from rimStart to rimEnd) edges the
+    lit side. The whole is brightness times what the scene's exposure maps to white, so a body reads the same under the
+    Crucible's physical sun as in a preview; what the vertex alpha marks glows on top at glowGain times that white."""
     values = KIT["bodyMaterial"]
+    toon = values["toon"]
     material = unreal.load_asset(MATERIAL_PATH) if unreal.EditorAssetLibrary.does_asset_exist(MATERIAL_PATH) else None
     if material:
         EDIT.delete_all_material_expressions(material)
     else:
         material = TOOLS.create_asset("M_VeyraVanguardBody", DEST, unreal.Material, unreal.MaterialFactoryNew())
+    g = Graph(material)
+
+    def vector(column, name, rgb):
+        return g.node(unreal.MaterialExpressionVectorParameter, column, parameter_name=name, default_value=unreal.LinearColor(*rgb, 1.0), group="Toon")
+
+    def light(column, name):
+        """A colour (RGB) of the toon light. The collection is set first: naming the parameter then looks its ID up in
+        the collection (the expression's PostEditChangeProperty)."""
+        assert name in [str(parameter.get_editor_property("parameter_name")) for parameter in collection.get_editor_property("vector_parameters")], name
+        node = g.node(unreal.MaterialExpressionCollectionParameter, column, collection=collection)
+        node.set_editor_property("parameter_name", name)
+        rgb = g.node(unreal.MaterialExpressionComponentMask, column + 1, r=True, g=True, b=True, a=False)
+        g.link(node, "", rgb, "")
+        return rgb
+
     # A vertex colour's colour output is unnamed; R, G, B and A are its others. A connection to a name that is not an
-    # output fails quietly, leaving the body black, so every connection is checked.
-    color = EDIT.create_material_expression(material, unreal.MaterialExpressionVertexColor, -800, 0)
-    assert EDIT.connect_material_property(color, "", unreal.MaterialProperty.MP_BASE_COLOR), "base colour"
-    glow = EDIT.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -800, 250)
-    glow.set_editor_property("parameter_name", "GlowStrength")
-    glow.set_editor_property("default_value", values["glowGain"])
-    masked = EDIT.create_material_expression(material, unreal.MaterialExpressionMultiply, -500, 150)
-    assert EDIT.connect_material_expressions(color, "", masked, "A"), "glow colour"
-    assert EDIT.connect_material_expressions(color, "A", masked, "B"), "glow mask"
-    gained = EDIT.create_material_expression(material, unreal.MaterialExpressionMultiply, -350, 150)
-    assert EDIT.connect_material_expressions(masked, "", gained, "A"), "masked glow"
-    assert EDIT.connect_material_expressions(glow, "", gained, "B"), "glow strength"
-    emissive = unexposed(material, gained, -150, 150)
+    # output fails quietly, leaving the body black, so every connection is checked (Graph.link asserts).
+    color = g.node(unreal.MaterialExpressionVertexColor, 0)
+    # How squarely the surface faces the sun, from -1 (away) to 1.
+    to_sun = g.node(unreal.MaterialExpressionNormalize, 2)
+    g.link(light(0, "ToSun"), "", to_sun, "")
+    facing = g.op(unreal.MaterialExpressionDotProduct, 3, g.node(unreal.MaterialExpressionVertexNormalWS, 2), to_sun)
+    # One soft band: 0 in shadow, 1 lit.
+    threshold, softness = toon["bandThreshold"], toon["bandSoftness"]
+    band = g.node(unreal.MaterialExpressionSmoothStep, 4, const_min=threshold - softness, const_max=threshold + softness)
+    g.link(facing, "", band, "Value")
+    # Lit and shadowed colour, and the band between them.
+    sun = light(0, "SunColor")
+    lit = g.op(unreal.MaterialExpressionMultiply, 3, g.op(unreal.MaterialExpressionMultiply, 2, color, vector(1, "LitTint", toon["litTint"]), "", "RGB"), sun)
+    shadow = g.op(unreal.MaterialExpressionMultiply, 3, color, vector(2, "ShadowTint", toon["shadowTint"]), "", "RGB")
+    shaded = g.node(unreal.MaterialExpressionLinearInterpolate, 4)
+    g.link(shadow, "", shaded, "A")
+    g.link(lit, "", shaded, "B")
+    g.link(band, "", shaded, "Alpha")
+    # The rim: the sun's light along the lit side's silhouette.
+    fresnel = g.node(unreal.MaterialExpressionFresnel, 2, exponent=toon["rimExponent"], base_reflect_fraction=0.0)
+    rim_edge = g.node(unreal.MaterialExpressionSmoothStep, 3, const_min=toon["rimStart"], const_max=toon["rimEnd"])
+    g.link(fresnel, "", rim_edge, "Value")
+    rim_strength = g.scalar(3, "RimStrength", toon["rimStrength"], "Toon")
+    rim = g.op(unreal.MaterialExpressionMultiply, 5, g.op(unreal.MaterialExpressionMultiply, 4, rim_edge, band), rim_strength)
+    rimmed = g.op(unreal.MaterialExpressionAdd, 6, shaded, g.op(unreal.MaterialExpressionMultiply, 5, sun, rim))
+    bright = g.op(unreal.MaterialExpressionMultiply, 7, rimmed, g.scalar(6, "Brightness", toon["brightness"], "Toon"))
+    # The glow, on top: what the vertex alpha marks, at glowGain.
+    glow = g.op(unreal.MaterialExpressionMultiply, 2, g.op(unreal.MaterialExpressionMultiply, 1, color, color, "", "A"),
+                g.scalar(1, "GlowStrength", values["glowGain"], "Toon"))
+    total = g.op(unreal.MaterialExpressionAdd, 8, bright, glow)
+    emissive = g.unexposed(9, total)
     assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
-    roughness = EDIT.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -800, 450)
-    roughness.set_editor_property("parameter_name", "Roughness")
-    roughness.set_editor_property("default_value", values["roughness"])
-    assert EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS), "roughness"
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
     # Skinned meshes use it.
     material.set_editor_property("used_with_skeletal_mesh", True)
     EDIT.recompile_material(material)
@@ -232,7 +296,7 @@ def write_art_set():
     unreal.log("VEYRA_VANGUARD_ART_SET: " + path + " dresses " + ", ".join(sorted(entries)))
 
 
-material = body_material()
+material = body_material(toon_light())
 results = [import_body(asset, material) for asset in SELECTED]
 write_art_set()
 SAVED.mkdir(parents=True, exist_ok=True)

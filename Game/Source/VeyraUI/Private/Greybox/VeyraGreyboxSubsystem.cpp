@@ -56,6 +56,9 @@
 #include "Layout/VeyraRiver.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Greybox/VeyraToonLight.h"
 #include "Movement/VeyraDrawnBody.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
@@ -251,6 +254,21 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 				}
 				*Stencil.Value = FMath::RoundToInt32(Value);
 			}
+		}
+		// The toon characters' ink and light (ADR-068 §2-3); the ink's stencil is the generated material's own.
+		ToonInkMaterial = Settings.ToonInkMaterial.LoadSynchronous();
+		float Ink = 0.0f;
+		if (!ToonInkMaterial || !ToonInkMaterial->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(Settings.ToonInkStencilParameter), Ink) || Ink < 1.0f)
+		{
+			Problems.Add(FString::Printf(TEXT("ToonInkMaterial: %s does not load with a stencil in its %s parameter; run BuildPresentationMaterials.ps1."),
+				*Settings.ToonInkMaterial.ToString(), *Settings.ToonInkStencilParameter.ToString()));
+		}
+		InkStencil = FMath::RoundToInt32(Ink);
+		ToonLight = Settings.ToonLight.LoadSynchronous();
+		if (!ToonLight || !ToonLight->GetVectorParameterByName(Settings.ToonSunDirectionParameter) || !ToonLight->GetVectorParameterByName(Settings.ToonSunColorParameter))
+		{
+			Problems.Add(FString::Printf(TEXT("ToonLight: %s does not load with its %s and %s parameters; run BuildVanguardBodies.ps1."), *Settings.ToonLight.ToString(),
+				*Settings.ToonSunDirectionParameter.ToString(), *Settings.ToonSunColorParameter.ToString()));
 		}
 	}
 	for (const FString& Problem : Problems)
@@ -557,13 +575,13 @@ void UVeyraGreyboxSubsystem::ShowHover(const AActor* NewHovered)
 {
 	if (const AActor* Was = Hovered.Get(); Was && Was != NewHovered)
 	{
-		SetOutlined(*Was, false);
+		SetStencils(*Was, false);
 	}
 	Hovered = NewHovered;
 	// Every frame: the unit's art may change under the cursor, as a structure falls.
 	if (NewHovered)
 	{
-		SetOutlined(*NewHovered, true);
+		SetStencils(*NewHovered, true);
 	}
 }
 
@@ -579,14 +597,16 @@ int32 UVeyraGreyboxSubsystem::HoverStencilOf(const AActor& Unit) const
 	return Team == Allies ? AllyStencil : EnemyStencil;
 }
 
-void UVeyraGreyboxSubsystem::SetOutlined(const AActor& Unit, bool bOutlined) const
+void UVeyraGreyboxSubsystem::SetStencils(const AActor& Unit, bool bHovered) const
 {
 	const FBody* Body = Bodies.Find(&Unit);
 	if (!Body)
 	{
 		return;
 	}
-	const int32 Stencil = HoverStencilOf(Unit);
+	// Characters are inked: a generated body, and a creature's art; a structure is part of the painted world (ADR-068 §1).
+	UPrimitiveComponent* Inked[] = { Body->Skin.Get(), Unit.IsA<AVeyraStructure>() ? nullptr : Body->Art.Get() };
+	const int32 Hover = HoverStencilOf(Unit);
 	for (UPrimitiveComponent* Shape : { static_cast<UPrimitiveComponent*>(Body->Mesh.Get()), static_cast<UPrimitiveComponent*>(Body->Art.Get()),
 			 static_cast<UPrimitiveComponent*>(Body->Skin.Get()) })
 	{
@@ -594,14 +614,53 @@ void UVeyraGreyboxSubsystem::SetOutlined(const AActor& Unit, bool bOutlined) con
 		{
 			continue;
 		}
-		if (Shape->bRenderCustomDepth != bOutlined)
+		const bool bInked = InkStencil > 0 && (Shape == Inked[0] || Shape == Inked[1]);
+		const bool bWrites = bHovered || bInked;
+		if (Shape->bRenderCustomDepth != bWrites)
 		{
-			Shape->SetRenderCustomDepth(bOutlined);
+			Shape->SetRenderCustomDepth(bWrites);
 		}
-		if (bOutlined && Shape->CustomDepthStencilValue != Stencil)
+		const int32 Stencil = bHovered ? Hover : InkStencil;
+		if (bWrites && Shape->CustomDepthStencilValue != Stencil)
 		{
 			Shape->SetCustomDepthStencilValue(Stencil);
 		}
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshInkPass()
+{
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	UCameraComponent* Camera = Rig ? Rig->GetCamera() : nullptr;
+	if (Camera && ToonInkMaterial && InkCamera.Get() != Camera)
+	{
+		Camera->PostProcessSettings.AddBlendable(ToonInkMaterial, 1.0f);
+		InkCamera = Camera;
+	}
+}
+
+void UVeyraGreyboxSubsystem::RefreshToonLight()
+{
+	if (!ToonLight)
+	{
+		return;
+	}
+	// The map's brightest sun, sought until one streams in.
+	if (!Sun.IsValid())
+	{
+		Sun = UVeyraToonLight::BrightestSun(*GetWorld());
+	}
+	const UDirectionalLightComponent* Light = Sun.Get();
+	if (!Light)
+	{
+		return;
+	}
+	const FVeyraToonSun Lit = UVeyraToonLight::Of(*Light);
+	if ((!Lit.ToSun.Equals(ToonSunShown) || !Lit.Color.Equals(ToonColorShown)) && UVeyraToonLight::Apply(*GetWorld(), Lit))
+	{
+		ToonSunShown = Lit.ToSun;
+		ToonColorShown = Lit.Color;
 	}
 }
 
@@ -783,6 +842,8 @@ void UVeyraGreyboxSubsystem::Refresh()
 		}
 	}
 	RefreshHoverPass();
+	RefreshInkPass();
+	RefreshToonLight();
 	RefreshSound();
 	RefreshCombatText();
 	RefreshFogOfWar();
@@ -1330,6 +1391,8 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			RefreshVanguardArt(Unit, *Body);
 		}
+		// Its art may have just arrived or changed: a character's is inked (ADR-068 §3), and the hovered keeps its outline.
+		SetStencils(Unit, &Unit == Hovered.Get());
 		ApplyBodyPose(Unit, *Body, bReduceFlashing);
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).

@@ -123,6 +123,14 @@ what they want, so the art defines the style and this section describes it.
 Everything that is not a human face is painterly-realistic: creatures, machines, armour,
 cloth, stone, water and foliage, heavily rendered with physically believable materials.
 
+**In the match, characters are toon** (author ruling 2026-10-06, recorded in
+[ADR-068](../ADR/ADR-068-toon-characters-and-graphic-combat-effects.md)). The battleground stays
+painterly-realistic. The 3D Vanguards, companions, Echoes, Fluxborn and creatures are shaded in
+bands with a cool painted shadow and a rim of light, and inked with thin lines in a deeper tone of
+their own colour. Combat effects are graphic: hard-edged bursts, rings, slashes and streaks with
+white-hot cores. This house style still governs the illustrations; a body in the match reads its
+colours and silhouette from them.
+
 **Human rendering spans a range, and the range is the rule** (ruled 2026-09-21: *"the ones
 that came out leaning towards anime are gonna stay that way"*).
 

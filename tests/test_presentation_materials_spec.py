@@ -44,9 +44,10 @@ class PresentationMaterialsSpec(unittest.TestCase):
         self.assertEqual(shapes, set(checker.EFFECT_SHAPES))
 
     def test_every_glow_is_independent_of_exposure_by_a_strength_of_its_own(self):
-        # Every emissive kind carries its glow strength as data; the generator scales it by the inverse of the exposure.
+        # Every emissive kind carries its glow strength as data; the generator scales it by the inverse of the exposure. The
+        # post-process passes draw the final picture, which no exposure scales.
         for entry in SHIPPED["materials"]:
-            if entry["kind"] != "postProcessOutline":
+            if entry["kind"] not in ("postProcessOutline", "postProcessInk"):
                 self.assertGreater(entry["glowGain"], 0.0, entry["name"])
 
     def test_a_missing_value_is_refused_rather_than_defaulted(self):
@@ -66,6 +67,14 @@ class PresentationMaterialsSpec(unittest.TestCase):
             ("overlayFlash", "rimFloor", 2.0),
             ("overlayFlash", "glowGain", True),
             ("particleSmoke", "glowFloor", -1.0),
+            ("postProcessInk", "stencil", 0),
+            ("postProcessInk", "stencil", 2.5),
+            ("postProcessInk", "darken", 1.5),
+            ("postProcessInk", "depthGap", 0.0),
+            ("postProcessInk", "inkTint", [0.0, 0.0, 0.0]),
+            ("postProcessInk", "inkTint", [1.2, 0.8, 1.0, 1.0]),
+            ("postProcessInk", "solidNeighbours", 0),
+            ("postProcessInk", "solidNeighbours", 9),
         ]
         for kind, key, value in cases:
             entry = material(kind)
@@ -78,6 +87,14 @@ class PresentationMaterialsSpec(unittest.TestCase):
         entry = material("postProcessOutline")
         entry["stencils"]["ally"] = entry["stencils"]["enemy"]
         self.assertEqual(len(checker.validate(with_material(entry))), 1)
+
+    def test_the_ink_stencil_differs_from_every_hover_stencil(self):
+        # A shared stencil would outline every character as hovered, or hide the hovered one's ink (ADR-068 §3).
+        clash = copy.deepcopy(SHIPPED)
+        ink = next(entry for entry in clash["materials"] if entry["kind"] == "postProcessInk")
+        hover = next(entry for entry in clash["materials"] if entry["kind"] == "postProcessOutline")
+        ink["stencil"] = hover["stencils"]["ally"]
+        self.assertTrue(any("stencil must differ" in problem for problem in checker.validate(clash)))
 
     def test_names_are_unique_and_kinds_known(self):
         twice = copy.deepcopy(SHIPPED)

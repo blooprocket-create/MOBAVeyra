@@ -8,9 +8,23 @@
   "destination": "/Game/Veyra/Vanguards",
   "fps": 30,
   "bodyMaterial": {
-    "purpose": "ADR-064 §4: M_VeyraVanguardBody, the one material every body wears (ImportVanguardBodies.py builds it), coloured by its vertex colour. What its vertex alpha marks glows at glowGain times what the scene's exposure maps to white, so witchfire and burning cores read the same under the Crucible's physical sun as anywhere. Art values, read only by the importer; no body is made from them.",
+    "purpose": "ADR-064 §4: M_VeyraVanguardBody, the one material every body wears (ImportVanguardBodies.py builds it), coloured by its vertex colour and shaded toon (ADR-068 §2). What its vertex alpha marks glows at glowGain times what the scene's exposure maps to white, so witchfire and burning cores read the same under the Crucible's physical sun as anywhere. Art values, read only by the importer; no body is made from them.",
     "glowGain": 1.0,
-    "roughness": 0.75
+    "toon": {
+      "purpose": "ADR-068 §2: the toon light every body shades by, unlit with a light of its own. lightCollection is the material parameter collection the presentation sets from the map's sun each frame (toSun, sunColor are its values until then); a body is lit at full where its normal faces the sun past bandThreshold, shaded across bandSoftness, and in shadow tinted shadowTint; a rim of the light, from rimStart to rimEnd of the view's grazing, brightens the lit side by rimStrength. brightness scales the whole in multiples of what the exposure maps to white.",
+      "lightCollection": "MPC_VeyraToonLight",
+      "toSun": [0.36, -0.42, 0.83],
+      "sunColor": [1.0, 0.95, 0.88],
+      "litTint": [1.0, 0.98, 0.95],
+      "shadowTint": [0.47, 0.45, 0.63],
+      "bandThreshold": 0.05,
+      "bandSoftness": 0.06,
+      "rimExponent": 3.0,
+      "rimStart": 0.45,
+      "rimEnd": 0.7,
+      "rimStrength": 0.35,
+      "brightness": 0.85
+    }
   },
   "archetypes": {
     "humanoid": {

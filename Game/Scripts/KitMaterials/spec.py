@@ -69,15 +69,44 @@ def glyph_problems(look):
     return problems
 
 
+def _vector(value, length=3):
+    return isinstance(value, list) and len(value) == length and all(_number(channel) for channel in value)
+
+
+def _tint(value):
+    """Three channels from 0 to 1: a colour a light or a shadow multiplies a body's own by."""
+    return _vector(value) and all(0.0 <= channel <= 1.0 for channel in value)
+
+
 def body_problems(kit):
     """Every problem with the Vanguard bodies' material (VanguardKit.json bodyMaterial): the strength of what the
-    vertex alpha marks as glowing, above 0, and the surface's roughness."""
+    vertex alpha marks as glowing, above 0, and its toon light (ADR-068 §2)."""
     material = kit.get("bodyMaterial")
     if not isinstance(material, dict):
-        return ["bodyMaterial: needs glowGain and roughness"]
+        return ["bodyMaterial: needs glowGain and toon"]
     problems = []
     if not _positive(material.get("glowGain")):
         problems.append("bodyMaterial.glowGain: must be a number above 0")
-    if not _unit(material.get("roughness")):
-        problems.append("bodyMaterial.roughness: must be a number from 0 to 1")
+    toon = material.get("toon")
+    if not isinstance(toon, dict):
+        return problems + ["bodyMaterial.toon: needs the toon light's values"]
+    checks = {
+        "lightCollection": (lambda value: isinstance(value, str) and value.startswith("MPC_"), "an asset name starting MPC_"),
+        "toSun": (lambda value: _vector(value) and sum(channel * channel for channel in value) > 0.0, "a direction of three numbers, not all 0"),
+        "sunColor": (_tint, "three numbers from 0 to 1"),
+        "litTint": (_tint, "three numbers from 0 to 1"),
+        "shadowTint": (_tint, "three numbers from 0 to 1"),
+        "bandThreshold": (lambda value: _number(value) and -1.0 < value < 1.0, "a number strictly between -1 and 1"),
+        "bandSoftness": (_positive, "a number above 0"),
+        "rimExponent": (_positive, "a number above 0"),
+        "rimStart": (_unit, "a number from 0 to 1"),
+        "rimEnd": (_unit, "a number from 0 to 1"),
+        "rimStrength": (lambda value: _number(value) and value >= 0.0, "a number of at least 0"),
+        "brightness": (_positive, "a number above 0"),
+    }
+    for key, (check, wanted) in checks.items():
+        if not check(toon.get(key)):
+            problems.append(f"bodyMaterial.toon.{key}: must be {wanted}")
+    if _unit(toon.get("rimStart")) and _unit(toon.get("rimEnd")) and toon["rimEnd"] <= toon["rimStart"]:
+        problems.append("bodyMaterial.toon.rimEnd: must lie past rimStart")
     return problems

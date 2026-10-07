@@ -7,8 +7,9 @@ import numbers
 import re
 
 SCHEMA_VERSION = 1
-# The version of BuildPresentationMaterials.py's graphs; a spec names the version it was written for.
-GENERATOR_VERSION = 2
+# The version of BuildPresentationMaterials.py's graphs; a spec names the version it was written for. Version 3: the
+# toon characters' ink (ADR-068 §3), and a hover outline that looks only for the hover's own stencils.
+GENERATOR_VERSION = 3
 # Presentation materials live where the UI's content is always cooked.
 DESTINATION_ROOT = "/Game/Veyra/UI/"
 ASSET_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
@@ -64,6 +65,17 @@ RULES = {
     },
     "postProcessOutline": {
         "referenceHeight": (_positive, "a number above 0"),
+    },
+    "postProcessInk": {
+        "stencilParameter": (_name, "a parameter name"),
+        "stencil": (lambda value: isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 255, "a whole number from 1 to 255"),
+        "thicknessPixels": (_positive, "a number above 0"),
+        "referenceHeight": (_positive, "a number above 0"),
+        "darken": (_unit, "a number from 0 to 1"),
+        "inkTint": (lambda value: _colour(value) and all(channel <= 1.0 for channel in value), "four numbers from 0 to 1 (RGBA), which the ink's colour is multiplied by"),
+        "solidNeighbours": (lambda value: isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 8, "a whole number from 1 to 8"),
+        "depthGap": (_positive, "a number above 0"),
+        "visibleSlack": (_non_negative, "a number of at least 0"),
     },
     "particleSmoke": {
         "noiseScale": (_positive, "a number above 0"),
@@ -148,4 +160,11 @@ def validate(spec):
                 problems.append(f"{where}: {key} must be {wanted}")
         if kind == "postProcessOutline":
             problems += _outline_problems(where, material)
+    # The ink marks characters by a stencil of its own: one a hover outline's stencils share would outline every character
+    # as hovered, or hide the hovered one's ink (ADR-068 §3).
+    hover = {value for material in materials if isinstance(material, dict) and material.get("kind") == "postProcessOutline"
+             for value in (material.get("stencils") or {}).values()}
+    for material in materials:
+        if isinstance(material, dict) and material.get("kind") == "postProcessInk" and material.get("stencil") in hover:
+            problems.append(f"{material.get('name')}: stencil must differ from every hover outline's stencils")
     return problems

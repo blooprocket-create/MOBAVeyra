@@ -85,9 +85,9 @@ foreach ($asset in $manifest.assets) {
 }
 $dropped = @($removedNames | ForEach-Object { Join-Path $destination $_.Substring('SK_'.Length) } | Where-Object { Test-Path -LiteralPath $_ })
 foreach ($folder in $dropped) { $replaced += @(Get-ChildItem -LiteralPath $folder -Filter *.uasset) }
-# Every import also rewrites the bodies' material and the art set (ImportVanguardBodies.py). Each file it will write is
-# checked before any is removed, so a missing lock stops the build with nothing changed.
-$shared = @('M_VeyraVanguardBody.uasset', 'DA_VanguardArt.uasset') | ForEach-Object { Join-Path $destination $_ } |
+# Every import also rewrites the bodies' material, their toon light and the art set (ImportVanguardBodies.py). Each file
+# it will write is checked before any is removed, so a missing lock stops the build with nothing changed.
+$shared = @('M_VeyraVanguardBody.uasset', "$($kit.bodyMaterial.toon.lightCollection).uasset", 'DA_VanguardArt.uasset') | ForEach-Object { Join-Path $destination $_ } |
     Where-Object { Test-Path -LiteralPath $_ } | ForEach-Object { Get-Item -LiteralPath $_ }
 $locked = @(@($replaced) + @($shared) | Where-Object { $_.IsReadOnly })
 if ($locked.Count -gt 0) {

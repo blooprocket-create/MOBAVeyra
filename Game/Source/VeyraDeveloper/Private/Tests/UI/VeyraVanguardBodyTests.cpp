@@ -13,13 +13,18 @@
 #include "Components/StaticMeshComponent.h"
 #include "Companions/VeyraCompanion.h"
 #include "Companions/VeyraCompanionSubsystem.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
+#include "Engine/DirectionalLight.h"
 #include "Engine/SkeletalMesh.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Movement/VeyraDrawnBody.h"
 #include "NiagaraComponent.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
+#include "Greybox/VeyraToonLight.h"
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -422,6 +427,68 @@ namespace VeyraVanguardBodyTests
 			RefreshedGreybox();
 			ASSERT_THAT(IsTrue(Skin->GetOverlayMaterial() != nullptr, TEXT("the hit flash lies over the animated body")));
 			ASSERT_THAT(IsTrue(Animation.GetState().Current.Clip == EVeyraVanguardClip::AttackWindup, TEXT("the flinch never cuts the attack short")));
+		}
+
+		TEST_METHOD(EveryBodyWearsTheUnlitToonMaterial)
+		{
+			// Shaded by its own toon light rather than the scene's (ADR-068 §2).
+			for (const TPair<FString, const FVeyraVanguardBody*>& Body : EveryBody())
+			{
+				for (const FSkeletalMaterial& Slot : Body.Value->Mesh->GetMaterials())
+				{
+					const UMaterialInterface* Material = Slot.MaterialInterface;
+					ASSERT_THAT(IsTrue(Material && Material->GetShadingModels().HasOnlyShadingModel(MSM_Unlit), *Body.Key));
+				}
+			}
+		}
+
+		TEST_METHOD(AGeneratedBodyIsInkedUntilItIsHovered)
+		{
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			const UStaticMeshComponent* Disc = Presentation.FindBody(Unit);
+			const int32 Ink = Presentation.GetInkStencil();
+			ASSERT_THAT(IsNotNull(Skin));
+			ASSERT_THAT(IsTrue(Ink > 0 && Ink != Presentation.HoverStencilOf(Unit), TEXT("the ink has a stencil of its own")));
+			// Its body writes the ink's stencil; the disc under its feet is no character and writes none (ADR-068 §3).
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth && Skin->CustomDepthStencilValue == Ink));
+			ASSERT_THAT(IsFalse(Disc->bRenderCustomDepth));
+			// Hovered, it takes its side's outline; let go, its ink again.
+			Presentation.ShowHover(&Unit);
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth && Skin->CustomDepthStencilValue == Presentation.HoverStencilOf(Unit)));
+			Presentation.ShowHover(nullptr);
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth && Skin->CustomDepthStencilValue == Ink, TEXT("and the ink returns")));
+			ASSERT_THAT(IsFalse(Disc->bRenderCustomDepth));
+		}
+
+		TEST_METHOD(TheToonLightFollowsTheMapsSun)
+		{
+			// Fixture values: a sun low in the south-east, in a warm colour.
+			const FRotator SunRotation(-30.0, 135.0, 0.0);
+			const FLinearColor SunColor(1.0f, 0.5f, 0.25f);
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			// The brightest sun lights the bodies: this one outshines any the test world has.
+			const UDirectionalLightComponent* Existing = UVeyraToonLight::BrightestSun(Spawner.GetWorld());
+			ADirectionalLight& Light = Spawner.SpawnActorAt<ADirectionalLight>(FVector::ZeroVector, SunRotation);
+			UDirectionalLightComponent* Component = CastChecked<UDirectionalLightComponent>(Light.GetLightComponent());
+			Component->SetMobility(EComponentMobility::Movable);
+			Component->SetWorldRotation(SunRotation);
+			Component->SetIntensity((Existing ? Existing->Intensity : 0.0f) + Component->Intensity);
+			Component->SetLightColor(SunColor * 0.5f);
+			Component->bUseTemperature = false;
+			RefreshedGreybox();
+			UMaterialParameterCollectionInstance* Instance = Spawner.GetWorld().GetParameterCollectionInstance(Settings.ToonLight.LoadSynchronous());
+			ASSERT_THAT(IsNotNull(Instance));
+			FLinearColor ToSun = FLinearColor::Transparent;
+			FLinearColor Color = FLinearColor::Transparent;
+			ASSERT_THAT(IsTrue(Instance->GetVectorParameterValue(Settings.ToonSunDirectionParameter, ToSun)
+				&& Instance->GetVectorParameterValue(Settings.ToonSunColorParameter, Color)));
+			// Toward the sun, against its light; its colour at its brightest channel's full strength.
+			const FVector Expected = -SunRotation.Vector();
+			ASSERT_THAT(IsTrue(FVector(ToSun.R, ToSun.G, ToSun.B).Equals(Expected, 0.01),
+				*FString::Printf(TEXT("lit from the sun's side: %s, not %s"), *ToSun.ToString(), *Expected.ToString())));
+			ASSERT_THAT(IsTrue(FLinearColor(Color.R, Color.G, Color.B, 1.0f).Equals(FLinearColor(SunColor.R, SunColor.G, SunColor.B, 1.0f), 0.02f), TEXT("in its colour")));
 		}
 	};
 }
