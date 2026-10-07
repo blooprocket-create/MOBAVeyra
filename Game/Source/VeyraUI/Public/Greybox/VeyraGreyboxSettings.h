@@ -531,6 +531,30 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Toon")
 	FName ToonSunColorParameter;
 
+	/**
+	 * A hidden body (ADR-068 §6): a generated body on the viewer's side hidden from its enemies thins to a shimmering
+	 * veil with a rim of light, through the body material's BodyVeilParameter (0 solid, 1 veiled) and
+	 * BodyVeilTintParameter (the rim's colour): FogVeilColor in Dense Fog, CamouflageVeilColor while Camouflaged,
+	 * InvisibleVeilColor while Invisible. The veil eases in and out over VeilFadeSeconds.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Toon")
+	FName BodyVeilParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon")
+	FName BodyVeilTintParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon")
+	FLinearColor FogVeilColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon")
+	FLinearColor CamouflageVeilColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon")
+	FLinearColor InvisibleVeilColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "0"))
+	float VeilFadeSeconds = 0.0f;
+
 	/** How far above the ground telegraphs are drawn, in units, so the floor does not hide them. */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
 	float TelegraphLift = 0.0f;

@@ -85,6 +85,16 @@ class Refusals(unittest.TestCase):
         without = {key: value for key, value in VANGUARDS.items() if key != "bodyMaterial"}
         self.assertTrue(checker.body_problems(without))
 
+    def test_the_veil_needs_its_values_in_range(self):
+        material = VANGUARDS["bodyMaterial"]
+        without = {key: value for key, value in material.items() if key != "veil"}
+        self.assertTrue(checker.body_problems(dict(VANGUARDS, bodyMaterial=without)))
+        for key, bad in (("opacity", 1.0), ("opacity", 0.0), ("shimmerScale", 0.0), ("shimmerDepth", 1.5), ("rimStrength", -1.0), ("rimStart", 1.0),
+                         ("tintParameter", material["veil"]["parameter"]), ("parameter", "")):
+            veil = dict(material["veil"], **{key: bad})
+            problems = checker.body_problems(dict(VANGUARDS, bodyMaterial=dict(material, veil=veil)))
+            self.assertEqual(len(problems), 1, (key, bad, problems))
+
     def test_each_toon_value_out_of_range_is_refused_alone(self):
         cases = [
             ("lightCollection", "ToonLight"),

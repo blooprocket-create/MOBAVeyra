@@ -605,7 +605,8 @@ void UVeyraGreyboxSubsystem::SetStencils(const AActor& Unit, bool bHovered) cons
 		return;
 	}
 	// Characters are inked: a generated body, and a creature's art; a structure is part of the painted world (ADR-068 §1).
-	UPrimitiveComponent* Inked[] = { Body->Skin.Get(), Unit.IsA<AVeyraStructure>() ? nullptr : Body->Art.Get() };
+	// A veiled body draws none, so its shimmer reads as a ghost rather than a dithered outline (§6).
+	UPrimitiveComponent* Inked[] = { Body->Veil > 0.0 ? nullptr : Body->Skin.Get(), Unit.IsA<AVeyraStructure>() ? nullptr : Body->Art.Get() };
 	const int32 Hover = HoverStencilOf(Unit);
 	for (UPrimitiveComponent* Shape : { static_cast<UPrimitiveComponent*>(Body->Mesh.Get()), static_cast<UPrimitiveComponent*>(Body->Art.Get()),
 			 static_cast<UPrimitiveComponent*>(Body->Skin.Get()) })
@@ -783,6 +784,8 @@ void UVeyraGreyboxSubsystem::Deinitialize()
 	FogOfWarDrawn = 0;
 	// Bodies and projectile spheres belong to their actors, which the world destroys with them.
 	Bodies.Reset();
+	DenseFog.Reset();
+	MapFog.Reset();
 	Projectiles.Reset();
 	Telegraphs.Reset();
 	if (AVeyraPlayerController* Source = CombatTextSource.Get())
@@ -1265,6 +1268,7 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	const FVeyraVanguardBody& Worn = VeyraVanguardSkin::BodyOf(Unit, *Art);
 	VeyraVanguardSkin::Dress(*Skin, Worn, VeyraVanguardSkin::ShapeOf(Settings));
 	RefreshBodyEffects(Body, *Skin, Worn);
+	RefreshVeil(Unit, Body, *Skin);
 	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2), drawn larger than
 	// the capsule from there (ADR-065 §11).
 	float Radius = 0.0f;
@@ -1291,6 +1295,57 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 		FitGreyboxShape(*Shape, FVector(Radius, Radius, DiscHalfHeight));
 		Shape->SetRelativeLocation(Shape->GetRelativeLocation() + FVector(0.0, 0.0, DiscHalfHeight - HalfHeight));
 	}
+}
+
+EVeyraHiddenKind UVeyraGreyboxSubsystem::HiddenKindOf(const AActor& Unit) const
+{
+	// Its own side sees why it is hidden, and a viewer on no side sees every side's; the other side sees nothing of it.
+	const EVeyraTeam Viewer = GetViewerTeam();
+	const bool bShows = Viewer == EVeyraTeam::None || VeyraTeams::TeamOf(&Unit) == Viewer;
+	if (!bShows)
+	{
+		return EVeyraHiddenKind::None;
+	}
+	const TArray<FVeyraHudStatus> Statuses = VeyraHud::StatusesOf(Unit, GetServerNow(), Viewer);
+	const auto Has = [&Statuses](EVeyraStatusKind Kind) {
+		return Statuses.ContainsByPredicate([Kind](const FVeyraHudStatus& Status) { return Status.Kind == Kind; });
+	};
+	const bool bInFog = VeyraVisionRules::CircleAt(DenseFog, FVector2D(Unit.GetActorLocation())) != INDEX_NONE;
+	return VeyraHiddenBody::KindOf(bShows, Has(EVeyraStatusKind::Invisible), Has(EVeyraStatusKind::Camouflage), bInFog);
+}
+
+double UVeyraGreyboxSubsystem::GetVeilOf(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	return Body ? Body->Veil : 0.0;
+}
+
+void UVeyraGreyboxSubsystem::RefreshVeil(const APawn& Unit, FBody& Body, USkeletalMeshComponent& Skin)
+{
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const EVeyraHiddenKind Kind = HiddenKindOf(Unit);
+	Body.Veil = VeyraHiddenBody::StepVeil(Body.Veil, Kind != EVeyraHiddenKind::None, GetWorld()->GetDeltaSeconds(), Settings.VeilFadeSeconds);
+	// A veil fading away keeps the colour it had.
+	if (Kind != EVeyraHiddenKind::None)
+	{
+		Body.VeilKind = Kind;
+	}
+	// A body is given a material of its own only once it is first veiled; one never hidden keeps the shared one.
+	const FLinearColor Tint = VeyraHiddenBody::TintOf(Body.VeilKind, Settings);
+	if ((Body.Veil <= 0.0 && Body.VeilShown <= 0.0) || (Body.Veil == Body.VeilShown && Tint.Equals(Body.VeilTintShown)))
+	{
+		return;
+	}
+	for (int32 Slot = 0; Slot < Skin.GetNumMaterials(); ++Slot)
+	{
+		if (UMaterialInstanceDynamic* Veiled = Skin.CreateDynamicMaterialInstance(Slot))
+		{
+			Veiled->SetScalarParameterValue(Settings.BodyVeilParameter, static_cast<float>(Body.Veil));
+			Veiled->SetVectorParameterValue(Settings.BodyVeilTintParameter, Tint);
+		}
+	}
+	Body.VeilShown = Body.Veil;
+	Body.VeilTintShown = Tint;
 }
 
 void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
@@ -1342,6 +1397,12 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 {
 	const FName ColorParameter = GetDefault<UVeyraGreyboxSettings>()->ColorParameter;
 	const bool bReduceFlashing = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).bReduceFlashing;
+	// The Dense Fog bodies may stand in: the map's, and what abilities have laid and not yet lifted (ADR-036 §1).
+	DenseFog = MapFog;
+	for (TActorIterator<AVeyraDenseFogBank> It(GetWorld()); It; ++It)
+	{
+		DenseFog.Append(It->GetCircles());
+	}
 	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
 	{
 		APawn& Unit = **It;
@@ -1533,6 +1594,8 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 	for (const FVeyraFogPlacement& Fog : VeyraLayout::DenseFog(Layout))
 	{
 		AddGroundMarking(*Owner, *PadMesh, Settings.DenseFogColor, Fog.Center, 0.0, FVector2D(Fog.Radius), FogMarkingLayer);
+		// And a body in it on the viewer's side shows that it is hidden (ADR-068 §6).
+		MapFog.Add(FVeyraFogCircle{ Fog.Center, Fog.Radius });
 	}
 }
 

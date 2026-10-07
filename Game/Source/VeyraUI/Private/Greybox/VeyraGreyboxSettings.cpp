@@ -135,6 +135,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("CombatTextReceivedColor"), CombatTextReceivedColor },
 		{ TEXT("CombatTextHealingColor"), CombatTextHealingColor },
 		{ TEXT("CombatTextShieldingColor"), CombatTextShieldingColor },
+		{ TEXT("FogVeilColor"), FogVeilColor },
+		{ TEXT("CamouflageVeilColor"), CamouflageVeilColor },
+		{ TEXT("InvisibleVeilColor"), InvisibleVeilColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -214,6 +217,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("the generated toon ink material and its stencil parameter are required."));
 	Require(!ToonLight.IsNull() && !ToonSunDirectionParameter.IsNone() && !ToonSunColorParameter.IsNone(), TEXT("ToonLight"),
 		TEXT("the generated toon light and its sun direction and colour parameters are required."));
+	Require(!BodyVeilParameter.IsNone() && !BodyVeilTintParameter.IsNone() && BodyVeilParameter != BodyVeilTintParameter, TEXT("BodyVeilParameter"),
+		TEXT("the body material's veil and veil tint parameters are required, and differ."));
+	Require(VeilFadeSeconds > 0.0f, TEXT("VeilFadeSeconds"), TEXT("must be above 0."));
 	Require(!HitFlashColorParameter.IsNone() && !HitFlashStrengthParameter.IsNone(), TEXT("HitFlashColorParameter"),
 		TEXT("the hit flash material's colour and strength parameters are required."));
 	Require(HitFlashSeconds > 0.0f && RecoilSeconds > 0.0f && SnapSeconds > 0.0f && CollapseSeconds > 0.0f, TEXT("HitFlashSeconds"),

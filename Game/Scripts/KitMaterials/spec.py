@@ -21,6 +21,11 @@ def _unit(value):
     return _number(value) and 0.0 <= value <= 1.0
 
 
+def _open_unit(value):
+    """Strictly between 0 and 1."""
+    return _number(value) and 0.0 < value < 1.0
+
+
 def _colour(value, channels):
     return isinstance(value, list) and len(value) == channels and all(_number(channel) and channel >= 0.0 for channel in value)
 
@@ -109,4 +114,27 @@ def body_problems(kit):
             problems.append(f"bodyMaterial.toon.{key}: must be {wanted}")
     if _unit(toon.get("rimStart")) and _unit(toon.get("rimEnd")) and toon["rimEnd"] <= toon["rimStart"]:
         problems.append("bodyMaterial.toon.rimEnd: must lie past rimStart")
+    return problems + _veil_problems(material.get("veil"))
+
+
+def _veil_problems(veil):
+    """The hidden body's veil (ADR-068 §6): the parameters the presentation drives, how much of the body shows, its
+    shimmer and its rim."""
+    if not isinstance(veil, dict):
+        return ["bodyMaterial.veil: needs the hidden body's values"]
+    name = (lambda value: isinstance(value, str) and bool(value.strip()), "a parameter name")
+    checks = {
+        "parameter": name,
+        "tintParameter": name,
+        "opacity": (lambda value: _number(value) and 0.0 < value < 1.0, "a number strictly between 0 and 1"),
+        "shimmerScale": (_positive, "a number above 0"),
+        "shimmerSpeed": (lambda value: _number(value) and value >= 0.0, "a number of at least 0"),
+        "shimmerDepth": (_unit, "a number from 0 to 1"),
+        "rimExponent": (_positive, "a number above 0"),
+        "rimStart": (_open_unit, "a number strictly between 0 and 1"),
+        "rimStrength": (lambda value: _number(value) and value >= 0.0, "a number of at least 0"),
+    }
+    problems = [f"bodyMaterial.veil.{key}: must be {wanted}" for key, (check, wanted) in checks.items() if not check(veil.get(key))]
+    if veil.get("parameter") == veil.get("tintParameter"):
+        problems.append("bodyMaterial.veil.tintParameter: must differ from parameter")
     return problems

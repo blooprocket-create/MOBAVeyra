@@ -67,6 +67,15 @@ Animation is not part of this milestone. The author's roadmap (2026-10-06) gives
 ### 5. Budget
 Every gate records the frame time and draw cost it adds at the gameplay camera, in a ten-Vanguard fight. An effect family that cannot fit is cut back before it ships.
 
+### 6. Hidden bodies
+After a playtest the author reported: "its damn near impossible to tell when you're in the dense fog, or when you're camouflaged, or invis". Since generated bodies replaced the capsules (ADR-064), the Camouflage tint fell on the disc under a body's feet, and nothing showed Invisibility or Dense Fog.
+- **The veil.** A body on the viewer's side that is hidden from its enemies wears a veil. Its interior thins to `opacity` of itself, dithered (the temporal upscaler resolves the dither into a fade), under bands that rise through it. Its silhouette, where the surface turns from the view past `rimStart`, stays whole and glows in the hidden state's colour. The values are kit data (`bodyMaterial.veil`), and the material's `Veil` and `VeilTint` parameters carry it; the body material is masked for it.
+- **Why it is hidden** decides the colour: Invisible (violet) over Camouflaged (green) over within Dense Fog (pale mist). The colours are presentation settings, as is how long the veil takes to come and go. The kind is a pure function of the unit's statuses as its own side sees them and of the Dense Fog the client knows: the map's, and the banks abilities lay.
+- **Who sees it.** The unit's own side, and a viewer on no side. The other side sees nothing new: the fog gate (ADR-016) already decides whether they see the body at all.
+- **Ink.** A veiled body draws no ink, so it reads as a ghost rather than a dithered outline.
+- **The HUD.** Camouflage and Invisibility already show as status chips in the player's own row (ADR-059 §4). Standing in Dense Fog, which no status names, leads that row as an "In Dense Fog" chip.
+- **Presentation only.** Nothing here decides anything. A body is given a material instance of its own only once it is first veiled.
+
 ## Consequences
 - Characters read off the painterly ground by their shading and outline as well as their side colour.
 - The toon look lives in generators and kit data, so a body or an effect is regenerated, never hand-edited.

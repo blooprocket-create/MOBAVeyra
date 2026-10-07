@@ -3,7 +3,9 @@
 #pragma once
 
 #include "Greybox/VeyraBodyFeedback.h"
+#include "Greybox/VeyraHiddenBody.h"
 #include "Greybox/VeyraOrderMarks.h"
+#include "Rules/VeyraVisionRules.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Hud/VeyraKillFeedModel.h"
 #include "Shapes/VeyraShapes.h"
@@ -130,6 +132,15 @@ public:
 	 * writes it, and the ink pass draws their lines.
 	 */
 	int32 GetInkStencil() const { return InkStencil; }
+
+	/**
+	 * Why Unit's body shows hidden from its enemies to this machine's viewer (ADR-068 §6): Invisible, Camouflaged or within
+	 * Dense Fog, for a unit on the viewer's side (or any unit, for a viewer on no side); None otherwise.
+	 */
+	EVeyraHiddenKind HiddenKindOf(const AActor& Unit) const;
+
+	/** How veiled Unit's generated body is now, from 0 (solid) to 1 (ADR-068 §6); 0 for any other body. */
+	double GetVeilOf(const AActor& Unit) const;
 
 	/** The effect a cue of Kind plays (ADR-063 §4): a hit's impact, a cast's flash, a death's burst; null for the rest. */
 	class UNiagaraSystem* EffectFor(EVeyraCombatCueKind Kind) const;
@@ -265,7 +276,20 @@ private:
 
 		/** How far its skin is turned from its mesh's facing toward the player's order, in degrees (ADR-067 §2); 0 for any other body. */
 		double LeadYaw = 0.0;
+
+		/** How veiled its generated body is, why it last was, and what its material was last given (ADR-068 §6). */
+		double Veil = 0.0;
+		EVeyraHiddenKind VeilKind = EVeyraHiddenKind::None;
+		double VeilShown = 0.0;
+		FLinearColor VeilTintShown = FLinearColor::Transparent;
 	};
+
+	/** Veils Unit's generated body while it is hidden from its enemies and its viewer sees why (ADR-068 §6). */
+	void RefreshVeil(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin);
+
+	/** The Dense Fog this machine knows: the map's own, once the battleground shows, and what abilities lay (ADR-036 §1). */
+	TArray<FVeyraFogCircle> DenseFog;
+	TArray<FVeyraFogCircle> MapFog;
 
 	/** Unit's lead toward the player's latest order, if Unit is the body the player commands; none otherwise (ADR-067 §2). */
 	struct FVeyraBodyLead OwnLeadOf(const APawn& Unit, double Radius) const;

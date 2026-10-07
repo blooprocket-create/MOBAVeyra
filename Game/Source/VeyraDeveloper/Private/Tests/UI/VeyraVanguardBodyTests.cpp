@@ -28,7 +28,9 @@
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraVanguardArtSet.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "VeyraPlayerController.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -438,6 +440,12 @@ namespace VeyraVanguardBodyTests
 				{
 					const UMaterialInterface* Material = Slot.MaterialInterface;
 					ASSERT_THAT(IsTrue(Material && Material->GetShadingModels().HasOnlyShadingModel(MSM_Unlit), *Body.Key));
+					// And veils as the presentation asks (ADR-068 §6).
+					float Veil = 1.0f;
+					FLinearColor Tint = FLinearColor::Transparent;
+					ASSERT_THAT(IsTrue(Material->GetScalarParameterDefaultValue(FHashedMaterialParameterInfo(GetDefault<UVeyraGreyboxSettings>()->BodyVeilParameter), Veil)
+						&& Veil == 0.0f && Material->GetVectorParameterDefaultValue(FHashedMaterialParameterInfo(GetDefault<UVeyraGreyboxSettings>()->BodyVeilTintParameter), Tint),
+						*Body.Key));
 				}
 			}
 		}
@@ -460,6 +468,44 @@ namespace VeyraVanguardBodyTests
 			Presentation.ShowHover(nullptr);
 			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth && Skin->CustomDepthStencilValue == Ink, TEXT("and the ink returns")));
 			ASSERT_THAT(IsFalse(Disc->bRenderCustomDepth));
+		}
+
+		TEST_METHOD(AHiddenBodyIsVeiledWithoutInkWhileItsSideSeesWhy)
+		{
+			// Fixture values: a Camouflage's detection radius, and a frame of the world.
+			constexpr double DetectionRadius = 300.0;
+			constexpr float Frame = 0.1f;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const int32 Frames = FMath::CeilToInt32(Settings.VeilFadeSeconds / Frame) + 1;
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			ASSERT_THAT(IsNotNull(Skin));
+			ASSERT_THAT(IsTrue(Presentation.GetVeilOf(Unit) == 0.0 && Skin->bRenderCustomDepth, TEXT("solid and inked")));
+			const auto Step = [&](int32 Count) {
+				for (int32 Index = 0; Index < Count; ++Index)
+				{
+					Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+					RefreshedGreybox();
+				}
+			};
+			// Camouflaged, its side (here, a viewer on no side) sees it veiled in the Camouflage's colour, and uninked.
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Unit, DetectionRadius)));
+			ASSERT_THAT(IsTrue(Presentation.HiddenKindOf(Unit) == EVeyraHiddenKind::Camouflage));
+			Step(Frames);
+			ASSERT_THAT(IsNear(Presentation.GetVeilOf(Unit), 1.0, 1e-6));
+			const UMaterialInstanceDynamic* Veiled = Cast<UMaterialInstanceDynamic>(Skin->GetMaterial(0));
+			ASSERT_THAT(IsNotNull(Veiled, TEXT("its body has a material of its own")));
+			float Veil = 0.0f;
+			FLinearColor Tint = FLinearColor::Transparent;
+			ASSERT_THAT(IsTrue(Veiled->GetScalarParameterValue(FHashedMaterialParameterInfo(Settings.BodyVeilParameter), Veil) && FMath::IsNearlyEqual(Veil, 1.0f)));
+			ASSERT_THAT(IsTrue(Veiled->GetVectorParameterValue(FHashedMaterialParameterInfo(Settings.BodyVeilTintParameter), Tint) && Tint.Equals(Settings.CamouflageVeilColor)));
+			ASSERT_THAT(IsFalse(Skin->bRenderCustomDepth, TEXT("a ghost, not an outline")));
+			// Out of it, the veil goes and the ink returns.
+			VeyraCombat::EndStealth(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit));
+			Step(Frames);
+			ASSERT_THAT(IsTrue(Presentation.HiddenKindOf(Unit) == EVeyraHiddenKind::None && Presentation.GetVeilOf(Unit) == 0.0));
+			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth, TEXT("inked again")));
 		}
 
 		TEST_METHOD(TheToonLightFollowsTheMapsSun)

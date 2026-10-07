@@ -24,6 +24,18 @@
       "rimEnd": 0.7,
       "rimStrength": 0.35,
       "brightness": 0.85
+    },
+    "veil": {
+      "purpose": "ADR-068 §6: how a body on the viewer's side shows that it is hidden from its enemies (in Dense Fog, Camouflaged or Invisible): opacity of it shows, dithered, under a shimmer of bands rising through it, while its silhouette (where the surface turns past rimStart from the view) stays solid and glows in the hidden state's colour, which the presentation gives. Art values, read only by the importer.",
+      "parameter": "Veil",
+      "tintParameter": "VeilTint",
+      "opacity": 0.45,
+      "shimmerScale": 0.015,
+      "shimmerSpeed": 0.8,
+      "shimmerDepth": 0.6,
+      "rimExponent": 2.0,
+      "rimStart": 0.35,
+      "rimStrength": 1.2
     }
   },
   "archetypes": {

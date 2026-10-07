@@ -17,7 +17,7 @@ GAME = Path(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir(
 sys.path.insert(0, str(GAME / "Scripts"))
 from KitMaterials.spec import body_problems  # noqa: E402
 from VanguardBodies.inputs import stale_in  # noqa: E402
-from veyra_material_graph import Graph  # noqa: E402
+from veyra_material_graph import Graph, link_named  # noqa: E402
 
 SOURCE = GAME / "ArtSource" / "Vanguards"
 SAVED = GAME / "Saved" / "VanguardKit"
@@ -74,6 +74,20 @@ for asset in SELECTED:
     assert source.is_relative_to(SOURCE.resolve()), "An FBX path escapes the kit"
     assert hashlib.sha256(source.read_bytes()).hexdigest() == asset["sha256"], asset["name"] + " differs from the manifest"
     writable(folder_of(asset) + "/" + asset["name"])
+
+
+# The engine's temporal dither function.
+DITHER = "/Engine/Functions/Engine_MaterialFunctions02/Utility/DitherTemporalAA.DitherTemporalAA"
+
+VEIL_HLSL = """
+// The hidden body's veil (ADR-068, section 6): how much of the body shows (x) and how brightly it glows (y). Bands rise
+// through it: a triangle wave of height that climbs with time, thickest where it peaks. Its silhouette, where the surface
+// turns from the view past RimStart (Edge, a fresnel), stays whole and glows, its edge a pixel wide wherever it stands.
+float Band = abs(frac(Z * ShimmerScale - Time * ShimmerSpeed) * 2.0 - 1.0);
+float Shows = Opacity * lerp(1.0, Band, ShimmerDepth);
+float Silhouette = saturate((Edge - RimStart) / max(fwidth(Edge), 1e-5) + 0.5);
+return float2(lerp(1.0, max(Shows, Silhouette), Veil), Veil * Silhouette * lerp(1.0 - ShimmerDepth, 1.0, Band));
+"""
 
 
 def toon_light():
@@ -167,8 +181,43 @@ def body_material(collection):
     glow = g.op(unreal.MaterialExpressionMultiply, 2, g.op(unreal.MaterialExpressionMultiply, 1, color, color, "", "A"),
                 g.scalar(1, "GlowStrength", values["glowGain"], "Toon"))
     total = g.op(unreal.MaterialExpressionAdd, 8, bright, glow)
-    emissive = g.unexposed(9, total)
+    # The veil (ADR-068 §6): while the presentation raises Veil, a body on the viewer's side hidden from its enemies
+    # thins to opacity of itself, dithered, under bands rising through it, while its silhouette stays whole and glows in VeilTint.
+    veil = values["veil"]
+    hidden = g.scalar(5, veil["parameter"], 0.0, "Veil")
+    tint = g.node(unreal.MaterialExpressionVectorParameter, 5, parameter_name=veil["tintParameter"], default_value=unreal.LinearColor(1.0, 1.0, 1.0, 1.0),
+                  group="Veil")
+    height = g.node(unreal.MaterialExpressionComponentMask, 5, r=False, g=False, b=True, a=False)
+    g.link(g.node(unreal.MaterialExpressionWorldPosition, 4), "", height, "")
+    veil_edge = g.node(unreal.MaterialExpressionFresnel, 5, exponent=veil["rimExponent"], base_reflect_fraction=0.0)
+    inputs = [("Veil", hidden), ("Z", height), ("Time", g.node(unreal.MaterialExpressionTime, 5)), ("Edge", veil_edge)]
+    for key in ("opacity", "shimmerScale", "shimmerSpeed", "shimmerDepth", "rimStart"):
+        inputs.append((key[0].upper() + key[1:], g.node(unreal.MaterialExpressionConstant, 5, r=float(veil[key]))))
+    entries = []
+    for name, _ in inputs:
+        entry = unreal.CustomInput()
+        entry.set_editor_property("input_name", name)
+        entries.append(entry)
+    shimmer = g.node(unreal.MaterialExpressionCustom, 6, code=VEIL_HLSL, description="VeyraVeil", output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT2,
+                     inputs=entries)
+    for name, node in inputs:
+        g.link(node, "", shimmer, name)
+    shows = g.node(unreal.MaterialExpressionComponentMask, 7, r=True, g=False, b=False, a=False)
+    g.link(shimmer, "", shows, "")
+    # The engine's temporal dither, which the upscaler resolves into a smooth fade.
+    dither = g.node(unreal.MaterialExpressionMaterialFunctionCall, 8, material_function=unreal.load_asset(DITHER))
+    link_named(g, shows, "", dither, ("Alpha Threshold", "AlphaThreshold"))
+    assert EDIT.connect_material_property(dither, "", unreal.MaterialProperty.MP_OPACITY_MASK), "opacity mask"
+    lit_rim = g.node(unreal.MaterialExpressionComponentMask, 7, r=False, g=True, b=False, a=False)
+    g.link(shimmer, "", lit_rim, "")
+    veil_rim = g.op(unreal.MaterialExpressionMultiply, 8, lit_rim, g.scalar(7, "VeilRimStrength", veil["rimStrength"], "Veil"))
+    tinted_rim = g.op(unreal.MaterialExpressionMultiply, 9, veil_rim, tint, "", "RGB")
+    emissive = g.unexposed(10, g.op(unreal.MaterialExpressionAdd, 9, total, tinted_rim))
     assert EDIT.connect_material_property(emissive, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
+    material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_MASKED)
+    # The dither spreads its noise about the alpha, so a clip of one half keeps that share of the pixels; a solid body
+    # (alpha 1) keeps every one.
+    material.set_editor_property("opacity_mask_clip_value", 0.5)
     material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
     # Skinned meshes use it.
     material.set_editor_property("used_with_skeletal_mesh", True)
