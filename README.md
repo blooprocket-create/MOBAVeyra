@@ -24,7 +24,7 @@ The project is currently in pre-production. The repository is being established 
 - [`Docs/ADR/`](Docs/ADR/) - Architecture Decision Records for major technical choices.
 - [`Backend/`](Backend/README.md) - the Go backend and local Docker stack (`docker compose up --build`): sign-in, parties, onboarding, champion select, Custom practice, and match servers and results.
 - [`Launcher/`](Launcher/README.md) - the Tauri launcher: it installs, updates and repairs the game, signs the player in, starts the game and hands it a launch code. Veyra Setup, which installs the launcher, is built from it (`Launcher/Package.ps1`).
-- [`Website/`](Website/README.md) - a placeholder Cloudflare Worker (`wrangler.jsonc` at the root), so the repository's Cloudflare build deploys something until the account-facing website exists.
+- [`Website/`](Website/README.md) - the public Cloudflare Worker in front of the backend and release store (`wrangler.jsonc` at the root), and the website on Vercel (`vercel.json` at the root): download, install guide, support, sign-up and log-in.
 - [`Docs/Pull_Request_Record_v0.1.md`](Docs/Pull_Request_Record_v0.1.md) - the review findings from every pull request, kept in the repository rather than only on the forge.
 
 ### World, asset & VFX production
