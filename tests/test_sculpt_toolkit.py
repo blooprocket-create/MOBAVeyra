@@ -36,8 +36,25 @@ def along(node, direction, start=(0.0, 0.0, 0.0)):
     d /= np.linalg.norm(d)
     ts = np.arange(0.0, SPAN, STEP, dtype=np.float32)
     P = np.asarray(start, dtype=np.float32)[None, :] + ts[:, None] * d[None, :]
-    tree.REACH[0] = 1.0
-    return ts, tree.evaluate(node, P, Box.around(P, 1.0)).d
+    with tree.reaching(1.0):
+        return ts, tree.evaluate(node, P, Box.around(P, 1.0)).d
+
+
+class Reach(unittest.TestCase):
+    def test_a_reach_is_set_for_its_block_and_restored_after_it(self):
+        # A model built after another in the same process must see the reach it would alone: a band set for meshing or
+        # labelling one body may not leak into the next one's build.
+        self.assertEqual(tree.REACH[0], tree.DEFAULT_REACH)
+        with tree.reaching(2.0):
+            self.assertEqual(tree.REACH[0], 2.0)
+            with tree.reaching(0.6):
+                self.assertEqual(tree.REACH[0], 0.6)
+            self.assertEqual(tree.REACH[0], 2.0)
+        self.assertEqual(tree.REACH[0], tree.DEFAULT_REACH)
+        with self.assertRaises(ValueError):
+            with tree.reaching(3.0):
+                raise ValueError("a failed evaluation")
+        self.assertEqual(tree.REACH[0], tree.DEFAULT_REACH)
 
 
 class SolidLayers(unittest.TestCase):
@@ -128,8 +145,8 @@ class Folds(unittest.TestCase):
         # Around both ends, where the curve's parameter reaches 0 and 1 (single precision overshoots pi there).
         grid = np.stack(np.meshgrid(np.linspace(-14, 14, 15), np.linspace(-14, 14, 15), np.linspace(-6, 6, 7), indexing="ij"), axis=-1).reshape(-1, 3)
         P = (grid + np.array([RADIUS, 0.0, 0.0])).astype(np.float32)
-        tree.REACH[0] = 1.0
-        d = tree.evaluate(tree.Over([body, piece]), P, Box.around(P, 1.0)).d
+        with tree.reaching(1.0):
+            d = tree.evaluate(tree.Over([body, piece]), P, Box.around(P, 1.0)).d
         self.assertTrue(np.all(np.isfinite(d)))
         # It stands high at its middle, and its crest hangs below its line: a short steep side under it.
         _ts, mid = along(tree.Over([body, piece]), (1, 0, 0.2))
@@ -226,8 +243,8 @@ class Mournwake(unittest.TestCase):
         r = H * 0.062
         middle = breech + along * 0.15 * np.linalg.norm(muzzle - breech)
         P = np.array([middle + (s * side * 0.7 + up * 0.9) * r * 1.3 for s in (1.0, -1.0)], dtype=np.float32)
-        tree.REACH[0] = 2.0
-        field = tree.evaluate(gun, P, Box.around(P, 2.0))
+        with tree.reaching(2.0):
+            field = tree.evaluate(gun, P, Box.around(P, 2.0))
         for d, label in zip(field.d, field.m):
             self.assertLess(float(d), 0.0)
             self.assertTrue(S.parts[label].name.startswith("brace"), S.parts[label].name)

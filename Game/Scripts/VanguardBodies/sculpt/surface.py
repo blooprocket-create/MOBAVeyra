@@ -26,10 +26,14 @@ def to_object(name, points, triangles, quads):
     return obj
 
 
+# The band a point's nearest part is looked for within (cm), beyond the surface it lies on.
+LABEL_REACH = 2.0
+
+
 def labels_at(root, points, cell=8.0):
     """The label of the part whose surface is nearest each point, evaluated in cells so each evaluates only the parts
     near it."""
-    tree.REACH[0] = 2.0
     P = np.asarray(points, dtype=np.float32)
-    (labels,) = tree.in_cells(root, P, workers.labels, cell)
+    with tree.reaching(LABEL_REACH):
+        (labels,) = tree.in_cells(root, P, workers.labels, cell)
     return labels.astype(np.int16)
