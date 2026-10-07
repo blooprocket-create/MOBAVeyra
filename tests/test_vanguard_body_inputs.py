@@ -236,11 +236,27 @@ class VanguardBodyInputs(unittest.TestCase):
     def copy_generator(game):
         """The generator's code, as the project beside its manifest holds it."""
         import shutil
-        (game / "Scripts" / "VanguardBodies").mkdir(parents=True)
+        (game / "Scripts").mkdir(parents=True)
         shutil.copy(SCRIPTS / "GenerateVanguardBodies.py", game / "Scripts")
-        for module in (SCRIPTS / "VanguardBodies").glob("*.py"):
-            shutil.copy(module, game / "Scripts" / "VanguardBodies")
+        # The whole package: its sculpt toolkit and production models are generator code too (ADR-069 §3).
+        package = SCRIPTS / "VanguardBodies"
+        for module in package.rglob("*.py"):
+            target = game / "Scripts" / "VanguardBodies" / module.relative_to(package)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(module, target)
 
+    def test_a_change_to_the_sculpt_toolkit_or_a_model_is_a_generator_change(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = Path(folder) / "Game"
+            self.copy_generator(game)
+            before = inputs.generator_hash(game / "Scripts")
+            self.assertEqual(before, GENERATOR, "the copy hashes as the generator")
+            for module in ("sculpt/sdf.py", "models/kade.py"):
+                path = game / "Scripts" / "VanguardBodies" / module
+                path.write_bytes(path.read_bytes() + b"\n# changed\n")
+                self.assertNotEqual(inputs.generator_hash(game / "Scripts"), before, module)
+                before = inputs.generator_hash(game / "Scripts")
     def test_a_body_built_by_other_generator_code_or_another_blender_is_stale(self):
         # A selective build after the generator's code changed keeps bodies the old code built.
         self.assertEqual(sorted(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS, generator="old"), GENERATOR, BLENDER)),

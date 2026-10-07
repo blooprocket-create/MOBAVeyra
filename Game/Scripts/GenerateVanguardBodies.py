@@ -21,7 +21,7 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
+from VanguardBodies import beast, colossus, construct, humanoid, model, rider  # noqa: E402
 from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash,  # noqa: E402
                                    input_hash, pending_changed, pending_removed, pinned_blender, removed_assets, same_destination,
                                    stale_assets, units)
@@ -296,19 +296,26 @@ def build(spec, status=None, suffix="", previous=None):
     reset_scene()
     layout, dims = archetype.layout(spec, capsule)
     name = body_name(spec["id"], suffix)
-    armature = build_armature(name, archetype.BONES, layout)
-    body = archetype.body(spec, layout, dims)
-    body.anchor_unweighted({bone: heads[0] for bone, heads in layout.items()})
-    mesh = bpy.data.meshes.new(name)
-    body.bm.to_mesh(mesh)
-    triangles = sum(len(face.verts) - 2 for face in body.bm.faces)
-    body.bm.free()
-    # The exporter writes the active colour attribute: the body's colours, and in alpha what glows.
-    mesh.color_attributes.active_color = mesh.color_attributes["Col"]
-    obj = bpy.data.objects.new(name, mesh)
-    bpy.context.scene.collection.objects.link(obj)
-    for bone_name, _ in archetype.BONES:
-        obj.vertex_groups.new(name=bone_name)
+    # Its archetype's bones, and any its kit adds (a loose part's spring chains, ADR-069).
+    bones = archetype.bones_of(spec) if hasattr(archetype, "bones_of") else archetype.BONES
+    armature = build_armature(name, bones, layout)
+    if spec.get("model"):
+        # A production model (ADR-069): its script's sculpt, meshed, reduced, skinned and flat-coloured.
+        obj, triangles = model.build(spec, layout, dims, name, [bone for bone, _ in bones])
+        mesh = obj.data
+    else:
+        body = archetype.body(spec, layout, dims)
+        body.anchor_unweighted({bone: heads[0] for bone, heads in layout.items()})
+        mesh = bpy.data.meshes.new(name)
+        body.bm.to_mesh(mesh)
+        triangles = sum(len(face.verts) - 2 for face in body.bm.faces)
+        body.bm.free()
+        # The exporter writes the active colour attribute: the body's colours, and in alpha what glows.
+        mesh.color_attributes.active_color = mesh.color_attributes["Col"]
+        obj = bpy.data.objects.new(name, mesh)
+        bpy.context.scene.collection.objects.link(obj)
+        for bone_name, _ in bones:
+            obj.vertex_groups.new(name=bone_name)
     material = bpy.data.materials.new("M_VeyraVanguardBody")
     mesh.materials.append(material)
     obj.parent = armature
@@ -316,7 +323,7 @@ def build(spec, status=None, suffix="", previous=None):
     modifier.object = armature
     digest = hashlib.sha256()
     actions = animate(armature, spec, archetype, dims, melee, digest)
-    budget = KIT["archetypes"][spec["archetype"]]["triangleBudget"]
+    budget = spec["model"]["triangleBudget"] if spec.get("model") else KIT["archetypes"][spec["archetype"]]["triangleBudget"]
     assert triangles <= budget, (spec["id"], "triangle budget", triangles, budget)
     # Measured on the rest geometry, as Unreal imports it. Nothing sinks below the ground, and a body that walks stands
     # on it; one that floats hovers clear of it.
@@ -351,17 +358,27 @@ def build(spec, status=None, suffix="", previous=None):
         render_preview(name, armature, obj, archetype, dims, melee)
     asset = {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,
              "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "triangles": triangles, "triangleBudget": budget,
-             "bones": len(archetype.BONES), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
+             "bones": len(bones), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
              "melee": melee, "runStrideCm": round(archetype.run_stride(dims), 2), "upperBodyBone": archetype.UPPER_BODY_BONE,
              "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions,
              # What it was made from and by, so a later partial build cannot pass it off as current (VanguardBodies.inputs),
              # and what it is, so a rebuild that changes nothing in it keeps it.
              "inputSha256": input_hash(KIT, TUNING, spec), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
              "contentSha256": content, "contentVersion": CONTENT_VERSION}
+    if getattr(archetype, "IK_FEET", None):
+        # The limbs the engine's inverse kinematics holds (ADR-069): its legs on the ground, and an off hand on a weapon
+        # its stance holds in both hands.
+        asset["ik"] = {"feet": [list(chain) for chain in archetype.IK_FEET]}
+        if spec.get("stance") in getattr(archetype, "IK_TWO_HANDED_STANCES", ()):
+            asset["ik"]["offHand"] = {"chain": list(archetype.IK_OFF_HAND), "anchor": archetype.IK_OFF_HAND_ANCHOR}
+    springs = archetype.springs_of(spec, layout, dims) if hasattr(archetype, "springs_of") else None
+    if springs:
+        # Its loose parts' chains and the capsules they hang outside, for the engine's secondary motion (ADR-069).
+        asset["springs"] = springs
     if spec.get("effect"):
         # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
         effect = spec["effect"]
-        missing = [bone for bone in effect["bones"] if bone not in dict(archetype.BONES)]
+        missing = [bone for bone in effect["bones"] if bone not in dict(bones)]
         assert not missing, (spec["id"], "the effect pours from bones it lacks", missing)
         # Sized as the body is grown (a larger form pours larger smoke).
         asset["effect"] = {"system": effect["system"], "bones": effect["bones"], "color": effect["color"],

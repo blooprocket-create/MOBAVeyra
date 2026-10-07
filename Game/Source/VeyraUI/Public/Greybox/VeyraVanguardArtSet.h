@@ -11,6 +11,68 @@ class UAnimSequence;
 class UNiagaraSystem;
 class USkeletalMesh;
 
+/** A two-bone limb its inverse kinematics solves (ADR-069): its root (a hip or shoulder), its joint and its end. */
+USTRUCT(BlueprintType)
+struct VEYRAUI_API FVeyraLimbChain
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FName Root;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FName Joint;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FName End;
+
+	bool IsSet() const { return !Root.IsNone() && !Joint.IsNone() && !End.IsNone(); }
+};
+
+/**
+ * A chain of bones a body's loose part hangs on (ADR-069): a cloak's edge, a coat's tail, a lock of hair, from the bone
+ * it hangs from to its tip, trailing the clips' pose as cloth does. Stiffness: the spring drawing each joint back toward
+ * where its clip has it (per second squared); Drag: how much of its speed through the air it loses (per second);
+ * Damping: how much of its speed relative to its clip it loses (per second); MaxAngleDegrees: how far a bone may turn
+ * from its clip's.
+ */
+USTRUCT(BlueprintType)
+struct VEYRAUI_API FVeyraSpringChainArt
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TArray<FName> Bones;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	float Stiffness = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	float Drag = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	float Damping = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	float MaxAngleDegrees = 0.0f;
+};
+
+/** A capsule a body's chains hang outside (its torso, a thigh): between two bones' heads, Radius about them. */
+USTRUCT(BlueprintType)
+struct VEYRAUI_API FVeyraSpringColliderArt
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FName From;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FName To;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	float Radius = 0.0f;
+};
+
 /** One generated body (ADR-064 §3): its skeletal mesh, its animations, and what they are fitted to. */
 USTRUCT(BlueprintType)
 struct VEYRAUI_API FVeyraVanguardBody
@@ -59,6 +121,30 @@ struct VEYRAUI_API FVeyraVanguardBody
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
 	int32 Priority = 0;
+
+	/**
+	 * Its legs, each held to the ground under it while its foot is planted (ADR-069): the inverse kinematics that keep
+	 * feet on uneven ground. Empty for a body that does not stand on feet.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TArray<FVeyraLimbChain> FootChains;
+
+	/**
+	 * An arm whose hand holds a weapon the other hand carries (a rifle's fore-end), kept on it however the other hand
+	 * moves: its chain, and the bone that carries the weapon (OffHandAnchor). Unset for a body with no such hold.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FVeyraLimbChain OffHand;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	FName OffHandAnchor;
+
+	/** Its loose parts' chains (ADR-069), and the capsules they hang outside. Empty for a body with nothing loose. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TArray<FVeyraSpringChainArt> SpringChains;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TArray<FVeyraSpringColliderArt> SpringColliders;
 
 	/** The animation Clip, or null. */
 	UAnimSequence* Find(EVeyraVanguardClip Clip) const;

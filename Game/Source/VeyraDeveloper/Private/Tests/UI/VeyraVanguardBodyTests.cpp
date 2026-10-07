@@ -15,8 +15,11 @@
 #include "Companions/VeyraCompanionSubsystem.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
+#include "Engine/CollisionProfile.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialParameterCollectionInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -585,6 +588,204 @@ namespace VeyraVanguardBodyTests
 			}
 			RefreshedGreybox();
 			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 1.0f, TEXT("then moving again")));
+		}
+
+		TEST_METHOD(APlantedFootStandsOnTheGroundUnderIt)
+		{
+			// Fixture values: a frame of the world, how long it eases (several times the feet's ease), and a step under one foot.
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr float Seconds = 1.5f;
+			constexpr double Step = 12.0;
+			constexpr double StepSize = 24.0;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Settings.bFootIK && Step < Settings.FootMaxOffset && Step < Settings.FootTraceAbove, TEXT("the feet hold to a step this high")));
+			const FVeyraVanguardBody* Art = ArtSet().Find(DressedId());
+			ASSERT_THAT(IsTrue(Art && Art->FootChains.Num() == 2, TEXT("a body with two legs")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(Presentation.FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			const FName Left = Art->FootChains[0].End;
+			const FName Right = Art->FootChains[1].End;
+			// Drawn lately, standing still: its feet planted in its idle clip.
+			const auto Advance = [this, Skin](float Time) {
+				for (float Elapsed = 0.0f; Elapsed < Time; Elapsed += Frame)
+				{
+					Skin->SetLastRenderTime(Spawner.GetWorld().GetTimeSeconds());
+					Skin->TickAnimation(Frame, false);
+					Skin->RefreshBoneTransforms();
+				}
+			};
+			Advance(Frame);
+			const double Floor = Skin->GetComponentLocation().Z;
+			const FVector LeftAt = Skin->GetBoneLocation(Left);
+			const double RightZ = Skin->GetBoneLocation(Right).Z;
+			const double Level = LeftAt.Z - RightZ;
+			// A block under its left foot alone, its top Step above the floor; nothing under the right.
+			AStaticMeshActor& Block = Spawner.SpawnActorAt<AStaticMeshActor>(FVector(LeftAt.X, LeftAt.Y, Floor + Step - StepSize * 0.5), FRotator::ZeroRotator);
+			UStaticMeshComponent* Mesh = Block.GetStaticMeshComponent();
+			Mesh->SetMobility(EComponentMobility::Movable);
+			UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+			ASSERT_THAT(IsNotNull(Cube));
+			Mesh->SetStaticMesh(Cube);
+			Mesh->SetWorldScale3D(FVector(StepSize / (Cube->GetBounds().BoxExtent.X * 2.0)));
+			Mesh->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+			Advance(Seconds);
+			const double Raised = Skin->GetBoneLocation(Left).Z - Skin->GetBoneLocation(Right).Z - Level;
+			ASSERT_THAT(IsNear(Raised, Step, Tolerance * 1.5, *FString::Printf(TEXT("the left foot steps up onto the block: %.2f"), Raised)));
+			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Right).Z, RightZ, Tolerance * 1.5, TEXT("the right stays on the floor")));
+			// Off the block, it comes back down.
+			Block.Destroy();
+			Advance(Seconds);
+			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Left).Z - Skin->GetBoneLocation(Right).Z, Level, Tolerance * 1.5, TEXT("and down again")));
+		}
+
+		TEST_METHOD(APlantedFootStepsDownOntoGroundBelowTheFloorAsThePelvisLowers)
+		{
+			// Fixture values: a frame of the world, how long it eases, and how far below the floor the ground under the
+			// right foot lies (as on a slope falling away under it).
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr float Seconds = 1.5f;
+			constexpr double Drop = 10.0;
+			constexpr double BlockSize = 24.0;
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			ASSERT_THAT(IsTrue(Settings.bFootIK && Drop < Settings.FootMaxPelvisDrop && Drop < Settings.FootTraceBelow, TEXT("the feet reach ground this low")));
+			const FVeyraVanguardBody* Art = ArtSet().Find(DressedId());
+			ASSERT_THAT(IsTrue(Art && Art->FootChains.Num() == 2, TEXT("a body with two legs")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(RefreshedGreybox().FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			const FName Left = Art->FootChains[0].End;
+			const FName Right = Art->FootChains[1].End;
+			const auto Advance = [this, Skin](float Time) {
+				for (float Elapsed = 0.0f; Elapsed < Time; Elapsed += Frame)
+				{
+					Skin->SetLastRenderTime(Spawner.GetWorld().GetTimeSeconds());
+					Skin->TickAnimation(Frame, false);
+					Skin->RefreshBoneTransforms();
+				}
+			};
+			Advance(Frame);
+			const double Floor = Skin->GetComponentLocation().Z;
+			const FVector RightAt = Skin->GetBoneLocation(Right);
+			const double LeftZ = Skin->GetBoneLocation(Left).Z;
+			// Ground only under the right foot, its top Drop below the floor the capsule stands on.
+			AStaticMeshActor& Block = Spawner.SpawnActorAt<AStaticMeshActor>(FVector(RightAt.X, RightAt.Y, Floor - Drop - BlockSize * 0.5), FRotator::ZeroRotator);
+			UStaticMeshComponent* Mesh = Block.GetStaticMeshComponent();
+			Mesh->SetMobility(EComponentMobility::Movable);
+			UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+			ASSERT_THAT(IsNotNull(Cube));
+			Mesh->SetStaticMesh(Cube);
+			Mesh->SetWorldScale3D(FVector(BlockSize / (Cube->GetBounds().BoxExtent.X * 2.0)));
+			Mesh->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+			Advance(Seconds);
+			// The pelvis lowers so the right foot reaches its ground; the left, held at its own, stays where it stood.
+			const double Lowered = RightAt.Z - Skin->GetBoneLocation(Right).Z;
+			ASSERT_THAT(IsNear(Lowered, Drop, Tolerance * 1.5, *FString::Printf(TEXT("the right foot steps down: %.2f"), Lowered)));
+			ASSERT_THAT(IsNear(Skin->GetBoneLocation(Left).Z, LeftZ, Tolerance * 1.5, TEXT("the left stays on the floor")));
+		}
+
+		TEST_METHOD(ALooseCloakTrailsItsMovingBodyThenSettles)
+		{
+			// Fixture values: a frame of the world, a run's step each frame (cm), how long it runs and then rests, and how far
+			// a trailing tip must fall behind to count.
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr double Step = 12.0;
+			constexpr float Running = 0.5f;
+			constexpr float Resting = 3.0f;
+			constexpr double Trail = 3.0;
+			ASSERT_THAT(IsTrue(GetDefault<UVeyraGreyboxSettings>()->bSpringChains, TEXT("loose parts move")));
+			// A Vanguard whose body has a loose part.
+			FName Id;
+			const FVeyraSpringChainArt* Chain = nullptr;
+			for (const TPair<FName, FVeyraVanguardArt>& Entry : ArtSet().Art)
+			{
+				if (!Entry.Value.SpringChains.IsEmpty())
+				{
+					Id = Entry.Key;
+					Chain = &Entry.Value.SpringChains[0];
+					break;
+				}
+			}
+			ASSERT_THAT(IsNotNull(Chain, TEXT("a body with a spring chain")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(Id);
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(RefreshedGreybox().FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			const UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance());
+			const UAnimSequence* Idle = Animation ? Animation->GetClip(EVeyraVanguardClip::Idle) : nullptr;
+			ASSERT_THAT(IsNotNull(Idle, TEXT("a body that idles")));
+			const FName Tip = Chain->Bones.Last();
+			const auto FramesOf = [](float Seconds) { return FMath::Max(1, FMath::RoundToInt32(Seconds / Frame)); };
+			const auto Advance = [Skin](int32 Frames, double Move) {
+				for (int32 Index = 0; Index < Frames; ++Index)
+				{
+					Skin->SetWorldLocation(Skin->GetComponentLocation() + FVector(Move, 0.0, 0.0));
+					Skin->TickAnimation(Frame, false);
+					Skin->RefreshBoneTransforms();
+				}
+			};
+			const auto Behind = [Skin, Tip]() { return Skin->GetComponentLocation().X - Skin->GetBoneLocation(Tip).X; };
+			Advance(FramesOf(Resting), 0.0);
+			const double AtRest = Behind();
+			// Running forward (+X), the tip falls behind where the clips hang it.
+			const int32 Ran = FramesOf(Running);
+			Advance(Ran, Step);
+			ASSERT_THAT(IsTrue(Behind() > AtRest + Trail, *FString::Printf(TEXT("it trails: %.2f behind, %.2f at rest"), Behind(), AtRest)));
+			// Stopped, it swings back to hang where it hung: compared at the same moment of its idle (whole cycles on), as
+			// the idle moves the bone the cloak hangs from.
+			const int32 Cycle = FramesOf(Idle->GetPlayLength());
+			Advance(Cycle * FMath::DivideAndRoundUp(Ran + FramesOf(Resting), Cycle) - Ran, 0.0);
+			ASSERT_THAT(IsNear(Behind(), AtRest, Tolerance, *FString::Printf(TEXT("and settles: %.2f behind, %.2f at rest"), Behind(), AtRest)));
+		}
+
+		TEST_METHOD(ItsLoosePartsStayOutsideItsBodyAsDrawn)
+		{
+			// Fixture values: a frame of the world, a run's step each frame (cm), how long it backs up, and how far inside a
+			// joint may sit (the solver keeps each bone's length after pushing it out).
+			constexpr float Frame = 1.0f / 30.0f;
+			constexpr double Step = 12.0;
+			constexpr float Backing = 1.0f;
+			constexpr double Slack = 1.0;
+			FName Id;
+			const FVeyraVanguardBody* Art = nullptr;
+			for (const TPair<FName, FVeyraVanguardArt>& Entry : ArtSet().Art)
+			{
+				if (!Entry.Value.SpringChains.IsEmpty() && !Entry.Value.SpringColliders.IsEmpty())
+				{
+					Id = Entry.Key;
+					Art = ArtSet().Find(Id);
+					break;
+				}
+			}
+			ASSERT_THAT(IsNotNull(Art, TEXT("a body whose loose parts hang outside it")));
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(Id);
+			USkeletalMeshComponent* Skin = const_cast<USkeletalMeshComponent*>(RefreshedGreybox().FindSkin(Unit));
+			ASSERT_THAT(IsNotNull(Skin));
+			// Backing up at a run: drag presses the cloak and the coat's tails forward, into the body.
+			for (int32 Index = 0; Index < FMath::RoundToInt32(Backing / Frame); ++Index)
+			{
+				Skin->SetWorldLocation(Skin->GetComponentLocation() - FVector(Step, 0.0, 0.0));
+				Skin->TickAnimation(Frame, false);
+				Skin->RefreshBoneTransforms();
+			}
+			// Each collider as the body is drawn, at its scale.
+			const double Scale = Skin->GetComponentScale().GetMax();
+			for (const FVeyraSpringColliderArt& Collider : Art->SpringColliders)
+			{
+				const FVector A = Skin->GetBoneLocation(Collider.From);
+				const FVector B = Skin->GetBoneLocation(Collider.To);
+				const double Radius = Collider.Radius * Scale;
+				for (const FVeyraSpringChainArt& Chain : Art->SpringChains)
+				{
+					for (int32 Joint = 1; Joint < Chain.Bones.Num(); ++Joint)
+					{
+						const FVector Point = Skin->GetBoneLocation(Chain.Bones[Joint]);
+						const double Distance = FMath::PointDistToSegment(Point, A, B);
+						ASSERT_THAT(IsTrue(Distance >= Radius - Slack, *FString::Printf(TEXT("%s is %.1f inside %s-%s (radius %.1f drawn)"),
+							*Chain.Bones[Joint].ToString(), Radius - Distance, *Collider.From.ToString(), *Collider.To.ToString(), Radius)));
+					}
+				}
+			}
 		}
 
 		TEST_METHOD(TheToonLightFollowsTheMapsSun)

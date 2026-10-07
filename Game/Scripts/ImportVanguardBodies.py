@@ -153,10 +153,12 @@ def body_material(collection):
     # A vertex colour's colour output is unnamed; R, G, B and A are its others. A connection to a name that is not an
     # output fails quietly, leaving the body black, so every connection is checked (Graph.link asserts).
     color = g.node(unreal.MaterialExpressionVertexColor, 0)
+    # The normal the bands and rim read: the vertex normal, turned with the side shown (a cloth sheet shows both).
+    normal = g.op(unreal.MaterialExpressionMultiply, 2, g.node(unreal.MaterialExpressionVertexNormalWS, 1), g.node(unreal.MaterialExpressionTwoSidedSign, 1))
     # How squarely the surface faces the sun, from -1 (away) to 1.
     to_sun = g.node(unreal.MaterialExpressionNormalize, 2)
     g.link(light(0, "ToSun"), "", to_sun, "")
-    facing = g.op(unreal.MaterialExpressionDotProduct, 3, g.node(unreal.MaterialExpressionVertexNormalWS, 2), to_sun)
+    facing = g.op(unreal.MaterialExpressionDotProduct, 3, normal, to_sun)
     # One soft band: 0 in shadow, 1 lit.
     threshold, softness = toon["bandThreshold"], toon["bandSoftness"]
     band = g.node(unreal.MaterialExpressionSmoothStep, 4, const_min=threshold - softness, const_max=threshold + softness)
@@ -171,6 +173,7 @@ def body_material(collection):
     g.link(band, "", shaded, "Alpha")
     # The rim: the sun's light along the lit side's silhouette.
     fresnel = g.node(unreal.MaterialExpressionFresnel, 2, exponent=toon["rimExponent"], base_reflect_fraction=0.0)
+    g.link(normal, "", fresnel, "Normal")
     rim_edge = g.node(unreal.MaterialExpressionSmoothStep, 3, const_min=toon["rimStart"], const_max=toon["rimEnd"])
     g.link(fresnel, "", rim_edge, "Value")
     rim_strength = g.scalar(3, "RimStrength", toon["rimStrength"], "Toon")
@@ -219,6 +222,8 @@ def body_material(collection):
     # (alpha 1) keeps every one.
     material.set_editor_property("opacity_mask_clip_value", 0.5)
     material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    # Cloth is a single sheet (ADR-069 §4): both its faces show.
+    material.set_editor_property("two_sided", True)
     # Skinned meshes use it.
     material.set_editor_property("used_with_skeletal_mesh", True)
     EDIT.recompile_material(material)
@@ -270,9 +275,13 @@ def import_body(asset, material):
     mesh = unreal.load_asset(folder + "/" + asset["name"])
     assert isinstance(mesh, unreal.SkeletalMesh), asset["name"] + " did not import as a skeletal mesh"
     materials = mesh.get_editor_property("materials")
-    for slot in materials:
+    # Each slot by index: iterating the array gives copies of its structs, which would change nothing.
+    for index in range(len(materials)):
+        slot = materials[index]
         slot.set_editor_property("material_interface", material)
+        materials[index] = slot
     mesh.set_editor_property("materials", materials)
+    assert all(slot.get_editor_property("material_interface") == material for slot in mesh.get_editor_property("materials")), (asset["name"], "a slot does not wear its material")
     assert unreal.EditorAssetLibrary.save_loaded_asset(mesh), "Save failed: " + asset["name"]
     skeleton = mesh.get_editor_property("skeleton")
     assert skeleton, asset["name"] + " has no skeleton"
@@ -306,6 +315,37 @@ def fill_body(asset, body):
     body.set_editor_property("cast_release_share", asset["castReleaseShare"])
     body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
     body.set_editor_property("priority", asset.get("priority", 0))
+    ik = asset.get("ik", {})
+
+    def chain(names):
+        limb = unreal.VeyraLimbChain()
+        limb.set_editor_property("root", unreal.Name(names[0]))
+        limb.set_editor_property("joint", unreal.Name(names[1]))
+        limb.set_editor_property("end", unreal.Name(names[2]))
+        return limb
+    body.set_editor_property("foot_chains", [chain(names) for names in ik.get("feet", [])])
+    if ik.get("offHand"):
+        body.set_editor_property("off_hand", chain(ik["offHand"]["chain"]))
+        body.set_editor_property("off_hand_anchor", unreal.Name(ik["offHand"]["anchor"]))
+    springs = asset.get("springs", {})
+    loose = []
+    for entry in springs.get("chains", []):
+        art = unreal.VeyraSpringChainArt()
+        art.set_editor_property("bones", [unreal.Name(bone) for bone in entry["bones"]])
+        art.set_editor_property("stiffness", entry["stiffness"])
+        art.set_editor_property("drag", entry["drag"])
+        art.set_editor_property("damping", entry["damping"])
+        art.set_editor_property("max_angle_degrees", entry["maxAngle"])
+        loose.append(art)
+    body.set_editor_property("spring_chains", loose)
+    colliders = []
+    for entry in springs.get("colliders", []):
+        collider = unreal.VeyraSpringColliderArt()
+        collider.set_editor_property("from", unreal.Name(entry["from"]))
+        collider.set_editor_property("to", unreal.Name(entry["to"]))
+        collider.set_editor_property("radius", entry["radius"])
+        colliders.append(collider)
+    body.set_editor_property("spring_colliders", colliders)
     if asset.get("effect"):
         effect = unreal.load_asset(asset["effect"]["system"])
         assert isinstance(effect, unreal.NiagaraSystem), (asset["name"], "its effect does not load; build it with BuildEffects.ps1", asset["effect"]["system"])

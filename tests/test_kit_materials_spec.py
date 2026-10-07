@@ -27,6 +27,8 @@ STRUCTURES = kit("Structures", "StructureKit.json")
 FLUXBORN = kit("Fluxborn", "FluxbornKit.json")
 ENVIRONMENT = kit("Environment", "CrucibleKit.json")
 VANGUARDS = kit("Vanguards", "VanguardKit.json")
+# The production model scripts there are (ADR-069), by name.
+MODELS = {path.stem for path in (ROOT / "Game" / "Scripts" / "VanguardBodies" / "models").glob("*.py") if path.stem != "__init__"}
 
 
 def with_flux(source, **values):
@@ -52,6 +54,12 @@ class ShippedKits(unittest.TestCase):
 
     def test_the_body_material_is_valid(self):
         self.assertEqual(checker.body_problems(VANGUARDS), [])
+
+    def test_the_production_models_are_valid(self):
+        self.assertEqual(checker.model_problems(VANGUARDS, MODELS), [])
+
+    def test_the_loose_parts_are_valid(self):
+        self.assertEqual(checker.spring_problems(VANGUARDS), [])
 
 
 class Refusals(unittest.TestCase):
@@ -117,3 +125,30 @@ class Refusals(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProductionModels(unittest.TestCase):
+    """A kit entry's model (ADR-069 §3) is refused when it names no script or its settings are out of range."""
+
+    def entry(self, **model):
+        values = {"script": "kade", "triangleBudget": 5000, "voxelCm": 0.6}
+        values.update(model)
+        return {"vanguards": [{"id": "test", "model": values}]}
+
+    def test_a_valid_model_passes(self):
+        self.assertEqual(checker.model_problems(self.entry(), {"kade"}), [])
+
+    def test_each_bad_value_is_refused_alone(self):
+        for key, value in (("script", "nobody"), ("triangleBudget", 0), ("voxelCm", 0), ("textureSize", 2048)):
+            problems = checker.model_problems(self.entry(**{key: value}), {"kade"})
+            self.assertEqual(len(problems), 1, (key, value, problems))
+            self.assertIn(key, problems[0])
+
+    def test_a_loose_part_needs_a_spring(self):
+        good = {"stiffness": 40.0, "drag": 8.0, "damping": 0.0, "maxAngle": 70.0}
+        self.assertEqual(checker.spring_problems({"vanguards": [{"id": "test", "springs": {"cloak": good}}]}), [])
+        bad = [{}, {"cloak": 3}] + [{"cloak": dict(good, **{key: value})} for key, value in
+                                    (("stiffness", 0.0), ("drag", -1.0), ("damping", None), ("maxAngle", 0.0), ("maxAngle", 190.0))]
+        for springs in bad:
+            problems = checker.spring_problems({"vanguards": [{"id": "test", "springs": springs}]})
+            self.assertEqual(len(problems), 1, (springs, problems))

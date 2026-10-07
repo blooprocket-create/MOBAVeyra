@@ -728,6 +728,80 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "0.01"))
 	float VanguardMaxPlayRate = 0.0f;
 
+	/**
+	 * Feet on uneven ground (ADR-069): a body's legs (its art's FootChains) reach the ground under each foot, found by a
+	 * trace from FootTraceAbove above the floor its capsule stands on to FootTraceBelow below it, the ground's offset
+	 * no more than FootMaxOffset either way and eased toward at FootIKInterpSpeed (its slope at FootTiltSpeed degrees
+	 * a second). Only a body drawn within FootTraceRecentSeconds is traced for. A foot is held only while it is planted
+	 * in its clip, freed as it lifts FootPlantFade above its rest, and a moving body keeps FootIKMovingWeight of the hold
+	 * at full run. The pelvis lowers at most FootMaxPelvisDrop for the lower foot; a leg stretches by at most
+	 * LimbMaxStretch of its length (under a tenth, so a limb never visibly rubbers); a planted foot tilts FootGroundTilt
+	 * of the way to the ground's slope.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK")
+	bool bFootIK = false;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootTraceAbove = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootTraceBelow = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootMaxOffset = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootIKInterpSpeed = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootPlantFade = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0", ClampMax = "1"))
+	float FootIKMovingWeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootMaxPelvisDrop = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootTiltSpeed = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float FootTraceRecentSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0", ClampMax = "0.1"))
+	float LimbMaxStretch = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0", ClampMax = "1"))
+	float FootGroundTilt = 0.0f;
+
+	/**
+	 * How fully an off hand (its art's OffHand) is held on the weapon its other hand carries, from 0 to 1, while its clip
+	 * keeps it near there: the hold eases out as the clip takes the hand OffHandReleaseDistance from its grip.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0", ClampMax = "1"))
+	float OffHandIKWeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Limb IK", meta = (ClampMin = "0"))
+	float OffHandReleaseDistance = 0.0f;
+
+	/**
+	 * Loose parts (ADR-069): a body's spring chains (its art's SpringChains: a cloak, coat tails, hair) trail its clips'
+	 * pose, each moving as its art says. A frame longer than SpringMaxStepSeconds counts as that long; the motion is
+	 * stepped in substeps of at most SpringSubstepSeconds, so it moves alike at any frame rate; and a body that jumps
+	 * farther than SpringTeleportDistance (a respawn, a blink) settles its chains on its clips.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts")
+	bool bSpringChains = false;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts", meta = (ClampMin = "0"))
+	float SpringMaxStepSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts", meta = (ClampMin = "0"))
+	float SpringSubstepSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Vanguards|Loose Parts", meta = (ClampMin = "0"))
+	float SpringTeleportDistance = 0.0f;
+
 	/** How thick the disc an animated Vanguard's body becomes under its feet is, in units: its side's colour and status tint. */
 	UPROPERTY(Config, EditAnywhere, Category = "Vanguards", meta = (ClampMin = "0.1"))
 	float VanguardFootDiscHeight = 0.0f;

@@ -49,12 +49,15 @@ def body_name(unit_id, suffix):
 
 def generator_hash(scripts):
     """The hash of the code that builds a body: GenerateVanguardBodies.py and every module of the VanguardBodies package
-    in scripts (the Game/Scripts folder), each by name and its text with line endings made alike, so a Windows checkout
-    and CI agree."""
+    in scripts (the Game/Scripts folder), its sculpt toolkit and production models included (ADR-069 §3), each by its
+    path in the package and its text with line endings made alike, so a Windows checkout and CI agree."""
     scripts = Path(scripts)
+    package = scripts / "VanguardBodies"
     digest = hashlib.sha256()
-    for path in [scripts / "GenerateVanguardBodies.py"] + sorted((scripts / "VanguardBodies").glob("*.py")):
-        digest.update(path.name.encode("utf-8") + b"\0" + path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+    modules = sorted(package.rglob("*.py"), key=lambda path: path.relative_to(package).as_posix())
+    for path in [scripts / "GenerateVanguardBodies.py"] + modules:
+        name = path.name if path.parent == scripts or path.parent == package else path.relative_to(package).as_posix()
+        digest.update(name.encode("utf-8") + b"\0" + path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
     return digest.hexdigest()
 
 
@@ -153,18 +156,19 @@ def committed_mismatches(game):
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     mismatches = []
     for asset in manifest["assets"]:
-        path = source / asset["file"]
-        if not path.is_file():
-            mismatches.append(asset["name"])
-            continue
-        data = path.read_bytes()
-        if data.startswith(LFS_POINTER):
-            oid = next((line.split(":", 1)[1] for line in data.decode("utf-8").splitlines() if line.startswith("oid sha256:")), None)
-        else:
-            oid = hashlib.sha256(data).hexdigest()
-        if oid != asset.get("sha256"):
+        if _committed_sha(source / asset["file"]) != asset.get("sha256"):
             mismatches.append(asset["name"])
     return mismatches
+
+
+def _committed_sha(path):
+    """The SHA-256 a committed file holds: its own, or the one its Git LFS pointer names; None when it is missing."""
+    if not path.is_file():
+        return None
+    data = path.read_bytes()
+    if data.startswith(LFS_POINTER):
+        return next((line.split(":", 1)[1] for line in data.decode("utf-8").splitlines() if line.startswith("oid sha256:")), None)
+    return hashlib.sha256(data).hexdigest()
 
 
 if __name__ == "__main__":
