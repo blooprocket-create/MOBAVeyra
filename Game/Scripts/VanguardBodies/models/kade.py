@@ -148,8 +148,6 @@ def cloak(S, L, dims, mats, worn):
     def position(u, v):
         theta = t0 + (t1 - t0) * u
         side = np.abs(np.sin(theta))
-        # Its hem torn: each strip ends at its own length, pointed.
-        v = v * sheet.torn(u, strips, 0.62, 0.14, 3.0)
         top = np.stack([np.interp(u, samples, tops[:, k]) for k in range(3)], axis=1)
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
         flare = (8.0 + 24.0 * side) * v ** 1.4
@@ -183,7 +181,8 @@ def cloak(S, L, dims, mats, worn):
         w["clavicle_r"] = hold * 0.4 * ~left
         total = sum(w.values())
         return {k: (x / np.maximum(total, 1e-6)).astype(np.float32) for k, x in w.items()}
-    return sheet.Sheet("cloak", position, material, bones, columns, rows)
+    # Its hem torn: each strip ends at its own length, pointed.
+    return sheet.Sheet("cloak", position, material, bones, columns, rows, reach=lambda u: sheet.torn(u, strips, 0.62, 0.14, 3.0))
 
 
 def coat_tails(S, L, dims, mats):
@@ -197,7 +196,6 @@ def coat_tails(S, L, dims, mats):
     limbs = [(L["thigh_" + s][0], L["thigh_" + s][1], 8.2) for s in ("l", "r")]
 
     def position(u, v):
-        v = v * sheet.torn(u, strips, 0.75, 0.1, 5.0)
         theta = t0 + (t1 - t0) * u
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
         top = np.stack([12.6 * np.cos(theta), 17.5 * np.sin(theta), np.full_like(theta, top_z)], axis=1)
@@ -216,7 +214,7 @@ def coat_tails(S, L, dims, mats):
             w["coat_%s_01" % side] = upper * mask
             w["coat_%s_02" % side] = lower * mask
         return {k: np.asarray(x, dtype=np.float32) for k, x in w.items()}
-    return sheet.Sheet("coat_tails", position, material, bones, columns, rows)
+    return sheet.Sheet("coat_tails", position, material, bones, columns, rows, reach=lambda u: sheet.torn(u, strips, 0.75, 0.1, 5.0))
 
 
 def clothes(S, mats, L, dims, body, limbs):

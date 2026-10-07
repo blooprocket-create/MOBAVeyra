@@ -8,11 +8,21 @@ from . import paint
 
 class Sheet:
     """A draped surface: position(u, v) -> (n, 3) for u, v in [0, 1]; its material (a tree.Material); bones(P, u, v)
-    -> {bone: weights}."""
+    -> {bone: weights}; and reach(u) -> how far down each column runs (its hem torn in its geometry, as torn gives it;
+    the whole length when None). Position and bones both take v as far down the sheet as each vertex lies, so its
+    weights follow its torn geometry."""
 
-    def __init__(self, name, position, material, bones, columns, rows):
+    def __init__(self, name, position, material, bones, columns, rows, reach=None):
         self.name, self.position, self.material, self.bones = name, position, material, bones
-        self.columns, self.rows = columns, rows
+        self.columns, self.rows, self.reach = columns, rows, reach
+
+    def grid(self):
+        """Its vertices, column by column: (u, v as far down as each lies, positions (n, 3))."""
+        U, Vv = np.meshgrid(np.linspace(0.0, 1.0, self.columns + 1), np.linspace(0.0, 1.0, self.rows + 1), indexing="ij")
+        u, v = U.ravel(), Vv.ravel()
+        if self.reach is not None:
+            v = v * self.reach(u)
+        return u, v, self.position(u, v).reshape(-1, 3)
 
 
 def clear_of(points, limbs, margin):
@@ -48,10 +58,7 @@ def build(sheet, bone_names, number):
     import bpy
 
     cols, rows = sheet.columns, sheet.rows
-    u = np.linspace(0.0, 1.0, cols + 1)
-    v = np.linspace(0.0, 1.0, rows + 1)
-    U, Vv = np.meshgrid(u, v, indexing="ij")
-    P = sheet.position(U.ravel(), Vv.ravel()).reshape(-1, 3)
+    u, v, P = sheet.grid()
     mesh = bpy.data.meshes.new(sheet.name)
     bm = bmesh.new()
     verts = [bm.verts.new(p) for p in P]
@@ -65,7 +72,7 @@ def build(sheet, bone_names, number):
     bpy.context.scene.collection.objects.link(obj)
     for name in bone_names:
         obj.vertex_groups.new(name=name)
-    weights = sheet.bones(P, U.ravel(), Vv.ravel())
+    weights = sheet.bones(P, u, v)
     for bone, w in weights.items():
         group = obj.vertex_groups[bone]
         for value in np.unique(np.round(w[w > 0.005], 3)):

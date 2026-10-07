@@ -183,6 +183,10 @@ def flung(S, L, dims, mats, side):
     columns, rows, strips = 6, 9, 3
     width = H * 0.1
 
+    def reach(u):
+        """How far along the chain each column runs: its tongue torn to its own length."""
+        return sheet.torn(u, strips, 0.5, 0.25, 21.0 + (1.0 if side == "l" else -1.0))
+
     def along(v):
         """The chain's centre line at v (0 at the shoulder, 1 at its end), and which way it runs there."""
         x = np.clip(v, 0.0, 1.0) * spans
@@ -191,7 +195,6 @@ def flung(S, L, dims, mats, side):
         return joints[k] + (joints[k + 1] - joints[k]) * f, joints[k + 1] - joints[k]
 
     def position(u, v):
-        v = v * sheet.torn(u, strips, 0.5, 0.25, 21.0 + (1.0 if side == "l" else -1.0))
         centre, run = along(v)
         across = np.cross(run, np.array([0.0, 0.0, 1.0]))
         across /= np.maximum(np.linalg.norm(across, axis=1, keepdims=True), 1e-6)
@@ -205,4 +208,4 @@ def flung(S, L, dims, mats, side):
         w["clavicle_" + side] = hold
         total = sum(w.values())
         return {k: (np.asarray(x) / np.maximum(total, 1e-6)).astype(np.float32) for k, x in w.items()}
-    return sheet.Sheet("flung_" + side, position, material, bones, columns, rows)
+    return sheet.Sheet("flung_" + side, position, material, bones, columns, rows, reach=reach)
