@@ -27,6 +27,8 @@ STRUCTURES = kit("Structures", "StructureKit.json")
 FLUXBORN = kit("Fluxborn", "FluxbornKit.json")
 ENVIRONMENT = kit("Environment", "CrucibleKit.json")
 VANGUARDS = kit("Vanguards", "VanguardKit.json")
+# The production model scripts there are (ADR-069), by name.
+MODELS = {path.stem for path in (ROOT / "Game" / "Scripts" / "VanguardBodies" / "models").glob("*.py") if path.stem != "__init__"}
 
 
 def with_flux(source, **values):
@@ -52,6 +54,9 @@ class ShippedKits(unittest.TestCase):
 
     def test_the_body_material_is_valid(self):
         self.assertEqual(checker.body_problems(VANGUARDS), [])
+
+    def test_the_production_models_are_valid(self):
+        self.assertEqual(checker.model_problems(VANGUARDS, MODELS), [])
 
 
 class Refusals(unittest.TestCase):
@@ -117,3 +122,27 @@ class Refusals(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProductionModels(unittest.TestCase):
+    """A kit entry's model (ADR-069 §3) is refused when it names no script or its settings are out of range."""
+
+    def entry(self, **model):
+        values = {"script": "kade", "triangleBudget": 24000, "textureSize": 2048, "voxelCm": 0.3, "denseTexels": 2.0}
+        values.update(model)
+        return {"vanguards": [{"id": "test", "model": values}]}
+
+    def test_a_valid_model_passes(self):
+        self.assertEqual(checker.model_problems(self.entry(), {"kade"}), [])
+
+    def test_each_bad_value_is_refused_alone(self):
+        for key, value in (("script", "nobody"), ("triangleBudget", 0), ("textureSize", 1000), ("textureSize", 128), ("voxelCm", 0),
+                           ("denseTexels", 0.5)):
+            problems = checker.model_problems(self.entry(**{key: value}), {"kade"})
+            self.assertEqual(len(problems), 1, (key, value, problems))
+            self.assertIn(key, problems[0])
+
+    def test_the_occlusion_strength_is_a_share(self):
+        material = copy.deepcopy(VANGUARDS["bodyMaterial"])
+        material["aoStrength"] = 1.5
+        self.assertTrue(checker.body_problems(dict(VANGUARDS, bodyMaterial=material)))

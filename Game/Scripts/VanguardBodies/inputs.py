@@ -49,12 +49,15 @@ def body_name(unit_id, suffix):
 
 def generator_hash(scripts):
     """The hash of the code that builds a body: GenerateVanguardBodies.py and every module of the VanguardBodies package
-    in scripts (the Game/Scripts folder), each by name and its text with line endings made alike, so a Windows checkout
-    and CI agree."""
+    in scripts (the Game/Scripts folder), its sculpt toolkit and production models included (ADR-069 §3), each by its
+    path in the package and its text with line endings made alike, so a Windows checkout and CI agree."""
     scripts = Path(scripts)
+    package = scripts / "VanguardBodies"
     digest = hashlib.sha256()
-    for path in [scripts / "GenerateVanguardBodies.py"] + sorted((scripts / "VanguardBodies").glob("*.py")):
-        digest.update(path.name.encode("utf-8") + b"\0" + path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+    modules = sorted(package.rglob("*.py"), key=lambda path: path.relative_to(package).as_posix())
+    for path in [scripts / "GenerateVanguardBodies.py"] + modules:
+        name = path.name if path.parent == scripts or path.parent == package else path.relative_to(package).as_posix()
+        digest.update(name.encode("utf-8") + b"\0" + path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
     return digest.hexdigest()
 
 
@@ -146,25 +149,28 @@ LFS_POINTER = b"version https://git-lfs.github.com/spec/v1"
 
 
 def committed_mismatches(game):
-    """Every manifest asset whose FBX is missing or is not the file the manifest recorded, by name. A file Git LFS has
-    not checked out is its pointer, which names its object by the same SHA-256, so CI need not fetch the FBX."""
+    """Every manifest asset whose FBX, or one of whose textures (a production model's, ADR-069 §3), is missing or is
+    not the file the manifest recorded, by name. A file Git LFS has not checked out is its pointer, which names its
+    object by the same SHA-256, so CI need not fetch the large files."""
     game = Path(game)
     source = game / "ArtSource" / "Vanguards"
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     mismatches = []
     for asset in manifest["assets"]:
-        path = source / asset["file"]
-        if not path.is_file():
-            mismatches.append(asset["name"])
-            continue
-        data = path.read_bytes()
-        if data.startswith(LFS_POINTER):
-            oid = next((line.split(":", 1)[1] for line in data.decode("utf-8").splitlines() if line.startswith("oid sha256:")), None)
-        else:
-            oid = hashlib.sha256(data).hexdigest()
-        if oid != asset.get("sha256"):
+        files = [(asset["file"], asset.get("sha256"))] + [(texture["file"], texture["sha256"]) for texture in asset.get("textures", {}).values()]
+        if any(_committed_sha(source / file) != sha for file, sha in files):
             mismatches.append(asset["name"])
     return mismatches
+
+
+def _committed_sha(path):
+    """The SHA-256 a committed file holds: its own, or the one its Git LFS pointer names; None when it is missing."""
+    if not path.is_file():
+        return None
+    data = path.read_bytes()
+    if data.startswith(LFS_POINTER):
+        return next((line.split(":", 1)[1] for line in data.decode("utf-8").splitlines() if line.startswith("oid sha256:")), None)
+    return hashlib.sha256(data).hexdigest()
 
 
 if __name__ == "__main__":
@@ -176,6 +182,6 @@ if __name__ == "__main__":
               " generator code or Blender changed since they were built, or their Blender is not the kit's: " + ", ".join(stale))
     mismatched = committed_mismatches(sys.argv[1])
     if mismatched:
-        print("These bodies' FBX are missing or are not what the manifest recorded: " + ", ".join(mismatched))
+        print("These bodies' FBX or textures are missing or are not what the manifest recorded: " + ", ".join(mismatched))
     if stale or mismatched:
         sys.exit(1)

@@ -21,7 +21,7 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from VanguardBodies import beast, colossus, construct, humanoid, rider  # noqa: E402
+from VanguardBodies import beast, colossus, construct, humanoid, model, rider  # noqa: E402
 from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash,  # noqa: E402
                                    input_hash, pending_changed, pending_removed, pinned_blender, removed_assets, same_destination,
                                    stale_assets, units)
@@ -297,18 +297,24 @@ def build(spec, status=None, suffix="", previous=None):
     layout, dims = archetype.layout(spec, capsule)
     name = body_name(spec["id"], suffix)
     armature = build_armature(name, archetype.BONES, layout)
-    body = archetype.body(spec, layout, dims)
-    body.anchor_unweighted({bone: heads[0] for bone, heads in layout.items()})
-    mesh = bpy.data.meshes.new(name)
-    body.bm.to_mesh(mesh)
-    triangles = sum(len(face.verts) - 2 for face in body.bm.faces)
-    body.bm.free()
-    # The exporter writes the active colour attribute: the body's colours, and in alpha what glows.
-    mesh.color_attributes.active_color = mesh.color_attributes["Col"]
-    obj = bpy.data.objects.new(name, mesh)
-    bpy.context.scene.collection.objects.link(obj)
-    for bone_name, _ in archetype.BONES:
-        obj.vertex_groups.new(name=bone_name)
+    textures = None
+    if spec.get("model"):
+        # A production model (ADR-069): its script's sculpt, meshed, baked and skinned; its textures beside the FBX.
+        obj, textures, triangles = model.build(spec, layout, dims, name, [bone for bone, _ in archetype.BONES], SOURCE / "Textures")
+        mesh = obj.data
+    else:
+        body = archetype.body(spec, layout, dims)
+        body.anchor_unweighted({bone: heads[0] for bone, heads in layout.items()})
+        mesh = bpy.data.meshes.new(name)
+        body.bm.to_mesh(mesh)
+        triangles = sum(len(face.verts) - 2 for face in body.bm.faces)
+        body.bm.free()
+        # The exporter writes the active colour attribute: the body's colours, and in alpha what glows.
+        mesh.color_attributes.active_color = mesh.color_attributes["Col"]
+        obj = bpy.data.objects.new(name, mesh)
+        bpy.context.scene.collection.objects.link(obj)
+        for bone_name, _ in archetype.BONES:
+            obj.vertex_groups.new(name=bone_name)
     material = bpy.data.materials.new("M_VeyraVanguardBody")
     mesh.materials.append(material)
     obj.parent = armature
@@ -316,7 +322,7 @@ def build(spec, status=None, suffix="", previous=None):
     modifier.object = armature
     digest = hashlib.sha256()
     actions = animate(armature, spec, archetype, dims, melee, digest)
-    budget = KIT["archetypes"][spec["archetype"]]["triangleBudget"]
+    budget = spec["model"]["triangleBudget"] if spec.get("model") else KIT["archetypes"][spec["archetype"]]["triangleBudget"]
     assert triangles <= budget, (spec["id"], "triangle budget", triangles, budget)
     # Measured on the rest geometry, as Unreal imports it. Nothing sinks below the ground, and a body that walks stands
     # on it; one that floats hovers clear of it.
@@ -329,6 +335,10 @@ def build(spec, status=None, suffix="", previous=None):
     (SOURCE / "FBX").mkdir(parents=True, exist_ok=True)
     path = SOURCE / "FBX" / (name + ".fbx")
     assert_covered(obj)
+    if textures:
+        # A model's textures are part of what it is: a texture changed is a body changed (ADR-069 §3).
+        for kind in sorted(textures):
+            digest.update((kind + ":" + hashlib.sha256(textures[kind].read_bytes()).hexdigest()).encode())
     content = content_of(obj, armature, digest.copy())
     # Built again as it was (new generator code or a new Blender that changes nothing in it): its FBX and imported
     # assets stand, and only its record of what built it moves on. A body recorded under an earlier CONTENT_VERSION is
@@ -358,6 +368,8 @@ def build(spec, status=None, suffix="", previous=None):
              # and what it is, so a rebuild that changes nothing in it keeps it.
              "inputSha256": input_hash(KIT, TUNING, spec), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
              "contentSha256": content, "contentVersion": CONTENT_VERSION}
+    if textures:
+        asset["textures"] = model.texture_records(textures, SOURCE)
     if spec.get("effect"):
         # What it is made of where no mesh shows it, poured off its bones in the game (the art set's Effect).
         effect = spec["effect"]

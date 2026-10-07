@@ -197,6 +197,23 @@ class VanguardBodyInputs(unittest.TestCase):
             self.assertEqual(failed.returncode, 1)
             self.assertIn("SK_B", failed.stdout)
 
+    def test_the_preflight_names_a_body_whose_model_texture_is_missing_or_changed(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = self.project(folder)
+            source = game / "ArtSource" / "Vanguards"
+            texture = source / "Textures" / "T_A_BaseColor.png"
+            texture.parent.mkdir(parents=True)
+            texture.write_bytes(b"texels")
+            manifest = json.loads((source / "manifest.json").read_text())
+            manifest["assets"][0]["textures"] = {"colour": {"file": "Textures/T_A_BaseColor.png", "sha256": hashlib.sha256(b"texels").hexdigest()}}
+            (source / "manifest.json").write_text(json.dumps(manifest))
+            self.assertEqual(inputs.committed_mismatches(game), [], "a model body's texture as recorded")
+            texture.write_bytes(b"other texels")
+            self.assertEqual(inputs.committed_mismatches(game), [manifest["assets"][0]["name"]], "changed without the manifest")
+            texture.unlink()
+            self.assertEqual(inputs.committed_mismatches(game), [manifest["assets"][0]["name"]], "gone")
     def test_a_manifest_built_by_another_blender_than_the_pinned_one_is_all_stale(self):
         import tempfile
         with tempfile.TemporaryDirectory() as folder:
@@ -236,11 +253,27 @@ class VanguardBodyInputs(unittest.TestCase):
     def copy_generator(game):
         """The generator's code, as the project beside its manifest holds it."""
         import shutil
-        (game / "Scripts" / "VanguardBodies").mkdir(parents=True)
+        (game / "Scripts").mkdir(parents=True)
         shutil.copy(SCRIPTS / "GenerateVanguardBodies.py", game / "Scripts")
-        for module in (SCRIPTS / "VanguardBodies").glob("*.py"):
-            shutil.copy(module, game / "Scripts" / "VanguardBodies")
+        # The whole package: its sculpt toolkit and production models are generator code too (ADR-069 §3).
+        package = SCRIPTS / "VanguardBodies"
+        for module in package.rglob("*.py"):
+            target = game / "Scripts" / "VanguardBodies" / module.relative_to(package)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(module, target)
 
+    def test_a_change_to_the_sculpt_toolkit_or_a_model_is_a_generator_change(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            game = Path(folder) / "Game"
+            self.copy_generator(game)
+            before = inputs.generator_hash(game / "Scripts")
+            self.assertEqual(before, GENERATOR, "the copy hashes as the generator")
+            for module in ("sculpt/sdf.py", "models/kade.py"):
+                path = game / "Scripts" / "VanguardBodies" / module
+                path.write_bytes(path.read_bytes() + b"\n# changed\n")
+                self.assertNotEqual(inputs.generator_hash(game / "Scripts"), before, module)
+                before = inputs.generator_hash(game / "Scripts")
     def test_a_body_built_by_other_generator_code_or_another_blender_is_stale(self):
         # A selective build after the generator's code changed keeps bodies the old code built.
         self.assertEqual(sorted(inputs.stale_assets(KIT, VANGUARDS, built(KIT, VANGUARDS, generator="old"), GENERATOR, BLENDER)),

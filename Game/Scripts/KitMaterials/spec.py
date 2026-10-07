@@ -85,13 +85,17 @@ def _tint(value):
 
 def body_problems(kit):
     """Every problem with the Vanguard bodies' material (VanguardKit.json bodyMaterial): the strength of what the
-    vertex alpha marks as glowing, above 0, and its toon light (ADR-068 §2)."""
+    vertex alpha marks as glowing, above 0, how much baked occlusion darkens a model's bands, and its toon light
+    (ADR-068 §2)."""
     material = kit.get("bodyMaterial")
     if not isinstance(material, dict):
         return ["bodyMaterial: needs glowGain and toon"]
     problems = []
     if not _positive(material.get("glowGain")):
         problems.append("bodyMaterial.glowGain: must be a number above 0")
+    # How much of a production model's baked occlusion darkens its bands (ADR-069 §4).
+    if not _unit(material.get("aoStrength")):
+        problems.append("bodyMaterial.aoStrength: must be a number from 0 to 1")
     toon = material.get("toon")
     if not isinstance(toon, dict):
         return problems + ["bodyMaterial.toon: needs the toon light's values"]
@@ -137,4 +141,31 @@ def _veil_problems(veil):
     problems = [f"bodyMaterial.veil.{key}: must be {wanted}" for key, (check, wanted) in checks.items() if not check(veil.get(key))]
     if veil.get("parameter") == veil.get("tintParameter"):
         problems.append("bodyMaterial.veil.tintParameter: must differ from parameter")
+    return problems
+
+
+def model_problems(kit, models):
+    """Every problem with the kit's production models (ADR-069 §3): each entry naming a model names a script in models
+    (the scripts there, by name), a triangle budget above 0, a texture size that is a power of two from 256, a voxel
+    size above 0 and a dense-texel factor of at least 1."""
+    problems = []
+    for spec in list(kit.get("vanguards", [])) + list(kit.get("companions", [])):
+        model = spec.get("model")
+        if model is None:
+            continue
+        where = "%s.model" % spec.get("id")
+        if not isinstance(model, dict):
+            problems.append(where + ": must be an object")
+            continue
+        if model.get("script") not in models:
+            problems.append(where + ".script: must name a script in VanguardBodies/models")
+        if not (isinstance(model.get("triangleBudget"), int) and model["triangleBudget"] > 0):
+            problems.append(where + ".triangleBudget: must be a whole number above 0")
+        size = model.get("textureSize")
+        if not (isinstance(size, int) and size >= 256 and size & (size - 1) == 0):
+            problems.append(where + ".textureSize: must be a power of two from 256")
+        if not _positive(model.get("voxelCm")):
+            problems.append(where + ".voxelCm: must be a number above 0")
+        if not (_number(model.get("denseTexels")) and model["denseTexels"] >= 1.0):
+            problems.append(where + ".denseTexels: must be a number of at least 1")
     return problems

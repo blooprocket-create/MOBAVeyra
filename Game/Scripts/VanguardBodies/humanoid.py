@@ -64,15 +64,16 @@ def layout(spec, capsule):
     height = full - base
     head = height * spec["headShare"]
     # Stylised for a high camera: a grown figure's legs are 0.44 of its height, and they shorten as the head grows
-    # past a grown figure's share, as a smaller figure's do.
-    leg = height * max(0.30, 0.44 - (spec["headShare"] - 0.16) * 1.1)
+    # past a grown figure's share, as a smaller figure's do. A production model measured from its reference gives its
+    # own share (ADR-069 §5).
+    leg = height * spec["legShare"] if "legShare" in spec else height * max(0.30, 0.44 - (spec["headShare"] - 0.16) * 1.1)
     neck = height * 0.03
     torso = height - head - leg - neck
     build = BUILD[spec["build"]]
     # Broad shoulders fill the capsule, so the body's footprint reads as the unit's; a figure small in frame for its
     # capsule (shoulderShare) is sized by its own height instead, the disc under it showing the footprint.
     shoulder = (height * spec["shoulderShare"] if "shoulderShare" in spec else max(capsule["capsuleRadius"] * 0.8, height * 0.13)) * build
-    hip = shoulder * 0.62
+    hip = height * spec["hipShare"] * build if "hipShare" in spec else shoulder * 0.62
     arm = height * spec.get("armShare", 0.38) * (0.85 if spec["headShare"] > 0.2 else 1.0)
     digitigrade = "digitigrade" in features
     # The foot's radius at its heel (humanoid_body draws it), so the sole stands on the ground.
@@ -139,12 +140,23 @@ def layout(spec, capsule):
     if stance == "aim":
         # Mid-sight: a long arm held two-handed at the shoulder, its optic at the eye and the left hand forward under the
         # barrel, elbows bent out and down. The weapon points the way the body faces.
-        grip_r = Vector((arm * 0.28, -shoulder * 0.2, chest_z - torso * 0.03))
-        grips = {"r": grip_r, "l": grip_r + Vector((arm * 0.5, 0.0, -arm * 0.04))}
+        aim = spec.get("aimBore")
+        if aim:
+            # Fitted to a production model's rifle (ADR-069 §5): its bore runs boreShare of the height above the ground,
+            # rightShare to the right of the body's middle, under the eye; the right hand holds its grip and the left
+            # its fore-end, each elbow bending toward its own direction.
+            bore_z, right = height * aim["boreShare"], height * aim["rightShare"]
+            grips = {"r": Vector((height * aim["gripShare"], -right, bore_z - height * aim["gripDropShare"])),
+                     "l": Vector((height * aim["foreShare"], -right, bore_z - height * aim["foreDropShare"]))}
+            poles = {"r": Vector(aim["rightElbow"]), "l": Vector(aim["leftElbow"])}
+        else:
+            grip_r = Vector((arm * 0.28, -shoulder * 0.2, chest_z - torso * 0.03))
+            grips = {"r": grip_r, "l": grip_r + Vector((arm * 0.5, 0.0, -arm * 0.04))}
+            poles = {"r": Vector((0.0, -0.7, -0.7)), "l": Vector((0.0, 0.7, -0.7))}
         for side, sign in (("l", 1.0), ("r", -1.0)):
             shoulder_point = L["upperarm_" + side][0]
             wrist = grips[side] - Vector((arm * 0.12, 0.0, 0.0))
-            elbow = two_bone(shoulder_point, wrist, arm * 0.48, arm * 0.40, Vector((0.0, sign * 0.7, -0.7)))
+            elbow = two_bone(shoulder_point, wrist, arm * 0.48, arm * 0.40, poles[side])
             L["upperarm_" + side] = (shoulder_point, elbow)
             L["lowerarm_" + side] = (elbow, wrist)
             L["hand_" + side] = (wrist, grips[side])

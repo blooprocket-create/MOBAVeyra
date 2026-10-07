@@ -1,0 +1,63 @@
+"""Turns a sculpt's distance tree into a closed surface: the tree is evaluated brick by brick over the space it fills,
+only in bricks the surface may cross, into an OpenVDB level set that OpenVDB meshes."""
+import math
+import time
+
+import numpy as np
+import openvdb
+
+from . import tree
+
+# A brick's edge in voxels.
+BRICK = 32
+# The level set's half width in voxels (the band the surface is resolved within).
+BAND_VOXELS = 3.0
+# A brick is skipped when its centre lies further from the surface than its half diagonal times this, plus the band:
+# blends and displacements bend distances a little from true ones.
+SAFETY = 1.5
+
+
+def level_set(root, voxel, pad=2.0, log=print, mode="form"):
+    """The level set of root at voxel centimetres: (grid, index origin)."""
+    band = BAND_VOXELS * voxel
+    tree.MODE[0] = mode
+    tree.REACH[0] = band
+    lo = root.bounds.lo - pad
+    hi = root.bounds.hi + pad
+    origin = np.floor(lo / voxel).astype(np.int64)
+    extent = np.ceil((hi - lo) / voxel).astype(np.int64) + 1
+    bricks = (extent + BRICK - 1) // BRICK
+    grid = openvdb.FloatGrid(band)
+    grid.transform = openvdb.createLinearTransform(voxelSize=voxel)
+    grid.gridClass = openvdb.GridClass.LEVEL_SET
+    axis = np.arange(BRICK, dtype=np.float32)
+    local = np.stack(np.meshgrid(axis, axis, axis, indexing="ij"), axis=-1).reshape(-1, 3)
+    half = BRICK * voxel * 0.5
+    reach = half * math.sqrt(3.0) * SAFETY + band
+    started, kept, total = time.time(), 0, int(np.prod(bricks))
+    for bi in range(bricks[0]):
+        for bj in range(bricks[1]):
+            for bk in range(bricks[2]):
+                start = origin + np.array([bi, bj, bk]) * BRICK
+                corner = start.astype(np.float32) * voxel
+                box = tree.Box(corner, corner + BRICK * voxel)
+                if root.bounds.gap(box) > band:
+                    continue
+                centre = (corner + half)[None, :]
+                d0 = float(tree.evaluate(root, centre, box).d[0])
+                if abs(d0) > reach:
+                    continue
+                P = corner + local * voxel
+                field = tree.evaluate(root, P, box)
+                values = np.clip(field.d, -band, band).astype(np.float32).reshape(BRICK, BRICK, BRICK)
+                grid.copyFromArray(values, ijk=tuple(int(v) for v in start), tolerance=0.0)
+                kept += 1
+    grid.signedFloodFill()
+    log("level set: %d of %d bricks, %.1f s, %d active voxels" % (kept, total, time.time() - started, grid.activeVoxelCount()))
+    return grid
+
+
+def polygons(grid, adaptivity=0.0):
+    """The level set's zero surface: (points (n, 3) cm, triangles (t, 3), quads (q, 4))."""
+    points, triangles, quads = grid.convertToPolygons(isovalue=0.0, adaptivity=adaptivity)
+    return np.asarray(points, dtype=np.float64), np.asarray(triangles, dtype=np.int64), np.asarray(quads, dtype=np.int64)

@@ -10,6 +10,7 @@
   "bodyMaterial": {
     "purpose": "ADR-064 §4: M_VeyraVanguardBody, the one material every body wears (ImportVanguardBodies.py builds it), coloured by its vertex colour and shaded toon (ADR-068 §2). What its vertex alpha marks glows at glowGain times what the scene's exposure maps to white, so witchfire and burning cores read the same under the Crucible's physical sun as anywhere. Art values, read only by the importer; no body is made from them.",
     "glowGain": 1.0,
+    "aoStrength": 0.6,
     "toon": {
       "purpose": "ADR-068 §2: the toon light every body shades by, unlit with a light of its own. lightCollection is the material parameter collection the presentation sets from the map's sun each frame (toSun, sunColor are its values until then); a body is lit at full where its normal faces the sun past bandThreshold, shaded across bandSoftness, and in shadow tinted shadowTint; a rim of the light, from rimStart to rimEnd of the view's grazing, brightens the lit side by rimStrength. brightness scales the whole in multiples of what the exposure maps to white.",
       "lightCollection": "MPC_VeyraToonLight",
@@ -115,9 +116,13 @@
           "mount": { "kind": "bike", "wheelRadiusShare": 0.19, "wheelWidthShare": 0.15, "wheelbaseShare": 0.8, "seatHeightShare": 0.4, "seatShare": 0.15,
             "leanDegrees": 20, "primary": [0.42, 0.11, 0.07], "secondary": [0.17, 0.17, 0.19], "metal": [0.45, 0.43, 0.40] } } }
       ] },
-    { "id": "kade", "archetype": "humanoid", "seed": 102, "heightShare": 0.95, "build": "lean", "headShare": 0.16,
+    { "id": "kade", "archetype": "humanoid", "seed": 102, "heightShare": 0.95, "build": "lean", "headShare": 0.135,
+      "legShare": 0.52, "hipShare": 0.0715, "shoulderShare": 0.145, "armShare": 0.36,
       "skin": [0.80, 0.62, 0.50], "primary": [0.85, 0.80, 0.70], "secondary": [0.13, 0.11, 0.10], "hair": [0.28, 0.18, 0.10], "accent": [0.10, 0.85, 0.80],
       "cloak": [0.55, 0.06, 0.08], "stance": "aim",
+      "aimBore": { "boreShare": 0.86, "rightShare": 0.038, "gripShare": 0.12, "gripDropShare": 0.035, "foreShare": 0.27, "foreDropShare": 0.02,
+        "rightElbow": [-0.2, -0.9, -0.3], "leftElbow": [0.1, 0.35, -0.93] },
+      "model": { "script": "kade", "triangleBudget": 24000, "textureSize": 2048, "voxelCm": 0.3, "denseTexels": 2.0 },
       "hairStyle": "short", "features": ["longCloak"], "props": [{ "kind": "rifle", "hand": "right" }] },
     { "id": "patch", "archetype": "humanoid", "seed": 105, "heightShare": 0.80, "build": "round", "headShare": 0.30,
       "skin": [0.72, 0.55, 0.36], "primary": [0.72, 0.55, 0.36], "secondary": [0.62, 0.46, 0.30], "hair": [0.72, 0.55, 0.36], "accent": [1.00, 0.70, 0.25],
