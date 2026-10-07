@@ -628,6 +628,27 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(AreEqual(1, Telegraphs.FilterByPredicate([](const FVeyraTelegraph& Each) { return Each.Source == EVeyraTelegraphSource::LingeringArea; }).Num()));
 		}
 
+		TEST_METHOD(ALineProjectileShowsTheRestOfItsFlightAsALane)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_bolt_line")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::Q, FVector(CastRange, 0.0, 0.0)) == EVeyraCastRejection::None));
+			Wait(FlightSteps);
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			TActorIterator<AVeyraProjectile> Projectile(&Spawner.GetWorld());
+			ASSERT_THAT(IsTrue(static_cast<bool>(Projectile)));
+			const FVeyraTelegraph* Lane =
+				Presentation.GetTelegraphs().FindByPredicate([](const FVeyraTelegraph& Each) { return Each.Source == EVeyraTelegraphSource::ProjectileLane; });
+			ASSERT_THAT(IsNotNull(Lane, TEXT("the rest of its flight shows on the ground (ADR-067 §3)")));
+			// From where its flight has it now to where it ends, as wide as it is, in its side's colour.
+			const double Now = Presentation.GetServerNow();
+			const double Left = Projectile->GetRange() - (Now - Projectile->GetLaunchedAt()) * Projectile->GetSpeed();
+			ASSERT_THAT(IsTrue(Lane->Placed.Shape.Kind == EVeyraShapeKind::Rectangle && Lane->Placed.Shape.Width == 2.0 * ProjectileRadius));
+			ASSERT_THAT(IsTrue(Left < ProjectileRange && FMath::IsNearlyEqual(Lane->Placed.Shape.Length, Left, Tolerance)));
+			ASSERT_THAT(IsTrue(Lane->Placed.Origin.Equals(Projectile->GetLineLocationAt(Now), Tolerance) && Lane->Placed.Direction.Equals(Projectile->GetDirection())));
+			ASSERT_THAT(IsTrue(Lane->Team == Caster->GetVeyraTeam()));
+		}
+
 		TEST_METHOD(ALineProjectileIsDrawnFromItsLaunchData)
 		{
 			FArchetypeTestWorld World{ Spawner };

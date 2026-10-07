@@ -12,8 +12,9 @@
        server, each with a temporary trycloudflare.com address.
     5. Records those addresses as the veyra Worker's secrets API_ORIGIN and RELEASES_ORIGIN with
        Wrangler, so the Worker forwards players to them.
-    6. Checks the public address answers, then leaves the tunnels running in the background. Run it
-       again with -Stop to close them; the Worker then tells players the servers are offline.
+    6. Checks the public address answers, then leaves the tunnels running in the background, apart from
+       the shell that ran this script, so closing that shell leaves hosting up. Run it again with -Stop
+       to close them; the Worker then tells players the servers are offline.
 
     Needs, once:
     - Docker Desktop running, and the match server image (Game/Scripts/Package.ps1 for the server,
@@ -142,8 +143,15 @@ New-Item -ItemType Directory -Force -Path $hostingDir | Out-Null
 function Open-Tunnel([string]$Name, [int]$Port) {
     $log = Join-Path $hostingDir "$Name-tunnel.log"
     Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
-    $process = Start-Process -FilePath $cloudflared -ArgumentList @('tunnel', '--no-autoupdate', '--url', "http://localhost:$Port", '--logfile', $log) `
-        -WindowStyle Hidden -PassThru
+    # Started by Windows itself rather than as this shell's child, so the tunnel outlives whatever ran this script: a
+    # closed terminal or a restarted tool session would otherwise take the tunnel, and every match, with it.
+    $created = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+        CommandLine = "`"$cloudflared`" tunnel --no-autoupdate --url http://localhost:$Port --logfile `"$log`""
+    }
+    if ($created.ReturnValue -ne 0) {
+        throw "The $Name tunnel did not start (Win32_Process.Create returned $($created.ReturnValue))."
+    }
+    $process = [pscustomobject]@{ Id = $created.ProcessId }
     $deadline = (Get-Date).AddSeconds($tunnelWaitSeconds)
     while ((Get-Date) -lt $deadline) {
         if (Test-Path -LiteralPath $log) {

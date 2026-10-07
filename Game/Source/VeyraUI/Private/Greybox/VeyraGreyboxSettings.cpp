@@ -236,6 +236,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("an ability its owner cannot afford needs a tint above 0 and at most whole."));
 	Require(VanguardEaseLocationSeconds > 0.0f && VanguardEaseRotationSeconds > 0.0f && CreatureEaseLocationSeconds > 0.0f && CreatureEaseRotationSeconds > 0.0f,
 		TEXT("VanguardEaseLocationSeconds"), TEXT("a drawn body needs some time to ease to each update, or it steps with its capsule."));
+	Require(OwnLeadSeconds >= 0.0f && OwnLeadTurnDegreesPerSecond > 0.0f && OwnLeadAlignDegrees > 0.0f && OwnLeadAlignDegrees <= 180.0f, TEXT("OwnLeadSeconds"),
+		TEXT("the player's own body's lead needs a time of 0 or more, a turn rate above 0 and an angle within half a turn."));
 	Require(KillFeedRows >= 1 && KillFeedSeconds > 0.0f && KillFeedFaceSize >= 1.0f && AnnouncementSeconds > 0.0f && AnnouncementFontSize >= 1, TEXT("KillFeedSeconds"),
 		TEXT("the kill feed needs rows, a time to show and a face size, and the announcement a time and a size."));
 	Require(RankUpPulseSeconds > 0.0f && RankUpPulseFloor >= 0.0f && RankUpPulseFloor < 1.0f, TEXT("RankUpPulseSeconds"),

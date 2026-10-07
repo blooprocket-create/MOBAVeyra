@@ -573,6 +573,20 @@ public:
 	TOptional<FVector2f> EaseOf(const AActor& Unit) const;
 
 	/**
+	 * How the player's own body leads its latest order before the server's movement reaches it (ADR-067 §2), presentation
+	 * only: for at most OwnLeadSeconds, turning at OwnLeadTurnDegreesPerSecond, until the server's movement heads within
+	 * OwnLeadAlignDegrees of the order's point.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
+	float OwnLeadSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "1"))
+	float OwnLeadTurnDegreesPerSecond = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0", ClampMax = "180"))
+	float OwnLeadAlignDegrees = 0.0f;
+
+	/**
 	 * The Fluxborn kit's provisional art (Art Direction, Fluxborn greybox meshes), keyed by each kind's content ID,
 	 * drawn in place of each Fluxborn's body: active, then collapsed where it fell for its corpse's moment. A kind
 	 * without art keeps its body. Visual only: its capsule stays its only collision and movement.

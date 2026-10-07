@@ -15,7 +15,12 @@
 #include "Companions/VeyraCompanion.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
 #include "Echoes/VeyraEcho.h"
+#include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Greybox/VeyraBodyLead.h"
+#include "Input/VeyraOrderMark.h"
+#include "Statuses/VeyraStatusTypes.h"
+#include "VeyraCombatVerbs.h"
 #include "Components/StaticMeshComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
@@ -279,6 +284,28 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	{
 		OwnLevelUp = FVeyraLevelUpMoment{ static_cast<int32>(Cue.Amount), FPlatformTime::Seconds() };
 	}
+}
+
+FVeyraBodyLead UVeyraGreyboxSubsystem::OwnLeadOf(const APawn& Unit, double Radius) const
+{
+	// Only the body the player's orders move, and only while it may move (ADR-067 §2).
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const TOptional<FVeyraOrderMark>& Mark = Local ? Local->GetOrderMark() : TOptional<FVeyraOrderMark>();
+	const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	if (!Mark || !Abilities || Local->GetCommandedBody() != &Unit || !VeyraTargeting::IsAlive(&Unit)
+		|| EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Abilities), EVeyraActionBlocks::Move))
+	{
+		return FVeyraBodyLead();
+	}
+	// A move or an Attack Move is run toward, and so is an attack's target beyond the body's reach, which it chases; one
+	// within reach is only faced.
+	const AActor* Target = Mark->Target.Get();
+	const FVector Point = Target ? Target->GetActorLocation() : Mark->Location;
+	const TOptional<double> Reach = VeyraHud::AttackReachOf(Unit);
+	const bool bRun = Mark->Kind != EVeyraOrderMarkKind::Attack || (Target && Reach && FVector::Dist2D(Point, Unit.GetActorLocation()) > *Reach);
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	return VeyraBodyLead::For(Point, GetWorld()->GetRealTimeSeconds() - Mark->GivenAt, Unit.GetActorLocation(), Unit.GetVelocity(),
+		Abilities->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute()), bRun, Settings.OwnLeadSeconds, Settings.OwnLeadAlignDegrees, Radius);
 }
 
 bool UVeyraGreyboxSubsystem::IsViewersVanguard(const AActor* Unit) const
@@ -1184,10 +1211,18 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
 	Skin->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
 	Skin->SetRelativeScale3D(FVector(Settings.VisualScaleOf(Unit)));
+	// The player's own body leads its latest order until the server's movement reaches it (ADR-067 §2).
+	const FVeyraBodyLead Lead = OwnLeadOf(Unit, Radius);
+	FVeyraVanguardAnimInputs Inputs = VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow());
+	Inputs.GroundSpeed = static_cast<float>(VeyraBodyLead::GroundSpeedOf(Lead, Inputs.GroundSpeed));
 	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()))
 	{
-		Animation->SetInputs(VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow()));
+		Animation->SetInputs(Inputs);
 	}
+	// It turns toward the lead from its mesh's facing at the lead's own rate, and back as the server's facing arrives.
+	const double TargetYaw = Lead.bLeads ? FRotator::NormalizeAxis(Lead.Yaw - Skin->GetAttachParent()->GetComponentRotation().Yaw) : 0.0;
+	Body.LeadYaw = FMath::FixedTurn(Body.LeadYaw, TargetYaw, Settings.OwnLeadTurnDegreesPerSecond * GetWorld()->GetDeltaSeconds());
+	Skin->SetRelativeRotation(FRotator(0.0, Body.LeadYaw, 0.0));
 	// Its body lies under its feet as a disc, still showing its side and its status tint.
 	if (UStaticMeshComponent* Shape = Body.Mesh.Get())
 	{
@@ -1583,6 +1618,28 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 		AddIndicator(*Local, Tuning);
 		AddAttackRange(*Local);
 		AddSelectionRing(*Local);
+	}
+	AddProjectileLanes(Now);
+}
+
+void UVeyraGreyboxSubsystem::AddProjectileLanes(double Now)
+{
+	// A line projectile's lane: the rest of its flight on the ground, as wide as it is, in its side's colour (ADR-067 §3). A
+	// homing one follows its target and shows none.
+	for (TActorIterator<AVeyraProjectile> It(GetWorld()); It; ++It)
+	{
+		const AVeyraProjectile& Projectile = **It;
+		const double Left = Projectile.GetRange() - FMath::Max(0.0, Now - Projectile.GetLaunchedAt()) * Projectile.GetSpeed();
+		if (Projectile.GetFlight() != EVeyraProjectileFlight::Line || Left <= 0.0)
+		{
+			continue;
+		}
+		FVeyraShape Lane;
+		Lane.Kind = EVeyraShapeKind::Rectangle;
+		Lane.Length = Left;
+		Lane.Width = Projectile.GetRadius() * 2.0;
+		Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Lane, Projectile.GetLineLocationAt(Now), Projectile.GetDirection() }, EVeyraTelegraphSource::ProjectileLane,
+			Projectile.GetVeyraTeam(), 0.0 });
 	}
 }
 

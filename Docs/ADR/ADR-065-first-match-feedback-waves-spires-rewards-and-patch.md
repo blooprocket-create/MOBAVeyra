@@ -140,7 +140,7 @@ The author found movement rough. ADR-062 §6 relied on the engine's smoothing fo
 The fix:
 - **What hangs from the mesh.** A body's drawn parts (the animated skin, the grey-box shape or disc, the art) hang from the character's mesh.
 - **What follows it.** Health bars, combat numbers and a camera that follows the player's body read that place (`VeyraDrawnBody`, which movement owns). The camera ticks after that body's movement.
-- **Ease times.** A Vanguard's, companion's or Echo's body eases to each new place and facing over **0.1 s**. A Fluxborn's or creature's eases over **0.15 s**, since their updates come less often. These are client presentation settings (`DefaultGame.ini`).
+- **Ease times.** A Vanguard's, companion's or Echo's body eases to each new place and facing over **0.1 s**. A Fluxborn's or creature's eases over **0.15 s**, since their updates come less often. These are client presentation settings (`DefaultGame.ini`). **Amended by ADR-067 §1:** 0.04 s and 0.05 s for Vanguards, companions and Echoes, and 0.1 s for Fluxborn and creatures, after a hosted match showed the ease holding back turns and stops.
 - **What stays the same.** The server's movement and every rule stay as they were: nothing the server decides reads a drawn body.
 
 Not changed here: the server's tick rate (30), the avoidance settings, and the server's frame time in a long siege. The author's second match shows that frame time rising as Fluxborn pile up in a falling base: past 700 replicated actors, 13–20 ms on average, with spikes to 200 ms. That needs profiling first.
