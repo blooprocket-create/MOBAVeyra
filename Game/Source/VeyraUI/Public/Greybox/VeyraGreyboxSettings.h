@@ -555,6 +555,33 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "0"))
 	float VeilFadeSeconds = 0.0f;
 
+	/**
+	 * Hit feel (ADR-068 §4). A struck generated body holds its pose for HitStopSeconds. The player's own camera kicks when
+	 * their Vanguard takes a hit of at least HeavyHitShare of its Max Health (HitShakeAmplitude units) or falls
+	 * (DeathShakeAmplitude), shuddering at HitShakeFrequency turns a second for HitShakeSeconds; Screen Shake set to
+	 * Reduced kicks ReducedShakeShare of that, and Off not at all.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Hit feel", meta = (ClampMin = "0"))
+	float HitStopSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Hit feel", meta = (ClampMin = "0", ClampMax = "1"))
+	float HeavyHitShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Hit feel", meta = (ClampMin = "0"))
+	float HitShakeAmplitude = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Hit feel", meta = (ClampMin = "0"))
+	float DeathShakeAmplitude = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Hit feel", meta = (ClampMin = "0"))
+	float HitShakeFrequency = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Hit feel", meta = (ClampMin = "0"))
+	float HitShakeSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Hit feel", meta = (ClampMin = "0", ClampMax = "1"))
+	float ReducedShakeShare = 0.0f;
+
 	/** How far above the ground telegraphs are drawn, in units, so the floor does not hide them. */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
 	float TelegraphLift = 0.0f;

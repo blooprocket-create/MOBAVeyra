@@ -58,6 +58,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Greybox/VeyraHitFeel.h"
 #include "Greybox/VeyraTelegraphFill.h"
 #include "Greybox/VeyraToonLight.h"
 #include "Movement/VeyraDrawnBody.h"
@@ -300,6 +301,28 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 		if (UVeyraVanguardAnimInstance* Animation = Body->Skin.IsValid() ? Cast<UVeyraVanguardAnimInstance>(Body->Skin->GetAnimInstance()) : nullptr)
 		{
 			Animation->NoteCue(Cue.Kind, static_cast<float>(FMath::Max(0.0, Cue.EndsAt - GetServerNow())));
+		}
+	}
+	// Hit feel (ADR-068 §4): a struck generated body holds its pose a moment, and the player's own Vanguard's heavy hit or
+	// fall kicks their camera as hard as their Screen Shake allows.
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const double RealNow = GetWorld()->GetRealTimeSeconds();
+	if (FBody* Struck = Cue.Kind == EVeyraCombatCueKind::Hit && Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr; Struck && Struck->Skin.IsValid())
+	{
+		Struck->HitStopUntil = RealNow + Settings.HitStopSeconds;
+	}
+	if (IsViewersVanguard(Cue.Unit.Get()))
+	{
+		const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Cue.Unit.Get());
+		const double MaxHealth = Abilities ? Abilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) : 0.0;
+		const float Scale = VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(this)).ScreenShakeScale;
+		const double Amplitude = VeyraHitFeel::AmplitudeOf(Cue.Kind, Cue.Amount, MaxHealth, Settings.HeavyHitShare, Settings.HitShakeAmplitude,
+			Settings.DeathShakeAmplitude, Scale);
+		// A weaker blow does not cut a stronger kick short.
+		if (Amplitude > 0.0 && !VeyraHitFeel::Outshakes(ShakeAmplitude, RealNow - ShakeStartedAt, Settings.HitShakeSeconds, Amplitude))
+		{
+			ShakeAmplitude = Amplitude;
+			ShakeStartedAt = RealNow;
 		}
 	}
 	PlayEffect(Cue);
@@ -649,6 +672,25 @@ void UVeyraGreyboxSubsystem::RefreshInkPass()
 	}
 }
 
+void UVeyraGreyboxSubsystem::RefreshCameraShake()
+{
+	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
+	const AVeyraCameraRig* Rig = Local ? Local->GetCameraRig() : nullptr;
+	UCameraComponent* Camera = Rig ? Rig->GetCamera() : nullptr;
+	if (!Camera)
+	{
+		return;
+	}
+	// The rig places only its arm: the camera's own offset from the arm's end is the kick's alone.
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVector Offset = VeyraHitFeel::OffsetAt(ShakeAmplitude, GetWorld()->GetRealTimeSeconds() - ShakeStartedAt, Settings.HitShakeSeconds,
+		Settings.HitShakeFrequency);
+	if (!Offset.Equals(Camera->GetRelativeLocation()))
+	{
+		Camera->SetRelativeLocation(Offset);
+	}
+}
+
 void UVeyraGreyboxSubsystem::RefreshToonLight()
 {
 	if (!ToonLight)
@@ -858,6 +900,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	RefreshHoverPass();
 	RefreshInkPass();
 	RefreshToonLight();
+	RefreshCameraShake();
 	RefreshSound();
 	RefreshCombatText();
 	RefreshFogOfWar();
@@ -1295,6 +1338,8 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	{
 		Animation->SetInputs(Inputs);
 	}
+	// Struck, it holds its pose a moment, so the blow lands (ADR-068 §4).
+	Skin->GlobalAnimRateScale = GetWorld()->GetRealTimeSeconds() < Body.HitStopUntil ? 0.0f : 1.0f;
 	// It turns toward the lead from its mesh's facing at the lead's own rate, and back as the server's facing arrives.
 	const double TargetYaw = Lead.bLeads ? FRotator::NormalizeAxis(Lead.Yaw - Skin->GetAttachParent()->GetComponentRotation().Yaw) : 0.0;
 	Body.LeadYaw = FMath::FixedTurn(Body.LeadYaw, TargetYaw, Settings.OwnLeadTurnDegreesPerSecond * GetWorld()->GetDeltaSeconds());

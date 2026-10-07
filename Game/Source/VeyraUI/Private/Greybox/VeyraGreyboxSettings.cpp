@@ -226,6 +226,12 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 			&& !TelegraphColorParameter.IsNone() && !TelegraphSizeParameter.IsNone(),
 		TEXT("TelegraphShapeParameter"), TEXT("the telegraph fill's shape, half-arc, landing, colour and size parameters are required."));
 	Require(TelegraphLandingSeconds > 0.0f, TEXT("TelegraphLandingSeconds"), TEXT("must be above 0."));
+	Require(HitStopSeconds > 0.0f && HitShakeSeconds > 0.0f && HitShakeFrequency > 0.0f, TEXT("HitStopSeconds"),
+		TEXT("a hit's hold and the camera's shudder each take some time, and the shudder turns."));
+	Require(HeavyHitShare > 0.0f && HeavyHitShare <= 1.0f, TEXT("HeavyHitShare"), TEXT("must be above 0 and at most 1."));
+	Require(HitShakeAmplitude > 0.0f && DeathShakeAmplitude >= HitShakeAmplitude, TEXT("HitShakeAmplitude"),
+		TEXT("a heavy hit kicks the camera, and a fall at least as hard."));
+	Require(ReducedShakeShare > 0.0f && ReducedShakeShare < 1.0f, TEXT("ReducedShakeShare"), TEXT("must be above 0 and below 1: a smaller kick, not none."));
 	Require(!HitFlashColorParameter.IsNone() && !HitFlashStrengthParameter.IsNone(), TEXT("HitFlashColorParameter"),
 		TEXT("the hit flash material's colour and strength parameters are required."));
 	Require(HitFlashSeconds > 0.0f && RecoilSeconds > 0.0f && SnapSeconds > 0.0f && CollapseSeconds > 0.0f, TEXT("HitFlashSeconds"),

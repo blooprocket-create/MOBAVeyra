@@ -35,9 +35,10 @@ namespace
 	/** The indicator boundary's option that draws it thick (Settings Bible §3.3). */
 	const TCHAR* const Thick = TEXT("Thick");
 
-	/** Combat text's density and damage colours that differ from the default (ADR-052 §1). */
+	/** Combat text's density and damage colours that differ from the default (ADR-052 §1), and Screen Shake's lesser options (SET-9). */
 	const TCHAR* const Reduced = TEXT("Reduced");
 	const TCHAR* const Uniform = TEXT("Uniform");
+	const TCHAR* const Off = TEXT("Off");
 
 	/** Cooldown Precision's option that shows whole seconds (Proposal 44). */
 	const TCHAR* const Whole = TEXT("Whole");
@@ -430,6 +431,12 @@ const FVeyraContentId& ReduceFlashing()
 	return Id;
 }
 
+const FVeyraContentId& ScreenShake()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_screen_shake"));
+	return Id;
+}
+
 FVeyraSideColors SideColorsFor(const UVeyraGreyboxSettings& Hud, const FString& Vision, const FString& Ally, const FString& Enemy, const FString& Neutral)
 {
 	FVeyraSideColors Colors{ Hud.OwnColor, Hud.AllyColor, Hud.EnemyColor, Hud.NeutralColor };
@@ -577,6 +584,8 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.bReduceTransparency = Store->IsOn(ReduceTransparency());
 	Preferences.bReduceUiAnimation = Store->IsOn(ReduceUiAnimation());
 	Preferences.bReduceFlashing = Store->IsOn(ReduceFlashing());
+	const FString Shake = Store->Get(ScreenShake());
+	Preferences.ScreenShakeScale = Shake == Off ? 0.0f : Shake == Reduced ? Hud.ReducedShakeShare : 1.0f;
 	Preferences.bConnectionWarning = Store->IsOn(ConnectionWarning());
 	Preferences.bPerformanceWarning = Store->IsOn(PerformanceWarning());
 	return Preferences;

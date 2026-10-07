@@ -282,6 +282,9 @@ private:
 		/** How far its skin is turned from its mesh's facing toward the player's order, in degrees (ADR-067 §2); 0 for any other body. */
 		double LeadYaw = 0.0;
 
+		/** Until when its generated body holds its pose after a hit, by this machine's clock (ADR-068 §4). */
+		double HitStopUntil = 0.0;
+
 		/** How veiled its generated body is, why it last was, and what its material was last given (ADR-068 §6). */
 		double Veil = 0.0;
 		EVeyraHiddenKind VeilKind = EVeyraHiddenKind::None;
@@ -291,6 +294,13 @@ private:
 
 	/** Veils Unit's generated body while it is hidden from its enemies and its viewer sees why (ADR-068 §6). */
 	void RefreshVeil(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin);
+
+	/** Kicks the player's own camera while a heavy hit's or a fall's shudder lasts, and settles it after (ADR-068 §4). */
+	void RefreshCameraShake();
+
+	/** The player's own camera's kick: how hard, and when it began by this machine's clock. */
+	double ShakeAmplitude = 0.0;
+	double ShakeStartedAt = 0.0;
 
 	/** Draws the shaded fill under each threatening or aimed telegraph (ADR-068 §4), from a pool of quads it keeps. */
 	void DrawTelegraphFills();

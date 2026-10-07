@@ -304,6 +304,17 @@ namespace VeyraInterfacePreferencesTests
 			ASSERT_THAT(IsTrue(!Changed.bConnectionWarning && !Changed.bPerformanceWarning && Changed.bEnhancedFocus && Changed.bReduceTransparency
 				&& Changed.bReduceUiAnimation && Changed.bReduceFlashing && Changed.TextSize == TEXT("ExtraLarge")));
 		}
+
+		TEST_METHOD(ScreenShakeKicksFullyAtFullLessAtReducedAndNotAtAllOff)
+		{
+			// The camera's kick on a heavy hit or a fall (SET-9; ADR-068 §4): Full by default.
+			FVeyraSettingsStore Store(Registry);
+			ASSERT_THAT(IsNear(Resolve(HudSettings(), &Store).ScreenShakeScale, 1.0f, 1e-6f));
+			Store.Set(ScreenShake(), TEXT("Reduced"));
+			ASSERT_THAT(IsNear(Resolve(HudSettings(), &Store).ScreenShakeScale, HudSettings().ReducedShakeShare, 1e-6f));
+			Store.Set(ScreenShake(), TEXT("Off"));
+			ASSERT_THAT(IsNear(Resolve(HudSettings(), &Store).ScreenShakeScale, 0.0f, 1e-6f));
+		}
 	};
 }
 

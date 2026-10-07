@@ -508,6 +508,30 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsTrue(Skin->bRenderCustomDepth, TEXT("inked again")));
 		}
 
+		TEST_METHOD(AStruckBodyHoldsItsPoseAMoment)
+		{
+			// Fixture value: a frame of the world.
+			constexpr float Frame = 0.02f;
+			AVeyraVanguardCharacter& Unit = SpawnPlaying(DressedId());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const USkeletalMeshComponent* Skin = Presentation.FindSkin(Unit);
+			ASSERT_THAT(IsNotNull(Skin));
+			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 1.0f, TEXT("moving")));
+			FVeyraCombatCue Hit;
+			Hit.Kind = EVeyraCombatCueKind::Hit;
+			Hit.Unit = &Unit;
+			Spawner.GetWorld().GetSubsystem<UVeyraCombatCueSubsystem>()->OnCue.Broadcast(Hit);
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 0.0f, TEXT("held as the blow lands (ADR-068 §4)")));
+			const int32 Frames = FMath::CeilToInt32(GetDefault<UVeyraGreyboxSettings>()->HitStopSeconds / Frame) + 1;
+			for (int32 Index = 0; Index < Frames; ++Index)
+			{
+				Spawner.GetWorld().Tick(LEVELTICK_TimeOnly, Frame);
+			}
+			RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Skin->GlobalAnimRateScale == 1.0f, TEXT("then moving again")));
+		}
+
 		TEST_METHOD(TheToonLightFollowsTheMapsSun)
 		{
 			// Fixture values: a sun low in the south-east, in a warm colour.

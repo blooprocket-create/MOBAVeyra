@@ -63,7 +63,11 @@ In this order, each in its own gate. Each settles its own values and adds them t
   - Each telegraph that threatens or aims keeps its crisp outline and gains a shaded fill under it. That covers a windup, a channel, a delayed or lingering area, the player's indicator and a projectile's lane. Marks and guides (the selection ring, the attack range) stay outlines: a filled attack range would tint a wide ground for nothing.
   - The fill is `M_VeyraTelegraphFill` (generated, translucent, unlit, its glow independent of exposure) on a pooled flat quad fitted to the shape. The material draws the circle, sector or rectangle itself, its edge a pixel wide: a faint fill in the outline's colour, deepening toward the edge.
   - **Landing.** What lands (a windup, a channel's tick, a delayed area, a lingering area's end) fills in from its origin to its edge over its last `TelegraphLandingSeconds`. The client knows how long is left, not how long it was, so the fill marks the last moments rather than a whole windup's share.
-- **Hit feel:** a brief hold on a struck body (hitstop), and a small camera shake on the player's own heavy hits. Both follow Screen Shake and the reduced-motion settings.
+- **Hit feel:** a brief hold on a struck body (hitstop), and a small camera shake on the player's own heavy hits. Both follow Screen Shake and the reduced-motion settings. *Settled in the hit-feel gate:*
+  - **Hitstop.** A struck generated body holds its pose for `HitStopSeconds`.
+  - **Camera kick.** The player's own camera kicks when their Vanguard takes a hit of at least `HeavyHitShare` of its Max Health, or falls. A cue carries the unit struck, not the striker, so the kick answers blows the player takes. It is a round shudder across and up the view, fading over `HitShakeSeconds`, and a weaker blow never cuts a stronger kick short.
+  - **The setting.** Screen Shake is now built, as the Settings Bible names it (SET-9, which ADR-055 §5 left for when the game had shake): Full, Reduced (`ReducedShakeShare` of the kick) or Off.
+  - Every value is a presentation setting.
 
 Animation is not part of this milestone. The author's roadmap (2026-10-06) gives high-fidelity models and assets to M59, and character and environment animation to M60.
 
