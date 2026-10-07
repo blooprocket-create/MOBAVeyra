@@ -141,6 +141,7 @@
     { "id": "vera", "archetype": "humanoid", "seed": 107, "heightShare": 0.92, "build": "lean", "headShare": 0.17,
       "skin": [0.92, 0.84, 0.80], "primary": [0.07, 0.07, 0.08], "secondary": [0.18, 0.17, 0.18], "hair": [0.92, 0.92, 0.95], "accent": [1.00, 0.18, 0.10],
       "lining": [0.60, 0.06, 0.06], "ribbon": [0.65, 0.06, 0.06], "boots": [0.16, 0.15, 0.16], "stance": "aim",
+      "aimBore": { "headPitch": 12, "headRoll": 0, "carry": { "forwardShare": 0.09, "rightShare": 0.08, "heightShare": 0.53, "pitch": 22, "yaw": 35 } },
       "hairStyle": "sideTail", "features": ["heavyShoulderPlate", "coatSkirt", "tornCoat", "gauntlets", "heavyBoots", "kneeGuards"],
       "props": [{ "kind": "siegeArm", "hand": "both" }],
       "statusBodies": [
