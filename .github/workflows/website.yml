@@ -1,0 +1,42 @@
+name: Website checks
+
+on:
+  push:
+    paths:
+      - 'Website/**'
+      - 'vercel.json'
+      - 'Launcher/config/public.json'
+      - 'Launcher/ui/fonts/**'
+      - 'Launcher/core/src/player.rs'
+      - 'Backend/internal/identity/identity.go'
+      - 'Docs/Design/Vanguards/**'
+      - 'ConceptArt/Vanguards/**'
+      - '.github/workflows/website.yml'
+  pull_request:
+    paths:
+      - 'Website/**'
+      - 'vercel.json'
+      - 'Launcher/config/public.json'
+      - 'Launcher/ui/fonts/**'
+      - 'Launcher/core/src/player.rs'
+      - 'Backend/internal/identity/identity.go'
+      - 'Docs/Design/Vanguards/**'
+      - 'ConceptArt/Vanguards/**'
+      - '.github/workflows/website.yml'
+
+jobs:
+  verify-website:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check the Worker's routing
+        run: node Website/worker.test.mjs
+      - name: Test the website's build, its agreements with the repository, and its modules
+        run: node --test "Website/site/tests/*.test.mjs"
+      - name: Build the website as Vercel does
+        run: node Website/site/build.mjs

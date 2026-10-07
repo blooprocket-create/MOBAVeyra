@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download Veyra — Setup for Windows and how to install it</title>
+<meta name="description" content="Download Veyra Setup for 64-bit Windows, check the file is genuine, and get past Windows' warnings for an installer that isn't code-signed yet.">
+<meta name="theme-color" content="#07090e">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/Roboto-Black.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/boot.js"></script>
+<script type="module" src="/js/pages/download.js"></script>
+</head>
+<body data-page="download">
+<!--#header-->
+<main id="main">
+  <header class="page-banner">
+    <div class="page-banner__art" aria-hidden="true"><img src="/art/kade.webp" alt="" data-focus="45% 35%"></div>
+    <div class="container">
+      <p class="eyebrow">Windows · 64-bit</p>
+      <h1 class="page-banner__title">Download Veyra</h1>
+      <span class="slash-rule" aria-hidden="true"></span>
+      <p class="lede">Veyra Setup installs the launcher. The launcher then installs the game, keeps it up to date and signs you in.</p>
+    </div>
+  </header>
+
+  <section class="section" id="get" aria-labelledby="get-title">
+    <div class="container download">
+      <div class="panel panel--brass" data-reveal data-setup data-state="loading">
+        <div class="download-card__head">
+          <svg class="download-card__os" viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="8" width="38" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M18 40h12M24 34v6" stroke="currentColor" stroke-width="2"/><path d="M24 14v12m0 0-5-5m5 5 5-5" fill="none" stroke="#d6b56e" stroke-width="2.4" stroke-linecap="square"/></svg>
+          <div>
+            <h2 class="download-card__name" id="get-title">Veyra Setup</h2>
+            <span class="muted">For Windows 10 and 11, 64-bit</span>
+          </div>
+        </div>
+        <dl class="facts">
+          <dt>Version</dt>
+          <dd data-setup-version><span class="skeleton"></span></dd>
+          <dt>Size</dt>
+          <dd data-setup-size><span class="skeleton"></span></dd>
+          <dt>SHA-256</dt>
+          <dd class="hash"><code id="setup-hash" data-setup-hash><span class="skeleton"></span></code><button class="copy-button" type="button" data-copy="setup-hash" data-setup-copy hidden>Copy</button></dd>
+        </dl>
+        <a class="btn btn--primary btn--large btn--block" href="#install" data-setup-download aria-disabled="true">
+          <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>
+          <span class="btn__label" data-setup-label>Finding the latest Setup…</span>
+        </a>
+        <p class="download-card__note" data-setup-note role="status"></p>
+        <p class="download-card__note">
+          <span class="status" data-server-status data-state="checking"><span class="status__dot"></span><span class="status__text">Checking Veyra's servers…</span></span>
+        </p>
+      </div>
+
+      <aside class="panel callout" data-reveal id="unsigned" aria-labelledby="unsigned-title">
+        <h2 class="callout__title" id="unsigned-title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 21 6v6c0 5-3.8 9.3-9 10-5.2-.7-9-5-9-10V6Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v6M12 16v1.5" stroke="currentColor" stroke-width="2.2"/></svg>
+          Why Windows warns you
+        </h2>
+        <p>Windows trusts an installer more when it is <strong>code-signed</strong>: stamped with a certificate that names its publisher. Veyra doesn't have that certificate yet, so Windows and your browser see Veyra Setup as coming from an <strong>unknown publisher</strong> and ask you to confirm before running it.</p>
+        <p>That warning is about the missing signature, not about anything found in the file. Signing will come later in development.</p>
+        <p>Until then, you can check that your copy is exactly the one we published: compare its SHA-256 with the one on this page. <a href="#verify">Here's how.</a></p>
+        <p>Only download Veyra Setup from this website.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" id="install" aria-labelledby="install-title">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <p class="eyebrow">Step by step</p>
+        <h2 class="heading" id="install-title">How to install Veyra</h2>
+        <p class="lede">A few minutes, plus the game's download. You don't need administrator rights: Veyra installs for your Windows user only.</p>
+      </div>
+
+      <ol class="guide">
+        <li class="guide__step" data-reveal>
+          <div>
+            <h3>Download Veyra Setup</h3>
+            <p>Select <strong>Download</strong> above. Because the file is new and unsigned, your browser may say it <strong>isn't commonly downloaded</strong>.</p>
+            <ul>
+              <li><strong>Chrome:</strong> open the downloads list and choose <strong>Keep</strong>.</li>
+              <li><strong>Edge:</strong> hover over the download, choose <strong>⋯</strong>, then <strong>Keep</strong>. If Edge asks again, choose <strong>Show more</strong>, then <strong>Keep anyway</strong>.</li>
+              <li><strong>Firefox:</strong> if it warns, open the downloads list and choose <strong>Allow download</strong>.</li>
+            </ul>
+          </div>
+          <div class="mock" aria-hidden="true">
+            <div class="mock__bar"><i></i><i></i><i></i><span>Downloads</span></div>
+            <div class="mock__body mock__download">
+              <svg class="mock__file" viewBox="0 0 32 32"><path d="M7 3h12l6 6v20H7Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 3v6h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              <div>
+                <p class="mock__file-name" data-setup-filename>VeyraSetup.exe</p>
+                <p class="mock__text muted">isn't commonly downloaded. Make sure you trust it before you open it.</p>
+                <div class="mock__menu"><span class="mock__chip">Delete</span><span class="mock__chip mock__chip--keep">Keep</span></div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li class="guide__step" data-reveal id="verify">
+          <div>
+            <h3>Check it's genuine <span class="muted">(recommended)</span></h3>
+            <p>Open <strong>PowerShell</strong> (search for it in the Start menu) and run this. It prints your file's SHA-256:</p>
+            <pre class="terminal"><code id="hash-command" data-hash-command>Get-FileHash "$env:USERPROFILE\Downloads\VeyraSetup.exe" -Algorithm SHA256</code><button class="copy-button" type="button" data-copy="hash-command">Copy</button></pre>
+            <p>The <strong>Hash</strong> it shows must match the SHA-256 on this page, letter for letter (PowerShell prints it in capitals; that's fine). If it doesn't match, delete the file and don't run it.</p>
+          </div>
+          <div class="mock" aria-hidden="true">
+            <div class="mock__bar"><i></i><i></i><i></i><span>Windows PowerShell</span></div>
+            <div class="mock__body">
+              <p class="mock__text mono">Algorithm&nbsp;&nbsp;Hash</p>
+              <p class="mock__text mono">---------&nbsp;&nbsp;----</p>
+              <p class="mock__text mono" data-hash-sample>SHA256&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;…</p>
+            </div>
+          </div>
+        </li>
+
+        <li class="guide__step" data-reveal>
+          <div>
+            <h3>Run Setup past SmartScreen</h3>
+            <p>Open the file. Windows shows <strong>“Windows protected your PC”</strong>, because Setup has no publisher signature.</p>
+            <ul>
+              <li>Select <strong>More info</strong>.</li>
+              <li>Check the app's name is the file you downloaded, then select <strong>Run anyway</strong>.</li>
+            </ul>
+            <p>No <strong>Run anyway</strong> button? See <a href="/support#faq-no-run-anyway">when Windows won't let you continue</a>.</p>
+          </div>
+          <div class="mock mock--shield" data-smartscreen aria-hidden="true">
+            <svg class="mock__pointer" viewBox="0 0 24 24"><path d="M4 2 4 19 8.5 14.6 11.6 21.5 14.4 20.3 11.4 13.5 17.6 13.5Z" fill="#fff" stroke="#07090e" stroke-width="1.2"/></svg>
+            <div class="mock__body">
+              <p class="mock__headline">Windows protected your PC</p>
+              <p class="mock__text">Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</p>
+              <span class="mock__more mock__target" data-target="more">More info</span>
+              <div class="mock__details">
+                <span>App: <span data-setup-filename>VeyraSetup.exe</span></span>
+                <span>Publisher: Unknown publisher</span>
+              </div>
+              <div class="mock__buttons">
+                <span class="mock__button mock__button--run mock__target" data-target="run">Run anyway</span>
+                <span class="mock__button">Don't run</span>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li class="guide__step" data-reveal>
+          <div>
+            <h3>Install the launcher</h3>
+            <p>Setup installs the Veyra launcher to <code>%LOCALAPPDATA%\Programs\Veyra</code>, adds it to the Start menu and, if you like, the desktop. Running Setup again later upgrades it in place.</p>
+            <p>On Windows 10, Setup may say the launcher needs Microsoft's <strong>WebView2 Runtime</strong> and offer its download page. Install it; Windows 11 already has it.</p>
+          </div>
+          <div class="mock mock--launcher" aria-hidden="true">
+            <div class="mock__bar"><i></i><i></i><i></i><span>Veyra Setup</span></div>
+            <div class="mock__body">
+              <div class="mock__card">
+                <p class="mock__card-title">Installing the launcher</p>
+                <div class="mock__progress"><span></span></div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li class="guide__step" data-reveal>
+          <div>
+            <h3>Install the game, sign in, play</h3>
+            <p>When Setup finishes, the launcher opens on its <strong>Install</strong> screen. Choose where the game goes (or keep the suggested folder) and select <strong>Install</strong>. It downloads the game and checks every piece of it.</p>
+            <p>Then sign in with the email and password of your Veyra account, or create one there. Select <strong>Play</strong>.</p>
+          </div>
+          <div class="mock mock--launcher" data-launcher-art aria-hidden="true">
+            <div class="mock__bar"><i></i><i></i><i></i><span>Veyra</span></div>
+            <div class="mock__body">
+              <div class="mock__card">
+                <p class="mock__card-title">Install Veyra</p>
+                <div class="mock__progress"><span></span></div>
+                <div class="mock__fake-button">Play</div>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="after" aria-labelledby="after-title">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <p class="eyebrow">After you install</p>
+        <h2 class="heading heading--small" id="after-title">Updates, repairs and uninstalling</h2>
+      </div>
+      <div class="grid grid--3">
+        <article class="panel" data-reveal>
+          <h3 class="panel__title">Updates are automatic</h3>
+          <p>Each time it opens, the launcher checks for a new version of itself and of the game, and installs it before you sign in. You only ever download what changed.</p>
+        </article>
+        <article class="panel" data-reveal>
+          <h3 class="panel__title">Repair</h3>
+          <p>If the game won't start or seems damaged, select <strong>Repair</strong> beside the build number on the launcher's sign-in screen. It checks every file and replaces anything that's wrong.</p>
+        </article>
+        <article class="panel" data-reveal>
+          <h3 class="panel__title">Uninstall</h3>
+          <p>Open Windows <strong>Settings → Apps → Installed apps</strong>, find <strong>Veyra</strong> and choose <strong>Uninstall</strong>. It asks whether to remove the game too.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+</main>
+<!--#footer-->
+</body>
+</html>

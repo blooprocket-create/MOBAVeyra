@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your Veyra account</title>
+<meta name="description" content="Create your Veyra account and choose your display name. The same account signs in to the launcher.">
+<meta name="theme-color" content="#07090e">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/Roboto-Black.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/boot.js"></script>
+<script type="module" src="/js/pages/signup.js"></script>
+</head>
+<body data-page="signup">
+<!--#header-->
+<main id="main" class="auth">
+  <!--#auth-art-->
+  <div class="auth__side">
+    <!--#sigil-->
+    <div class="panel auth__card">
+      <noscript><p class="notice notice--warning">Creating an account needs JavaScript. Turn it on for this site, or create your account in the launcher.</p></noscript>
+
+      <div data-step="form">
+        <p class="eyebrow">Join the public tests</p>
+        <h1 class="heading heading--small">Create your account</h1>
+        <p class="lede">One account for this website and the Veyra launcher.</p>
+        <form class="form" data-signup-form method="post" novalidate>
+          <div class="field">
+            <label class="field__label" for="signup-name"><span>Display name</span><span class="field__count" data-name-count aria-hidden="true"></span></label>
+            <div class="field__control"><input id="signup-name" name="displayName" type="text" autocomplete="nickname" autocapitalize="off" spellcheck="false" required aria-describedby="signup-name-rules"></div>
+            <ul class="rules" id="signup-name-rules">
+              <li data-rule="length"></li>
+              <li data-rule="characters">Letters, digits and _ only</li>
+            </ul>
+          </div>
+          <div class="field">
+            <label class="field__label" for="signup-email">Email</label>
+            <div class="field__control"><input id="signup-email" name="email" type="email" autocomplete="email" spellcheck="false" required></div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="signup-password">Password</label>
+            <div class="field__control"><input id="signup-password" type="password" autocomplete="new-password" required aria-describedby="signup-password-hint"><button class="reveal-button" type="button" data-reveal-password aria-controls="signup-password" aria-pressed="false">Show</button></div>
+            <p class="field__hint" id="signup-password-hint" data-password-hint></p>
+          </div>
+          <p class="notice" data-notice hidden role="alert"></p>
+          <button class="btn btn--primary btn--large btn--block" type="submit"><span class="btn__label">Create account</span></button>
+        </form>
+        <p class="auth__switch">Already have an account? <a href="/login">Log in</a></p>
+      </div>
+
+      <div data-step="choose-name" hidden>
+        <p class="eyebrow">One more step</p>
+        <h1 class="heading heading--small">Choose your name</h1>
+        <p class="lede" data-choose-intro></p>
+        <form class="form" data-choose-form method="post" novalidate>
+          <div class="field">
+            <label class="field__label" for="choose-name"><span>Display name</span><span class="field__count" data-name-count aria-hidden="true"></span></label>
+            <div class="field__control"><input id="choose-name" name="displayName" type="text" autocomplete="nickname" autocapitalize="off" spellcheck="false" required aria-describedby="choose-name-rules"></div>
+            <ul class="rules" id="choose-name-rules">
+              <li data-rule="length"></li>
+              <li data-rule="characters">Letters, digits and _ only</li>
+            </ul>
+          </div>
+          <p class="notice" data-notice hidden role="alert"></p>
+          <button class="btn btn--primary btn--large btn--block" type="submit"><span class="btn__label">Finish my account</span></button>
+        </form>
+        <p class="auth__switch">You can also choose it later: the launcher asks the next time you sign in.</p>
+      </div>
+
+      <div class="success" data-step="done" hidden>
+        <div class="success__mark" aria-hidden="true">
+          <svg viewBox="0 0 120 120">
+            <circle class="success__flash" cx="60" cy="60" r="34"/>
+            <line class="success__slash" x1="2" y1="40" x2="40" y2="52"/>
+            <line class="success__slash" x1="118" y1="80" x2="80" y2="68"/>
+            <line class="success__slash" x1="80" y1="2" x2="68" y2="40"/>
+            <line class="success__slash" x1="40" y1="118" x2="52" y2="80"/>
+            <circle class="success__ring" cx="60" cy="60" r="52"/>
+            <path class="success__check" d="M40 61 54 75 82 46"/>
+          </svg>
+        </div>
+        <h1 class="success__title" data-done-title tabindex="-1">Welcome, Vanguard</h1>
+        <p class="success__text" data-done-text></p>
+        <div class="success__actions">
+          <a class="btn btn--primary btn--large btn--block" href="/download"><span class="btn__label">Download Veyra</span></a>
+          <a class="btn btn--ghost btn--block" href="/download#install"><span class="btn__label">How to install</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<!--#footer-->
+</body>
+</html>

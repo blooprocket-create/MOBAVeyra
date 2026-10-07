@@ -32,3 +32,8 @@ Launcher/app/gen/
 Backend/config/scripted.json
 # The config Game/Scripts/Host.ps1 writes from public.json with this PC's public address (ADR-057).
 Backend/config/hosted.json
+
+# The website's build output (Website/site/build.mjs), which Vercel builds on each deploy (ADR-070).
+Website/site/dist/
+# What the Vercel CLI writes when a project is linked from a working copy.
+.vercel/

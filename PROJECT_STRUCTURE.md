@@ -546,7 +546,9 @@ Around it:
 
 ### Website (outside Unreal)
 
-[`Website/`](Website/README.md) holds a placeholder Cloudflare Worker, which `wrangler.jsonc` at the repository root names. The repository is connected to Cloudflare's Workers Builds, and the placeholder gives that build something to deploy. The account-facing website (Profiles & Identity Bible) will replace it, after its own architecture decision.
+[`Website/`](Website/README.md) holds two things outside Unreal:
+- **The `veyra` Cloudflare Worker** (`worker.js`, named by `wrangler.jsonc` at the repository root): the public address of the backend and the release store (ADR-057).
+- **The website** (`site/`, ADR-070): static pages built by `site/build.mjs` and served by Vercel, configured by `vercel.json` at the repository root. Download, install guide, support, sign-up and log-in. It holds no gameplay or account authority: Firebase and the backend decide.
 
 ## 3. Content directory
 

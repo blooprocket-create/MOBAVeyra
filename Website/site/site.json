@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "featuredVanguards": [
+    { "id": "tavi", "focus": "58% 40%" },
+    { "id": "vera", "focus": "50% 35%" },
+    { "id": "marek", "focus": "55% 35%" },
+    { "id": "kade", "focus": "45% 35%" },
+    { "id": "mimzi", "focus": "40% 50%" },
+    { "id": "angeru", "focus": "45% 45%" },
+    { "id": "neris", "focus": "52% 40%" },
+    { "id": "raska", "focus": "40% 50%" }
+  ],
+  "heroRotationSeconds": 7,
+  "account": {
+    "displayName": { "minLength": 3, "maxLength": 16, "pattern": "^[A-Za-z0-9_]+$" },
+    "passwordMinLength": 6
+  },
+  "support": {
+    "email": null,
+    "links": []
+  }
+}
