@@ -2,14 +2,14 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "8004b19b2953103466d24221690f0306a52448288737c31e6af2ae53a68ab3ec",
+  "kitSha256": "f7fe52ad954e7a159267ab5bb22b7c0a5d3a10ca4eab88e94ad508f6d1486eeb",
   "assets": [
     {
       "id": "angeru",
       "name": "SK_Angeru",
       "archetype": "humanoid",
       "file": "FBX/SK_Angeru.fbx",
-      "sha256": "b7f63e854d164896b7bcb555e70fac4006f56b09e373459754058551158aba7d",
+      "sha256": "a61eec320fe62d31e6bb3fa57af0c80b9ab35292c234fffdeca0a9c824e730c1",
       "triangles": 3036,
       "triangleBudget": 9000,
       "bones": 29,
@@ -62,17 +62,31 @@
         }
       ],
       "inputSha256": "edeea6f3c5569b851cb517d35c15ffad59e0b7117f082689ca71f806929ab623",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "2a8cd59aa6787bc013ed7c59daaed39549ecddb1e4cd3340c91569bfd6c6216f",
-      "contentVersion": 3
+      "contentSha256": "f7e1fa003392cf8a94d6d7ddecfa1b71cdb5bd2539d4f356170a9db09aa13320",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "angeru",
       "name": "SK_Angeru_Blade",
       "archetype": "humanoid",
       "file": "FBX/SK_Angeru_Blade.fbx",
-      "sha256": "c57a402fa202e8a1f30f24814259492a8d3d3fb02f960dbf1af57080aebc8d5a",
+      "sha256": "3ae0dbb231ee4079a83cc1d8709a90e0b1f37f24a84de2e06cb1f7cfb2891012",
       "triangles": 3132,
       "triangleBudget": 9000,
       "bones": 29,
@@ -125,10 +139,24 @@
         }
       ],
       "inputSha256": "73ce2501a49f253f8835d6fbe982fe991b3023d6e9813a41869a4f64f9c457b3",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "232be6852a07f127d5c087e44dc26019218143ab53aaeb21cea54787abe7d8ca",
+      "contentSha256": "18f396360833573306752733c26732c9c4be83f76ab014ff6a3ad18cd90b997e",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "status": "angeru_forsake_the_schools"
     },
     {
@@ -189,7 +217,7 @@
         }
       ],
       "inputSha256": "ec2fe14d0984bb1e7bb648fc31596182767d53d9715819058ee7c4fc97365b79",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "31599896d7c5ce1c5d7f411382778beab64998eb5a9d4ac68ccb6bab6b91e25e",
       "contentVersion": 3,
@@ -215,7 +243,7 @@
       "name": "SK_Bryn",
       "archetype": "humanoid",
       "file": "FBX/SK_Bryn.fbx",
-      "sha256": "0a5109d12a27046178461c977ffc13b7acec272a5b84ca6baccf13f9c6953c39",
+      "sha256": "3809ce5ea62555cc73e3bea0d32324ac5e834fd8faf425949f6f60d280cc8b9e",
       "triangles": 3428,
       "triangleBudget": 9000,
       "bones": 29,
@@ -268,10 +296,32 @@
         }
       ],
       "inputSha256": "eb0a11b1e1f68d2738de538791e512baf22495316e5568b205a07424dfb08235",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "c06e9c07f85d68e9fffdedbb93a3aa995808f65cfd217b425825a2097a4ad03a",
-      "contentVersion": 3
+      "contentSha256": "4f3cd2150aacdc78eecc4d421fdc01219cfbdde0a7c9c735dd171d3336cdbfe5",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ],
+        "offHand": {
+          "chain": [
+            "upperarm_l",
+            "lowerarm_l",
+            "hand_l"
+          ],
+          "anchor": "hand_r"
+        }
+      }
     },
     {
       "id": "cairn",
@@ -331,7 +381,7 @@
         }
       ],
       "inputSha256": "8db7c30da727b4f9dfeb9936012cc604547d2e30f477d14b8eef262f9e46791d",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "3644904891f2914e183b7befd88db00102d04e85091b398d7c7a8ffbdad55f86",
       "contentVersion": 3,
@@ -411,7 +461,7 @@
         }
       ],
       "inputSha256": "3966b92d3ccc0f149070d9add24ab7172e05555439348f7abb85f1f838682f38",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "e6b2fee05e32d1f04c3467e26d69537e1892ba919a05a13eb0a91e0926914a61",
       "contentVersion": 3,
@@ -439,7 +489,7 @@
       "name": "SK_Celandrine",
       "archetype": "humanoid",
       "file": "FBX/SK_Celandrine.fbx",
-      "sha256": "e5bbf03df12f06de6f4ea65f3663d6c30171c5c1a8a9f7ec623d09f69ab6b761",
+      "sha256": "995eaa121982065b78693e4e2d39a9d674a469d4aba375325b94dafcf71323fe",
       "triangles": 3960,
       "triangleBudget": 9000,
       "bones": 29,
@@ -492,17 +542,31 @@
         }
       ],
       "inputSha256": "f965117e84ef6292324ad3556a97d518afafb1ef8a6da477be523e0d3a070b0e",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "49701a130c793f5fa61e1a8e9e32aab2c86c6617d3db5a84a3ea227f01defd7e",
-      "contentVersion": 3
+      "contentSha256": "de3831ab0985de55171f7ea8b9e7a6eeb164ec40b4512e7588d98089c302df95",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "eudora",
       "name": "SK_Eudora",
       "archetype": "humanoid",
       "file": "FBX/SK_Eudora.fbx",
-      "sha256": "bee59b4a583533e3cc7c56e3ae7f50f834f6056d87eb771deecfbb6a09de9642",
+      "sha256": "a4374e60c6b1e95ec7305a2fcd48ee93859b3058b904aea554a7f311ff5194bb",
       "triangles": 4692,
       "triangleBudget": 9000,
       "bones": 29,
@@ -555,10 +619,24 @@
         }
       ],
       "inputSha256": "ada22c283ec572d70b1ec13436eb84a9e11ebda4fa5324cac56f0f997fd199cc",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "33c8472a63b384547cd9303c936828a880602977a668179f19abf9a7887ec5a2",
-      "contentVersion": 3
+      "contentSha256": "abbaeed7185419b7e37cf108eaa095949bedf8d033d205865e5f3a53579222d2",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "eudora_picket",
@@ -618,7 +696,7 @@
         }
       ],
       "inputSha256": "f0729c58ab2e58921d01862904eedf940f77e3025fb47101595b3ed6d1ff10cd",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "9199c232f6f44c2a84193a429fde66beaf3e49a52ebf4416f45769df539e16b4",
       "contentVersion": 3,
@@ -682,7 +760,7 @@
         }
       ],
       "inputSha256": "a92ed3a78a453de285a9c237bef98979133cae27ded33e0f42bc1945b7519550",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "310c91e77b0466bd4c32e7ed4761990bd8c7f33f556fc218f9e65230f73a5056",
       "contentVersion": 3,
@@ -694,7 +772,7 @@
       "name": "SK_Gorraveth",
       "archetype": "humanoid",
       "file": "FBX/SK_Gorraveth.fbx",
-      "sha256": "39b60b941415c1b9e2d48b26b8f7166de0fd38cd3bf660c73270a99bdd6d2c67",
+      "sha256": "800ae1ffad99ea102282120c5c63b8a7a53f253a62a42b19ba91f6cbd54dd3cd",
       "triangles": 6308,
       "triangleBudget": 9000,
       "bones": 29,
@@ -747,10 +825,24 @@
         }
       ],
       "inputSha256": "f76d16d922d0f16d9a7c74af2ecf8a2ded691cf6b74bbe8e5f75e40f8b906f1a",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "fce50e1a0728b7776265a84f3331951db82d865c9833385cbff3de7278ca3c1c",
+      "contentSha256": "90fe5902f205ea4aa217983a8464d8c322af714a4e13271aa3ca8d355ab92557",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraDrip.NS_VeyraDrip",
         "bones": [
@@ -772,11 +864,11 @@
       "name": "SK_Kade",
       "archetype": "humanoid",
       "file": "FBX/SK_Kade.fbx",
-      "sha256": "7869296359c64655ba3ae5e43a546640f3f4f694d0c4c00f10b1f7eb159bd233",
-      "triangles": 24000,
+      "sha256": "d44f5f7a3a4cb092b210a932f0e6277319ceb061e4f25f005a82a697937cf5b6",
+      "triangles": 23878,
       "triangleBudget": 24000,
       "bones": 29,
-      "heightCm": 169.97,
+      "heightCm": 168.75,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 204.01,
@@ -824,23 +916,45 @@
           "loop": true
         }
       ],
-      "inputSha256": "e5b5c158803c5b40a0040e6584a6203ca833361b32d91986e86aa6a66999c04c",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "inputSha256": "83290b845901e9a61664ab69fd0095b7ccbdb377d1f0198a3c6bb3980d3abe29",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "c30dcee451392404c33dc6ada967c23b8d127549668bfb515630e297b19c6103",
+      "contentSha256": "a387c248c7a2eb38eacc01d8ade10bc30ac2464f6b872f567044592ea2b92a82",
       "contentVersion": 3,
       "textures": {
         "colour": {
           "file": "Textures/T_Kade_BaseColor.png",
-          "sha256": "cfc7d34556ad1fff489c835f00dda3359f8e9004e5e43320102683418ad91d13"
+          "sha256": "2efaa2b00c0b23c47ab110b309fe67d74553365b63c477d9dd3d175a7d41cfaa"
         },
         "mask": {
           "file": "Textures/T_Kade_Mask.png",
-          "sha256": "22cd7e29fe23d4f268bae968d947940a7f7de9fd4b4e82728c9b304f445e8e87"
+          "sha256": "64ef68dc2904be231e73243c35a41cd495b99e382c7f2bdce6fb2a9ffbb540a0"
         },
         "normal": {
           "file": "Textures/T_Kade_Normal.png",
-          "sha256": "446ed5437457683236499a0c7a8452427b34c9a0db26494c36cf651cae2d18aa"
+          "sha256": "87f1a575acbf9c8f4ca0b9fa2998a23e3166dca48d1268a87fe4f2a339745c31"
+        }
+      },
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ],
+        "offHand": {
+          "chain": [
+            "upperarm_l",
+            "lowerarm_l",
+            "hand_l"
+          ],
+          "anchor": "hand_r"
         }
       }
     },
@@ -902,7 +1016,7 @@
         }
       ],
       "inputSha256": "7417053106155dd881dfe3332b6cc5916a5c1ee9453d6799d7dc7f5ba75186f8",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "2265b39f6418c486c12c9d28c8de5ead1bd6c84a6ba68d3d1f8c1b5a61284e30",
       "contentVersion": 3
@@ -912,7 +1026,7 @@
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "78b30754d7e11c24feceb9616b2285856dd6fa32b5878f1ca7df94474c019c26",
+      "sha256": "27fbe51d5cde4d76640426336f79ecf4a91c83672e385c74895c94ab4c395e99",
       "triangles": 5240,
       "triangleBudget": 9000,
       "bones": 29,
@@ -965,10 +1079,24 @@
         }
       ],
       "inputSha256": "a2f68c9d76a54e9f7c6dc8f099b74204c778aecf598aa53c8d49f27a1d8fc054",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "257ffedb48f01dc8446f189bc9c80883a52e358258364b251c93b519553c722c",
-      "contentVersion": 3
+      "contentSha256": "c25f9b4a4a32a3b63190db311bd1d4cec78d5c80023e5af033b0f27cf97452e8",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "marek_nix",
@@ -1028,7 +1156,7 @@
         }
       ],
       "inputSha256": "81d1126b421e2fc0aefe70e01c1edb03d66dc1398cb4c5ccad7cf9677c7ac0de",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "2aaac75a112602e2db74e7ce51950a65d062444c066fb96c837010dc9ae913dc",
       "contentVersion": 3,
@@ -1119,7 +1247,7 @@
         }
       ],
       "inputSha256": "32272e0e33b241dbbfb1bdb3bb3151df33c765d3d375d7d2a149804555e4e2c3",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "17e3303b0106d85de2ba3a3ac942803ee0841f84af1a835ffa16e4a56b21b6ab",
       "contentVersion": 3,
@@ -1158,7 +1286,7 @@
       "name": "SK_Mavra",
       "archetype": "humanoid",
       "file": "FBX/SK_Mavra.fbx",
-      "sha256": "c80e236dd6ed85e6260ac1497fbcbbf1b73fa9554f9155c27f21f3b97145f595",
+      "sha256": "881faf3c5f2cb6b91a39c85d7e7a04f4395d45659b2242fb7efcfeec53c03593",
       "triangles": 4036,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1211,17 +1339,31 @@
         }
       ],
       "inputSha256": "89b2e530d5d674156e1598f7e3227b86719f0c0806f178e49e9a8007dac652ea",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "42aaf00e304337931bc5646f6bf6b581844a15804d9f1711c35286505bb023f5",
-      "contentVersion": 3
+      "contentSha256": "79ec77bb3a949561cf7a8c829857d46f134bb8c91d90825288863293b6fd7599",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "mimzi",
       "name": "SK_Mimzi",
       "archetype": "humanoid",
       "file": "FBX/SK_Mimzi.fbx",
-      "sha256": "d75364dca17f2e39adb1826908278788b1dc695fca42ef049f505eca2fa8ac68",
+      "sha256": "e7d44fea8b4d43ccd6677103521593856b782bd31ba45714779ac14c1961e06e",
       "triangles": 5328,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1274,10 +1416,24 @@
         }
       ],
       "inputSha256": "8e5fb04991e20e857e9ea674c6c1b263c4036f671f7790491f0ac7b2e4be3450",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "7c64f9702cb1abc884509a229d0cd1bb6c870f30a2a7f2100796735ec574daa5",
-      "contentVersion": 3
+      "contentSha256": "78d3ff889b78b6cb2985499673c82ca349abe7b747a5a6ac5db14cde1a30abef",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "moro",
@@ -1337,7 +1493,7 @@
         }
       ],
       "inputSha256": "dc02d8d9cc8970e95a537ec4e7e2164f78ed2c397a5de2932c7b3ab83960c621",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "0e661eecb5740be526314290e3d1efced64c557c99514a55b4c48eb0bc7eb5da",
       "contentVersion": 3
@@ -1400,7 +1556,7 @@
         }
       ],
       "inputSha256": "414c10238b83f343ebcb7aebe2ea5bbc1a03691a42178e0f8d6f4ffd0df864ac",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "dff40fb998202f8ec0dd314c5fc10952cf8069bc516e95fbf35abe6a606f34e1",
       "contentVersion": 3,
@@ -1464,7 +1620,7 @@
         }
       ],
       "inputSha256": "7945cc5e7eac53f171ff439b7dae7bca34b55982a3d805995a92b794c54b3a10",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "dff40fb998202f8ec0dd314c5fc10952cf8069bc516e95fbf35abe6a606f34e1",
       "contentVersion": 3,
@@ -1492,7 +1648,7 @@
       "name": "SK_Neris",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris.fbx",
-      "sha256": "95059171c9ca81feb5c741254f1a06e8fec28537b43fd96f99ce7e17fe4c4495",
+      "sha256": "5538d8d01ecaa2d5900d34ddde2a65a506b231ca9f8ad83119cd12c359f4d33d",
       "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1545,10 +1701,24 @@
         }
       ],
       "inputSha256": "a0f5fbbe672ddf9292f03475cff9c4ed779ae16f34e787f00e3c2668845749bc",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "ee0199bd8864ffa9b4d06cfc1a9f4d7384a39553193597f5898fe0554673ace5",
+      "contentSha256": "58053db98afcec785b11abf2a8e81d96e6d1ec0790a53e9cca91e82ccf7036c7",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1570,7 +1740,7 @@
       "name": "SK_Neris_Storm",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Storm.fbx",
-      "sha256": "08aaf97eac573bbcd42cdf7f4b28e40c06af0c6be53cb9b553272e4dce38dbae",
+      "sha256": "0df38485eea6b0b821c9c119175278b532f6c6c46eacd02c5138089262eb1efb",
       "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1623,10 +1793,24 @@
         }
       ],
       "inputSha256": "418aa5b6e74ec5a8868cf47e9f56f88fde32fa6fa9b182a138576cb0ed3853df",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "f0098529621762c8506d3be37e916b2bb55ca8609693ef33ab158bdd1aa122fc",
+      "contentSha256": "1508ea465a552d9a7396408e47ccb59d8665ef98edb4f70f8158867e1d07af41",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1649,7 +1833,7 @@
       "name": "SK_Neris_Tidebreaker",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Tidebreaker.fbx",
-      "sha256": "52c4ec6f7ec5e219ae67e6f4e1682f2f8c6fa3af77443457ed5d0123d4915b68",
+      "sha256": "ae7536b402f6d40d1b92bf3da72a8313d5f6c383cbd72b1b780f22a381a2162b",
       "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1702,10 +1886,24 @@
         }
       ],
       "inputSha256": "864211223f70d5aa896b89fff757f6b48ff5cd08e7884bdbbdc747215d5f27d3",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "ab18e6d47e80ca0eeadaddec8991f2fe6b4eb2818d8713bdd9a0656c43517c4d",
+      "contentSha256": "170555a4267fe841473147bf9240406bfc835cf71109355bb6b41f5a7d97bb7c",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1729,7 +1927,7 @@
       "name": "SK_Neris_Wave",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Wave.fbx",
-      "sha256": "9db39c769f5781f4e43cf69e11d5abc0007e04fd57d8ce10838c02034a7c4c4c",
+      "sha256": "cb2cd820b0c765a6545938d8378c8c40f67b43beea2cf0415d76cec372ff41a6",
       "triangles": 6892,
       "triangleBudget": 9000,
       "bones": 29,
@@ -1782,10 +1980,24 @@
         }
       ],
       "inputSha256": "774cc2f59b4feca1a55231303e3d54197e902338020113dbb1eb41a8f0612c8f",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "84571e55017ddd3f50ed300ecaa5cb6734039cb6b05b74c225dc2e1f93017e81",
+      "contentSha256": "95331a4747ddf0cf70528ed687ca11d10d8eff9e3ac5fce571348f2ef6131dac",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
         "bones": [
@@ -1862,7 +2074,7 @@
         }
       ],
       "inputSha256": "edab63812c296450a177504fb8a37617dd08a79f74937bfb6507c4f5ad41caf6",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "30af87ffaa2065fa4d7263cfb647cb8ba2b269e936ce9a95817634c9d3ed9cfe",
       "contentVersion": 3,
@@ -1940,7 +2152,7 @@
         }
       ],
       "inputSha256": "8317d15621f812cdb3972517beb7851ef1a985b69471c0ea40432af45107fe08",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "e12537ffac565dce6eabe54a3c6b2d69228262ae3edda4ab7f071908bb73b4eb",
       "contentVersion": 3
@@ -1950,7 +2162,7 @@
       "name": "SK_Patch",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch.fbx",
-      "sha256": "61d2f96be0fdf6dc787d4bd69fc279929143f86084acfef8be6616b825256027",
+      "sha256": "92cecb8649b32efb0f89b94e660139083fcce8ab6d6ffc357a5de1261f2d455a",
       "triangles": 2484,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2003,10 +2215,24 @@
         }
       ],
       "inputSha256": "d95a888fe2ecce1e72d57698f53f9af11c02ca65ba8680b64c661ec73ee12c91",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "de4a698b6cf70b20f5e57a0f170860489defc39b2ebbb8c6102f419593c99001",
-      "contentVersion": 3
+      "contentSha256": "b33038e49daf7be18d6a394f8d388198cfe371b8c956ac0dbb30114bbaedda5a",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "patch",
@@ -2066,10 +2292,24 @@
         }
       ],
       "inputSha256": "e72ae755c42cb51f5436493d644a69ed5a5f08f19ffc1af94143121ed6679aa6",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "2747a1723c3c24fd5d8612f2bd297ed0c857c35c0f08a9aa05ad6afaf52c329d",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "status": "patch_dormant"
     },
     {
@@ -2077,7 +2317,7 @@
       "name": "SK_Patch_Inside",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch_Inside.fbx",
-      "sha256": "6ea08963234e1144511e42990e478e74b07f6d6a1753ae5c916c7316e26f28f9",
+      "sha256": "218b4a7ca1795c4210fc26a1b24195b9c32abc2946404cc9045d4d50d942307b",
       "triangles": 3456,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2130,10 +2370,24 @@
         }
       ],
       "inputSha256": "ba0c76d1010751ea5ef4dc17c5c8e603404cd09a6b0ea2e87a6c1f5247ea51a5",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "3e77b88980b17bfcfba1949cfb6921966aef5ea805c75da506cae20377b68a6b",
+      "contentSha256": "2365f3fa3f7397a046247f5a18dfb20574733713295797e04e7c52bc17e53ae3",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "status": "patch_inside_body"
     },
     {
@@ -2141,7 +2395,7 @@
       "name": "SK_Qazharr",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr.fbx",
-      "sha256": "3a23baf72c92186d4f2c1d49f307109e83f16988261f0f32f4aff20094f07750",
+      "sha256": "c3a399765785553c97853aebb3014b402c466a2ab9882b1df279c849350ac9e5",
       "triangles": 4936,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2194,17 +2448,31 @@
         }
       ],
       "inputSha256": "b605680a405a066ceebb7a19d35f039a1e1b2b4673aa9f8581cbf3be4810c739",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "0478d007b73f057dbc206e9eb7b3f96086e9f313d318290161dc92d935d2c15a",
-      "contentVersion": 3
+      "contentSha256": "c50c0dc331f136f3cbe21820cedf31cbee7bd539e24391c95ee9a4afd2000e1b",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "qazharr",
       "name": "SK_Qazharr_NoQuarter",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr_NoQuarter.fbx",
-      "sha256": "3389c16982e568107281a9947abe0d01dd7ad107308077926e589ccbe30fa44d",
+      "sha256": "e24a0d34e6a0a8c98f5aee072aaebe96bbfd93bbd2dc25634d31c09c1440466a",
       "triangles": 4936,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2257,10 +2525,24 @@
         }
       ],
       "inputSha256": "7dddf5ad08c90987d59379110f0ac5fc64e1cd604d5a2629f15a1542d279f3de",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "74d873f663ac71bef0d2bbf56279e28549a84ab957020ed5757ffb885ddb21c6",
+      "contentSha256": "6de49510bbab9f6ae8f62e598a84a8fa5d2bf564fd2fe60b7fefa72efe21e3f4",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "status": "qazharr_no_quarter_frenzy"
     },
     {
@@ -2268,7 +2550,7 @@
       "name": "SK_Raska",
       "archetype": "humanoid",
       "file": "FBX/SK_Raska.fbx",
-      "sha256": "52de67bb62579412046b531d19c62af2ed44d202f4edcb23f7bead23209ce192",
+      "sha256": "7b731bc60331772de139d47e90861bf1d07dcdba535f6ce8ec4c3ffb88fa7d25",
       "triangles": 3756,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2321,10 +2603,24 @@
         }
       ],
       "inputSha256": "45e2ffa7f285f686ff13df8d91deda1f502c18e3ee61ed262db2e56838e0b7ce",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "e46413a2b6c1e2d04500921f8632ab457f01994ad0dbcceb9e35e16aab460837",
-      "contentVersion": 3
+      "contentSha256": "0ef090867a11205c82abe61db5387f812e1554486c5cf1a85fbbb3863da24bb9",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "raska",
@@ -2384,7 +2680,7 @@
         }
       ],
       "inputSha256": "fad92def12e4d9babcce9a4da1c8cebc95653fbcdc22581494f8987769ca193f",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "bdccccca092fbf3134f511caba571bf3107b9a9a0dddc6924ab2a985eb4729f0",
       "contentVersion": 3,
@@ -2448,7 +2744,7 @@
         }
       ],
       "inputSha256": "96f3c76e3738f62cc2d21e3388896044c762c79e81a68f7705942bddfdb3a2c9",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "b59dbbd02d3bdd48d22cd78f2af8b3f441c4d3177976f9f283b33468c97f9059",
       "contentVersion": 3
@@ -2511,7 +2807,7 @@
         }
       ],
       "inputSha256": "7de81433775094a85e957cacd1c758dabf81aba03415428349e97e5a321d185e",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "8aadd7aaf08ddcfd576e6c5d2418af754420ac8738d2abadcf50263373680232",
       "contentVersion": 3
@@ -2521,7 +2817,7 @@
       "name": "SK_Sylra",
       "archetype": "humanoid",
       "file": "FBX/SK_Sylra.fbx",
-      "sha256": "dc5ebff43a72e0367a652df5c23d0381c2d963f367a7efee93a09825ab2625f8",
+      "sha256": "b0e712ea624c1fbfb96d82b165506b17b4d7760959f5106fc4d218521cc6e764",
       "triangles": 4528,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2574,10 +2870,24 @@
         }
       ],
       "inputSha256": "ea33ac02e779787ac1a5fbc55ef2197dde1efe497d89cd73e559df4953bcdaef",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "ab0c98881f74211114602e2417ec413341c8d7e0b4a3cde4395cfb4688f3a8e9",
+      "contentSha256": "694e73b518a42bd8c65c3ee2a75bcb171caf96d4266a2f2818ae445764a745b2",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraMist.NS_VeyraMist",
         "bones": [
@@ -2600,7 +2910,7 @@
       "name": "SK_Tavi",
       "archetype": "humanoid",
       "file": "FBX/SK_Tavi.fbx",
-      "sha256": "7c50b84ae07e0787dddf5e8803730a94affafc9aa3674d768b99d3f8414b1b0f",
+      "sha256": "c099f7ec065ea4cffdb8df5a9874a23632994d240913d2c286aa009f68e9c9df",
       "triangles": 4236,
       "triangleBudget": 9000,
       "bones": 29,
@@ -2653,10 +2963,24 @@
         }
       ],
       "inputSha256": "28553718c5dcdef73a71ddfa9aa2a3770f66d11efce7b58a286cdfb994726060",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "4494c8f722d30c28dbd0a2113f82829b86cc595c51b93af5cf07caf795e06fc4",
-      "contentVersion": 3
+      "contentSha256": "3c8c59fbe38ce8d0343a74299548278c9be3236bd538becd81ff95fbf7286407",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ]
+      }
     },
     {
       "id": "torr",
@@ -2716,7 +3040,7 @@
         }
       ],
       "inputSha256": "74cc56de149c0fe00ff8aa1dee150f196d1a8a431c6e3ce6fbad197acc059733",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "7b9e4f9804c3ce74f8f0508cc8c55533e4157f5ec4b83fd26c530891ec781425",
       "contentVersion": 3
@@ -2779,7 +3103,7 @@
         }
       ],
       "inputSha256": "8f1e17616dc353ffc605cdee3adef4ef8339ed4dbc6ade3d3bc92598cbd2de1b",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "aaea3d55659656139c204614c12cd2e15d64eea25669ea69c646a9ceed9f9b6a",
       "contentVersion": 3,
@@ -2843,7 +3167,7 @@
         }
       ],
       "inputSha256": "c86212f772ed6a551450af404b6611ddd66c18a85700e2092c166c3d865de453",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "2818da11214dccb3ace176c866199e310ddb88267423524cd26e0f3128dff70c",
       "contentVersion": 3,
@@ -2907,7 +3231,7 @@
         }
       ],
       "inputSha256": "78fc2fc13816adcf97225ee10b89701f36b533a455bd8293eaf95f576ed60470",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "213234c31fe54d6b8f64a5fa71eb77fc3d0d55db6423028c2fd7e37598340990",
       "contentVersion": 3,
@@ -2987,7 +3311,7 @@
         }
       ],
       "inputSha256": "5840e7325367203443b01b459c3c0d14fd7b9bccb0351d2db78191dec1e695a1",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
       "contentSha256": "f37b149e67ac95760e955a745cae5607520d3d1c7a3d0bcb0af4cb341110848f",
       "contentVersion": 3,
@@ -2998,7 +3322,7 @@
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "950ae58a9c9e44f4aad758173bcc8e1fc6b9be8c7e49fb19bde24ac9709e0883",
+      "sha256": "cde41929bda1b33091c23c72764dd0004a271c1ee43771001b6fa733caa7605e",
       "triangles": 3672,
       "triangleBudget": 9000,
       "bones": 29,
@@ -3051,17 +3375,39 @@
         }
       ],
       "inputSha256": "142d896bd79954f3cc49522067f36148a5c78a78164328be703eb753215b7b87",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "7e6c37b633057dc138030248c47c8b58df470fa43dedb5bc73645d77792a5c73",
-      "contentVersion": 3
+      "contentSha256": "101568b1f905e2333be90d32211611f5e2eb8096ae5d33f8b5b3c9ef8eff3cea",
+      "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ],
+        "offHand": {
+          "chain": [
+            "upperarm_l",
+            "lowerarm_l",
+            "hand_l"
+          ],
+          "anchor": "hand_r"
+        }
+      }
     },
     {
       "id": "vera",
       "name": "SK_Vera_DigIn",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera_DigIn.fbx",
-      "sha256": "64f5f98850269660516107958d4b4a61d835a4804f417a6a9145b0c294628603",
+      "sha256": "c9b364c0f0db1a6643a14fadc826bae8b78d5919691cfd45c10df5733bf2e19b",
       "triangles": 3672,
       "triangleBudget": 9000,
       "bones": 29,
@@ -3114,10 +3460,32 @@
         }
       ],
       "inputSha256": "8db0ae65d8d4e6146be6c32bbbbb8feef8b7dc208d922cbb3df4e02b662a6ec7",
-      "generatorSha256": "2727d12913a5525684aca006a89f546e0e2772912ba6326cfabb5e9a81f0ea48",
+      "generatorSha256": "1a8eedb927a43110fe50c0b973cc7e49527c917e521f1178b5f41a4ec617f639",
       "blender": "5.2.1 LTS",
-      "contentSha256": "ca99a5244fefabbead4521eb81ec7d4afcbd5b593ff849559d2b178a1d2521aa",
+      "contentSha256": "1a0b57a1c19fc5e27d94f3eaeddffb1769242c36328558b0bcc9492feb03dee3",
       "contentVersion": 3,
+      "ik": {
+        "feet": [
+          [
+            "thigh_l",
+            "calf_l",
+            "foot_l"
+          ],
+          [
+            "thigh_r",
+            "calf_r",
+            "foot_r"
+          ]
+        ],
+        "offHand": {
+          "chain": [
+            "upperarm_l",
+            "lowerarm_l",
+            "hand_l"
+          ],
+          "anchor": "hand_r"
+        }
+      },
       "status": "vera_dig_in_stance"
     }
   ]
