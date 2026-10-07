@@ -12,7 +12,7 @@ import random
 
 from mathutils import Euler, Vector
 
-from . import humanoid
+from . import humanoid, springs
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
 
 ARM = ("clavicle", "upperarm", "lowerarm", "hand")
@@ -32,6 +32,22 @@ CAST_RELEASE_SHARE = humanoid.CAST_RELEASE_SHARE
 TRAIL_SWEEP = 25.0
 # A construct glides: the distance one Run cycle carries it, in its heights, by which its float keeps pace.
 GLIDE_STRIDES = 1.2
+# Loose parts a construct's kit may give it spring chains for (ADR-069 §7): long streamers of cloth flowing back and out
+# off each shoulder, each on a chain from its clavicle; and a sash's ends falling back from the core, from the pelvis.
+SPRING_PARTS = {
+    "streamers": [("streamer_" + side, ["streamer_%s_%02d" % (side, i) for i in (1, 2, 3)] + ["streamer_%s_end" % side], "clavicle_" + side)
+                  for side in ("l", "r")],
+    "sash": [("sash_" + side, ["sash_%s_01" % side, "sash_%s_02" % side, "sash_%s_end" % side], "pelvis") for side in ("l", "r")],
+}
+# A streamer's sweep, as shares of the height: where it leaves the back of the shoulder (back, out, up), how far it flows
+# back and out by its end, and how far it falls.
+STREAMER_START = (-0.05, 0.02, 0.01)
+STREAMER_BACK, STREAMER_OUT, STREAMER_FALL = 0.3, 0.22, 0.08
+# A sash end's fall from the core: where it leaves (behind and to its side, as shares of the shoulders, so clear of the
+# core), and the way it falls back, out and down, and how far (a share of the height).
+SASH_START = (-0.6, 0.35)
+SASH_FALL = (-0.55, 0.25, -0.8)
+SASH_LENGTH = 0.32
 
 
 def layout(spec, capsule):
@@ -80,9 +96,37 @@ def layout(spec, capsule):
     bottom = Vector((-shoulder * 0.15, 0, hover))
     for index, name in enumerate(TRAIL):
         L[name] = (L["pelvis"][0].lerp(bottom, index / 3), L["pelvis"][0].lerp(bottom, (index + 1) / 3))
+    loose = spec.get("springs", {})
+    for side, sign in (("l", 1.0), ("r", -1.0)):
+        if "streamers" in loose:
+            # Each streamer flows back and out from the back of its shoulder, falling a little as it goes.
+            start = L["upperarm_" + side][0] + Vector((STREAMER_START[0], sign * STREAMER_START[1], STREAMER_START[2])) * full
+            arc = [start + Vector((-STREAMER_BACK * v, sign * STREAMER_OUT * v, -STREAMER_FALL * v ** 1.5)) * full for v in (0.0, 1 / 3, 2 / 3, 1.0)]
+            for index in range(3):
+                L["streamer_%s_%02d" % (side, index + 1)] = (arc[index], arc[index + 1])
+            L["streamer_%s_end" % side] = (arc[3], arc[3] + (arc[3] - arc[2]) * 0.05)
+        if "sash" in loose:
+            # Each sash end falls back, out and down from behind the core, in two spans.
+            top = L["pelvis"][0] + Vector((SASH_START[0] * shoulder, sign * SASH_START[1] * shoulder, 0.0))
+            fall = Vector((SASH_FALL[0], sign * SASH_FALL[1], SASH_FALL[2])).normalized() * SASH_LENGTH * full
+            joints = [top + fall * (k / 2) for k in range(3)]
+            L["sash_%s_01" % side] = (joints[0], joints[1])
+            L["sash_%s_02" % side] = (joints[1], joints[2])
+            L["sash_%s_end" % side] = (joints[2], joints[2] + fall * 0.03)
     dims = {"height": full, "full": full, "base": 0.0, "leg": core_z - hover, "head": head, "shoulder": shoulder, "arm": arm,
             "hover": hover, "core": core_z}
     return L, dims
+
+
+def bones_of(spec):
+    """Its bones: every construct's, and the chains its loose parts hang on."""
+    return springs.bones_with(BONES, SPRING_PARTS, spec)
+
+
+def springs_of(spec, L, dims):
+    """Its loose parts' chains and the capsule they hang outside (its core and chest), for its art: a plain dict."""
+    colliders = [{"from": "pelvis", "to": "spine_03", "radius": dims["shoulder"] * 0.5}]
+    return springs.records(SPRING_PARTS, spec, L, colliders)
 
 
 def body(spec, L, d):
