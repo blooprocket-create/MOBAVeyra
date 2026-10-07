@@ -1,31 +1,62 @@
 """Silt, The Living Mire (ADR-069): a colossus of wet sediment, read by his silhouette from the game camera. Character
-Bible §3 and the author's reference (2026-10-07): a towering mass of golden-ochre sediment, clay and riverbed debris,
-hunched and forward-leaning on long forelimbs whose clawed digits reach the ground; thick legs on broad clawed feet. His
-surface is layered and flaking: plate-like sheets of drying sediment shingled over a darker, saturated interior, peeling
-at their edges. He is caught mid-motion, ribbons of wet material flung up off his shoulders and rivulets dripping from
-him. He has no face, no head shape anywhere: the top of him is a ridge of sediment between the shoulders.
+Bible §3 and the author's splash art (updated 2026-10-07): a towering mass of clay and riverbed debris, hunched and
+forward-leaning on long forelimbs that reach the ground in great hands of four long tapering stone talons; thick legs
+on broad clawed feet; spurs of hardened sediment standing up off his shoulders. His surface is layered and flaking:
+plate-like sheets of drying sediment shingled over a darker, saturated interior. Broad bands of wet golden-ochre
+material are wound round his limbs and trunk, crossing as they go, and more of it is flung off his shoulders in ribbons;
+rivulets drip from him. He has no face, no head shape anywhere: the top of him is a ridge of sediment between the
+shoulders.
 
 Low poly and flat-coloured (author 2026-10-07): the big forms that make his outline, each a flat colour the toon
 material shades. He rests as his archetype lays him out (ADR-064), forelimbs to the ground; his clips knuckle-walk and
-throw. Colours are sampled from the reference (sRGB)."""
+throw. Colours are sampled from the splash art (sRGB)."""
 import numpy as np
 
 from ..sculpt import anatomy, sdf, sheet, tree
 from ..sculpt.anatomy import V, unit
 from ..sculpt.tree import Box, Over, Shell, Union, Zone
 
-# Sampled from the reference (sRGB): the dark wet interior, the drying flakes over it, the sun-bleached flakes, the
-# claws' riverbed stone and the wet material flung off him.
-PALETTE = {"core": (0.4, 0.3, 0.2), "flake": (0.76, 0.6, 0.4), "bleached": (0.88, 0.75, 0.54), "stone": (0.48, 0.4, 0.32),
-           "wet": (0.8, 0.66, 0.45)}
+# Sampled from the splash art (sRGB): the dark wet interior, the drying clay flakes over it, the talons' sunlit stone, and
+# the wet golden-ochre material wound round him and flung off him.
+PALETTE = {"core": (0.36, 0.24, 0.15), "flake": (0.6, 0.42, 0.27), "stone": (0.7, 0.53, 0.35), "wet": (0.9, 0.67, 0.38)}
 
 
 def mix(a, b, t):
     return a + (b - a) * t
 
 
-# How much taller than wide his plates are: sheets of wet sediment sliding down him, not stones.
-PLATE_STRETCH = 2.4
+# How much taller than wide his plates are: sheets of wet sediment sliding down him, not round stones.
+PLATE_STRETCH = 1.6
+# The bands wound round him: each limb's turns (each way), and a band's half-width as a share of his height.
+WRAP_TURNS = {"upperarm": 1.1, "forearm": 1.5, "thigh": 1.0, "calf": 1.2, "trunk": 1.0}
+WRAP_HALF = 0.032
+
+
+def wraps(segments, half):
+    """Where bands are wound round segments ((a, b, radius, turns, phase) each): two helices crossing on each, every band
+    half wide (cm), measured along the segment from its centre line; nothing beyond a segment's ends or well off its
+    surface."""
+    def distance(P):
+        d = np.full(len(P), 1e3, dtype=np.float64)
+        for a, b, radius, turns, phase in segments:
+            axis = b - a
+            length = float(np.linalg.norm(axis))
+            axis = axis / length
+            Q = P - a
+            t = Q @ axis
+            radial = Q - np.outer(t, axis)
+            x = np.cross(axis, V(0, 0, 1))
+            x = unit(x if np.linalg.norm(x) > 1e-3 else V(1, 0, 0))
+            y = np.cross(axis, x)
+            theta = np.arctan2(radial @ y, radial @ x) / (2.0 * np.pi)
+            pitch = length / turns
+            near = np.maximum(np.maximum(-t, t - length), np.linalg.norm(radial, axis=1) - radius * 1.8)
+            for hand, offset in ((1.0, 0.0), (-1.0, 0.41)):
+                turn = t / pitch + hand * theta + phase + offset
+                band = np.abs(turn - np.round(turn)) * pitch - half
+                d = np.minimum(d, np.maximum(band, near))
+        return d.astype(np.float32)
+    return distance
 
 
 def plates(P, cell, seed):
@@ -85,27 +116,29 @@ def build(S, L, dims, spec):
     ridge_base, ridge_top = chest + V(-H * 0.02, 0, -H * 0.02), chest + V(H * 0.06, 0, H * 0.12)
     cone("ridge", ridge_base, ridge_top, H * 0.12, H * 0.025, anatomy.along("spine_03", "neck_01", ridge_base, ridge_top, 0.4, 0.9))
     # Arms: thick, the forearms heavier than the upper arms, reaching the ground.
+    segments = [(pelvis + V(0, 0, H * 0.02), chest, H * 0.17, WRAP_TURNS["trunk"], 0.1)]
     for side in ("l", "r"):
         s, e, w, h1 = p("upperarm_" + side, 0), p("upperarm_" + side, 1), p("lowerarm_" + side, 1), p("hand_" + side, 1)
         cone("upperarm_" + side, s, e, H * 0.075, H * 0.068, anatomy.rigid("upperarm_" + side))
-        cone("forearm_" + side, e, w, H * 0.085, H * 0.07, anatomy.rigid("lowerarm_" + side))
+        cone("forearm_" + side, e, w, H * 0.09, H * 0.075, anatomy.rigid("lowerarm_" + side))
         hand(S, mats, parts, side, w, h1, H)
+        segments += [(s, e, H * 0.075, WRAP_TURNS["upperarm"], 0.3), (e, w, H * 0.09, WRAP_TURNS["forearm"], 0.65)]
     # Legs: thick and short, on broad clawed feet.
     for side in ("l", "r"):
         hp, k, a, toe = p("thigh_" + side, 0), p("thigh_" + side, 1), p("calf_" + side, 1), p("foot_" + side, 1)
         cone("thigh_" + side, hp, k, H * 0.1, H * 0.085, anatomy.along("pelvis", "thigh_" + side, hp + V(0, 0, H * 0.05), hp - V(0, 0, H * 0.06), 0.2, 0.7))
         cone("calf_" + side, k, a, H * 0.085, H * 0.075, anatomy.rigid("calf_" + side))
         foot(S, mats, parts, side, a, toe, H)
+        segments += [(hp, k, H * 0.1, WRAP_TURNS["thigh"], 0.2), (k, a, H * 0.085, WRAP_TURNS["calf"], 0.55)]
     core = Union(parts, k=H * 0.03)
     # Flakes: plate-like sheets of drying sediment over the interior, the dark wet sediment showing in the cracks between
-    # them; some plates sun-bleached, standing a little prouder.
+    # them.
     everywhere = Box(V(-500, -500, -50), V(500, 500, 500))
     flakes = Shell(S, "flakes", core, 0.0, H * 0.02, Zone(lambda P: H * 0.012 - plates(P, H * 0.11, 31.0), everywhere), mats["flake"], hem=H * 0.004, reach=H * 0.002)
     shingled = Over([core, flakes])
-    bleached = Shell(S, "bleached", shingled, 0.0, H * 0.012,
-                     Zone(lambda P: np.maximum(H * 0.02 - plates(P, H * 0.11, 31.0), 0.08 - (sdf.fbm(P.astype(np.float32), H * 0.15, 2, 47) - 0.5) * H * 0.2), everywhere),
-                     mats["bleached"], hem=H * 0.004)
-    surface = Over([shingled, bleached])
+    # Bands of wet sediment wound round his limbs and trunk over the flakes, crossing as they go.
+    bands = Shell(S, "bands", shingled, 0.0, H * 0.02, Zone(wraps(segments, H * WRAP_HALF), everywhere), mats["wet"], hem=H * 0.005, reach=H * 0.004)
+    surface = Over([shingled, bands, spurs(S, L, mats, H)])
     worn = Over([surface, drips(S, L, mats, H)])
     # Cut flat where he meets the ground: nothing of him sinks below it.
     worn = tree.Intersect(worn, Zone(lambda P: -P[:, 2], Box(V(-500, -500, -0.5), V(500, 500, 600))))
@@ -115,24 +148,40 @@ def build(S, L, dims, spec):
 
 
 def hand(S, mats, parts, side, wrist, end, H):
-    """A great hand on the ground: a heavy palm and four long tapering claws of riverbed stone, splayed forward."""
+    """A great hand on the ground: a heavy palm and four long, thick, tapering stone talons, each in two segments,
+    splayed forward and arching down to their points."""
     bones = anatomy.rigid("hand_" + side)
     down = unit(end - wrist)
     sign = 1.0 if side == "l" else -1.0
     palm = wrist + down * H * 0.04
-    parts.append(tree.leaf(S, "palm_" + side, lambda P, c=palm: sdf.ellipsoid(P, c, V(H * 0.07, H * 0.075, H * 0.06)), Box(palm - H * 0.09, palm + H * 0.09),
+    parts.append(tree.leaf(S, "palm_" + side, lambda P, c=palm: sdf.ellipsoid(P, c, V(H * 0.08, H * 0.085, H * 0.065)), Box(palm - H * 0.1, palm + H * 0.1),
                            mats["core"], bones))
-    for i, spread in enumerate((-0.65, -0.22, 0.22, 0.65)):
-        # Long tapering digits from the front of the palm, curving down to the ground ahead of it.
-        root = palm + V(H * 0.035, sign * spread * H * 0.065, -H * 0.01)
-        knuckle = root + V(H * 0.07, sign * spread * H * 0.03, -H * 0.01)
-        tip = knuckle + V(H * 0.07, sign * spread * H * 0.02, 0.0)
+    for i, spread in enumerate((-0.7, -0.23, 0.23, 0.7)):
+        # A digit from the front of the palm arching up to its knuckle, then a long talon curving down to the ground.
+        root = palm + V(H * 0.04, sign * spread * H * 0.075, -H * 0.005)
+        knuckle = root + V(H * 0.08, sign * spread * H * 0.035, H * 0.01)
+        tip = knuckle + V(H * 0.12, sign * spread * H * 0.025, 0.0)
         tip[2] = H * 0.006
-        knuckle[2] = max(knuckle[2], H * 0.04)
-        parts.append(tree.leaf(S, "digit_%s_%d" % (side, i), lambda P, a=root, b=knuckle: sdf.round_cone(P, a, b, H * 0.03, H * 0.022), Box.around([root, knuckle], H * 0.035),
+        knuckle[2] = max(knuckle[2], H * 0.055)
+        parts.append(tree.leaf(S, "digit_%s_%d" % (side, i), lambda P, a=root, b=knuckle: sdf.round_cone(P, a, b, H * 0.036, H * 0.03), Box.around([root, knuckle], H * 0.04),
                                mats["core"], bones))
-        parts.append(tree.leaf(S, "claw_%s_%d" % (side, i), lambda P, a=knuckle, b=tip: sdf.round_cone(P, a, b, H * 0.022, H * 0.004), Box.around([knuckle, tip], H * 0.03),
-                               mats["stone"], bones))
+        parts.append(tree.leaf(S, "claw_%s_%d" % (side, i), lambda P, a=knuckle, b=tip: sdf.round_cone(P, a, b, H * 0.03, H * 0.004), Box.around([knuckle, tip], H * 0.035),
+                               mats["stone"], bones, protect=0.4))
+
+
+def spurs(S, L, mats, H):
+    """Spurs of hardened sediment standing up and back off each shoulder, the mass's broken edge: never a head's horns,
+    since they rise from the shoulders, well out from the ridge between them."""
+    nodes = []
+    for side, sign in (("l", 1.0), ("r", -1.0)):
+        s = V(*L["upperarm_" + side][0])
+        bones = anatomy.along("spine_03", "upperarm_" + side, V(*L["spine_03"][1]), s, 0.3, 0.8)
+        for k, (back, out, rise, length) in enumerate(((-0.02, 0.02, 0.1, 0.11), (-0.07, 0.05, 0.08, 0.09), (0.02, 0.06, 0.07, 0.08))):
+            base = s + V(H * back, sign * H * out, H * rise)
+            tip = base + unit(V(-0.45, sign * 0.35, 1.0)) * H * length
+            nodes.append(tree.leaf(S, "spur_%s_%d" % (side, k), lambda P, a=base, b=tip: sdf.round_cone(P, a, b, H * 0.035, H * 0.004),
+                                   Box.around([base, tip], H * 0.04), mats["flake"], bones, protect=0.3))
+    return Union(nodes, k=H * 0.01)
 
 
 def foot(S, mats, parts, side, ankle, toe, H):
@@ -181,7 +230,7 @@ def flung(S, L, dims, mats, side):
     joints = np.array([L["ribbon_%s_%02d" % (side, i)][0] for i in (1, 2, 3)] + [L["ribbon_%s_end" % side][0]], dtype=np.float64)
     spans = len(joints) - 1
     columns, rows, strips = 6, 9, 3
-    width = H * 0.1
+    width = H * 0.14
 
     def reach(u):
         """How far along the chain each column runs: its tongue torn to its own length."""
