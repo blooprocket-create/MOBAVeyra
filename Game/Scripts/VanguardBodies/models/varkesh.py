@@ -282,7 +282,8 @@ def head(S, L, dims, mats, gap):
     # Larger than his layout's head, standing a little above and ahead of it, so it reads from the game camera between
     # those shoulders as his art draws it.
     o = V(*L["head"][0]) + V(0.02 * H, 0, 0)
-    s = max(dims["head"], H * 0.06) * 1.5
+    # (Its spines' tips stay within his body's height bound: no body stands more than 1.4 of its capsule tall.)
+    s = max(dims["head"], H * 0.06) * 1.4
     bones = anatomy.rigid("head")
     parts = []
     at = lambda x, y, z: o + V(x, y, z) * s  # noqa: E731
@@ -313,7 +314,7 @@ def head(S, L, dims, mats, gap):
     for k, x in enumerate((0.3, 0.06, -0.18, -0.38)):
         # Each rooted just under the top, which falls a little toward the front.
         base = at(x, 0, 1.05 - 0.12 * x - 0.05)
-        tip = base + V(-0.28, 0, 0.38 - k * 0.03) * s
+        tip = base + V(-0.3, 0, 0.27 - k * 0.03) * s
         parts.append(tree.leaf(S, "spine_%d" % k, lambda P, a=base, b=tip: sdf.round_cone(P, a, b, 0.09 * s, 0.012 * s), Box.around([base, tip], 0.1 * s),
                                mats["worn"], bones, protect=0.6))
     return Union(parts)

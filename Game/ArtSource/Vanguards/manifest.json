@@ -5461,11 +5461,11 @@
       "name": "SK_Varkesh",
       "archetype": "colossus",
       "file": "FBX/SK_Varkesh.fbx",
-      "sha256": "ce59ec311cb0c6125eb51133fd512a0ef571c893743fe33363632d42d3672aee",
-      "triangles": 5759,
+      "sha256": "a21c1217e6f0b13c44d6b612a90c90ddf1242d8ebb4c798c80a229d878c9529f",
+      "triangles": 5758,
       "triangleBudget": 6000,
       "bones": 29,
-      "heightCm": 284.14,
+      "heightCm": 277.33,
       "capsuleHalfHeightCm": 100,
       "melee": false,
       "runStrideCm": 179.21,
@@ -5513,10 +5513,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "50dad7232c7910000ca4d42f89fa1d2f04cfa70fa7803cd2a1cb3d5be09b75d2",
+      "inputSha256": "61bd9ad011d853436d88fabf3cee1290a19cb1695e530e14029c17e72bf3daa4",
       "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
       "blender": "5.2.1 LTS",
-      "contentSha256": "8fa13fc650873f30c790ffc992a489658cff1cb0e41aea9f30427d376dbaf433",
+      "contentSha256": "00796530ecb780e86f493f718465e720dd4a99333471b56ca15f6d9ef93f58e6",
       "contentVersion": 3,
       "springs": {
         "chains": [
@@ -5584,11 +5584,11 @@
       "name": "SK_Varkesh_Tempered",
       "archetype": "colossus",
       "file": "FBX/SK_Varkesh_Tempered.fbx",
-      "sha256": "49d622ffb84c9b7766598f14a20e94c1a4ed03e3a7e326ad0911214156a11943",
-      "triangles": 5207,
+      "sha256": "4868b59195312d0d1ee8f9a0c9ba8e9441dbdcc6d43101f5c92cb7fc176d5e35",
+      "triangles": 5204,
       "triangleBudget": 6000,
       "bones": 29,
-      "heightCm": 284.13,
+      "heightCm": 277.32,
       "capsuleHalfHeightCm": 100,
       "melee": false,
       "runStrideCm": 179.21,
@@ -5636,10 +5636,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "c798c75a15b9cb3ebfc975fffa21b6fe53bdf937a6baf61150d16a067ad60b8a",
+      "inputSha256": "bf38c12d34400fff9f206c26f1036b946df862a03f05ad0d54f42c2e2aa8cb1c",
       "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
       "blender": "5.2.1 LTS",
-      "contentSha256": "4278e287494dfa6067750682d4760e3f2df9e19bab2e1cd667fb720e55c57a26",
+      "contentSha256": "acdf163787753d2a439a7a86684f36150943b857664be8699a1576681fcfe0c4",
       "contentVersion": 3,
       "springs": {
         "chains": [
