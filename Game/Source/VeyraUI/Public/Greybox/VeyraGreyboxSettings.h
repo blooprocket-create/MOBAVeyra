@@ -572,6 +572,26 @@ public:
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "0", ClampMax = "1"))
 	float VeiledEffectScale = 1.0f;
+
+	/**
+	 * A body straining while it casts (ADR-072 §5): while a cast holds it, its glow rises over CastGlowRiseSeconds to
+	 * CastGlowGain times its own, through the body material's BodyCastGlowParameter (a multiplier, 1 at rest), and what
+	 * it pours off its bones grows to CastEffectGain of its size; both ease back over CastGlowFallSeconds.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Toon")
+	FName BodyCastGlowParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "1"))
+	float CastGlowGain = 1.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "1"))
+	float CastEffectGain = 1.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "0"))
+	float CastGlowRiseSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Toon", meta = (ClampMin = "0"))
+	float CastGlowFallSeconds = 0.0f;
 	/**
 	 * Hit feel (ADR-068 §4). A struck generated body holds its pose for HitStopSeconds. The player's own camera kicks when
 	 * their Vanguard takes a hit of at least HeavyHitShare of its Max Health (HitShakeAmplitude units) or falls

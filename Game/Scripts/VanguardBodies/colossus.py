@@ -11,7 +11,7 @@ import random
 
 from mathutils import Euler, Matrix, Vector
 
-from . import humanoid, springs
+from . import humanoid, motions, springs
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
 
 BONES = [bone for bone in humanoid.BONES if not bone[0].startswith(("tail_", "cape_"))]
@@ -51,6 +51,15 @@ RUN_THIGH_SWING = 22.0
 THROW_RAISE = 150.0
 # The share of a throw spent bringing the arm over before the release.
 THROW_SHARE = 0.3
+# A skill's crouch at its deepest (ADR-072 §2): how far the thighs swing forward and the knees bend back, in degrees; how
+# far the pelvis drops for it, as a share of the leg; how far apart a full spread sets the thighs, in degrees, and the
+# drop that costs; and how high a full rise lifts the body, as a share of its height.
+SKILL_THIGH_BEND = 40.0
+SKILL_KNEE_BEND = 70.0
+SKILL_CROUCH_DROP = 0.18
+SKILL_STANCE_SPREAD = 14.0
+SKILL_SPREAD_DROP = 0.03
+SKILL_RISE_LIFT = 0.025
 # Moss on the upper surfaces of an overgrown colossus.
 MOSS = [0.22, 0.40, 0.14]
 
@@ -565,6 +574,19 @@ def pose(name, t, melee, d):
     if name == "Cast":
         return slam(t)
     return humanoid.pose(name, t, melee, d)
+
+
+def skill_pose(skill, t, d):
+    """A skill's own clip (ADR-072 §2) at t from 0 to 1: its motion's upper body, the legs bent under its crouch and set
+    wide by its spread (each foot pitched back to stay flat), the pelvis sinking with them and rocking up on its rise."""
+    pose, hints = motions.motion(skill, t)
+    crouch, spread = hints.get("crouch", 0.0), hints.get("spread", 0.0)
+    for side, sign in (("l", 1), ("r", -1)):
+        pose["thigh_" + side] = combine(forward_swing(SKILL_THIGH_BEND * crouch), roll_side(SKILL_STANCE_SPREAD * spread, sign))
+        pose["calf_" + side] = forward_swing(-SKILL_KNEE_BEND * crouch)
+        pose["foot_" + side] = forward_swing((SKILL_KNEE_BEND - SKILL_THIGH_BEND) * crouch)
+    lift = -d["leg"] * (SKILL_CROUCH_DROP * crouch + SKILL_SPREAD_DROP * spread) + d["height"] * SKILL_RISE_LIFT * max(0.0, hints.get("rise", 0.0))
+    return pose, lift
 
 
 def run(t, d):

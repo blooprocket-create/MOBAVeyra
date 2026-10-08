@@ -38,17 +38,34 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 		Require(!Mark.Status.IsNone() && !Mark.Effect.IsNull() && Mark.Scale > 0.0f, TEXT("StatusMarks"),
 			FString::Printf(TEXT("%s needs a status, an effect and a scale above 0."), *Mark.Status.ToString()));
 	}
-	for (const FVeyraAbilityCastEffect& Cast : AbilityCastEffects)
+	Require(!ChannelLengthParameter.IsNone() || !AbilityEffects.ContainsByPredicate([](const FVeyraAbilityEffects& Effects) { return Effects.Channel.IsSet(); }),
+		TEXT("ChannelLengthParameter"), TEXT("a channel's effect needs the parameter its length is set by."));
+	for (const FVeyraAbilityEffects& Effects : AbilityEffects)
 	{
-		Require(!Cast.Ability.IsNone() && !Cast.Effect.IsNull() && Cast.Scale > 0.0f, TEXT("AbilityCastEffects"),
-			FString::Printf(TEXT("%s needs an ability, an effect and a scale above 0."), *Cast.Ability.ToString()));
+		const FString Name = Effects.Ability.ToString();
+		const FVeyraSkillEffectStage* Stages[] = { &Effects.Windup, &Effects.Channel, &Effects.Commit, &Effects.Travel, &Effects.Impact };
+		bool bAny = false;
+		bool bScaled = true;
+		for (const FVeyraSkillEffectStage* Stage : Stages)
+		{
+			bAny |= Stage->IsSet();
+			bScaled &= !Stage->IsSet() || Stage->Scale > 0.0f;
+		}
+		Require(!Effects.Ability.IsNone() && bAny, TEXT("AbilityEffects"), FString::Printf(TEXT("%s needs an ability and at least one stage."), *Name));
+		Require(bScaled, TEXT("AbilityEffects"), FString::Printf(TEXT("%s: every stage with an effect needs a scale above 0."), *Name));
+		Require(Effects.Windup.IsSet() == !Effects.WindupBones.IsEmpty(), TEXT("AbilityEffects"),
+			FString::Printf(TEXT("%s: a windup effect pours from the bones it names, and only it names bones."), *Name));
+		Require(Effects.Commit.IsSet() || !Effects.bCommitAtTarget, TEXT("AbilityEffects"),
+			FString::Printf(TEXT("%s: only a commit effect is placed at the target."), *Name));
+		Require(AbilityEffects.FilterByPredicate([&Effects](const FVeyraAbilityEffects& Other) { return SameId(Other.Ability, Effects.Ability); }).Num() == 1,
+			TEXT("AbilityEffects"), FString::Printf(TEXT("%s is listed once."), *Name));
 	}
 	return Problems;
 }
 
-const FVeyraAbilityCastEffect* UVeyraKitPresentationSettings::CastEffectOf(FName Ability) const
+const FVeyraAbilityEffects* UVeyraKitPresentationSettings::EffectsOf(FName Ability) const
 {
-	return AbilityCastEffects.FindByPredicate([Ability](const FVeyraAbilityCastEffect& Cast) { return SameId(Cast.Ability, Ability); });
+	return AbilityEffects.FindByPredicate([Ability](const FVeyraAbilityEffects& Effects) { return SameId(Effects.Ability, Ability); });
 }
 
 bool UVeyraKitPresentationSettings::IsStrand(FName Status) const

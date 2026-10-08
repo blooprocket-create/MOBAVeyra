@@ -21,10 +21,10 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from VanguardBodies import beast, colossus, construct, humanoid, model, rider  # noqa: E402
+from VanguardBodies import beast, colossus, construct, humanoid, model, motions, rider  # noqa: E402
 from VanguardBodies.inputs import (CONTENT_VERSION, GENERATOR_VERSION, bodies_of, body_name, entries, generator_hash,  # noqa: E402
                                    input_hash, model_hashes, pending_changed, pending_removed, pinned_blender, removed_assets,
-                                   same_destination, stale_assets, units)
+                                   same_destination, skill_problems, stale_assets, units)
 from VanguardBodies.parts import local  # noqa: E402
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Vanguards"
@@ -32,8 +32,8 @@ SAVED = GAME / "Saved" / "VanguardKit"
 KIT_BYTES = (SOURCE / "VanguardKit.json").read_bytes()
 KIT = json.loads(KIT_BYTES)
 # Every unit a body is fitted to: the Vanguards, and the companions that are the other half of a pair (as Nix).
-TUNING = units(json.loads((GAME / "Tuning" / "Vanguards.json").read_bytes())["vanguards"],
-               json.loads((GAME / "Tuning" / "Abilities.json").read_bytes()).get("companions", {}))
+ABILITIES = json.loads((GAME / "Tuning" / "Abilities.json").read_bytes())
+TUNING = units(json.loads((GAME / "Tuning" / "Vanguards.json").read_bytes())["vanguards"], ABILITIES.get("companions", {}))
 ARCHETYPES = {"humanoid": humanoid, "colossus": colossus, "beast": beast, "construct": construct, "rider": rider}
 
 if not bpy.app.background:
@@ -50,6 +50,10 @@ PREVIEW_DIR = Path(ARGS[ARGS.index("--preview-dir") + 1]) if "--preview-dir" in 
 # The poses a preview lines up, as (animation, time from 0 to 1).
 PREVIEW_POSES = [("Idle", 0.0), ("Run", 0.25), ("Run", 0.75), ("AttackWindup", 0.65), ("AttackWindup", 1.0),
                  ("Cast", 0.5), ("Hit", 0.5), ("Recall", 0.5), ("Death", 1.0)]
+# Where a skill's preview shows it, as shares of its own clip around its release (ADR-072 §2): wound up, at the release
+# and just past it as it strikes, then following through.
+SKILL_PREVIEW_BEATS = (("wound", lambda release: release * 0.85), ("release", lambda release: release),
+                       ("strike", lambda release: min(1.0, release + 0.1)), ("through", lambda release: min(1.0, release + 0.3)))
 # The rest-pose take every FBX begins with (see animate); its name sorts before every clip's.
 BIND_TAKE = "_Bind"
 # The gameplay camera's look down from the horizontal, in degrees (DefaultGame.ini, VeyraCameraSettings.PitchDegrees).
@@ -163,12 +167,37 @@ def animate(armature, spec, archetype, d, melee, digest):
                     bone.keyframe_insert("location", frame=frame + 1)
         action.use_fake_user = True
         actions.append({"name": name, "frames": frames + 1, "loop": clip["loop"]})
+    # Its skills' own clips (ADR-072 §1), each a take of its own: a shared motion fitted to this skeleton.
+    for skill in spec.get("skills", []):
+        name = motions.skill_clip(skill["ability"])
+        action = bpy.data.actions.new(name)
+        armature.animation_data.action = action
+        frames = max(2, round(skill["seconds"] * fps))
+        digest.update(json.dumps([name, frames, False]).encode())
+        for frame in range(frames + 1):
+            pose_rig(armature, rest, archetype, *archetype.skill_pose(skill, frame / frames, d))
+            keyed(digest, armature, archetype)
+            for bone in armature.pose.bones:
+                bone.keyframe_insert("rotation_quaternion", frame=frame + 1)
+                if bone.name in moved_bones(archetype):
+                    bone.keyframe_insert("location", frame=frame + 1)
+        action.use_fake_user = True
+        actions.append({"name": name, "frames": frames + 1, "loop": False})
     armature.animation_data.action = None
     pose_rig(armature, rest, archetype, {}, 0.0)
     return actions
 
 
-def render_preview(name, armature, obj, archetype, d, melee):
+def preview_rows(spec, archetype, melee, d):
+    """The poses a preview lines up, as (label, (pose, lift)): the archetype's clips, then (in a sheet of their own) each
+    skill's beats around its release."""
+    clips = [(clip, archetype.pose(clip, t, melee, d)) for clip, t in PREVIEW_POSES]
+    skills = [(skill["ability"] + " " + beat, archetype.skill_pose(skill, at(skill["releaseShare"]), d))
+              for skill in spec.get("skills", []) for beat, at in SKILL_PREVIEW_BEATS]
+    return clips, skills
+
+
+def render_preview(name, armature, obj, archetype, d, melee, spec):
     """Rows of the body in its animations' key poses, left to right, for review (not exported): one row turned
     three-quarters toward the camera, one in profile, and one seen from the gameplay camera's pitch, as players see it."""
     scene = bpy.context.scene
@@ -189,14 +218,25 @@ def render_preview(name, armature, obj, archetype, d, melee):
     scene.collection.objects.link(camera)
     scene.camera = camera
     camera.data.type = "ORTHO"
-    camera.data.ortho_scale = len(PREVIEW_POSES) * gap
     camera.data.clip_end = span * 100
-    # The camera looks back along -X, so +Y is its right.
-    center = Vector((0.0, (len(PREVIEW_POSES) - 1) * gap / 2, d["full"] * 0.5))
     scene.render.resolution_x = 2400
     PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
-    for suffix, turn, elevation in (("", 35.0, math.degrees(math.atan2(3, 20))), ("_side", 90.0, math.degrees(math.atan2(3, 20))),
-                                    ("_game", 35.0, GAMEPLAY_PITCH)):
+    clips, skills = preview_rows(spec, archetype, melee, d)
+    sheets = [("", clips)] + ([("_skills", skills)] if skills else [])
+    views = (("", 35.0, math.degrees(math.atan2(3, 20))), ("_side", 90.0, math.degrees(math.atan2(3, 20))), ("_game", 35.0, GAMEPLAY_PITCH))
+    for sheet, poses in sheets:
+        render_sheet(name + sheet, armature, obj, archetype, d, rest, camera, gap, span, poses, views)
+    bpy.data.objects.remove(camera)
+    armature.hide_render = obj.hide_render = False
+
+
+def render_sheet(name, armature, obj, archetype, d, rest, camera, gap, span, poses, views):
+    """One row of poses for each view, rendered to the preview directory."""
+    scene = bpy.context.scene
+    camera.data.ortho_scale = len(poses) * gap
+    # The camera looks back along -X, so +Y is its right.
+    center = Vector((0.0, (len(poses) - 1) * gap / 2, d["full"] * 0.5))
+    for suffix, turn, elevation in views:
         up = math.radians(elevation)
         camera.location = center + Vector((math.cos(up), 0.0, math.sin(up))) * span * 20
         camera.rotation_euler = (center - camera.location).to_track_quat("-Z", "Y").to_euler()
@@ -204,7 +244,7 @@ def render_preview(name, armature, obj, archetype, d, melee):
         extent = d["full"] * math.cos(up) + span * math.sin(up)
         scene.render.resolution_y = round(2400 * max(d["full"], extent) * 1.3 / camera.data.ortho_scale)
         made = []
-        for index, (clip, t) in enumerate(PREVIEW_POSES):
+        for index, (_label, (pose, lift)) in enumerate(poses):
             rig = armature.copy()
             rig.animation_data_clear()
             scene.collection.objects.link(rig)
@@ -216,14 +256,12 @@ def render_preview(name, armature, obj, archetype, d, melee):
             rig.rotation_euler = (0.0, 0.0, math.radians(turn))
             # Copies of the hidden originals start hidden too.
             rig.hide_render = body.hide_render = False
-            pose_rig(rig, rest, archetype, *archetype.pose(clip, t, melee, d))
+            pose_rig(rig, rest, archetype, pose, lift)
             made += [rig, body]
         scene.render.filepath = str(PREVIEW_DIR / (name + suffix + ".png"))
         bpy.ops.render.render(write_still=True)
         for made_object in made:
             bpy.data.objects.remove(made_object)
-    bpy.data.objects.remove(camera)
-    armature.hide_render = obj.hide_render = False
 
 
 # ---------------------------------------------------------------------------------------------- the run
@@ -357,12 +395,15 @@ def build(spec, status=None, suffix="", previous=None):
         bpy.context.view_layer.objects.active = armature
         bpy.ops.export_scene.fbx(filepath=str(path), **FBX_EXPORT)
     if PREVIEW:
-        render_preview(name, armature, obj, archetype, dims, melee)
+        render_preview(name, armature, obj, archetype, dims, melee, spec)
     asset = {"id": spec["id"], "name": name, "archetype": spec["archetype"], "file": "FBX/" + path.name,
              "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "triangles": triangles, "triangleBudget": budget,
              "bones": len(bones), "heightCm": round(height, 2), "capsuleHalfHeightCm": capsule["capsuleHalfHeight"],
              "melee": melee, "runStrideCm": round(archetype.run_stride(dims), 2), "upperBodyBone": archetype.UPPER_BODY_BONE,
              "castReleaseShare": archetype.CAST_RELEASE_SHARE, "animations": actions,
+             # Its skills' own clips by ability, and where each releases (ADR-072 §1).
+             "abilityCasts": [{"ability": skill["ability"], "clip": motions.skill_clip(skill["ability"]), "releaseShare": skill["releaseShare"]}
+                              for skill in spec.get("skills", [])],
              # What it was made from and by, so a later partial build cannot pass it off as current (VanguardBodies.inputs),
              # and what it is, so a rebuild that changes nothing in it keeps it.
              "inputSha256": input_hash(KIT, TUNING, spec, MODELS), "generatorSha256": GENERATOR, "blender": bpy.app.version_string,
@@ -403,6 +444,9 @@ def main():
         assert spec["id"] in TUNING, spec["id"] + " is no Vanguard in Vanguards.json nor companion in Abilities.json"
         for body, status, _ in bodies_of(spec):
             assert body["archetype"] in KIT["archetypes"], (spec["id"], status, "has no archetype in the kit")
+            problems = skill_problems(body, hasattr(ARCHETYPES[body["archetype"]], "skill_pose"), TUNING[spec["id"]], ABILITIES,
+                                      motions.MOTIONS)
+            assert not problems, (spec["id"], status, problems)
     manifest_path = SOURCE / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"assets": []}
     # The bodies were imported where the manifest says. Moving them is no build step (the editor moves them and fixes

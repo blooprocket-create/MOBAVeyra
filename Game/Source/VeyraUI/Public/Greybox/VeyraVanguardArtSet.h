@@ -73,6 +73,20 @@ struct VEYRAUI_API FVeyraSpringColliderArt
 	float Radius = 0.0f;
 };
 
+/** A skill's own clip on a body (ADR-072 §1): played in place of Cast when its ability is cast. */
+USTRUCT(BlueprintType)
+struct VEYRAUI_API FVeyraAbilityCastArt
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TObjectPtr<UAnimSequence> Sequence;
+
+	/** The share of it that rises to the release, where a cast waiting to commit holds. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	float ReleaseShare = 0.0f;
+};
+
 /** One generated body (ADR-064 §3): its skeletal mesh, its animations, and what they are fitted to. */
 USTRUCT(BlueprintType)
 struct VEYRAUI_API FVeyraVanguardBody
@@ -93,6 +107,10 @@ struct VEYRAUI_API FVeyraVanguardBody
 	/** The share of Cast that raises the hands to the release. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
 	float CastReleaseShare = 0.0f;
+
+	/** Its skills' own clips by ability ID (Abilities.json; ADR-072 §1). A skill not listed plays Cast. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
+	TMap<FName, FVeyraAbilityCastArt> AbilityCasts;
 
 	/** The bone whose chain is the upper body, which alone plays an attack, a cast or a hit while the body runs. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Art")
@@ -151,6 +169,9 @@ struct VEYRAUI_API FVeyraVanguardBody
 
 	/** How long each of its animations plays at its own speed. */
 	FVeyraVanguardClipLengths Lengths() const;
+
+	/** Its skills' own clips' lengths and releases, by ability ID. */
+	TMap<FName, FVeyraVanguardSkillShape> SkillShapes() const;
 
 	/** Every problem with the body, each prefixed by Label. Empty when usable. */
 	TArray<FString> Validate(const FString& Label) const;

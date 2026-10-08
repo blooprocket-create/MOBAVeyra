@@ -40,6 +40,14 @@ namespace
 			{
 				Clips[Index] = Instance.GetClip(static_cast<EVeyraVanguardClip>(Index));
 			}
+			SkillClips.Reset();
+			for (const FVeyraVanguardAnimSlot* Slot : { &Instance.GetState().Previous, &Instance.GetState().Current })
+			{
+				if (!Slot->Skill.IsNone())
+				{
+					SkillClips.Add(Slot->Skill, Instance.GetSkillClip(Slot->Skill));
+				}
+			}
 			UpperBodyBone = Instance.GetUpperBodyBone();
 			State = Instance.GetState();
 			Limbs = Instance.GetLimbFrame();
@@ -64,7 +72,8 @@ namespace
 			MarkUpperBody(Output.Pose);
 			for (const FVeyraVanguardAnimSlot* Slot : { &State.Previous, &State.Current })
 			{
-				const UAnimSequence* Sequence = Slot->Clip == EVeyraVanguardClip::None ? nullptr : Clips[static_cast<int32>(Slot->Clip)];
+				const UAnimSequence* Sequence = Slot->Clip == EVeyraVanguardClip::None ? nullptr
+					: !Slot->Skill.IsNone() ? SkillClips.FindRef(Slot->Skill) : Clips[static_cast<int32>(Slot->Clip)];
 				if (!Sequence || !FAnimationRuntime::HasWeight(Slot->Weight))
 				{
 					continue;
@@ -289,6 +298,8 @@ namespace
 		}
 
 		const UAnimSequence* Clips[ClipCount] = {};
+		/** The skills' own clips the state plays now (ADR-072 §1). */
+		TMap<FName, const UAnimSequence*> SkillClips;
 		FName UpperBodyBone;
 		FVeyraVanguardAnimState State;
 		UVeyraVanguardAnimInstance::FLimbFrame Limbs;
@@ -306,10 +317,16 @@ void UVeyraVanguardAnimInstance::Configure(const FVeyraVanguardBody& Art, const 
 	{
 		Clips[Index] = Art.Find(static_cast<EVeyraVanguardClip>(Index));
 	}
+	SkillClips.Reset();
+	for (const TPair<FName, FVeyraAbilityCastArt>& Cast : Art.AbilityCasts)
+	{
+		SkillClips.Add(Cast.Key, Cast.Value.Sequence);
+	}
 	UpperBodyBone = Art.UpperBodyBone;
 	ConfigureLimbs(Art);
 	Shape = InShape;
 	Shape.Lengths = Art.Lengths();
+	Shape.Skills = Art.SkillShapes();
 	Shape.RunStride = Art.RunStride;
 	Shape.CastReleaseShare = Art.CastReleaseShare;
 	State = FVeyraVanguardAnimState();
@@ -437,12 +454,18 @@ void UVeyraVanguardAnimInstance::TraceFeet(float DeltaSeconds)
 	}
 }
 
-void UVeyraVanguardAnimInstance::NoteCue(EVeyraCombatCueKind Cue, float SecondsLeft)
+void UVeyraVanguardAnimInstance::NoteCue(EVeyraCombatCueKind Cue, float SecondsLeft, FName Ability)
 {
 	if (IsConfigured())
 	{
-		VeyraVanguardAnim::NoteCue(State, Cue, SecondsLeft, Shape);
+		VeyraVanguardAnim::NoteCue(State, Cue, SecondsLeft, Shape, Ability);
 	}
+}
+
+const UAnimSequence* UVeyraVanguardAnimInstance::GetSkillClip(FName Ability) const
+{
+	const TObjectPtr<UAnimSequence>* Sequence = SkillClips.Find(Ability);
+	return Sequence ? Sequence->Get() : nullptr;
 }
 
 const UAnimSequence* UVeyraVanguardAnimInstance::GetClip(EVeyraVanguardClip Clip) const

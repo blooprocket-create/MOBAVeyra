@@ -401,6 +401,181 @@
         {"emitter": "Lightning", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "expression": "float3(0, 0, 0) * User.Scale"},
         {"emitter": "Lightning", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [0.0]}
       ]
+    },
+    {
+      "name": "NS_VeyraChargeSwirl",
+      "purpose": "ADR-072 §6: a skill winding up, drawn graphic and looping on the caster's bones until its stage ends it: hard white-hot motes gather into a bright knot, flaring and rising off it, cooling to the caster's side colour.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar",
+      "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"},
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [40] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.2] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.35] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "14 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "30 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "expression": "18 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [40] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 160] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [4] }
+      ]
+    },
+    {
+      "name": "NS_VeyraShockwave",
+      "purpose": "ADR-072 §6: a slam or an eruption meeting the ground, drawn graphic: a wide shockwave ring bursts out over a white-hot flare while hard chunks are flung up and fall, cooling to the side colour.",
+      "emitters": [
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Flare", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Debris", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} }
+      ],
+      "inputs": [
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.45] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "360 * User.Scale" },
+        { "emitter": "Flare", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flare", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.2] },
+        { "emitter": "Flare", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "170 * User.Scale" },
+        { "emitter": "Debris", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "14" },
+        { "emitter": "Debris", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "emitter": "Debris", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.65] },
+        { "emitter": "Debris", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14, 50) * User.Scale" },
+        { "emitter": "Debris", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(22, 90) * User.Scale" },
+        { "emitter": "Debris", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [75] },
+        { "emitter": "Debris", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -900] }
+      ]
+    },
+    {
+      "name": "NS_VeyraSlashArc",
+      "purpose": "ADR-072 §6: a thrust or a sweep released, drawn graphic: a fan of hard streaks driven out ahead over a four-point star, white-hot and cooling to the side colour.",
+      "emitters": [
+        { "name": "Star", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Fan", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} }
+      ],
+      "inputs": [
+        { "emitter": "Star", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.16] },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "150 * User.Scale" },
+        { "emitter": "Fan", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "16" },
+        { "emitter": "Fan", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.14] },
+        { "emitter": "Fan", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.24] },
+        { "emitter": "Fan", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14, 90) * User.Scale" },
+        { "emitter": "Fan", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(20, 150) * User.Scale" },
+        { "emitter": "Fan", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [40] },
+        { "emitter": "Fan", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] }
+      ]
+    },
+    {
+      "name": "NS_VeyraBeam",
+      "purpose": "ADR-072 §6: a channelled beam, drawn graphic and looping until its channel ends: a solid band of white-hot flares packed along its length (User.Length) ahead of its caster, each flaring and cooling to the side colour, so the band shimmers but never breaks.",
+      "userFloats": [{"name": "Length", "default": 1000}],
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare",
+      "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"},
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "User.Length * 0.8" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.12] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.2] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Mode", "enum": "Random Non-Uniform" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(90.0, 90.0) * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(130.0, 130.0) * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Shape Primitive", "enum": "Box / Plane" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Box Size", "expression": "float3(User.Length, 12.0 * User.Scale, 12.0 * User.Scale)" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(User.Length * 0.5, 0.0, 90.0)" },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] }
+      ]
+    },
+    {
+      "name": "NS_VeyraShardRain",
+      "purpose": "ADR-072 §6: fragments falling onto an area and shattering, drawn graphic: hard shards burst up and out of a ring as the area lands, white-hot and cooling to the side colour.",
+      "emitters": [
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Shards", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Glints", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.4] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "420 * User.Scale" },
+        { "emitter": "Shards", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "22" },
+        { "emitter": "Shards", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "Shards", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.55] },
+        { "emitter": "Shards", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(10, 60) * User.Scale" },
+        { "emitter": "Shards", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(16, 110) * User.Scale" },
+        { "emitter": "Shards", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [70] },
+        { "emitter": "Shards", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -700] },
+        { "emitter": "Glints", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "6" },
+        { "emitter": "Glints", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.22] },
+        { "emitter": "Glints", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "60 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraMoltenSplash",
+      "purpose": "ADR-072 §6: molten metal striking the ground, drawn graphic: glowing blobs of molten stuff thrown up and falling back over a scorched ring, cooling to the side colour.",
+      "emitters": [
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Blobs", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Flare", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.5] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "320 * User.Scale" },
+        { "emitter": "Blobs", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "18" },
+        { "emitter": "Blobs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.45] },
+        { "emitter": "Blobs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Blobs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(26, 26) * User.Scale" },
+        { "emitter": "Blobs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(40, 40) * User.Scale" },
+        { "emitter": "Blobs", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [60] },
+        { "emitter": "Blobs", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -980] },
+        { "emitter": "Flare", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flare", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.22] },
+        { "emitter": "Flare", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "190 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraShellSet",
+      "purpose": "ADR-072 §6: a shell or a guard setting hard about a body, drawn graphic: a ring snaps tight round it over a white-hot flare as hard plates are flung up its sides, cooling to the side colour.",
+      "emitters": [
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Flare", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Plates", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} }
+      ],
+      "inputs": [
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.3] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "240 * User.Scale" },
+        { "emitter": "Flare", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flare", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.25] },
+        { "emitter": "Flare", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "220 * User.Scale" },
+        { "emitter": "Plates", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "12" },
+        { "emitter": "Plates", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
+        { "emitter": "Plates", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
+        { "emitter": "Plates", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(22, 40) * User.Scale" },
+        { "emitter": "Plates", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(30, 70) * User.Scale" },
+        { "emitter": "Plates", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [25] },
+        { "emitter": "Plates", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -200] }
+      ]
+    },
+    {
+      "name": "NS_VeyraChainTrail",
+      "purpose": "ADR-072 §6: a hook flying on its chain, drawn graphic and looping while it flies: a heavy stream of hard links poured where it flies, each slow to fade, cooling to the side colour, so the chain reads back toward its thrower.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing",
+      "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"},
+      "inputs": [
+        { "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "value": [60] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.6] },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "22 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "28 * User.Scale" },
+        { "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [2] },
+        { "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [3] }
+      ]
     }
   ]
 }

@@ -28,6 +28,46 @@ def bodies_of(spec):
         yield dict(spec, **status_body["body"]), status_body.get("status", status_body.get("stance")), "_" + status_body["name"]
 
 
+def kit_abilities(vanguard, abilities):
+    """Every ability a Vanguard can cast (Vanguards.json, Abilities.json): those in its slots, and those their recast
+    windows open, as a wall's detonation."""
+    definitions = {name: definition for group in abilities.values() if isinstance(group, dict)
+                   for name, definition in group.items() if isinstance(definition, dict)}
+    found = {ability for slot in vanguard.get("abilities", {}).values() for ability in slot}
+    waiting = list(found)
+    while waiting:
+        for window in definitions.get(waiting.pop(), {}).get("cast", {}).get("recastWindow", []):
+            if window["ability"] not in found:
+                found.add(window["ability"])
+                waiting.append(window["ability"])
+    return found
+
+
+def skill_problems(spec, poses_skills, vanguard, abilities, motion_names):
+    """Everything wrong with a body's skills list (ADR-072 §1): each names an ability in its Vanguard's kit, once, with
+    one of the shared motions (motion_names), a positive length and a release inside the clip; and only an archetype
+    that poses skills (poses_skills) may have any."""
+    skills = spec.get("skills", [])
+    if skills and not poses_skills:
+        return ["the " + spec["archetype"] + " archetype has no skill motions yet"]
+    known = kit_abilities(vanguard, abilities)
+    problems, seen = [], set()
+    for skill in skills:
+        ability = skill.get("ability")
+        if ability not in known:
+            problems.append(str(ability) + " is not in its kit (its slots in Vanguards.json, or a recast they open)")
+        if ability in seen:
+            problems.append(str(ability) + " is listed twice")
+        seen.add(ability)
+        if skill.get("motion") not in motion_names:
+            problems.append(str(ability) + ": no motion " + str(skill.get("motion")))
+        if not skill.get("seconds", 0.0) > 0.0:
+            problems.append(str(ability) + ": seconds must be positive")
+        if not 0.0 < skill.get("releaseShare", 0.0) < 1.0:
+            problems.append(str(ability) + ": releaseShare must lie between 0 and 1")
+    return problems
+
+
 def units(vanguards, companions):
     """Every unit a body is fitted to, by ID, as Vanguards.json shapes a Vanguard (its body's capsule and its basic
     attack): the Vanguards, and the companions of Abilities.json, whose capsule sits on the definition itself."""

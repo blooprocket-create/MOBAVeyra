@@ -16,9 +16,9 @@ class UNiagaraSystem;
 /**
  * Shows Vanguards' kits beyond their bodies on every machine someone watches (ADR-071): a tether as a strand from the
  * unit that holds its other end, with its siphon flowing along it; a self-buff's aura as a ring on the ground while it
- * lasts and its end payload as a ring spreading to its reach; a status as a mark on the unit that holds it; and an
- * ability's own cast effect. It reads only what every client receives (the status ledgers and Abilities.json) and
- * decides nothing.
+ * lasts and its end payload as a ring spreading to its reach; and a status as a mark on the unit that holds it. An
+ * ability's own effects are UVeyraSkillEffectsSubsystem's (ADR-072 §4). It reads only what every client receives (the
+ * status ledgers and Abilities.json) and decides nothing.
  */
 UCLASS()
 class VEYRAUI_API UVeyraKitPresentationSubsystem : public UTickableWorldSubsystem
@@ -35,9 +35,6 @@ public:
 
 	/** Brings the kit presentation up to date with the world. Its tick calls this; tests call it directly. */
 	void Refresh();
-
-	/** Ability's own cast effect and its scale, if it has one (ADR-071 §4); null for the shared flash. */
-	UNiagaraSystem* CastEffectOf(const FVeyraContentId& Ability, float& OutScale) const;
 
 	/** What the last refresh drew. */
 	struct FStrandShown
@@ -92,12 +89,9 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraSystem> BurstEffect;
 
-	/** Each mark's and cast's effect, loaded with the settings, by status or ability ID as written there. */
+	/** Each mark's effect, loaded with the settings, by status ID as written there. */
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<UNiagaraSystem>> MarkEffects;
-
-	UPROPERTY(Transient)
-	TMap<FName, TObjectPtr<UNiagaraSystem>> CastEffects;
 
 	/** The bead effects, reused frame to frame in strand order. */
 	UPROPERTY(Transient)

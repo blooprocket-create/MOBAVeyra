@@ -67,15 +67,6 @@ void UVeyraKitPresentationSubsystem::Initialize(FSubsystemCollectionBase& Collec
 			}
 			MarkEffects.Add(Mark.Status, Effect);
 		}
-		for (const FVeyraAbilityCastEffect& Cast : Settings.AbilityCastEffects)
-		{
-			UNiagaraSystem* Effect = Cast.Effect.LoadSynchronous();
-			if (!Effect)
-			{
-				Problems.Add(FString::Printf(TEXT("AbilityCastEffects: %s's effect %s does not load."), *Cast.Ability.ToString(), *Cast.Effect.ToString()));
-			}
-			CastEffects.Add(Cast.Ability, Effect);
-		}
 	}
 	for (const FString& Problem : Problems)
 	{
@@ -145,17 +136,6 @@ void UVeyraKitPresentationSubsystem::Refresh()
 	RefreshStrandsAndRings(Now);
 	DrawBursts(Now);
 	RefreshMarks();
-}
-
-UNiagaraSystem* UVeyraKitPresentationSubsystem::CastEffectOf(const FVeyraContentId& Ability, float& OutScale) const
-{
-	const FVeyraAbilityCastEffect* Cast = bReady && Ability.IsValid() ? GetDefault<UVeyraKitPresentationSettings>()->CastEffectOf(NameOf(Ability)) : nullptr;
-	if (!Cast)
-	{
-		return nullptr;
-	}
-	OutScale = Cast->Scale;
-	return CastEffects.FindRef(Cast->Ability);
 }
 
 FVector UVeyraKitPresentationSubsystem::FeetOf(const AActor& Unit) const

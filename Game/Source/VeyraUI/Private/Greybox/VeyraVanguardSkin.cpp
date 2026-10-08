@@ -104,6 +104,9 @@ FVeyraVanguardAnimInputs VeyraVanguardSkin::InputsOf(const APawn& Unit, EVeyraTe
 		Inputs.bAttackWindingUp = Sighting->AttackPhase == EVeyraAttackPhase::Windup;
 		Inputs.AttackWindupSecondsLeft = Inputs.bAttackWindingUp ? static_cast<float>(FMath::Max(0.0, Sighting->AttackPhaseEndsAt - ServerNow)) : 0.0f;
 		Inputs.bCastHeld = Sighting->CastPhase == EVeyraCastPhase::Windup || Sighting->CastPhase == EVeyraCastPhase::Channel;
+		Inputs.CastAbility = Inputs.bCastHeld && Sighting->CastAbility.IsValid() ? FName(*Sighting->CastAbility.ToString()) : NAME_None;
+		Inputs.CastWindupSecondsLeft = Sighting->CastPhase == EVeyraCastPhase::Windup
+			? static_cast<float>(FMath::Max(0.0, Sighting->CastPhaseEndsAt - ServerNow)) : 0.0f;
 	}
 	return Inputs;
 }

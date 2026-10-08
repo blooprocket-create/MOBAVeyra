@@ -64,6 +64,7 @@ TArray<FVeyraCombatCue> Between(const AActor& Unit, const FVeyraUnitSighting& Be
 		FVeyraCombatCue& Cue = Add(EVeyraCombatCueKind::CastWindup);
 		Cue.Ability = Now.CastAbility;
 		Cue.Location = Now.CastLocation;
+		Cue.EndsAt = Now.CastPhaseEndsAt;
 	}
 	if (Now.CommitSerial != Before.CommitSerial)
 	{
@@ -100,6 +101,7 @@ TOptional<FVeyraUnitSighting> Sight(const AActor& Unit, EVeyraTeam Viewer)
 	{
 		const FVeyraCastState& Cast = Casts->GetState();
 		Sighting.CastPhase = Cast.Phase;
+		Sighting.CastPhaseEndsAt = Cast.PhaseEndsAt;
 		Sighting.CastId = Cast.CastId;
 		Sighting.CastAbility = Cast.Ability;
 		Sighting.CastLocation = Cast.Location;

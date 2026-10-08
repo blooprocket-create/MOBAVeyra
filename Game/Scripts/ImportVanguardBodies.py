@@ -183,6 +183,8 @@ def body_material(collection):
     # The glow, on top: what the vertex alpha marks, at glowGain.
     glow = g.op(unreal.MaterialExpressionMultiply, 2, g.op(unreal.MaterialExpressionMultiply, 1, color, color, "", "A"),
                 g.scalar(1, "GlowStrength", values["glowGain"], "Toon"))
+    # Raised while a cast holds the body (ADR-072 §5): 1 at rest, the presentation's gain at full strain.
+    glow = g.op(unreal.MaterialExpressionMultiply, 3, glow, g.scalar(2, values["castGlow"]["parameter"], 1.0, "Toon"))
     total = g.op(unreal.MaterialExpressionAdd, 8, bright, glow)
     # The veil (ADR-068 §6): while the presentation raises Veil, a body on the viewer's side hidden from its enemies
     # thins to opacity of itself, dithered, under bands rising through it, while its silhouette stays whole and glows in VeilTint.
@@ -313,6 +315,14 @@ def fill_body(asset, body):
                                             for clip in asset["animations"]})
     body.set_editor_property("run_stride", asset["runStrideCm"])
     body.set_editor_property("cast_release_share", asset["castReleaseShare"])
+
+    def ability_cast(cast):
+        # A skill's own clip, among the body's animations, and where it releases (ADR-072 §1).
+        art = unreal.VeyraAbilityCastArt()
+        art.set_editor_property("sequence", unreal.load_asset(folder_of(asset) + "/" + sequence_name(asset, cast["clip"])))
+        art.set_editor_property("release_share", cast["releaseShare"])
+        return art
+    body.set_editor_property("ability_casts", {unreal.Name(cast["ability"]): ability_cast(cast) for cast in asset.get("abilityCasts", [])})
     body.set_editor_property("upper_body_bone", unreal.Name(asset["upperBodyBone"]))
     body.set_editor_property("priority", asset.get("priority", 0))
     ik = asset.get("ik", {})

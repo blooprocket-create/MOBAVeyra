@@ -120,14 +120,17 @@ namespace VeyraCombatCueTests
 			const ACharacter& Unit = SpawnUnit();
 			const FVeyraContentId Ability = FVeyraContentId::FromText(TEXT("a_cast")).GetValue();
 			const FVector Aim(300.0, 0.0, 0.0);
+			constexpr double WindupEndsAt = 12.5;
 			const FVeyraUnitSighting Idle = Standing();
 			FVeyraUnitSighting Windup = Idle;
 			Windup.CastPhase = EVeyraCastPhase::Windup;
 			Windup.CastId = 1;
 			Windup.CastAbility = Ability;
 			Windup.CastLocation = Aim;
+			Windup.CastPhaseEndsAt = WindupEndsAt;
 			const TArray<FVeyraCombatCue> Began = VeyraCombatCues::Between(Unit, Idle, Windup);
 			ASSERT_THAT(IsTrue(Began.Num() == 1 && Began[0].Kind == EVeyraCombatCueKind::CastWindup && Began[0].Ability == Ability && Began[0].Location.Equals(Aim)));
+			ASSERT_THAT(IsNear(Began[0].EndsAt, WindupEndsAt, 1e-6, TEXT("a cast's windup cue says when it commits (ADR-072 §3)")));
 			ASSERT_THAT(IsTrue(VeyraCombatCues::Between(Unit, Windup, Windup).IsEmpty()));
 			// A commit with no phase after it, as a cast with no windup, channel or recovery.
 			FVeyraUnitSighting Committed = Idle;

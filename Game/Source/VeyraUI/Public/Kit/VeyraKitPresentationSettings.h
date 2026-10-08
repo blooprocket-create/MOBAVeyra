@@ -42,9 +42,27 @@ struct FVeyraStatusMark
 	float HeightShare = 0.0f;
 };
 
-/** An ability whose cast shows its own effect in place of the shared cast flash (ADR-071 §4). */
+/** One stage of a skill's effects (ADR-072 §4): its system, unset for none, and the system's user scale. */
 USTRUCT()
-struct FVeyraAbilityCastEffect
+struct FVeyraSkillEffectStage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	TSoftObjectPtr<UNiagaraSystem> Effect;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit", meta = (ClampMin = "0"))
+	float Scale = 0.0f;
+
+	bool IsSet() const { return !Effect.IsNull(); }
+};
+
+/**
+ * How an ability's cast shows beyond its body's clip (ADR-072 §4), stage by stage; a stage left unset shows what the
+ * shared presentation does. Every stage is tinted by its caster's side.
+ */
+USTRUCT()
+struct FVeyraAbilityEffects
 {
 	GENERATED_BODY()
 
@@ -52,12 +70,31 @@ struct FVeyraAbilityCastEffect
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	FName Ability;
 
+	/** Looping, on WindupBones of its caster's body, from its windup until nothing holds the cast. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
-	TSoftObjectPtr<UNiagaraSystem> Effect;
+	FVeyraSkillEffectStage Windup;
 
-	/** The effect's user scale. */
-	UPROPERTY(Config, EditAnywhere, Category = "Kit", meta = (ClampMin = "0"))
-	float Scale = 0.0f;
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	TArray<FName> WindupBones;
+
+	/** Looping, from its caster along the cast's direction while it channels, its length the ability's reach. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Channel;
+
+	/** One-shot, as it commits, in place of the shared flash: at its caster, or where it was aimed if bCommitAtTarget. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Commit;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	bool bCommitAtTarget = false;
+
+	/** Looping, on each projectile of it in flight, in place of the shared trail. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Travel;
+
+	/** One-shot, where a projectile of it ends, or where a delayed area of it lands. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Impact;
 };
 
 /**
@@ -120,12 +157,16 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Marks")
 	TArray<FVeyraStatusMark> StatusMarks;
 
-	/** The abilities whose casts show their own effects (ADR-071 §4). */
+	/** The abilities whose casts show their own effects, stage by stage (ADR-072 §4). */
 	UPROPERTY(Config, EditAnywhere, Category = "Casts")
-	TArray<FVeyraAbilityCastEffect> AbilityCastEffects;
+	TArray<FVeyraAbilityEffects> AbilityEffects;
 
-	/** The cast effect for Ability, if it has its own; null for the shared flash. */
-	const FVeyraAbilityCastEffect* CastEffectOf(FName Ability) const;
+	/** The user parameter a channel's effect takes its length by, in units: how far its ability reaches (ADR-072 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName ChannelLengthParameter;
+
+	/** The effects for Ability, if it has its own; null for the shared presentation's. */
+	const FVeyraAbilityEffects* EffectsOf(FName Ability) const;
 
 	/** Whether Status is drawn as a strand. */
 	bool IsStrand(FName Status) const;

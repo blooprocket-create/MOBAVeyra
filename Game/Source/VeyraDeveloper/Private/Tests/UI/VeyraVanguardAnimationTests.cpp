@@ -27,6 +27,9 @@ namespace VeyraVanguardAnimationTests
 		static constexpr float RunBlendSpeed = 150.0f;
 		static constexpr float MinPlayRate = 0.25f;
 		static constexpr float MaxPlayRate = 4.0f;
+		// A skill's own clip (ADR-072 §1): its length and the share of it that rises to its release.
+		static constexpr float SkillSeconds = 1.2f;
+		static constexpr float SkillReleaseShare = 0.5f;
 		static constexpr float Step = 0.01f;
 		static constexpr float Slack = 0.02f;
 
@@ -44,8 +47,13 @@ namespace VeyraVanguardAnimationTests
 			Shape.RunBlendSpeed = RunBlendSpeed;
 			Shape.MinPlayRate = MinPlayRate;
 			Shape.MaxPlayRate = MaxPlayRate;
+			Shape.Skills.Add(SkillAbility(), { SkillSeconds, SkillReleaseShare });
 			return Shape;
 		}
+
+		/** The fixture's ability with a clip of its own, and one without. */
+		static FName SkillAbility() { return TEXT("a_skill"); }
+		static FName PlainAbility() { return TEXT("a_plain_cast"); }
 
 		/** Advances State by Seconds in small steps, as frames would. */
 		static void Elapse(FVeyraVanguardAnimState& State, float Seconds, const FVeyraVanguardAnimInputs& Inputs = FVeyraVanguardAnimInputs())
@@ -238,6 +246,66 @@ namespace VeyraVanguardAnimationTests
 			VeyraVanguardAnim::NoteCue(Waiting, EVeyraCombatCueKind::CastCommit, 0.0f, Shape());
 			ASSERT_THAT(IsTrue(Waiting.Current.IsActive() && Waiting.Current.Clip == EVeyraVanguardClip::Cast));
 			ASSERT_THAT(IsNear(Waiting.Current.Position, Release, Slack));
+		}
+
+		TEST_METHOD(ASkillWithItsOwnClipRisesToItsReleaseAsItsWindupEnds)
+		{
+			// Its release lands on the commit however long the windup (ADR-072 §3): the rise plays at the rate that fits it.
+			constexpr float WindupLeft = 0.3f;
+			const float Release = SkillSeconds * SkillReleaseShare;
+			FVeyraVanguardAnimState State;
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::CastWindup, WindupLeft, Shape(), SkillAbility());
+			ASSERT_THAT(IsTrue(State.Current.Clip == EVeyraVanguardClip::Cast && State.Current.Skill == SkillAbility(), TEXT("it plays its own clip")));
+			ASSERT_THAT(IsNear(State.Current.Rate, Release / WindupLeft, Slack));
+			FVeyraVanguardAnimInputs Holding;
+			Holding.bCastHeld = true;
+			Holding.CastAbility = SkillAbility();
+			Elapse(State, WindupLeft, Holding);
+			ASSERT_THAT(IsNear(State.Current.Position, Release, Slack, TEXT("at the release as the windup ends")));
+			Elapse(State, WindupLeft, Holding);
+			ASSERT_THAT(IsNear(State.Current.Position, Release, Slack, TEXT("held there while the cast waits or channels")));
+			// Committed, it follows through at its own pace to its own end, then gives way.
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::CastCommit, 0.0f, Shape(), SkillAbility());
+			ASSERT_THAT(IsNear(State.Current.Rate, 1.0f, Slack));
+			Elapse(State, SkillSeconds - Release - Step * 2.0f);
+			ASSERT_THAT(IsTrue(State.Current.IsActive() && State.Current.Position > CastSeconds, TEXT("its own length, not Cast's")));
+			Elapse(State, Step * 4.0f);
+			ASSERT_THAT(IsTrue(State.Current.bFadingOut || State.Current.Clip == EVeyraVanguardClip::None));
+		}
+
+		TEST_METHOD(ASkillWithoutAClipOfItsOwnPlaysCast)
+		{
+			FVeyraVanguardAnimState State;
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::CastWindup, 0.3f, Shape(), PlainAbility());
+			ASSERT_THAT(IsTrue(State.Current.Clip == EVeyraVanguardClip::Cast && State.Current.Skill.IsNone()));
+			ASSERT_THAT(IsNear(State.Current.HoldAt, CastSeconds * CastReleaseShare, Slack));
+			ASSERT_THAT(IsNear(State.Current.Rate, 1.0f, Slack, TEXT("Cast keeps its own pace")));
+		}
+
+		TEST_METHOD(ASkillWithNoWindupReleasesFromItsOwnRelease)
+		{
+			FVeyraVanguardAnimState State;
+			VeyraVanguardAnim::NoteCue(State, EVeyraCombatCueKind::CastCommit, 0.0f, Shape(), SkillAbility());
+			ASSERT_THAT(IsTrue(State.Current.Skill == SkillAbility()));
+			ASSERT_THAT(IsNear(State.Current.Position, SkillSeconds * SkillReleaseShare, Slack));
+			// A commit of another cast while one clip rises plays that cast's, not the rest of the first.
+			FVeyraVanguardAnimState Switched;
+			VeyraVanguardAnim::NoteCue(Switched, EVeyraCombatCueKind::CastWindup, 0.3f, Shape(), SkillAbility());
+			VeyraVanguardAnim::NoteCue(Switched, EVeyraCombatCueKind::CastCommit, 0.0f, Shape(), PlainAbility());
+			ASSERT_THAT(IsTrue(Switched.Current.Skill.IsNone() && Switched.Current.Clip == EVeyraVanguardClip::Cast));
+		}
+
+		TEST_METHOD(ABodyFirstSeenMidSkillTakesUpItsClip)
+		{
+			// Out of the fog mid-windup: no cue began it, so its inputs do, with the ability and the time left.
+			FVeyraVanguardAnimState State;
+			FVeyraVanguardAnimInputs Holding;
+			Holding.bCastHeld = true;
+			Holding.CastAbility = SkillAbility();
+			Holding.CastWindupSecondsLeft = 0.2f;
+			VeyraVanguardAnim::Advance(State, Step, Holding, Shape());
+			ASSERT_THAT(IsTrue(State.Current.Skill == SkillAbility()));
+			ASSERT_THAT(IsNear(State.Current.Rate, SkillSeconds * SkillReleaseShare / Holding.CastWindupSecondsLeft, Slack));
 		}
 
 		TEST_METHOD(ACastWithNoWindupReleasesAtOnce)

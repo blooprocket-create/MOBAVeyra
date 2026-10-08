@@ -48,7 +48,7 @@ struct FVeyraCombatCue
 	/** A hit's Health and shields lost; a level-up's new Level. */
 	double Amount = 0.0;
 
-	/** When an attack's windup ends, in the server's world time. */
+	/** When an attack's or a cast's windup ends, in the server's world time. */
 	double EndsAt = 0.0;
 };
 
@@ -66,6 +66,7 @@ struct FVeyraUnitSighting
 	TWeakObjectPtr<const AActor> AttackTarget;
 
 	EVeyraCastPhase CastPhase = EVeyraCastPhase::None;
+	double CastPhaseEndsAt = 0.0;
 	int32 CastId = 0;
 	FVeyraContentId CastAbility;
 	FVector CastLocation = FVector::ZeroVector;
