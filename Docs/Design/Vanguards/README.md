@@ -89,7 +89,7 @@ Beyond pass/fail it prints a roster summary derived from the data, which is the 
 
 **Marks and meters.** 18 of 26 kits apply a named mark, stack or meter. The fiction varies; the mechanical shape often does not.
 
-**Sheet status.** All 26 entries are `file: null` — 22 `superseded` by authored art, 3 `withdrawn`, and Rheyzekx `missing` because no legacy sheet ever existed — printed as a count per status. Neither is a defect; it is the expected state after the baked-text sheets were deleted.
+**Sheet status.** All 26 entries are `file: null` — 22 `superseded` by authored art, 3 `withdrawn`, and Rheyzekx `missing` because no legacy sheet ever existed — printed as a count per status. These statuses are descriptive; the retired sheets remain expected history, and Rheyzekx's missing status records that no legacy sheet ever existed.
 
 These numbers are descriptive, not verdicts. They are here so the trade-offs are visible when the roster changes, rather than discovered during balance.
 
