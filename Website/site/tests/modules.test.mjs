@@ -63,6 +63,13 @@ describe("the servers' hours", () => {
     assert.equal(session("2026-03-08T12:00:00Z").opensAt, "2026-03-09T02:00:00.000Z");
   });
 
+  test("read a time the clock skips as the same time after the jump, and a repeated one as its first", () => {
+    // 2:30 AM doesn't exist on 2026-03-08 in New York: it runs at 3:30 AM daylight time.
+    assert.deepEqual(session("2026-03-07T12:00:00Z", { ...hours, opens: "02:30", closes: "04:00" }), { opensAt: "2026-03-08T07:30:00.000Z", closesAt: "2026-03-08T08:00:00.000Z", live: false });
+    // 1:30 AM happens twice on 2026-11-01: the first is daylight time.
+    assert.equal(session("2026-10-31T12:00:00Z", { ...hours, opens: "01:30", closes: "03:00" }).opensAt, "2026-11-01T05:30:00.000Z");
+  });
+
   test("may run past midnight", () => {
     const late = { ...hours, opens: "23:00", closes: "01:00" };
     // 12:30 AM on the 8th is still the 7th's session.

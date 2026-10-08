@@ -25,13 +25,22 @@ function offsetMinutes(timeZone, instant) {
   return Math.round((asUtc - instant.getTime()) / MS_PER_MINUTE);
 }
 
-/** The instant `timeZone`'s clock reads `minutes` after midnight on the given day (days and minutes may overflow). */
+/**
+ * The instant `timeZone`'s clock reads `minutes` after midnight on the given day (days and minutes may overflow).
+ * Where the clock changes that day, a time it skips reads as the same time after the jump (2:30 becomes 3:30), as
+ * schedulers run it, and a time it repeats reads as its first.
+ */
 function instantAt(timeZone, { year, month, day }, minutes) {
   const wall = Date.UTC(year, month - 1, day, 0, minutes);
-  // Twice, so a day that changes between standard and daylight time lands on the right side of the change.
-  let instant = wall - offsetMinutes(timeZone, new Date(wall)) * MS_PER_MINUTE;
-  instant = wall - offsetMinutes(timeZone, new Date(instant)) * MS_PER_MINUTE;
-  return new Date(instant);
+  // The offsets in force a day either side: the same unless the clock changes in between.
+  const before = offsetMinutes(timeZone, new Date(wall - MINUTES_PER_DAY * MS_PER_MINUTE));
+  const after = offsetMinutes(timeZone, new Date(wall + MINUTES_PER_DAY * MS_PER_MINUTE));
+  // Each offset gives a candidate; it is real if the clock reads `wall` there. Two are real where the time repeats.
+  const real = [before, after]
+    .map((offset) => wall - offset * MS_PER_MINUTE)
+    .filter((instant) => instant + offsetMinutes(timeZone, new Date(instant)) * MS_PER_MINUTE === wall);
+  // None is real where the time is skipped: read it on the clock from before the change, which lands after the jump.
+  return new Date(real.length > 0 ? Math.min(...real) : wall - before * MS_PER_MINUTE);
 }
 
 /** The session running at `now`, or the next one: { opensAt, closesAt, live }. Hours may run past midnight. */
