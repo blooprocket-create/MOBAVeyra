@@ -7,6 +7,7 @@ import { createBackend } from "../backend.js";
 import { startChrome, showSignedIn } from "../chrome.js";
 import { createFirebase, describeFirebaseError } from "../firebase.js";
 import { displayNameField, notify, passwordReveal, showAuthArt, showStep, whileBusy } from "../forms.js";
+import { serverHoursPhrase } from "../hours.js";
 import { looksLikeEmail } from "../rules.js";
 import { clearNeedsName, saveSession, setNeedsName } from "../session.js";
 
@@ -26,7 +27,7 @@ card.querySelector("[data-password-hint]").textContent = `At least ${passwordMin
 let pendingAuth = null;
 
 const NAME_PROBLEM = `Choose a display name of ${nameRules.minLength}–${nameRules.maxLength} letters, digits or underscores.`;
-const OFFLINE = "Veyra's servers are offline right now, so new accounts can't be finished. Nothing was created: try again when the servers are back.";
+const OFFLINE = `Veyra's servers are offline right now, so new accounts can't be finished. Nothing was created: try again during the servers' daily hours, ${serverHoursPhrase(config.serverHours)}.`;
 
 function done(account) {
   clearNeedsName();
