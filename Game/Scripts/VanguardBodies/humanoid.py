@@ -416,11 +416,16 @@ def body(spec, L, d, bones=BONES):
     head_center = (h0 + h1) / 2
     body.ball("head", head_center, head_radius, skin, scale=(1.0, 0.9, 1.0))
     if "buttonEyes" in features:
-        # A toy's mismatched button eyes, one dark and one pale, sewn on a little crooked, over a soft muzzle with a
-        # stitched seam across it. Plain and kindly: no fangs, no glow.
-        for sign, color, drop in ((1, [0.06, 0.05, 0.05], 0.0), (-1, [0.85, 0.82, 0.74], 0.12)):
+        # A toy's two dark button eyes, each crossed with red thread, sewn on a little crooked, over a soft muzzle with
+        # a stitched seam across it. Plain and kindly: no fangs, no glow.
+        for sign, drop in ((1, 0.0), (-1, 0.12)):
             eye = head_center + Vector((head_radius * 0.9, sign * head_radius * 0.38, head_radius * (0.15 - drop)))
-            body.limb("head", eye - Vector((head_radius * 0.06, 0, 0)), eye + Vector((head_radius * 0.06, 0, 0)), head_radius * 0.17, head_radius * 0.17, color, segments=8)
+            body.limb("head", eye - Vector((head_radius * 0.06, 0, 0)), eye + Vector((head_radius * 0.06, 0, 0)), head_radius * 0.17, head_radius * 0.17,
+                      [0.06, 0.05, 0.05], segments=8)
+            face = eye + Vector((head_radius * 0.065, 0, 0))
+            for turn in (1, -1):
+                cross = Vector((0, head_radius * 0.11, turn * head_radius * 0.11))
+                body.limb("head", face - cross, face + cross, head_radius * 0.025, head_radius * 0.025, [0.8, 0.12, 0.1], segments=4)
         muzzle = head_center + Vector((head_radius * 0.82, 0, -head_radius * 0.3))
         body.ball("head", muzzle, head_radius * 0.38, mix(skin, [1.0, 0.95, 0.85], 0.35), scale=(0.8, 1.0, 0.75), segments=8)
         body.ball("head", muzzle + Vector((head_radius * 0.28, 0, head_radius * 0.08)), head_radius * 0.11, [0.15, 0.08, 0.06], segments=6)
