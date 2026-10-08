@@ -191,6 +191,10 @@ Not errors, but they prevent the set reading as one product.
 
 ## G. Resolved and remaining
 
+### G1. Rheyzekx — no legacy character sheet
+
+Rheyzekx entered canon directly through the Character Bible and structural Vanguard data on 2026-10-08. No baked-text or legacy concept sheet ever existed for him, so his structural entry correctly records `sheet.status: missing` and `file: null`. This is an absence record, not a canon conflict; a rendered sheet can be generated from current canon when the roster sheets are next rebuilt.
+
 ### Resolved 2026-09-20
 
 | Question | Ruling |
