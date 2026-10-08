@@ -1,6 +1,8 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Casting/VeyraCastStateComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "CQTest.h"
 #include "Movement/VeyraUnitCollision.h"
@@ -205,6 +207,19 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.HealthLost(Near) == Damage));
 			ASSERT_THAT(IsTrue(World.HealthLost(Far) == 0.0));
 			ASSERT_THAT(IsTrue(InFlight() == nullptr));
+			// Its caster's cast state says where it ended, for clients' impacts: at the unit it struck (ADR-072 §4).
+			ASSERT_THAT(IsTrue(LastEnd().Serial == 1 && LastEnd().Ability == ArchetypeTestId(TEXT("test_spear")) && LastEnd().CastId > 0));
+			// Where its body met the unit's: short of the unit's centre by their two radii.
+			const double Met = Near.GetActorLocation().X - Near.GetCapsuleComponent()->GetScaledCapsuleRadius() - ShotRadius;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(LastEnd().Location.X, Met, Tolerance), *FString::Printf(TEXT("ended at %.1f, met at %.1f"), LastEnd().Location.X, Met)));
+			// Each end counts on, the latest one in its place.
+			const int32 FirstCast = LastEnd().CastId;
+			Near.SetActorLocation(FVector(ShotRange * 4.0, 0.0, 0.0));
+			Far.SetActorLocation(FVector(ShotRange * 4.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Caster, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_lance")))));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::E, FVector(ShotRange, 0.0, 0.0)) == EVeyraCastRejection::None));
+			Fly(ShotRange / ShotSpeed * 2.0);
+			ASSERT_THAT(IsTrue(LastEnd().Serial == 2 && LastEnd().Ability == ArchetypeTestId(TEXT("test_lance")) && LastEnd().CastId != FirstCast));
 		}
 
 		TEST_METHOD(AHookPushesOtherUnitsAsideAndPullsTheFirstEnemyVanguard)
@@ -309,6 +324,15 @@ namespace VeyraAbilitiesTests
 			Fly(ShotRange / ShotSpeed);
 			ASSERT_THAT(IsTrue(InFlight() == nullptr));
 			ASSERT_THAT(IsTrue(World.HealthLost(Beyond) == 0.0));
+			ASSERT_THAT(IsTrue(LastEnd().Serial == 1 && FMath::IsNearlyEqual(LastEnd().Location.X, ShotRange, Tolerance), TEXT("it ended at its range")));
+		}
+
+		/** Where the caster's cast state says its latest cast projectile ended (ADR-072 §4). */
+		const FVeyraProjectileEnd& LastEnd() const
+		{
+			const UVeyraCastStateComponent* Casts = Caster->GetAbilitySystemComponent()->GetOwner()->FindComponentByClass<UVeyraCastStateComponent>();
+			check(Casts);
+			return Casts->GetLastProjectileEnd();
 		}
 
 		/** A homing projectile from the caster after Target, dealing the fixture damage. */
@@ -330,6 +354,7 @@ namespace VeyraAbilitiesTests
 			Fly(ShotRange / ShotSpeed);
 			ASSERT_THAT(IsTrue(World.HealthLost(Target) == Damage));
 			ASSERT_THAT(IsTrue(InFlight() == nullptr));
+			ASSERT_THAT(IsTrue(LastEnd().Serial == 0, TEXT("one launched by no cast, as a basic attack is, says nothing of its end")));
 		}
 
 		TEST_METHOD(AHomingProjectileKeepsGoingAfterItsTargetVanishes)

@@ -24,6 +24,30 @@ namespace VeyraSkillEffects
 
 	/** How long after Ability commits its area lands, in seconds; 0 for an ability whose area lands as it commits, or that has none. */
 	VEYRAUI_API double LandingDelayOf(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/** Where a commit effect plays: at its caster (From), or at the ground point it was aimed at, its height and all. */
+	VEYRAUI_API FVector CommitPlacement(const FVector& From, const FVector& Aimed, bool bAtTarget);
+}
+
+/** Where and when this machine last drew a cast's projectile (ADR-072 §4), to match the server's end of it. */
+struct FVeyraSeenProjectile
+{
+	/** In the server's time. */
+	double SeenAt = 0.0;
+	FVector At = FVector::ZeroVector;
+	/** Units a second. */
+	double Speed = 0.0;
+	FLinearColor Color = FLinearColor::White;
+};
+
+namespace VeyraSkillEffects
+{
+	/**
+	 * Whether the server's end of a projectile at EndedAt, learnt at Now, is one this machine saw coming: drawn within
+	 * WindowSeconds, and ending no farther from where it was drawn than it flies in that window (the end and the drawing
+	 * may each run ahead of the other).
+	 */
+	VEYRAUI_API bool SawItEnd(const FVeyraSeenProjectile& Seen, const FVector& EndedAt, double Now, double WindowSeconds);
 }
 
 /**
@@ -58,8 +82,11 @@ public:
 	/** Ability's own trail for its projectiles and its scale; null for the shared trail. */
 	UNiagaraSystem* TravelEffectOf(const FVeyraContentId& Ability, float& OutScale) const;
 
-	/** Plays Ability's impact where one of its projectiles ended, in Color; nothing if it has none. */
-	void NoteProjectileEnded(const FVeyraContentId& Ability, const FVector& Where, const FLinearColor& Color);
+	/** This machine draws a projectile of Ability's cast CastId at At, flying at Speed, in Color, now. */
+	void NoteProjectileDrawn(const FVeyraContentId& Ability, int32 CastId, const FVector& At, double Speed, const FLinearColor& Color);
+
+	/** Whether Caster's windup or channel stages show now (begun by a cue, or by seeing it already held). */
+	bool IsShowing(const AActor& Caster) const { return Showing.Contains(&Caster); }
 
 	/** The windup effects pouring off Caster now, one per bone; empty while none does. */
 	TArray<UNiagaraComponent*> FindWindupEffects(const AActor& Caster) const;
@@ -77,6 +104,12 @@ private:
 	void BeginWindup(const AActor& Caster, const FVeyraContentId& Ability);
 	void RefreshChannel(const AActor& Caster, const FVeyraContentId& Ability, const FVector& Direction);
 	void EndStages(const AActor& Caster);
+
+	/** Shows the stages of casts this machine first sees already held: a caster seen mid-windup or mid-channel. */
+	void SeedHeldCasts();
+
+	/** Plays an impact where the server ended a projectile, if this machine saw it coming. */
+	void NoteProjectileEnd(const FVeyraCombatCue& Cue);
 
 	bool bReady = false;
 	FDelegateHandle CueHandle;
@@ -106,4 +139,7 @@ private:
 		FLinearColor Color = FLinearColor::White;
 	};
 	TArray<FLanding> Landings;
+
+	/** The cast projectiles drawn lately, by ability and cast, until their end comes or their window passes. */
+	TMap<TPair<FName, int32>, FVeyraSeenProjectile> Seen;
 };

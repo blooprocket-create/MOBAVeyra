@@ -191,7 +191,8 @@ void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueK
 		}
 		break;
 	case EVeyraCombatCueKind::LevelUp:
-		// A level-up shows as a burst, never as a pose.
+	case EVeyraCombatCueKind::ProjectileEnd:
+		// A level-up shows as a burst and a projectile's end where it ended, never as a pose.
 		break;
 	}
 }

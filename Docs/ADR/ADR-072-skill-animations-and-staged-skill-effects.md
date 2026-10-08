@@ -85,6 +85,14 @@ Everything this record adds is drawn from that state. No new replication is need
 - **Colour:** every stage is tinted by the caster's side, as the presentation's other effects are.
 - **Validation:** recipes are validated at start like the rest of the kit presentation settings, every stage's system must load, and a test checks that every listed ability exists in `Abilities.json`.
 - **Which systems go where:** the Windup, Channel and Travel stages take continuous systems, which their stage ends. Commit and Impact take one-shot bursts, which end on their own. This is a contract on the settings, not a load-time check: Niagara's looping flag does not tell a continuous emitter apart (it reads false for `NS_VeyraEmbers`).
+- **Where a projectile ends is the server's.** When a cast's projectile ends (it struck, met terrain or reached its range), its caster's cast state records the end: its ability, its cast and the server's own location (`FVeyraProjectileEnd`, push-replicated like the latest commit). A basic attack's projectiles, launched by no cast, record nothing.
+  - **Matching on the client:** a client shows the Impact only for a projectile of that cast it drew within `ProjectileEndWindowSeconds`, ending no farther from where it was drawn than it flies in that window. The end and the projectile's removal reach the client in either order.
+  - **Fog:** a projectile that merely left sight has no end, so it shows no impact at the fog's edge. An end the client never saw coming shows nothing either.
+  - **Accepted: one slot.** Two of one caster's cast projectiles that end within one network update show only the later impact. That is acceptable for presentation: every pilot projectile is single, and a volley's lost burst decides nothing.
+  - **Accepted: the caster's fog condition.** The record rides the caster's cast state, which replicates under the caster's fog condition. A viewer who drew the projectile but cannot see its caster gets no impact. That too is acceptable: the hit cue and the flash on the unit struck still show the hit.
+  - **Gameplay never reads it.** Only VeyraUI reads `GetLastProjectileEnd`.
+- **Seen mid-cast:** a caster first seen already winding up or channelling (out of the fog, or by a client joining) raised no cue. Its stages take up what it is seen holding, as its body's clip does.
+- **Target-placed commits** play at the aimed ground point, its height included, not at the caster's height.
 - **No new decisions:** an Impact shows where the projectile's flight ended or the area landed, never whether it hit. Damage stays the hit cue's (ADR-063 §1), and an effect never shows a hit before its commit (Combat Bible §48).
 
 ### 5. Bodies strain while they cast

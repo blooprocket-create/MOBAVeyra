@@ -38,6 +38,8 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 		Require(!Mark.Status.IsNone() && !Mark.Effect.IsNull() && Mark.Scale > 0.0f, TEXT("StatusMarks"),
 			FString::Printf(TEXT("%s needs a status, an effect and a scale above 0."), *Mark.Status.ToString()));
 	}
+	Require(ProjectileEndWindowSeconds > 0.0f || !AbilityEffects.ContainsByPredicate([](const FVeyraAbilityEffects& Effects) { return Effects.Impact.IsSet(); }),
+		TEXT("ProjectileEndWindowSeconds"), TEXT("a projectile's impact needs a window above 0 to match its end to what was drawn."));
 	Require(!ChannelLengthParameter.IsNone() || !AbilityEffects.ContainsByPredicate([](const FVeyraAbilityEffects& Effects) { return Effects.Channel.IsSet(); }),
 		TEXT("ChannelLengthParameter"), TEXT("a channel's effect needs the parameter its length is set by."));
 	for (const FVeyraAbilityEffects& Effects : AbilityEffects)

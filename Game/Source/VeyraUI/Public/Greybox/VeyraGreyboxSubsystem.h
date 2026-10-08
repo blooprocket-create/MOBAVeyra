@@ -415,10 +415,9 @@ private:
 		/** Its trail, following the sphere (ADR-063 §4). */
 		TWeakObjectPtr<class UNiagaraComponent> Trail;
 
-		/** Its ability, its side's colour, and where it was last drawn: where its impact shows once it ends (ADR-072 §4). */
+		/** Its ability and its side's colour (ADR-072 §4). */
 		FVeyraContentId Ability;
 		FLinearColor Color = FLinearColor::White;
-		FVector LastDrawnAt = FVector::ZeroVector;
 	};
 
 	void RefreshBodies();

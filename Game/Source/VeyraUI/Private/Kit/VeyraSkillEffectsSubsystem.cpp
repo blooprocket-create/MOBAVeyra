@@ -6,6 +6,8 @@
 #include "AbilitySystemGlobals.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "EngineUtils.h"
+#include "GameFramework/Pawn.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
@@ -74,6 +76,17 @@ double VeyraSkillEffects::LandingDelayOf(const FVeyraAbilitiesTuning& Tuning, co
 	return Area ? FMath::Max(0.0, Area->DelaySeconds) : 0.0;
 }
 
+FVector VeyraSkillEffects::CommitPlacement(const FVector& From, const FVector& Aimed, bool bAtTarget)
+{
+	// The aimed point is on the ground where it was aimed (FVeyraCastCommit::Location), whatever the caster's height.
+	return bAtTarget ? Aimed : From;
+}
+
+bool VeyraSkillEffects::SawItEnd(const FVeyraSeenProjectile& Seen, const FVector& EndedAt, double Now, double WindowSeconds)
+{
+	return Now - Seen.SeenAt <= WindowSeconds && FVector::Dist2D(Seen.At, EndedAt) <= Seen.Speed * WindowSeconds;
+}
+
 bool UVeyraSkillEffectsSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	// Presentation is for worlds someone watches: game and play-in-editor worlds, never a dedicated server's.
@@ -137,6 +150,7 @@ void UVeyraSkillEffectsSubsystem::Deinitialize()
 	}
 	Showing.Reset();
 	Landings.Reset();
+	Seen.Reset();
 	Super::Deinitialize();
 }
 
@@ -176,6 +190,11 @@ UNiagaraComponent* UVeyraSkillEffectsSubsystem::PlayAt(UNiagaraSystem& System, c
 
 void UVeyraSkillEffectsSubsystem::NoteCue(const FVeyraCombatCue& Cue)
 {
+	if (Cue.Kind == EVeyraCombatCueKind::ProjectileEnd)
+	{
+		NoteProjectileEnd(Cue);
+		return;
+	}
 	const AActor* Caster = Cue.Unit.Get();
 	const FVeyraAbilityEffects* Effects = Caster ? EffectsOf(Cue.Ability) : nullptr;
 	if (!Effects)
@@ -302,12 +321,63 @@ void UVeyraSkillEffectsSubsystem::EndStages(const AActor& Caster)
 	}
 }
 
+void UVeyraSkillEffectsSubsystem::SeedHeldCasts()
+{
+	// A caster first seen mid-cast (out of the fog, or as this machine joins) raised no cue for it: its stages take up
+	// what it is seen doing, as its body's clip does.
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const APawn& Caster = **It;
+		const UVeyraCastStateComponent* Casts = Caster.IsHidden() || Showing.Contains(&Caster) ? nullptr : SkillCasterState(Caster);
+		const FVeyraCastState* State = Casts ? &Casts->GetState() : nullptr;
+		const FVeyraAbilityEffects* Effects = State && SkillCastHolds(State->Phase) ? EffectsOf(State->Ability) : nullptr;
+		if (!Effects)
+		{
+			continue;
+		}
+		if (State->Phase == EVeyraCastPhase::Windup && Effects->Windup.IsSet())
+		{
+			BeginWindup(Caster, State->Ability);
+		}
+		else if (State->Phase == EVeyraCastPhase::Channel && Effects->Channel.IsSet())
+		{
+			Showing.Add(&Caster).Ability = State->Ability;
+		}
+	}
+}
+
+void UVeyraSkillEffectsSubsystem::NoteProjectileDrawn(const FVeyraContentId& Ability, int32 CastId, const FVector& At, double Speed, const FLinearColor& Color)
+{
+	const FVeyraAbilityEffects* Effects = EffectsOf(Ability);
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	if (Effects && Effects->Impact.IsSet() && Greybox)
+	{
+		Seen.Add({ SkillAbilityName(Ability), CastId }, FVeyraSeenProjectile{ Greybox->GetServerNow(), At, Speed, Color });
+	}
+}
+
+void UVeyraSkillEffectsSubsystem::NoteProjectileEnd(const FVeyraCombatCue& Cue)
+{
+	const FVeyraAbilityEffects* Effects = EffectsOf(Cue.Ability);
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	const TPair<FName, int32> Key{ SkillAbilityName(Cue.Ability), Cue.CastId };
+	const FVeyraSeenProjectile* Drawn = Seen.Find(Key);
+	UNiagaraSystem* System = Effects && Effects->Impact.IsSet() ? Loaded(*Effects, TEXT("Impact")) : nullptr;
+	if (Drawn && System && Greybox
+		&& VeyraSkillEffects::SawItEnd(*Drawn, Cue.Location, Greybox->GetServerNow(), GetDefault<UVeyraKitPresentationSettings>()->ProjectileEndWindowSeconds))
+	{
+		PlayAt(*System, Cue.Location, FRotator::ZeroRotator, Effects->Impact.Scale, Drawn->Color);
+	}
+	Seen.Remove(Key);
+}
+
 void UVeyraSkillEffectsSubsystem::Refresh()
 {
 	if (!bReady)
 	{
 		return;
 	}
+	SeedHeldCasts();
 	// A stage lasts while its cast holds its caster: a commit with nothing after it, a cancel, or a death ends it.
 	TArray<TWeakObjectPtr<const AActor>> Ended;
 	for (TPair<TWeakObjectPtr<const AActor>, FShowing>& Shown : Showing)
@@ -333,6 +403,15 @@ void UVeyraSkillEffectsSubsystem::Refresh()
 	// The delayed areas whose time has come land.
 	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
 	const double Now = Greybox ? Greybox->GetServerNow() : 0.0;
+	// A drawn projectile whose end has not come within its window has left sight, or ended where this machine did not see.
+	const double Window = GetDefault<UVeyraKitPresentationSettings>()->ProjectileEndWindowSeconds;
+	for (auto It = Seen.CreateIterator(); It; ++It)
+	{
+		if (Now - It.Value().SeenAt > Window)
+		{
+			It.RemoveCurrent();
+		}
+	}
 	for (int32 Index = Landings.Num() - 1; Index >= 0; --Index)
 	{
 		const FLanding& Landing = Landings[Index];
@@ -370,15 +449,6 @@ UNiagaraSystem* UVeyraSkillEffectsSubsystem::TravelEffectOf(const FVeyraContentI
 	}
 	OutScale = Effects->Travel.Scale;
 	return Loaded(*Effects, TEXT("Travel"));
-}
-
-void UVeyraSkillEffectsSubsystem::NoteProjectileEnded(const FVeyraContentId& Ability, const FVector& Where, const FLinearColor& Color)
-{
-	const FVeyraAbilityEffects* Effects = EffectsOf(Ability);
-	if (UNiagaraSystem* System = Effects && Effects->Impact.IsSet() ? Loaded(*Effects, TEXT("Impact")) : nullptr)
-	{
-		PlayAt(*System, Where, FRotator::ZeroRotator, Effects->Impact.Scale, Color);
-	}
 }
 
 TArray<UNiagaraComponent*> UVeyraSkillEffectsSubsystem::FindWindupEffects(const AActor& Caster) const

@@ -431,6 +431,7 @@ USoundBase* UVeyraGreyboxSubsystem::SoundFor(EVeyraCombatCueKind Kind) const
 		return LevelUpSound;
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::CastWindup:
+	case EVeyraCombatCueKind::ProjectileEnd:
 		break;
 	}
 	return nullptr;
@@ -569,6 +570,7 @@ UNiagaraSystem* UVeyraGreyboxSubsystem::EffectFor(EVeyraCombatCueKind Kind) cons
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::AttackCommit:
 	case EVeyraCombatCueKind::CastWindup:
+	case EVeyraCombatCueKind::ProjectileEnd:
 		break;
 	}
 	return nullptr;
@@ -591,7 +593,7 @@ UNiagaraComponent* UVeyraGreyboxSubsystem::PlayEffect(const FVeyraCombatCue& Cue
 	// A cast flashes from its caster toward where it was aimed, or where it was aimed if its effect lands there; the rest
 	// where their unit stands.
 	const FVector From = Unit->GetActorLocation();
-	const FVector At = bAtTarget ? FVector(Cue.Location.X, Cue.Location.Y, From.Z) : From;
+	const FVector At = VeyraSkillEffects::CommitPlacement(From, Cue.Location, bAtTarget);
 	const FVector Toward = Cue.Kind == EVeyraCombatCueKind::CastCommit ? (Cue.Location - From).GetSafeNormal2D() : FVector::ZeroVector;
 	const FRotator Facing = Toward.IsZero() ? Unit->GetActorRotation() : Toward.Rotation();
 	// Pooled: a battleground's waves raise many hits a second.
@@ -1803,18 +1805,16 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 		}
 		Visual->PresentedAt = Now;
 		Visual->Mesh->SetWorldLocation(Location);
-		Visual->LastDrawnAt = Location;
+		// Seen here, so its impact may show where the server ends it (ADR-072 §4).
+		if (UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>())
+		{
+			Skills->NoteProjectileDrawn(Projectile.GetAbility(), Projectile.GetCastId(), Location, Projectile.GetSpeed(), Visual->Color);
+		}
 	}
-	UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
 	for (auto It = Projectiles.CreateIterator(); It; ++It)
 	{
 		if (!It.Key().IsValid())
 		{
-			// Where it was last drawn is where its flight ended for this viewer: its ability's impact shows there (ADR-072 §4).
-			if (Skills)
-			{
-				Skills->NoteProjectileEnded(It.Value().Ability, It.Value().LastDrawnAt, It.Value().Color);
-			}
 			It.RemoveCurrent();
 		}
 	}

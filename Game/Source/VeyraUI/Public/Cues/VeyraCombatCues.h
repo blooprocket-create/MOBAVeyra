@@ -28,6 +28,8 @@ enum class EVeyraCombatCueKind : uint8
 	Death,
 	/** A Vanguard's Level rose (ADR-065 §5). */
 	LevelUp,
+	/** A projectile one of the unit's casts launched has ended, where the server ended it (ADR-072 §4). */
+	ProjectileEnd,
 };
 
 /** One cue, as the presentation's views take it. */
@@ -41,9 +43,12 @@ struct FVeyraCombatCue
 	/** An attack's target. */
 	TWeakObjectPtr<const AActor> Target;
 
-	/** A cast's ability, and where it was aimed. */
+	/** A cast's ability, and where it was aimed; a projectile end's ability, and where it ended. */
 	FVeyraContentId Ability;
 	FVector Location = FVector::ZeroVector;
+
+	/** A projectile end's cast. */
+	int32 CastId = 0;
 
 	/** A hit's Health and shields lost; a level-up's new Level. */
 	double Amount = 0.0;
@@ -70,6 +75,12 @@ struct FVeyraUnitSighting
 	int32 CastId = 0;
 	FVeyraContentId CastAbility;
 	FVector CastLocation = FVector::ZeroVector;
+
+	/** Where the latest of its casts' projectiles ended (UVeyraCastStateComponent::GetLastProjectileEnd). */
+	int32 ProjectileEndSerial = 0;
+	FVeyraContentId ProjectileEndAbility;
+	int32 ProjectileEndCastId = 0;
+	FVector ProjectileEndLocation = FVector::ZeroVector;
 
 	/** The latest committed cast (UVeyraCastStateComponent::GetLastCommit). */
 	int32 CommitSerial = 0;

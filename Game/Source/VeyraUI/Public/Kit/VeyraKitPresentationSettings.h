@@ -161,6 +161,15 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Casts")
 	TArray<FVeyraAbilityEffects> AbilityEffects;
 
+	/**
+	 * How long after this machine last drew a cast's projectile its server end may still show an impact there, in
+	 * seconds (ADR-072 §4): the end and the projectile's removal arrive in either order, a round trip apart. A projectile
+	 * that only left sight has no end, and one that ends farther than it could have flown since it was last drawn shows
+	 * none, so an impact never shows what the viewer did not see heading there.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Casts", meta = (ClampMin = "0"))
+	float ProjectileEndWindowSeconds = 0.0f;
+
 	/** The user parameter a channel's effect takes its length by, in units: how far its ability reaches (ADR-072 §4). */
 	UPROPERTY(Config, EditAnywhere, Category = "Casts")
 	FName ChannelLengthParameter;
