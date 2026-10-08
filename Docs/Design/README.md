@@ -4,8 +4,8 @@ This directory contains the **current working canon** for Veyra's game design. C
 
 ## Current documents
 
-- `Veyra_Initial_Roster_Character_Bible_v0.6.md` (25 designed Vanguards, including Mimzi, Celandrine, Gorraveth, Aurelisse, and Eudora; full kits and lore)
-- `Veyra_World_Bible_v0.5.md` (adds Bramblehollow, Thistlewick, the Root Vaults, and expanded Ember Basin, Shatterdeep, and Iron March lore)
+- `Veyra_Initial_Roster_Character_Bible_v0.6.md` (26 designed Vanguards, including Mimzi, Celandrine, Gorraveth, Aurelisse, Eudora, and Rheyzekx; full kits and lore)
+- `Veyra_World_Bible_v0.5.md` (adds Bramblehollow, Thistlewick, the Root Vaults, Whetstone City and the Scarzekh, and expanded Ember Basin, Shatterdeep, and Iron March lore)
 - `Veyra_Battleground_Bible_v0.9.md`
 - `Veyra_Item_Bible_v0.3.md`
 - `Veyra_Combat_Bible_v0.5.md` (adds §56 Ride states)
