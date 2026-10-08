@@ -40,7 +40,8 @@ The build copies nothing by hand. It reads:
 - the featured Vanguards and how their art is framed;
 - how long each holds the home page;
 - the display-name rules and the password's minimum length, which the forms check first (tests hold the name rules to the backend's and the launcher's);
-- the support contacts.
+- the support contacts;
+- the servers' daily hours: the time zone, and when the host's scheduled task starts and stops the servers (added 2026-10-07, when the author scheduled them for 10:00–11:30 PM Eastern Time every day).
 
 ### 3. Creating an account on the website
 
@@ -108,6 +109,7 @@ What the website adds:
 
 - **Questions and answers** for installing, accounts and playing, searchable on the page.
 - **Server status,** live.
+- **The servers' hours,** here, in every page's footer, on the home page and the download card, and in the sign-up form's offline message. Pages show them on the host's clock and add the visitor's own when it differs. Beside the live status they say when the next session opens or, while the servers are offline during their hours, that the automatic start may not have run: the host computer is off, or the automation that starts it has run out of usage.
 - **Contact channels** from `site.json`. None is configured yet; the page says so instead of showing a placeholder.
 
 ## Consequences

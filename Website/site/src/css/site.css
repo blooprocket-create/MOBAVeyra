@@ -866,6 +866,13 @@ body:not([data-page="home"]) .site-header {
   margin-top: 22px;
 }
 
+.hero__hours {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
 /* The title: heavy tracked capitals that drop in one by one, then a glint runs through them. */
 .title {
   display: flex;

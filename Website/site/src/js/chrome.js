@@ -1,7 +1,9 @@
-// What every page shares: the header (its menu, its scrolled state and the account links), the servers' state
-// wherever the page shows it, the footer's year and the ambient motion.
+// What every page shares: the header (its menu, its scrolled state and the account links), the servers' state and
+// daily hours wherever the page shows them, the footer's year and the ambient motion.
 
+import config from "./site-config.js";
 import { createBackend } from "./backend.js";
+import { serverHoursPhrase, serverNote } from "./hours.js";
 import { burstOnPress, revealOnScroll, startMotes } from "./motion.js";
 import { currentSession } from "./session.js";
 
@@ -22,6 +24,11 @@ function setStatus(state) {
     if (text) {
       text.textContent = STATUS_TEXT[state];
     }
+  }
+  const note = serverNote(config.serverHours, state);
+  for (const element of document.querySelectorAll("[data-server-note]")) {
+    element.textContent = note;
+    element.hidden = note === "";
   }
   document.dispatchEvent(new CustomEvent("veyra:server-status", { detail: state }));
 }
@@ -113,6 +120,9 @@ export function startChrome() {
   // Art framing from the markup (data-focus), applied here because the content security policy forbids style attributes.
   document.querySelectorAll("[data-focus]").forEach((element) => element.style.setProperty("--focus", element.dataset.focus));
   document.querySelectorAll("[data-year]").forEach((element) => (element.textContent = String(new Date().getFullYear())));
+  // The build wrote the hours on the host's clock; this adds the viewer's own when it reads differently.
+  const hours = serverHoursPhrase(config.serverHours);
+  document.querySelectorAll("[data-server-hours]").forEach((element) => (element.textContent = hours));
   startMotes(document.querySelector("[data-motes]"));
   revealOnScroll();
   burstOnPress();

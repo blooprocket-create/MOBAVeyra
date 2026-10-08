@@ -12,6 +12,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describeServerHours } from "./src/js/hours.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = resolve(HERE, "..", "..");
@@ -42,7 +43,7 @@ const isHttpsUrl = (value) => typeof value === "string" && /^https:\/\/[^\s/]+(\
 /** The website's own data, checked strictly: every field is required and an unknown one is an error. */
 export function validateSite(site) {
   const problems = [];
-  onlyKeys(site, ["schemaVersion", "featuredVanguards", "heroRotationSeconds", "account", "support"], "site", problems);
+  onlyKeys(site, ["schemaVersion", "featuredVanguards", "heroRotationSeconds", "account", "support", "serverHours"], "site", problems);
   if (site.schemaVersion !== SITE_SCHEMA_VERSION) {
     problems.push(`schemaVersion must be ${SITE_SCHEMA_VERSION}`);
   }
@@ -100,7 +101,32 @@ export function validateSite(site) {
       }
     });
   }
+  const hours = site.serverHours ?? {};
+  onlyKeys(hours, ["timeZone", "opens", "closes"], "serverHours", problems);
+  if (!isTimeZone(hours.timeZone)) {
+    problems.push("serverHours.timeZone must be an IANA time zone, such as America/New_York");
+  }
+  for (const key of ["opens", "closes"]) {
+    if (typeof hours[key] !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(hours[key])) {
+      problems.push(`serverHours.${key} must be a 24-hour time, "HH:MM"`);
+    }
+  }
+  if (hours.opens === hours.closes) {
+    problems.push("serverHours.opens and serverHours.closes must differ");
+  }
   return problems;
+}
+
+function isTimeZone(value) {
+  if (typeof value !== "string" || !value.includes("/")) {
+    return false;
+  }
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** What the public launcher's configuration says about the Firebase project and the release store. */
@@ -239,6 +265,7 @@ export function makeConfig(root = REPO_ROOT) {
       heroRotationSeconds: site.heroRotationSeconds,
       account: site.account,
       support: site.support,
+      serverHours: site.serverHours,
       vanguards: vanguards.map(({ source, ...vanguard }) => vanguard),
     },
     art: vanguards.map(({ id, source }) => ({ id, source })),
@@ -246,17 +273,24 @@ export function makeConfig(root = REPO_ROOT) {
 }
 
 /**
- * A page with its partials put in: each <!--#name--> becomes src/partials/name.html. In the header, the link whose
- * data-nav names the page (its body's data-page) is marked as the current page.
+ * A page with its partials put in: each <!--#name--> becomes src/partials/name.html, or one the build generates. In
+ * the header, the link whose data-nav names the page (its body's data-page) is marked as the current page.
  */
 export function assemblePage(html, partials) {
   const page = /<body[^>]*\sdata-page="([a-z-]+)"/.exec(html)?.[1];
-  return html.replace(/<!--#([a-z-]+)-->/g, (marker, name) => {
-    if (!(name in partials)) {
-      fail([`a page includes ${marker}, but there is no src/partials/${name}.html`]);
-    }
-    return partials[name].trimEnd().replace(/ data-nav="([a-z-]+)"/g, (attribute, nav) => (nav === page ? `${attribute} aria-current="page"` : attribute));
-  });
+  const markCurrent = (text) => text.replace(/ data-nav="([a-z-]+)"/g, (attribute, nav) => (nav === page ? `${attribute} aria-current="page"` : attribute));
+  // A partial may include others; `within` is the chain being filled, so one that includes itself fails.
+  const fill = (text, within) =>
+    text.replace(/<!--#([a-z-]+)-->/g, (marker, name) => {
+      if (!(name in partials)) {
+        fail([`a page includes ${marker}, but there is no src/partials/${name}.html`]);
+      }
+      if (within.includes(name)) {
+        fail([`src/partials/${name}.html includes itself, through ${within.join(" → ")}`]);
+      }
+      return fill(markCurrent(partials[name].trimEnd()), [...within, name]);
+    });
+  return fill(html, []);
 }
 
 /** Builds the site into outDir: the pages, the generated configuration, the fonts and the art. */
@@ -269,6 +303,8 @@ export function build(root = REPO_ROOT, outDir = join(root, "Website", "site", "
       .filter((name) => name.endsWith(".html"))
       .map((name) => [name.slice(0, -".html".length), readFileSync(join(partialsDir, name), "utf8")]),
   );
+  // The servers' hours on the host's clock, so a page reads right before its script adds the viewer's own.
+  partials["server-hours"] = describeServerHours(config.serverHours).host;
   rmSync(outDir, { recursive: true, force: true });
   cpSync(source, outDir, { recursive: true, filter: (path) => path !== partialsDir });
   for (const name of readdirSync(outDir).filter((file) => file.endsWith(".html"))) {
