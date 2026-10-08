@@ -1488,11 +1488,11 @@
       "name": "SK_Gorraveth",
       "archetype": "humanoid",
       "file": "FBX/SK_Gorraveth.fbx",
-      "sha256": "9bc42acaf2e6f8bfa6af1338792ffd9e276fd0268f54f7dcc6ad257004b1ca9f",
+      "sha256": "cd91ad021654f08483dfad5efb51f3b93dfb6b50257ae8523df6fe495c4f7e3a",
       "triangles": 5408,
       "triangleBudget": 5500,
       "bones": 29,
-      "heightCm": 251.19,
+      "heightCm": 251.53,
       "capsuleHalfHeightCm": 110,
       "melee": true,
       "runStrideCm": 218.54,
@@ -1540,10 +1540,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "3b15eadb97a7e93e429a56b6c0491eac3d32c64d05ec7958031e3855649baa80",
+      "inputSha256": "377666565b6408c719f1fb6c125ba0f691a90d411e6d8905065ada4b6040a953",
       "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "b144077767f11b4cb45612983b9498ba57aef0995e7c26ce8dff263a8b34e34a",
+      "contentSha256": "5e0ccc6b6a714bd7f53e1e1c1ed52174e026cdf7f897afa9852a741165ef593b",
       "contentVersion": 3,
       "ik": {
         "feet": [

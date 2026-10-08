@@ -4,8 +4,8 @@ red scales over a cream throat and chest; a black mane of spikes from his crown 
 fringe of it under his jaw; a crocodilian head with a badly scarred snarl, a dark chipped horn and a broken stump, one
 clouded eye and a torn frill; mismatched scorched mining armour (bronze-bound pauldrons and a harness strap with a great
 ring and chain across his chest, dark gauntlets and greaves, a belt and a torn red tabard). His two oversized hooked
-cleavers, stone-grey slabs bolted with bronze, burn molten along their edges, molten slag dripping from them. A living
-animal, biological to the last scale.
+cleavers, stone-grey slabs bolted with bronze, burn molten along their edges, molten slag dripping from them; cooled
+black slag clings to their flats and pools in the seams of his armour. A living animal, biological to the last scale.
 
 Low poly and flat-coloured (author 2026-10-07): the big forms that make his outline, each a flat colour the toon
 material shades. He stands as his archetype lays him out (hunched in his clips), a cleaver in each hand on its prop
@@ -23,7 +23,8 @@ HAND_SHARE = 0.12
 PALETTE = {
     "scale": (0.62, 0.2, 0.16), "belly": (0.9, 0.84, 0.74), "horn": (0.32, 0.24, 0.21), "claw": (0.88, 0.83, 0.72),
     "spine": (0.19, 0.16, 0.17), "iron": (0.3, 0.27, 0.26), "bronze": (0.72, 0.53, 0.3), "stone": (0.58, 0.55, 0.52),
-    "leather": (0.42, 0.24, 0.15), "tabard": (0.42, 0.09, 0.11), "molten": (1.0, 0.5, 0.12), "eye": (1.0, 0.45, 0.1),
+    "leather": (0.42, 0.24, 0.15), "tabard": (0.42, 0.09, 0.11), "molten": (1.0, 0.5, 0.12), "slag": (0.13, 0.12, 0.12),
+    "eye": (1.0, 0.45, 0.1),
     "clouded": (0.8, 0.82, 0.8), "teeth": (0.94, 0.9, 0.82),
 }
 
@@ -286,6 +287,21 @@ def armour(S, L, dims, mats, body, limbs):
     hang = unit(V(0.15, 0, -1))
     parts.append(tree.leaf(S, "tabard", lambda P: pane(P, top, V(0, 1, 0), hang, rag, H * 0.006), Box(top - V(H * 0.06, H * 0.09, H * 0.24), top + V(H * 0.08, H * 0.09, H * 0.02)),
                            mats["tabard"], anatomy.rigid("pelvis"), protect=0.3))
+    # Cooled black slag pooled in the seams of his armour: lumps along the belt, under each pauldron's rim and at each
+    # gauntlet's cuff, each flattened against what it clings to.
+    seams = []
+    for k, angle in enumerate(np.radians([-70, -25, 30, 75, 150, 210])):
+        start = V(0, 0, belt_z - H * 0.02)
+        hit = garments.surface_point(skin, start, V(np.cos(angle), np.sin(angle), 0))[0]
+        seams.append((hit, anatomy.rigid("pelvis"), (H * 0.03, H * 0.03, H * 0.016)))
+    for side, sign in (("l", 1.0), ("r", -1.0)):
+        s = V(*L["upperarm_" + side][0])
+        seams.append((s + V(H * 0.03, sign * H * 0.05, -H * 0.02), anatomy.rigid("upperarm_" + side), (H * 0.03, H * 0.022, H * 0.015)))
+        e = V(*L["lowerarm_" + side][0])
+        seams.append((e + V(0, sign * H * 0.012, -H * 0.012), anatomy.rigid("lowerarm_" + side), (H * 0.026, H * 0.026, H * 0.014)))
+    for k, (c, bones, radii) in enumerate(seams):
+        parts.append(tree.leaf(S, "seam_slag_%d" % k, lambda P, c=c, r=V(*radii): sdf.ellipsoid(P, c, r), Box(c - H * 0.04, c + H * 0.04),
+                               mats["slag"], bones, protect=0.4))
     return Over([skin] + shells + [Union(parts, k=0.3)])
 
 
@@ -314,6 +330,11 @@ def cleaver(S, L, H, mats, side):
     for k, (a, b) in enumerate(zip(edge, edge[1:])):
         parts.append(tree.leaf(S, "edge_%s_%d" % (side, k), lambda P, a=a, b=b: sdf.capsule(P, a, b, H * 0.009), Box.around([a, b], H * 0.013),
                                mats["molten"], bones, protect=1.0))
+    # Cooled black slag clinging to its flat, on both faces, where the molten has run back and set.
+    for k, sgn in enumerate((1.0, -1.0)):
+        c = at(0.17, 0.03) + across * sgn * H * 0.009
+        parts.append(tree.leaf(S, "slag_%s_%d" % (side, k), lambda P, c=c: sdf.ellipsoid(P, c, V(H * 0.06, H * 0.006, H * 0.035)), Box(c - H * 0.07, c + H * 0.07),
+                               mats["slag"], bones, protect=0.6))
     # Molten slag dripping from the edge.
     for k, (ahead, length) in enumerate(((0.12, 0.06), (0.2, 0.09), (0.28, 0.05))):
         drip = at(ahead, 0.142 - 0.012 * k)

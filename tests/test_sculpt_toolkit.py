@@ -12,7 +12,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Game" / "Scripts"))
 from VanguardBodies.sculpt import garments, paint, sdf, sheet, tree  # noqa: E402
 from VanguardBodies.sculpt.tree import Box  # noqa: E402
-from VanguardBodies.models import bryn, relay, silt  # noqa: E402
+from VanguardBodies.models import bryn, gorraveth, relay, silt  # noqa: E402
 
 # Fixture sizes (cm): a ball standing in for a body part, the cloth over it, a fold's height above it.
 RADIUS = 10.0
@@ -259,6 +259,23 @@ class Mournwake(unittest.TestCase):
         for d, label in zip(field.d, field.m):
             self.assertLess(float(d), 0.0)
             self.assertTrue(S.parts[label].name.startswith("brace"), S.parts[label].name)
+
+
+class Slagmaw(unittest.TestCase):
+    def test_his_cleavers_carry_cooled_slag_beside_the_molten(self):
+        # Canon has his slag molten where it drips and black where it has cooled. Each cleaver carries both: glowing
+        # molten drips at its edge, and dark slag that does not glow clinging to its flat. Fixture: a 230 cm body's
+        # right fist.
+        S = tree.Sculpt()
+        H = 230.0
+        grip = np.array([40.0, -60.0, 100.0])
+        L = {"prop_r": (grip, grip + np.array([10.0, 0.0, 0.0]))}
+        gorraveth.cleaver(S, L, H, gorraveth.materials(S), "r")
+        cooled = [part for part in S.parts if not part.material.glow and part.material.name == "slag"]
+        molten = [part for part in S.parts if part.material.glow and part.name.startswith("drip_")]
+        self.assertTrue(cooled, [part.name for part in S.parts])
+        self.assertTrue(molten)
+        self.assertLess(max(cooled[0].material.colour), 0.3)
 
 
 class TornSheetsOnChains(unittest.TestCase):
