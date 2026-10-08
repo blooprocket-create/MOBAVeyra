@@ -1,5 +1,5 @@
 """Bryn (ADR-069): a veteran harbour gunner, read by her silhouette from the game camera. Character Bible and her
-splash art: compact and weathered, short salt-and-pepper hair; a worn dark-teal naval coat to the knee, open over a
+splash art: compact and weathered, short salt-and-pepper hair; a worn navy naval coat to the knee, trimmed in gold, open over a
 dark shirt, belted, its long skirt flaring; a red sash and a coil of rope at her waist among the buckles, ammunition
 pouches and a bandolier; gloves and heavy boots. Mournwake, her giant brass-and-iron cannon, is carried on both sides
 of her: the banded barrel runs forward under her right arm to a wide muzzle with Flux light standing in the bore, and the
@@ -26,7 +26,7 @@ SKULL_RADII = (9.9, 7.5, 8.0)
 HAIR_REACH = 3.5
 
 PALETTE = {
-    "skin": (0.76, 0.6, 0.5), "hair": (0.74, 0.74, 0.72), "coat": (0.16, 0.36, 0.4), "shirt": (0.22, 0.21, 0.22),
+    "skin": (0.76, 0.6, 0.5), "hair": (0.74, 0.74, 0.72), "coat": (0.2, 0.25, 0.42), "shirt": (0.22, 0.21, 0.22),
     "leather": (0.38, 0.27, 0.19), "boot": (0.3, 0.21, 0.15), "trousers": (0.27, 0.23, 0.21), "glove": (0.28, 0.2, 0.15),
     "sash": (0.66, 0.12, 0.12), "rope": (0.7, 0.6, 0.42), "iron": (0.28, 0.27, 0.29), "brass": (0.78, 0.6, 0.3),
     "flux": (0.4, 0.72, 1.0), "trim": (0.8, 0.64, 0.3),
@@ -85,7 +85,7 @@ def hand(S, L, H, side, mats, figure, breech, muzzle):
 
 
 def clothes(S, L, dims, mats, body, limbs):
-    """Her clothes over her skin, each keeping to its limbs: trousers and heavy boots; a dark shirt; the long teal coat
+    """Her clothes over her skin, each keeping to its limbs: trousers and heavy boots; a dark shirt; the long navy coat
     over it, open at the front, high-collared, its sleeves to the wrist with turned-back cuffs; belts, a red sash and a
     coil of rope at her waist, pouches on the belt, a bandolier across her chest."""
     H = dims["height"]
