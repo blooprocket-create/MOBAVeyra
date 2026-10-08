@@ -1,20 +1,23 @@
-"""Aurelisse, The Open Sky (ADR-069): an elemental of moving air and pale mineral dust, read by her silhouette from the
-game camera. Character Bible §24 and her splash art: a tall, unmistakably nonhuman figure of translucent pale-blue air,
-slender and waisted, currents of light running through her; a face only suggested, its eyes glimmering; streams of air
-pouring back from her head like long white hair. A white shawl lies on her shoulders and a sash of white over teal
-binds her waist, a brass disc at her hip. A brass ring stands behind her shoulders, hung with brass tube chimes and
-small blue crystal pendants on fine chains, and more hang from her sash; crystals drift about her. Long white and teal
-cloth streams away behind her in currents, so her silhouette is horizontal and soft-edged. Below the waist she is a
-compact cyclone of spiralling air narrowing to a point that floats clear of the ground. Soft cloth and cool air, never
-faceted glass in warm gold.
+"""Aurelisse, The Open Sky (ADR-069): an elemental of wind and mineral dust, read by her silhouette from the game
+camera. Character Bible §24 and her splash art: a tall, unmistakably nonhuman woman of periwinkle-blue skin traced with
+glowing veins of light, slender and waisted, with long legs and bare feet; blank glowing eyes in a calm face; a great
+mane of pale cream hair streaming back from her head. A cream wrap lies across her shoulders and breast, pinned by a
+brass medallion, and a sash of cream over teal binds her hips, a brass disc at its front, a torn cream skirt hanging
+from it about her thighs. Brass bands circle her upper arms, wrists and ankles, small bells hanging from her anklets. A
+spiked brass ring stands behind her shoulders, hung with brass bells and small blue crystal pendants on fine chains, and
+more hang from her sash; crystals drift about her. Long cream and teal cloth streams away behind her in currents, so her
+silhouette is horizontal and soft-edged. She floats, her legs trailing beneath her, toes pointed. Soft cloth and cool
+air, never faceted glass in warm gold.
 
 Low poly and flat-coloured (author 2026-10-07): the big forms that make her outline, each a flat colour the toon
-material shades. She floats as her archetype lays her out (ADR-064), arms down at her sides. Her long cloth hangs on
-the spring chains her kit gives her construct (ADR-069 §7): a streamer off each shoulder on its clavicle's chain, and the
-ends of her sash on the pelvis's; the torn skirt about her cyclone rides the trail bones with it, which her clips sweep
-back as she glides; her drifting crystals ride the orbit bones and the ring its halo bone.
+material shades. She floats as her archetype lays her out (ADR-064), arms down at her sides. Her legs ride the trail
+bones, which her clips sweep back as she glides. Her long cloth and hair hang on the spring chains her kit gives her
+construct (ADR-069 §7): a streamer off each shoulder on its clavicle's chain, which her hair's long locks follow, and the
+ends of her sash and the skirt hung from it on the pelvis's; her drifting crystals ride the orbit bones and the ring its
+halo bone.
 
-Proportions are the kit's; colours are the kit's, its teal drawn toward the art's dusty teal (sRGB)."""
+Proportions are the kit's; her skin and hair are tuned against the art (sRGB), her other colours are the kit's, its teal
+drawn toward the art's dusty teal."""
 import math
 
 import numpy as np
@@ -23,12 +26,13 @@ from ..sculpt import anatomy, garments, sdf, sheet, tree
 from ..sculpt.anatomy import V, unit
 from ..sculpt.tree import Box, Over, Shell, Union, Zone
 
-# The ribbons' dusty teal sampled from the splash art (sRGB), which the kit's teal is drawn toward.
+# Colours tuned against the splash art (sRGB): the ribbons' dusty teal, which the kit's teal is drawn toward; her
+# periwinkle skin; and her cream hair.
 ART_TEAL = (0.29, 0.39, 0.44)
+ART_SKIN = (0.44, 0.5, 0.84)
+ART_HAIR = (0.96, 0.92, 0.8)
 WHITE = (1.0, 1.0, 1.0)
 TRAIL = ("trail_01", "trail_02", "trail_03")
-# How deep the cyclone's spiralling flutes stand, as a share of its radius.
-FLUTE = 0.24
 ORBITS = ["orbit_0" + str(index) for index in range(1, 7)]
 
 
@@ -37,20 +41,18 @@ def mix(a, b, t):
 
 
 def materials(S, spec):
-    """Every material she is coloured in, flat (the toon material shades it), read from her kit entry: her air, its
-    lighter lower currents, the light running through her, her eyes, her hair of white air, her cloth, teal, brass and
-    the crystals, which glow."""
-    air = tuple(spec["primary"])
+    """Every material she is coloured in, flat (the toon material shades it): her skin, the veins of light running
+    through it and her eyes, which glow; her cream hair; and from her kit entry her cloth, teal, brass and the crystals,
+    which glow."""
+    skin = ART_SKIN
     cloth = tuple(spec.get("cloth", (0.95, 0.95, 0.92)))
     brass = tuple(spec["detail"])
     return {
-        "air": S.material("air", air),
-        "air_low": S.material("air_low", mix(air, cloth, 0.3)),
-        "wisp": S.material("wisp", mix(air, cloth, 0.65)),
-        "current": S.material("current", mix(air, WHITE, 0.6), glow=True),
-        "eye": S.material("eye", mix(air, WHITE, 0.85), glow=True),
-        "hair": S.material("hair", mix(cloth, air, 0.1)),
-        "hair_shade": S.material("hair_shade", mix(cloth, air, 0.45)),
+        "skin": S.material("skin", skin),
+        "current": S.material("current", mix(skin, WHITE, 0.7), glow=True),
+        "eye": S.material("eye", mix(skin, WHITE, 0.9), glow=True),
+        "hair": S.material("hair", ART_HAIR),
+        "hair_shade": S.material("hair_shade", mix(ART_HAIR, (0.78, 0.7, 0.55), 0.5)),
         "cloth": S.material("cloth", cloth),
         "teal": S.material("teal", mix(spec["secondary"], ART_TEAL, 0.3)),
         "brass": S.material("brass", brass),
@@ -93,28 +95,28 @@ def chain_weights(L):
 
 
 def build(S, L, dims, spec):
-    """Aurelisse's sculpt on her layout: (the whole, {"body": her body of air, "sheets": her streaming cloth})."""
+    """Aurelisse's sculpt on her layout: (the whole, {"body": her body, "sheets": her streaming cloth})."""
     mats = materials(S, spec)
     rng = np.random.default_rng(spec["seed"])
     body = figure(S, L, dims, mats)
     lit = Over([body, currents(S, L, dims, mats, body)])
     dressed = Over([lit] + garb(S, L, dims, mats, lit))
-    worn = Over([dressed, cyclone(S, L, dims, mats), ring(S, L, dims, mats), hangings(S, L, dims, mats),
+    worn = Over([dressed, anklets(S, L, dims, mats), ring(S, L, dims, mats), hangings(S, L, dims, mats),
                  drifting(S, L, dims, mats, rng)])
     sheets = streams(S, L, dims, mats)
     return worn, {"body": body, "sheets": sheets}
 
 
-# ---------------------------------------------------------------------------------------------- her body of air
+# ---------------------------------------------------------------------------------------------- her body
 def figure(S, L, dims, mats):
-    """A slender waisted body of air, broad at the shoulders, slight at the breast; slender arms ending in long open
-    hands; a head with a face only suggested and glimmering eyes, streams of air pouring back from it like hair."""
+    """A slender waisted body, broad at the shoulders, slight at the breast; slender arms ending in long open hands; long
+    legs trailing beneath her; a head with a calm face and glowing eyes, her long hair streaming back from it."""
     H = dims["height"]
     p = lambda bone, i: V(*L[bone][i])  # noqa: E731
-    air = mats["air"]
+    skin = mats["skin"]
     parts = []
 
-    def add(name, distance, bounds, bones, material=air, protect=0.0):
+    def add(name, distance, bounds, bones, material=skin, protect=0.0):
         parts.append(tree.leaf(S, name, distance, bounds, material, bones, protect))
 
     core, chest = p("pelvis", 0), p("spine_03", 1)
@@ -147,7 +149,8 @@ def figure(S, L, dims, mats):
             anatomy.along("clavicle_" + side, "upperarm_" + side, d + V(0, 0, H * 0.03), d - V(0, 0, H * 0.04), 0.2, 0.8))
         add("upperarm_" + side, lambda P, a=s0, b=s1: sdf.round_cone(P, a, b, H * 0.025, H * 0.019), Box.around([s0, s1], H * 0.03), anatomy.rigid("upperarm_" + side))
         add("forearm_" + side, lambda P, a=s1, b=w0: sdf.round_cone(P, a, b, H * 0.019, H * 0.0145), Box.around([s1, w0], H * 0.025), anatomy.rigid("lowerarm_" + side))
-        hand(S, parts, side, w0, w1, H, air)
+        hand(S, parts, side, w0, w1, H, skin)
+    parts += legs(S, L, dims, mats)
     parts += head(S, L, dims, mats)
     return Union(parts, k=H * 0.016)
 
@@ -178,9 +181,9 @@ def hand(S, parts, side, wrist, end, H, material):
 
 
 def head(S, L, dims, mats):
-    """Her head in the head's frame: a long skull, a narrow jaw and pointed chin, a face only suggested (a soft brow and
-    the line of a nose), two eyes glimmering in it; streams of air pour back from the crown and the back of it like long
-    hair, fanning wider behind her."""
+    """Her head: a long skull, a narrow jaw and pointed chin, a calm face (a soft brow and the line of a nose), two eyes
+    glowing in it; her long cream hair pours back from the crown and the back of it, fanning wider behind her. The locks
+    ride her head at their roots and her shoulders' streamer chains further out (hair_bones)."""
     H = dims["height"]
     o = V(*L["head"][0])
     h = L["head"][1][2] - L["head"][0][2]
@@ -191,15 +194,15 @@ def head(S, L, dims, mats):
         parts.append(tree.leaf(S, name, distance, Box(lo, hi), material, bones, protect))
 
     skull_c, skull_r = o + V(-0.02, 0, 0.55) * h, V(0.43, 0.36, 0.47) * h
-    add("skull", lambda P: sdf.ellipsoid(P, skull_c, skull_r), skull_c - 0.5 * h, skull_c + 0.5 * h, mats["air"])
+    add("skull", lambda P: sdf.ellipsoid(P, skull_c, skull_r), skull_c - 0.5 * h, skull_c + 0.5 * h, mats["skin"])
     jaw_c = o + V(0.13, 0, 0.26) * h
-    add("jaw", lambda P: sdf.ellipsoid(P, jaw_c, V(0.28, 0.24, 0.26) * h), jaw_c - 0.3 * h, jaw_c + 0.3 * h, mats["air"])
+    add("jaw", lambda P: sdf.ellipsoid(P, jaw_c, V(0.28, 0.24, 0.26) * h), jaw_c - 0.3 * h, jaw_c + 0.3 * h, mats["skin"])
     chin = o + V(0.3, 0, 0.08) * h
-    add("chin", lambda P: sdf.sphere(P, chin, 0.1 * h), chin - 0.12 * h, chin + 0.12 * h, mats["air"])
+    add("chin", lambda P: sdf.sphere(P, chin, 0.1 * h), chin - 0.12 * h, chin + 0.12 * h, mats["skin"])
     brow = o + V(0.3, 0, 0.67) * h
-    add("brow", lambda P: sdf.ellipsoid(P, brow, V(0.08, 0.17, 0.06) * h), brow - 0.3 * h, brow + 0.3 * h, mats["air"])
+    add("brow", lambda P: sdf.ellipsoid(P, brow, V(0.08, 0.17, 0.06) * h), brow - 0.3 * h, brow + 0.3 * h, mats["skin"])
     n0, n1 = o + V(0.38, 0, 0.58) * h, o + V(0.46, 0, 0.42) * h
-    add("nose", lambda P: sdf.round_cone(P, n0, n1, 0.035 * h, 0.05 * h), n0 - 0.08 * h, n1 + 0.08 * h, mats["air"])
+    add("nose", lambda P: sdf.round_cone(P, n0, n1, 0.035 * h, 0.05 * h), n0 - 0.08 * h, n1 + 0.08 * h, mats["skin"])
     for sign in (1.0, -1.0):
         e = o + V(0.39, sign * 0.16, 0.52) * h
         # Long level almonds (gentle, never a scowl), set into the face and standing a little proud of it, so they catch
@@ -210,7 +213,7 @@ def head(S, L, dims, mats):
         outward = np.cross(upward, facing)
         axes = np.stack([facing, outward, upward], axis=1)
         add("eye_%d" % (sign > 0), lambda P, e=e, axes=axes: sdf.ellipsoid(P, e, V(0.04, 0.11, 0.05) * h, axes), e - 0.15 * h, e + 0.15 * h, mats["eye"], 1.0)
-    # Her hair of white air: a cap swept back from a high hairline, and broad soft locks pouring back from it.
+    # Her hair: a cap swept back from a high hairline, and broad soft locks pouring back from it.
     cap_c, cap_r = skull_c + V(-0.04, 0, 0.04) * h, skull_r * 1.1
     line, line_n = o + V(0.3, 0, 0.8) * h, unit(V(0.75, 0, -0.66))
     add("hair_cap", lambda P: np.maximum(sdf.ellipsoid(P, cap_c, cap_r), (P - line) @ line_n), cap_c - 0.55 * h, cap_c + 0.55 * h, mats["hair"], 0.3)
@@ -219,13 +222,15 @@ def head(S, L, dims, mats):
     # Each: how far aside it ends and how far it falls (shares of her height), its length, width and depth, its wave's
     # phase, its colour and its root's height on the head. Of unequal lengths and blended into one soft mass, so from
     # above they never read as fingers.
-    locks = [(0.0, 0.03, 0.44, 0.065, 0.024, 0.4, "hair", 0.22), (0.05, 0.13, 0.38, 0.055, 0.02, 1.7, "hair_shade", 0.18),
-             (-0.05, 0.13, 0.36, 0.055, 0.02, 2.6, "hair", 0.18), (0.09, 0.2, 0.3, 0.045, 0.018, 0.9, "hair", 0.04),
-             (-0.09, 0.2, 0.32, 0.045, 0.018, 2.2, "hair_shade", 0.04)]
+    locks = [(0.0, 0.0, 0.5, 0.085, 0.03, 0.4, "hair", 0.24), (0.07, 0.1, 0.44, 0.075, 0.026, 1.7, "hair_shade", 0.2),
+             (-0.07, 0.1, 0.42, 0.075, 0.026, 2.6, "hair", 0.2), (0.2, 0.2, 0.38, 0.07, 0.022, 0.9, "hair", 0.05),
+             (-0.2, 0.2, 0.4, 0.07, 0.022, 2.2, "hair_shade", 0.05), (0.26, 0.3, 0.3, 0.06, 0.02, 1.4, "hair_shade", -0.02),
+             (-0.26, 0.3, 0.32, 0.06, 0.02, 0.3, "hair", -0.02), (0.0, 0.26, 0.36, 0.08, 0.024, 1.2, "hair", -0.05)]
     hair = []
     for index, (aside, fall, length, width, thick, phase, material, rise) in enumerate(locks):
         start = skull_c + V(-0.12, np.sign(aside) * 0.05, rise) * h
         end = start + unit(V(-1.0, 0, 0.12)) * length * H
+        lock_bones = hair_bones(L, start, length * H, aside)
         stations = []
         for t in (0.0, 0.15, 0.35, 0.55, 0.75, 0.9, 1.0):
             wave = H * 0.02 * math.sin(phase + t * 2.6 * math.pi) * t - H * fall * t * t
@@ -233,9 +238,33 @@ def head(S, L, dims, mats):
                              thick * H * (1.0 - 0.65 * t), width * H * (0.6 + 0.6 * math.sin(math.pi * min(1.0, t * 1.4))) * (1.0 - 0.55 * t)))
         shape = sdf.Loft(start, end, V(0, 0, 1), stations, cap=H * 0.006)
         box = Box.around(shape.bounds_points())
-        hair.append(tree.leaf(S, "hair_%d" % index, shape, box, mats[material], bones, 0.2))
+        hair.append(tree.leaf(S, "hair_%d" % index, shape, box, mats[material], lock_bones, 0.2))
     parts.append(Union(hair, k=H * 0.02))
     return parts
+
+
+def hair_bones(L, start, length, aside):
+    """Weights for a lock of her hair leaving her head at start and running length back: her head's at its root, then
+    more and more her shoulders' streamer chains' the further back it lies (its side's chain, or both alike for a lock
+    down her middle), each span of chain where the lock lies along it, so her hair keeps moving after she stops (ADR-069
+    §7). Without the streamer chains it rides her head alone."""
+    sides = [("l", 1.0), ("r", 0.0)] if aside > 0 else ([("r", 1.0), ("l", 0.0)] if aside < 0 else [("l", 0.5), ("r", 0.5)])
+    if "streamer_l_01" not in L or "streamer_r_01" not in L:
+        return anatomy.rigid("head")
+    x0 = float(start[0])
+
+    def weights(P):
+        t = np.clip((x0 - P[:, 0]) / length, 0.0, 1.0)
+        free = smooth((t - 0.2) / 0.5) * 0.85
+        x = np.clip(t * 3.0, 0.5, 2.5)
+        w = {"head": 1.0 - free}
+        for side, share in sides:
+            if share <= 0.0:
+                continue
+            for k in range(3):
+                w["streamer_%s_%02d" % (side, k + 1)] = free * share * np.clip(1.0 - np.abs(x - (k + 0.5)), 0.0, 1.0)
+        return normalised(w)
+    return weights
 
 
 def currents(S, L, dims, mats, body):
@@ -273,9 +302,9 @@ def currents(S, L, dims, mats, body):
 
 # ---------------------------------------------------------------------------------------------- what she wears
 def garb(S, L, dims, mats, body):
-    """A white shawl on her shoulders, wound in a soft roll about her neck and swagged across her breast, a brass disc
-    pinning it at her left; a sash of white wound over teal about her waist, a brass disc at her right hip; brass bangles
-    at her wrists."""
+    """A cream wrap on her shoulders, wound in a soft roll about her neck and swagged across her breast, a brass medallion
+    pinning it at her breastbone; a sash of cream wound over teal about her hips, a brass disc at its front; brass bands
+    about her upper arms and bangles at her wrists."""
     H = dims["height"]
     core, chest = V(*L["pelvis"][0]), V(*L["spine_03"][1])
     span = chest[2] - core[2]
@@ -298,10 +327,10 @@ def garb(S, L, dims, mats, body):
     pieces = [tree.leaf(S, "shawl_roll", lambda P: sdf.tube(P, roll, [H * 0.019] * len(roll)), Box.around(roll, H * 0.03), mats["cloth"], spine03),
               tree.leaf(S, "shawl_swag", lambda P: sdf.tube(P, swag, [H * 0.016, H * 0.019, H * 0.02, H * 0.019, H * 0.016]), Box.around(swag, H * 0.03),
                         mats["cloth"], spine03)]
-    # The brooch pinning it, at the front of her left shoulder.
-    pin = V(H * 0.055, H * 0.075, chest[2] - H * 0.02)
-    facing = unit(V(1, 0.35, 0.4))
-    pieces.append(tree.leaf(S, "brooch", lambda P: sdf.cylinder(P, pin - facing * H * 0.004, pin + facing * H * 0.004, H * 0.017, H * 0.003),
+    # The medallion pinning it, at her breastbone where the swag meets the roll.
+    pin = V(H * 0.07, 0, chest[2] - H * 0.06)
+    facing = unit(V(1, 0, 0.3))
+    pieces.append(tree.leaf(S, "brooch", lambda P: sdf.cylinder(P, pin - facing * H * 0.005, pin + facing * H * 0.005, H * 0.022, H * 0.003),
                             Box(pin - H * 0.025, pin + H * 0.025), mats["brass"], spine03, protect=0.6))
     worn.append(Union(pieces, k=H * 0.006))
     # The sash: white wound over teal, low about her hips.
@@ -314,16 +343,20 @@ def garb(S, L, dims, mats, body):
                       mats["teal"], hem=H * 0.003, displace=garments.folds((0, 0, 1), 7, H * 0.003, seed=242), reach=H * 0.003))
     worn.append(Shell(S, "sash_white", body, H * 0.006, H * 0.008, garments.both(garments.band_z(white_lo, white_hi), trunk_only),
                       mats["cloth"], hem=H * 0.004, displace=garments.folds((0, 0, 1), 8, H * 0.004, seed=243), reach=H * 0.004))
-    # The brass disc at her right hip, on the sash, a blue crystal set in its face.
+    # The brass disc at the front of her sash, a blue crystal set in its face.
     disc, normal = hip_disc(L, dims)
     a, b = disc - normal * H * 0.006, disc + normal * H * 0.005
     face = disc + normal * H * 0.006
     worn.append(Union([tree.leaf(S, "hip_disc", lambda P: sdf.cylinder(P, a, b, H * 0.036, H * 0.004), Box(disc - H * 0.045, disc + H * 0.045), mats["brass"], pelvis, protect=0.6),
                        tree.leaf(S, "hip_disc_face", lambda P: sdf.cylinder(P, face - normal * H * 0.003, face + normal * H * 0.002, H * 0.014, H * 0.002),
                                  Box(face - H * 0.025, face + H * 0.025), mats["crystal"], pelvis, protect=0.6)], k=0.0))
-    # Bangles: two brass rings at each wrist.
+    # Bands: a broad brass band about each upper arm, and two brass rings at each wrist.
     bangles = []
     for side in ("l", "r"):
+        s, e = V(*L["upperarm_" + side][0]), V(*L["upperarm_" + side][1])
+        a, b = s + (e - s) * 0.42, s + (e - s) * 0.56
+        bangles.append(tree.leaf(S, "armband_" + side, lambda P, a=a, b=b: sdf.cylinder(P, a, b, H * 0.025, H * 0.003), Box.around([a, b], H * 0.03),
+                                 mats["brass"], anatomy.rigid("upperarm_" + side), protect=0.5))
         e, w = V(*L["lowerarm_" + side][0]), V(*L["lowerarm_" + side][1])
         for k, (lo, hi) in enumerate(((0.74, 0.8), (0.84, 0.9))):
             a, b = e + (w - e) * lo, e + (w - e) * hi
@@ -334,79 +367,64 @@ def garb(S, L, dims, mats, body):
 
 
 def hip_disc(L, dims):
-    """Where the brass disc at her right hip sits on her sash, and the way it faces."""
+    """Where the brass disc at the front of her sash sits, and the way it faces."""
     H = dims["height"]
     core, chest = V(*L["pelvis"][0]), V(*L["spine_03"][1])
     z = core[2] + (chest[2] - core[2]) * 0.14
-    angle = math.radians(-58)
+    angle = math.radians(0)
     depth, width = H * 0.054, H * 0.077
     point = V(depth * math.cos(angle), width * math.sin(angle), z)
     normal = unit(V(math.cos(angle) / depth, math.sin(angle) / width, 0.15 / H))
     return point + normal * H * 0.016, normal
 
 
-# ---------------------------------------------------------------------------------------------- the cyclone
-def cyclone_shape(L, dims):
-    """Her lower body: a column of air from under the hips down the trail to a point at the hover height, its three
-    flutes spiralling round it twice as it narrows. (distance, top, tip, radius at a share of its length, frame)."""
+# ---------------------------------------------------------------------------------------------- her legs
+def leg_points(L, dims, side):
+    """Her side's leg, trailing beneath her: hip, knee, ankle and the tip of her pointed toes. Her legs lie close
+    together, her left knee drawn a little further forward than her right, her shins sweeping back to feet pointed down
+    and back, the toes at the hover height."""
     H = dims["height"]
-    top = V(*L[TRAIL[0]][0]) + V(0, 0, H * 0.03)
-    tip = V(*L[TRAIL[2]][1])
-    axis = tip - top
-    length = float(np.linalg.norm(axis))
-    w = axis / length
-    e1 = unit(V(1, 0, 0) - w * w[0])
-    e2 = np.cross(w, e1)
-    shares = np.array([0.0, 0.2, 0.45, 0.7, 0.88, 1.0])
-    radii = np.array([0.074, 0.068, 0.052, 0.032, 0.015, 0.004]) * H
-
-    def radius(t):
-        return np.interp(t, shares, radii)
-
-    def squash(t):
-        # Flattened front to back under the hips, round below.
-        return 0.85 + 0.15 * np.clip(t / 0.4, 0.0, 1.0)
-
-    def distance(P):
-        Q = P - top
-        s = Q @ w
-        t = np.clip(s / length, 0.0, 1.0)
-        x, y = (Q @ e1) / squash(t), Q @ e2
-        rho = np.sqrt(x * x + y * y)
-        theta = np.arctan2(y, x)
-        flute = radius(t) * (1.0 + FLUTE * np.sin(3.0 * theta - 4.0 * np.pi * t))
-        return np.maximum((rho - flute) * 0.7, np.maximum(-s, s - length))
-    return distance, top, tip, radius, squash, (w, e1, e2), length
+    sign = 1.0 if side == "l" else -1.0
+    core, bottom = V(*L[TRAIL[0]][0]), V(*L[TRAIL[2]][1])
+    span = core[2] - bottom[2]
+    bend = 1.0 if side == "l" else 0.55
+    hip = V(0.0, sign * H * 0.04, core[2] - H * 0.035)
+    knee = V(H * 0.045 * bend, sign * H * 0.03, core[2] - span * 0.5)
+    ankle = V(bottom[0] - H * 0.035 * bend, sign * H * 0.024, bottom[2] + span * 0.13)
+    toe = ankle + V(H * 0.006, sign * H * 0.002, -span * 0.12)
+    return hip, knee, ankle, toe
 
 
-def cyclone(S, L, dims, mats):
-    """The cyclone below her waist, its flutes' crests lit by currents spiralling down them; it rides the trail."""
+def legs(S, L, dims, mats):
+    """Her long slender legs, trailing beneath her: a full thigh, a tapering shin and a narrow bare foot pointed down,
+    each blended into the next. They ride the trail bones as far down it as each point lies."""
     H = dims["height"]
-    distance, top, tip, radius, squash, (w, e1, e2), length = cyclone_shape(L, dims)
     bones = chain_weights(L)
-    lo, hi = np.minimum(top, tip) - V(H * 0.09, H * 0.09, H * 0.02), np.maximum(top, tip) + V(H * 0.09, H * 0.09, H * 0.02)
-    parts = [tree.leaf(S, "cyclone", distance, Box(lo, hi), mats["air_low"], bones)]
-    for strand in range(3):
-        points = []
-        for t in np.linspace(0.06, 0.9, 11):
-            theta = (np.pi / 2.0 + 4.0 * np.pi * t + 2.0 * np.pi * strand) / 3.0
-            r = radius(t) * (1.0 + FLUTE) + H * 0.002
-            points.append(top + w * length * t + e1 * math.cos(theta) * r * squash(t) + e2 * math.sin(theta) * r)
-        parts.append(tree.leaf(S, "cyclone_current_%d" % strand, lambda P, points=points: sdf.tube(P, points, [H * 0.0045] * len(points)),
-                               Box.around(points, H * 0.01), mats["current"], bones, protect=0.4))
-    # Wisps of wind wound about it, standing clear of it, tapering as they spiral down.
-    wisps = []
-    for wisp, (start, end, turns, phase) in enumerate(((0.24, 0.66, 1.1, 0.4), (0.42, 0.88, 1.1, 3.3))):
-        points, radii = [], []
-        for t in np.linspace(start, end, 12):
-            f = (t - start) / (end - start)
-            theta = phase + f * turns * 2.0 * np.pi
-            r = radius(t) * (1.0 + FLUTE) + H * (0.03 - 0.012 * f)
-            points.append(top + w * length * t + e1 * math.cos(theta) * r * squash(t) + e2 * math.sin(theta) * r)
-            radii.append(H * (0.007 - 0.004 * f) * math.sin(math.pi * min(1.0, 0.15 + f * 0.85)) + H * 0.0035)
-        wisps.append(tree.leaf(S, "wisp_%d" % wisp, lambda P, points=points, radii=radii: sdf.tube(P, points, radii), Box.around(points, H * 0.012),
-                               mats["wisp"], bones, protect=0.3))
-    return Union(parts + wisps, k=H * 0.004)
+    parts = []
+    for side in ("l", "r"):
+        hip, knee, ankle, toe = leg_points(L, dims, side)
+        heel = ankle + V(-H * 0.012, 0, -H * 0.005)
+        for name, a, b, ra, rb in (("thigh", hip, knee, 0.05, 0.028), ("shin", knee, ankle, 0.025, 0.014), ("foot", heel, toe, 0.014, 0.007)):
+            parts.append(tree.leaf(S, "%s_%s" % (name, side), lambda P, a=a, b=b, ra=ra * H, rb=rb * H: sdf.round_cone(P, a, b, ra, rb),
+                                   Box.around([a, b], max(ra, rb) * H * 1.2), mats["skin"], bones, protect=0.5 if name == "foot" else 0.0))
+    return parts
+
+
+def anklets(S, L, dims, mats):
+    """A brass band about each ankle, two small bells hanging from it."""
+    H = dims["height"]
+    bones = chain_weights(L)
+    parts = []
+    for side in ("l", "r"):
+        hip, knee, ankle, toe = leg_points(L, dims, side)
+        axis = unit(ankle - knee)
+        c = ankle - axis * H * 0.012
+        parts.append(tree.leaf(S, "anklet_" + side, lambda P, a=c - axis * H * 0.006, b=c + axis * H * 0.006: sdf.cylinder(P, a, b, H * 0.019, H * 0.003),
+                               Box(c - H * 0.03, c + H * 0.03), mats["brass"], bones, protect=0.6))
+        for k, turn in enumerate((-0.9, 0.9)):
+            top = c + V(math.cos(turn) * H * 0.016, math.sin(turn) * H * 0.016, -H * 0.004)
+            parts += bell(S, "anklet_bell_%s_%d" % (side, k), top, H * 0.008, H * 0.022, mats, bones, H)
+    return Union(parts, k=H * 0.002)
 
 
 # ---------------------------------------------------------------------------------------------- brass and crystal
@@ -426,15 +444,16 @@ def bipyramid(P, centre, axis, top, bottom, radius, sides=6):
     return d
 
 
-def chime(S, name, top, drop, length, radius, mats, bones, H, swing=None):
-    """A brass tube chime hung from top on a fine chain drop long (swung out by swing): a capped tube length long."""
+def bell(S, name, top, drop, size, mats, bones, H, swing=None):
+    """A brass bell hung from top on a fine chain drop long (swung out by swing): a round crown flaring to a lipped
+    mouth, size tall."""
     cap = top - V(0, 0, drop) + (swing if swing is not None else 0.0)
-    tube_top = cap - V(0, 0, H * 0.006)
-    end = tube_top - V(0, 0, length)
+    mouth = cap - V(0, 0, size)
+    lip = mouth + V(0, 0, size * 0.12)
     return [tree.leaf(S, name + "_chain", lambda P: sdf.capsule(P, top, cap, H * 0.0026), Box.around([top, cap], H * 0.004), mats["brass_dark"], bones, protect=0.7),
-            tree.leaf(S, name + "_cap", lambda P: sdf.cylinder(P, tube_top, cap + V(0, 0, H * 0.001), radius * 1.3, H * 0.002),
-                      Box.around([cap, tube_top], radius * 1.5), mats["brass_dark"], bones, protect=0.7),
-            tree.leaf(S, name, lambda P: sdf.cylinder(P, end, tube_top, radius, H * 0.0015), Box.around([end, tube_top], radius * 1.2), mats["brass"], bones, protect=0.7)]
+            tree.leaf(S, name, lambda P: np.minimum(sdf.round_cone(P, cap - V(0, 0, size * 0.25), lip, size * 0.26, size * 0.42),
+                                                    sdf.cylinder(P, mouth, lip, size * 0.5, size * 0.04)),
+                      Box(mouth - size * 0.6, cap + size * 0.6), mats["brass"], bones, protect=0.7)]
 
 
 def pendant(S, name, top, drop, size, mats, bones, H, swing=None):
@@ -450,16 +469,16 @@ def ring_frame(L, dims):
     """The brass ring behind her shoulders: its centre, radius, and its plane's across and up (tilted back)."""
     H = dims["height"]
     chest = V(*L["spine_03"][1])
-    centre = V(-H * 0.12, 0, chest[2] + H * 0.07)
+    centre = V(-H * 0.13, 0, chest[2] + H * 0.08)
     tilt = math.radians(12)
     up = V(-math.sin(tilt), 0, math.cos(tilt))
-    return centre, H * 0.175, V(0, 1, 0), up
+    return centre, H * 0.2, V(0, 1, 0), up
 
 
 def ring(S, L, dims, mats):
-    """A brass ring standing behind her shoulders, tilted back, beads on its upper arc; it is hung with chimes and
-    crystal pendants on fine chains along its lower arc, inside the streamers flowing past its sides. Her hair passes
-    through it."""
+    """A brass ring standing behind her shoulders, tilted back, short spikes standing out round its upper arc; it is hung
+    with bells and crystal pendants on fine chains along its lower arc, inside the streamers flowing past its sides. Her
+    hair passes through it."""
     H = dims["height"]
     centre, radius, across, up = ring_frame(L, dims)
     normal = np.cross(across, up)
@@ -468,42 +487,43 @@ def ring(S, L, dims, mats):
     box = Box(centre - radius - H * 0.02, centre + radius + H * 0.02)
     parts = [tree.leaf(S, "ring", lambda P: sdf.torus(P, centre, radius, H * 0.0085, axes), box, mats["brass"], bones, protect=0.4)]
     at = lambda degrees, share=1.0: centre + (across * math.cos(math.radians(degrees)) + up * math.sin(math.radians(degrees))) * radius * share  # noqa: E731
-    for k, degrees in enumerate((30, 60, 90, 120, 150)):
-        b = at(degrees)
-        parts.append(tree.leaf(S, "ring_bead_%d" % k, lambda P, b=b: sdf.sphere(P, b, H * 0.0125), Box(b - H * 0.015, b + H * 0.015), mats["brass"], bones, protect=0.4))
-    for k, (degrees, kind, drop, size) in enumerate(((205, "chime", 0.02, 0.07), (225, "chime", 0.035, 0.085), (250, "pendant", 0.015, 0.06),
-                                                    (290, "pendant", 0.03, 0.06), (315, "chime", 0.02, 0.085), (335, "chime", 0.035, 0.07))):
+    for k, degrees in enumerate(range(0, 181, 20)):
+        a, b = at(degrees), at(degrees, 1.0 + (0.22 if k % 2 else 0.14))
+        parts.append(tree.leaf(S, "ring_spike_%d" % k, lambda P, a=a, b=b: sdf.round_cone(P, a, b, H * 0.008, H * 0.0015), Box.around([a, b], H * 0.012),
+                               mats["brass"], bones, protect=0.4))
+    for k, (degrees, kind, drop, size) in enumerate(((200, "bell", 0.02, 0.05), (222, "bell", 0.04, 0.06), (248, "pendant", 0.015, 0.06),
+                                                    (292, "pendant", 0.03, 0.06), (318, "bell", 0.02, 0.06), (340, "bell", 0.04, 0.05))):
         top = at(degrees) - V(0, 0, H * 0.008)
-        if kind == "chime":
-            parts += chime(S, "ring_chime_%d" % k, top, drop * H, size * H, H * 0.0075, mats, bones, H)
+        if kind == "bell":
+            parts += bell(S, "ring_bell_%d" % k, top, drop * H, size * H, mats, bones, H)
         else:
             parts += pendant(S, "ring_pendant_%d" % k, top, drop * H, size * H, mats, bones, H)
     return Union(parts, k=H * 0.003)
 
 
 def hangings(S, L, dims, mats):
-    """Chimes and crystal pendants hung on fine chains from her sash, about her front and sides (her skirt hangs behind),
-    and two from the disc at her hip."""
+    """Bells and crystal pendants hung on fine chains from her sash, about her front and sides, and two from the disc at
+    its front."""
     H = dims["height"]
     core, chest = V(*L["pelvis"][0]), V(*L["spine_03"][1])
     z = core[2] + (chest[2] - core[2]) * 0.06
     bones = anatomy.rigid("pelvis")
     depth, width = H * 0.066, H * 0.092
     parts = []
-    for k, (degrees, kind, drop, size) in enumerate(((-84, "pendant", 0.02, 0.06), (-28, "chime", 0.012, 0.075), (-4, "pendant", 0.035, 0.055),
-                                                     (22, "chime", 0.02, 0.085), (50, "pendant", 0.012, 0.06), (80, "chime", 0.03, 0.07))):
+    for k, (degrees, kind, drop, size) in enumerate(((-84, "pendant", 0.02, 0.06), (-40, "bell", 0.012, 0.05), (-22, "pendant", 0.035, 0.055),
+                                                     (34, "bell", 0.02, 0.055), (52, "pendant", 0.012, 0.06), (80, "bell", 0.03, 0.05))):
         a = math.radians(degrees)
         out = V(math.cos(a), math.sin(a), 0)
         top = V(depth * math.cos(a), width * math.sin(a), z)
-        if kind == "chime":
-            parts += chime(S, "sash_chime_%d" % k, top, drop * H, size * H, H * 0.0075, mats, bones, H, swing=out * H * 0.012)
+        if kind == "bell":
+            parts += bell(S, "sash_bell_%d" % k, top, drop * H, size * H, mats, bones, H, swing=out * H * 0.012)
         else:
             parts += pendant(S, "sash_pendant_%d" % k, top, drop * H, size * H, mats, bones, H, swing=out * H * 0.012)
     disc, normal = hip_disc(L, dims)
     for k, offset in enumerate((-1.0, 1.0)):
         side = unit(np.cross(V(0, 0, 1), normal))
         top = disc + side * offset * H * 0.02 - V(0, 0, H * 0.03) + normal * H * 0.004
-        parts += chime(S, "disc_chime_%d" % k, top, H * (0.01 + 0.02 * k), H * (0.09 - 0.015 * k), H * 0.008, mats, bones, H)
+        parts += bell(S, "disc_bell_%d" % k, top, H * (0.01 + 0.02 * k), H * (0.05 - 0.008 * k), mats, bones, H)
     return Union(parts, k=H * 0.002)
 
 
@@ -591,9 +611,9 @@ def chain_ribbon(S, name, colour, attach, joints, holder, chain, width, twist, p
 def streams(S, L, dims, mats):
     """Her streaming cloth, every long piece on the spring chains her kit gives her (ADR-069 §7), so it keeps moving
     after she stops: a broad white streamer and a narrower teal one beneath it off the back of each shoulder, flowing
-    back and out past the ring on her shoulder's streamer chain; the ends of her sash, teal on her left and white on her
-    right, falling back from behind her waist on its sash chains. Short ribbons stream from her wrists on her forearms,
-    and a torn white skirt hangs about the top of her cyclone, riding the trail as the cyclone does."""
+    back and out past the ring on her shoulder's streamer chain; the ends of her sash, teal on her left and cream on her
+    right, falling back from behind her hips on its sash chains, with the torn cream skirt hung from the sash about her
+    thighs. Short ribbons stream from her wrists on her forearms."""
     H = dims["height"]
     core, chest = V(*L["pelvis"][0]), V(*L["spine_03"][1])
     span = chest[2] - core[2]
@@ -627,34 +647,45 @@ def streams(S, L, dims, mats):
 
 
 def skirt(S, L, dims, mats):
-    """Torn white cloth hanging from her sash about the top of her cyclone, round her sides and back (open at the
-    front), flaring and streaming back as it falls, its hem torn into long tongues. It rides the trail as the cyclone
-    beside it does."""
+    """Torn cream cloth hanging from her sash about her thighs, round her sides and back (open at the front between her
+    legs), flaring and streaming back as it falls, its hem torn into long tongues. It swings on her sash's spring chains
+    where her kit hangs them (ADR-069 §7), its left half down the left chain and its right down the right, blended across
+    her back; else it rides the trail as her legs beside it do."""
     H = dims["height"]
     core, chest = V(*L["pelvis"][0]), V(*L["spine_03"][1])
     top_z = core[2] + (chest[2] - core[2]) * 0.06
-    material = S.material("skirt_white", mats["cloth"].colour)
+    material = S.material("skirt_cream", mats["cloth"].colour)
     columns, rows, strips = 14, 6, 7
-    t0, t1 = math.radians(95.0), math.radians(265.0)
-    rx, ry = H * 0.062, H * 0.086
-    drop = H * 0.24
+    t0, t1 = math.radians(70.0), math.radians(290.0)
+    rx, ry = H * 0.062, H * 0.088
+    drop = H * 0.26
     phase = np.random.default_rng(244).uniform(0, 2 * np.pi, 2)
 
     def position(u, v):
         theta = t0 + (t1 - t0) * u
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
         top = np.stack([rx * np.cos(theta), ry * np.sin(theta), np.full_like(theta, top_z)], axis=1)
-        flare = H * 0.06 * v ** 1.1
+        flare = H * 0.07 * v ** 1.1
         pleat = H * (0.002 + 0.008 * v) * (0.6 * np.sin(theta * 8.0 + phase[0]) + 0.4 * np.sin(theta * 13.0 + phase[1]))
         p = top + radial * (flare + pleat)[:, None]
-        p[:, 0] -= H * 0.12 * v ** 1.5
+        p[:, 0] -= H * 0.1 * v ** 1.5
         p[:, 2] = top_z - drop * v
         return p
     chain = chain_weights(L)
+    on_sash = "sash_l_01" in L and "sash_r_01" in L
 
     def bones(P, u, v):
         hold = 1.0 - smooth(v / 0.12)
-        w = {bone: x * (1.0 - hold) for bone, x in chain(P).items()}
-        w["pelvis"] = w.get("pelvis", 0.0) + hold
+        if not on_sash:
+            w = {bone: x * (1.0 - hold) for bone, x in chain(P).items()}
+            w["pelvis"] = w.get("pelvis", 0.0) + hold
+            return normalised(w)
+        left = 1.0 - smooth((u - 0.35) / 0.3)
+        x = np.clip(v * 2.0, 0.5, 1.5)
+        spans = (np.clip(1.0 - np.abs(x - 0.5), 0.0, 1.0), np.clip(1.0 - np.abs(x - 1.5), 0.0, 1.0))
+        w = {"pelvis": hold}
+        for side, share in (("l", left), ("r", 1.0 - left)):
+            for k, span in enumerate(spans):
+                w["sash_%s_%02d" % (side, k + 1)] = span * share * (1.0 - hold)
         return normalised(w)
     return sheet.Sheet("skirt", position, material, bones, columns, rows, reach=lambda u: sheet.torn(u, strips, 0.55, 0.2, 24.0))

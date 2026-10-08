@@ -1,15 +1,16 @@
 """Vera (ADR-069): a young soldier still fighting in the wreckage of her city, read by her silhouette from the game
-camera. Character Bible and her splash art: white-silver hair in a short high side-tail bound with a red ribbon; a black
-layered coat torn to ribbons at the hem, its red lining showing through every rent, over dark segmented armour (a heavy
-plated pauldron on her left shoulder, banded gauntlets, thigh and shin plates, armoured boots). Her weapon is an
+camera. Character Bible and her splash art: white-silver hair in a high side-tail bound with a red ribbon tied in a bow;
+a long red cloak torn to ribbons streaming from her shoulders, and a black layered coat torn at the hem, its red lining
+showing through every rent, over dark segmented armour (a heavy plated pauldron on her left shoulder, banded gauntlets,
+thigh and shin plates, armoured boots). Her weapon is an
 enormous two-handed siege arm carried across her body: dark timber and riveted iron, a bladed spike running forward
 past the muzzle, a hot red Flux line burning along its length, and a red pennant hung from the fore-end bearing a white
 cross-and-sword device. One dark red-and-black figure with a long horizontal weapon. Never translucent.
 
 Low poly and flat-coloured (author 2026-10-07). She rests empty-handed in the A pose; her clips carry the siege arm low
 and raise it only to fire (humanoid holds, ADR-069 §6), so it is built on her right hand's prop bone where the holds lay
-it, as at the aim, moved to her rest wrist. Her coat and its lining hang on the coat-tail chains, her side-tail on the
-hair chains (ADR-069 §7). Colours are her kit's, lifted to read under the toon light."""
+it, as at the aim, moved to her rest wrist. Her cloak hangs on the cloak chains, her coat and its lining on the coat-tail
+chains, her side-tail and its ribbon's tails on the hair chains (ADR-069 §7). Colours are her kit's, lifted to read under the toon light."""
 import numpy as np
 
 from ..sculpt import anatomy, garments, hair, sdf, sheet, tree
@@ -27,7 +28,7 @@ HAIR_REACH = 4.0
 
 PALETTE = {
     "skin": (0.9, 0.82, 0.78), "hair": (0.9, 0.9, 0.93), "ribbon": (0.7, 0.1, 0.1), "coat": (0.2, 0.19, 0.22),
-    "lining": (0.62, 0.09, 0.09), "armour": (0.26, 0.25, 0.28), "iron": (0.34, 0.32, 0.31), "leather": (0.24, 0.2, 0.18),
+    "lining": (0.62, 0.09, 0.09), "cloak": (0.68, 0.1, 0.11), "armour": (0.26, 0.25, 0.28), "iron": (0.34, 0.32, 0.31), "leather": (0.24, 0.2, 0.18),
     "timber": (0.32, 0.2, 0.12), "flux": (1.0, 0.25, 0.15), "pennant": (0.66, 0.08, 0.08), "device": (0.92, 0.9, 0.86),
 }
 
@@ -53,11 +54,20 @@ def build(S, L, dims, spec):
         locks_bones = hair.on_chains(joints, "head", head_origin + V(*SKULL_CENTRE) * u, V(*SKULL_RADII) * u, HAIR_REACH)
     locks = hair.messy(S, mats["hair"], locks_bones, SKULL_CENTRE, SKULL_RADII, (16.5, 7.0), seed=spec["seed"], unit_scale=u, count=26,
                        length=(5.0, 9.0), radius=(1.6, 2.4), wind=(0.0, -0.2, 0.0), fringe=0.7, volume=0.4, cap_bones=anatomy.rigid("head"))
-    # The high side-tail on her right, bound with a red ribbon, swinging on the hair chains (in the head's frame).
+    # The high side-tail on her right, full and long, bound with a red ribbon tied in a bow whose two tails stream back
+    # with it, swinging on the hair chains (in the head's frame).
     root = V(-3.0, -6.5, 20.0) * u
-    tail = hair.clump(S, "side_tail", root, V(-0.5, -0.6, 0.6), V(0, -1, 0.3), 13.0 * u, 2.6 * u, 0.55, 0.3, mats["hair"], locks_bones)
-    ribbon = tree.leaf(S, "ribbon", lambda P: sdf.torus(P, root, 1.8 * u, 0.7 * u, np.stack([V(1, 0, 0), V(0, 0.6, 0.8), V(0, -0.8, 0.6)], axis=1)),
-                       Box(root - 4 * u, root + 4 * u), mats["ribbon"], anatomy.rigid("head"))
+    tail = hair.clump(S, "side_tail", root, V(-0.5, -0.6, 0.6), V(0, -1, 0.3), 18.0 * u, 3.4 * u, 0.55, 0.3, mats["hair"], locks_bones)
+    bow_axes = np.stack([V(1, 0, 0), V(0, 0.6, 0.8), V(0, -0.8, 0.6)], axis=1)
+    ribbon_parts = [tree.leaf(S, "ribbon", lambda P: sdf.torus(P, root, 2.0 * u, 0.8 * u, bow_axes), Box(root - 4 * u, root + 4 * u), mats["ribbon"], anatomy.rigid("head"))]
+    for k, (ahead, aside) in enumerate(((1.0, 0.6), (-1.0, 0.6))):
+        loop = root + V(ahead * 2.4, -aside * 1.2, 1.4) * u
+        ribbon_parts.append(tree.leaf(S, "bow_%d" % k, lambda P, c=loop: sdf.ellipsoid(P, c, V(2.0, 0.8, 1.4) * u), Box(loop - 3 * u, loop + 3 * u),
+                                      mats["ribbon"], anatomy.rigid("head"), protect=0.5))
+        end = root + V(-4.0 + ahead * 1.2, -5.0, -6.0 - 2.0 * k) * u
+        ribbon_parts.append(tree.leaf(S, "ribbon_tail_%d" % k, lambda P, a=root, b=end: sdf.round_cone(P, a, b, 0.9 * u, 0.6 * u), Box.around([root, end], 2 * u),
+                                      mats["ribbon"], locks_bones, protect=0.5))
+    ribbon = Union(ribbon_parts, k=0.3 * u)
     head = anatomy.Head(S, mats["skin"], size, look={"jaw": 0.86}).build()
     figure.attach_head(Placed(Over([head, locks, Union([tail, ribbon], k=0.3 * u)]), head_origin, np.eye(3)))
     for side in ("l", "r"):
@@ -65,7 +75,10 @@ def build(S, L, dims, spec):
     body = figure.body()
     dressed = clothes(S, L, dims, mats, body, figure.limbs)
     worn = Over([dressed, siege_arm(S, L, mats, H)])
-    return worn, {"body": body, "sheets": [coat_skirt(S, L, dims, mats, "coat"), coat_skirt(S, L, dims, mats, "lining")]}
+    sheets = [coat_skirt(S, L, dims, mats, "coat"), coat_skirt(S, L, dims, mats, "lining")]
+    if "cape_01" in L:
+        sheets.insert(0, cloak(S, L, dims, dressed))
+    return worn, {"body": body, "sheets": sheets}
 
 
 def hand(S, L, H, side, mats, figure):
@@ -195,7 +208,7 @@ def coat_skirt(S, L, dims, mats, layer):
         theta = t0 + (t1 - t0) * u
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
         top = np.stack([hip * 2.0 * np.cos(theta), hip * 2.2 * np.sin(theta), np.full_like(theta, belt_z)], axis=1)
-        p = top + radial * (H * 0.09 * v ** 1.2 + inset + (0.3 + 1.2 * v) * np.sin(theta * 8.0))[:, None]
+        p = top + radial * (H * 0.11 * v ** 1.2 + inset + (0.3 + 1.2 * v) * np.sin(theta * 8.0))[:, None]
         p[:, 2] = belt_z + (hem_z - belt_z) * v
         return sheet.clear_of(p, limbs, 1.5 + (inset if lining else 0.0) * 0.5)
 
@@ -209,6 +222,64 @@ def coat_skirt(S, L, dims, mats, layer):
             w["coat_%s_01" % side] = upper * mask
             w["coat_%s_02" % side] = lower * mask
         return {k: np.asarray(x, dtype=np.float32) for k, x in w.items()}
-    cut, point = (0.75, 0.1) if lining else (0.45, 0.25)
+    cut, point = (0.75, 0.1) if lining else (0.35, 0.3)
     return sheet.Sheet("skirt_" + layer, position, material, bones, columns, rows,
                        reach=lambda u: sheet.torn(u, strips, cut, point, 13.0 if lining else 17.0))
+
+
+def cloak(S, L, dims, worn):
+    """Her long red cloak streaming from her shoulders: its top lying on them round her back, falling behind her arms,
+    flaring wide and pleated unevenly as it falls, longest behind her, torn into long tongues. It hangs on the three
+    cloak chains (ADR-069 §7): down each side behind the arm and down the middle."""
+    H = dims["height"]
+    cz = L["spine_03"][1][2]
+    material = S.material("cloak_sheet", PALETTE["cloak"])
+    columns, rows, strips = 20, 8, 11
+    t0, t1 = np.radians(60.0), np.radians(300.0)
+    hem_u, hem_z = [0.0, 0.25, 0.5, 0.75, 1.0], [H * 0.3, H * 0.1, H * 0.05, H * 0.12, H * 0.32]
+    limbs = [(L["upperarm_" + s][0], L["upperarm_" + s][1], H * 0.042) for s in ("l", "r")] + [(L["lowerarm_" + s][0], L["lowerarm_" + s][1], H * 0.033) for s in ("l", "r")]
+    # The top edge: where a ray in toward the body at the shoulders' height first meets the clothed body, a little out.
+    samples = np.linspace(0.0, 1.0, 13)
+    theta_s = t0 + (t1 - t0) * samples
+    inward = -np.stack([np.cos(theta_s), np.sin(theta_s), np.zeros_like(theta_s)], axis=1)
+    z = cz - H * 0.012 - H * 0.008 * np.abs(np.sin(theta_s))
+    centres = np.stack([np.zeros_like(z), np.zeros_like(z), z], axis=1)
+    hits, _normals = garments.surface_points(worn, centres - inward * 45.0, inward, reach=45.0)
+    tops = hits - inward * 1.2
+    phase = np.random.default_rng(73).uniform(0, 2 * np.pi, 3)
+
+    def position(u, v):
+        theta = t0 + (t1 - t0) * u
+        side = np.abs(np.sin(theta))
+        top = np.stack([np.interp(u, samples, tops[:, k]) for k in range(3)], axis=1)
+        radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
+        flare = H * (0.05 + 0.15 * side) * v ** 1.4
+        pleat = H * (0.003 + 0.02 * v) * (0.55 * np.sin(theta * 9.0 + phase[0]) + 0.3 * np.sin(theta * 14.0 + phase[1]) + 0.25 * np.sin(theta * 5.0 + phase[2]))
+        p = top + radial * (flare + pleat)[:, None]
+        p[:, 2] = top[:, 2] + (np.interp(u, hem_u, hem_z) - top[:, 2]) * v
+        return sheet.clear_of(p, limbs, 1.5)
+    chains = {prefix: [V(*L["%s_%02d" % (prefix, i)][0]) for i in (1, 2, 3)] + [V(*L[prefix + "_end"][0])] for prefix in ("cape_l", "cape", "cape_r")}
+    across = {prefix: (np.arctan2(points[0][1], points[0][0]) % (2 * np.pi) - t0) / (t1 - t0) for prefix, points in chains.items()}
+
+    def bones(P, u, v):
+        # Across the chains by where round her back it hangs; down each by height; the top held by the upper back and
+        # the shoulder on its side.
+        ul, ur = across["cape_l"], across["cape_r"]
+        share = {"cape_l": np.clip((0.5 - u) / (0.5 - ul), 0, 1), "cape_r": np.clip((u - 0.5) / (ur - 0.5), 0, 1)}
+        share["cape"] = 1.0 - share["cape_l"] - share["cape_r"]
+        w = {}
+        for prefix, points in chains.items():
+            span = points[0][2] - points[-1][2]
+            t = np.clip((points[0][2] - P[:, 2]) / span, 0, 1) * 3.0
+            for i in (1, 2, 3):
+                w["%s_%02d" % (prefix, i)] = np.clip(1 - np.abs(t - (i - 0.5)), 0, 1) * share[prefix]
+        hold = np.clip(1 - v / 0.14, 0, 1)
+        left = P[:, 1] > 0
+        for k in w:
+            w[k] = w[k] * (1 - hold)
+        w["spine_03"] = hold * 0.6
+        w["clavicle_l"] = hold * 0.4 * left
+        w["clavicle_r"] = hold * 0.4 * ~left
+        total = sum(w.values())
+        return {k: (x / np.maximum(total, 1e-6)).astype(np.float32) for k, x in w.items()}
+    return sheet.Sheet("cloak", position, material, bones, columns, rows, reach=lambda u: sheet.torn(u, strips, 0.5, 0.2, 3.0))
