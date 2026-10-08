@@ -6,12 +6,16 @@ on:
       - 'Game/ArtSource/Presentation/PresentationMaterials.json'
       - 'Game/Scripts/PresentationMaterials/spec.py'
       - 'tests/test_presentation_materials_spec.py'
+      - 'Game/ArtSource/Presentation/Effects.json'
+      - 'tests/test_effects_spec.py'
       - '.github/workflows/presentation-materials.yml'
   pull_request:
     paths:
       - 'Game/ArtSource/Presentation/PresentationMaterials.json'
       - 'Game/Scripts/PresentationMaterials/spec.py'
       - 'tests/test_presentation_materials_spec.py'
+      - 'Game/ArtSource/Presentation/Effects.json'
+      - 'tests/test_effects_spec.py'
       - '.github/workflows/presentation-materials.yml'
 
 jobs:
