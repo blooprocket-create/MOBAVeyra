@@ -78,7 +78,7 @@
     "maxPerSecond": 20,
     "destinationProjectionExtent": 200,
     "arrivalTolerance": 10,
-    "avoidanceConsiderationRadius": 300,
+    "avoidanceConsiderationRadius": 150,
     "avoidanceWeight": 0.5
   },
   "developerMatch": {

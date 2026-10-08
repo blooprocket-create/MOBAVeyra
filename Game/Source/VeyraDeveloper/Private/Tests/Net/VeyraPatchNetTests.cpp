@@ -90,6 +90,26 @@ namespace VeyraNetTests
 				.UntilClients(TEXT("Every client sees the enemy feared"), [this](FState& State) { return SeesStatus(State.World, Duel.TargetId, EVeyraStatusKind::Fear); });
 		}
 
+		TEST_METHOD(EveryClientSeesWhoHoldsTheThreadsOtherEnd)
+		{
+			// The target's thread names Patch's body on every machine, so each can draw the strand between them (ADR-071 §2).
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Prepare the duel"), [this](FState& State) { PrepareDuel(State, CloseDistance); })
+				.ThenClient(TEXT("Thread"), 0, [this](FState& State) { Duel.CastAtTheTarget(State.World, EVeyraAbilitySlot::E); })
+				.UntilClients(TEXT("Every client sees the thread run to Patch"), [this](FState& State) {
+					const APawn* Patch = FindVanguard(State.World, Duel.CasterId);
+					for (const APlayerState* Participant : GameStateOf(State.World)->PlayerArray)
+					{
+						if (Participant && Participant->GetPlayerId() == Duel.TargetId)
+						{
+							return Patch && Participant->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries.ContainsByPredicate(
+								[Patch](const FVeyraStatusEntry& Entry) { return Entry.Id == ContentId(TEXT("patch_threaded")) && Entry.SourceBody.Get() == Patch; });
+						}
+					}
+					return false;
+				});
+		}
+
 		TEST_METHOD(TheThingInsideGrowsHimAndChillsWhoIsNear)
 		{
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)

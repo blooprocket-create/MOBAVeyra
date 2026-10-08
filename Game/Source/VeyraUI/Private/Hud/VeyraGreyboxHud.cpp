@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attacks/VeyraBasicAttackTypes.h"
 #include "Attributes/VeyraOffenceSet.h"
 
@@ -22,6 +23,7 @@
 #include "Hud/VeyraHudDeck.h"
 #include "Hud/VeyraHudLayout.h"
 #include "Hud/VeyraHudModel.h"
+#include "Hud/VeyraLastHit.h"
 #include "Ending/VeyraMatchEnding.h"
 #include "Hud/VeyraMinimapModel.h"
 #include "Hud/VeyraTargetFrameModel.h"
@@ -83,6 +85,10 @@ namespace
 		const FVeyraBasicAttackProfile* Profile = nullptr;
 		double PhysicalPower = 0.0;
 		double MagicPower = 0.0;
+
+		/** Its windup now, and where the player's body stands, for how long an attack takes to land (ADR-071 §5). */
+		double WindupSeconds = 0.0;
+		const AActor* Attacker = nullptr;
 	};
 
 	/** Viewer's Vanguard's basic attack and power now, while the player keeps the cue on; its power is the owner's to see. */
@@ -95,8 +101,10 @@ namespace
 		{
 			return {};
 		}
+		const UVeyraBasicAttackComponent* Attacks = Own->FindComponentByClass<UVeyraBasicAttackComponent>();
+		const double Interval = Attacks ? Attacks->GetTiming().IntervalSeconds : 0.0;
 		return FLastHitReach{ &Definition->BasicAttack, AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()),
-			AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) };
+			AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()), Interval * Definition->BasicAttack.WindupFraction, Own->GetPawn() };
 	}
 
 	/**
@@ -140,21 +148,33 @@ namespace
 		const double Total = FMath::Max(Vitals->MaxHealth, Vitals->Health + Vitals->Shield);
 		const float HealthWidth = BarWidth * Vitals->Health / Total;
 		// The last-hit cue, on an enemy Fluxborn or creature: a mark at the Health the player's next basic attack would finish,
-		// so the moment its Health falls to the mark, that attack kills; its Health is lit from then (ADR-065 §6). A guide:
-		// crits and on-hit are left out.
+		// so the moment its Health falls to the mark, that attack kills; its Health is lit from then (ADR-065 §6). Before
+		// that, it reads Ready while an attack started now would land as its Health falls into reach, at the rate it is
+		// losing Health (ADR-071 §5). A guide: crits and on-hit are left out.
 		FLinearColor HealthColor = Greybox.SideColorOf(Unit);
 		TOptional<float> LastHitMark;
 		const UAbilitySystemComponent* Defender = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
 		if (LastHit && Defender && !Facts.bAllied && (Facts.Kind == EVeyraUnitKind::Fluxborn || Facts.Kind == EVeyraUnitKind::Wildlife))
 		{
 			const double Hit = VeyraBasicAttacks::ExpectedHit(*LastHit->Profile, LastHit->PhysicalPower, LastHit->MagicPower, *Defender);
-			if (Hit > 0.0 && Hit >= Vitals->Health)
+			const double Speed = LastHit->Profile->Projectile.IsEmpty() ? 0.0 : LastHit->Profile->Projectile[0].Speed;
+			const double Distance = LastHit->Attacker ? FVector::Dist2D(LastHit->Attacker->GetActorLocation(), Unit.GetActorLocation()) : 0.0;
+			const double Lead = VeyraLastHit::LeadSecondsOf(LastHit->WindupSeconds, Distance, Speed);
+			switch (VeyraLastHit::StageOf(Vitals->Health, Hit, Greybox.GetHealthLossPerSecond(Unit), Lead))
 			{
+			case EVeyraLastHitStage::Now:
 				HealthColor = Settings.LastHitColor;
-			}
-			else if (Hit > 0.0 && Facts.bDamaged)
-			{
+				break;
+			case EVeyraLastHitStage::Ready:
+				HealthColor = Settings.LastHitReadyColor;
 				LastHitMark = static_cast<float>(BarWidth * Hit / Total);
+				break;
+			case EVeyraLastHitStage::None:
+				if (Hit > 0.0 && Facts.bDamaged)
+				{
+					LastHitMark = static_cast<float>(BarWidth * Hit / Total);
+				}
+				break;
 			}
 		}
 		DrawHudRect(Canvas, TopLeft, FVector2D(BarWidth, BarHeight), Settings.BarBackgroundColor);

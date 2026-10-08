@@ -5,6 +5,7 @@
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Misc/EnumClassFlags.h"
+#include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
 #include "UObject/ObjectMacros.h"
 
@@ -359,6 +360,20 @@ struct FVeyraStatusEntry
 	/** The basic attacks it has left before it ends (ADR-033 §4); 0 for one attacks do not spend. */
 	UPROPERTY()
 	int32 AttackCharges = 0;
+
+	/**
+	 * The body of the unit that applied it, so the presentation can draw what links the two, as a tether's strand
+	 * (ADR-071 §2). Null where that body is gone or the viewer's machine does not hold it. Nothing gameplay reads it.
+	 */
+	UPROPERTY()
+	TWeakObjectPtr<AActor> SourceBody;
+
+	/**
+	 * The side of the unit that applied it, which every machine knows even where SourceBody does not resolve, so what
+	 * shows the status keeps its applier's colour (ADR-071 §2). Nothing gameplay reads it.
+	 */
+	UPROPERTY()
+	EVeyraTeam SourceTeam = EVeyraTeam::None;
 };
 
 /** A unit's active statuses. */
