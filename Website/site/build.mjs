@@ -5,10 +5,11 @@
 //   so a player's website account and download are the same ones the launcher signs in to and installs from;
 // - Docs/Design/Vanguards/<nn>-<id>.yaml: each featured Vanguard's name, title, region and roles;
 // - Docs/Design/Vanguards/render_sheet.py: their signature colours (Art Direction, "Signature colours");
-// - ConceptArt/Vanguards/<id>/hero.webp: their approved hero art;
+// - ConceptArt/Vanguards/<id>/hero.webp: their approved hero art, for them and for any page that shows one;
 // - Launcher/ui/fonts: Roboto, the game's and the launcher's type.
 // Website/site/site.json holds only what is the website's own. No dependencies: Node's standard library only.
 
+import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = resolve(HERE, "..", "..");
 const SITE_SCHEMA_VERSION = 1;
 const LAUNCHER_SCHEMA_VERSION = 2;
+// How many hex digits of an art file's SHA-256 its published name carries: enough that two drawings never share one.
+const ART_HASH_LENGTH = 10;
 
 class ConfigError extends Error {}
 
@@ -207,6 +210,17 @@ function roleLabel(tag) {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+const heroArt = (id, root) => join(root, "ConceptArt", "Vanguards", id, "hero.webp");
+
+/**
+ * Where a Vanguard's art is published: named after its bytes, so redrawn art gets a new address that no browser or
+ * cache can answer with the old picture, and an unchanged picture can be kept for good.
+ */
+export function artUrl(id, source) {
+  const hash = createHash("sha256").update(readFileSync(source)).digest("hex").slice(0, ART_HASH_LENGTH);
+  return `/art/${id}.${hash}.webp`;
+}
+
 /** Each featured Vanguard, from canon: name, title, region, roles, colour and art. */
 export function readVanguards(featured, root = REPO_ROOT) {
   const dataDir = join(root, "Docs", "Design", "Vanguards");
@@ -220,7 +234,7 @@ export function readVanguards(featured, root = REPO_ROOT) {
       return null;
     }
     const fields = parseVanguardYaml(readFileSync(join(dataDir, file), "utf8"));
-    const art = join(root, "ConceptArt", "Vanguards", id, "hero.webp");
+    const art = heroArt(id, root);
     if (fields.id !== id || !fields.name || !fields.title || !fields.origin_region || !Array.isArray(fields.role_tags)) {
       problems.push(`${file}: needs id, name, title, origin_region and role_tags`);
     }
@@ -239,7 +253,7 @@ export function readVanguards(featured, root = REPO_ROOT) {
       roles: (fields.role_tags ?? []).map(roleLabel),
       hue,
       focus,
-      art: `/art/${id}.webp`,
+      art: existsSync(art) ? artUrl(id, art) : null,
       source: art,
     };
   });
@@ -268,7 +282,7 @@ export function makeConfig(root = REPO_ROOT) {
       serverHours: site.serverHours,
       vanguards: vanguards.map(({ source, ...vanguard }) => vanguard),
     },
-    art: vanguards.map(({ id, source }) => ({ id, source })),
+    art: vanguards.map(({ id, art, source }) => ({ id, url: art, source })),
   };
 }
 
@@ -293,9 +307,28 @@ export function assemblePage(html, partials) {
   return fill(html, []);
 }
 
+/**
+ * Art the pages name by hand, as /art/<id>.webp, besides the featured Vanguards': each Vanguard's published file,
+ * so the page can be pointed at it.
+ */
+function pageArt(pages, featured, root) {
+  const ids = new Set(pages.flatMap((html) => [...html.matchAll(/\/art\/([a-z]+)\.webp"/g)].map(([, id]) => id)));
+  const known = new Map(featured.map((entry) => [entry.id, entry]));
+  const missing = [...ids].filter((id) => !known.has(id) && !existsSync(heroArt(id, root)));
+  if (missing.length > 0) {
+    fail(missing.map((id) => `a page shows /art/${id}.webp, but there is no hero art at ConceptArt/Vanguards/${id}/hero.webp`));
+  }
+  for (const id of ids) {
+    if (!known.has(id)) {
+      known.set(id, { id, url: artUrl(id, heroArt(id, root)), source: heroArt(id, root) });
+    }
+  }
+  return [...known.values()];
+}
+
 /** Builds the site into outDir: the pages, the generated configuration, the fonts and the art. */
 export function build(root = REPO_ROOT, outDir = join(root, "Website", "site", "dist")) {
-  const { config, art } = makeConfig(root);
+  const { config, art: featuredArt } = makeConfig(root);
   const source = join(root, "Website", "site", "src");
   const partialsDir = join(source, "partials");
   const partials = Object.fromEntries(
@@ -307,8 +340,12 @@ export function build(root = REPO_ROOT, outDir = join(root, "Website", "site", "
   partials["server-hours"] = describeServerHours(config.serverHours).host;
   rmSync(outDir, { recursive: true, force: true });
   cpSync(source, outDir, { recursive: true, filter: (path) => path !== partialsDir });
-  for (const name of readdirSync(outDir).filter((file) => file.endsWith(".html"))) {
-    writeFileSync(join(outDir, name), assemblePage(readFileSync(join(outDir, name), "utf8"), partials));
+  const pageNames = readdirSync(outDir).filter((file) => file.endsWith(".html"));
+  const pages = new Map(pageNames.map((name) => [name, assemblePage(readFileSync(join(outDir, name), "utf8"), partials)]));
+  const art = pageArt([...pages.values()], featuredArt, root);
+  const urls = new Map(art.map(({ id, url }) => [id, url]));
+  for (const [name, html] of pages) {
+    writeFileSync(join(outDir, name), html.replace(/\/art\/([a-z]+)\.webp"/g, (_, id) => `${urls.get(id)}"`));
   }
   const fonts = join(root, "Launcher", "ui", "fonts");
   mkdirSync(join(outDir, "fonts"), { recursive: true });
@@ -316,8 +353,8 @@ export function build(root = REPO_ROOT, outDir = join(root, "Website", "site", "
     cpSync(join(fonts, name), join(outDir, "fonts", name));
   }
   mkdirSync(join(outDir, "art"), { recursive: true });
-  for (const { id, source } of art) {
-    cpSync(source, join(outDir, "art", `${id}.webp`));
+  for (const { url, source } of art) {
+    cpSync(source, join(outDir, url));
   }
   const banner = "// Generated by Website/site/build.mjs from site.json and Launcher/config/public.json. Do not edit.\n";
   writeFileSync(join(outDir, "js", "site-config.js"), `${banner}export default Object.freeze(${JSON.stringify(config, null, 2)});\n`);

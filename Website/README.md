@@ -41,7 +41,7 @@ Static pages with no framework and no dependencies. `site/build.mjs` builds them
 | `Launcher/config/public.json` | the Firebase project, the release store and the channel |
 | `Docs/Design/Vanguards/<nn>-<id>.yaml` | each featured Vanguard's name, title, region and roles |
 | `Docs/Design/Vanguards/render_sheet.py` | their signature colours |
-| `ConceptArt/Vanguards/<id>/hero.webp` | their art |
+| `ConceptArt/Vanguards/<id>/hero.webp` | their art, and the art the pages show by hand as `/art/<id>.webp` |
 | `Launcher/ui/fonts` | Roboto |
 | `site/site.json` | the website's own data: the featured Vanguards and their framing, the home page's rotation, the display-name and password rules the forms check first, the support contacts, and the servers' daily hours |
 
@@ -55,6 +55,10 @@ Static pages with no framework and no dependencies. `site/build.mjs` builds them
 | `/signup` | Firebase creates the sign-in, then `/v1/register` creates the account with its display name. |
 | `/login` | Firebase only, and a password-reset email. Never `/v1/login`: a website visit is not a launcher login. |
 | `/account` | The sign-in, a password reset, and finishing an account that has no display name yet. |
+
+### Art
+
+The build publishes each piece of art as `/art/<id>.<hash>.webp`, named after the first digits of its SHA-256, and points the pages and the generated configuration at that name. Redrawn art therefore gets a new address, so no browser or cache can answer it with the old picture, and `vercel.json` lets browsers keep art for a year. A page that shows art by hand writes `/art/<id>.webp`; the build fills in the published name.
 
 ### Routes to Veyra
 
