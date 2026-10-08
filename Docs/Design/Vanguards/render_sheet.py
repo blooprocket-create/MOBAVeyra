@@ -2,7 +2,7 @@
 """Render a Vanguard character sheet as HTML from canon.
 
     python3 Docs/Design/Vanguards/render_sheet.py bryn          # render one sheet
-    python3 Docs/Design/Vanguards/render_sheet.py --all         # render all 25
+    python3 Docs/Design/Vanguards/render_sheet.py --all         # render all 26
     python3 Docs/Design/Vanguards/render_sheet.py --missing     # which slots have no art yet
 
 Text is read at render time from the Character Bible and the Vanguard YAML.
