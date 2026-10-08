@@ -34,11 +34,12 @@ DEPTH = 0.62
 # forward and to the left (cm).
 RINGS = ((0.17, 0.30, 0.6, 0.0), (0.55, 0.35, 0.9, 0.0), (0.97, 0.47, 1.2, 0.0), (1.5, 0.62, 0.6, -0.6), (1.82, 0.5, -0.6, 0.0),
          (1.87, 0.15, -0.6, 0.0))
-# Pane colours by where they lie: a jewel's name and its weight.
-BODICE = {"amber": 3, "blue": 2, "violet": 2, "pale": 1, "cyan": 1, "rose": 0.5}
-WING = {"blue": 3, "violet": 3, "amber": 3, "pale": 2, "cyan": 1, "rose": 1}
-SKIRT = {"blue": 3, "violet": 3, "amber": 2, "pale": 1, "rose": 1}
-LIMB = {"amber": 2, "blue": 2, "violet": 2, "pale": 1}
+# Pane colours by where they lie: a jewel's name and its weight. Her art is mostly pearl-pale glass touched with
+# lavender and blue, its amber kept to the panes lit about her core.
+BODICE = {"pale": 5, "violet": 1.5, "blue": 1, "cyan": 0.5}
+WING = {"pale": 4, "violet": 2, "blue": 1.5, "cyan": 1, "rose": 0.5}
+SKIRT = {"pale": 4, "violet": 2, "blue": 1, "rose": 0.5}
+LIMB = {"pale": 3, "violet": 1}
 
 
 def build(S, L, dims, spec):
@@ -366,7 +367,7 @@ def head(g, L, dims, p):
     gem, faces = g.solid("gem", faces, "lead", "head", protect=0.8)
     nodes = [gem]
     for k, (face, normal) in enumerate(faces):
-        g.laid(face, normal, g.pick({"blue": 2, "violet": 2, "pale": 2, "amber": 1}), "head", inset=0.6, lift=0.35)
+        g.laid(face, normal, g.pick({"pale": 3, "violet": 1, "blue": 1}), "head", inset=0.6, lift=0.35)
     # The core at its face, in a gold frame.
     front = rx * math.cos(math.radians(30))
     nodes.append(g.ball("core", (front - 1.2, 0, middle), hd * 0.25, "core", "head", protect=1.0))
@@ -378,7 +379,7 @@ def head(g, L, dims, p):
     # at the top and longer on her right; five panes facing forward, so from before they read as a crown, never as horns.
     back = V(-math.sin(math.radians(22)), 0, math.cos(math.radians(22)))
     facing = unit(np.cross(back, V(0, 1, 0)))
-    for k, (angle, length, colour) in enumerate(((0, 0.95, "pale"), (30, 0.7, "violet"), (-32, 0.78, "amber"), (62, 0.5, "blue"), (-64, 0.58, "violet"))):
+    for k, (angle, length, colour) in enumerate(((0, 0.95, "pale"), (30, 0.7, "violet"), (-32, 0.78, "pale"), (62, 0.5, "blue"), (-64, 0.58, "violet"))):
         a = math.radians(angle)
         direction = unit(back * math.cos(a) + V(0, 1, 0) * math.sin(a))
         across = unit(np.cross(facing, direction))
