@@ -285,12 +285,13 @@ def layout(spec, capsule):
         else:
             L.update(aimed)
     elif stance == "braced":
-        # A heavy gun carried across the body on both sides of her: its barrel forward and down under the right arm to
-        # the muzzle, its breech up over the left shoulder. The right hand grips under the barrel, the left the breech.
-        breech = Vector((shoulder * 0.3, shoulder * 0.75, chest_z + torso * 0.1))
-        muzzle = Vector((arm * 1.15, -shoulder * 0.7, chest_z - torso * 0.8))
+        # A heavy gun carried low across the body at the hip, two-handed: its breech behind her right hip, its barrel
+        # running forward and a little across her to the muzzle, level with her hips, her head and chest clear above
+        # it. The right hand grips it near the breech, the left under the barrel ahead.
+        breech = Vector((-shoulder * 0.35, -shoulder * 0.55, pelvis_z + torso * 0.3))
+        muzzle = Vector((arm * 1.05, shoulder * 0.15, pelvis_z + torso * 0.15))
         gun = (breech, muzzle)
-        grips = {"r": breech.lerp(muzzle, 0.62) + Vector((0, 0, -height * 0.05)), "l": breech.lerp(muzzle, 0.2) + Vector((height * 0.02, 0, -height * 0.035))}
+        grips = {"r": breech.lerp(muzzle, 0.25) + Vector((0, 0, height * 0.03)), "l": breech.lerp(muzzle, 0.6) + Vector((0, 0, -height * 0.03))}
         for side, sign in (("l", 1.0), ("r", -1.0)):
             shoulder_point = L["upperarm_" + side][0]
             wrist = grips[side] - Vector((arm * 0.08, 0.0, 0.0))
@@ -1457,10 +1458,10 @@ def add_prop(body, prop, L, d, spec):
             point = hilt.lerp(tip, share)
             body.limb("spine_03", point, point + along * unit * 0.015, unit * 0.02, unit * 0.02, fitting, segments=8)
     elif kind == "harborGun":
-        # One heavy engineered gun carried on both sides of her (the braced stance): a banded brass-and-iron barrel
-        # running forward under her right arm to a wide muzzle with Flux light standing in the bore, exposed blue-lit
-        # Flux chambers along it, and the breech and recoil assembly riding up over her left shoulder. It rides her upper
-        # body, which carries it with her hands on it.
+        # One heavy engineered gun carried low across her at the hip (the braced stance): a banded brass-and-iron barrel
+        # running forward to a wide muzzle with Flux light standing in the bore, exposed blue-lit Flux chambers along it,
+        # and the breech and recoil assembly behind her right hip. It rides her upper body, which carries it with her
+        # hands on it.
         breech, muzzle = d["gun"]
         along = (muzzle - breech).normalized()
         side = along.cross(Vector((0, 0, 1))).normalized()

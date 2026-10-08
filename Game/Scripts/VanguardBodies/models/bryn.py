@@ -1,10 +1,10 @@
 """Bryn (ADR-069): a veteran harbour gunner, read by her silhouette from the game camera. Character Bible and her
 splash art: compact and weathered, short salt-and-pepper hair; a worn navy naval coat to the knee, trimmed in gold, open over a
 dark shirt, belted, its long skirt flaring; a red sash and a coil of rope at her waist among the buckles, ammunition
-pouches and a bandolier; gloves and heavy boots. Mournwake, her giant brass-and-iron cannon, is carried on both sides
-of her: the banded barrel runs forward under her right arm to a wide muzzle with Flux light standing in the bore, and the
-breech and recoil assembly rides up over her left shoulder, blue-lit Flux chambers along its flanks. One heavy piece,
-never a rotating barrel cluster.
+pouches and a bandolier; gloves and heavy boots. Mournwake, her giant brass-and-iron cannon, is carried low across her at
+the hip in both hands, as her art draws it: the banded barrel runs forward to a wide muzzle with Flux light standing in the
+bore, the breech and recoil assembly behind her right hip, blue-lit Flux chambers and a stabilizing brace along its
+flanks. One heavy piece, never a rotating barrel cluster.
 
 Low poly and flat-coloured (author 2026-10-07): the big forms that make her outline, each a flat colour the toon
 material shades. She stands as her braced stance lays her out (ADR-064): the cannon rides her upper body, her hands on
@@ -147,11 +147,11 @@ def clothes(S, L, dims, mats, body, limbs):
 
 
 def cannon(S, mats, H, breech, muzzle):
-    """Mournwake: an iron barrel in brass bands from the breech riding up over her left shoulder to a wide brass muzzle
-    under her right arm, Flux light standing in its bore and in a chamber along each flank, collared in brass; the
+    """Mournwake: an iron barrel in brass bands from the breech behind her right hip forward to a wide brass muzzle
+    ahead of her, Flux light standing in its bore and in a chamber along each flank, collared in brass; the
     breech block, its recoil assembly and housing at the back, and a stabilizing brace along each upper flank from the
     breech (canon names the braces among what makes it recognizable). Giant, as her art draws it: it runs on past where her stance holds it, behind her
-    shoulder and out ahead of her. It rides her upper body (her chest's bone), which carries it with her hands on it."""
+    hip and out ahead of her. It rides her upper body (her chest's bone), which carries it with her hands on it."""
     bones = anatomy.rigid("spine_03")
     along = unit(muzzle - breech)
     side = unit(np.cross(along, V(0, 0, 1)))
