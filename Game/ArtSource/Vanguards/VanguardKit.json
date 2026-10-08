@@ -313,7 +313,7 @@
       "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraDrip.NS_VeyraDrip", "color": [0.55, 0.70, 0.80, 1.0],
         "bones": ["clavicle_l", "clavicle_r", "lowerarm_r", "lowerarm_l", "spine_03"] },
       "statusBodies": [
-        { "status": "cairn_immovable_guard", "name": "Immovable", "body": { "reinforced": true, "stanceSpread": 1.35 } }
+        { "status": "cairn_immovable_guard", "name": "Immovable", "body": { "reinforced": true, "stanceSpread": 1.35, "braced": true } }
       ] },
     { "id": "korruk", "archetype": "beast", "seed": 401, "lengthShare": 1.45, "heightShare": 0.5, "trunkShare": 0.34, "hipShare": 0.92, "headShare": 0.24, "tailShare": 0.35, "build": "heavy",
       "model": { "script": "korruk", "triangleBudget": 6000, "voxelCm": 0.75 },

@@ -60,6 +60,11 @@ SKILL_CROUCH_DROP = 0.18
 SKILL_STANCE_SPREAD = 14.0
 SKILL_SPREAD_DROP = 0.03
 SKILL_RISE_LIFT = 0.025
+# The brace a braced body holds (ADR-072 §2): the clips that hold it whole or, running, from the waist up; the share of
+# the Brace motion where it is set; and how much of a full crouch the running stride keeps.
+BRACED_CLIPS = ("Idle", "Run", "Hit", "Recall")
+BRACE_RELEASE = 0.35
+BRACED_RUN_CROUCH = 0.5
 # Moss on the upper surfaces of an overgrown colossus.
 MOSS = [0.22, 0.40, 0.14]
 
@@ -164,7 +169,9 @@ def layout(spec, capsule):
         L["chain_arm_01"] = (top, bottom)
         L["chain_arm_end"] = (bottom, bottom + Vector((0.0, 0.0, -height * 0.01)))
     dims = {"height": height, "full": full, "base": 0.0, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
-            "hip": hip, "arm": arm, "build": build, "sole": sole, "knuckle": "knuckleWalk" in features}
+            "hip": hip, "arm": arm, "build": build, "sole": sole, "knuckle": "knuckleWalk" in features,
+            # A body worn while braced (Immovable) holds the brace through its clips (ADR-072 §2).
+            "braced": bool(spec.get("braced"))}
     return L, dims
 
 
@@ -566,14 +573,34 @@ def run_stride(d):
 
 
 def pose(name, t, melee, d):
-    """Each bone's rotation (about the armature's axes, in radians) and the pelvis's lift at t from 0 to 1."""
+    """Each bone's rotation (about the armature's axes, in radians) and the pelvis's lift at t from 0 to 1. A braced body
+    (its kit's braced) holds the brace through what it does at rest or on the move."""
     if name == "Run":
-        return run(t, d)
-    if name in ("AttackWindup", "AttackStrike") and not melee:
-        return throw(name, t)
-    if name == "Cast":
-        return slam(t)
-    return humanoid.pose(name, t, melee, d)
+        clip = run(t, d)
+    elif name in ("AttackWindup", "AttackStrike") and not melee:
+        clip = throw(name, t)
+    elif name == "Cast":
+        clip = slam(t)
+    else:
+        clip = humanoid.pose(name, t, melee, d)
+    if d.get("braced") and name in BRACED_CLIPS:
+        return braced(clip, name, d)
+    return clip
+
+
+def braced(clip, name, d):
+    """A clip held in the brace (Immovable, ADR-072 §2): sunk low on wide-set legs with the forearms crossed before the
+    chest, as the Brace skill sets it. On the move the arms keep the guard and the stride stays low; at rest, in a flinch
+    or a recall, the whole body holds it."""
+    pose, lift = clip
+    guard, guard_lift = skill_pose({"motion": "Brace", "releaseShare": BRACE_RELEASE, "options": {}}, BRACE_RELEASE, d)
+    for bone, rotation in guard.items():
+        if name == "Run" and bone.split("_")[0] in ("thigh", "calf", "foot"):
+            continue
+        pose[bone] = rotation
+    if name == "Run":
+        return pose, lift - d["leg"] * SKILL_CROUCH_DROP * BRACED_RUN_CROUCH
+    return pose, guard_lift
 
 
 def skill_pose(skill, t, d):
