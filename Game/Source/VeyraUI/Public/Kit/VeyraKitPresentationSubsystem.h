@@ -49,6 +49,7 @@ public:
 
 	struct FRingShown
 	{
+		/** The body it surrounds: an aura's holder, a payload's caster. */
 		TWeakObjectPtr<const AActor> Holder;
 		double Radius = 0.0;
 		/** A burst's share of its reach so far; 1 for an aura. */
@@ -105,9 +106,10 @@ private:
 	/** The marks poured now, by holder and status. */
 	TMap<TPair<TWeakObjectPtr<const AActor>, FName>, TWeakObjectPtr<UNiagaraComponent>> Marks;
 
-	/** The bursts still to come or spreading, each once: by its holder, its status's ledger entry and start. */
+	/** The bursts still to come or spreading, each once: by the buff's holder, its status's ledger entry and start. */
 	struct FBurst
 	{
+		/** The caster it comes from: the body that applied the buff's status. */
 		TWeakObjectPtr<const AActor> Holder;
 		FVeyraShownBurst Shown;
 		FLinearColor Color = FLinearColor::White;

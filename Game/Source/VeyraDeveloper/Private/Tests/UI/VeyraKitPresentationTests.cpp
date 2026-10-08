@@ -81,6 +81,22 @@ namespace VeyraKitPresentationTests
 			ASSERT_THAT(IsFalse(VeyraKitPresentation::BurstShareAt(Bursts[0], Bursts[0].At + Spread * 2.0, Spread).IsSet(), TEXT("nor once spread")));
 		}
 
+		TEST_METHOD(OnlyAPayloadThatAlwaysComesIsShown)
+		{
+			// A buff fires its first payload alone, and one that needs hits may never come: neither shows a burst.
+			FVeyraAbilitiesTuning Second = Tuning();
+			FVeyraEndPayloadTuning& Later = Second.SelfBuff.FindChecked(Id(TEXT("test_giant"))).EndPayload.AddDefaulted_GetRef();
+			Later.AfterSeconds = BurstAfter * 2.0;
+			Later.Radius = BurstRadius * 2.0;
+			ASSERT_THAT(AreEqual(1, FVeyraKitPresentationIndex::Build(Second).BurstsOf(Entry(TEXT("test_giant_body"))).Num(), TEXT("only the first")));
+			FVeyraAbilitiesTuning Countered = Tuning();
+			Countered.SelfBuff.FindChecked(Id(TEXT("test_giant"))).EndPayload[0].MinHits = 1;
+			ASSERT_THAT(IsTrue(FVeyraKitPresentationIndex::Build(Countered).BurstsOf(Entry(TEXT("test_giant_body"))).IsEmpty(),
+				TEXT("a payload that needs hits a client cannot count shows nothing")));
+			ASSERT_THAT(AreEqual(1, FVeyraKitPresentationIndex::Build(Countered).AurasOf(Entry(TEXT("test_giant_body")), StartedAt).Num(),
+				TEXT("its aura still shows")));
+		}
+
 		TEST_METHOD(AStrandsBeadsFlowEvenlyTowardItsSource)
 		{
 			constexpr int32 Count = 4;
@@ -110,6 +126,7 @@ namespace VeyraKitPresentationTests
 		FActorTestSpawner Spawner;
 		AVeyraVanguardCharacter* Patch = nullptr;
 		AVeyraVanguardCharacter* Enemy = nullptr;
+		AVeyraVanguardCharacter* Ally = nullptr;
 		UVeyraKitPresentationSubsystem* Kit = nullptr;
 
 		BEFORE_EACH()
@@ -117,7 +134,8 @@ namespace VeyraKitPresentationTests
 			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
 			Patch = &World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
 			Enemy = &World.Spawn(EVeyraTeam::B, FVector(Apart, 0.0, 0.0));
-			Kit = Spawner.GetWorld().GetSubsystem<UVeyraKitPresentationSubsystem>();
+			Ally = &World.Spawn(EVeyraTeam::A, FVector(-Apart, 0.0, 0.0));
+			Kit =Spawner.GetWorld().GetSubsystem<UVeyraKitPresentationSubsystem>();
 			ASSERT_THAT(IsNotNull(Kit));
 		}
 
@@ -168,6 +186,23 @@ namespace VeyraKitPresentationTests
 			ASSERT_THAT(IsTrue(Kit->GetRings().ContainsByPredicate([Patch = Patch, &Inside](const UVeyraKitPresentationSubsystem::FRingShown& Ring) {
 				return Ring.bBurst && Ring.Holder.Get() == Patch && FMath::IsNearlyEqual(Ring.Radius, Inside.EndPayload[0].Radius, Slack);
 			}), TEXT("its shove spreads as it comes")));
+		}
+
+		TEST_METHOD(ABuffCastOnAnAllyRingsTheAllyAndItsPayloadComesFromItsCaster)
+		{
+			// An aura follows the buff's holder, an ally it was cast on; a payload comes from the caster's own body.
+			const FVeyraSelfBuffAbilityTuning& Inside = UVeyraAbilitiesTuningSubsystem::Get().SelfBuff.FindChecked(
+				FVeyraContentId::FromText(TEXT("patch_the_thing_inside")).GetValue());
+			Apply(*Patch, *Ally, *Inside.Statuses[0].ToString());
+			Kit->Refresh();
+			ASSERT_THAT(IsTrue(Kit->GetRings().ContainsByPredicate([Ally = Ally](const UVeyraKitPresentationSubsystem::FRingShown& Ring) {
+				return !Ring.bBurst && Ring.Holder.Get() == Ally;
+			}), TEXT("the aura rings the ally holding it")));
+			Wait(Inside.EndPayload[0].AfterSeconds + Step);
+			Kit->Refresh();
+			ASSERT_THAT(IsTrue(Kit->GetRings().ContainsByPredicate([Patch = Patch](const UVeyraKitPresentationSubsystem::FRingShown& Ring) {
+				return Ring.bBurst && Ring.Holder.Get() == Patch;
+			}), TEXT("the payload spreads from its caster")));
 		}
 	};
 }

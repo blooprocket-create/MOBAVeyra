@@ -211,11 +211,8 @@ void UVeyraKitPresentationSubsystem::RefreshStrandsAndRings(double Now)
 			{
 				Strands.Add(FStrandShown{ Source, &Unit });
 			}
-			// A buff its holder gave itself: its aura while it lasts, its payloads as they come (ADR-071 §3).
-			if (Source != &Unit)
-			{
-				continue;
-			}
+			// A buff on its holder, whether its caster or an ally it was cast on: its aura follows its holder while it lasts,
+			// and its payloads come from it (ADR-071 §3).
 			const FLinearColor Color = Greybox.SideColorOf(Unit);
 			for (const FVeyraShownAura& Aura : Index.AurasOf(Entry, Now))
 			{
@@ -224,13 +221,14 @@ void UVeyraKitPresentationSubsystem::RefreshStrandsAndRings(double Now)
 				DrawRing(Feet, Aura.Radius * FMath::Frac(Now / Settings.AuraPulseSeconds), Color, Settings.AuraThickness * 0.5f);
 				Rings.Add(FRingShown{ &Unit, Aura.Radius, 1.0, false });
 			}
-			for (const FVeyraShownBurst& Burst : Index.BurstsOf(Entry))
+			// A payload comes from its caster's body, the status's applier, wherever the buff's holder stands.
+			for (const FVeyraShownBurst& Burst : Source ? Index.BurstsOf(Entry) : TArray<FVeyraShownBurst>())
 			{
 				const FString Key = FString::Printf(TEXT("%s/%d/%.3f/%.3f"), *Unit.GetPathName(), Entry.Sequence, Entry.StartedAt, Burst.At);
 				if (Burst.At + Settings.BurstSeconds >= Now && !BurstsSeen.Contains(Key))
 				{
 					BurstsSeen.Add(Key);
-					Bursts.Add(FBurst{ &Unit, Burst, Color, false });
+					Bursts.Add(FBurst{ Source, Burst, Greybox.SideColorOf(*Source), false });
 				}
 			}
 		}
@@ -375,9 +373,10 @@ void UVeyraKitPresentationSubsystem::RefreshMarks()
 				Shown->SetVariableFloat(Greyboxed.EffectScaleParameter, Mark->Scale);
 				Marks.Add(Key, Shown);
 			}
-			// In the colour of the side that marked it, as the viewer sees that side.
+			// In the colour of the side that marked it, as the viewer sees that side, even while the unit that marked it is
+			// beyond this machine's view.
 			const AActor* Source = Entry.SourceBody.Get();
-			Shown->SetVariableLinearColor(Greyboxed.EffectColorParameter, Source ? Greybox.SideColorOf(*Source) : Greybox.SideColorOf(Unit));
+			Shown->SetVariableLinearColor(Greyboxed.EffectColorParameter, Source ? Greybox.SideColorOf(*Source) : Greybox.ColorOfSide(Entry.SourceTeam));
 			Shown->SetVisibility(!Unit.IsHidden());
 		}
 	}

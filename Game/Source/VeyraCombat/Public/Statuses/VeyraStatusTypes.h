@@ -5,6 +5,7 @@
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Misc/EnumClassFlags.h"
+#include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
 #include "UObject/ObjectMacros.h"
 
@@ -366,6 +367,13 @@ struct FVeyraStatusEntry
 	 */
 	UPROPERTY()
 	TWeakObjectPtr<AActor> SourceBody;
+
+	/**
+	 * The side of the unit that applied it, which every machine knows even where SourceBody does not resolve, so what
+	 * shows the status keeps its applier's colour (ADR-071 §2). Nothing gameplay reads it.
+	 */
+	UPROPERTY()
+	EVeyraTeam SourceTeam = EVeyraTeam::None;
 };
 
 /** A unit's active statuses. */

@@ -54,6 +54,23 @@ namespace VeyraLastHitTests
 			ASSERT_THAT(IsNear(Loss.PerSecond(2.0, Window), 50.0, Slack, TEXT("the hit two seconds ago is out of the window")));
 			ASSERT_THAT(IsNear(Loss.PerSecond(4.0, Window), 0.0, Slack, TEXT("nothing lately, no loss")));
 		}
+
+		TEST_METHOD(OnlyFallingHealthCountsNotShieldsNorHeals)
+		{
+			// Sampled Health: a shield soaking hits leaves it where it is; a heal only raises the mark it falls from.
+			FVeyraHealthLoss Loss;
+			constexpr double Window = 1.0;
+			constexpr double Full = 300.0;
+			constexpr double Fall = 40.0;
+			constexpr double Heal = 25.0;
+			Loss.Sample(0.1, Full, Window);
+			Loss.Sample(0.2, Full, Window);
+			ASSERT_THAT(IsNear(Loss.PerSecond(0.3, Window), 0.0, Slack, TEXT("hits a shield took cost no Health")));
+			Loss.Sample(0.4, Full - Fall, Window);
+			Loss.Sample(0.5, Full - Fall + Heal, Window);
+			Loss.Sample(0.6, Full - Fall, Window);
+			ASSERT_THAT(IsNear(Loss.PerSecond(0.7, Window), Fall + Heal, Slack, TEXT("what fell after the heal counts from the healed Health")));
+		}
 	};
 }
 

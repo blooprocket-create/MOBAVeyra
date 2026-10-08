@@ -20,9 +20,11 @@ FVeyraKitPresentationIndex FVeyraKitPresentationIndex::Build(const FVeyraAbiliti
 		{
 			Shape.Auras.Emplace(Aura.Radius, Aura.DurationSeconds);
 		}
-		for (const FVeyraEndPayloadTuning& Payload : Buff.EndPayload)
+		// The buff fires its first payload alone. One that needs hits its caster took cannot be told from what a client
+		// receives, so it shows nothing rather than a burst that may never come (ADR-071 §3).
+		if (!Buff.EndPayload.IsEmpty() && Buff.EndPayload[0].MinHits == 0)
 		{
-			Shape.Bursts.Emplace(Payload.AfterSeconds, Payload.Radius);
+			Shape.Bursts.Emplace(Buff.EndPayload[0].AfterSeconds, Buff.EndPayload[0].Radius);
 		}
 	}
 	return Index;

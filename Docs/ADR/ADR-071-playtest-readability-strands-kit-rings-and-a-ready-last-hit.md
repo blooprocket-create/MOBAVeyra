@@ -30,7 +30,8 @@ Two other problems came from the same playtest:
 - The animation instance reads the scale from its skin each frame, so a later change to the body scale cannot bring the sliding back.
 
 ### 2. Statuses carry the body that applied them, and a tether shows as a strand
-- **The ledger names the source:** `FVeyraStatusEntry` carries `SourceBody`, the avatar of the unit that applied it. It replicates with the ledger for presentation, and nothing in gameplay reads it.
+- **The ledger names the source:** `FVeyraStatusEntry` carries `SourceBody`, the avatar of the unit that applied it, and `SourceTeam`, its side. Both replicate with the ledger for presentation, and nothing in gameplay reads them.
+- **The side outlives the body:** where `SourceBody` does not resolve (its unit is beyond the viewer's relevancy), what shows the status keeps the applier's colour from `SourceTeam` rather than taking the holder's.
 - **This is the general primitive:** any status can be drawn between its two units. That avoids a second, tether-only replication path.
 - **Which statuses draw a strand:** those listed as `StatusStrands` in the kit presentation settings.
 - **How it looks:**
@@ -39,9 +40,10 @@ Two other problems came from the same playtest:
 - **Visibility:** a strand shows only while both ends do.
 
 ### 3. Self-buff auras and end payloads show as rings, from Abilities.json
-- **How a buff is recognised:** a self-buff is known on every machine by the first of its statuses, which its caster holds from the cast.
-- **Auras:** while the buff's aura lasts, a ring at its radius surrounds the caster, with a second ring sweeping across it.
-- **End payloads:** each payload, at its `afterSeconds`, spreads a ring to its radius and plays the burst effect. Only a living caster's payload shows.
+- **How a buff is recognised:** a self-buff is known on every machine by the first of its statuses, which its recipient holds from the cast: its caster, or an ally a `CasterOrAlly` buff was cast on.
+- **Auras:** while the buff's aura lasts, a ring at its radius surrounds the buff's holder, as the aura itself follows its recipient, with a second ring sweeping across it.
+- **End payloads:** the buff fires its first payload alone, from its caster's body. At its `afterSeconds` a ring spreads from the caster (the status's applier) to its radius and the burst effect plays. Only a living caster's payload shows.
+- **Only what always comes shows:** a payload that needs hits its caster took (`minHits` above 0) cannot be told from what a client receives, so it shows no burst rather than one that may never come. Showing those needs a replicated signal that the payload fired; it is deferred.
 - **Reach and timing come from `Abilities.json`:** no radius or time is written twice.
 - **Scope:** this covers every Vanguard with an aura or an end payload, not only Patch.
 
@@ -55,7 +57,7 @@ Two other problems came from the same playtest:
 - **Before gold:** a damaged enemy Fluxborn's or creature's bar reads Ready while an attack started now would land as its Health falls to one attack. It turns gold once it gets there.
 - **How Ready is judged:**
   - the attack's lead is its windup, from the attacker's current attack timing and its profile's windup fraction, plus its projectile's flight to the unit;
-  - the unit's loss is the Health its hit cues lost over the last `LastHitLossWindowSeconds`.
+  - the unit's loss is the Health it lost over the last `LastHitLossWindowSeconds`, sampled from its Health each frame. Shield damage is left out, since an attack must break a shield before Health falls, and a heal only moves the mark Health falls from.
 - **A unit nothing else is hitting goes straight to gold.** Waiting costs nothing there.
 - **It remains a hint:** the server decides who lands the last hit.
 

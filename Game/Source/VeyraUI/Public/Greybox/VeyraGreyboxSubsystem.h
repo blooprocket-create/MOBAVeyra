@@ -121,7 +121,7 @@ public:
 
 	/**
 	 * The Health Unit has been seen to lose a second, over the last LastHitLossWindowSeconds by this machine's clock,
-	 * from its hit cues (ADR-071 §5); 0 for a unit without a body or no recent hits.
+	 * its Health alone and never its shields (ADR-071 §5); 0 for a unit without a body or no recent loss.
 	 */
 	double GetHealthLossPerSecond(const AActor& Unit) const;
 
@@ -292,7 +292,7 @@ private:
 		/** Until when its generated body holds its pose after a hit, by this machine's clock (ADR-068 §4). */
 		double HitStopUntil = 0.0;
 
-		/** The Health its hit cues lost, by this machine's clock, for the last-hit cue's Ready stage (ADR-071 §5). */
+		/** The Health it lost, sampled each refresh by this machine's clock, for the last-hit cue's Ready stage (ADR-071 §5). */
 		FVeyraHealthLoss Loss;
 
 		/** How veiled its generated body is, why it last was, and what its material was last given (ADR-068 §6). */

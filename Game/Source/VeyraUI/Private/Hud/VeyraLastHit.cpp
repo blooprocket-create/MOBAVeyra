@@ -4,6 +4,13 @@
 
 #include "Math/UnrealMathUtility.h"
 
+void FVeyraHealthLoss::Sample(double At, double Health, double KeepSeconds)
+{
+	const double Fell = LastHealth >= 0.0 ? LastHealth - Health : 0.0;
+	LastHealth = Health;
+	Note(At, Fell, KeepSeconds);
+}
+
 void FVeyraHealthLoss::Note(double At, double Amount, double KeepSeconds)
 {
 	Losses.RemoveAll([At, KeepSeconds](const FLoss& Loss) { return Loss.At < At - KeepSeconds; });

@@ -196,6 +196,7 @@ namespace VeyraCombatTests
 			});
 			ASSERT_THAT(IsNotNull(Held));
 			ASSERT_THAT(IsTrue(Held->SourceBody.Get() == Source));
+			ASSERT_THAT(IsTrue(Held->SourceTeam == EVeyraTeam::A, TEXT("and its side, which stays known where the body does not resolve")));
 		}
 
 		TEST_METHOD(AHostileTetherBreaksOnUntargetability)

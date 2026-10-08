@@ -310,14 +310,9 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	// fall kicks their camera as hard as their Screen Shake allows.
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const double RealNow = GetWorld()->GetRealTimeSeconds();
-	if (FBody* Struck = Cue.Kind == EVeyraCombatCueKind::Hit && Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr)
+	if (FBody* Struck = Cue.Kind == EVeyraCombatCueKind::Hit && Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr; Struck && Struck->Skin.IsValid())
 	{
-		if (Struck->Skin.IsValid())
-		{
-			Struck->HitStopUntil = RealNow + Settings.HitStopSeconds;
-		}
-		// How fast it is losing Health, for the last-hit cue's Ready stage (ADR-071 §5).
-		Struck->Loss.Note(RealNow, Cue.Amount, Settings.LastHitLossWindowSeconds);
+		Struck->HitStopUntil = RealNow + Settings.HitStopSeconds;
 	}
 	if (IsViewersVanguard(Cue.Unit.Get()))
 	{
@@ -1531,6 +1526,12 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		float HalfHeight = 0.0f;
 		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
 		FitGreyboxShape(*Body->Mesh, FVector(Radius, Radius, HalfHeight));
+		// How fast its Health, not its shields, is falling, for the last-hit cue's Ready stage (ADR-071 §5).
+		if (const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit))
+		{
+			Body->Loss.Sample(GetWorld()->GetRealTimeSeconds(), Abilities->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()),
+				GetDefault<UVeyraGreyboxSettings>()->LastHitLossWindowSeconds);
+		}
 
 		const FLinearColor Color = BodyColorOf(Unit);
 		if (UMaterialInstanceDynamic* Material = Body->Material.Get(); Material && !Color.Equals(Body->Shown))
