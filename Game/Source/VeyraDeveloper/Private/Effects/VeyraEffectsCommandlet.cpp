@@ -342,9 +342,11 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		const bool bEmitter = Object && Object->TryGetStringField(TEXT("emitter"), Effect.Emitter);
 		const TArray<TSharedPtr<FJsonValue>>* EmitterList = nullptr;
 		const bool bEmitters = Object && Object->TryGetArrayField(TEXT("emitters"), EmitterList) && !EmitterList->IsEmpty();
-		if (!Object || !Object->TryGetStringField(TEXT("name"), Effect.Name) || int32(bTemplate) + int32(bEmitter) + int32(bEmitters) != 1)
+		// A name is the asset it builds, so two systems of one name would each rebuild the same package, the last winning.
+		if (!Object || !Object->TryGetStringField(TEXT("name"), Effect.Name) || int32(bTemplate) + int32(bEmitter) + int32(bEmitters) != 1
+			|| Effects.FilterByPredicate([&Effect](const FEffectSpec& Other) { return Other.Name == Effect.Name; }).Num() > 1)
 		{
-			UE_LOG(LogVeyraEffects, Error, TEXT("%s: each system needs a name and one of a system template, an emitter template or a list of named emitters."), *SpecFile);
+			UE_LOG(LogVeyraEffects, Error, TEXT("%s: each system needs a name of its own and one of a system template, an emitter template or a list of named emitters."), *SpecFile);
 			return 1;
 		}
 		if (bEmitters)

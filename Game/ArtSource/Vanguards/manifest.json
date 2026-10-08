@@ -2,7 +2,7 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "e54eb4499da6ea0fa3a7bb2570b618ea21d1f304204b718374b0cd9fb2279e00",
+  "kitSha256": "6a3d16e7481d07ef754d665c56c7fae947b6f73bd41f187089663f0670a160e0",
   "assets": [
     {
       "id": "angeru",
@@ -62,7 +62,7 @@
         }
       ],
       "inputSha256": "8d540f9db799fc9936db89827b665f6ff631cd337c6a9a87baacec5662cd2236",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "d3c92b23a931bf6e80f9e4f5229933e5069f5ac9decaf508b033e147a5f066ff",
       "contentVersion": 3,
@@ -272,7 +272,7 @@
         }
       ],
       "inputSha256": "5de8a64fac9aa8373f32481ac85c3e9011343f5553aba2c6d51c69b7be449020",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "e0df2b31c8bc275e109c9feb220d1cfbe453a7cb19de06c074a757bc00c5da59",
       "contentVersion": 3,
@@ -483,7 +483,7 @@
         }
       ],
       "inputSha256": "69944186ad8321dbe0f85be528c731f2377891e2ad3fec240834e10b09ecdf75",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "c51f87f16dad896b6e613560731e469fd9158b9895c7e0920a9a46a418c25976",
       "contentVersion": 3,
@@ -619,7 +619,7 @@
         }
       ],
       "inputSha256": "b7ad47332c63526dcd518455419d3c19a8024a76526ff85c7c2616d6c7a0dbc6",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "36e052f4f42c0422bd1d5008d1fa7a5a08ee14c70f759fcaf87c81c109efc5ea",
       "contentVersion": 3,
@@ -748,11 +748,11 @@
       "name": "SK_Cairn",
       "archetype": "colossus",
       "file": "FBX/SK_Cairn.fbx",
-      "sha256": "fa719e14a19554bf27be4cca6f2c3cabb30ec9ef51c417fa7c658485de112d0a",
-      "triangles": 5873,
+      "sha256": "23950edfd3ed19c28a5c12ce47cc62a16ba15054c220dae516f5ffa9702cac4f",
+      "triangles": 5875,
       "triangleBudget": 6000,
-      "bones": 23,
-      "heightCm": 220.65,
+      "bones": 28,
+      "heightCm": 220.53,
       "capsuleHalfHeightCm": 100,
       "melee": true,
       "runStrideCm": 91.1,
@@ -800,11 +800,53 @@
           "loop": true
         }
       ],
-      "inputSha256": "fc26bc715c796d1bc1f49d50a3bb0875ca52296b70069c2d9e0f2b8d2f87ac51",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "25f1c593ea1e22f07c6729bc33441565ed060dcbe99b74a0b42e4e9effbce282",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "e0298a5b97f9af4f9f549a87e9b755000596c90c67b1b35ffde515a890a0f342",
+      "contentSha256": "a14d48af6cc026c1aaecb32f300566f542a28a57bc65becd9e816f0bdb855bf6",
       "contentVersion": 3,
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "chain_hip_01",
+              "chain_hip_02",
+              "chain_hip_end"
+            ],
+            "stiffness": 90.0,
+            "drag": 4.0,
+            "damping": 3.0,
+            "maxAngle": 45.0
+          },
+          {
+            "bones": [
+              "chain_arm_01",
+              "chain_arm_end"
+            ],
+            "stiffness": 90.0,
+            "drag": 4.0,
+            "damping": 3.0,
+            "maxAngle": 45.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 39.325
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 35.392500000000005
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 35.392500000000005
+          }
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraDrip.NS_VeyraDrip",
         "bones": [
@@ -828,11 +870,11 @@
       "name": "SK_Cairn_Immovable",
       "archetype": "colossus",
       "file": "FBX/SK_Cairn_Immovable.fbx",
-      "sha256": "723802171c967bbec6baa98c2855906439dc2e53608a98a033417755e7422e1f",
+      "sha256": "b65c2fb6bafe5a882af64bfa7d542b6ecd08fda76805359aebfae57895fb3174",
       "triangles": 5867,
       "triangleBudget": 6000,
-      "bones": 23,
-      "heightCm": 226.39,
+      "bones": 28,
+      "heightCm": 226.5,
       "capsuleHalfHeightCm": 100,
       "melee": true,
       "runStrideCm": 91.1,
@@ -880,11 +922,53 @@
           "loop": true
         }
       ],
-      "inputSha256": "c6e1e5a2b2db7827fbfa787105a18d8af64dee2022d98fea1fd03911a2d9bd46",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "4a24c971d19f4985ee312030fa60b6dbbbc8890c67f96d492b4c04bdefa9e18c",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "fe0a85d1493bfec55a2e14715d5332ff91ba43cea71a557a7a8f57deed45f8e3",
+      "contentSha256": "01c74ad754ffd7d095a496eff7c2425d89c42ebe3db6a527a539c4af9b63c6ab",
       "contentVersion": 3,
+      "springs": {
+        "chains": [
+          {
+            "bones": [
+              "chain_hip_01",
+              "chain_hip_02",
+              "chain_hip_end"
+            ],
+            "stiffness": 90.0,
+            "drag": 4.0,
+            "damping": 3.0,
+            "maxAngle": 45.0
+          },
+          {
+            "bones": [
+              "chain_arm_01",
+              "chain_arm_end"
+            ],
+            "stiffness": 90.0,
+            "drag": 4.0,
+            "damping": 3.0,
+            "maxAngle": 45.0
+          }
+        ],
+        "colliders": [
+          {
+            "from": "pelvis",
+            "to": "spine_03",
+            "radius": 39.325
+          },
+          {
+            "from": "thigh_l",
+            "to": "calf_l",
+            "radius": 35.392500000000005
+          },
+          {
+            "from": "thigh_r",
+            "to": "calf_r",
+            "radius": 35.392500000000005
+          }
+        ]
+      },
       "effect": {
         "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraDrip.NS_VeyraDrip",
         "bones": [
@@ -962,7 +1046,7 @@
         }
       ],
       "inputSha256": "eabdd10732181ed756948b0f891afe105a0fd5aec252a6cc616d1527f81307c5",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "3009c7f3ddb50fafbc2d86b8b09fd237113b10408ce9f0e72e628206047b2d89",
       "contentVersion": 3,
@@ -1154,7 +1238,7 @@
         }
       ],
       "inputSha256": "5a629ae2b4f3b0124801a09c3d4bece1c80443d4a5b5b3f3d38a884836d97d21",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "d18523896b6078d1ea062668313f434d7e01efb451f89c50aee2b238547f37f8",
       "contentVersion": 3,
@@ -1328,7 +1412,7 @@
         }
       ],
       "inputSha256": "f0729c58ab2e58921d01862904eedf940f77e3025fb47101595b3ed6d1ff10cd",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "9199c232f6f44c2a84193a429fde66beaf3e49a52ebf4416f45769df539e16b4",
       "contentVersion": 3,
@@ -1392,7 +1476,7 @@
         }
       ],
       "inputSha256": "a92ed3a78a453de285a9c237bef98979133cae27ded33e0f42bc1945b7519550",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "310c91e77b0466bd4c32e7ed4761990bd8c7f33f556fc218f9e65230f73a5056",
       "contentVersion": 3,
@@ -1457,7 +1541,7 @@
         }
       ],
       "inputSha256": "cb55af5a7a0d33c0db71c0b395f16c37fe44a4b89663ed4420851130fc94fe7b",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "966e9f1ea539a9ac4eb4f3c8eb04f24049cc74f6b0d752cc1d783309171fd659",
       "contentVersion": 3,
@@ -1549,7 +1633,7 @@
         }
       ],
       "inputSha256": "53de43331e057a71015957a7bb97c7f697ebdf0c473c3b760b65c3f090094e2e",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "7e971513428a0c87f93281204898ad5e0f7a43d78096c0e402bf96d713d62cc8",
       "contentVersion": 3,
@@ -1766,8 +1850,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "f966587f19249c4b8f7c4231783bd9984fc32e1aeb074acca732cd85830c7339",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "2602b0bf7426ad7d65e350a391ad2778ec96790201f99f8ae70d29213fca7623",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "8534940b27b690a0c0c7d99e8c2c2b180a8a27b832608f930880d204d0a93290",
       "contentVersion": 3
@@ -1830,7 +1914,7 @@
         }
       ],
       "inputSha256": "201f1899ca22ae74ed3de85e94aa3909223be332c772f02db7f5ac0f4d52b24c",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "9598a93f58dc9c6d4d4b155b0e7673a003198fb05feee352615d4f13b652ea69",
       "contentVersion": 3,
@@ -2040,7 +2124,7 @@
         }
       ],
       "inputSha256": "81d1126b421e2fc0aefe70e01c1edb03d66dc1398cb4c5ccad7cf9677c7ac0de",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "2aaac75a112602e2db74e7ce51950a65d062444c066fb96c837010dc9ae913dc",
       "contentVersion": 3,
@@ -2131,7 +2215,7 @@
         }
       ],
       "inputSha256": "32272e0e33b241dbbfb1bdb3bb3151df33c765d3d375d7d2a149804555e4e2c3",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "17e3303b0106d85de2ba3a3ac942803ee0841f84af1a835ffa16e4a56b21b6ab",
       "contentVersion": 3,
@@ -2223,7 +2307,7 @@
         }
       ],
       "inputSha256": "dc94ed92a776988dec40289a71fb56f896799265054a07dfa220b0b6ab89125d",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "dc20d8c2ea7f8baa3abf14879425b1ad66abd33a1b8b5922bb7d402da715100d",
       "contentVersion": 3,
@@ -2397,7 +2481,7 @@
         }
       ],
       "inputSha256": "173ed6f18f07b8f6230302aaae8c1877b4493ac3a68fd753023d7c0fef90355c",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "fb2e01cddd93626bcb4fe02e5138bf390fa1ec498812b91b370d18d052e5c9f7",
       "contentVersion": 3,
@@ -2589,7 +2673,7 @@
         }
       ],
       "inputSha256": "f5a204486ca4fde9d2f88e28907471a666b03ac5f3723c71626a130b1ad52d43",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "cb4b26454b7bc0076d37ba3abc93f1bf6b9fac014c7bbe5f6210c52d6dc309e9",
       "contentVersion": 3
@@ -2652,7 +2736,7 @@
         }
       ],
       "inputSha256": "5f2dc63cdce60fd1a2f41697b5dbea7d998a117d65c712ff1683b69ac9a6c2da",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "78e0ec45aaab51632929757aa0edfb129e8923012db22724c5f66af78bb284eb",
       "contentVersion": 3,
@@ -2716,7 +2800,7 @@
         }
       ],
       "inputSha256": "572e0f1c83949853404844fe8bdc977e4547c6c533c32e749f115eb8b8abea66",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "78e0ec45aaab51632929757aa0edfb129e8923012db22724c5f66af78bb284eb",
       "contentVersion": 3,
@@ -2744,9 +2828,9 @@
       "name": "SK_Neris",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris.fbx",
-      "sha256": "c7a3dff0ba65008aa23d63bc7c1398cbb4cbe043a9f610c464d179a47aa40916",
-      "triangles": 5412,
-      "triangleBudget": 5500,
+      "sha256": "17436e5646259b8545348215c954a5c4f3b7bb3234ac888c1e0a3d54436f87e6",
+      "triangles": 4915,
+      "triangleBudget": 5000,
       "bones": 47,
       "heightCm": 171.48,
       "capsuleHalfHeightCm": 90,
@@ -2796,10 +2880,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "69b6e74923fc86380f03b3e18deae185b0b842fc2f628861e363d6fe361933c2",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "10b1be36c416101952e8e5ce3eae52ffda473819ce4b6018e9b99b565e0a82e9",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "ecfd56f4b18c7aa6ac865c06cc332088b87aee123caefdd39ca421a9a3ea2aaa",
+      "contentSha256": "bc10b5b1baec7af35cbb6dc0cb7c97fdffdebf9658a37f4cd9621c287f80c29e",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -2913,10 +2997,8 @@
         ]
       },
       "effect": {
-        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraWave.NS_VeyraWave",
         "bones": [
-          "cape_02",
-          "cape_03",
           "root"
         ],
         "color": [
@@ -2933,9 +3015,9 @@
       "name": "SK_Neris_Storm",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Storm.fbx",
-      "sha256": "6618f622db6aaab7d70e8a4e2ca95b7d7147113374c311cdc61e60706a02855c",
-      "triangles": 5412,
-      "triangleBudget": 5500,
+      "sha256": "3a709967df4e4dcfee69a0aa4a354942cd6e86aceab8d15b3d632ec576f5d642",
+      "triangles": 4915,
+      "triangleBudget": 5000,
       "bones": 47,
       "heightCm": 171.48,
       "capsuleHalfHeightCm": 90,
@@ -2985,10 +3067,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "306d4299443d50897db8a3a1394ab4926dbf6ab07a5c14ff4682d73eb2929688",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "94b67bcbf67e783df608f75c79ae790cea5683ac3e58efb26f89bf93302a3020",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "ec65afe4c0a0c8e4fdce35e710c658d953df15eecf80658079760a588effae1c",
+      "contentSha256": "bc10b5b1baec7af35cbb6dc0cb7c97fdffdebf9658a37f4cd9621c287f80c29e",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3102,15 +3184,13 @@
         ]
       },
       "effect": {
-        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraTempest.NS_VeyraTempest",
         "bones": [
-          "cape_02",
-          "cape_03",
           "root"
         ],
         "color": [
-          0.95,
-          0.97,
+          0.86,
+          0.92,
           1.0,
           1.0
         ],
@@ -3123,11 +3203,11 @@
       "name": "SK_Neris_Tidebreaker",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Tidebreaker.fbx",
-      "sha256": "46df60ce3ed16c0438174eda74a41a9edab18dacd549b058371ec909934548bc",
-      "triangles": 5417,
-      "triangleBudget": 5500,
+      "sha256": "131561f896d597223a835bf5fe114e40f33b59b0245e87119d7053b0c5001ff8",
+      "triangles": 4921,
+      "triangleBudget": 5000,
       "bones": 47,
-      "heightCm": 369.04,
+      "heightCm": 310.85,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 136.32,
@@ -3175,10 +3255,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "9b877f8ca355b6fc548cb789b91cd69d2ced780f3c737282d57095f952bae5bb",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "9093984b1d8bc8dc953b29b064dfdeaa83c2ef18834eb29a2a32e7a59392819e",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "068301ac21b9aacb66d4760149c014de20e384abc7431ffce936cab9b2b0083e",
+      "contentSha256": "1aa3a9a2b70a2b64b22666a23ca2e922c78a5aec05b4a06cc886b2deff936dc1",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3292,10 +3372,8 @@
         ]
       },
       "effect": {
-        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraWave.NS_VeyraWave",
         "bones": [
-          "cape_02",
-          "cape_03",
           "root"
         ],
         "color": [
@@ -3304,7 +3382,7 @@
           1.0,
           1.0
         ],
-        "scale": 1.8
+        "scale": 4.6364
       },
       "status": "neris_tidebreaker_body",
       "priority": 1
@@ -3314,9 +3392,9 @@
       "name": "SK_Neris_Wave",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Wave.fbx",
-      "sha256": "23fc178dda5f509e281bb1d9a57f0289275f4b06b6dd99e640b0ce3720bc0d3e",
-      "triangles": 5410,
-      "triangleBudget": 5500,
+      "sha256": "dc3247e7189f178b9ffbac4bfbbb96fd4a14a7048320f43b1fdf90c03f8be36f",
+      "triangles": 4914,
+      "triangleBudget": 5000,
       "bones": 47,
       "heightCm": 204.68,
       "capsuleHalfHeightCm": 90,
@@ -3366,10 +3444,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "7e567f0962ba32331102646d678435c45a3020c669c7deb83b1e2573786c651b",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "7109fde3010cfa5ed1da5742dfb3ab6c94c184b40daf2b43608ef93ea7af0eb9",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "14e6581f377621b1949a4d64a02e45c2e9ab515783baa84413564bb0b81852c2",
+      "contentSha256": "748ab4a5416ee20340f08deb6f0d121ad462a2855e37caf85d41330ed6f1e5b6",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3483,10 +3561,8 @@
         ]
       },
       "effect": {
-        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraSpray.NS_VeyraSpray",
+        "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraWave.NS_VeyraWave",
         "bones": [
-          "cape_02",
-          "cape_03",
           "root"
         ],
         "color": [
@@ -3495,7 +3571,7 @@
           1.0,
           1.0
         ],
-        "scale": 1.2
+        "scale": 1.9091
       },
       "status": "neris_wave_body",
       "priority": 1
@@ -3558,7 +3634,7 @@
         }
       ],
       "inputSha256": "edab63812c296450a177504fb8a37617dd08a79f74937bfb6507c4f5ad41caf6",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "30af87ffaa2065fa4d7263cfb647cb8ba2b269e936ce9a95817634c9d3ed9cfe",
       "contentVersion": 3,
@@ -3636,7 +3712,7 @@
         }
       ],
       "inputSha256": "c9e71c3dd3907ca9b02d29daaad540f3681b388404034250d88b233f7bc0166e",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "27ca61fb0ac7b5b7a2074e3edeac6fd76c0796198320ebc5988f568f6db412e6",
       "contentVersion": 3
@@ -3698,8 +3774,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "48f412414e208a2245d634c63a59abdedb628aaa4960c5857567992c672e3ecc",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "2763a7cfb2e47f9c7bf92d03a7750f6448c7fcf33094a9ecaa5be65d40848a50",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "de08d5e1ef2643934fbbba3f3071fcaa473f23cf905dcc1a4d8353b222d7bc94",
       "contentVersion": 3,
@@ -3852,8 +3928,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "09ce13ca6cd1aafb5e774f4511831edd7dc321a7d97816ea8976c2fbf8b6aaa3",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "80668493a1662ceda5ae7d5fe18d86875da30a887e2950b0b70575739639590e",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "d9eeba648fb0aa8c00a304e6cd19d6fad740a9922e6964cac05c8ac437028326",
       "contentVersion": 3,
@@ -4007,8 +4083,8 @@
           "loop": true
         }
       ],
-      "inputSha256": "f49899e95b993c2b6d4e26315051d4ffc529196c49d072e27279d08832930b1b",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "inputSha256": "d227e0d3846d19febd964f260529cbca91bd49d83db4b6b521baf29a332cdb4d",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "ce8686811a9945c1cbe7b87e2efd7d9565ed0954145f397a3151bf35084c880d",
       "contentVersion": 3,
@@ -4163,7 +4239,7 @@
         }
       ],
       "inputSha256": "577d8a574c96d686595a6579fd5809c267c560a6838b74ee81d3ae37d2f5f442",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "bdbae61993c4c93eb7bbe7031239b16e14da1a0237bd506aecc570377623180c",
       "contentVersion": 3,
@@ -4337,7 +4413,7 @@
         }
       ],
       "inputSha256": "648f01e643e60665e4aa2df7e3ba08bb8627bc7fb5e1da87ab0cd88bcb437f2e",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "b66fd02685bdfe0f4394574e30fec3df385bf861aeb9fa39e42b765791b4fe1b",
       "contentVersion": 3,
@@ -4512,7 +4588,7 @@
         }
       ],
       "inputSha256": "6a87e5057a205c80146794441ac02e1c89d098ad970db13d480ddd5ded250486",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "690fe2e7fc0fc29706c024bfa6dc579063b996f8b36bed93eac8f5e53f66d37c",
       "contentVersion": 3,
@@ -4664,7 +4740,7 @@
         }
       ],
       "inputSha256": "397c9d95e40954b405e6599e871626b006a14f41d7a14325e7cd0ee14bcc8515",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "c86566c426c7d7d5a72d84e925413db074b11b30250e6a39182b2fa78dfa52f0",
       "contentVersion": 3,
@@ -4728,7 +4804,7 @@
         }
       ],
       "inputSha256": "5fa0473becc0d5aeb236218821a40645b54d19fede256b0f539781b9700173bb",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "2e1e1967332f29e4a77efae64983d5186509686ce24950185b8d028cd7b063fe",
       "contentVersion": 3,
@@ -4823,7 +4899,7 @@
         }
       ],
       "inputSha256": "34c226b340af336e960c58ae4cade4f14a7822c36b4ffb48e5468c6499e2f557",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "5e1e10b9e6c20c1fa2280a176663c9bf58d9853b1597f3d4f35bd4fb9f3ea09f",
       "contentVersion": 3,
@@ -4931,7 +5007,7 @@
         }
       ],
       "inputSha256": "a3364d759beceaf1428b7101b76829a85cfc786c71f4a3cbcc74b41ef3d41e10",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "9fae785524d61489fa8b6db3c051363d9556a0b0ff9622022205bf65ae1952f5",
       "contentVersion": 3,
@@ -5171,7 +5247,7 @@
         }
       ],
       "inputSha256": "f55d82d3289ddfe43cdfd923eb4bfefcfc90f05487f961da89c679f2f9f2aa7d",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "e8805e5c6daf9f256862aa85346b698a080367ad49ad1502b9b0ec751f732853",
       "contentVersion": 3,
@@ -5323,7 +5399,7 @@
         }
       ],
       "inputSha256": "3c526257089eaa0b00609d0548678c652a386ec758137123dfa3643f9c79a904",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "43aa62cc107e3645a65caf06d143a7dae9a712b15affba6f7f10503cabacc20b",
       "contentVersion": 3
@@ -5386,7 +5462,7 @@
         }
       ],
       "inputSha256": "052e8faf79a3ea7d5a5c73b8c07049fda4f4da447310f06bd77a9cbe9508e7a1",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "ac50d1ce08727746a97e01db19f2cd3e1ee6af362006352a2b73020c72d42122",
       "contentVersion": 3,
@@ -5450,7 +5526,7 @@
         }
       ],
       "inputSha256": "c3d7e4e74dfed41ef5f5bdc3c84e8f45c0018b2341b7c5bd874c848760834f5a",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "61dc1d8709a76b5bbe0c337febc1a5ba617e0f8e03342f8b53c3d72a7e780fbf",
       "contentVersion": 3,
@@ -5514,7 +5590,7 @@
         }
       ],
       "inputSha256": "61bd9ad011d853436d88fabf3cee1290a19cb1695e530e14029c17e72bf3daa4",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "00796530ecb780e86f493f718465e720dd4a99333471b56ca15f6d9ef93f58e6",
       "contentVersion": 3,
@@ -5637,7 +5713,7 @@
         }
       ],
       "inputSha256": "bf38c12d34400fff9f206c26f1036b946df862a03f05ad0d54f42c2e2aa8cb1c",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "acdf163787753d2a439a7a86684f36150943b857664be8699a1576681fcfe0c4",
       "contentVersion": 3,
@@ -5744,7 +5820,7 @@
         }
       ],
       "inputSha256": "98e745efbe3923745508a119e9cd91ee505639f29700e369161affc6568037f5",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "cd7b0d2f95070444c8aa1c4bb918cebd0a56432ee29966ced5077a0636dbc7c6",
       "contentVersion": 3,
@@ -5926,7 +6002,7 @@
         }
       ],
       "inputSha256": "d11ed34538a239d10befbcc8c55147324ee4c5533325acc2125405d8570ef4a2",
-      "generatorSha256": "7b5a35100e299a7f5c749995f3cf35f32607122c4e332248a650b14d2bcfc810",
+      "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
       "contentSha256": "88d701e935475cc820cfeb679a64644fd9c68db133c54dcfd650ceff85c7e18b",
       "contentVersion": 3,

@@ -7,6 +7,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "AnimationRuntime.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Casting/VeyraCastStateComponent.h"
@@ -27,6 +28,7 @@
 #include "Delivery/VeyraProjectile.h"
 #include "Entities/VeyraPlacedMarker.h"
 #include "Fluxborn/VeyraFluxborn.h"
+#include "Engine/SkinnedAsset.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -1129,6 +1131,13 @@ void UVeyraGreyboxSubsystem::RefreshBodyEffects(FBody& Body, USkeletalMeshCompon
 		Effect->SetAsset(Worn.Effect);
 		Effect->SetCanEverAffectNavigation(false);
 		Effect->SetupAttachment(&Skin, Bone);
+		// Its frame is its body's (forward and up as the body stands at rest), turned only as the bone turns from there:
+		// a bone's own axes lie as its rig drew it, so an effect's local offsets would otherwise point wherever they do.
+		if (const USkinnedAsset* Asset = Skin.GetSkinnedAsset(); Asset && Skin.GetBoneIndex(Bone) != INDEX_NONE)
+		{
+			const FTransform Rest = FAnimationRuntime::GetComponentSpaceTransformRefPose(Asset->GetRefSkeleton(), Skin.GetBoneIndex(Bone));
+			Effect->SetRelativeRotation(Rest.GetRotation().Inverse());
+		}
 		Effect->RegisterComponent();
 		Effect->SetVariableLinearColor(Settings.EffectColorParameter, Worn.EffectColor);
 		Effect->SetVariableFloat(Settings.EffectScaleParameter, Worn.EffectScale);

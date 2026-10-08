@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Game" / "Scripts"))
-from VanguardBodies.sculpt import garments, sdf, sheet, tree  # noqa: E402
+from VanguardBodies.sculpt import garments, paint, sdf, sheet, tree  # noqa: E402
 from VanguardBodies.sculpt.tree import Box  # noqa: E402
 from VanguardBodies.models import bryn, relay, silt  # noqa: E402
 
@@ -38,6 +38,17 @@ def along(node, direction, start=(0.0, 0.0, 0.0)):
     P = np.asarray(start, dtype=np.float32)[None, :] + ts[:, None] * d[None, :]
     with tree.reaching(1.0):
         return ts, tree.evaluate(node, P, Box.around(P, 1.0)).d
+
+
+class Colours(unittest.TestCase):
+    def test_a_kit_colour_is_seen_as_the_generated_bodies_showed_it(self):
+        # Kit colours are linear (the generated bodies write them straight to their vertex colours); a model's material
+        # takes a colour as seen, and stores it linear again. Seen, then stored, a kit colour comes back as it was.
+        kit = np.array([[0.42, 0.11, 0.07], [1.0, 0.45, 0.08], [0.0, 0.002, 0.5]])
+        np.testing.assert_allclose(paint.linear(paint.seen(kit)), kit, atol=1e-5)
+        # Middle grey in light is a little brighter than middle grey to the eye; a dark value lifts the most.
+        self.assertAlmostEqual(float(paint.seen([0.5])[0]), 0.7354, places=3)
+        self.assertEqual(paint.seen((0.42, 0.11, 0.07)).shape, (3,))
 
 
 class Reach(unittest.TestCase):

@@ -416,8 +416,9 @@ def chain(S, name, points, size, material, bones, protect=0.45, samples=64):
 def chain_wrap(S, L, dims, mats, body):
     """Heavy rusted chain: slung over the hook arm's shoulder outside its glyph block, across his chest to his left hip
     and back round his back; wound about the hook arm's gauntlet; wrapped round his left forearm, hanging below it in
-    a loop; and trailing from his right hip behind him along the ground, as though he has just dragged it up out of the
-    river."""
+    a loop; and hanging from his right hip behind him toward the ground, as though he has just dragged it up out of the
+    river. Where his kit hangs them on spring chains (ADR-069 §7), the loop and the hip's chain swing; else the hip's
+    chain lies along the ground behind him."""
     H = dims["height"]
     size = H * LINK_SHARE
     lift = size * 0.15
@@ -457,13 +458,41 @@ def chain_wrap(S, L, dims, mats, body):
     parts.append(chain(S, "chain_bound", ring, size * 0.85, mats["rust"], bones))
     hang_a, hang_b = ring_c + up * radius, ring_c - side * radius * 0.3 - up * radius * 0.4
     loop = [hang_a, mix(hang_a, hang_b, 0.5) + V(H * 0.03, 0, -H * 0.17), hang_b]
+    if "chain_arm_01" in L:
+        # Its loop swings on the arm's spring chain (ADR-069 §7): held at the forearm, the rest by how far it hangs.
+        bones = hanging_bones(p_of(L, "chain_arm_01", 0), p_of(L, "chain_arm_end", 0), "lowerarm_l", ["chain_arm_01"])
     parts.append(chain(S, "chain_loop", loop, size * 0.85, mats["rust"], bones))
-    # Trailing from his right hip, down to the ground behind him and along it.
     p0 = p_of(L, "pelvis", 0)
     root, _normal = garments.surface_point(body, p0 + V(-150.0, -hip * 0.5, H * 0.05), V(1, 0, 0), reach=150.0)
-    trail = [root, root + V(-hip * 0.4, -hip * 0.15, -root[2] * 0.45), V(root[0] - hip * 0.8, -hip * 0.65, size * 0.3), V(root[0] - hip * 1.8, -hip * 0.7, size * 0.3)]
-    parts.append(chain(S, "chain_trail", trail, size, mats["rust"], anatomy.rigid("pelvis")))
+    if "chain_hip_01" in L:
+        # Hanging from his right hip on its spring chain, back and down toward the ground, swinging as he moves.
+        joints = [p_of(L, bone, 0) for bone in ("chain_hip_01", "chain_hip_02", "chain_hip_end")]
+        trail = [root] + joints
+        bones = hanging_bones(joints[0], joints[2], "pelvis", ["chain_hip_01", "chain_hip_02"])
+    else:
+        # Trailing from his right hip, down to the ground behind him and along it.
+        trail = [root, root + V(-hip * 0.4, -hip * 0.15, -root[2] * 0.45), V(root[0] - hip * 0.8, -hip * 0.65, size * 0.3), V(root[0] - hip * 1.8, -hip * 0.7, size * 0.3)]
+        bones = anatomy.rigid("pelvis")
+    parts.append(chain(S, "chain_trail", trail, size, mats["rust"], bones))
     return Union(parts)
+
+
+def hanging_bones(top, end, holder, spans):
+    """Weights for chain hung on a spring chain from top to end: what lies at or above the top held by the bone it
+    hangs from, the rest down the chain's spans by how far along it each point hangs."""
+    axis = end - top
+    length = float(np.linalg.norm(axis))
+    axis = axis / length
+
+    def weights(P):
+        t = ((P - top) @ axis) / length
+        hold = 1.0 - np.clip(t / 0.15, 0.0, 1.0)
+        x = np.clip(t * len(spans), 0.5, len(spans) - 0.5)
+        w = {holder: hold}
+        for k, bone in enumerate(spans):
+            w[bone] = np.clip(1.0 - np.abs(x - (k + 0.5)), 0.0, 1.0) * (1.0 - hold)
+        return {bone: np.asarray(x, dtype=np.float32) for bone, x in w.items()}
+    return weights
 
 
 def hook(S, L, dims, mats):

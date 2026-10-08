@@ -20,7 +20,9 @@ BONES = [bone for bone in humanoid.BONES if not bone[0].startswith(("tail_", "ca
 SPRING_PARTS = {"ribbons": [("ribbon_" + side, ["ribbon_%s_%02d" % (side, i) for i in (1, 2, 3)] + ["ribbon_%s_end" % side], "clavicle_" + side)
                             for side in ("l", "r")],
                 "banner": [("banner", ["banner_01", "banner_02", "banner_end"], "spine_03")],
-                "drape": [("drape_" + end, ["drape_%s_01" % end, "drape_%s_02" % end, "drape_%s_end" % end], "pelvis") for end in ("f", "b")]}
+                "drape": [("drape_" + end, ["drape_%s_01" % end, "drape_%s_02" % end, "drape_%s_end" % end], "pelvis") for end in ("f", "b")],
+                "chains": [("chain_hip", ["chain_hip_01", "chain_hip_02", "chain_hip_end"], "pelvis"),
+                           ("chain_arm", ["chain_arm_01", "chain_arm_end"], "lowerarm_l")]}
 # A flung ribbon's arc, as shares of the height: where it leaves the back of the shoulder (back, out, up), how far it
 # trails back and out, how high it rises and how far it falls by its end.
 RIBBON_START = (-0.09, 0.02, 0.03)
@@ -32,6 +34,13 @@ BANNER_FALL = 0.42
 # A waist drape's chains, before and behind him: where each leaves the belt (out from the hips' middle by a share of the
 # shoulders, so clear of the trunk), and how far it falls straight down (a share of the leg: to the shins).
 DRAPE_OUT, DRAPE_FALL = 0.62, 0.72
+# Loose chain hung from him: one from behind his right hip (back by a share of the shoulders, out by a share of the
+# hips, so clear of the trunk and thigh), swinging back and down a share of the leg toward the ground; and one from his
+# left forearm (where along it), hanging straight down (a share of the height).
+CHAIN_HIP_START = (-0.62, -0.5)
+CHAIN_HIP_FALL = (-0.35, -0.15, -1.0)
+CHAIN_HIP_LENGTH = 0.85
+CHAIN_ARM_ALONG, CHAIN_ARM_LENGTH = 0.25, 0.17
 UPPER_BODY_BONE = "spine_01"
 LIFT_BONE = "pelvis"
 GROUNDED = True
@@ -132,6 +141,19 @@ def layout(spec, capsule):
             L["drape_%s_01" % end] = (joints[0], joints[1])
             L["drape_%s_02" % end] = (joints[1], joints[2])
             L["drape_%s_end" % end] = (joints[2], joints[2] + Vector((0.0, 0.0, -height * 0.01)))
+    if "chains" in spec.get("springs", {}):
+        # The hip's chain in two spans from behind his right hip; the arm's in one, hanging from his left forearm.
+        top = L["pelvis"][0] + Vector((CHAIN_HIP_START[0] * shoulder, CHAIN_HIP_START[1] * hip, 0.0))
+        fall = Vector(CHAIN_HIP_FALL).normalized() * CHAIN_HIP_LENGTH * leg
+        joints = [top + fall * (k / 2) for k in range(3)]
+        L["chain_hip_01"] = (joints[0], joints[1])
+        L["chain_hip_02"] = (joints[1], joints[2])
+        L["chain_hip_end"] = (joints[2], joints[2] + fall * 0.03)
+        e, w = L["lowerarm_l"]
+        top = e.lerp(w, CHAIN_ARM_ALONG)
+        bottom = top + Vector((0.0, 0.0, -CHAIN_ARM_LENGTH * height))
+        L["chain_arm_01"] = (top, bottom)
+        L["chain_arm_end"] = (bottom, bottom + Vector((0.0, 0.0, -height * 0.01)))
     dims = {"height": height, "full": full, "base": 0.0, "head": head, "torso": torso, "leg": leg, "shoulder": shoulder,
             "hip": hip, "arm": arm, "build": build, "sole": sole, "knuckle": "knuckleWalk" in features}
     return L, dims

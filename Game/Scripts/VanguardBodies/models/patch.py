@@ -17,7 +17,7 @@ import math
 
 import numpy as np
 
-from ..sculpt import anatomy, garments, sdf, sheet, tree
+from ..sculpt import anatomy, garments, paint, sdf, sheet, tree
 from ..sculpt.anatomy import V, unit
 from ..sculpt.garments import around, band_z, both, either, keep_to
 from ..sculpt.tree import Box, Over, Shell, Subtract, Union, Zone
@@ -41,9 +41,8 @@ SPECTRAL_FANG = (0.95, 0.85, 0.75)
 
 
 def as_seen(linear):
-    """A kit colour (linear, as the generated bodies write it) as seen (sRGB), which a material takes."""
-    c = np.clip(np.asarray(linear, dtype=np.float64), 0.0, 1.0)
-    return tuple(float(v) for v in np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1.0 / 2.4) - 0.055))
+    """A kit colour (linear, as the generated bodies write it) as seen (sRGB), which a material takes (paint.seen)."""
+    return tuple(float(v) for v in paint.seen(linear))
 
 
 def materials(S, spec):
