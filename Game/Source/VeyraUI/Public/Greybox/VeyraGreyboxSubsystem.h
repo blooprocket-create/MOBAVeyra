@@ -8,6 +8,7 @@
 #include "Rules/VeyraVisionRules.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Hud/VeyraKillFeedModel.h"
+#include "Hud/VeyraLastHit.h"
 #include "Shapes/VeyraShapes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
@@ -117,6 +118,12 @@ public:
 
 	/** The hit flash's strength over Unit's body now, from 0 to 1 (ADR-063 §2). */
 	float GetFlashOf(const AActor& Unit) const;
+
+	/**
+	 * The Health Unit has been seen to lose a second, over the last LastHitLossWindowSeconds by this machine's clock,
+	 * its Health alone and never its shields (ADR-071 §5); 0 for a unit without a body or no recent loss.
+	 */
+	double GetHealthLossPerSecond(const AActor& Unit) const;
 
 	/**
 	 * Outlines Hovered, and no other unit, in its side's colour (ADR-063 §3): its drawn body and art write their side's
@@ -284,6 +291,9 @@ private:
 
 		/** Until when its generated body holds its pose after a hit, by this machine's clock (ADR-068 §4). */
 		double HitStopUntil = 0.0;
+
+		/** The Health it lost, sampled each refresh by this machine's clock, for the last-hit cue's Ready stage (ADR-071 §5). */
+		FVeyraHealthLoss Loss;
 
 		/** How veiled its generated body is, why it last was, and what its material was last given (ADR-068 §6). */
 		double Veil = 0.0;

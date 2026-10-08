@@ -11,12 +11,12 @@
     folder. VeyraEditor must never rebuild the engine (ADR-006 §2). New files under the engine
     folder are still allowed.
 
-    One exception is recognised (ADR-006 §2 amendment). When UnrealHeaderTool regenerates the
-    project's makefile it can rewrite the engine's NetCore.init.gen.cpp with a new package
-    checksum, which leaves NetCore out of date. If every engine file the build would change is
-    NetCore's object, library and DLL, the version file or a module manifest, VeyraEditor is
-    built again with the guard lifted, and the script says so. Any other engine change still
-    stops the build.
+    One exception is recognised (ADR-006 §2 amendments). When UnrealHeaderTool regenerates the
+    project's makefile it can rewrite the engine's NetCore.init.gen.cpp or IrisCore.init.gen.cpp
+    with a new package checksum, which leaves that module out of date. If every engine file the
+    build would change is NetCore's or IrisCore's object, library and DLL, the version file or a
+    module manifest, VeyraEditor is built again with the guard lifted, and the script says so.
+    Any other engine change still stops the build.
 
     Warning gate. A build that succeeds but reports a warning in Game/Source or Game/Plugins
     exits with code 1: Veyra modules compile with zero warnings (ADR-006 §10).
@@ -182,33 +182,33 @@ function Get-BlockedEngineFiles {
     return @($files)
 }
 
-function Test-NetCoreChecksumOnly {
-    # True when every blocked file belongs to the NetCore rebuild the UnrealHeaderTool quirk causes.
+function Test-UhtChecksumOnly {
+    # True when every blocked file belongs to the NetCore or IrisCore rebuild the UnrealHeaderTool quirk causes.
     param([string[]]$Files)
     if ($Target -ne 'VeyraEditor' -or $Files.Count -eq 0) {
         return $false
     }
     $allowed = @(
-        '^Engine\\Binaries\\Win64\\UnrealEditor-NetCore\.(dll|pdb)$'
+        '^Engine\\Binaries\\Win64\\UnrealEditor-(NetCore|IrisCore)\.(dll|pdb)$'
         '^Engine\\Binaries\\Win64\\UnrealEditor\.version$'
-        "^Engine\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\$Configuration\\NetCore\\[^\\]+$"
+        "^Engine\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\$Configuration\\(NetCore|IrisCore)\\[^\\]+$"
         '^Engine\\(.+\\)?UnrealEditor\.modules$'
     )
     $unexpected = @($Files | Where-Object { $file = $_; -not ($allowed | Where-Object { $file -match $_ }) })
     if ($unexpected.Count -gt 0) {
-        Write-Host 'The engine guard stopped the build. Engine files it would change beyond the known NetCore rebuild:'
+        Write-Host 'The engine guard stopped the build. Engine files it would change beyond the known NetCore and IrisCore rebuilds:'
         $unexpected | Select-Object -First 20 | ForEach-Object { Write-Host "  $_" }
         return $false
     }
-    return ($Files | Where-Object { $_ -match 'NetCore' }).Count -gt 0
+    return ($Files | Where-Object { $_ -match 'NetCore|IrisCore' }).Count -gt 0
 }
 
 $exitCode = Invoke-UnrealBuildTool -Arguments $ubtArguments
 if ($exitCode -ne 0 -and -not $AllowEngineChanges) {
     $blocked = Get-BlockedEngineFiles
-    if (Test-NetCoreChecksumOnly -Files $blocked) {
+    if (Test-UhtChecksumOnly -Files $blocked) {
         Write-Host ''
-        Write-Host "Engine guard: the only engine change is NetCore's rebuild after UnrealHeaderTool rewrote its package checksum ($($blocked.Count) file(s)). Building again with the guard lifted (ADR-006, section 2)."
+        Write-Host "Engine guard: the only engine change is NetCore's or IrisCore's rebuild after UnrealHeaderTool rewrote its package checksum ($($blocked.Count) file(s)). Building again with the guard lifted (ADR-006, section 2)."
         $exitCode = Invoke-UnrealBuildTool -Arguments @($ubtArguments | Where-Object { $_ -ne '-NoEngineChanges' })
     }
 }

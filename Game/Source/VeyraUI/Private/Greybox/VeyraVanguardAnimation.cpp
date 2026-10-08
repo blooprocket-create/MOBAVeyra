@@ -234,7 +234,9 @@ void VeyraVanguardAnim::Advance(FVeyraVanguardAnimState& State, float DeltaSecon
 	State.RunWeight = RunTarget > State.RunWeight ? FMath::Min(RunTarget, State.RunWeight + Step) : FMath::Max(RunTarget, State.RunWeight - Step);
 	const float IdleLength = Shape.Lengths.Of(EVeyraVanguardClip::Idle);
 	const float RunLength = Shape.Lengths.Of(EVeyraVanguardClip::Run);
-	State.RunRate = Shape.RunStride > 0.0f ? FMath::Clamp(Speed * RunLength / Shape.RunStride, Shape.MinPlayRate, Shape.MaxPlayRate) : 1.0f;
+	// Its feet keep pace with the ground at the size it is drawn, not the size it was made (ADR-071 §1).
+	const float GroundStride = Shape.RunStride * FMath::Max(Shape.DrawScale, KINDA_SMALL_NUMBER);
+	State.RunRate = Shape.RunStride > 0.0f ? FMath::Clamp(Speed * RunLength / GroundStride, Shape.MinPlayRate, Shape.MaxPlayRate) : 1.0f;
 	State.IdlePosition = IdleLength > 0.0f ? FMath::Fmod(State.IdlePosition + DeltaSeconds, IdleLength) : 0.0f;
 	State.RunPosition = RunLength > 0.0f ? FMath::Fmod(State.RunPosition + DeltaSeconds * State.RunRate, RunLength) : 0.0f;
 

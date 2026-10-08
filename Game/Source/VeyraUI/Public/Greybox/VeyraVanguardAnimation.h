@@ -31,8 +31,11 @@ struct FVeyraVanguardAnimShape
 {
 	FVeyraVanguardClipLengths Lengths;
 
-	/** How far one Run cycle carries the body, in units. */
+	/** How far one Run cycle carries the body, in units of its mesh as made. */
 	float RunStride = 0.0f;
+
+	/** The scale the body is drawn at: one Run cycle carries it RunStride times this over the ground (ADR-071 §1). */
+	float DrawScale = 1.0f;
 
 	/** The share of Cast that raises the hands to the release, where a cast waiting to commit holds. */
 	float CastReleaseShare = 0.0f;

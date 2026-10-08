@@ -72,7 +72,10 @@ The Unreal project is **`Game/Veyra.uproject`**, a subdirectory beside `Backend/
     - UnrealBuildTool cannot run UnrealHeaderTool single-threaded in a normal build. It passes extra arguments to UnrealHeaderTool only for one unrelated target setting.
     - Target settings would give VeyraEditor its own build environment, which this section forbids.
     - Patching UnrealHeaderTool would mean modifying the engine.
-  - **IrisCore has the same exposure.** Its `NetSerializer.h` has no reflected types, and 19 IrisCore headers include it. A flip there is unlikely, because any of those headers parsed after it restores the mark. The allowance does not cover IrisCore, so if it happens the build stops and is reported.
+  - **IrisCore has the same exposure.** Its `NetSerializer.h` has no reflected types, and 19 IrisCore headers include it. A flip there is unlikely, because any of those headers parsed after it restores the mark.
+- **Amendment (2026-10-08, M61, author ruling): IrisCore joins the allowance.**
+  - On 2026-10-08 a VeyraEditor build rewrote `IrisCore.init.gen.cpp` with a new package checksum, in the same run as NetCore's. The guard then stopped every VeyraEditor build on the shared engine.
+  - The author chose to extend the allowance: `Build.ps1` now also recognises IrisCore's object, library and DLL, on the same terms and with the same justification as NetCore (a hot-reload checksum with no runtime effect). Any other engine change still stops the build.
 
 ### 3. Modules
 
