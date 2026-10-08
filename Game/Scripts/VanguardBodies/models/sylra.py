@@ -1,9 +1,9 @@
 """Sylra, The Mistwarden (ADR-069): a hooded harbour pilot, read by her silhouette from the game camera. Character Bible
 §16 and the author's reference (2026-10-07): a deep hood holding her face in shadow, long dark hair spilling from it;
-layered grey-blue storm cloth cut into long ribbons at every hem, so her edges move with the air (a long cloak behind,
+layered storm cloth, near black with a blue cast, cut into long ribbons at every hem, pale torn cloth at her arms, so her edges move with the air (a long cloak behind,
 an open skirt to her ankles, drapes from both arms); a dark leather bodice and belt hung with working gear (the
-ship's-wheel charm, tuned bells); fingerless gloves and bracers; thigh-high pointed boots. She carries a large lantern
-out on its chain, burning cold blue-white: the brightest thing about her, and the point allies steer by.
+ship's-wheel charm, tuned bells, gold chains and a medallion); fingerless gloves and bracers; thigh-high pointed boots. She carries a large gold lantern
+out on its chain, burning cold blue: the brightest thing about her, and the point allies steer by.
 
 Low poly and flat-coloured (author 2026-10-07): the big forms that make her outline, each a flat colour the toon
 material shades. She rests in the A pose, the lantern hanging from her left hand; her clips hold it out. Every loose
@@ -21,12 +21,12 @@ from ..sculpt.tree import Box, Over, Placed, Shell, Union, Zone
 # The hand, wrist to fingertip, as a share of the height.
 HAND_SHARE = 0.1
 
-# Sampled from the reference (sRGB), the cloth lifted toward the canon's grey-blue so it reads as cloth, not black, under
-# the toon light from the game camera.
+# Tuned against her splash art (sRGB): storm cloth near black with a blue cast, lifted just enough to read as cloth under
+# the toon light from the game camera; pale grey-blue torn cloth at her arms and shawl; gold at her belt and lantern.
 PALETTE = {
-    "skin": (0.8, 0.66, 0.6), "hair": (0.12, 0.11, 0.12), "storm": (0.33, 0.38, 0.46), "storm_mid": (0.42, 0.48, 0.57),
-    "storm_light": (0.66, 0.7, 0.76), "leather": (0.24, 0.22, 0.24), "boot": (0.2, 0.19, 0.21), "glove": (0.15, 0.13, 0.13),
-    "brass": (0.7, 0.55, 0.32), "iron": (0.2, 0.2, 0.22), "lantern": (0.85, 0.94, 1.0),
+    "skin": (0.8, 0.66, 0.6), "hair": (0.1, 0.1, 0.13), "storm": (0.18, 0.19, 0.25), "storm_mid": (0.15, 0.15, 0.2),
+    "storm_light": (0.6, 0.65, 0.73), "leather": (0.15, 0.14, 0.17), "boot": (0.14, 0.13, 0.16), "glove": (0.13, 0.12, 0.13),
+    "brass": (0.84, 0.66, 0.32), "iron": (0.2, 0.2, 0.22), "lantern": (0.55, 0.82, 1.0),
 }
 
 
@@ -136,12 +136,12 @@ def hood(S, L, dims, mats, under, limbs, size):
     # Long dark hair spilling from the opening over each shoulder to her breast, falling from the head to her chest.
     locks = []
     rng = np.random.default_rng(spec_seed(L))
-    for i, (side, sign) in enumerate((("l", 1.0), ("r", -1.0)) * 5):
-        root = o + V(7.0 + rng.uniform(-1.5, 1.5), sign * (6.0 + rng.uniform(0, 1.5)), 8.0 + rng.uniform(-3.0, 4.0)) * u
-        direction = V(0.45 + rng.uniform(-0.1, 0.15), sign * (0.12 + rng.uniform(0, 0.15)), -1.0)
-        length = H * rng.uniform(0.12, 0.2)
+    for i, (side, sign) in enumerate((("l", 1.0), ("r", -1.0)) * 8):
+        root = o + V(5.0 + rng.uniform(-4.0, 2.0), sign * (6.0 + rng.uniform(0, 3.0)), 8.0 + rng.uniform(-3.0, 5.0)) * u
+        direction = V(0.25 + rng.uniform(-0.25, 0.2), sign * (0.3 + rng.uniform(0, 0.3)), -1.0)
+        length = H * rng.uniform(0.16, 0.27)
         weights = anatomy.along("head", "spine_03", root, root + unit(direction) * length, 0.15, 0.6)
-        locks.append(hair.clump(S, "hair_%s_%d" % (side, i), root, direction, V(sign, 0.2, 0.0), length, rng.uniform(3.2, 4.2) * u,
+        locks.append(hair.clump(S, "hair_%s_%d" % (side, i), root, direction, V(sign, 0.2, 0.0), length, rng.uniform(4.2, 5.6) * u,
                                 rng.uniform(0.05, 0.15), rng.uniform(0.0, 0.25), mats["hair"], weights))
     # The mantle: storm cloth over the shoulders and upper arms, its hem torn into tongues.
     tongues = 16
@@ -177,8 +177,8 @@ def spec_seed(L):
 
 
 def gear(S, L, dims, mats):
-    """The working gear on her belt (never ornament): the ship's-wheel charm at her right hip and a pair of tuned
-    bells at her left."""
+    """The working gear on her belt: the ship's-wheel charm at her right hip and a pair of tuned bells at her left; gold
+    chains swagged across the front of her hips to a gold medallion."""
     H = dims["height"]
     pz = L["pelvis"][0][2]
     belt_z = pz + (L["spine_03"][1][2] - pz) * 0.12
@@ -207,19 +207,27 @@ def gear(S, L, dims, mats):
         mouth = top - V(0, 0, H * 0.03)
         parts.append(tree.leaf(S, "bell_%d" % i, lambda P, a=top, b=mouth: sdf.round_cone(P, a, b, H * 0.006, H * 0.014),
                                Box.around([top, mouth], H * 0.02), mats["brass"], anatomy.rigid("pelvis"), protect=0.6))
+    # Gold chains swagged low across the front of her hips from the belt, and a gold medallion where they meet.
+    for k, (depth, lo) in enumerate(((1.75, 0.05), (1.9, 0.09))):
+        points = [V(np.cos(np.radians(a)), np.sin(np.radians(a)), 0.0) * hip * depth + V(0, 0, belt_z - H * lo * np.cos(np.radians(a)) ** 2)
+                  for a in np.linspace(-70.0, 70.0, 9)]
+        parts.append(tree.leaf(S, "chain_%d" % k, lambda P, pts=points: sdf.tube(P, pts, [H * 0.004] * len(pts)), Box.around(points, H * 0.01),
+                               mats["brass"], anatomy.rigid("pelvis"), protect=0.6))
+    m = V(hip * 1.95, hip * 0.35, belt_z - H * 0.045)
+    parts.append(tree.leaf(S, "medallion", lambda P: sdf.cylinder(P, m - V(H * 0.003, 0, 0), m + V(H * 0.004, 0, 0), H * 0.022, H * 0.003),
+                           Box(m - H * 0.03, m + H * 0.03), mats["brass"], anatomy.rigid("pelvis"), protect=0.6))
     return Union(parts, k=0.2)
 
 
 def lantern(S, L, dims, mats, spec):
-    """Her lantern hung on its chain from her left hand's grip: a globe of cold blue-white light between an iron cap and
-    base, as large as her head (a cage's bars, at this density, would read as a face). It swings on its own chain where
+    """Her lantern hung on its chain from her left hand's grip: a globe of cold blue light between a gold cap and base, as large as her head (a cage's bars, at this density, would read as a face). It swings on its own chain where
     her kit gives it one (ADR-069 §7)."""
     H = dims["height"]
     grip = V(*L["prop_l"][0])
     bones = anatomy.rigid("lantern_01" if "lantern" in spec.get("springs", {}) else "prop_l")
     down = V(0, 0, -1)
     centre = grip + down * H * 0.19
-    iron, light = mats["iron"], mats["lantern"]
+    iron, light = mats["brass"], mats["lantern"]
     cap_a, cap_b = centre + V(0, 0, H * 0.05), centre + V(0, 0, H * 0.07)
     parts = [tree.leaf(S, "lantern_chain", lambda P: sdf.capsule(P, grip, cap_b, H * 0.004), Box.around([grip, cap_b], H * 0.01), iron, bones, protect=1.0)]
     parts.append(tree.leaf(S, "lantern_cap", lambda P: sdf.round_cone(P, cap_a, cap_b, H * 0.032, H * 0.012), Box.around([cap_a, cap_b], H * 0.04),
@@ -259,7 +267,7 @@ def cloak(S, L, dims, mats, worn):
         side = np.abs(np.sin(theta))
         top = np.stack([np.interp(u, samples, tops[:, k]) for k in range(3)], axis=1)
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
-        flare = (H * 0.05 + H * 0.24 * side) * v ** 1.3
+        flare = (H * 0.05 + H * 0.17 * side) * v ** 1.3
         pleat = (0.5 + H * 0.025 * v) * (0.55 * np.sin(theta * 10.0 + phase[0]) + 0.3 * np.sin(theta * 15.0 + phase[1]) + 0.25 * np.sin(theta * 6.0 + phase[2]))
         p = top + radial * (flare + pleat)[:, None]
         p[:, 2] = top[:, 2] + (hem - top[:, 2]) * v

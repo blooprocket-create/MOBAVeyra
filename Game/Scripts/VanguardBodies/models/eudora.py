@@ -36,8 +36,8 @@ def build(S, L, dims, spec):
     coat's skirt and its lining})."""
     mats = materials(S)
     H = dims["height"]
-    figure = anatomy.Figure(S, L, dims, mats["skin"], {"muscle": 0.7, "chest": 1.0, "breadth": 1.05, "hips": 1.05, "limb": 1.05,
-                                                        "deltoid": 1.0, "leg": 1.0, "neck": 0.95, "bust": 0.6}).build()
+    figure = anatomy.Figure(S, L, dims, mats["skin"], {"muscle": 0.7, "chest": 0.95, "breadth": 0.92, "limb": 1.0,
+                                                        "deltoid": 1.0, "leg": 1.0, "neck": 0.95, "bust": 0.6, "hips": 0.92}).build()
     head_origin = V(*L["head"][0])
     size = (L["head"][1][2] - L["head"][0][2]) * 24.0 / 21.9
     u = size / 24.0
@@ -138,9 +138,11 @@ def clothes(S, L, dims, mats, body, limbs):
     dressed = Over([mech, coat])
     belt_z = pz + torso * 0.12
     harness = []
-    # Belts stacked up her middle, the lowest carrying the pouches.
+    # Belts stacked up her middle, the lowest carrying the pouches, kept close about her waist so none fans out past it.
+    waist = around([V(0, 0, pz - H * 0.05), V(0, 0, cz)], [H * 0.12, H * 0.12])
     for k, z in enumerate((belt_z, belt_z + torso * 0.14, belt_z + torso * 0.27)):
-        harness.append(Shell(S, "belt_%d" % k, dressed, 0.3, 1.2, both(band_z(z - H * 0.012, z + H * 0.012), garments.keep_to(limbs, ["torso"])), mats["leather"], hem=0.3))
+        harness.append(Shell(S, "belt_%d" % k, dressed, 0.3, 1.2, both(band_z(z - H * 0.012, z + H * 0.012), garments.keep_to(limbs, ["torso"]), waist),
+                             mats["leather"], hem=0.3))
     for sign in (1.0, -1.0):
         a, b = V(H * 0.03, sign * H * 0.06, cz), V(H * 0.04, sign * H * 0.04, belt_z)
         band = both(garments.band_plane((a + b) / 2, V(0, 1, 0), H * 0.025, Box((-40, -60, belt_z - 5), (40, 60, cz + 8))), garments.keep_to(limbs, ["torso"]))
@@ -170,15 +172,16 @@ def drawings(S, L, mats, H):
 
 
 def coat_skirt(S, L, dims, mats, layer):
-    """Her red coat's long skirt, or its darker lining just inside it: from the belt to her shins, open at the front, its
-    hem worn ragged. Each half hangs on its own coat-tail chain (ADR-069 §7)."""
+    """Her red coat's long skirt, or its darker lining just inside it: from the belt to her shins, open wide at the front
+    so her legs show, falling close at her sides and flaring behind her, its hem worn ragged. Each half hangs on its own
+    coat-tail chain (ADR-069 §7)."""
     H = dims["height"]
     pz = L["pelvis"][0][2]
     belt_z = pz + (L["spine_03"][1][2] - pz) * 0.12
     lining = layer == "lining"
     material = S.material("skirt_" + layer, PALETTE["lining" if lining else "coat"])
     columns, rows, strips = 16, 5, 8
-    t0, t1 = np.radians(48.0), np.radians(312.0)
+    t0, t1 = np.radians(70.0), np.radians(290.0)
     hip = abs(L["thigh_l"][0][1])
     hem_z = H * (0.1 if lining else 0.075)
     inset = -0.8 if lining else 0.0
@@ -187,10 +190,12 @@ def coat_skirt(S, L, dims, mats, layer):
     def position(u, v):
         theta = t0 + (t1 - t0) * u
         radial = np.stack([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1)
-        top = np.stack([hip * 1.6 * np.cos(theta), hip * 1.85 * np.sin(theta), np.full_like(theta, belt_z)], axis=1)
-        p = top + radial * (H * 0.045 * v ** 1.2 + inset + (0.3 + 0.8 * v) * np.sin(theta * 7.0))[:, None]
+        top = np.stack([hip * 1.45 * np.cos(theta), hip * 1.5 * np.sin(theta), np.full_like(theta, belt_z)], axis=1)
+        # Close at her sides, flaring behind her.
+        behind = np.clip(-np.cos(theta), 0.0, 1.0)
+        p = top + radial * (H * (0.012 + 0.05 * behind) * v ** 1.2 + inset + (0.3 + 0.8 * v) * np.sin(theta * 7.0))[:, None]
         p[:, 2] = belt_z + (hem_z - belt_z) * v
-        return sheet.clear_of(p, limbs, 1.5)
+        return sheet.clear_of(p, limbs, 1.0)
 
     def bones(P, u, v):
         left = P[:, 1] > 0
