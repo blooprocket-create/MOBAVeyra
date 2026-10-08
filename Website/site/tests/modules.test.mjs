@@ -5,6 +5,7 @@ import { describe, test } from "node:test";
 import { createAccount, finishAccount } from "../src/js/account-flow.js";
 import { BackendError, createBackend, ROUTES } from "../src/js/backend.js";
 import { createFirebase, describeFirebaseError, FirebaseError, refusalFromMessage } from "../src/js/firebase.js";
+import { describeServerHours, formatWait, serverHoursPhrase, serverNote, sessionAt } from "../src/js/hours.js";
 import { formatBytes, latestSetup, parseLauncherChannel, setupDownloadUrl } from "../src/js/release.js";
 import { displayNameProblems, isValidDisplayName } from "../src/js/rules.js";
 
@@ -40,8 +41,66 @@ describe("display names", () => {
   });
 });
 
+describe("the servers' hours", () => {
+  const hours = { timeZone: "America/New_York", opens: "22:00", closes: "23:30" };
+  const at = (iso) => new Date(iso);
+  const session = (iso, of = hours) => {
+    const { opensAt, closesAt, live } = sessionAt(of, at(iso));
+    return { opensAt: opensAt.toISOString(), closesAt: closesAt.toISOString(), live };
+  };
+
+  test("find today's session, the one running, or tomorrow's", () => {
+    // 2:00 PM in New York, daylight time (UTC-4).
+    assert.deepEqual(session("2026-10-07T18:00:00Z"), { opensAt: "2026-10-08T02:00:00.000Z", closesAt: "2026-10-08T03:30:00.000Z", live: false });
+    assert.deepEqual(session("2026-10-08T02:30:00Z"), { opensAt: "2026-10-08T02:00:00.000Z", closesAt: "2026-10-08T03:30:00.000Z", live: true });
+    assert.deepEqual(session("2026-10-08T03:30:00Z"), { opensAt: "2026-10-09T02:00:00.000Z", closesAt: "2026-10-09T03:30:00.000Z", live: false });
+  });
+
+  test("follow the host's clock through standard and daylight time", () => {
+    assert.equal(session("2026-12-01T12:00:00Z").opensAt, "2026-12-02T03:00:00.000Z");
+    // The day daylight time ends: the morning is UTC-4, the evening UTC-5.
+    assert.equal(session("2026-11-01T12:00:00Z").opensAt, "2026-11-02T03:00:00.000Z");
+    assert.equal(session("2026-03-08T12:00:00Z").opensAt, "2026-03-09T02:00:00.000Z");
+  });
+
+  test("may run past midnight", () => {
+    const late = { ...hours, opens: "23:00", closes: "01:00" };
+    // 12:30 AM on the 8th is still the 7th's session.
+    assert.deepEqual(session("2026-10-08T04:30:00Z", late), { opensAt: "2026-10-08T03:00:00.000Z", closesAt: "2026-10-08T05:00:00.000Z", live: true });
+  });
+
+  test("read on the host's clock, and on the viewer's when it differs", () => {
+    const now = at("2026-10-07T18:00:00Z");
+    assert.deepEqual(describeServerHours(hours, "America/New_York", now), { host: "10:00–11:30 PM Eastern Time", local: null });
+    assert.deepEqual(describeServerHours(hours, "America/Detroit", now), { host: "10:00–11:30 PM Eastern Time", local: null });
+    assert.equal(describeServerHours(hours, "America/Los_Angeles", now).local, "7:00–8:30 PM your time");
+    assert.equal(describeServerHours(hours, "Asia/Kolkata", now).local, "7:30–9:00 AM your time");
+    assert.equal(describeServerHours(hours, "Asia/Tokyo", now).local, "11:00 AM–12:30 PM your time");
+    assert.equal(describeServerHours(hours, null, now).local, null);
+    assert.equal(serverHoursPhrase(hours, "America/Los_Angeles", now), "10:00–11:30 PM Eastern Time (7:00–8:30 PM your time)");
+  });
+
+  test("explain the live state", () => {
+    assert.match(serverNote(hours, "offline", at("2026-10-08T02:20:00Z")), /starts at 10:00 PM Eastern Time.*run out of usage/);
+    assert.equal(serverNote(hours, "offline", at("2026-10-07T18:00:00Z")), "The next session opens in 8 h.");
+    assert.equal(serverNote(hours, "offline", at("2026-10-08T01:15:30Z")), "The next session opens in 45 min.");
+    assert.equal(serverNote(hours, "online", at("2026-10-08T02:20:00Z")), "Today's session runs until 11:30 PM Eastern Time.");
+    // Online outside the hours (hosted by hand), checking, or unknown: nothing to add.
+    assert.equal(serverNote(hours, "online", at("2026-10-07T18:00:00Z")), "");
+    assert.equal(serverNote(hours, "checking", at("2026-10-08T02:20:00Z")), "");
+    assert.equal(serverNote(hours, "unknown", at("2026-10-08T02:20:00Z")), "");
+  });
+
+  test("count down in hours and minutes, never to zero", () => {
+    assert.equal(formatWait((3 * 60 + 20) * 60 * 1000), "3 h 20 min");
+    assert.equal(formatWait(60 * 60 * 1000 + 1), "1 h 1 min");
+    assert.equal(formatWait(1), "1 min");
+    assert.equal(formatWait(0), "1 min");
+  });
+});
+
 describe("Firebase", () => {
-  const config = { authUrl: "https://identitytoolkit.googleapis.com/", apiKey: "key-1" };
+  const config ={ authUrl: "https://identitytoolkit.googleapis.com/", apiKey: "key-1" };
 
   test("reads its refusals as the launcher does", () => {
     assert.equal(refusalFromMessage("EMAIL_EXISTS"), "email-exists");

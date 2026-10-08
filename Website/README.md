@@ -43,7 +43,7 @@ Static pages with no framework and no dependencies. `site/build.mjs` builds them
 | `Docs/Design/Vanguards/render_sheet.py` | their signature colours |
 | `ConceptArt/Vanguards/<id>/hero.webp` | their art |
 | `Launcher/ui/fonts` | Roboto |
-| `site/site.json` | the website's own data: the featured Vanguards and their framing, the home page's rotation, the display-name and password rules the forms check first, and the support contacts |
+| `site/site.json` | the website's own data: the featured Vanguards and their framing, the home page's rotation, the display-name and password rules the forms check first, the support contacts, and the servers' daily hours |
 
 ### Pages
 
@@ -84,4 +84,5 @@ CI runs all four in `.github/workflows/website.yml`.
 - **Import** the repository as a Vercel project. `vercel.json` at the root sets the build, the output, clean URLs, the rewrites and the headers, so no setting needs changing.
 - **When it builds:** each push to the production branch deploys; other branches get Preview deployments. Vercel skips a build when nothing the website reads has changed since the last deployment.
 - **Support contacts:** set `support.email` or `support.links` in `site/site.json`. Until then the support page says contact details are on their way.
+- **Server hours:** `serverHours` in `site/site.json` (an IANA time zone, and `opens` and `closes` as 24-hour times) is when the host's scheduled task starts and stops `Host.ps1`. Change both together. Pages show the hours on the host's clock, add the visitor's own when it differs, and next to the live status say when the next session opens, or why today's may not have started.
 - **Firebase:** email and password sign-in is already on for the launcher. If the project's web API key is ever restricted to certain websites, add the website's domain.

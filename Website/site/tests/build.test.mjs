@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { assemblePage, build, makeConfig, parseHues, parseVanguardYaml, readLauncherPublic, REPO_ROOT, validateSite } from "../build.mjs";
 import { ROUTES } from "../src/js/backend.js";
+import { describeServerHours } from "../src/js/hours.js";
 
 const readJson = (path) => JSON.parse(readFileSync(join(REPO_ROOT, path), "utf8"));
 const site = readJson("Website/site/site.json");
@@ -29,6 +30,12 @@ describe("site.json", () => {
     assert.match(broken({ account: { ...site.account, displayName: { ...site.account.displayName, pattern: "[a-z]+" } } }).join(), /anchored/);
     assert.match(broken({ support: { email: "not an email", links: [] } }).join(), /support\.email/);
     assert.match(broken({ support: { email: null, links: [{ label: "Chat", url: "http://insecure.example" }] } }).join(), /https/);
+    assert.match(broken({ serverHours: { ...site.serverHours, timeZone: "Eastern" } }).join(), /IANA time zone/);
+    assert.match(broken({ serverHours: { ...site.serverHours, timeZone: "Mars/Olympus_Mons" } }).join(), /IANA time zone/);
+    assert.match(broken({ serverHours: { ...site.serverHours, opens: "10pm" } }).join(), /serverHours\.opens/);
+    assert.match(broken({ serverHours: { ...site.serverHours, closes: "24:00" } }).join(), /serverHours\.closes/);
+    assert.match(broken({ serverHours: { ...site.serverHours, closes: site.serverHours.opens } }).join(), /must differ/);
+    assert.match(broken({ serverHours: { ...site.serverHours, days: "weekends" } }).join(), /unknown field "days"/);
   });
 });
 
@@ -122,6 +129,23 @@ describe("the built site", () => {
     assert.match(html, /href="\/download" data-nav="download" aria-current="page"/);
     assert.doesNotMatch(html, /data-nav="home" aria-current/);
     assert.equal(assemblePage('<body data-page="b"><!--#x-->', { x: '<a data-nav="a"></a><a data-nav="b"></a>' }), '<body data-page="b"><a data-nav="a"></a><a data-nav="b" aria-current="page"></a>');
+  });
+
+  test("puts partials inside partials, but never one inside itself", () => {
+    assert.equal(assemblePage('<body data-page="b"><!--#x-->', { x: "<i><!--#y--></i>", y: '<a data-nav="b"></a>' }), '<body data-page="b"><i><a data-nav="b" aria-current="page"></a></i>');
+    assert.throws(() => assemblePage("<!--#x-->", { x: "<!--#y-->", y: "<!--#x-->" }), /x\.html includes itself, through x → y/);
+  });
+
+  test("names the servers' hours wherever a page shows them", () => {
+    const hours = describeServerHours(site.serverHours).host;
+    assert.match(hours, /^\d{1,2}:\d{2}.+\d{1,2}:\d{2} [AP]M \S/);
+    for (const page of pages) {
+      const html = readFileSync(join(out, page), "utf8");
+      const shown = [...html.matchAll(/data-server-hours>([^<]*)</g)].map(([, text]) => text);
+      // Every page has the footer's; the pages that talk about the servers have their own as well.
+      assert.ok(shown.length >= 1, page);
+      assert.deepEqual(new Set(shown), new Set([hours]), page);
+    }
   });
 
   test("links only to files it has, clean URLs included", () => {

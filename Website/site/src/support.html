@@ -31,7 +31,7 @@
         <div class="search" data-reveal>
           <label class="visually-hidden" for="faq-search">Search the answers</label>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2"/></svg>
-          <input id="faq-search" type="search" placeholder="Search: SmartScreen, password, offline…" autocomplete="off" data-faq-search>
+          <input id="faq-search" type="search" placeholder="Search: SmartScreen, password, server hours…" autocomplete="off" data-faq-search>
         </div>
         <p class="no-results" data-faq-empty hidden role="status">Nothing matches that. Try another word, or <a href="#contact">contact us</a>.</p>
 
@@ -135,10 +135,18 @@
         <section class="faq-group" data-faq-group aria-labelledby="faq-playing">
           <h2 class="faq-group__title" id="faq-playing">Playing</h2>
 
+          <details class="faq" id="faq-server-hours">
+            <summary>When are the servers online?</summary>
+            <div class="faq__body">
+              <p>Every day, <strong data-server-hours><!--#server-hours--></strong>. The servers start and shut down automatically at those times, so there's no announcement to wait for.</p>
+              <p>They run on the developer's own computer. If they aren't up a few minutes after the start, that computer is off or the automation that starts them has run out of usage, and there's no session that day. Try again the next day.</p>
+            </div>
+          </details>
+
           <details class="faq" id="faq-servers-offline">
             <summary>The launcher says Veyra's servers are offline</summary>
             <div class="faq__body">
-              <p>Public tests run on Veyra's test servers, which aren't online around the clock. While they're offline you can't sign in to the launcher, download, or play. The status on this page shows whether they're up; try again when it reads <strong>Servers online</strong>.</p>
+              <p>Public tests run on Veyra's test servers, which are only online during their <a href="#faq-server-hours">daily hours</a>. While they're offline you can't sign in to the launcher, download, or play. The status on this page shows whether they're up; try again when it reads <strong>Servers online</strong>.</p>
             </div>
           </details>
 
@@ -173,7 +181,8 @@
         <div class="panel" data-reveal>
           <h2 class="panel__title">Server status</h2>
           <p><span class="status" data-server-status data-state="checking"><span class="status__dot"></span><span class="status__text">Checking Veyra's servers…</span></span></p>
-          <p>Matches, sign-in and downloads need the servers online.</p>
+          <p data-server-note hidden></p>
+          <p>Online every day, <strong data-server-hours><!--#server-hours--></strong>. Matches, sign-in and downloads need the servers online.</p>
         </div>
         <div class="panel panel--brass" data-reveal id="contact">
           <h2 class="panel__title">Contact us</h2>
