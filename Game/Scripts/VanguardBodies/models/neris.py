@@ -7,13 +7,12 @@ metal signal whistle on a chain); a grey wrap at her throat, heavy boots. Her ha
 ship's-wheel charm: the wave, the open water and the brimmed hat tell her apart.
 
 Low poly and flat-coloured (author 2026-10-07): the big forms that make her outline, each a flat colour the toon
-material shades. She stands in the A pose on the swell; her clips brace her on it and roll its crest. The wave is drawn
-as the archetype lays it out (humanoid.wave_body): the swell on the root bone, resting on the ground, and the crest on the
-cape bones, which rise behind her and curl forward. It grows with her body's scale (the Wave and Tidebreaker bodies)
-while she stays her own size, so it is built of sheets, as cloth is: surfaces at the density the game mesh keeps, the
-same few hundred triangles at any size, never sharing a surface with her. Its colours are her kit's water and foam (the
-Storm body darkens them). Her coat's skirt and its lining hang on the coat-tail chains, her hair on the hair chains
-(ADR-069 §7). Colours are her kit's, adjusted toward her art and lifted so they read under the toon light."""
+material shades. She stands in the A pose at the height her archetype raises her to; her clips brace her there. The
+wave under her is no part of her mesh: it is water in motion, which her kit's Niagara effect pours from her root
+(NS_VeyraWave; in her Storm body NS_VeyraTempest, the wave storm-tossed under a squall), sized by how far her body grows
+it (the Wave and Tidebreaker bodies) while she stays her own size. Her coat's skirt and its lining hang on the coat-tail
+chains, her hair on the hair chains (ADR-069 §7). Colours are her kit's, adjusted toward her art and lifted so they read
+under the toon light."""
 import numpy as np
 
 from ..sculpt import anatomy, garments, hair, paint, sdf, sheet, tree
@@ -28,30 +27,6 @@ HAND_SHARE = 0.105
 SKULL_CENTRE = (-1.2, 0.0, 14.4)
 SKULL_RADII = (9.9, 7.5, 8.0)
 HAIR_REACH = 4.0
-# How far below her soles the swell's surface lies (cm).
-SOLE_GAP = 0.6
-# How far the wave's colours are lifted toward white (a share), so dark water reads as water under the toon light.
-WATER_LIFT = 0.14
-# How far the crest stands back from its cape bones' joints, as a share of the wave's reach: room for its lip to curl
-# over toward her without touching her coat.
-CREST_BACK = 0.12
-# The swell's sections, from its tail to its bow: where along it (shares of the wave's reach r, from her feet), its
-# height (shares of the base b her soles stand at) and its half width (shares of r). Its tail and bow lie on the ground;
-# it rises behind her into the crest and is flat under her feet.
-SWELL_AT = (-1.8, -1.35, -0.85, -0.3, 0.15, 0.7, 1.2, 1.5)
-SWELL_HEIGHT = (0.0, 0.85, 1.1, 1.0, 1.0, 0.7, 0.32, 0.0)
-SWELL_WIDTH = (0.5, 1.05, 1.22, 1.0, 0.82, 0.62, 0.42, 0.22)
-# Its cross-section: a superellipse of this power, flat-topped and steep at its foot.
-SWELL_POWER = 2.4
-# Its top lies lit above this share of its height there; foam breaks over its bow from this far along it (a share of r).
-SWELL_LIT = 0.64
-SWELL_BOW = 1.0
-# The crest's crescent: how far round her it reaches either side of her back (degrees), and how much lower its ends
-# stand than its middle (a share of its height).
-CREST_ARC = 80.0
-CREST_FALL = 0.55
-# Where up the crest line (in spans, 0 at its foot by the first cape bone) its face gives way to the foam of its lip.
-CREST_FOAM = 2.5
 
 # Her kit's colours as seen (sRGB), lifted and pushed toward her art: a charcoal blue-grey coat over a slate lining, a
 # dark brown hat, brown leather boots and straps, iron chains, tan rope.
@@ -63,29 +38,14 @@ PALETTE = {
 }
 
 
-def lifted(colour):
-    """A kit colour lifted toward white by WATER_LIFT: dark water stays dark but never reads as a hole."""
-    c = np.asarray(colour, dtype=np.float64)[:3]
-    return tuple(float(x) for x in WATER_LIFT + (1.0 - WATER_LIFT) * c)
-
-
 def materials(S, spec):
-    """Every material Neris is coloured in, flat (the toon material shades it). The wave's are her kit's water and foam
-    (a status body may change them): the water, a lit band toward the lip, and the foam; the light in the water under her
-    feet glows in her accent."""
-    mats = {name: S.material(name, colour) for name, colour in PALETTE.items()}
-    water = np.asarray(lifted(spec["water"]))
-    foam = np.asarray(spec["foam"], dtype=np.float64)[:3]
-    mats["water"] = S.material("water", tuple(water))
-    mats["water_lit"] = S.material("water_lit", tuple(np.clip(water * 1.5 * 0.88 + foam * 0.12, 0.0, 1.0)))
-    mats["foam"] = S.material("foam", tuple(foam))
-    mats["glow"] = S.material("water_glow", tuple(np.asarray(spec["accent"], dtype=np.float64)[:3]), glow=True)
-    return mats
+    """Every material Neris is coloured in, flat (the toon material shades it)."""
+    return {name: S.material(name, colour) for name, colour in PALETTE.items()}
 
 
 def build(S, L, dims, spec):
     """Neris's sculpt on her layout: (the rider, {"body": the skin alone, under her clothes, "sheets": her coat's skirt and
-    its lining, and the wave})."""
+    its lining})."""
     mats = materials(S, spec)
     H = dims["height"]
     base = dims["base"]
@@ -107,9 +67,8 @@ def build(S, L, dims, spec):
     body = figure.body()
     dressed = clothes(S, L, dims, mats, body, figure.limbs)
     worn = Over([dressed, gear(S, L, dims, mats, dressed)])
-    # The wave is sheets (as cloth is): surfaces built at the density the game mesh keeps, so it costs the same however
-    # large a body grows it, and the rider's sculpt keeps the rest of the budget.
-    sheets = [coat_skirt(S, L, dims, "coat"), coat_skirt(S, L, dims, "lining")] + swell(dims, mats) + crest(L, dims, mats)
+    # The wave she rides is water in motion, not a mesh: her kit's effect pours it under her (NS_VeyraWave).
+    sheets = [coat_skirt(S, L, dims, "coat"), coat_skirt(S, L, dims, "lining")]
     return worn, {"body": body, "sheets": sheets}
 
 
@@ -400,179 +359,6 @@ def gear(S, L, dims, mats, dressed):
     axes = np.stack([unit(np.cross(V(0, 0, 1), out)), V(0, 0, 1), out], axis=1)
     parts.append(garments.pouch(S, "pouch", pc, axes, (H * 0.05, H * 0.055, H * 0.028), H * 0.018, mats["leather"], bones=hip_bones))
     return Union(parts, k=0.2)
-
-
-# ---------------------------------------------------------------------------------------------- the wave
-def monotone(xs, ys):
-    """A smooth curve through the points (xs, ys) that never overshoots them (a monotone cubic): f(x) -> its values."""
-    xs, ys = np.asarray(xs, dtype=np.float64), np.asarray(ys, dtype=np.float64)
-    h = np.diff(xs)
-    d = np.diff(ys) / h
-    m = np.zeros(len(xs))
-    m[0], m[-1] = d[0], d[-1]
-    for k in range(1, len(xs) - 1):
-        if d[k - 1] * d[k] > 0:
-            w1, w2 = 2 * h[k] + h[k - 1], h[k] + 2 * h[k - 1]
-            m[k] = (w1 + w2) / (w1 / d[k - 1] + w2 / d[k])
-
-    def f(x):
-        x = np.clip(np.asarray(x, dtype=np.float64), xs[0], xs[-1])
-        k = np.clip(np.searchsorted(xs, x, side="right") - 1, 0, len(xs) - 2)
-        t = (x - xs[k]) / h[k]
-        t2, t3 = t * t, t * t * t
-        return ((2 * t3 - 3 * t2 + 1) * ys[k] + (t3 - 2 * t2 + t) * h[k] * m[k] + (-2 * t3 + 3 * t2) * ys[k + 1]
-                + (t3 - t2) * h[k] * m[k + 1])
-    return f
-
-
-def rigid_sheet(bone):
-    """A sheet's skinning wholly to one bone."""
-    return lambda P, u, v: {bone: np.ones(len(P), dtype=np.float32)}
-
-
-def swell(dims, mats):
-    """The swell she stands on (humanoid.wave_body), on the root bone: a long hump of water resting on the ground, its
-    tail and bow on the ground, rising behind her where the crest climbs from it and flat under her feet, a hand's
-    breadth below her soles; narrow at the bow, broad behind. Its top lies lit above a line rolling round it, its flanks
-    the deep water's colour, and white foam breaks over its bow, sweeping back along both flanks; light shows in the water
-    at her feet. Its sizes are the archetype's (waveReach r, base b), so a larger body's swell is deeper and broader.
-    Sheets, so it costs the same at every size: its flanks, its top and its bow, sharing their edges."""
-    b, r = dims["base"], dims["waveReach"]
-    xs = [a * r for a in SWELL_AT]
-    height = monotone(xs, [a * (b - SOLE_GAP) for a in SWELL_HEIGHT])
-    width = monotone(xs, [a * r for a in SWELL_WIDTH])
-    p = SWELL_POWER
-    back, front, bow = xs[0], xs[-1], SWELL_BOW * r
-
-    def surface(x, phi):
-        """The swell's surface at x along it and phi round its section (-pi/2 its right foot, pi/2 its left)."""
-        s, c = np.sin(phi), np.cos(phi)
-        return np.stack([x, width(x) * np.sign(s) * np.abs(s) ** (2.0 / p), height(x) * np.abs(c) ** (2.0 / p)], axis=1)
-
-    def lit_edge(u):
-        """How far round its section the lit top reaches (radians), a column u along it: where its height falls to the
-        lit share, the line rolling as it runs."""
-        x = back + u * (bow - back)
-        share = SWELL_LIT + 0.035 * np.sin(x / (0.25 * r))
-        return np.arccos(share ** (p / 2.0))
-
-    def bow_edge(phi):
-        """Where the bow's foam begins along it, round its section: scalloped, and sweeping back down both flanks."""
-        return bow + 0.05 * r * np.cos(7.0 * phi) - 0.24 * r * (phi / (np.pi / 2.0)) ** 2
-
-    def band(lo, hi):
-        """The part of the swell behind the bow's foam between lo(u) and hi(u) round its section."""
-        def position(u, v):
-            phi = lo(u) + (hi(u) - lo(u)) * v
-            return surface(back + u * (bow_edge(phi) - back), phi)
-        return position
-    half = np.pi / 2.0
-    columns, flank_rows, top_rows = 18, 4, 6
-    root = rigid_sheet("root")
-    sheets = [sheet.Sheet("swell_right", band(lambda u: np.full_like(u, -half), lambda u: -lit_edge(u)), mats["water"], root, columns, flank_rows),
-              sheet.Sheet("swell_top", band(lambda u: -lit_edge(u), lit_edge), mats["water_lit"], root, columns, top_rows),
-              sheet.Sheet("swell_left", band(lit_edge, lambda u: np.full_like(u, half)), mats["water"], root, columns, flank_rows)]
-    # The bow: round its whole section, its edge on the others' front edges, vertex for vertex.
-    edge = float(lit_edge(np.array([1.0]))[0])
-    rows = 2 * flank_rows + top_rows
-    knots = np.array([0.0, flank_rows, flank_rows + top_rows, rows]) / rows
-
-    def bow_position(u, v):
-        phi = np.interp(v, knots, [-half, -edge, edge, half])
-        start = bow_edge(phi)
-        return surface(start + u * (front - start), phi)
-    sheets.append(sheet.Sheet("swell_bow", bow_position, mats["foam"], root, 4, rows))
-    # The light in the water at her feet: a patch laid on the swell's top just over it.
-
-    def glow_position(u, v):
-        a, c = 2.0 * u - 1.0, 2.0 * v - 1.0
-        x = 0.08 * r + 0.42 * r * a * np.sqrt(1.0 - c * c / 2.0)
-        y = 0.36 * r * c * np.sqrt(1.0 - a * a / 2.0)
-        t = np.clip(y / width(x), -1.0, 1.0)
-        phi = np.sign(t) * np.arcsin(np.abs(t) ** (p / 2.0))
-        point = surface(x, phi)
-        # Clear of the swell's own facets beneath it, which grow with it.
-        point[:, 2] += 0.25 + 0.015 * r
-        return point
-    sheets.append(sheet.Sheet("water_light", glow_position, mats["glow"], root, 5, 5))
-    return sheets
-
-
-def crest_line(L, dims, samples=64):
-    """The crest's spine in its own half plane (x back from her, y = 0): from deep in the swell up the cape bones' joints
-    (the archetype lays them up the crest), set back a little from them so its lip has room to curl, and on past the last,
-    where the lip rolls forward and hooks down. (points (n, 3), each one's span: 0 at the first cape bone's head, a span
-    a joint)."""
-    r, u = dims["waveReach"], dims["waveUnit"]
-    foot = V(*L["cape_01"][0])
-    joints = [foot - V(0, 0, 0.35 * u), foot] + [V(*L[bone][0]) - V(CREST_BACK * r, 0, 0) for bone in ("cape_02", "cape_03")] + \
-             [V(*L["cape_03"][1]) - V(CREST_BACK * r, 0, 0)]
-    roll = joints[-1] + V(0.16 * u, 0.0, 0.01 * u)
-    hook = roll + V(0.05 * u, 0.0, -0.2 * u)
-    controls = joints + [roll, hook]
-    points = garments.curve(controls, samples)
-    return points, np.linspace(-1.0, len(controls) - 2.0, samples)
-
-
-def crest(L, dims, mats):
-    """The crest on the cape bones: a wall of water swept round behind her in a crescent (CREST_ARC either side of her
-    back), tallest at her back and lower toward its ends, which close; thick where it rises from the swell, thin up its
-    face, its lip rolling forward over her in white foam and hooking down. Its back is the deep water's colour and its
-    face, turned to her, lit. Each point follows the cape bone of the span of the crest line it lies on, so the crest
-    rolls as she rides. Sheets round its section (its back, its foamed lip and its face), sharing their edges."""
-    u_ = dims["waveUnit"]
-    points, spans = crest_line(L, dims)
-    lo, hi = spans[0], spans[-1]
-    tangents = np.gradient(points, axis=0)
-    # Each point's normal in its half plane, toward the crest's face (its concave side, turned to her).
-    normals = np.stack([tangents[:, 2], np.zeros(len(points)), -tangents[:, 0]], axis=1)
-    normals /= np.maximum(np.linalg.norm(normals, axis=1, keepdims=True), 1e-9)
-    radius = lambda s: np.interp(s, [-1.0, 0.0, 1.0, 2.0, 2.6, 3.3, 4.0, 5.0], [0.3, 0.27, 0.16, 0.09, 0.085, 0.14, 0.11, 0.0]) * u_  # noqa: E731
-    arc = np.radians(CREST_ARC)
-    floor = points[0][2]
-
-    def at(s, side, off):
-        """The crest's surface at span s, on its back (side -1) or its face (side 1), off round from her back."""
-        spine = np.stack([np.interp(s, spans, points[:, k]) for k in range(3)], axis=1)
-        normal = np.stack([np.interp(s, spans, normals[:, k]) for k in range(3)], axis=1)
-        taper = np.sqrt(np.clip(1.0 - (off / arc) ** 6, 0.0, 1.0))
-        q = spine + normal * (side * radius(s) * taper)[:, None]
-        z = floor + (q[:, 2] - floor) * (1.0 - CREST_FALL * (off / arc) ** 2)
-        out = -q[:, 0]
-        return np.stack([-out * np.cos(off), out * np.sin(off), z], axis=1)
-
-    def loop(lam):
-        """Round the crest's section: from its foot up its back (0 to 1) to the tip of its lip, and down its face (1 to 2):
-        (span, side)."""
-        up = lam <= 1.0
-        return np.where(up, lo + lam * (hi - lo), hi - (lam - 1.0) * (hi - lo)), np.where(up, -1.0, 1.0)
-
-    def foam_edge(u):
-        """Where round the section the lip's foam begins, a column u across the crescent: scalloped as the lip breaks."""
-        off = arc * (2.0 * u - 1.0)
-        return (CREST_FOAM + 0.22 * np.cos(11.0 * off) - lo) / (hi - lo)
-
-    def part(start, end):
-        def lam(u, v):
-            return start(u) + (end(u) - start(u)) * v
-
-        def position(u, v):
-            s, side = loop(lam(u, v))
-            return at(s, side, arc * (2.0 * u - 1.0))
-
-        def bones(P, u, v):
-            s, _side = loop(lam(u, v))
-            x = np.clip(s, 0.5, 2.5)
-            return {"cape_%02d" % (k + 1): np.clip(1.0 - np.abs(x - (k + 0.5)), 0.0, 1.0).astype(np.float32) for k in range(3)}
-        return position, bones
-    columns, rows = 18, 6
-    sheets = []
-    for name, start, end, material in (("crest_back", lambda u: np.zeros_like(u), foam_edge, mats["water"]),
-                                        ("crest_lip", foam_edge, lambda u: 2.0 - foam_edge(u), mats["foam"]),
-                                        ("crest_face", lambda u: 2.0 - foam_edge(u), lambda u: np.full_like(u, 2.0), mats["water_lit"])):
-        position, bones = part(start, end)
-        sheets.append(sheet.Sheet(name, position, material, bones, columns, rows))
-    return sheets
 
 
 # ---------------------------------------------------------------------------------------------- cloth sheets

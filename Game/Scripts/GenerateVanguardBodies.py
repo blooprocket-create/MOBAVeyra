@@ -382,9 +382,10 @@ def build(spec, status=None, suffix="", previous=None):
         effect = spec["effect"]
         missing = [bone for bone in effect["bones"] if bone not in dict(bones)]
         assert not missing, (spec["id"], "the effect pours from bones it lacks", missing)
-        # Sized as the body is grown (a larger form pours larger smoke).
+        # Sized as the body is grown (a larger form pours larger smoke), or as its layout says what the effect pours has
+        # grown (a wave under a rider who keeps her size).
         asset["effect"] = {"system": effect["system"], "bones": effect["bones"], "color": effect["color"],
-                           "scale": spec.get("bodyScale", 1.0)}
+                           "scale": round(float(dims.get("effectScale", spec.get("bodyScale", 1.0))), 4)}
     if status:
         asset["status"] = status
         # Which status body wins when its unit holds several (the art set's Priority): a brief burst's over one held

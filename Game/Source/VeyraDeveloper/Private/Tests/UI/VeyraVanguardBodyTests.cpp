@@ -334,7 +334,7 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsTrue(Skin->GetSkeletalMeshAsset() == Art.Mesh));
 			ASSERT_THAT(IsTrue(Skin->GetCollisionEnabled() == ECollisionEnabled::NoCollision, TEXT("visual only")));
 			// What its body is made of where no mesh shows it (smoke) pours off each of its bones, on its body, at the size
-			// of the body it pours from.
+			// of the body it pours from, in its body's frame (as the body stands at rest), not its bone's.
 			const FNiagaraVariable Scale(FNiagaraTypeDefinition::GetFloatDef(), *(TEXT("User.") + GetDefault<UVeyraGreyboxSettings>()->EffectScaleParameter.ToString()));
 			const auto PoursFrom = [&Presentation, &Scale, Companion, Skin](const FVeyraVanguardBody& Worn) {
 				const TArray<UNiagaraComponent*> Effects = Presentation.FindBodyEffects(*Companion);
@@ -347,6 +347,12 @@ namespace VeyraVanguardBodyTests
 					if (Effects[Index]->GetAsset() != Worn.Effect || Effects[Index]->GetAttachParent() != Skin
 						|| Effects[Index]->GetAttachSocketName() != Worn.EffectBones[Index]
 						|| Effects[Index]->GetOverrideParameters().GetParameterValueOrDefault(Scale, 0.0f) != Worn.EffectScale)
+					{
+						return false;
+					}
+					const FQuat Rest = FAnimationRuntime::GetComponentSpaceTransformRefPose(Worn.Mesh->GetRefSkeleton(),
+						Worn.Mesh->GetRefSkeleton().FindBoneIndex(Worn.EffectBones[Index])).GetRotation();
+					if (FQuat::Identity.AngularDistance(Rest * Effects[Index]->GetRelativeRotation().Quaternion()) > 1.e-3)
 					{
 						return false;
 					}
