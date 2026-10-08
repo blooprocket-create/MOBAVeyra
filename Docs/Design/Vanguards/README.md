@@ -83,13 +83,13 @@ Beyond pass/fail it prints a roster summary derived from the data, which is the 
 
 **Owned field entities**, the ADR-003 inventory. Currently 3 combat units, 5 placed markers, 1 ride state, and **18 world volumes** across 9 Vanguards. World volumes are by a wide margin the largest category, and two of them are engine capabilities rather than ability features: Varkesh's `iron_wall` (the entity id for the wall Forge Divide, his R, cools into) modifies pathing for both teams, and Sylra creates true Dense Fog at runtime. Neither has a ruling in any bible.
 
-**Crowd control coverage.** 6 Vanguards apply no CC at all; 13 apply no hard CC. Combined with open composition, a legal team can field none.
+**Crowd control coverage.** 7 Vanguards apply no CC at all; 14 apply no hard CC. Combined with open composition, a legal team can field none.
 
 **Sustain.** Ally healing exists on exactly one Vanguard. Ally shielding exists on two. Any composition wanting sustain must pick Neris, which is a constraint the "no enforced roles" principle does not otherwise imply.
 
-**Marks and meters.** 18 of 25 kits apply a named mark, stack or meter. The fiction varies; the mechanical shape often does not.
+**Marks and meters.** 18 of 26 kits apply a named mark, stack or meter. The fiction varies; the mechanical shape often does not.
 
-**Sheet status.** All 25 entries are `file: null` — 22 `superseded` by authored art and 3 `withdrawn` — printed as a count per status. Neither is a defect; it is the expected state after the baked-text sheets were deleted.
+**Sheet status.** All 26 entries are `file: null` — 22 `superseded` by authored art, 3 `withdrawn`, and Rheyzekx `missing` because no legacy sheet ever existed — printed as a count per status. Neither is a defect; it is the expected state after the baked-text sheets were deleted.
 
 These numbers are descriptive, not verdicts. They are here so the trade-offs are visible when the roster changes, rather than discovered during balance.
 
@@ -97,7 +97,7 @@ These numbers are descriptive, not verdicts. They are here so the trade-offs are
 
 ```
 python3 Docs/Design/Vanguards/render_sheet.py bryn     # one
-python3 Docs/Design/Vanguards/render_sheet.py --all    # all 25
+python3 Docs/Design/Vanguards/render_sheet.py --all    # all 26
 ```
 
 `render_sheet.py` builds a self-contained HTML character sheet by reading the Character Bible and the Vanguard's YAML **at render time**. Nothing is typed by hand and nothing is copied into a third location, so there is no place for the text to drift from canon.
@@ -106,7 +106,7 @@ python3 Docs/Design/Vanguards/render_sheet.py --all    # all 25
 
 The parser handles all three heading generations in the bible, including Angeru's stance layout, which yields eight ability entries rather than five.
 
-All 25 rendered sheets under `sheets/` are committed (see `sheets/.gitignore`): re-run `--all` after a canon change and an empty `git diff` means they match canon. Bryn is the useful demonstration because her old baked-text sheet was wrong — it showed "Harbor Flare" reducing Dense Fog, and the rendered sheet shows "Sounding Flare" with presence-only behaviour, because it reads §19 rather than a year-old render.
+The existing 25 rendered sheets under `sheets/` are committed; Rheyzekx's rendered sheet is pending the next render pass (see `sheets/.gitignore`): re-run `--all` after a canon change and an empty `git diff` means they match canon. Bryn is the useful demonstration because her old baked-text sheet was wrong — it showed "Harbor Flare" reducing Dense Fog, and the rendered sheet shows "Sounding Flare" with presence-only behaviour, because it reads §19 rather than a year-old render.
 
 ## Changing a Vanguard
 
