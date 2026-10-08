@@ -30,6 +30,19 @@ FVeyraVanguardClipLengths FVeyraVanguardBody::Lengths() const
 	return Lengths;
 }
 
+TMap<FName, FVeyraVanguardSkillShape> FVeyraVanguardBody::SkillShapes() const
+{
+	TMap<FName, FVeyraVanguardSkillShape> Shapes;
+	for (const TPair<FName, FVeyraAbilityCastArt>& Cast : AbilityCasts)
+	{
+		if (const UAnimSequence* Sequence = Cast.Value.Sequence.Get())
+		{
+			Shapes.Add(Cast.Key, { static_cast<float>(Sequence->GetPlayLength()), Cast.Value.ReleaseShare });
+		}
+	}
+	return Shapes;
+}
+
 TArray<FString> FVeyraVanguardBody::Validate(const FString& Label) const
 {
 	TArray<FString> Problems;
@@ -49,6 +62,28 @@ TArray<FString> FVeyraVanguardBody::Validate(const FString& Label) const
 		else if (Sequence->GetSkeleton() != Skeleton)
 		{
 			Problems.Add(FString::Printf(TEXT("%s: the %s animation is on another skeleton."), *Label, *VeyraVanguardAnim::NameOf(Clip).ToString()));
+		}
+	}
+	for (const TPair<FName, FVeyraAbilityCastArt>& Cast : AbilityCasts)
+	{
+		// Whether the ability is one the tuning defines is the committed art's test to check, as with status bodies.
+		const UAnimSequence* Sequence = Cast.Value.Sequence.Get();
+		const FString Skill = Cast.Key.ToString();
+		if (!FVeyraContentId::FromText(Skill))
+		{
+			Problems.Add(FString::Printf(TEXT("%s: the skill clip key %s is no ability ID."), *Label, *Skill));
+		}
+		if (!Sequence || Sequence->GetPlayLength() <= 0.0)
+		{
+			Problems.Add(FString::Printf(TEXT("%s: the clip of %s is required."), *Label, *Skill));
+		}
+		else if (Sequence->GetSkeleton() != Skeleton)
+		{
+			Problems.Add(FString::Printf(TEXT("%s: the clip of %s is on another skeleton."), *Label, *Skill));
+		}
+		if (!(Cast.Value.ReleaseShare > 0.0f && Cast.Value.ReleaseShare < 1.0f))
+		{
+			Problems.Add(FString::Printf(TEXT("%s: the clip of %s must release between its start and its end."), *Label, *Skill));
 		}
 	}
 	if (RunStride <= 0.0f)

@@ -9,7 +9,8 @@
     burst each frozen early, midway and late; a projectile's trail, the click marker's rings and a melee swing's arc.
     Each is captured at 1920x1080 from the gameplay camera's pitch (VeyraCameraSettings in DefaultGame.ini):
     Presentation_Game.png at the camera's own distance and field of view, the size players see, and
-    Presentation_<Row>.png through a narrow lens for each row. Images and a manifest go to
+    Presentation_<Row>.png through a narrow lens for each row. Then the skills' own effects (ADR-072) stand alone on
+    the middle row: Presentation_Skills.png. Images and a manifest go to
     Game/Saved/PresentationReview. Nothing is saved to the map.
 
     Build the presentation's materials and effects first (BuildPresentationMaterials.ps1, BuildEffects.ps1).

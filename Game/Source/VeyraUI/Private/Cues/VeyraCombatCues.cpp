@@ -64,12 +64,20 @@ TArray<FVeyraCombatCue> Between(const AActor& Unit, const FVeyraUnitSighting& Be
 		FVeyraCombatCue& Cue = Add(EVeyraCombatCueKind::CastWindup);
 		Cue.Ability = Now.CastAbility;
 		Cue.Location = Now.CastLocation;
+		Cue.EndsAt = Now.CastPhaseEndsAt;
 	}
 	if (Now.CommitSerial != Before.CommitSerial)
 	{
 		FVeyraCombatCue& Cue = Add(EVeyraCombatCueKind::CastCommit);
 		Cue.Ability = Now.CommitAbility;
 		Cue.Location = Now.CommitLocation;
+	}
+	if (Now.ProjectileEndSerial != Before.ProjectileEndSerial)
+	{
+		FVeyraCombatCue& Cue = Add(EVeyraCombatCueKind::ProjectileEnd);
+		Cue.Ability = Now.ProjectileEndAbility;
+		Cue.CastId = Now.ProjectileEndCastId;
+		Cue.Location = Now.ProjectileEndLocation;
 	}
 	if (Before.Level > 0 && Now.Level > Before.Level)
 	{
@@ -100,6 +108,7 @@ TOptional<FVeyraUnitSighting> Sight(const AActor& Unit, EVeyraTeam Viewer)
 	{
 		const FVeyraCastState& Cast = Casts->GetState();
 		Sighting.CastPhase = Cast.Phase;
+		Sighting.CastPhaseEndsAt = Cast.PhaseEndsAt;
 		Sighting.CastId = Cast.CastId;
 		Sighting.CastAbility = Cast.Ability;
 		Sighting.CastLocation = Cast.Location;
@@ -107,6 +116,11 @@ TOptional<FVeyraUnitSighting> Sight(const AActor& Unit, EVeyraTeam Viewer)
 		Sighting.CommitSerial = Commit.Serial;
 		Sighting.CommitAbility = Commit.Ability;
 		Sighting.CommitLocation = Commit.Location;
+		const FVeyraProjectileEnd& Ended = Casts->GetLastProjectileEnd();
+		Sighting.ProjectileEndSerial = Ended.Serial;
+		Sighting.ProjectileEndAbility = Ended.Ability;
+		Sighting.ProjectileEndCastId = Ended.CastId;
+		Sighting.ProjectileEndLocation = Ended.Location;
 	}
 	if (const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Unit))
 	{

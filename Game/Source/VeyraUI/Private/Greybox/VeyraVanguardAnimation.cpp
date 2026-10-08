@@ -11,13 +11,15 @@ namespace
 	}
 
 	/**
-	 * Makes Clip the current animation. The one it replaces fades out as it fades in, unless bSeamless: then it takes
-	 * the other's place and weight at once, as a strike does from the windup whose last pose is its first.
+	 * Makes Clip the current animation (as a Cast, Skill's own clip in its place; ADR-072 §1). The one it replaces fades
+	 * out as it fades in, unless bSeamless: then it takes the other's place and weight at once, as a strike does from the
+	 * windup whose last pose is its first.
 	 */
-	void Play(FVeyraVanguardAnimState& State, EVeyraVanguardClip Clip, float Position, float Rate, float HoldAt, bool bSeamless)
+	void Play(FVeyraVanguardAnimState& State, EVeyraVanguardClip Clip, float Position, float Rate, float HoldAt, bool bSeamless, FName Skill = NAME_None)
 	{
 		FVeyraVanguardAnimSlot Next;
 		Next.Clip = Clip;
+		Next.Skill = Skill;
 		Next.Position = Position;
 		Next.Rate = Rate;
 		Next.HoldAt = HoldAt;
@@ -54,7 +56,7 @@ namespace
 			Slot = FVeyraVanguardAnimSlot();
 			return;
 		}
-		const float Length = Shape.Lengths.Of(Slot.Clip);
+		const float Length = VeyraVanguardAnim::LengthOf(Slot, Shape);
 		Slot.Position += DeltaSeconds * Slot.Rate;
 		if (Slot.HoldAt >= 0.0f && Slot.Position >= Slot.HoldAt)
 		{
@@ -76,10 +78,42 @@ namespace
 	{
 		return Shape.Lengths.Of(Clip) > 0.0f;
 	}
+
+	/** Ability's own clip, if the body has one (ADR-072 §1); null for a cast that plays Cast. */
+	const FVeyraVanguardSkillShape* SkillOf(const FVeyraVanguardAnimShape& Shape, FName Ability)
+	{
+		const FVeyraVanguardSkillShape* Skill = Ability.IsNone() ? nullptr : Shape.Skills.Find(Ability);
+		return Skill && Skill->Seconds > 0.0f ? Skill : nullptr;
+	}
+
+	/** Where in Slot's cast clip the hands reach the release: its skill's own clip's release, or Cast's. */
+	float ReleaseOf(const FVeyraVanguardAnimSlot& Slot, const FVeyraVanguardAnimShape& Shape)
+	{
+		if (const FVeyraVanguardSkillShape* Skill = SkillOf(Shape, Slot.Skill))
+		{
+			return Skill->Seconds * Skill->ReleaseShare;
+		}
+		return Shape.Lengths.Of(EVeyraVanguardClip::Cast) * Shape.CastReleaseShare;
+	}
 }
 
-void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueKind Cue, float SecondsLeft, const FVeyraVanguardAnimShape& Shape)
+float VeyraVanguardAnim::LengthOf(const FVeyraVanguardAnimSlot& Slot, const FVeyraVanguardAnimShape& Shape)
 {
+	if (Slot.Clip == EVeyraVanguardClip::Cast)
+	{
+		if (const FVeyraVanguardSkillShape* Skill = SkillOf(Shape, Slot.Skill))
+		{
+			return Skill->Seconds;
+		}
+	}
+	return Shape.Lengths.Of(Slot.Clip);
+}
+
+void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueKind Cue, float SecondsLeft, const FVeyraVanguardAnimShape& Shape,
+	FName Ability)
+{
+	const FVeyraVanguardSkillShape* Skill = SkillOf(Shape, Ability);
+	const FName SkillName = Skill ? Ability : NAME_None;
 	const bool bDead = State.Current.Clip == EVeyraVanguardClip::Death && State.Current.IsActive();
 	switch (Cue)
 	{
@@ -102,25 +136,39 @@ void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueK
 		}
 		break;
 	case EVeyraCombatCueKind::CastWindup:
-		if (!bDead && Has(Shape, EVeyraVanguardClip::Cast))
+		if (bDead)
+		{
+			break;
+		}
+		if (Skill)
+		{
+			// Its own clip rises to its release as the windup ends, so its release lands on the commit (ADR-072 §3).
+			const float Release = Skill->Seconds * Skill->ReleaseShare;
+			Play(State, EVeyraVanguardClip::Cast, 0.0f, FitRate(Release, SecondsLeft, Shape), Release, false, SkillName);
+		}
+		else if (Has(Shape, EVeyraVanguardClip::Cast))
 		{
 			Play(State, EVeyraVanguardClip::Cast, 0.0f, 1.0f, Shape.Lengths.Of(EVeyraVanguardClip::Cast) * Shape.CastReleaseShare, false);
 		}
 		break;
 	case EVeyraCombatCueKind::CastCommit:
-		if (bDead || !Has(Shape, EVeyraVanguardClip::Cast))
+		if (bDead || (!Skill && !Has(Shape, EVeyraVanguardClip::Cast)))
 		{
 			break;
 		}
-		if (State.Current.Clip == EVeyraVanguardClip::Cast && State.Current.IsActive())
+		if (State.Current.Clip == EVeyraVanguardClip::Cast && State.Current.IsActive() && State.Current.Skill == SkillName)
 		{
-			// The windup's rise goes on through the release.
+			// The windup's rise goes on through the release, and what follows it at its own pace.
 			State.Current.HoldAt = -1.0f;
+			State.Current.Rate = 1.0f;
 		}
 		else
 		{
 			// A cast with no windup (or whose windup gave way a frame before its commit came) releases at once.
-			Play(State, EVeyraVanguardClip::Cast, Shape.Lengths.Of(EVeyraVanguardClip::Cast) * Shape.CastReleaseShare, 1.0f, -1.0f, false);
+			FVeyraVanguardAnimSlot Released;
+			Released.Clip = EVeyraVanguardClip::Cast;
+			Released.Skill = SkillName;
+			Play(State, EVeyraVanguardClip::Cast, ReleaseOf(Released, Shape), 1.0f, -1.0f, false, SkillName);
 		}
 		State.Current.bReleased = true;
 		break;
@@ -143,7 +191,8 @@ void VeyraVanguardAnim::NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueK
 		}
 		break;
 	case EVeyraCombatCueKind::LevelUp:
-		// A level-up shows as a burst, never as a pose.
+	case EVeyraCombatCueKind::ProjectileEnd:
+		// A level-up shows as a burst and a projectile's end where it ended, never as a pose.
 		break;
 	}
 }
@@ -184,7 +233,7 @@ void VeyraVanguardAnim::Advance(FVeyraVanguardAnimState& State, float DeltaSecon
 	}
 	else if (Inputs.bAlive && Inputs.bCastHeld && Showing != EVeyraVanguardClip::Cast && Showing != EVeyraVanguardClip::Death && !bAttacking)
 	{
-		NoteCue(State, EVeyraCombatCueKind::CastWindup, 0.0f, Shape);
+		NoteCue(State, EVeyraCombatCueKind::CastWindup, Inputs.CastWindupSecondsLeft, Shape, Inputs.CastAbility);
 	}
 	// A windup gives way once nothing holds it: an attack's that will not commit fades out (a cast's: below). An attack's
 	// cancelled midway (a move order, a new target: its input seen and now gone while its blow is more than a blend away)
@@ -208,7 +257,7 @@ void VeyraVanguardAnim::Advance(FVeyraVanguardAnimState& State, float DeltaSecon
 		// A cast's hands wait at the release while it winds up or channels. Committed, they play the release once nothing
 		// holds them. Cancelled before its commit (an interrupt: its hold seen and now gone, or none come by the release),
 		// they lower without it. Its input a frame behind its cue cuts nothing short.
-		const float Release = Shape.Lengths.Of(EVeyraVanguardClip::Cast) * Shape.CastReleaseShare;
+		const float Release = ReleaseOf(Held, Shape);
 		if (Inputs.bCastHeld)
 		{
 			Held.bHoldSeen = true;

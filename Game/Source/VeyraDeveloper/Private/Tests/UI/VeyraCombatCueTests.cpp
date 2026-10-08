@@ -120,14 +120,17 @@ namespace VeyraCombatCueTests
 			const ACharacter& Unit = SpawnUnit();
 			const FVeyraContentId Ability = FVeyraContentId::FromText(TEXT("a_cast")).GetValue();
 			const FVector Aim(300.0, 0.0, 0.0);
+			constexpr double WindupEndsAt = 12.5;
 			const FVeyraUnitSighting Idle = Standing();
 			FVeyraUnitSighting Windup = Idle;
 			Windup.CastPhase = EVeyraCastPhase::Windup;
 			Windup.CastId = 1;
 			Windup.CastAbility = Ability;
 			Windup.CastLocation = Aim;
+			Windup.CastPhaseEndsAt = WindupEndsAt;
 			const TArray<FVeyraCombatCue> Began = VeyraCombatCues::Between(Unit, Idle, Windup);
 			ASSERT_THAT(IsTrue(Began.Num() == 1 && Began[0].Kind == EVeyraCombatCueKind::CastWindup && Began[0].Ability == Ability && Began[0].Location.Equals(Aim)));
+			ASSERT_THAT(IsNear(Began[0].EndsAt, WindupEndsAt, 1e-6, TEXT("a cast's windup cue says when it commits (ADR-072 §3)")));
 			ASSERT_THAT(IsTrue(VeyraCombatCues::Between(Unit, Windup, Windup).IsEmpty()));
 			// A commit with no phase after it, as a cast with no windup, channel or recovery.
 			FVeyraUnitSighting Committed = Idle;
@@ -139,6 +142,18 @@ namespace VeyraCombatCueTests
 			FVeyraUnitSighting Again = Committed;
 			Again.CommitSerial = 2;
 			ASSERT_THAT(IsTrue(CountOf(VeyraCombatCues::Between(Unit, Committed, Again), EVeyraCombatCueKind::CastCommit) == 1, TEXT("each commit, the same ability again too")));
+			// A projectile of one of its casts ending, where the server ended it (ADR-072 §4); one slot, so the latest wins.
+			const FVector EndedAt(900.0, 40.0, 25.0);
+			constexpr int32 ShotCast = 7;
+			FVeyraUnitSighting Ended = Idle;
+			Ended.ProjectileEndSerial = 2;
+			Ended.ProjectileEndAbility = Ability;
+			Ended.ProjectileEndCastId = ShotCast;
+			Ended.ProjectileEndLocation = EndedAt;
+			const TArray<FVeyraCombatCue> Ends = VeyraCombatCues::Between(Unit, Idle, Ended);
+			ASSERT_THAT(IsTrue(Ends.Num() == 1 && Ends[0].Kind == EVeyraCombatCueKind::ProjectileEnd && Ends[0].Ability == Ability && Ends[0].CastId == ShotCast
+				&& Ends[0].Location.Equals(EndedAt), TEXT("two ends between sightings show as the latest one")));
+			ASSERT_THAT(IsTrue(VeyraCombatCues::Between(Unit, Ended, Ended).IsEmpty()));
 		}
 	};
 }

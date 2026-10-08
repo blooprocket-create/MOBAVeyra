@@ -52,7 +52,8 @@
 #include "Engine/NetConnection.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "Hud/VeyraFogOfWarModel.h"
-#include "Kit/VeyraKitPresentationSubsystem.h"
+#include "Kit/VeyraSkillEffectsSubsystem.h"
+#include "Greybox/VeyraCastGlow.h"
 #include "Settings/VeyraDisplayRules.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Layout/VeyraLayout.h"
@@ -300,10 +301,12 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	if (FBody* Body = Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr)
 	{
 		VeyraBodyFeedback::Note(Body->Feedback, Cue, GetWorld()->GetRealTimeSeconds(), GetServerNow());
-		// An animated body acts it out, its windup timed to end as the attack commits (ADR-064 §3).
+		// An animated body acts it out, its windup timed to end as the attack or cast commits (ADR-064 §3), a skill with a
+		// clip of its own playing it (ADR-072 §1).
 		if (UVeyraVanguardAnimInstance* Animation = Body->Skin.IsValid() ? Cast<UVeyraVanguardAnimInstance>(Body->Skin->GetAnimInstance()) : nullptr)
 		{
-			Animation->NoteCue(Cue.Kind, static_cast<float>(FMath::Max(0.0, Cue.EndsAt - GetServerNow())));
+			Animation->NoteCue(Cue.Kind, static_cast<float>(FMath::Max(0.0, Cue.EndsAt - GetServerNow())),
+				Cue.Ability.IsValid() ? FName(*Cue.Ability.ToString()) : NAME_None);
 		}
 	}
 	// Hit feel (ADR-068 §4): a struck generated body holds its pose a moment, and the player's own Vanguard's heavy hit or
@@ -428,6 +431,7 @@ USoundBase* UVeyraGreyboxSubsystem::SoundFor(EVeyraCombatCueKind Kind) const
 		return LevelUpSound;
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::CastWindup:
+	case EVeyraCombatCueKind::ProjectileEnd:
 		break;
 	}
 	return nullptr;
@@ -566,6 +570,7 @@ UNiagaraSystem* UVeyraGreyboxSubsystem::EffectFor(EVeyraCombatCueKind Kind) cons
 	case EVeyraCombatCueKind::AttackWindup:
 	case EVeyraCombatCueKind::AttackCommit:
 	case EVeyraCombatCueKind::CastWindup:
+	case EVeyraCombatCueKind::ProjectileEnd:
 		break;
 	}
 	return nullptr;
@@ -575,18 +580,21 @@ UNiagaraComponent* UVeyraGreyboxSubsystem::PlayEffect(const FVeyraCombatCue& Cue
 {
 	const AActor* Unit = Cue.Unit.Get();
 	UNiagaraSystem* Effect = EffectFor(Cue.Kind);
-	// An ability with its own cast effect shows it in place of the shared flash (ADR-071 §4).
+	// An ability with its own commit effect shows it in place of the shared flash (ADR-072 §4).
 	float OwnScale = 0.0f;
-	const UVeyraKitPresentationSubsystem* Kit = Cue.Kind == EVeyraCombatCueKind::CastCommit ? GetWorld()->GetSubsystem<UVeyraKitPresentationSubsystem>() : nullptr;
-	UNiagaraSystem* Own = Kit ? Kit->CastEffectOf(Cue.Ability, OwnScale) : nullptr;
+	bool bAtTarget = false;
+	const UVeyraSkillEffectsSubsystem* Skills = Cue.Kind == EVeyraCombatCueKind::CastCommit ? GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>() : nullptr;
+	UNiagaraSystem* Own = Skills ? Skills->CommitEffectOf(Cue.Ability, OwnScale, bAtTarget) : nullptr;
 	Effect = Own ? Own : Effect;
 	if (!Unit || !Effect || !bReady)
 	{
 		return nullptr;
 	}
-	// A cast flashes from its caster toward where it was aimed; the rest where their unit stands.
-	const FVector At = Unit->GetActorLocation();
-	const FVector Toward = Cue.Kind == EVeyraCombatCueKind::CastCommit ? (Cue.Location - At).GetSafeNormal2D() : FVector::ZeroVector;
+	// A cast flashes from its caster toward where it was aimed, or where it was aimed if its effect lands there; the rest
+	// where their unit stands.
+	const FVector From = Unit->GetActorLocation();
+	const FVector At = VeyraSkillEffects::CommitPlacement(From, Cue.Location, bAtTarget);
+	const FVector Toward = Cue.Kind == EVeyraCombatCueKind::CastCommit ? (Cue.Location - From).GetSafeNormal2D() : FVector::ZeroVector;
 	const FRotator Facing = Toward.IsZero() ? Unit->GetActorRotation() : Toward.Rotation();
 	// Pooled: a battleground's waves raise many hits a second.
 	UNiagaraComponent* Played = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, At, Facing, FVector::OneVector, /*bAutoDestroy*/ true,
@@ -1349,7 +1357,6 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	const FVeyraVanguardBody& Worn = VeyraVanguardSkin::BodyOf(Unit, *Art);
 	VeyraVanguardSkin::Dress(*Skin, Worn, VeyraVanguardSkin::ShapeOf(Settings));
 	RefreshBodyEffects(Body, *Skin, Worn);
-	RefreshVeil(Unit, Body, *Skin, Worn);
 	// It stands at the capsule's foot, which its Vanguard's definition shapes once it arrives (ADR-008 §2), drawn larger than
 	// the capsule from there (ADR-065 §11).
 	float Radius = 0.0f;
@@ -1361,6 +1368,7 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	const FVeyraBodyLead Lead = OwnLeadOf(Unit, Radius);
 	FVeyraVanguardAnimInputs Inputs = VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow());
 	Inputs.GroundSpeed = static_cast<float>(VeyraBodyLead::GroundSpeedOf(Lead, Inputs.GroundSpeed));
+	RefreshBodyLook(Unit, Body, *Skin, Worn, Inputs.bAlive && Inputs.bCastHeld);
 	if (UVeyraVanguardAnimInstance* Animation = Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()))
 	{
 		Animation->SetInputs(Inputs);
@@ -1403,42 +1411,50 @@ double UVeyraGreyboxSubsystem::GetVeilOf(const AActor& Unit) const
 	return Body ? Body->Veil : 0.0;
 }
 
-void UVeyraGreyboxSubsystem::RefreshVeil(const APawn& Unit, FBody& Body, USkeletalMeshComponent& Skin, const FVeyraVanguardBody& Worn)
+void UVeyraGreyboxSubsystem::RefreshBodyLook(const APawn& Unit, FBody& Body, USkeletalMeshComponent& Skin, const FVeyraVanguardBody& Worn, bool bCastHeld)
 {
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const double DeltaSeconds = GetWorld()->GetDeltaSeconds();
 	const EVeyraHiddenKind Kind = HiddenKindOf(Unit);
-	Body.Veil = VeyraHiddenBody::StepVeil(Body.Veil, Kind != EVeyraHiddenKind::None, GetWorld()->GetDeltaSeconds(), Settings.VeilFadeSeconds);
+	Body.Veil = VeyraHiddenBody::StepVeil(Body.Veil, Kind != EVeyraHiddenKind::None, DeltaSeconds, Settings.VeilFadeSeconds);
+	Body.CastGlow = VeyraCastGlow::Step(Body.CastGlow, bCastHeld, DeltaSeconds, Settings.CastGlowRiseSeconds, Settings.CastGlowFallSeconds);
 	// A veil fading away keeps the colour it had.
 	if (Kind != EVeyraHiddenKind::None)
 	{
 		Body.VeilKind = Kind;
 	}
-	// A body is given a material of its own only once it is first veiled; one never hidden keeps the shared one.
+	// A body is given a material of its own only once it is first veiled or strains; one never hidden nor casting keeps
+	// the shared one.
 	const FLinearColor Tint = VeyraHiddenBody::TintOf(Body.VeilKind, Settings);
-	if ((Body.Veil <= 0.0 && Body.VeilShown <= 0.0) || (Body.Veil == Body.VeilShown && Tint.Equals(Body.VeilTintShown)))
+	const bool bVeilAtRest = (Body.Veil <= 0.0 && Body.VeilShown <= 0.0) || (Body.Veil == Body.VeilShown && Tint.Equals(Body.VeilTintShown));
+	if (bVeilAtRest && Body.CastGlow == Body.CastGlowShown)
 	{
 		return;
 	}
+	const float Glow = static_cast<float>(VeyraCastGlow::Multiplier(Body.CastGlow, Settings.CastGlowGain));
 	for (int32 Slot = 0; Slot < Skin.GetNumMaterials(); ++Slot)
 	{
-		if (UMaterialInstanceDynamic* Veiled = Skin.CreateDynamicMaterialInstance(Slot))
+		if (UMaterialInstanceDynamic* Own = Skin.CreateDynamicMaterialInstance(Slot))
 		{
-			Veiled->SetScalarParameterValue(Settings.BodyVeilParameter, static_cast<float>(Body.Veil));
-			Veiled->SetVectorParameterValue(Settings.BodyVeilTintParameter, Tint);
+			Own->SetScalarParameterValue(Settings.BodyVeilParameter, static_cast<float>(Body.Veil));
+			Own->SetVectorParameterValue(Settings.BodyVeilTintParameter, Tint);
+			Own->SetScalarParameterValue(Settings.BodyCastGlowParameter, Glow);
 		}
 	}
-	// What it pours veils with it, or its smoke would show it plainly.
+	// What it pours veils with it, or its smoke would show it plainly; and surges with its glow while it casts.
 	const float Veil = static_cast<float>(Body.Veil);
+	const float Surge = static_cast<float>(VeyraCastGlow::Multiplier(Body.CastGlow, Settings.CastEffectGain));
 	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : Body.BodyEffects)
 	{
 		if (UNiagaraComponent* Live = Effect.Get())
 		{
 			Live->SetVariableLinearColor(Settings.EffectColorParameter, FMath::Lerp(Worn.EffectColor, Tint, Veil));
-			Live->SetVariableFloat(Settings.EffectScaleParameter, Worn.EffectScale * FMath::Lerp(1.0f, Settings.VeiledEffectScale, Veil));
+			Live->SetVariableFloat(Settings.EffectScaleParameter, Worn.EffectScale * FMath::Lerp(1.0f, Settings.VeiledEffectScale, Veil) * Surge);
 		}
 	}
 	Body.VeilShown = Body.Veil;
 	Body.VeilTintShown = Tint;
+	Body.CastGlowShown = Body.CastGlow;
 }
 
 void UVeyraGreyboxSubsystem::ShowArt(const APawn& Unit, FBody& Body, UStaticMesh& Mesh, const UVeyraUnitArtSet& Set, const FLinearColor& Color)
@@ -1753,15 +1769,25 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 			// Clients receive launch data only and never move the actor, so the drawing places the sphere.
 			Mesh->SetUsingAbsoluteLocation(true);
 			Visual = &Projectiles.Add(&Projectile, FProjectileVisual{ Mesh, Projectile.GetLaunchedFrom(), Projectile.GetLaunchedAt() });
-			// A trail follows the sphere in its side's colour, at its own size whatever the sphere's (ADR-063 §4).
-			if (TrailEffect)
+			Visual->Ability = Projectile.GetAbility();
+			Visual->Color = ColorOfSide(Projectile.GetVeyraTeam());
+			// A trail follows the sphere in its side's colour, at its own size whatever the sphere's (ADR-063 §4): its
+			// ability's own, if it has one (ADR-072 §4).
+			float OwnScale = 0.0f;
+			const UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			UNiagaraSystem* OwnTrail = Skills ? Skills->TravelEffectOf(Visual->Ability, OwnScale) : nullptr;
+			if (UNiagaraSystem* Trailing = OwnTrail ? OwnTrail : TrailEffect.Get())
 			{
-				Visual->Trail = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailEffect, Mesh, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+				Visual->Trail = UNiagaraFunctionLibrary::SpawnSystemAttached(Trailing, Mesh, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
 					EAttachLocation::SnapToTarget, /*bAutoDestroy*/ true);
 				if (UNiagaraComponent* Trail = Visual->Trail.Get())
 				{
 					Trail->SetUsingAbsoluteScale(true);
-					Trail->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, ColorOfSide(Projectile.GetVeyraTeam()));
+					Trail->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, Visual->Color);
+					if (OwnTrail)
+					{
+						Trail->SetVariableFloat(GetDefault<UVeyraGreyboxSettings>()->EffectScaleParameter, OwnScale);
+					}
 				}
 			}
 		}
@@ -1779,6 +1805,11 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 		}
 		Visual->PresentedAt = Now;
 		Visual->Mesh->SetWorldLocation(Location);
+		// Seen here, so its impact may show where the server ends it (ADR-072 §4).
+		if (UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>())
+		{
+			Skills->NoteProjectileDrawn(Projectile.GetAbility(), Projectile.GetCastId(), Location, Projectile.GetSpeed(), Visual->Color);
+		}
 	}
 	for (auto It = Projectiles.CreateIterator(); It; ++It)
 	{

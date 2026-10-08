@@ -114,6 +114,9 @@ namespace
 		/** Settings of every sprite renderer whose emitter gives none of its own. */
 		TSharedPtr<FJsonObject> Sprite;
 		TArray<FEffectInput> Inputs;
+
+		/** User floats of its own beyond the colour and scale every system has, as a beam's length (ADR-072 §4), and their defaults. */
+		TArray<TPair<FString, double>> UserFloats;
 	};
 
 	/** What an emitter's renderers of one class draw with: a generated material, and settings of their own. */
@@ -378,6 +381,23 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		{
 			Effect.Sprite = *SystemSprite;
 		}
+		const TArray<TSharedPtr<FJsonValue>>* UserFloats = nullptr;
+		if (Object->TryGetArrayField(TEXT("userFloats"), UserFloats))
+		{
+			for (const TSharedPtr<FJsonValue>& FloatValue : *UserFloats)
+			{
+				const TSharedPtr<FJsonObject> FloatObject = FloatValue->AsObject();
+				FString FloatName;
+				double Default = 0.0;
+				if (!FloatObject || !FloatObject->TryGetStringField(TEXT("name"), FloatName) || FloatName.IsEmpty() || !FloatObject->TryGetNumberField(TEXT("default"), Default)
+					|| FloatName == ColorName || FloatName == ScaleName)
+				{
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each user float needs a name of its own (not the colour's or scale's) and a default."), *SpecFile, *Effect.Name);
+					return 1;
+				}
+				Effect.UserFloats.Emplace(FloatName, Default);
+			}
+		}
 		const TArray<TSharedPtr<FJsonValue>>* Inputs = nullptr;
 		if (Object->TryGetArrayField(TEXT("inputs"), Inputs))
 		{
@@ -546,6 +566,17 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		Scale.DefaultValue.Set(ScaleType, FNiagaraVariant(&One, sizeof(One)));
 		Scale.Description = FText::FromString(TEXT("How large the presentation draws this effect, as the body it pours from is scaled (ADR-064 §1)."));
 		UNiagaraExternalEditUtilities::AddUserVariable(System, Scale, Edit);
+		// Any of its own, that the presentation sets from what it shows (a beam's length, ADR-072 §4).
+		for (const TPair<FString, double>& UserFloat : Effect.UserFloats)
+		{
+			FNiagaraExt_UserVariable Own;
+			Own.Name = FName(*(TEXT("User.") + UserFloat.Key));
+			Own.Type = ScaleType;
+			const float Default = static_cast<float>(UserFloat.Value);
+			Own.DefaultValue.Set(ScaleType, FNiagaraVariant(&Default, sizeof(Default)));
+			Own.Description = FText::FromString(TEXT("Set by the presentation from what the effect shows (ADR-072 §4)."));
+			UNiagaraExternalEditUtilities::AddUserVariable(System, Own, Edit);
+		}
 		FNiagaraExt_SystemSummary Summary;
 		UNiagaraExternalEditUtilities::GetSystemSummary(System, Summary, Edit);
 		int32 Linked = 0;

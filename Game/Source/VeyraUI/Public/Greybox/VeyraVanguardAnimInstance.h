@@ -28,8 +28,11 @@ public:
 
 	bool IsConfigured() const { return Clips.Num() > 0; }
 
-	/** Shows a combat cue about its body; SecondsLeft is how long an attack's windup has before it commits. */
-	void NoteCue(EVeyraCombatCueKind Cue, float SecondsLeft);
+	/**
+	 * Shows a combat cue about its body; SecondsLeft is how long an attack's or a cast's windup has before it commits,
+	 * and Ability a cast's, whose own clip plays if the body has one (ADR-072 §1).
+	 */
+	void NoteCue(EVeyraCombatCueKind Cue, float SecondsLeft, FName Ability = NAME_None);
 
 	/** What its body is doing, for the frames that follow. */
 	void SetInputs(const FVeyraVanguardAnimInputs& InInputs) { Inputs = InInputs; }
@@ -39,6 +42,9 @@ public:
 
 	/** The clip it plays as Clip, or null. */
 	const UAnimSequence* GetClip(EVeyraVanguardClip Clip) const;
+
+	/** The clip it plays for a cast of Ability, if the body has one of its own; null otherwise. */
+	const UAnimSequence* GetSkillClip(FName Ability) const;
 
 	FName GetUpperBodyBone() const { return UpperBodyBone; }
 
@@ -86,6 +92,10 @@ private:
 	/** Its clips by EVeyraVanguardClip. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UAnimSequence>> Clips;
+
+	/** Its skills' own clips by ability ID (ADR-072 §1). */
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<UAnimSequence>> SkillClips;
 
 	FName UpperBodyBone;
 	FLimbFrame Limbs;

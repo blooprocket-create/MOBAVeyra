@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Content/VeyraContentId.h"
 #include "Greybox/VeyraBodyFeedback.h"
 #include "Greybox/VeyraHiddenBody.h"
 #include "Greybox/VeyraOrderMarks.h"
@@ -300,10 +301,18 @@ private:
 		EVeyraHiddenKind VeilKind = EVeyraHiddenKind::None;
 		double VeilShown = 0.0;
 		FLinearColor VeilTintShown = FLinearColor::Transparent;
+
+		/** How far its generated body strains with a cast, and what its material was last given (ADR-072 §5). */
+		double CastGlow = 0.0;
+		double CastGlowShown = 0.0;
 	};
 
-	/** Veils Unit's generated body while it is hidden from its enemies and its viewer sees why (ADR-068 §6). */
-	void RefreshVeil(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin, const struct FVeyraVanguardBody& Worn);
+	/**
+	 * Its generated body's look beyond its clips: veiled while it is hidden from its enemies and its viewer sees why
+	 * (ADR-068 §6), and straining while a cast holds it (bCastHeld; ADR-072 §5). A body gets a material of its own only
+	 * once either first shows.
+	 */
+	void RefreshBodyLook(const APawn& Unit, FBody& Body, class USkeletalMeshComponent& Skin, const struct FVeyraVanguardBody& Worn, bool bCastHeld);
 
 	/** Kicks the player's own camera while a heavy hit's or a fall's shudder lasts, and settles it after (ADR-068 §4). */
 	void RefreshCameraShake();
@@ -405,6 +414,10 @@ private:
 
 		/** Its trail, following the sphere (ADR-063 §4). */
 		TWeakObjectPtr<class UNiagaraComponent> Trail;
+
+		/** Its ability and its side's colour (ADR-072 §4). */
+		FVeyraContentId Ability;
+		FLinearColor Color = FLinearColor::White;
 	};
 
 	void RefreshBodies();

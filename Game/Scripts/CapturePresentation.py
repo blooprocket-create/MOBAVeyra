@@ -6,7 +6,8 @@ the map's own sun and manual exposure, it stands the presentation's moments side
   and the first imported Vanguard body at the flash's peak, when there is one (the overlay on a skinned mesh);
 - the middle row: the impact, the cast flash and the death burst, each frozen early, midway and late in its life;
 - the far row: a projectile's trail after a flight, the click marker's ring for a move and for an attack, and a melee
-  swing's arc, drawn through line batches as the game draws them.
+  swing's arc, drawn through line batches as the game draws them;
+- then, alone on the middle row, the skills' own effects (ADR-072 §6) midway through their particles' life.
 It captures them from the gameplay camera's pitch: once at the camera's own distance and field of view, the size players
 see, and once through a narrow lens per row. Every look comes from where the game reads it: DefaultGame.ini's grey-box
 and camera settings, the presentation specs and the tuning. Nothing is saved: what it spawns leaves with the editor.
@@ -235,6 +236,37 @@ def stage():
     return near if has_vanguard else near[:-1]
 
 
+# Skills' own effects (ADR-072 §6): the systems the spec gives that purpose, each shown at a share of its particles'
+# life, in the ally colour, a channel's at a length it might run. Captured after the rest, alone on the middle row.
+SKILL_EFFECT_PURPOSE = "ADR-072"
+SKILL_EFFECT_MOMENT = 0.5
+SKILL_CHANNEL_LENGTH = 600.0
+
+
+def skill_stage():
+    """Clears the rows' effects and sets out every skill effect along the middle row, a channel's toward +Y."""
+    for entry in EFFECTS:
+        entry["component"].destroy_component(entry["component"])
+    EFFECTS.clear()
+    systems = [entry for entry in EFFECTS_SPEC["systems"] if entry["purpose"].startswith(SKILL_EFFECT_PURPOSE)]
+    ally = colour("AllyColor")
+    for index, spec in enumerate(systems):
+        path = f"{EFFECTS_SPEC['destination']}/{spec['name']}.{spec['name']}"
+        system = unreal.load_asset(path)
+        assert system, f"{path} does not load; build it first"
+        lives = [entry["value"][0] for entry in spec["inputs"] if entry["input"] in ("Lifetime", "Lifetime Max") and "value" in entry]
+        where = lifted(place("Middle", index, len(systems)), CAPSULE_HALF_HEIGHT)
+        component = unreal.NiagaraFunctionLibrary.spawn_system_at_location(WORLD, system, where, unreal.Rotator(0.0, 0.0, 90.0), unreal.Vector(1.0, 1.0, 1.0),
+                                                                           False, False, unreal.NCPoolMethod.NONE, False)
+        assert component, f"{spec['name']} did not spawn"
+        component.set_variable_linear_color(GREYBOX["EffectColorParameter"], ally)
+        component.set_variable_float(GREYBOX["EffectScaleParameter"], 1.0)
+        for own in spec.get("userFloats", []):
+            component.set_variable_float(own["name"], SKILL_CHANNEL_LENGTH)
+        EFFECTS.append({"component": component, "seconds": max(lives) * SKILL_EFFECT_MOMENT if lives else STEP, "path": None, "start": where})
+    return [entry["name"] for entry in systems]
+
+
 def freeze():
     """Starts every effect (again, if its system was still compiling when spawned), advances it to its moment and
     pauses it there. False while any is still compiling."""
@@ -281,14 +313,15 @@ def camera_at(centre, fov, distance):
 
 # How many seconds an effect may take to start (its system compiling) before the capture gives up on it.
 COMPILE_TRIES = 120
-STATE = {"queue": ["stage", "freeze", "Warmup", "freeze", "Game", "Near", "Middle", "Far"], "task": None, "next": time.monotonic() + 15,
+STATE = {"queue": ["stage", "freeze", "Warmup", "freeze", "Game", "Near", "Middle", "Far", "skills", "freeze", "Skills"], "task": None, "next": time.monotonic() + 15,
          "started": time.monotonic(), "captures": [], "compiling": 0}
 
 
 def shoot(step):
     game = step in ("Game", "Warmup")
     fov = GAME_FOV if game else CLOSE_FOV
-    centre = lifted(standing(LANE_X + (ROWS[step] * LANE_WIDTH if step in ROWS else 0.0), LANE_Y), CAPSULE_HALF_HEIGHT)
+    row = "Middle" if step == "Skills" else step
+    centre = lifted(standing(LANE_X + (ROWS[row] * LANE_WIDTH if row in ROWS else 0.0), LANE_Y), CAPSULE_HALF_HEIGHT)
     # The game view from the camera's own distance; a row's close view from as far as frames the row.
     span = SPACING * (len(MOMENTS) * 3)
     distance = float(CAMERA["Distance"]) if game else span * 0.62 / math.tan(math.radians(fov / 2))
@@ -312,13 +345,17 @@ def tick(delta):
             return
         STATE["task"] = None
         if not STATE["queue"]:
-            (OUTPUT / "manifest.json").write_text(json.dumps({"status": "captured", "nearRow": STATE["near"], "captures": STATE["captures"]}, indent=2),
+            (OUTPUT / "manifest.json").write_text(json.dumps({"status": "captured", "nearRow": STATE["near"], "skillEffects": STATE.get("skills", []),
+                                                                   "captures": STATE["captures"]}, indent=2),
                                                   encoding="utf-8")
             unreal.unregister_slate_post_tick_callback(HANDLE)
             unreal.SystemLibrary.quit_editor()
             return
         step = STATE["queue"].pop(0)
-        if step == "stage":
+        if step == "skills":
+            STATE["skills"] = skill_stage()
+            STATE["next"] = time.monotonic() + 2
+        elif step == "stage":
             STATE["near"] = stage()
             # Let the lighting settle on what stands.
             STATE["next"] = time.monotonic() + 5

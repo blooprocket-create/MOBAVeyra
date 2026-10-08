@@ -28,6 +28,21 @@ CAMERA = {key.strip(): value.strip() for key, value in
 # The poses GenerateVanguardBodies.py previews, as (animation, time from 0 to 1).
 POSES = [("Idle", 0.0), ("Run", 0.25), ("Run", 0.75), ("AttackWindup", 0.65), ("AttackWindup", 1.0),
          ("Cast", 0.5), ("Hit", 0.5), ("Recall", 0.5), ("Death", 1.0)]
+# With VEYRA_VANGUARD_REVIEW_SKILLS, a body with skills' own clips (ADR-072 §1) stands in those instead: each skill at the
+# beats GenerateVanguardBodies.py previews it at, as shares of its clip around its release (wound up, at the release, as
+# it strikes, following through).
+SKILLS = os.environ.get("VEYRA_VANGUARD_REVIEW_SKILLS") == "1"
+SKILL_BEATS = (lambda release: release * 0.85, lambda release: release, lambda release: min(1.0, release + 0.1),
+               lambda release: min(1.0, release + 0.3))
+
+
+def poses_of(asset):
+    """The poses asset stands in, as (animation, time from 0 to 1): its clips' key poses, or with SKILLS its skills'."""
+    if not SKILLS:
+        return POSES
+    return [(cast["clip"], beat(cast["releaseShare"])) for cast in asset.get("abilityCasts", []) for beat in SKILL_BEATS]
+
+
 # The rows' facings in degrees of yaw: three-quarters toward the camera, which looks along +X, and in profile.
 ROWS = [145.0, 90.0]
 # The game camera's field of view (its component's default), and the close view's, narrow so it keeps the same angle.
@@ -115,10 +130,11 @@ def spawn_rows(asset):
     gap = max(extent.x, extent.y, extent.z) * 2.0 * POSE_GAP
     centre, width = stage()
     spawned = []
+    poses = poses_of(asset)
     for row, yaw in enumerate(ROWS):
         x = centre.x + (row - (len(ROWS) - 1) / 2) * width * ROW_GAP
-        for index, (clip, share) in enumerate(POSES):
-            y = centre.y + (index - (len(POSES) - 1) / 2) * gap
+        for index, (clip, share) in enumerate(poses):
+            y = centre.y + (index - (len(poses) - 1) / 2) * gap
             # Each on the ground under it: the lane is level only where the terrain lets it be.
             actor = ACTORS.spawn_actor_from_class(unreal.SkeletalMeshActor, standing(x, y), unreal.Rotator(0.0, 0.0, yaw))
             component = actor.skeletal_mesh_component
@@ -149,7 +165,7 @@ def spawn_rows(asset):
                     effect.set_variable_float("Scale", asset["effect"]["scale"])
                     EFFECTS.append(effect)
             spawned.append(actor)
-    return spawned, centre, gap * len(POSES)
+    return spawned, centre, gap * len(poses)
 
 
 def camera_at(centre, fov, distance):
@@ -174,7 +190,7 @@ def plan():
     for vanguard in IDS:
         bodies = [entry for entry in MANIFEST["assets"] if entry["id"] == vanguard]
         assert bodies, f"{vanguard} has no generated body in the manifest"
-        shots += sorted(bodies, key=lambda entry: entry.get("status", ""))
+        shots += sorted([entry for entry in bodies if not SKILLS or entry.get("abilityCasts")], key=lambda entry: entry.get("status", ""))
     return shots
 
 
@@ -250,7 +266,7 @@ def tick(delta):
             camera = camera_at(STATE["centre"], fov, distance)
             STATE["spawned"].append(camera)
             LEVEL.pilot_level_actor(camera)
-            filename = OUTPUT / ("warmup.png" if step == "Warmup" else f"{asset['name']}_{step}.png")
+            filename = OUTPUT / ("warmup.png" if step == "Warmup" else f"{asset['name']}{'_Skills' if SKILLS else ''}_{step}.png")
             if filename.exists():
                 filename.unlink()
             unreal.SystemLibrary.execute_console_command(WORLD, f'HighResShot 1920x1080 filename="{filename.as_posix()}"')

@@ -3,6 +3,7 @@
 #include "Delivery/VeyraProjectile.h"
 
 #include "AbilitySystemComponent.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "CollisionQueryParams.h"
 #include "Engine/HitResult.h"
 #include "Engine/World.h"
@@ -308,6 +309,15 @@ void AVeyraProjectile::End()
 		const TFunction<void(const FVector&)> Ended = MoveTemp(OnLineEnded);
 		OnLineEnded = nullptr;
 		Ended(GetActorLocation());
+	}
+	// A cast's projectile tells its caster where it ended, for the presentation's impact (ADR-072 §4); a basic attack's,
+	// launched by no cast, says nothing.
+	if (const UAbilitySystemComponent* Source = Caster.Get(); Source && Ability.IsValid() && CastId > 0)
+	{
+		if (UVeyraCastStateComponent* Casts = Source->GetOwner() ? Source->GetOwner()->FindComponentByClass<UVeyraCastStateComponent>() : nullptr)
+		{
+			Casts->NoteProjectileEnded(Ability, CastId, GetActorLocation());
+		}
 	}
 	SetActorTickEnabled(false);
 	Destroy();

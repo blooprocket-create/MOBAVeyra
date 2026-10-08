@@ -63,6 +63,31 @@ struct FVeyraCastCommit
 };
 
 /**
+ * Where the caster's latest cast projectile ended, as every machine that sees the caster knows it (ADR-072 §4): the
+ * server's own end point, so a client shows an impact where the flight ended rather than where it last drew it.
+ * Presentation reads it; nothing in gameplay does.
+ */
+USTRUCT()
+struct FVeyraProjectileEnd
+{
+	GENERATED_BODY()
+
+	/** Counts the caster's projectile ends; each end changes it. */
+	UPROPERTY()
+	int32 Serial = 0;
+
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	/** The cast that launched it (FVeyraCastState::CastId). */
+	UPROPERTY()
+	int32 CastId = 0;
+
+	UPROPERTY()
+	FVector Location = FVector::ZeroVector;
+};
+
+/**
  * The cast that holds a combatant, if any: its windup, channel or recovery (ADR-008 §4). It lives
  * beside the Ability System Component; a participant's replicates behind the fog, to those who see
  * it (ADR-016 §3).
@@ -94,6 +119,12 @@ public:
 	/** The latest committed cast; its Serial is 0 before the first. */
 	const FVeyraCastCommit& GetLastCommit() const { return LastCommit; }
 
+	/** Server only: a projectile of Ability's cast CastId has ended at Location (ADR-072 §4). */
+	void NoteProjectileEnded(const FVeyraContentId& Ability, int32 CastId, const FVector& Location);
+
+	/** Where the caster's latest cast projectile ended; its Serial is 0 before the first. */
+	const FVeyraProjectileEnd& GetLastProjectileEnd() const { return LastProjectileEnd; }
+
 	/** Whether a cast holds the caster, so another cast is refused. */
 	bool IsBusy() const { return State.Phase != EVeyraCastPhase::None; }
 
@@ -109,4 +140,7 @@ private:
 
 	UPROPERTY(Replicated)
 	FVeyraCastCommit LastCommit;
+
+	UPROPERTY(Replicated)
+	FVeyraProjectileEnd LastProjectileEnd;
 };

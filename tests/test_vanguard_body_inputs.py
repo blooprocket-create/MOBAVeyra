@@ -340,5 +340,35 @@ class VanguardBodyInputs(unittest.TestCase):
         self.assertEqual(inputs.stale_assets(kit, VANGUARDS, built(KIT, VANGUARDS)), ["SK_A_Ride"])
 
 
+class SkillClips(unittest.TestCase):
+    """A Vanguard's skills' own clips (ADR-072 §1): each must name an ability its kit can cast."""
+
+    VANGUARD = {"abilities": {"q": ["a_hook"], "r": ["a_wall"]}}
+    ABILITIES = {"schemaVersion": 1, "skillshot": {"a_hook": {"cast": {"recastWindow": []}}},
+                 "area": {"a_wall": {"cast": {"recastWindow": [{"ability": "a_blast"}]}}, "a_blast": {"cast": {"recastWindow": []}}}}
+    MOTIONS = {"Hurl", "Slam"}
+
+    def problems(self, skills, poses_skills=True):
+        spec = {"archetype": "colossus", "skills": skills}
+        return inputs.skill_problems(spec, poses_skills, self.VANGUARD, self.ABILITIES, self.MOTIONS)
+
+    def test_a_kit_reaches_its_slots_and_the_recasts_they_open(self):
+        self.assertEqual(inputs.kit_abilities(self.VANGUARD, self.ABILITIES), {"a_hook", "a_wall", "a_blast"})
+
+    def test_well_formed_skills_have_no_problems(self):
+        self.assertEqual(self.problems([{"ability": "a_hook", "motion": "Hurl", "seconds": 1.0, "releaseShare": 0.3},
+                                        {"ability": "a_blast", "motion": "Slam", "seconds": 0.8, "releaseShare": 0.4}]), [])
+
+    def test_a_skill_outside_the_kit_twice_or_unknown_is_a_problem(self):
+        found = self.problems([{"ability": "b_other", "motion": "Hurl", "seconds": 1.0, "releaseShare": 0.3},
+                               {"ability": "a_hook", "motion": "Spin", "seconds": 1.0, "releaseShare": 0.3},
+                               {"ability": "a_hook", "motion": "Hurl", "seconds": 0.0, "releaseShare": 1.0}])
+        self.assertEqual(len(found), 5, found)
+
+    def test_an_archetype_without_skill_motions_takes_none(self):
+        self.assertEqual(len(self.problems([{"ability": "a_hook", "motion": "Hurl", "seconds": 1.0, "releaseShare": 0.3}], poses_skills=False)), 1)
+        self.assertEqual(self.problems([], poses_skills=False), [])
+
+
 if __name__ == "__main__":
     unittest.main()

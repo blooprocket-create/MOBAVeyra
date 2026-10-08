@@ -26,10 +26,23 @@ struct FVeyraVanguardClipLengths
 	float Of(EVeyraVanguardClip Clip) const { return Clip == EVeyraVanguardClip::None ? 0.0f : Seconds[static_cast<int32>(Clip)]; }
 };
 
+/** A skill's own clip (ADR-072 §1): played in place of Cast when its ability is cast. */
+struct FVeyraVanguardSkillShape
+{
+	/** How long it plays at its own speed, in seconds. */
+	float Seconds = 0.0f;
+
+	/** The share of it that rises to the release, where a cast waiting to commit holds. */
+	float ReleaseShare = 0.0f;
+};
+
 /** What a body's animation is fitted to, beside its clips (UVeyraVanguardArtSet, UVeyraGreyboxSettings). */
 struct FVeyraVanguardAnimShape
 {
 	FVeyraVanguardClipLengths Lengths;
+
+	/** Its skills' own clips by ability ID (ADR-072 §1); a skill without one plays Cast. */
+	TMap<FName, FVeyraVanguardSkillShape> Skills;
 
 	/** How far one Run cycle carries the body, in units of its mesh as made. */
 	float RunStride = 0.0f;
@@ -55,6 +68,9 @@ struct FVeyraVanguardAnimShape
 struct FVeyraVanguardAnimSlot
 {
 	EVeyraVanguardClip Clip = EVeyraVanguardClip::None;
+
+	/** As a Cast, the ability whose own clip plays in its place (ADR-072 §1); None for the Cast clip itself. */
+	FName Skill;
 
 	/** Where in the clip it is, and how fast it plays, in seconds of clip a second. */
 	float Position = 0.0f;
@@ -93,6 +109,10 @@ struct FVeyraVanguardAnimInputs
 
 	/** Whether a cast holds it, winding up or channelling: the hands stay at the release while one does. */
 	bool bCastHeld = false;
+
+	/** The cast that holds it, and while it winds up, how long until it commits, in seconds (ADR-072 §3). */
+	FName CastAbility;
+	float CastWindupSecondsLeft = 0.0f;
 };
 
 /**
@@ -117,9 +137,14 @@ namespace VeyraVanguardAnim
 	/**
 	 * Starts what Cue shows on the body it is about: an attack's windup, timed to end when the attack commits
 	 * (SecondsLeft before it does), then its strike; a cast's rise, held at its release, then the release; a hit, unless
-	 * an attack or a cast is under way; a death. Other cues, and clips the body lacks, change nothing.
+	 * an attack or a cast is under way; a death. Other cues, and clips the body lacks, change nothing. A cast of an
+	 * Ability with its own clip plays that clip, its rise timed to end as the cast commits (ADR-072 §3).
 	 */
-	VEYRAUI_API void NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueKind Cue, float SecondsLeft, const FVeyraVanguardAnimShape& Shape);
+	VEYRAUI_API void NoteCue(FVeyraVanguardAnimState& State, EVeyraCombatCueKind Cue, float SecondsLeft, const FVeyraVanguardAnimShape& Shape,
+		FName Ability = NAME_None);
+
+	/** How long Slot's clip plays at its own speed: its skill's own clip's, or its clip's. */
+	VEYRAUI_API float LengthOf(const FVeyraVanguardAnimSlot& Slot, const FVeyraVanguardAnimShape& Shape);
 
 	/**
 	 * Moves the body's animation on by DeltaSeconds: Idle and Run by its ground speed, the current animation to its end

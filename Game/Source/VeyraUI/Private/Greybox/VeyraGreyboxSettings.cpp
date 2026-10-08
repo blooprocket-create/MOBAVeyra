@@ -223,6 +223,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(!BodyVeilParameter.IsNone() && !BodyVeilTintParameter.IsNone() && BodyVeilParameter != BodyVeilTintParameter, TEXT("BodyVeilParameter"),
 		TEXT("the body material's veil and veil tint parameters are required, and differ."));
 	Require(VeilFadeSeconds > 0.0f, TEXT("VeilFadeSeconds"), TEXT("must be above 0."));
+	Require(!BodyCastGlowParameter.IsNone() && BodyCastGlowParameter != BodyVeilParameter && BodyCastGlowParameter != BodyVeilTintParameter,
+		TEXT("BodyCastGlowParameter"), TEXT("the body material's cast glow parameter is required, apart from the veil's."));
+	Require(CastGlowGain >= 1.0f && CastEffectGain >= 1.0f && CastGlowRiseSeconds > 0.0f && CastGlowFallSeconds > 0.0f, TEXT("CastGlowGain"),
+		TEXT("a cast's glow and poured effects grow (gains of at least 1), over a rise and a fall above 0 seconds."));
 	Require(!TelegraphFillMaterial.IsNull() && !TelegraphFillMesh.IsNull(), TEXT("TelegraphFillMaterial"),
 		TEXT("the generated telegraph fill material and its quad are required."));
 	Require(!TelegraphShapeParameter.IsNone() && !TelegraphHalfArcParameter.IsNone() && !TelegraphLandingParameter.IsNone()

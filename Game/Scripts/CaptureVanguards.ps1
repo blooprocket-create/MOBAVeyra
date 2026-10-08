@@ -10,12 +10,16 @@
     Images and a manifest go to Game/Saved/VanguardKit/Review. Nothing is saved to the map.
 .PARAMETER Vanguards
     The Vanguards to capture, by ID, with bodies imported by BuildVanguardBodies.ps1.
+.PARAMETER Skills
+    Stands each body that has skills' own clips (ADR-072) in those instead, each at four beats around its release:
+    <Body>_Skills_Game.png and <Body>_Skills_Close.png.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
     [ValidatePattern('^[a-z0-9_]+(,[a-z0-9_]+)*$')]
     [string[]]$Vanguards,
+    [switch]$Skills,
     [string]$EngineRoot
 )
 $ErrorActionPreference = 'Stop'
@@ -37,6 +41,7 @@ foreach ($line in Get-Content (Join-Path $game 'Config/DefaultGame.ini')) {
 if ($camera.Count -ne 2) { throw 'DefaultGame.ini has no VeyraCameraSettings Distance and PitchDegrees.' }
 $env:VEYRA_VANGUARD_REVIEW_OUTPUT = $output
 $env:VEYRA_VANGUARD_REVIEW_IDS = ($Vanguards | ForEach-Object { $_ -split ',' }) -join ','
+$env:VEYRA_VANGUARD_REVIEW_SKILLS = if ($Skills) { '1' } else { '0' }
 $env:VEYRA_VANGUARD_REVIEW_CAMERA = ($camera.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ';'
 $script = Join-Path $PSScriptRoot 'CaptureVanguards.py'
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor.exe'

@@ -12,7 +12,7 @@ import random
 
 from mathutils import Euler, Vector
 
-from . import humanoid, springs
+from . import humanoid, motions, springs
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
 
 ARM = ("clavicle", "upperarm", "lowerarm", "hand")
@@ -32,6 +32,15 @@ CAST_RELEASE_SHARE = humanoid.CAST_RELEASE_SHARE
 TRAIL_SWEEP = 25.0
 # A construct glides: the distance one Run cycle carries it, in its heights, by which its float keeps pace.
 GLIDE_STRIDES = 1.2
+# A skill's parts (ADR-072 §2): how far its orbiting parts turn and tilt as they gather in or fly out, in degrees; how
+# far the halo turns at a full rise; how far the core tips forward at a full crouch; and how high a full rise lifts the
+# core and a full crouch dips it, as shares of its height.
+SKILL_GATHER_TURN = 40.0
+SKILL_GATHER_TILT = 20.0
+SKILL_HALO_TURN = 60.0
+SKILL_CROUCH_TILT = 12.0
+SKILL_RISE_LIFT = 0.05
+SKILL_CROUCH_DIP = 0.03
 # Loose parts a construct's kit may give it spring chains for (ADR-069 §7): long streamers of cloth flowing back and out
 # off each shoulder, each on a chain from its clavicle; and a sash's ends falling back from the core, from the pelvis.
 SPRING_PARTS = {
@@ -543,6 +552,26 @@ def halo(body, center, radius, color, rng, gap, size, upright=False):
 def run_stride(d):
     """How far one Run cycle carries the body: it glides, its float and sweep keeping pace."""
     return d["height"] * GLIDE_STRIDES
+
+
+def skill_pose(skill, t, d):
+    """A skill's own clip (ADR-072 §2) at t from 0 to 1: its motion's arms and head (the chest's turn on the core's one
+    spine bone), the orbiting parts gathered in behind it or flung out ahead and wheeled about it, the halo turning and
+    the core lifting with its rise and dipping with its crouch."""
+    motion, hints = motions.motion(skill, t)
+    pose = {}
+    for bone, rotation in motion.items():
+        target = "spine_03" if bone.startswith("spine") else bone
+        if target.split("_")[0] in ARM + ("spine", "head"):
+            pose[target] = combine(pose.get(target, (0.0, 0.0, 0.0)), rotation)
+    gather, spin, rise, crouch = hints.get("gather", 0.0), hints.get("spin", 0.0), hints.get("rise", 0.0), hints.get("crouch", 0.0)
+    for index, orbit in enumerate(ORBITS):
+        alternate = 1 if index % 2 else -1
+        pose[orbit] = combine(twist(SKILL_GATHER_TURN * gather * alternate + spin), lean(SKILL_GATHER_TILT * gather))
+    pose["halo"] = twist(SKILL_HALO_TURN * rise + spin * 0.5)
+    pose["pelvis"] = lean(SKILL_CROUCH_TILT * crouch)
+    pose[TRAIL[0]] = lean(-SKILL_GATHER_TILT * gather)
+    return pose, d["height"] * (SKILL_RISE_LIFT * rise - SKILL_CROUCH_DIP * crouch)
 
 
 def pose(name, t, melee, d):
