@@ -313,7 +313,10 @@ def layout(spec, capsule):
             "springs": bool(spec.get("springs")),
             "hanging": [(names[0], parent) for part in HANGING_PARTS if part in spec.get("springs", {}) for _chain, names, parent in SPRING_PARTS[part]],
             "layout": {bone: (head.copy(), tail.copy()) for bone, (head, tail) in L.items()} if held or spec.get("springs") else None,
-            "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base)}
+            "waveUnit": max(WAVE_SHARE * full, 0.6 * base), "waveReach": max(footprint, 0.75 * base),
+            # A wave rider's effect pours the wave she stands on: it is sized by how far the wave has grown under her
+            # (her base against its height at her own size), not by her body's scale, as she stays her own size.
+            "effectScale": base / (full / grown * WAVE_SHARE) if "waveBase" in features else grown}
     # Each leg's rest joints, for the clips that solve the legs from where the feet must be (ADR-069 §6).
     dims["legRest"] = {side: {"hip": L["thigh_" + side][0].copy(), "knee": L["calf_" + side][0].copy(), "ankle": L["foot_" + side][0].copy(),
                               "toe": L["foot_" + side][1].copy()} for side in ("l", "r")}

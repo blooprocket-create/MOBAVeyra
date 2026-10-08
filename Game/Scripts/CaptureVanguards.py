@@ -91,6 +91,16 @@ def standing(x, y):
     return location
 
 
+def rest_rotation(component, bone):
+    """Bone's rotation in its body's frame at rest (its reference pose): its own and its parents' rest transforms, composed."""
+    rest = component.get_ref_pose_transform(component.get_bone_index(bone))
+    parent = component.get_parent_bone(bone)
+    while str(parent) != "None":
+        rest = unreal.MathLibrary.compose_transforms(rest, component.get_ref_pose_transform(component.get_bone_index(parent)))
+        parent = component.get_parent_bone(parent)
+    return rest.rotation
+
+
 def clip_seconds(asset, clip, share):
     entry = next(animation for animation in asset["animations"] if animation["name"] == clip)
     return (entry["frames"] - 1) / KIT["fps"] * share
@@ -133,6 +143,8 @@ def spawn_rows(asset):
                     effect = unreal.NiagaraFunctionLibrary.spawn_system_attached(system, component, bone, unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0),
                                                                                 unreal.AttachLocation.SNAP_TO_TARGET, False)
                     assert effect, f"{asset['name']}'s effect did not spawn at {bone}"
+                    # In its body's frame at rest, not its bone's, as the game turns it.
+                    effect.set_relative_rotation(rest_rotation(component, bone).inversed().rotator(), False, True)
                     effect.set_variable_linear_color("Color", unreal.LinearColor(*asset["effect"]["color"]))
                     effect.set_variable_float("Scale", asset["effect"]["scale"])
                     EFFECTS.append(effect)

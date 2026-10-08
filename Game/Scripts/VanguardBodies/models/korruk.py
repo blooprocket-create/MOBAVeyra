@@ -12,7 +12,7 @@ archetype has no spring parts, so nothing of him hangs loose). His crystal takes
 by canon; another spine colour is a cosmetic variant of the same animal)."""
 import numpy as np
 
-from ..sculpt import anatomy, sdf, tree
+from ..sculpt import anatomy, paint, sdf, tree
 from ..sculpt.anatomy import V, unit
 from ..sculpt.garments import surface_points
 from ..sculpt.paint import hashed
@@ -40,17 +40,11 @@ HEAD_PITCH = 32.0
 HEX = [np.array([np.cos(a), np.sin(a)]) for a in np.radians([0.0, 60.0, 120.0])]
 
 
-def as_seen(linear):
-    """A kit colour (linear, as the generated bodies write it) as seen (sRGB), which a material takes."""
-    c = np.clip(np.asarray(linear, dtype=np.float64)[:3], 0.0, 1.0)
-    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1.0 / 2.4) - 0.055)
-
-
 def materials(S, spec):
     """Every material Korruk is coloured in, flat (the toon material shades it). His crystal is his kit's accent deepened:
     a deep face and a lit one, so each crystal reads cut; the open bores of his spines and his ocular glow in it."""
     mats = {name: S.material(name, colour) for name, colour in PALETTE.items()}
-    glow = as_seen(spec["accent"])
+    glow = paint.seen(np.asarray(spec["accent"], dtype=np.float64)[:3])
     mats["crystal"] = S.material("crystal", tuple(float(v) for v in glow ** 3.0 * 0.62))
     mats["crystal_lit"] = S.material("crystal_lit", tuple(float(v) for v in glow ** 1.8 * 0.92))
     mats["bore"] = S.material("bore", tuple(float(v) for v in glow + (1.0 - glow) * 0.3), glow=True)

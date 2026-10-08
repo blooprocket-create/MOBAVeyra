@@ -6,12 +6,16 @@ on:
       - 'Game/ArtSource/Presentation/PresentationMaterials.json'
       - 'Game/Scripts/PresentationMaterials/spec.py'
       - 'tests/test_presentation_materials_spec.py'
+      - 'Game/ArtSource/Presentation/Effects.json'
+      - 'tests/test_effects_spec.py'
       - '.github/workflows/presentation-materials.yml'
   pull_request:
     paths:
       - 'Game/ArtSource/Presentation/PresentationMaterials.json'
       - 'Game/Scripts/PresentationMaterials/spec.py'
       - 'tests/test_presentation_materials_spec.py'
+      - 'Game/ArtSource/Presentation/Effects.json'
+      - 'tests/test_effects_spec.py'
       - '.github/workflows/presentation-materials.yml'
 
 jobs:
@@ -26,3 +30,5 @@ jobs:
           python-version: '3.12'
       - name: Check the presentation materials' spec without Unreal
         run: python3 -m unittest discover -s tests -p 'test_presentation_materials_spec.py'
+      - name: Check the effects' spec without Unreal
+        run: python3 -m unittest discover -s tests -p 'test_effects_spec.py'
