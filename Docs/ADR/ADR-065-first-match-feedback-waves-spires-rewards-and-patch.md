@@ -77,6 +77,7 @@ The code:
 - **The inputs reach the client already:** the player's Vanguard's power (owner-only), the target's Health and resistances, and the profile from tuning.
 - **The setting:** "Last-Hit Cue" (Interface, on by default).
 - **It is a hint:** it ignores critical hits, other attackers and projectile travel, and never decides anything.
+- **Amended by [ADR-071](ADR-071-playtest-readability-strands-kit-rings-and-a-ready-last-hit.md) §5:** a Ready stage before gold now counts the attack's windup, its projectile's flight and the Health the target is losing to others.
 
 ### 7. Ability numbers beside the text
 - **The text table still holds no numbers** (ADR-010).

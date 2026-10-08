@@ -456,6 +456,11 @@ void UVeyraVanguardAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	Super::NativeUpdateAnimation(DeltaSeconds);
 	if (IsConfigured())
 	{
+		// The presentation draws the body larger than it was made (ADR-065 §11); its stride grows with it.
+		if (const USkeletalMeshComponent* Skin = GetSkelMeshComponent())
+		{
+			Shape.DrawScale = static_cast<float>(Skin->GetComponentScale().X);
+		}
 		VeyraVanguardAnim::Advance(State, DeltaSeconds, Inputs, Shape);
 		TraceFeet(DeltaSeconds);
 	}

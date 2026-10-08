@@ -359,6 +359,13 @@ struct FVeyraStatusEntry
 	/** The basic attacks it has left before it ends (ADR-033 §4); 0 for one attacks do not spend. */
 	UPROPERTY()
 	int32 AttackCharges = 0;
+
+	/**
+	 * The body of the unit that applied it, so the presentation can draw what links the two, as a tether's strand
+	 * (ADR-071 §2). Null where that body is gone or the viewer's machine does not hold it. Nothing gameplay reads it.
+	 */
+	UPROPERTY()
+	TWeakObjectPtr<AActor> SourceBody;
 };
 
 /** A unit's active statuses. */

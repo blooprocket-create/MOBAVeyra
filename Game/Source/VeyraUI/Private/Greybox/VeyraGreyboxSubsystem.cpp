@@ -52,6 +52,7 @@
 #include "Engine/NetConnection.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "Hud/VeyraFogOfWarModel.h"
+#include "Kit/VeyraKitPresentationSubsystem.h"
 #include "Settings/VeyraDisplayRules.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Layout/VeyraLayout.h"
@@ -309,9 +310,14 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	// fall kicks their camera as hard as their Screen Shake allows.
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const double RealNow = GetWorld()->GetRealTimeSeconds();
-	if (FBody* Struck = Cue.Kind == EVeyraCombatCueKind::Hit && Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr; Struck && Struck->Skin.IsValid())
+	if (FBody* Struck = Cue.Kind == EVeyraCombatCueKind::Hit && Cue.Unit.IsValid() ? Bodies.Find(Cue.Unit) : nullptr)
 	{
-		Struck->HitStopUntil = RealNow + Settings.HitStopSeconds;
+		if (Struck->Skin.IsValid())
+		{
+			Struck->HitStopUntil = RealNow + Settings.HitStopSeconds;
+		}
+		// How fast it is losing Health, for the last-hit cue's Ready stage (ADR-071 §5).
+		Struck->Loss.Note(RealNow, Cue.Amount, Settings.LastHitLossWindowSeconds);
 	}
 	if (IsViewersVanguard(Cue.Unit.Get()))
 	{
@@ -574,6 +580,11 @@ UNiagaraComponent* UVeyraGreyboxSubsystem::PlayEffect(const FVeyraCombatCue& Cue
 {
 	const AActor* Unit = Cue.Unit.Get();
 	UNiagaraSystem* Effect = EffectFor(Cue.Kind);
+	// An ability with its own cast effect shows it in place of the shared flash (ADR-071 §4).
+	float OwnScale = 0.0f;
+	const UVeyraKitPresentationSubsystem* Kit = Cue.Kind == EVeyraCombatCueKind::CastCommit ? GetWorld()->GetSubsystem<UVeyraKitPresentationSubsystem>() : nullptr;
+	UNiagaraSystem* Own = Kit ? Kit->CastEffectOf(Cue.Ability, OwnScale) : nullptr;
+	Effect = Own ? Own : Effect;
 	if (!Unit || !Effect || !bReady)
 	{
 		return nullptr;
@@ -588,8 +599,18 @@ UNiagaraComponent* UVeyraGreyboxSubsystem::PlayEffect(const FVeyraCombatCue& Cue
 	if (Played)
 	{
 		Played->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, SideColorOf(*Unit));
+		if (Own)
+		{
+			Played->SetVariableFloat(GetDefault<UVeyraGreyboxSettings>()->EffectScaleParameter, OwnScale);
+		}
 	}
 	return Played;
+}
+
+double UVeyraGreyboxSubsystem::GetHealthLossPerSecond(const AActor& Unit) const
+{
+	const FBody* Body = Bodies.Find(&Unit);
+	return Body ? Body->Loss.PerSecond(GetWorld()->GetRealTimeSeconds(), GetDefault<UVeyraGreyboxSettings>()->LastHitLossWindowSeconds) : 0.0;
 }
 
 float UVeyraGreyboxSubsystem::GetFlashOf(const AActor& Unit) const

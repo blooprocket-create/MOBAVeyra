@@ -5,6 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tethers/VeyraTetherSubsystem.h"
 #include "TimerManager.h"
@@ -182,6 +183,19 @@ namespace VeyraCombatTests
 			const UVeyraMovementComponent& Pulled = *Target->GetVeyraMovement();
 			ASSERT_THAT(IsTrue(Pulled.IsDisplaced() && Pulled.GetForcedMoveDestination().GetValue().X < Far, TEXT("pulled back toward its source")));
 			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(*Target, TEXT("test_tethered"))));
+		}
+
+		TEST_METHOD(ItsTargetsStatusNamesTheBodyHoldingTheOtherEnd)
+		{
+			// Every machine receives the ledger, so a client can draw the strand between the two (ADR-071 §2).
+			ASSERT_THAT(IsTrue(Tether(Spec(LongSeconds))));
+			const UVeyraStatusComponent* Statuses = Target->GetAbilitySystemComponent()->GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
+			ASSERT_THAT(IsNotNull(Statuses));
+			const FVeyraStatusEntry* Held = Statuses->GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) {
+				return Entry.Id.ToString() == TEXT("test_tethered");
+			});
+			ASSERT_THAT(IsNotNull(Held));
+			ASSERT_THAT(IsTrue(Held->SourceBody.Get() == Source));
 		}
 
 		TEST_METHOD(AHostileTetherBreaksOnUntargetability)

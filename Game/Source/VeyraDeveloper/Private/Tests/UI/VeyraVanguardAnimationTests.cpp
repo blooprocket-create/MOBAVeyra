@@ -72,6 +72,19 @@ namespace VeyraVanguardAnimationTests
 			ASSERT_THAT(IsNear(State.RunWeight, 0.5f, Slack, TEXT("below the full speed, Idle and Run share the body")));
 		}
 
+		TEST_METHOD(ABodyDrawnLargerStepsSlowerSoItsFeetKeepToTheGround)
+		{
+			// Drawn at twice its size, each Run cycle sweeps its feet twice as far, so it plays at half the rate (ADR-071 §1).
+			constexpr float DrawScale = 2.0f;
+			FVeyraVanguardAnimShape Drawn = Shape();
+			Drawn.DrawScale = DrawScale;
+			FVeyraVanguardAnimState State;
+			FVeyraVanguardAnimInputs Moving;
+			Moving.GroundSpeed = RunStride / RunSeconds;
+			VeyraVanguardAnim::Advance(State, Step, Moving, Drawn);
+			ASSERT_THAT(IsNear(State.RunRate, 1.0f / DrawScale, Slack, TEXT("one stride's speed at twice the size plays Run at half speed")));
+		}
+
 		TEST_METHOD(AWindupEndsAsItsAttackCommitsAndTheStrikeFollowsThrough)
 		{
 			FVeyraVanguardAnimState State;

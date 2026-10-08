@@ -121,6 +121,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
+		{ TEXT("LastHitColor"), LastHitColor },
+		{ TEXT("LastHitMarkColor"), LastHitMarkColor },
+		{ TEXT("LastHitReadyColor"), LastHitReadyColor },
 		{ TEXT("EndingColor"), EndingColor },
 		{ TEXT("OrderMoveColor"), OrderMoveColor },
 		{ TEXT("HitFlashColor"), HitFlashColor },
@@ -244,6 +247,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("an order's mark closes: its end radius must be at least 1 unit and its start radius above that."));
 	Require(OutlineMarkerRadius >= 1.0f, TEXT("OutlineMarkerRadius"), TEXT("must be at least 1 unit."));
 	Require(EchoStrainShare > 0.0f && EchoStrainShare < 1.0f, TEXT("EchoStrainShare"), TEXT("must be above 0 and below 1."));
+	Require(LastHitLossWindowSeconds > 0.0f, TEXT("LastHitLossWindowSeconds"), TEXT("the last-hit cue's Ready stage needs a window above 0 to judge a unit's Health loss over."));
 	Require(CombatTextShowSeconds > 0.0f, TEXT("CombatTextShowSeconds"), TEXT("must be above 0."));
 	Require(CombatTextMergeSeconds >= 0.0f && CombatTextMergeSeconds < CombatTextShowSeconds, TEXT("CombatTextMergeSeconds"),
 		TEXT("must not be negative, and must be shorter than CombatTextShowSeconds, or a total would vanish while it grows."));

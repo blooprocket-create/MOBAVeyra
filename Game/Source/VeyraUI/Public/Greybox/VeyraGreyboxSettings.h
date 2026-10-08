@@ -118,6 +118,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor LastHitColor = FLinearColor::Transparent;
 
+	/**
+	 * The last-hit cue's Ready stage (ADR-071 §5): the colour an enemy Fluxborn's or creature's Health takes while an attack
+	 * started now would land as it falls into reach, judged from the Health it lost over the last
+	 * LastHitLossWindowSeconds.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor LastHitReadyColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "0"))
+	float LastHitLossWindowSeconds = 0.0f;
+
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ResourceColor = FLinearColor::Transparent;
 

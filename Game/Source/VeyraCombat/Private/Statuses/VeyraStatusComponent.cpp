@@ -188,6 +188,7 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		Entry->Id = Spec.Id;
 		Entry->Kind = Spec.Kind;
 	}
+	Entry->SourceBody = Source.GetAvatarActor();
 	// A new application starts its takedown extensions afresh (§14: a refresh restarts the duration). A
 	// damage over time keeps its cadence (ADR-026 §7): its next tick comes when it would have, so one its
 	// source keeps refreshing still ticks.
