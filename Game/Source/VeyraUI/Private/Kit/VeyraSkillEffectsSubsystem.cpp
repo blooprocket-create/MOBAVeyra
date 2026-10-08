@@ -9,6 +9,10 @@
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
+#include "Delivery/VeyraLingeringArea.h"
+#include "Delivery/VeyraProjectile.h"
+#include "Greybox/VeyraVanguardAnimInstance.h"
+#include "Teams/VeyraTeam.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Kit/VeyraKitPresentationSettings.h"
@@ -82,6 +86,38 @@ FVector VeyraSkillEffects::CommitPlacement(const FVector& From, const FVector& A
 	return bAtTarget ? Aimed : From;
 }
 
+double VeyraSkillEffects::RetractSpeedOf(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
+	const FVeyraSkillshotAbilityTuning* Skillshot = Tuning.Skillshot.Find(Ability);
+	if (!Skillshot)
+	{
+		return 0.0;
+	}
+	for (const FVeyraDisplacementTuning& Displacement : Skillshot->Effects.Displacement)
+	{
+		if (Displacement.Direction == EVeyraDisplacementDirection::TowardOrigin && Displacement.Speed > 0.0)
+		{
+			return Displacement.Speed;
+		}
+	}
+	return Skillshot->Projectile.Speed;
+}
+
+FVector VeyraSkillEffects::ArcPoint(const FVector& From, const FVector& To, double Share, double Height)
+{
+	const double Along = FMath::Clamp(Share, 0.0, 1.0);
+	// A parabola through both ends, highest (by Height) halfway.
+	return FMath::Lerp(From, To, Along) + FVector(0.0, 0.0, 4.0 * Height * Along * (1.0 - Along));
+}
+
+FVector VeyraSkillEffects::RetractPoint(const FVector& From, const FVector& To, double Seconds, double Speed, bool& bOutHome)
+{
+	const double Span = FVector::Dist(From, To);
+	const double Covered = FMath::Max(0.0, Seconds) * FMath::Max(0.0, Speed);
+	bOutHome = Covered >= Span;
+	return bOutHome || Span <= UE_KINDA_SMALL_NUMBER ? To : FMath::Lerp(From, To, Covered / Span);
+}
+
 bool VeyraSkillEffects::SawItEnd(const FVeyraSeenProjectile& Seen, const FVector& EndedAt, double Now, double WindowSeconds)
 {
 	return Now - Seen.SeenAt <= WindowSeconds && FVector::Dist2D(Seen.At, EndedAt) <= Seen.Speed * WindowSeconds;
@@ -110,7 +146,8 @@ void UVeyraSkillEffectsSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 			// as a pooled component releasing itself needs (the settings' contract: a continuous emitter for the one, a burst
 			// for the other; Niagara's own looping flag does not tell a continuous emitter apart, so it is not checked).
 			const TPair<const FVeyraSkillEffectStage*, const TCHAR*> Stages[] = { { &Effects.Windup, TEXT("Windup") }, { &Effects.Channel, TEXT("Channel") },
-				{ &Effects.Commit, TEXT("Commit") }, { &Effects.Travel, TEXT("Travel") }, { &Effects.Impact, TEXT("Impact") } };
+				{ &Effects.Commit, TEXT("Commit") }, { &Effects.Travel, TEXT("Travel") }, { &Effects.Impact, TEXT("Impact") }, { &Effects.Tether, TEXT("Tether") },
+				{ &Effects.Mark, TEXT("Mark") }, { &Effects.Arc, TEXT("Arc") }, { &Effects.Linger, TEXT("Linger") } };
 			for (const TPair<const FVeyraSkillEffectStage*, const TCHAR*>& Stage : Stages)
 			{
 				if (!Stage.Key->IsSet())
@@ -149,8 +186,23 @@ void UVeyraSkillEffectsSubsystem::Deinitialize()
 		FadeOut(Shown.Value);
 	}
 	Showing.Reset();
+	for (const FLanding& Landing : Landings)
+	{
+		FadeSkillEffect(Landing.Mark);
+		FadeSkillEffect(Landing.Arc);
+	}
 	Landings.Reset();
 	Seen.Reset();
+	for (const TPair<TPair<FName, int32>, FTether>& Tether : Tethers)
+	{
+		FadeSkillEffect(Tether.Value.Chain);
+	}
+	Tethers.Reset();
+	for (const TPair<TWeakObjectPtr<const AVeyraLingeringArea>, TWeakObjectPtr<UNiagaraComponent>>& Area : Lingering)
+	{
+		FadeSkillEffect(Area.Value);
+	}
+	Lingering.Reset();
 	Super::Deinitialize();
 }
 
@@ -214,11 +266,30 @@ void UVeyraSkillEffectsSubsystem::NoteCue(const FVeyraCombatCue& Cue)
 			Shown.Ability = Cue.Ability;
 		}
 		// A delayed area lands where it was aimed, its delay from Abilities.json; one that lands at once shows its commit.
+		// Its mark shows there until then, and what it throws flies there from the caster's hand.
 		const double Delay = VeyraSkillEffects::LandingDelayOf(UVeyraAbilitiesTuningSubsystem::Get(), Cue.Ability);
 		const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
-		if (Effects->Impact.IsSet() && Delay > 0.0 && Greybox)
+		if ((Effects->Impact.IsSet() || Effects->Mark.IsSet() || Effects->Arc.IsSet()) && Delay > 0.0 && Greybox)
 		{
-			Landings.Add({ Cue.Ability, Cue.Location, Greybox->GetServerNow() + Delay, Greybox->SideColorOf(*Caster) });
+			FLanding& Landing = Landings.Add_GetRef({ Cue.Ability, Cue.Location, Greybox->GetServerNow() + Delay, Greybox->SideColorOf(*Caster) });
+			if (UNiagaraSystem* Mark = Effects->Mark.IsSet() ? Loaded(*Effects, TEXT("Mark")) : nullptr)
+			{
+				// Across the area it marks, as Abilities.json shapes it.
+				UNiagaraComponent* Marked = PlayAt(*Mark, Cue.Location, FRotator::ZeroRotator, Effects->Mark.Scale, Landing.Color);
+				if (Marked)
+				{
+					Marked->SetVariableFloat(GetDefault<UVeyraKitPresentationSettings>()->LengthParameter,
+						static_cast<float>(VeyraSkillEffects::ReachOf(UVeyraAbilitiesTuningSubsystem::Get(), Cue.Ability) * 2.0));
+				}
+				Landing.Mark = Marked;
+			}
+			if (UNiagaraSystem* Arc = Effects->Arc.IsSet() ? Loaded(*Effects, TEXT("Arc")) : nullptr)
+			{
+				const USkeletalMeshComponent* Skin = Greybox->FindSkin(*Caster);
+				Landing.ArcFrom = Skin && Skin->GetBoneIndex(Effects->ArcBone) != INDEX_NONE ? Skin->GetBoneLocation(Effects->ArcBone) : Caster->GetActorLocation();
+				Landing.ArcSince = Greybox->GetServerNow();
+				Landing.Arc = PlayAt(*Arc, Landing.ArcFrom, FRotator::ZeroRotator, Effects->Arc.Scale, Landing.Color);
+			}
 		}
 	}
 }
@@ -282,7 +353,10 @@ void UVeyraSkillEffectsSubsystem::RefreshChannel(const AActor& Caster, const FVe
 		FadeSkillEffect(Effect);
 	}
 	Shown->Windup.Reset();
-	const FVector From = Caster.GetActorLocation();
+	// From the hands it pours from, as they are drawn this frame; from its middle on a body without them.
+	const USkeletalMeshComponent* Skin = Greybox->FindSkin(Caster);
+	const bool bBone = Skin && !Effects->ChannelBone.IsNone() && Skin->GetBoneIndex(Effects->ChannelBone) != INDEX_NONE;
+	const FVector From = bBone ? Skin->GetBoneLocation(Effects->ChannelBone) : Caster.GetActorLocation();
 	const FRotator Facing = (Direction.IsNearlyZero() ? Caster.GetActorForwardVector() : Direction.GetSafeNormal2D()).Rotation();
 	UNiagaraComponent* Channel = Shown->Channel.Get();
 	if (!Channel)
@@ -290,7 +364,7 @@ void UVeyraSkillEffectsSubsystem::RefreshChannel(const AActor& Caster, const FVe
 		Channel = PlayAt(*System, From, Facing, Effects->Channel.Scale, Greybox->SideColorOf(Caster));
 		if (Channel)
 		{
-			Channel->SetVariableFloat(GetDefault<UVeyraKitPresentationSettings>()->ChannelLengthParameter,
+			Channel->SetVariableFloat(GetDefault<UVeyraKitPresentationSettings>()->LengthParameter,
 				static_cast<float>(VeyraSkillEffects::ReachOf(UVeyraAbilitiesTuningSubsystem::Get(), Ability)));
 		}
 		Shown->Channel = Channel;
@@ -346,14 +420,93 @@ void UVeyraSkillEffectsSubsystem::SeedHeldCasts()
 	}
 }
 
-void UVeyraSkillEffectsSubsystem::NoteProjectileDrawn(const FVeyraContentId& Ability, int32 CastId, const FVector& At, double Speed, const FLinearColor& Color)
+void UVeyraSkillEffectsSubsystem::NoteProjectileDrawn(const AVeyraProjectile& Projectile, const FVector& At, const FLinearColor& Color)
+{
+	const FVeyraAbilityEffects* Effects = EffectsOf(Projectile.GetAbility());
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	if (!Effects || !Greybox)
+	{
+		return;
+	}
+	const double Now = Greybox->GetServerNow();
+	const TPair<FName, int32> Key{ SkillAbilityName(Projectile.GetAbility()), Projectile.GetCastId() };
+	if (Effects->Impact.IsSet())
+	{
+		Seen.Add(Key, FVeyraSeenProjectile{ Now, At, Projectile.GetSpeed(), Color });
+	}
+	if (Effects->TetherBone.IsNone())
+	{
+		return;
+	}
+	FTether* Tether = Tethers.Find(Key);
+	if (!Tether)
+	{
+		const AActor* Caster = CasterOf(Projectile);
+		if (!Caster)
+		{
+			return;
+		}
+		Tether = &Tethers.Add(Key);
+		Tether->Caster = Caster;
+		Tether->Bone = Effects->TetherBone;
+		Tether->FromBone = Effects->TetherFromBone;
+		Tether->ReturnSpeed = VeyraSkillEffects::RetractSpeedOf(UVeyraAbilitiesTuningSubsystem::Get(), Projectile.GetAbility());
+		Tether->Color = Color;
+		if (UNiagaraSystem* Chain = Effects->Tether.IsSet() ? Loaded(*Effects, TEXT("Tether")) : nullptr)
+		{
+			Tether->Chain = PlayAt(*Chain, At, FRotator::ZeroRotator, Effects->Tether.Scale, Color);
+		}
+	}
+	if (!Tether->bReturning)
+	{
+		Tether->At = At;
+		Tether->SeenAt = Now;
+	}
+}
+
+bool UVeyraSkillEffectsSubsystem::HidesProjectileBody(const FVeyraContentId& Ability) const
 {
 	const FVeyraAbilityEffects* Effects = EffectsOf(Ability);
-	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
-	if (Effects && Effects->Impact.IsSet() && Greybox)
+	return Effects && Effects->bHideProjectileBody;
+}
+
+TOptional<FVector> UVeyraSkillEffectsSubsystem::FindTether(const AActor& Caster) const
+{
+	for (const TPair<TPair<FName, int32>, FTether>& Tether : Tethers)
 	{
-		Seen.Add({ SkillAbilityName(Ability), CastId }, FVeyraSeenProjectile{ Greybox->GetServerNow(), At, Speed, Color });
+		if (Tether.Value.Caster.Get() == &Caster)
+		{
+			return Tether.Value.At;
+		}
 	}
+	return {};
+}
+
+const AActor* UVeyraSkillEffectsSubsystem::CasterOf(const AVeyraProjectile& Projectile) const
+{
+	// The one whose cast it is, while that cast's state still holds; else its side's pawn nearest where it set off.
+	const AActor* Nearest = nullptr;
+	double NearestSquared = TNumericLimits<double>::Max();
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const APawn& Pawn = **It;
+		if (VeyraTeams::TeamOf(&Pawn) != Projectile.GetVeyraTeam())
+		{
+			continue;
+		}
+		const UVeyraCastStateComponent* Casts = SkillCasterState(Pawn);
+		if (Casts && Casts->GetState().CastId == Projectile.GetCastId() && Projectile.GetCastId() != 0)
+		{
+			return &Pawn;
+		}
+		const double Squared = FVector::DistSquared(Pawn.GetActorLocation(), Projectile.GetLaunchedFrom());
+		if (Squared < NearestSquared)
+		{
+			NearestSquared = Squared;
+			Nearest = &Pawn;
+		}
+	}
+	return Nearest;
 }
 
 void UVeyraSkillEffectsSubsystem::NoteProjectileEnd(const FVeyraCombatCue& Cue)
@@ -369,6 +522,122 @@ void UVeyraSkillEffectsSubsystem::NoteProjectileEnd(const FVeyraCombatCue& Cue)
 		PlayAt(*System, Cue.Location, FRotator::ZeroRotator, Effects->Impact.Scale, Drawn->Color);
 	}
 	Seen.Remove(Key);
+	// Its tether comes home from where the server ended its flight.
+	if (FTether* Tether = Tethers.Find(Key); Tether && !Tether->bReturning && Greybox)
+	{
+		Tether->bReturning = true;
+		Tether->ReturnFrom = Cue.Location;
+		Tether->ReturnSince = Greybox->GetServerNow();
+	}
+}
+
+void UVeyraSkillEffectsSubsystem::RefreshTethers(double Now)
+{
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+	for (auto It = Tethers.CreateIterator(); It; ++It)
+	{
+		FTether& Tether = It.Value();
+		const AActor* Caster = Tether.Caster.Get();
+		USkeletalMeshComponent* Skin = Caster && Greybox ? Greybox->FindSkin(*Caster) : nullptr;
+		UVeyraVanguardAnimInstance* Animation = Skin ? Cast<UVeyraVanguardAnimInstance>(Skin->GetAnimInstance()) : nullptr;
+		if (!Animation || Skin->GetBoneIndex(Tether.FromBone) == INDEX_NONE)
+		{
+			FadeSkillEffect(Tether.Chain);
+			It.RemoveCurrent();
+			continue;
+		}
+		// A flight drawn no more (it left sight with no end come) comes home from where it was last drawn.
+		if (!Tether.bReturning && Now - Tether.SeenAt > Settings.ProjectileEndWindowSeconds)
+		{
+			Tether.bReturning = true;
+			Tether.ReturnFrom = Tether.At;
+			Tether.ReturnSince = Now;
+		}
+		const FVector Hand = Skin->GetBoneLocation(Tether.FromBone);
+		bool bHome = false;
+		if (Tether.bReturning)
+		{
+			Tether.At = VeyraSkillEffects::RetractPoint(Tether.ReturnFrom, Hand, Now - Tether.ReturnSince, Tether.ReturnSpeed, bHome);
+		}
+		if (bHome)
+		{
+			Animation->ClearBoneTarget(Tether.Bone);
+			FadeSkillEffect(Tether.Chain);
+			It.RemoveCurrent();
+			continue;
+		}
+		Animation->SetBoneTarget(Tether.Bone, Tether.At);
+		if (UNiagaraComponent* Chain = Tether.Chain.Get())
+		{
+			// The chain runs from the hand to the hook, along its length.
+			const FVector Span = Tether.At - Hand;
+			Chain->SetWorldLocationAndRotation(Hand, Span.IsNearlyZero() ? FRotator::ZeroRotator : Span.Rotation());
+			Chain->SetVariableFloat(Settings.LengthParameter, static_cast<float>(Span.Size()));
+		}
+	}
+}
+
+void UVeyraSkillEffectsSubsystem::RefreshLandings(double Now)
+{
+	for (int32 Index = Landings.Num() - 1; Index >= 0; --Index)
+	{
+		FLanding& Landing = Landings[Index];
+		const FVeyraAbilityEffects* Effects = EffectsOf(Landing.Ability);
+		if (Now < Landing.At)
+		{
+			// What it throws flies on toward where it lands.
+			if (UNiagaraComponent* Arc = Landing.Arc.Get(); Arc && Effects)
+			{
+				const double Share = (Now - Landing.ArcSince) / FMath::Max(Landing.At - Landing.ArcSince, UE_KINDA_SMALL_NUMBER);
+				Arc->SetWorldLocation(VeyraSkillEffects::ArcPoint(Landing.ArcFrom, Landing.Where, Share, Effects->ArcHeight));
+			}
+			continue;
+		}
+		FadeSkillEffect(Landing.Mark);
+		FadeSkillEffect(Landing.Arc);
+		if (UNiagaraSystem* System = Effects && Effects->Impact.IsSet() ? Loaded(*Effects, TEXT("Impact")) : nullptr)
+		{
+			PlayAt(*System, Landing.Where, FRotator::ZeroRotator, Effects->Impact.Scale, Landing.Color);
+		}
+		Landings.RemoveAtSwap(Index);
+	}
+}
+
+void UVeyraSkillEffectsSubsystem::RefreshLingering(double Now)
+{
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+	for (TActorIterator<AVeyraLingeringArea> It(GetWorld()); It; ++It)
+	{
+		const AVeyraLingeringArea& Area = **It;
+		const FVeyraAbilityEffects* Effects = Greybox && !Lingering.Contains(&Area) && !Area.IsHidden() && Now < Area.GetEndsAt() ? EffectsOf(Area.GetAbility()) : nullptr;
+		UNiagaraSystem* System = Effects && Effects->Linger.IsSet() ? Loaded(*Effects, TEXT("Linger")) : nullptr;
+		if (!System)
+		{
+			continue;
+		}
+		// Over its shape, turned its way: a rectangle's length and width, or a circle's or sector's breadth both ways.
+		const FVeyraPlacedShape Placed = Area.GetPlacedShape();
+		const bool bRectangle = Placed.Shape.Kind == EVeyraShapeKind::Rectangle;
+		UNiagaraComponent* Poured = PlayAt(*System, Placed.Origin, Placed.Direction.Rotation(), Effects->Linger.Scale, Greybox->ColorOfSide(Area.GetVeyraTeam()));
+		if (Poured)
+		{
+			Poured->SetVariableFloat(Settings.LengthParameter, static_cast<float>(bRectangle ? Placed.Shape.Length : Placed.Shape.Radius * 2.0));
+			Poured->SetVariableFloat(Settings.WidthParameter, static_cast<float>(bRectangle ? Placed.Shape.Width : Placed.Shape.Radius * 2.0));
+		}
+		Lingering.Add(&Area, Poured);
+	}
+	// Each ends with its area, or as its time runs out.
+	for (auto It = Lingering.CreateIterator(); It; ++It)
+	{
+		const AVeyraLingeringArea* Area = It.Key().Get();
+		if (!Area || Now >= Area->GetEndsAt())
+		{
+			FadeSkillEffect(It.Value());
+			It.RemoveCurrent();
+		}
+	}
 }
 
 void UVeyraSkillEffectsSubsystem::Refresh()
@@ -412,20 +681,9 @@ void UVeyraSkillEffectsSubsystem::Refresh()
 			It.RemoveCurrent();
 		}
 	}
-	for (int32 Index = Landings.Num() - 1; Index >= 0; --Index)
-	{
-		const FLanding& Landing = Landings[Index];
-		if (Now < Landing.At)
-		{
-			continue;
-		}
-		const FVeyraAbilityEffects* Effects = EffectsOf(Landing.Ability);
-		if (UNiagaraSystem* System = Effects ? Loaded(*Effects, TEXT("Impact")) : nullptr)
-		{
-			PlayAt(*System, Landing.Where, FRotator::ZeroRotator, Effects->Impact.Scale, Landing.Color);
-		}
-		Landings.RemoveAtSwap(Index);
-	}
+	RefreshLandings(Now);
+	RefreshTethers(Now);
+	RefreshLingering(Now);
 }
 
 UNiagaraSystem* UVeyraSkillEffectsSubsystem::CommitEffectOf(const FVeyraContentId& Ability, float& OutScale, bool& bOutAtTarget) const

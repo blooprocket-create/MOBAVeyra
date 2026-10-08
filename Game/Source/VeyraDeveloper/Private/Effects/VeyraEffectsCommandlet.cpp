@@ -14,6 +14,7 @@
 #include "Misc/SecureHash.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraEmitter.h"
+#include "NiagaraEmitterHandle.h"
 #include "NiagaraExternalSystemEditorUtilities.h"
 #include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraSpriteRendererProperties.h"
@@ -97,6 +98,8 @@ namespace
 		FString Material;
 		FString RibbonMaterial;
 		TSharedPtr<FJsonObject> Sprite;
+		/** Whether its particles live in the system's own frame, so its shapes and offsets turn and move with it (ADR-072 §6). */
+		bool bLocalSpace = false;
 	};
 
 	/**
@@ -114,6 +117,9 @@ namespace
 		/** Settings of every sprite renderer whose emitter gives none of its own. */
 		TSharedPtr<FJsonObject> Sprite;
 		TArray<FEffectInput> Inputs;
+
+		/** Whether every emitter's particles live in the system's own frame (each emitter may also say so of itself). */
+		bool bLocalSpace = false;
 
 		/** User floats of its own beyond the colour and scale every system has, as a beam's length (ADR-072 §4), and their defaults. */
 		TArray<TPair<FString, double>> UserFloats;
@@ -368,6 +374,7 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				}
 				EmitterObject->TryGetStringField(TEXT("material"), Emitter.Material);
 				EmitterObject->TryGetStringField(TEXT("ribbonMaterial"), Emitter.RibbonMaterial);
+				EmitterObject->TryGetBoolField(TEXT("localSpace"), Emitter.bLocalSpace);
 				if (EmitterObject->TryGetObjectField(TEXT("sprite"), Sprite))
 				{
 					Emitter.Sprite = *Sprite;
@@ -376,6 +383,7 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		}
 		Object->TryGetStringField(TEXT("material"), Effect.Material);
 		Object->TryGetStringField(TEXT("ribbonMaterial"), Effect.RibbonMaterial);
+		Object->TryGetBoolField(TEXT("localSpace"), Effect.bLocalSpace);
 		const TSharedPtr<FJsonObject>* SystemSprite = nullptr;
 		if (Object->TryGetObjectField(TEXT("sprite"), SystemSprite))
 		{
@@ -691,6 +699,16 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				UE_LOG(LogVeyraEffects, Error, TEXT("%s: its spec names a %s for %s, which has no %s renderer."), *Effect.Name, Field,
 					Unused ? *Unused->Name : TEXT("the system"), What);
 				return 1;
+			}
+		}
+		// Emitters whose particles live in the system's frame: a beam, a chain or a strip that must run the way it faces.
+		for (FNiagaraEmitterHandle& Handle : System->GetEmitterHandles())
+		{
+			const FEmitterSpec* Own = Effect.Emitters.FindByPredicate([&Handle](const FEmitterSpec& Spec) { return FName(*Spec.Name) == Handle.GetName(); });
+			FVersionedNiagaraEmitterData* Data = Handle.GetEmitterData();
+			if (Data && (Effect.bLocalSpace || (Own && Own->bLocalSpace)))
+			{
+				Data->bLocalSpace = true;
 			}
 		}
 		System->RequestCompile(/*bForce*/ false);

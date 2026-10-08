@@ -130,6 +130,61 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsFalse(VeyraSkillEffects::SawItEnd(Seen, FVector(500.0 + Speed * Window * 2.0, 0.0, 0.0), SeenAt + 0.05, Window)));
 		}
 
+		TEST_METHOD(AThrownThingArcsFromTheHandToWhereItLands)
+		{
+			const FVector From(0.0, 0.0, 200.0);
+			const FVector To(800.0, 0.0, 0.0);
+			constexpr double Height = 300.0;
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::ArcPoint(From, To, 0.0, Height).Equals(From)));
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::ArcPoint(From, To, 1.0, Height).Equals(To)));
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::ArcPoint(From, To, 0.5, Height).Equals(FVector(400.0, 0.0, 100.0 + Height)), TEXT("highest halfway, by its height")));
+		}
+
+		TEST_METHOD(ATetherComesHomeAtItsSpeedAndStopsThere)
+		{
+			const FVector From(1000.0, 0.0, 0.0);
+			const FVector Hand(0.0, 0.0, 0.0);
+			constexpr double Speed = 2000.0;
+			bool bHome = true;
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::RetractPoint(From, Hand, 0.25, Speed, bHome).Equals(FVector(500.0, 0.0, 0.0))));
+			ASSERT_THAT(IsFalse(bHome));
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::RetractPoint(From, Hand, 1.0, Speed, bHome).Equals(Hand)));
+			ASSERT_THAT(IsTrue(bHome, TEXT("it never overshoots the hand")));
+		}
+
+		TEST_METHOD(ATetherReturnsAtItsPullsSpeedOrElseItsFlights)
+		{
+			FVeyraAbilitiesTuning Fixture;
+			FVeyraSkillshotAbilityTuning Hook;
+			Hook.Projectile.Speed = 1600.0;
+			Hook.Effects.Displacement.Add(FVeyraDisplacementTuning{ EVeyraDisplacementDirection::TowardOrigin, 1000.0, 1200.0 });
+			Fixture.Skillshot.Add(Id(TEXT("test_hook")), Hook);
+			FVeyraSkillshotAbilityTuning Bolt;
+			Bolt.Projectile.Speed = 1800.0;
+			Fixture.Skillshot.Add(Id(TEXT("test_bolt")), Bolt);
+			ASSERT_THAT(IsNear(VeyraSkillEffects::RetractSpeedOf(Fixture, Id(TEXT("test_hook"))), 1200.0, Slack, TEXT("hauled in at its pull's speed")));
+			ASSERT_THAT(IsNear(VeyraSkillEffects::RetractSpeedOf(Fixture, Id(TEXT("test_bolt"))), 1800.0, Slack, TEXT("one that pulls nothing flies back")));
+			ASSERT_THAT(IsNear(VeyraSkillEffects::RetractSpeedOf(Fixture, Id(TEXT("test_unknown"))), 0.0, Slack));
+		}
+
+		TEST_METHOD(ATetherAnArcAndAChannelBoneAreWholeOrAbsent)
+		{
+			FVeyraAbilityEffects Half = Recipe(TEXT("test_half_tether"));
+			Half.TetherBone = TEXT("prop_r");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Half }).IsEmpty(), TEXT("a tether names where it flies from too")));
+			Half.TetherFromBone = TEXT("hand_r");
+			ASSERT_THAT(IsTrue(ProblemsWith({ Half }).IsEmpty()));
+			FVeyraAbilityEffects Arc = Recipe(TEXT("test_arc"));
+			Arc.Arc = Arc.Commit;
+			ASSERT_THAT(IsFalse(ProblemsWith({ Arc }).IsEmpty(), TEXT("an arc needs its bone and a height")));
+			Arc.ArcBone = TEXT("hand_r");
+			Arc.ArcHeight = 200.0f;
+			ASSERT_THAT(IsTrue(ProblemsWith({ Arc }).IsEmpty()));
+			FVeyraAbilityEffects Anchored = Recipe(TEXT("test_anchor"));
+			Anchored.ChannelBone = TEXT("hand_r");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Anchored }).IsEmpty(), TEXT("only a channel pours from a channel bone")));
+		}
+
 		TEST_METHOD(EveryShippedRecipeNamesAnAbility)
 		{
 			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();

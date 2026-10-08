@@ -9,8 +9,9 @@ import re
 SCHEMA_VERSION = 1
 # The version of BuildPresentationMaterials.py's graphs; a spec names the version it was written for. Version 3: the
 # toon characters' ink (ADR-068 §3), and a hover outline that looks only for the hover's own stencils. Version 4: the
-# combat effects' graphic shapes (ADR-068 §4). Version 5: the telegraphs' shaded fill (ADR-068 §4).
-GENERATOR_VERSION = 5
+# combat effects' graphic shapes (ADR-068 §4). Version 5: the telegraphs' shaded fill (ADR-068 §4). Version 6: the beam
+# graphic shape, drawn on ribbons (ADR-072 §6).
+GENERATOR_VERSION = 6
 # Presentation materials live where the UI's content is always cooked.
 DESTINATION_ROOT = "/Game/Veyra/UI/"
 ASSET_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
@@ -19,19 +20,22 @@ SIDES = ("enemy", "ally", "neutral")
 EFFECT_SHAPES = ("sprite", "ribbon")
 # The graphic shapes a combat effect's sprite may draw (ADR-068 §4), and the values each needs beyond the common ones: a
 # flare (a hard disc that shrinks), a ring (a band that widens out from start and thins to nothing), a star (a four-point
-# spark, its points thinner as its exponent falls, that shrinks) and a streak (a long diamond, for a sprite drawn along
-# its velocity, that shrinks).
+# spark, its points thinner as its exponent falls, that shrinks), a streak (a long diamond, for a sprite drawn along
+# its velocity, that shrinks) and a beam (a band across a ribbon, white-hot down its middle, tapering over its ends,
+# steady however long it lives: a channelled beam or a strike of light; ADR-072 §6).
 GRAPHIC_SHAPES = {
     "flare": ("shrink",),
     "ring": ("start", "thickness"),
     "star": ("shrink", "exponent"),
     "streak": ("shrink",),
+    "beam": ("taper",),
 }
 GRAPHIC_SHAPE_RULES = {
     "shrink": (lambda value: _is_number(value) and 0.0 <= value < 1.0, "a number from 0 to below 1"),
     "start": (lambda value: _is_number(value) and 0.0 <= value < 1.0, "a number from 0 to below 1"),
     "thickness": (lambda value: _is_number(value) and 0.0 < value <= 1.0, "a number above 0 and at most 1"),
     "exponent": (lambda value: _is_number(value) and 0.0 < value < 1.0, "a number strictly between 0 and 1"),
+    "taper": (lambda value: _is_number(value) and 0.0 < value < 0.5, "a number above 0 and below 0.5"),
 }
 
 

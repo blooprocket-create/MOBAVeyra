@@ -40,12 +40,15 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 	}
 	Require(ProjectileEndWindowSeconds > 0.0f || !AbilityEffects.ContainsByPredicate([](const FVeyraAbilityEffects& Effects) { return Effects.Impact.IsSet(); }),
 		TEXT("ProjectileEndWindowSeconds"), TEXT("a projectile's impact needs a window above 0 to match its end to what was drawn."));
-	Require(!ChannelLengthParameter.IsNone() || !AbilityEffects.ContainsByPredicate([](const FVeyraAbilityEffects& Effects) { return Effects.Channel.IsSet(); }),
-		TEXT("ChannelLengthParameter"), TEXT("a channel's effect needs the parameter its length is set by."));
+	const bool bRuns = AbilityEffects.ContainsByPredicate(
+		[](const FVeyraAbilityEffects& Effects) { return Effects.Channel.IsSet() || Effects.Tether.IsSet() || Effects.Linger.IsSet(); });
+	Require(!bRuns || (!LengthParameter.IsNone() && !WidthParameter.IsNone() && LengthParameter != WidthParameter), TEXT("LengthParameter"),
+		TEXT("an effect that runs along a channel, a tether or a lingering area needs the two parameters its length and width are set by."));
 	for (const FVeyraAbilityEffects& Effects : AbilityEffects)
 	{
 		const FString Name = Effects.Ability.ToString();
-		const FVeyraSkillEffectStage* Stages[] = { &Effects.Windup, &Effects.Channel, &Effects.Commit, &Effects.Travel, &Effects.Impact };
+		const FVeyraSkillEffectStage* Stages[] = { &Effects.Windup, &Effects.Channel, &Effects.Commit, &Effects.Travel, &Effects.Impact, &Effects.Tether,
+			&Effects.Mark, &Effects.Arc, &Effects.Linger };
 		bool bAny = false;
 		bool bScaled = true;
 		for (const FVeyraSkillEffectStage* Stage : Stages)
@@ -59,6 +62,12 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 			FString::Printf(TEXT("%s: a windup effect pours from the bones it names, and only it names bones."), *Name));
 		Require(Effects.Commit.IsSet() || !Effects.bCommitAtTarget, TEXT("AbilityEffects"),
 			FString::Printf(TEXT("%s: only a commit effect is placed at the target."), *Name));
+		Require(Effects.TetherBone.IsNone() == Effects.TetherFromBone.IsNone() && (!Effects.Tether.IsSet() || !Effects.TetherBone.IsNone()), TEXT("AbilityEffects"),
+			FString::Printf(TEXT("%s: a tether names the bone that flies and the bone it returns to, and only a tether runs a tether effect."), *Name));
+		Require(Effects.Arc.IsSet() == (!Effects.ArcBone.IsNone() && Effects.ArcHeight > 0.0f), TEXT("AbilityEffects"),
+			FString::Printf(TEXT("%s: an arc flies from the bone it names, rising a height above 0, and only an arc names them."), *Name));
+		Require(Effects.Channel.IsSet() || Effects.ChannelBone.IsNone(), TEXT("AbilityEffects"),
+			FString::Printf(TEXT("%s: only a channel effect pours from a channel bone."), *Name));
 		Require(AbilityEffects.FilterByPredicate([&Effects](const FVeyraAbilityEffects& Other) { return SameId(Other.Ability, Effects.Ability); }).Num() == 1,
 			TEXT("AbilityEffects"), FString::Printf(TEXT("%s is listed once."), *Name));
 	}

@@ -37,6 +37,14 @@ public:
 	/** What its body is doing, for the frames that follow. */
 	void SetInputs(const FVeyraVanguardAnimInputs& InInputs) { Inputs = InInputs; }
 
+	/**
+	 * Draws Bone at WorldLocation over whatever its clips pose, until cleared (ADR-072 §4): a part of the body flung
+	 * away from it, as a hook on its chain. Presentation only; its rotation stays its clips'.
+	 */
+	void SetBoneTarget(FName Bone, const FVector& WorldLocation) { BoneTargets.Add(Bone, WorldLocation); }
+	void ClearBoneTarget(FName Bone) { BoneTargets.Remove(Bone); }
+	const TMap<FName, FVector>& GetBoneTargets() const { return BoneTargets; }
+
 	const FVeyraVanguardAnimState& GetState() const { return State; }
 	const FVeyraVanguardAnimShape& GetShape() const { return Shape; }
 
@@ -102,4 +110,7 @@ private:
 	FVeyraVanguardAnimShape Shape;
 	FVeyraVanguardAnimState State;
 	FVeyraVanguardAnimInputs Inputs;
+
+	/** The bones drawn where the presentation puts them, in the world. */
+	TMap<FName, FVector> BoneTargets;
 };

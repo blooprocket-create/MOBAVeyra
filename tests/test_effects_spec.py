@@ -26,6 +26,34 @@ class EffectsSpec(unittest.TestCase):
             with self.subTest(system=system["name"]):
                 self.assertEqual(repeated(emitter["name"] for emitter in system.get("emitters", [])), [])
 
+    def test_a_systems_own_user_floats_are_named_once_apart_from_colour_and_scale(self):
+        shared = set(SHIPPED["userVariables"].values())
+        for system in SHIPPED["systems"]:
+            floats = system.get("userFloats", [])
+            with self.subTest(system=system["name"]):
+                names = [entry["name"] for entry in floats]
+                self.assertEqual(repeated(names), [])
+                self.assertFalse(shared & set(names), "the colour and scale are every system's already")
+                for entry in floats:
+                    self.assertIsInstance(entry["default"], (int, float))
+
+    def test_every_user_value_an_expression_reads_is_one_the_system_has(self):
+        # The generator adds the colour, the scale and a system's own floats; an expression reading another would fail to compile.
+        import re
+        shared = set(SHIPPED["userVariables"].values())
+        for system in SHIPPED["systems"]:
+            known = shared | {entry["name"] for entry in system.get("userFloats", [])}
+            for entry in system.get("inputs", []):
+                for name in re.findall(r"User\.(\w+)", entry.get("expression", "")):
+                    with self.subTest(system=system["name"], input=entry["input"]):
+                        self.assertIn(name, known)
+
+    def test_local_space_is_a_flag_on_a_system_or_its_emitters(self):
+        for system in SHIPPED["systems"]:
+            with self.subTest(system=system["name"]):
+                for holder in [system] + system.get("emitters", []):
+                    self.assertIsInstance(holder.get("localSpace", False), bool)
+
 
 if __name__ == "__main__":
     unittest.main()

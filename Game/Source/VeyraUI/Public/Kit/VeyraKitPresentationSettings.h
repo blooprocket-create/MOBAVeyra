@@ -77,9 +77,15 @@ struct FVeyraAbilityEffects
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	TArray<FName> WindupBones;
 
-	/** Looping, from its caster along the cast's direction while it channels, its length the ability's reach. */
+	/**
+	 * Looping, from its caster along the cast's direction while it channels, its length the ability's reach: from
+	 * ChannelBone of its caster's body (the hands it pours from), or its middle when None.
+	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	FVeyraSkillEffectStage Channel;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName ChannelBone;
 
 	/** One-shot, as it commits, in place of the shared flash: at its caster, or where it was aimed if bCommitAtTarget. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
@@ -88,9 +94,49 @@ struct FVeyraAbilityEffects
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	bool bCommitAtTarget = false;
 
-	/** Looping, on each projectile of it in flight, in place of the shared trail. */
+	/** Looping, on each projectile of it in flight, in place of the shared trail, turned to face its flight. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	FVeyraSkillEffectStage Travel;
+
+	/** Whether its projectiles draw no grey-box body: what flies is its Travel effect, or its tether's bone (ADR-072 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	bool bHideProjectileBody = false;
+
+	/**
+	 * A projectile that is part of its caster's body (ADR-072 §4), as a hook on its arm: TetherBone of the caster's body
+	 * flies with each projectile of it, drawn where the projectile is, and when the flight ends (where the server ended
+	 * it) it returns to TetherFromBone at the speed the ability pulls at, or flies at when it pulls nothing. Tether, a
+	 * looping effect, runs from TetherFromBone to it the while. None for a projectile apart from its caster.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName TetherBone;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName TetherFromBone;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Tether;
+
+	/** Looping, where a delayed area of it was aimed, from its commit until it lands: the mark it makes there. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Mark;
+
+	/**
+	 * Looping, flying from ArcBone of its caster's body to where a delayed area of it was aimed, from its commit until
+	 * it lands, rising ArcHeight units over its middle: something thrown there.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Arc;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName ArcBone;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit", meta = (ClampMin = "0"))
+	float ArcHeight = 0.0f;
+
+	/** Looping, over each lingering area of it while it lasts, its length and width the area's shape. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Linger;
 
 	/** One-shot, where a projectile of it ends, or where a delayed area of it lands. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
@@ -170,9 +216,15 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Casts", meta = (ClampMin = "0"))
 	float ProjectileEndWindowSeconds = 0.0f;
 
-	/** The user parameter a channel's effect takes its length by, in units: how far its ability reaches (ADR-072 §4). */
+	/**
+	 * The user parameters an effect that runs along something takes its length and width by, in units (ADR-072 §4): a
+	 * channel's reach, a tether's span, a lingering area's shape.
+	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Casts")
-	FName ChannelLengthParameter;
+	FName LengthParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName WidthParameter;
 
 	/** The effects for Ability, if it has its own; null for the shared presentation's. */
 	const FVeyraAbilityEffects* EffectsOf(FName Ability) const;
