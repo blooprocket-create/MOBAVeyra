@@ -2,7 +2,7 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "6a3d16e7481d07ef754d665c56c7fae947b6f73bd41f187089663f0670a160e0",
+  "kitSha256": "6e3347033d1d491916846f1ad35794be0d26409137781be693e44ce30794e2c3",
   "assets": [
     {
       "id": "angeru",
@@ -430,11 +430,11 @@
       "name": "SK_Aurelisse",
       "archetype": "construct",
       "file": "FBX/SK_Aurelisse.fbx",
-      "sha256": "fa12946d7178de7b7a30f8a2095ae9e88618f941207d2fe344b2973dec58213c",
-      "triangles": 5948,
+      "sha256": "baa97d9745b3cd930b0bb54ea08c6909311091783c70b82874b4ec7a070a33e2",
+      "triangles": 5900,
       "triangleBudget": 6000,
       "bones": 37,
-      "heightCm": 193.51,
+      "heightCm": 203.5,
       "capsuleHalfHeightCm": 92,
       "melee": false,
       "runStrideCm": 214.18,
@@ -482,10 +482,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "69944186ad8321dbe0f85be528c731f2377891e2ad3fec240834e10b09ecdf75",
+      "inputSha256": "731b05ae47980a6d963bd60300d6a79ca715a671424758c255412ba47c74358e",
       "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "c51f87f16dad896b6e613560731e469fd9158b9895c7e0920a9a46a418c25976",
+      "contentSha256": "ef8d4dc85f802d53115befb04ecf782ffb51818168bd1e0c26c05d218ecb20ef",
       "contentVersion": 3,
       "springs": {
         "chains": [
@@ -1488,11 +1488,11 @@
       "name": "SK_Gorraveth",
       "archetype": "humanoid",
       "file": "FBX/SK_Gorraveth.fbx",
-      "sha256": "d44fee3c62838f6c435abcdcd12e159ddc39fdc9b8f88321443ee32682879022",
-      "triangles": 5456,
+      "sha256": "9bc42acaf2e6f8bfa6af1338792ffd9e276fd0268f54f7dcc6ad257004b1ca9f",
+      "triangles": 5408,
       "triangleBudget": 5500,
       "bones": 29,
-      "heightCm": 239.7,
+      "heightCm": 251.19,
       "capsuleHalfHeightCm": 110,
       "melee": true,
       "runStrideCm": 218.54,
@@ -1540,10 +1540,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "cb55af5a7a0d33c0db71c0b395f16c37fe44a4b89663ed4420851130fc94fe7b",
+      "inputSha256": "3b15eadb97a7e93e429a56b6c0491eac3d32c64d05ec7958031e3855649baa80",
       "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "966e9f1ea539a9ac4eb4f3c8eb04f24049cc74f6b0d752cc1d783309171fd659",
+      "contentSha256": "b144077767f11b4cb45612983b9498ba57aef0995e7c26ce8dff263a8b34e34a",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -1567,9 +1567,9 @@
           "head"
         ],
         "color": [
-          0.03,
-          0.03,
-          0.03,
+          1.0,
+          0.45,
+          0.1,
           1.0
         ],
         "scale": 1.0
@@ -1861,7 +1861,7 @@
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "02932d2ef0682ae3a8a4efd40c7329297a6f60e799ef9799468f395f2d806f95",
+      "sha256": "a3b0eaf0cde9b00c2b40222b6e98b99f793f37da8317e9364331946adb6900bb",
       "triangles": 4900,
       "triangleBudget": 5000,
       "bones": 56,
@@ -1913,10 +1913,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "201f1899ca22ae74ed3de85e94aa3909223be332c772f02db7f5ac0f4d52b24c",
+      "inputSha256": "34556393502eef8305d2e4d8d6544e1337e936626c113373572800184ca66e0b",
       "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "9598a93f58dc9c6d4d4b155b0e7673a003198fb05feee352615d4f13b652ea69",
+      "contentSha256": "1ca7822afc8c7248910ae9804e8769f7bf6535f51d4d11fbb023b7580b938a03",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -5767,11 +5767,11 @@
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "0c0eb3e0510ff07a6f6ded742e09134cad17efccc82ff19373479ae2793445fc",
-      "triangles": 4932,
+      "sha256": "eb6d41139e76b00cd96cda7493d99cb021f368fcdc1efa5b133ad95b853626c4",
+      "triangles": 4924,
       "triangleBudget": 5000,
-      "bones": 47,
-      "heightCm": 169.0,
+      "bones": 56,
+      "heightCm": 170.55,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 174.77,
@@ -5819,10 +5819,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "98e745efbe3923745508a119e9cd91ee505639f29700e369161affc6568037f5",
+      "inputSha256": "fd6578151c95962fb2b1a75cc92b343e472d20ebd6f55f65f94dbb15c0e57d82",
       "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "cd7b0d2f95070444c8aa1c4bb918cebd0a56432ee29966ced5077a0636dbc7c6",
+      "contentSha256": "9c0387976169af87c52723f8b6c56ff4554a85f7e94415b6b98bdc91d3c1a240",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -5848,6 +5848,42 @@
       },
       "springs": {
         "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
           {
             "bones": [
               "coat_l_01",
@@ -5949,11 +5985,11 @@
       "name": "SK_Vera_DigIn",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera_DigIn.fbx",
-      "sha256": "6b584a45d2ec052d804b91a6f44af3756cd0c4d29f62f389f24e5a66433b0652",
-      "triangles": 4932,
+      "sha256": "e984908fb59a3e6197ca1567181e77abc8ff17dcdabfc6086c604bc68dee5a2d",
+      "triangles": 4924,
       "triangleBudget": 5000,
-      "bones": 47,
-      "heightCm": 169.0,
+      "bones": 56,
+      "heightCm": 170.55,
       "capsuleHalfHeightCm": 90,
       "melee": false,
       "runStrideCm": 174.77,
@@ -6001,10 +6037,10 @@
           "loop": true
         }
       ],
-      "inputSha256": "d11ed34538a239d10befbcc8c55147324ee4c5533325acc2125405d8570ef4a2",
+      "inputSha256": "de469ba09e775fc4e733e25d45b5fa81a9f9708dea2d9c8498e76a8d690055b4",
       "generatorSha256": "65b2a5906fceb479c622a0fc1d547d9891e0bfa6b79b82ab6c63e7a6b6657b2e",
       "blender": "5.2.1 LTS",
-      "contentSha256": "88d701e935475cc820cfeb679a64644fd9c68db133c54dcfd650ceff85c7e18b",
+      "contentSha256": "5674372f29b97da3cb7a33e234d62e042b96bf8202968d005d992e2c7d46b115",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -6030,6 +6066,42 @@
       },
       "springs": {
         "chains": [
+          {
+            "bones": [
+              "cape_01",
+              "cape_02",
+              "cape_03",
+              "cape_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_l_01",
+              "cape_l_02",
+              "cape_l_03",
+              "cape_l_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
+          {
+            "bones": [
+              "cape_r_01",
+              "cape_r_02",
+              "cape_r_03",
+              "cape_r_end"
+            ],
+            "stiffness": 40.0,
+            "drag": 8.0,
+            "damping": 2.0,
+            "maxAngle": 70.0
+          },
           {
             "bones": [
               "coat_l_01",
