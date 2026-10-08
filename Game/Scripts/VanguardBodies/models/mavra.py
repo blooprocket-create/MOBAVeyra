@@ -2,7 +2,7 @@
 from the game camera. Character Bible §17 and her splash art: lean and long-legged; dark red-brown hair pushed back
 under a red band, loose strands falling round her face, work goggles pushed up on her forehead; a heavy layered work
 coat over a black top and a bare midriff, open at the front, its lapels and high collar faced in its red lining, its
-long skirt torn at the hem and painted there in red-and-white hazard stripes, stained and scorched from the work; belts
+long skirt torn at the hem into tongues of red lining and black, stained and scorched from the work; belts
 of canisters and sealed bottles crossing her body, two large reagent canisters at her right hip; shorts, a dark stocking
 and thigh straps, gloves and heavy boots. On her back the pressurised dispenser rig: a banded steel cylinder with a glass
 window onto the glowing orange reagent, a lozenge hazard mark on the glass, a pump housing on top under a yellow-and-black
@@ -32,7 +32,7 @@ LOOK = {"muscle": 0.35, "chest": 0.86, "breadth": 0.82, "hips": 1.12, "limb": 0.
 
 PALETTE = {
     "skin": (0.84, 0.65, 0.53), "hair": (0.42, 0.18, 0.12), "band": (0.74, 0.13, 0.1), "coat": (0.3, 0.27, 0.27),
-    "lining": (0.7, 0.12, 0.1), "hazard": (0.92, 0.9, 0.86), "top": (0.2, 0.19, 0.2), "shorts": (0.21, 0.2, 0.22),
+    "lining": (0.7, 0.12, 0.1), "hem_dark": (0.2, 0.17, 0.17), "top": (0.2, 0.19, 0.2), "shorts": (0.21, 0.2, 0.22),
     "trousers": (0.28, 0.25, 0.25), "leather": (0.46, 0.29, 0.19), "boot": (0.25, 0.21, 0.19), "sole": (0.16, 0.14, 0.13),
     "glove": (0.29, 0.23, 0.18), "steel": (0.62, 0.62, 0.64), "dark_steel": (0.3, 0.3, 0.32), "brass": (0.74, 0.58, 0.32),
     "glass": (0.55, 0.72, 0.74), "placard": (0.95, 0.8, 0.12), "placard_black": (0.12, 0.12, 0.13), "hose": (0.22, 0.22, 0.24),
@@ -546,8 +546,8 @@ def lance(S, L, dims, mats, grip):
 # ---------------------------------------------------------------------------------------------- the coat's skirt
 def coat_skirt(S, L, dims, mats, worn):
     """Her coat's long skirt: from under the belt round her hips and back to the calves, open at the front and shorter
-    there, flaring as it falls; dark outside and lined red within; its ragged hem torn into tongues painted in
-    alternate red and white hazard stripes, slanted. Each half hangs on its own coat chain (ADR-069 §7)."""
+    there, flaring as it falls; dark outside and lined red within; its ragged hem torn into tongues of red and
+    black in turn, slanted. Each half hangs on its own coat chain (ADR-069 §7)."""
     H = dims["height"]
     pz = L["pelvis"][0][2]
     cz = L["spine_03"][1][2]
@@ -601,7 +601,7 @@ def coat_skirt(S, L, dims, mats, worn):
         def reach(uu, k=k):
             """Each stripe a tongue torn to its own length, pointed."""
             return np.clip(0.55 + 0.45 * paint.hashed(np.full(np.shape(uu), k), 17.0) - 0.18 * np.abs(2.0 * np.asarray(uu) - 1.0), 0.1, 1.0)
-        material = S.material("hazard_%d" % k, PALETTE["lining"] if k % 2 == 0 else PALETTE["hazard"])
+        material = S.material("hem_%d" % k, PALETTE["lining"] if k % 2 == 0 else PALETTE["hem_dark"])
         sheets.append(sheet.Sheet("coat_hem_%d" % k, lambda uu, vv, spread=spread: place(*spread(uu, vv)), material,
                                   lambda P, uu, vv, spread=spread: weights(P, spread(uu, vv)[1]), 2, 2, reach=reach))
     return sheets
