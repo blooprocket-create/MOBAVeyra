@@ -3,7 +3,8 @@ camera. Character Bible §5 and his splash art: a big round head on a round, pea
 oval feet; cream-tan felted fur worn thin and repaired all over with visible seams and patches; mismatched button eyes,
 one dark and one pale, sewn on a little crooked, over a soft pale muzzle with a stitched seam across it; round ears; a
 red child's stitch heart marked with a pale cross on his chest; a torn red scarf wound at his neck, its long tail
-trailing behind him; a small leather harness of straps crossing his body; and a lit lantern in one paw, its warm amber
+trailing behind him; a small leather harness of straps crossing his body, a worn leather backpack on his back; and a
+lit lantern in one paw, its warm amber
 flame the only gentle light on him. His own face stays soft and harmless: plain fabric and flat buttons, never fangs or
 glowing eyes. All the menace belongs to the spectral bear his Inside body adds: an enormous bear of crimson energy
 rearing behind and above him, burning eyes, an open fanged maw and vast clawed arms.
@@ -33,7 +34,7 @@ PALETTE = {
     "fur": (0.84, 0.7, 0.52), "muzzle": (0.93, 0.83, 0.67), "ear": (0.93, 0.77, 0.67), "nose": (0.36, 0.22, 0.18),
     "thread": (0.32, 0.2, 0.16), "red_thread": (0.8, 0.22, 0.2), "button_dark": (0.28, 0.2, 0.17), "button_pale": (0.8, 0.8, 0.78),
     "patch_dark": (0.58, 0.42, 0.28), "patch_rust": (0.7, 0.44, 0.31), "heart": (0.85, 0.18, 0.16), "cross": (0.96, 0.92, 0.82),
-    "scarf": (0.66, 0.12, 0.12), "leather": (0.42, 0.27, 0.17), "brass": (0.82, 0.64, 0.34), "lantern": (0.5, 0.38, 0.25),
+    "scarf": (0.66, 0.12, 0.12), "leather": (0.42, 0.27, 0.17), "pack": (0.47, 0.31, 0.2), "pack_flap": (0.36, 0.23, 0.15), "brass": (0.82, 0.64, 0.34), "lantern": (0.5, 0.38, 0.25),
 }
 # The spectral bear's burning eyes and its fangs and claws (linear, as the generated body gives them).
 SPECTRAL_EYES = (1.0, 0.85, 0.4)
@@ -361,7 +362,8 @@ def heart(S, k, mats, fur):
 def harness(S, L, k, mats, fur, limbs):
     """His small leather harness: a strap from his right shoulder across his chest (clear of the heart) to his left
     hip and back over his back; a second from his left shoulder down his back to his right hip, so the two cross behind
-    him; a belt low round his belly; a brass buckle on the chest strap and studs on the belt."""
+    him; a belt low round his belly; a brass buckle on the chest strap and studs on the belt; and the worn leather
+    backpack the straps carry on his back."""
     torso = keep_to(limbs, ["torso"])
     box = Box(V(-40, -40, 25) * k, V(40, 40, 78) * k)
     shells = []
@@ -399,7 +401,29 @@ def harness(S, L, k, mats, fur, limbs):
         p, n = project(worn, V(0, y * k, belt_z), [V(1.0, 0.0, 0.0)])
         stud = p[0] + n[0] * 0.3 * k
         gear.append(tree.leaf(S, "stud_%d" % j, lambda P, s=stud: sdf.sphere(P, s, 1.0 * k), Box(stud - 2 * k, stud + 2 * k), mats["brass"], bones, protect=0.8))
+    gear += backpack(S, k, mats, worn, bones)
     return shells + gear
+
+
+def backpack(S, k, mats, worn, bones):
+    """A worn leather backpack on his back where the straps cross: a soft rounded body standing off his back, a darker
+    flap over its top half with a brass buckle, and a pouch on each side; it rides his spine as the straps do."""
+    p, n = project(worn, V(0, 0, 52.0 * k), [V(-1.0, 0.0, 0.0)])
+    back = p[0]
+    depth, width, height = 5.5 * k, 11.0 * k, 13.0 * k
+    c = back + V(-depth * 0.85, 0.0, 0.0)
+    parts = [tree.leaf(S, "pack", lambda P: sdf.box(P, c, V(depth, width, height), None, 3.0 * k), Box(c - 16 * k, c + 16 * k), mats["pack"], bones, protect=0.5)]
+    flap_c = c + V(-depth * 0.35, 0.0, height * 0.45)
+    parts.append(tree.leaf(S, "pack_flap", lambda P: sdf.box(P, flap_c, V(depth * 0.75, width * 1.04, height * 0.6), None, 2.5 * k),
+                           Box(flap_c - 16 * k, flap_c + 16 * k), mats["pack_flap"], bones, protect=0.5))
+    clasp = c + V(-depth * 1.15, 0.0, -height * 0.12)
+    parts.append(tree.leaf(S, "pack_buckle", lambda P: sdf.box(P, clasp, V(0.6 * k, 1.8 * k, 1.8 * k), None, 0.3 * k), Box(clasp - 3 * k, clasp + 3 * k),
+                           mats["brass"], bones, protect=0.8))
+    for sign in (1.0, -1.0):
+        pc = c + V(-depth * 0.1, sign * width * 1.05, -height * 0.3)
+        parts.append(tree.leaf(S, "pack_pouch_%d" % (sign > 0), lambda P, pc=pc: sdf.box(P, pc, V(depth * 0.7, 3.0 * k, height * 0.45), None, 1.5 * k),
+                               Box(pc - 10 * k, pc + 10 * k), mats["pack_flap"], bones, protect=0.5))
+    return [Union(parts, k=0.6 * k)]
 
 
 # ---------------------------------------------------------------------------------------------- scarf
