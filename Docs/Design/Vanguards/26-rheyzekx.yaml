@@ -1,0 +1,60 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: rheyzekx
+roster_number: 26
+name: Rheyzekx
+title: The Sharpest Apex
+canon_section: §26
+origin_region: Shatterdeep
+origin_locality: Whetstone City
+nature: scarzekh
+role_tags:
+  - assassin
+  - skirmisher
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Razor Anatomy
+  q: Reaping Arc
+  w: Serrated Edge
+  e: Razorbound
+  r: Skyrend
+marks: []
+cc: []
+mobility:
+  - dash
+grants: []
+stealth: []
+owned_entities: []
+vision_touchpoints: []
+guards:
+  - W's active empowers the next Q, never the next basic attack.
+  - Razor Anatomy supplies the ability-to-basic cleave cadence; it must not turn him into an Attack Speed or on-hit carry.
+  - Razorbound refreshes only when Razorbound itself kills a valid unit during the dash. Passing through, assisting,
+    or a later death does not refresh it.
+  - Razorbound may use Fluxborn, jungle wildlife, summons or Vanguards as lethal reset opportunities; this is not a
+    jungle-role requirement.
+  - Skyrend has a clear visible windup and releases three sequential physical-damage waves created by separate slashes.
+  - He has no hard crowd control and no innate stealth.
+  - His paired scythes are natural forelimb blades. Never add duplicated floating scythes or reinterpret them as a polearm.
+  - Rheyzekx is the Scarzekh Alpha of Whetstone City, is feared and worshipped by his people, and treats the city as his
+    horde rather than a community he serves.
+  - His response to a genuinely superior being is controlled, surgical bloodlust and obsessive study, not berserk rage.
+sheet:
+  file: null
+  status: missing
+  register_refs:
+    - G1
