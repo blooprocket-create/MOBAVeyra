@@ -361,8 +361,8 @@ def crystal_parts(S, name, base, direction, length, rb, mats, bones, hollow=Fals
 # The crest's profile along the trunk (t from the rump): its spines' length there, in trunks, and how far they lean back
 # (degrees): longest over the shoulders, shortening down the back.
 CREST_T = [0.15, 0.4, 0.6, 0.74, 0.82, 0.93]
-CREST_LENGTH = [0.42, 0.78, 1.18, 1.62, 1.66, 1.2]
-CREST_LEAN = [58, 50, 42, 34, 30, 24]
+CREST_LENGTH = [0.46, 0.84, 1.18, 1.4, 1.42, 1.1]
+CREST_LEAN = [68, 64, 60, 56, 54, 50]
 
 
 def crest_spines(seed):
@@ -422,7 +422,7 @@ def crest(S, L, T, mats, body, bones, loft, seed):
     # At the root of the neck, leaning back over the shoulders.
     n0, n1 = p0(L, "neck_01"), p1(L, "neck_01")
     base = n0 + (n1 - n0) * 0.3 + V(0, 0, T * 0.62)
-    parts.append(crystal_parts(S, "neck_spine", base, V(-np.sin(np.radians(22)), 0, np.cos(np.radians(22))), T * 1.05, T * 0.16, mats,
+    parts.append(crystal_parts(S, "neck_spine", base, V(-np.sin(np.radians(48)), 0, np.cos(np.radians(48))), T * 1.05, T * 0.16, mats,
                                anatomy.rigid("neck_01"), hollow=True))
     return Union(parts)
 
