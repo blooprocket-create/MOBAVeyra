@@ -179,6 +179,20 @@ Every asset declares one primary texture strategy:
 
 Do not automatically create unique 4K texture sets just because a mesh can be unwrapped.
 
+The Crucible terrain importer side-projects cliff colour and packed surface data,
+and uses the shared world-aligned normal helper for steep faces. Top-projected
+overgrowth fades out with the same slope mask that introduces rock. The environment
+kit blends moss normals with moss colour coverage, so moss-covered caps do not
+inherit exposed slate grooves. Both importers share `world_aligned` in
+`Game/Scripts/veyra_material_graph.py`; its normal output uses the engine function's
+default tangent-space convention.
+
+Environment moss colour and foliage detail use the full `XYZ Texture` projection,
+including upward-facing surfaces. Do not use the side-only `XY Texture` output
+as a top projection: it stretches into directional bands on caps and canopies.
+Review both tops and steep sides from `Play_Jungle_A0` and `Play_Wall_03` after
+rebuilding these shared materials.
+
 ### 5.5 Material slots
 
 Keep slots intentional.
@@ -330,6 +344,31 @@ From Veyra's gameplay camera:
 
 Judge materials in the Crucible, not only on a close-up sphere.
 
+The generated Crucible moss exposes `cushionContrast` and `cushionRelief` in
+`Game/ArtSource/Environment/Terrain/TerrainTextures.json`, each in [0, 1]. These
+control fine cushion colour and height contrast independently of broad moss/soil
+coverage. Keep small cushions subordinate to the broad colour field at gameplay
+distance; verify shared use on ground, cliff caps and foliage after regeneration.
+
+For the Shore layer, tune pebble coverage, roughness and normal strength together:
+visible sand between pebble drifts should remain legible at the crossing cameras.
+Texture tuning does not validate or alter the bank footprint, crossing geometry
+or decorative placement. Review wet-edge glare separately from dry-bank detail.
+
+River surface response is owned by `water` in
+`Game/ArtSource/Environment/Terrain/TerrainTextures.json`. Review roughness at the
+overview, all three gameplay crossings and both Flux Well cameras: a reduction
+in peak glare must preserve water colour and bank readability. Reproduce a
+water-only material iteration with `Game/Scripts/BuildTerrainArt.ps1 -WaterOnly`;
+this regenerates the source texture manifest, imports only the water texture and
+rebuilds `M_CrucibleWater`. The terrain material and map are not rebuilt. Use
+`-ImportOnly` only when the manifest already matches the source profile. Capture
+both high and low profiles through `Game/Scripts/CaptureBattleground.ps1` before
+accepting the result; still captures do not validate moving reflections or combat.
+`water.specular` supplies the `WaterSpecular` material parameter explicitly;
+roughness and specular strength should be judged independently, since a broader
+reflection can obscure more of the river even when its peak is less bright.
+
 ## 9. Nanite
 
 ### 9.1 Default candidates
@@ -377,6 +416,23 @@ Therefore:
 ## 10. Foliage
 
 Trees are **Veyra MOBA trees**, not generic high-detail forest assets.
+
+The current [Crucible environment kit](../../Game/ArtSource/Environment/README.md)
+uses Two Sided Foliage shading for its thin grass/reed surfaces, with the existing
+data-owned surface colour also supplying transmission colour. Solid canopy masses
+retain Default Lit shading. Rebuild these shared materials through the importer;
+judge their response under the Crucible's light at gameplay distance before raising
+tints to compensate for dark back faces.
+
+The environment generator's tree and shrub families expose `leafClusters`,
+`clusterFlatten` and `edgeLeaves` for layered crowns with pointed silhouette
+detail. Each generated cluster is bounded by its source mass ellipsoid; the
+generator does not place trees or expand gameplay blockers. Grass and reeds expose
+`bladeWidthRatio`, `leanRatio` and `bladeFold` for folded, tapered blades. All
+controls live in `CrucibleKit.json`; regenerate the FBX and manifest, then import
+through the existing collision-free environment pipeline. Check triangle budgets,
+canopy obstruction, wind and shadows in Unreal; source bounds alone do not prove
+competitive readability or acceptable GPU cost.
 
 A tree generator should expose art-directable controls such as:
 

@@ -27,7 +27,7 @@
     "sunLux": 22000,
     "sunTemperature": 4800,
     "shadowDistance": 20000,
-    "skyIntensity": 1.1,
+    "skyIntensity": 3.3,
     "exposureEV100": 12,
     "hazeBaseZ": -400,
     "hazeDensity": 0.006,

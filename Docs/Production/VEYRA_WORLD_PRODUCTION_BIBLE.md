@@ -450,6 +450,23 @@ A local asset task may not solve itself by changing:
 
 Global lighting changes require whole-map screenshot regression.
 
+The Crucible's lighting controls live in
+`Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json` and are consumed by
+`VeyraReviewScene.cpp` during map generation. Tune shadow fill through the skylight
+before compensating with local material tints. Rebuild through
+`Game/Scripts/BuildBattlegroundMap.ps1`, validate through
+`Game/Scripts/ValidateBattleground.ps1`, and capture all named review cameras before
+and after a global change. Compare team-equivalent routes and terrain samples as
+well as shaded foliage, exposed paving, objectives and bases. A successful still
+review does not replace live combat, temporal, performance or package validation.
+
+The generation wrapper disables volumetric fog for that process at startup to
+avoid the pinned renderer's volumetric-fog path while landscape edit layers create
+temporary views. It waits for the editor process itself, not the lifetime of its
+asset-cache child services. Neither setting changes authored fog or packaged
+runtime rendering. Run generation and map capture sequentially: an open capture
+holds the generated map file and prevents replacement.
+
 Local lights should be:
 - justified;
 - limited;
