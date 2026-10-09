@@ -3,7 +3,7 @@
 **Version:** 0.1  
 **Status:** Production guidance for Veyra-authored visual assets and effects  
 **Engine target:** Unreal Engine 5.8  
-**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [Art Direction](../Design/Art_Direction_v0.1.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [World Validation Standard](VEYRA_WORLD_VALIDATION_STANDARD.md)
+**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [Art Direction](../Design/Art_Direction_v0.1.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [World Validation Standard](VEYRA_WORLD_VALIDATION_STANDARD.md), [Visual Production Standard](VEYRA_VISUAL_PRODUCTION_STANDARD.md)
 
 ## 1. Purpose
 
