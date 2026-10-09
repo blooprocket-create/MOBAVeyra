@@ -1,6 +1,6 @@
 # Veyra Production Guidance
 
-This directory defines **how Veyra's visual world is built**. It does not replace game-design canon, the art direction, or repository architecture.
+This directory defines **how Veyra's visual world and client-facing presentation are produced, reviewed, and validated**. It does not replace game-design canon, approved client behavior, the art direction, or repository architecture.
 
 ## Authority order
 
@@ -19,6 +19,9 @@ If a production task would require changing gameplay topology, art canon, an arc
 - [`VEYRA_WORLD_PRODUCTION_BIBLE.md`](VEYRA_WORLD_PRODUCTION_BIBLE.md) — how the Meridian Crucible is authored as a playable world: the existing `World.json` layout, generated battleground map, protected gameplay geometry, terrain, water, PCG, environmental state, and agent review.
 - [`VEYRA_ASSET_AND_VFX_PIPELINE.md`](VEYRA_ASSET_AND_VFX_PIPELINE.md) — how Blender and Unreal divide responsibility for meshes, materials, foliage, animation, Niagara, dynamic effects, and reusable asset-family generators.
 - [`VEYRA_WORLD_VALIDATION_STANDARD.md`](VEYRA_WORLD_VALIDATION_STANDARD.md) — acceptance gates for generated assets and map changes: reproducibility, navigation, readability, performance, screenshots, cooking/packaging, and rollback.
+- [`VEYRA_VISUAL_PRODUCTION_STANDARD.md`](VEYRA_VISUAL_PRODUCTION_STANDARD.md) — cross-game presentation quality gates for client, HUD, Vanguards, animation, VFX, Crucible, rendering, accessibility, profiling, and author art approval.
+- [`VEYRA_VISUAL_UPGRADE_ROADMAP.md`](VEYRA_VISUAL_UPGRADE_ROADMAP.md) — baseline audit, reusable presentation systems, vertical-slice sign-off, phased rollout, and hardening sequence.
+- [`VEYRA_VISUAL_REVIEW_TEMPLATE.md`](VEYRA_VISUAL_REVIEW_TEMPLATE.md) — fillable implementation/PR evidence, captures, measurements, defect grading, and sign-off.
 
 Visual work must also read [`Docs/Design/Art_Direction_v0.1.md`](../Design/Art_Direction_v0.1.md). Crucible layout/world-authoring work must also read [`Docs/Design/Veyra_Battleground_Bible_v0.9.md`](../Design/Veyra_Battleground_Bible_v0.9.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), and [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md).
 
