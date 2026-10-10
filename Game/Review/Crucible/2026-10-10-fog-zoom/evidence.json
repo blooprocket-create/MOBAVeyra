@@ -1,0 +1,31 @@
+{
+  "startDistance": 100,
+  "profile": "low",
+  "niagaraVisible": false,
+  "images": [
+    {
+      "file": "Distance_base.png",
+      "sha256": "210fd84cbae66b6712da466c551d4302cd60450d463a975f188ddc48985a54c0"
+    },
+    {
+      "file": "Distance_off.png",
+      "sha256": "80269dac94516a33cce02e809e88c822c98869b91d91b7c961ecbbcef6016bbc"
+    },
+    {
+      "file": "MaxDistance_base.png",
+      "sha256": "4847c1df9fc2ff5c56b881d2ea19baa5139fac4f7f9d1218400f691cb735cf0f"
+    },
+    {
+      "file": "MaxDistance_off.png",
+      "sha256": "ccc96e138fd101b891ca0e1af5c72df4def28d0bdf4f05b61379311b5e0db6db"
+    },
+    {
+      "file": "MinDistance_base.png",
+      "sha256": "b0131b7fb2f8fefa2a31cfeda5c9a9e9ab8aeb1f9543c7c367d04a61bf133015"
+    },
+    {
+      "file": "MinDistance_off.png",
+      "sha256": "7c13709bd02c03acb2326d55c39169ce73d7441e40b7cc0bfb2a3a978f648b88"
+    }
+  ]
+}

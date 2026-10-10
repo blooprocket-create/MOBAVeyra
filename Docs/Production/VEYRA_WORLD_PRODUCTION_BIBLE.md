@@ -450,6 +450,12 @@ broad shade bands and rolling internal curls. `Effects.json` owns emission and
 motion; `PresentationMaterials.json` owns the toon material. The persistent fog
 base remains independent of particle scalability. Neither layer grants vision.
 
+`DefaultEngine.ini` sets `r.LocalFogVolume.GlobalStartDistance=100` so the base
+is not clipped by the renderer's distant-fog start plane at close gameplay zoom.
+Validate the minimum, standard and maximum configured camera distances with
+Niagara hidden, comparing local fog enabled/disabled. A high overview camera
+alone does not establish close-camera readability.
+
 ## 12. Lighting and atmosphere
 
 Global lighting is a shared world system.
