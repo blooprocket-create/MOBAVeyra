@@ -316,6 +316,12 @@ Capture modes:
 
 ### 13.1 Existing screenshot path
 
+Authored Dense Fog Niagara components are advanced by three seconds at a fixed
+1/60-second simulation step, then paused before the compilation barriers. This
+lets editor stills show the populated bank instead of an empty initial emitter.
+Motion validation must additionally advance simulation between captures; a
+warmed still does not demonstrate animation or live-match performance.
+
 The Crucible editor capture script pilots each camera and finishes asset
 compilation twice, allowing five seconds of rendered frames after each barrier.
 The second pass catches deferred material jobs submitted by the first frames.

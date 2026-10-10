@@ -41,6 +41,8 @@ for command in MODE_COMMANDS[MODE] + list(filter(None, os.environ.get("VEYRA_REV
 if MODE in MODE_VIEWS:
     unreal.AutomationLibrary.set_editor_viewport_view_mode(MODE_VIEWS[MODE])
 ACTORS = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
+FOG_EFFECTS = [component for actor in ACTORS if "Veyra.AuthoredDenseFog" in [str(t) for t in actor.tags]
+               for component in actor.get_components_by_class(unreal.NiagaraComponent)]
 CAMERAS = sorted([a for a in ACTORS if isinstance(a, unreal.CameraActor) and "Veyra.ReviewCamera" in [str(t) for t in a.tags]], key=lambda a: a.get_actor_label())
 FILTER = os.environ.get("VEYRA_REVIEW_VIEWS", "")
 if FILTER:
@@ -81,6 +83,15 @@ def tick(delta):
             unreal.log(f"Preparing {camera.get_actor_label()}: compilation pass {STATE['readiness_pass'] + 1}")
             STATE["compiling"] = True
             try:
+                # Editor worlds do not advance these particles as a live match does.
+                # Prepare one stable three-second simulation for the review stills.
+                if FOG_EFFECTS and not STATE.get("effects_prepared", False):
+                    for effect in FOG_EFFECTS:
+                        effect.activate(True)
+                        effect.set_paused(False)
+                        effect.advance_simulation(180, 1.0 / 60.0)
+                        effect.set_paused(True)
+                    STATE["effects_prepared"] = True
                 unreal.SystemLibrary.execute_console_command(WORLD, "Editor.AsyncAssetCompilationFinishAll")
             finally:
                 STATE["compiling"] = False
