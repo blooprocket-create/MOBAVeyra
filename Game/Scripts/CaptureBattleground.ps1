@@ -46,7 +46,8 @@ $env:VEYRA_REVIEW_MODE = $(if ($Mode -eq 'Value') { 'Lit' } else { $Mode })
 $script = Join-Path $game 'Plugins/VeyraWorldTools/Scripts/CaptureCrucible.py'
 $editor = Join-Path $engine 'Engine/Binaries/Win64/UnrealEditor.exe'
 $arguments = @("`"$project`"", "-ExecutePythonScript=`"$script`"", '-EnablePlugins=PythonScriptPlugin', '-unattended', '-nosplash', '-nosound', '-RenderOffscreen', '-NoTextureStreaming', '-windowed', '-ResX=1920', '-ResY=1080', "-ABSLOG=`"$output/Capture.log`"")
-$process = Start-Process -FilePath $editor -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
+$process = Start-Process -FilePath $editor -ArgumentList $arguments -WindowStyle Hidden -PassThru
+$process.WaitForExit()
 # The manifest is written only once every view is captured; the editor's own exit code on quitting is not reliable.
 if (-not (Test-Path -LiteralPath $manifest) -or (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).status -ne 'captured') { throw "Capture failed (editor exit code $($process.ExitCode)). Inspect $output/Capture.log and failure.txt." }
 if ($Mode -eq 'Value') {
