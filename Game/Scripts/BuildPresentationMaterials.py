@@ -504,6 +504,49 @@ def build_graphic_shape(material, spec):
     assert EDIT.connect_material_expressions(custom, "", covered, ""), "shape coverage"
     assert EDIT.connect_material_property(covered, "", unreal.MaterialProperty.MP_OPACITY), "opacity"
 
+TOON_FOG_HLSL = """
+// Scalloped cloud silhouettes and two broad shade bands, rolling over each particle's life.
+float2 P = UV * 2.0 - 1.0;
+float Age = saturate(Life);
+float Phase = Age * CurlSpeed.r;
+float Angle = atan2(P.y, P.x);
+float Radius = length(P);
+float Scallop = 0.76 + 0.09 * sin(5.0 * Angle + Phase) + 0.05 * sin(3.0 * Angle - Phase);
+float Edge = smoothstep(0.0, EdgeSoftness.r, Scallop - Radius);
+float Fade = smoothstep(0.0, 0.2, Age) * (1.0 - smoothstep(0.65, 1.0, Age));
+float Curl = sin(P.x * 4.0 + Phase) * 0.13 + sin(P.y * 5.0 - Phase) * 0.1;
+float Lit = smoothstep(-0.03, 0.03, P.y + Curl + 0.12);
+float Core = smoothstep(-0.02, 0.02, P.y + Curl - 0.35) * 0.12;
+float3 Tint = Color.rgb * lerp(ShadowValue.r, 1.0, Lit) + Core;
+return float4(Tint * GlowGain.r, Edge * Fade * Opacity.r);
+"""
+
+
+def build_toon_fog(material, spec):
+    material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    material.set_editor_property("used_with_niagara_sprites", True)
+    inputs = [("UV", expression(material, unreal.MaterialExpressionTextureCoordinate, -1400, -400), ""),
+              ("Life", expression(material, unreal.MaterialExpressionParticleRelativeTime, -1400, -250), ""),
+              ("Color", expression(material, unreal.MaterialExpressionParticleColor, -1400, -100), "")]
+    for i, key in enumerate(("opacity", "glowGain", "shadowValue", "curlSpeed", "edgeSoftness")):
+        inputs.append((key[0].upper() + key[1:], expression(material, unreal.MaterialExpressionConstant, -1400, 100+i*100, r=spec[key]), ""))
+    custom = expression(material, unreal.MaterialExpressionCustom, -850, 0, code=TOON_FOG_HLSL,
+                        description="VeyraToonFog", output_type=unreal.CustomMaterialOutputType.CMOT_FLOAT4,
+                        inputs=[custom_input(name) for name, _, _ in inputs])
+    for name, node, output in inputs:
+        assert EDIT.connect_material_expressions(node, output, custom, name)
+    rgb = expression(material, unreal.MaterialExpressionComponentMask, -600, -100, r=True, g=True, b=True, a=False)
+    alpha = expression(material, unreal.MaterialExpressionComponentMask, -600, 100, r=False, g=False, b=False, a=True)
+    assert EDIT.connect_material_expressions(custom, "", rgb, "")
+    assert EDIT.connect_material_expressions(custom, "", alpha, "")
+    assert EDIT.connect_material_property(unexposed(material, rgb, -400, -100), "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    depth_fade = expression(material, unreal.MaterialExpressionDepthFade, -350, 150,
+                            fade_distance_default=spec["depthFadeDistance"])
+    assert EDIT.connect_material_expressions(alpha, "", depth_fade, "Opacity")
+    assert EDIT.connect_material_property(depth_fade, "", unreal.MaterialProperty.MP_OPACITY)
+
+
 TELEGRAPH_HLSL = """
 // The shaded ground under a telegraph (ADR-068, section 4), on a flat quad: P runs from -1 to 1 across it. A circle and a
 // sector fill the quad round its centre, a sector facing +U; a rectangle fills it from its origin end (U = 0). Each is a
@@ -574,7 +617,7 @@ def build_telegraph_fill(material, spec):
 
 BUILDERS = {"overlayFlash": build_overlay_flash, "postProcessOutline": build_post_process_outline, "postProcessInk": build_post_process_ink,
             "particleSmoke": build_particle_smoke, "particleEffect": build_particle_effect, "graphicShape": build_graphic_shape,
-            "telegraphFill": build_telegraph_fill}
+            "telegraphFill": build_telegraph_fill, "toonFog": build_toon_fog}
 
 # -VeyraOnly=A,B builds just those materials; without it, every one.
 ONLY = next((token.split("=", 1)[1].split(",") for token in unreal.SystemLibrary.get_command_line().split() if token.startswith("-VeyraOnly=")), None)

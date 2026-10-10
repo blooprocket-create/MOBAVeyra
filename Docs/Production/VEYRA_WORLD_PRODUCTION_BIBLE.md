@@ -436,6 +436,20 @@ Dense Fog boundaries must remain legible on all supported graphics-quality level
 
 No gameplay-critical fog boundary may depend solely on a particle system that disappears on low settings.
 
+The 2026-10-10 author direction replaces reed-filled circles and runtime floor
+markers with local fog volumes. `VeyraDenseFogVisuals` in the presentation module
+is shared by runtime fog banks and VeyraWorldTools map generation. It consumes
+the existing layout circles; overlapping circles already form one Vision volume.
+It resolves ground height through VeyraSurfacePlacement, creates no collision,
+and never decides concealment. `DefaultGame.ini`'s DenseFogVisualSettings owns
+the visual profile. Native local fog provides the baseline without requiring
+volumetric-fog scalability; evaluate high/low captures and in-volume unit and
+telegraph readability. Following the author's toon-and-motion clarification,
+`NS_VeyraDenseFog` adds continuously moving Niagara wisps with scalloped silhouettes,
+broad shade bands and rolling internal curls. `Effects.json` owns emission and
+motion; `PresentationMaterials.json` owns the toon material. The persistent fog
+base remains independent of particle scalability. Neither layer grants vision.
+
 ## 12. Lighting and atmosphere
 
 Global lighting is a shared world system.

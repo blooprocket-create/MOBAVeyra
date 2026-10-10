@@ -51,7 +51,7 @@ class PresentationMaterialsSpec(unittest.TestCase):
                 self.assertGreater(entry["glowGain"], 0.0, entry["name"])
 
     def test_a_missing_value_is_refused_rather_than_defaulted(self):
-        for kind in ("overlayFlash", "particleSmoke", "particleEffect"):
+        for kind in ("overlayFlash", "particleSmoke", "particleEffect", "toonFog"):
             entry = material(kind)
             del entry["glowGain"]
             self.assertEqual(checker.validate(with_material(entry)), [f"materials[0] ({entry['name']}): glowGain is required"])
