@@ -15,7 +15,7 @@ import sys
 import unreal
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from veyra_material_graph import Graph, link_named, sample  # noqa: E402
+from veyra_material_graph import Graph, link_named, sample, world_aligned  # noqa: E402
 
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Environment" / "Terrain"
@@ -138,6 +138,8 @@ def build_material(textures):
     uv_y = g.op(unreal.MaterialExpressionDivide, 3, side_y, slate["tile"])
     rock_x = sample(g, 4, textures["T_Crucible_Slate_BaseColor"], uv_x, unreal.MaterialSamplerType.SAMPLERTYPE_COLOR)
     rock_y = sample(g, 4, textures["T_Crucible_Slate_BaseColor"], uv_y, unreal.MaterialSamplerType.SAMPLERTYPE_COLOR)
+    orm_x = sample(g, 4, textures["T_Crucible_Slate_ORMH"], uv_x, unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+    orm_y = sample(g, 4, textures["T_Crucible_Slate_ORMH"], uv_y, unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
     facing_x = g.node(unreal.MaterialExpressionComponentMask, 1, r=True, g=False, b=False, a=False)
     g.link(vertex_normal, "", facing_x, "")
     facing_x_abs = g.node(unreal.MaterialExpressionAbs, 2)
@@ -146,13 +148,18 @@ def build_material(textures):
     g.link(rock_y, "RGB", rock, "A")
     g.link(rock_x, "RGB", rock, "B")
     g.link(facing_x_abs, "", rock, "Alpha")
+    rock_orm = g.node(unreal.MaterialExpressionLinearInterpolate, 5)
+    g.link(orm_y, "RGB", rock_orm, "A")
+    g.link(orm_x, "RGB", rock_orm, "B")
+    g.link(facing_x_abs, "", rock_orm, "Alpha")
     painted_and_rock = g.node(unreal.MaterialExpressionLinearInterpolate, 7)
     g.link(blends["BaseColor"], "", painted_and_rock, "A")
     g.link(rock, "", painted_and_rock, "B")
     g.link(steep, "", painted_and_rock, "Alpha")
     flat_normal = g.node(unreal.MaterialExpressionConstant3Vector, 6, constant=unreal.LinearColor(0.0, 0.0, 1.0, 0.0))
+    projected_normal, projected_output = world_aligned(g, 6, "WorldAlignedNormal", textures["T_Crucible_Slate_Normal"], slate["tile"], "XYZ Texture")
     rock_normal = g.node(unreal.MaterialExpressionLinearInterpolate, 7)
-    g.link(slate["normal"], "RGB", rock_normal, "A")
+    g.link(projected_normal, projected_output, rock_normal, "A")
     g.link(flat_normal, "", rock_normal, "B")
     softened = g.scalar(6, "CliffNormalFlatten", LOOK["cliffNormalFlatten"], "Cliffs")
     g.link(softened, "", rock_normal, "Alpha")
@@ -162,7 +169,7 @@ def build_material(textures):
     g.link(steep, "", normal_out, "Alpha")
     orm_out = g.node(unreal.MaterialExpressionLinearInterpolate, 8)
     g.link(blends["ORMH"], "", orm_out, "A")
-    g.link(slate["orm"], "RGB", orm_out, "B")
+    g.link(rock_orm, "", orm_out, "B")
     g.link(steep, "", orm_out, "Alpha")
 
     # Large-scale variation over every layer: brightness and a warm-cool shift, so no tiling shows across a lane.
@@ -197,6 +204,9 @@ def build_material(textures):
     g.link(macro, "B", patches, "Value")
     strength = g.scalar(9, "OvergrowthStrength", overgrowth["strength"], "Variation")
     patches = g.op(unreal.MaterialExpressionMultiply, 10, patches, strength)
+    # Top-projected moss belongs on the ground, not on the side-projected cliff faces.
+    # Reuse the same slope transition as the cliff layer so the two cannot disagree.
+    patches = g.op(unreal.MaterialExpressionMultiply, 10, patches, flatness)
     overgrown = g.node(unreal.MaterialExpressionLinearInterpolate, 10)
     g.link(varied, "", overgrown, "A")
     g.link(bases["Moss"], "RGB", overgrown, "B")
@@ -242,6 +252,8 @@ def build_water(textures):
     """M_CrucibleWater: Single Layer Water over the generated river surface, its ripples flowing downstream along the
     flow its vertices carry, foam along the shore where they say the water is shallowest."""
     water = PROFILE["water"]
+    for control in ("roughness", "specular"):
+        assert isinstance(water[control], (int, float)) and 0.0 <= water[control] <= 1.0, f"water.{control} must be in [0, 1]"
     path = f"{DEST}/M_CrucibleWater"
     material = unreal.load_asset(path) if ASSETS.does_asset_exist(path) else None
     if not material:
@@ -319,6 +331,7 @@ def build_water(textures):
                         default_value=unreal.LinearColor(*water["foamColor"], 1.0))
     base = g.op(unreal.MaterialExpressionMultiply, 12, foam_color, foam, a_out="RGB")
     still = g.scalar(10, "WaterRoughness", water["roughness"], "Water")
+    specular = g.scalar(10, "WaterSpecular", water["specular"], "Water")
     frothy = g.node(unreal.MaterialExpressionConstant, 10, r=0.6)
     roughness = g.node(unreal.MaterialExpressionLinearInterpolate, 12)
     g.link(still, "", roughness, "A")
@@ -336,6 +349,7 @@ def build_water(textures):
     EDIT.connect_material_property(normal, "", unreal.MaterialProperty.MP_NORMAL)
     EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS)
     EDIT.connect_material_property(foam, "", unreal.MaterialProperty.MP_OPACITY)
+    EDIT.connect_material_property(specular, "", unreal.MaterialProperty.MP_SPECULAR)
     errors = EDIT.recompile_material(material)
     assert not errors, f"{material.get_name()} does not compile: {errors}"
     ASSETS.save_loaded_asset(material)
@@ -343,16 +357,19 @@ def build_water(textures):
 
 def main():
     SAVED.mkdir(parents=True, exist_ok=True)
+    water_only = "-veyrawateronly" in unreal.SystemLibrary.get_command_line().lower().split()
     textures = {}
     for entry in MANIFEST["files"]:
+        if water_only and entry["layer"] != "Water":
+            continue
         texture = import_texture(entry)
         textures[Path(entry["name"]).stem] = texture
-    material = build_material(textures)
+    material = None if water_only else build_material(textures)
     water = build_water(textures)
-    report = {"material": material.get_path_name(), "textures": sorted(t.get_path_name() for t in textures.values()),
-              "water": water.get_path_name(), "layers": [name for name, _ in LANDSCAPE_LAYERS]}
+    report = {"material": material.get_path_name() if material else None, "textures": sorted(t.get_path_name() for t in textures.values()),
+              "water": water.get_path_name(), "layers": [] if water_only else [name for name, _ in LANDSCAPE_LAYERS]}
     (SAVED / "import.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-    unreal.log(f"Imported {len(textures)} terrain textures and built {material.get_path_name()}.")
+    unreal.log(f"Imported {len(textures)} textures and built {'water only' if water_only else 'terrain and water'}.")
 
 
 main()

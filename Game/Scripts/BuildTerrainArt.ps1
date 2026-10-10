@@ -9,6 +9,8 @@
     need their Git LFS locks before a reimport (ADR-006 §9). The editor must already be built.
 .PARAMETER ImportOnly
     Reuse the textures already generated.
+.PARAMETER WaterOnly
+    Import only the water normal texture and rebuild the river material. Generation still validates the full profile.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -17,6 +19,7 @@
 [CmdletBinding()]
 param(
     [switch]$ImportOnly,
+    [switch]$WaterOnly,
     [string]$EngineRoot
 )
 $ErrorActionPreference = 'Stop'
@@ -35,6 +38,8 @@ $script = Join-Path $PSScriptRoot 'ImportTerrainArt.py'
 $log = Join-Path $saved 'Import.log'
 $report = Join-Path $saved 'import.json'
 if (Test-Path -LiteralPath $report) { Remove-Item -LiteralPath $report }
-& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-AllowCommandletRendering' '-nosplash' '-nosound' "-ABSLOG=$log" *> (Join-Path $saved 'Import-console.log')
+$scopeArguments = @()
+if ($WaterOnly) { $scopeArguments += '-VeyraWaterOnly' }
+& $editor $project '-run=pythonscript' "-script=$script" '-EnablePlugins=PythonScriptPlugin' '-unattended' '-AllowCommandletRendering' '-nosplash' '-nosound' "-ABSLOG=$log" @scopeArguments *> (Join-Path $saved 'Import-console.log')
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw "Terrain import failed. See $log" }
-Write-Host "Terrain textures imported and M_CrucibleTerrain built. Report: $report"
+Write-Host "Requested terrain/water assets imported. Report: $report"

@@ -25,9 +25,9 @@
     "glyphStrength": 1.0,
     "glyphPulseRate": 0.9,
     "glyphPulseDepth": 0.25,
-    "leafColour": [0.55, 0.8, 0.45],
-    "grassRootColour": [2.5, 3.0, 2.0],
-    "grassTipColour": [7.0, 7.5, 4.0],
+    "leafColour": [1.1, 1.6, 1.15],
+    "grassRootColour": [3.0, 3.5, 2.5],
+    "grassTipColour": [8.0, 9.0, 5.5],
     "foliageRoughness": 0.78,
     "leafDetailTileCm": 160,
     "windSpeed": 1.3,
@@ -41,10 +41,10 @@
     { "id": "Pillar", "kind": "pillar", "variants": 3, "radiusMetres": 0.45, "heightMetres": [1.6, 4.2], "flutes": 16, "fluteDepth": 0.035, "triangles": 6000 },
     { "id": "Block", "kind": "block", "variants": 4, "sizeMetres": [1.4, 0.8, 0.7], "voxelMetres": 0.04, "roughness": 0.015, "triangles": 3000 },
     { "id": "Stele", "kind": "stele", "variants": 3, "sizeMetres": [1.2, 0.42, 2.8], "glyphStrokes": [5, 8], "triangles": 4000 },
-    { "id": "Tree", "kind": "tree", "variants": 3, "heightMetres": [7.5, 10.0], "trunkRadiusMetres": 0.42, "canopyRadiusMetres": [3.0, 4.2], "masses": [7, 11], "triangles": 9000 },
-    { "id": "Shrub", "kind": "shrub", "variants": 3, "radiusMetres": [0.7, 1.3], "masses": [4, 7], "triangles": 2500 },
+    { "id": "Tree", "kind": "tree", "variants": 3, "heightMetres": [7.5, 10.0], "trunkRadiusMetres": 0.42, "canopyRadiusMetres": [3.0, 4.2], "masses": [7, 11], "leafClusters": 5, "clusterFlatten": 0.42, "edgeLeaves": 8, "triangles": 9000 },
+    { "id": "Shrub", "kind": "shrub", "variants": 3, "radiusMetres": [0.7, 1.3], "masses": [4, 7], "leafClusters": 4, "clusterFlatten": 0.45, "edgeLeaves": 6, "triangles": 2500 },
     { "id": "Fern", "kind": "fern", "variants": 3, "fronds": [7, 11], "lengthMetres": [0.6, 1.0], "triangles": 2500 },
-    { "id": "Reeds", "kind": "grass", "variants": 3, "blades": [28, 40], "heightMetres": [0.9, 1.5], "spreadMetres": 0.55, "triangles": 1500 },
-    { "id": "Grass", "kind": "grass", "variants": 3, "blades": [22, 30], "heightMetres": [0.35, 0.55], "spreadMetres": 0.5, "triangles": 800 }
+    { "id": "Reeds", "kind": "grass", "variants": 3, "blades": [28, 40], "heightMetres": [0.9, 1.5], "spreadMetres": 0.55, "bladeWidthRatio": [0.065, 0.095], "leanRatio": [0.15, 0.4], "bladeFold": 0.18, "triangles": 1500 },
+    { "id": "Grass", "kind": "grass", "variants": 3, "blades": [22, 30], "heightMetres": [0.35, 0.55], "spreadMetres": 0.5, "bladeWidthRatio": [0.07, 0.11], "leanRatio": [0.15, 0.4], "bladeFold": 0.18, "triangles": 800 }
   ]
 }

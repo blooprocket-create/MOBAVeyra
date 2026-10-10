@@ -42,12 +42,17 @@ FILTER = os.environ.get("VEYRA_REVIEW_VIEWS", "")
 if FILTER:
     CAMERAS = [a for a in CAMERAS if a.get_actor_label().removeprefix("Review_") in FILTER.split(",")]
 assert CAMERAS, "No requested review cameras found"
-STATE = {"index": 0, "task": None, "next": time.monotonic() + 15, "started": time.monotonic(), "captures": []}
+# Budget for both preparation passes and each screenshot across the full camera suite.
+CAPTURE_TIMEOUT_SECONDS = max(900, 120 + len(CAMERAS) * 30)
+STATE = {"index": 0, "task": None, "readiness_pass": 0, "compiling": False, "next": time.monotonic() + 15, "started": time.monotonic(), "captures": []}
 
 
 def tick(delta):
+    # Compilation can pump Slate ticks while waiting on worker processes.
+    if STATE["compiling"]:
+        return
     try:
-        if time.monotonic() - STATE["started"] > 900:
+        if time.monotonic() - STATE["started"] > CAPTURE_TIMEOUT_SECONDS:
             raise RuntimeError("World capture timed out")
         if time.monotonic() < STATE["next"]:
             return
@@ -64,15 +69,29 @@ def tick(delta):
             unreal.SystemLibrary.quit_editor()
             return
         camera = CAMERAS[STATE["index"]]
+        if STATE["readiness_pass"] < 2:
+            if STATE["readiness_pass"] == 0:
+                LEVEL.pilot_level_actor(camera)
+            # Let the new view render between barriers so deferred material jobs
+            # triggered by its first frames are also complete before the screenshot.
+            unreal.log(f"Preparing {camera.get_actor_label()}: compilation pass {STATE['readiness_pass'] + 1}")
+            STATE["compiling"] = True
+            try:
+                unreal.SystemLibrary.execute_console_command(WORLD, "Editor.AsyncAssetCompilationFinishAll")
+            finally:
+                STATE["compiling"] = False
+            STATE["readiness_pass"] += 1
+            STATE["next"] = time.monotonic() + 5
+            return
         filename = OUTPUT / (camera.get_actor_label() + ".png")
         if filename.exists():
             filename.unlink()
-        LEVEL.pilot_level_actor(camera)
         unreal.log(f"Capturing {camera.get_actor_label()}")
         unreal.SystemLibrary.execute_console_command(WORLD, f'HighResShot 1920x1080 filename="{filename.as_posix()}"')
         task = str(filename)
         STATE["task"] = task
         STATE["index"] += 1
+        STATE["readiness_pass"] = 0
         STATE["next"] = time.monotonic() + 5
         STATE["captures"].append({"camera": camera.get_actor_label(), "file": str(filename), "location": str(camera.get_actor_location()), "rotation": str(camera.get_actor_rotation())})
     except Exception:

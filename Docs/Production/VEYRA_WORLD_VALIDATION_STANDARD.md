@@ -316,6 +316,14 @@ Capture modes:
 
 ### 13.1 Existing screenshot path
 
+The Crucible editor capture script pilots each camera and finishes asset
+compilation twice, allowing five seconds of rendered frames after each barrier.
+The second pass catches deferred material jobs submitted by the first frames.
+A fixed startup delay alone does not guarantee loaded materials with a cold
+shader cache. Inspect the images as well as the completion manifest: a written
+PNG can still show fallback materials or an unready view. Guard against callback
+re-entry while the compiler pumps editor ticks.
+
 ADR-006 already gives `Game/Scripts/Smoke.ps1 -Screenshot` a packaged-client screenshot role for the current grey-box presentation.
 
 World production should extend that philosophy rather than creating an unrelated manual screenshot process.
