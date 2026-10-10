@@ -3,7 +3,7 @@
   "framework": null,
   "buildCommand": "node Website/site/build.mjs",
   "outputDirectory": "Website/site/dist",
-  "ignoreCommand": "if [ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ] || ! git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA^{commit}\" 2>/dev/null; then echo 'Build: previous SHA unavailable in shallow checkout'; exit 1; fi; git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- vercel.json Website/site Launcher/config/public.json Launcher/ui/fonts Docs/Design/Vanguards ConceptArt/Vanguards; result=$?; if [ \"$result\" -eq 0 ]; then echo 'Skip: website inputs unchanged'; exit 0; fi; echo 'Build: website inputs changed or diff unavailable'; exit 1",
+  "ignoreCommand": "git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA^{commit}\" 2>/dev/null && git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- vercel.json Website/site Launcher/config/public.json Launcher/ui/fonts Docs/Design/Vanguards ConceptArt/Vanguards || exit 1",
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
