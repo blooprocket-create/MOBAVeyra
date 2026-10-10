@@ -3,7 +3,7 @@
 **Version:** 0.2  
 **Status:** Acceptance standard for Meridian Crucible world, asset, and VFX changes  
 **Engine target:** Unreal Engine 5.8.3, Epic source build  
-**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md)
+**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [Visual Production Standard](VEYRA_VISUAL_PRODUCTION_STANDARD.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md)
 
 ## 1. Purpose
 
@@ -21,6 +21,8 @@ The final result must preserve **gameplay integrity, Veyra visual identity, comp
 The core rule is:
 
 > **Validate the shipped result in Unreal from the gameplay camera and gameplay conditions players will actually experience.**
+
+For cross-game presentation quality, see the [Visual Production Standard](VEYRA_VISUAL_PRODUCTION_STANDARD.md); for review evidence, use its [Visual Review Template](VEYRA_VISUAL_REVIEW_TEMPLATE.md). This world-specific standard remains the authority on world/asset validation levels, gameplay geometry, and Crucible acceptance. Neither changes approved gameplay or UI behavior.
 
 ## 2. Validation levels
 

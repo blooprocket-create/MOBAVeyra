@@ -15,7 +15,7 @@ Before modifying gameplay code, read:
 1. [`ARCHITECTURE.md`](ARCHITECTURE.md)
 2. [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)
 3. The relevant *current owning sections*, selected using [`Docs/CONTEXT_MAP.md`](Docs/CONTEXT_MAP.md)
-4. For world, environment, Blender, asset, material, PCG, water, lighting, or VFX work: [`Docs/Production/README.md`](Docs/Production/README.md) and the relevant production guide it indexes
+4. For UI/HUD, world, environment, Blender, asset, material, PCG, water, lighting, rendering, animation, or VFX work: [`Docs/Production/README.md`](Docs/Production/README.md) and the relevant production guide it indexes
 5. Relevant ADRs under [`Docs/ADR/`](Docs/ADR/)
 
 If a task conflicts with those documents, do not silently choose a side. Surface the conflict.
@@ -61,6 +61,10 @@ For substantial visual/world work:
 - Presentation systems may observe authoritative gameplay state but never own gameplay outcomes.
 - Experimental UE features are not shipping dependencies unless approved through the repository's ADR process.
 - Record provenance and AI-use restrictions for third-party visual content before allowing agents to inspect or transform it.
+
+## Visual polish and production acceptance
+
+For substantial client UI, HUD, Vanguard, animation, VFX, environment, lighting or renderer changes, follow [the Visual Production Standard](Docs/Production/VEYRA_VISUAL_PRODUCTION_STANDARD.md), [Visual Upgrade Roadmap](Docs/Production/VEYRA_VISUAL_UPGRADE_ROADMAP.md) and [Review Template](Docs/Production/VEYRA_VISUAL_REVIEW_TEMPLATE.md). Preserve the approved client UX and Settings behavior, remain presentation-only, build the smallest approved slice, and record in-engine before/after captures **and** a reproducible performance comparison. Generator success and compilation are not visual acceptance. Do not declare new styling or a renderer/plugin strategy approved without the owner's decision.
 
 ## Task workflow
 
