@@ -324,6 +324,14 @@ shader cache. Inspect the images as well as the completion manifest: a written
 PNG can still show fallback materials or an unready view. Guard against callback
 re-entry while the compiler pumps editor ticks.
 
+The capture script pins `r.ForceLOD=-1` at console priority before warm-up so
+`HighResShot` cannot temporarily force LOD 0 after material preparation. This
+preserves distance-based detail selection and avoids capture-time landscape
+fallbacks observed on the low profile. The manifest records the effective
+`forceLOD` and diagnostic commands. Older captures used HighResShot's implicit
+LOD 0 and are not identical-detail baselines. This editor capture remains visual
+evidence, not packaged-client or performance acceptance.
+
 ADR-006 already gives `Game/Scripts/Smoke.ps1 -Screenshot` a packaged-client screenshot role for the current grey-box presentation.
 
 World production should extend that philosophy rather than creating an unrelated manual screenshot process.

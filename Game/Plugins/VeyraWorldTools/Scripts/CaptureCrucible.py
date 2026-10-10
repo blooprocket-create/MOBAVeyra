@@ -31,6 +31,10 @@ for name in ("ViewDistance", "AntiAliasing", "Shadow", "GlobalIllumination", "Re
     unreal.SystemLibrary.execute_console_command(WORLD, f"sg.{name}Quality {QUALITY}")
 unreal.SystemLibrary.execute_console_command(WORLD, "r.ScreenPercentage 100")
 unreal.SystemLibrary.execute_console_command(WORLD, "r.VSync 0")
+# HighResShot otherwise switches to LOD 0 only during capture, after the view's
+# materials have warmed up. Console priority keeps distance-based LOD selection
+# through that temporary SetByCode override, matching the prepared viewport.
+unreal.SystemLibrary.execute_console_command(WORLD, "r.ForceLOD -1")
 # The mode's console commands, then any extra ones for a diagnostic capture, separated by semicolons.
 for command in MODE_COMMANDS[MODE] + list(filter(None, os.environ.get("VEYRA_REVIEW_COMMANDS", "").split(";"))):
     unreal.SystemLibrary.execute_console_command(WORLD, command.strip())
@@ -64,7 +68,7 @@ def tick(delta):
             assert Path(previous["file"]).is_file(), "Screenshot task finished without an image"
             STATE["task"] = None
         if STATE["index"] >= len(CAMERAS):
-            (OUTPUT / "manifest.json").write_text(json.dumps({"status": "captured", "profile": PROFILE, "mode": MODE, "resolution": [1920, 1080], "renderScalePercent": 100, "captures": STATE["captures"]}, indent=2), encoding="utf-8")
+            (OUTPUT / "manifest.json").write_text(json.dumps({"status": "captured", "profile": PROFILE, "mode": MODE, "resolution": [1920, 1080], "renderScalePercent": 100, "forceLOD": unreal.SystemLibrary.get_console_variable_int_value("r.ForceLOD"), "diagnosticCommands": os.environ.get("VEYRA_REVIEW_COMMANDS", ""), "captures": STATE["captures"]}, indent=2), encoding="utf-8")
             unreal.unregister_slate_post_tick_callback(HANDLE)
             unreal.SystemLibrary.quit_editor()
             return
