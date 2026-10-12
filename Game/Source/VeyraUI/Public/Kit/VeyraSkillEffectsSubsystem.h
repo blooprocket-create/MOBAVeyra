@@ -96,6 +96,12 @@ public:
 	/** Ability's own trail for its projectiles and its scale; null for the shared trail. */
 	UNiagaraSystem* TravelEffectOf(const FVeyraContentId& Ability, float& OutScale) const;
 
+	/**
+	 * What flies with Projectile in place of the shared trail, and its scale: its ability's Travel effect, or for a basic
+	 * attack's projectile, its Vanguard's own attack or the shared AttackTravel (ADR-072 §9). Null for none.
+	 */
+	UNiagaraSystem* ProjectileTravelOf(const AVeyraProjectile& Projectile, float& OutScale) const;
+
 	/** This machine draws Projectile at At, in Color, now: its impact and its tether follow what is drawn. */
 	void NoteProjectileDrawn(const AVeyraProjectile& Projectile, const FVector& At, const FLinearColor& Color);
 

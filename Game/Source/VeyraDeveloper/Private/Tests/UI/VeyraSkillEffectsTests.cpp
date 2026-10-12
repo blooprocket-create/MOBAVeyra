@@ -9,6 +9,8 @@
 #include "Cues/VeyraCombatCues.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraProjectile.h"
+#include "NiagaraSystem.h"
+#include "VeyraPlayerState.h"
 #include "Kit/VeyraKitPresentationSettings.h"
 #include "Kit/VeyraSkillEffectsSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -85,6 +87,24 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsNear(VeyraSkillEffects::LandingDelayOf(Fixture, Id(TEXT("test_fall"))), FallDelay, Slack));
 			ASSERT_THAT(IsNear(VeyraSkillEffects::LandingDelayOf(Fixture, Id(TEXT("test_slam"))), 0.0, Slack, TEXT("one that lands at once shows its commit")));
 			ASSERT_THAT(IsNear(VeyraSkillEffects::LandingDelayOf(Fixture, Id(TEXT("test_lance"))), 0.0, Slack));
+		}
+
+		TEST_METHOD(AVanguardsAttackLookIsNamedOnceWithAScale)
+		{
+			const auto ProblemsOf = [](const TArray<FVeyraVanguardAttack>& Attacks) {
+				UVeyraKitPresentationSettings* Settings = DuplicateObject(GetDefault<UVeyraKitPresentationSettings>(), GetTransientPackage());
+				Settings->VanguardAttacks = Attacks;
+				return Settings->Validate();
+			};
+			FVeyraVanguardAttack Own;
+			Own.Vanguard = TEXT("test_attacker");
+			Own.Travel.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Test/NS_Test.NS_Test")));
+			Own.Travel.Scale = 1.0f;
+			ASSERT_THAT(IsTrue(ProblemsOf({ Own }).IsEmpty()));
+			ASSERT_THAT(IsFalse(ProblemsOf({ Own, Own }).IsEmpty(), TEXT("a Vanguard has one look of its own")));
+			FVeyraVanguardAttack Unscaled = Own;
+			Unscaled.Travel.Scale = 0.0f;
+			ASSERT_THAT(IsFalse(ProblemsOf({ Unscaled }).IsEmpty(), TEXT("a look needs a scale above 0")));
 		}
 
 		TEST_METHOD(ARecipeNeedsAStageAScaleAndBonesForItsWindup)
@@ -216,6 +236,7 @@ namespace VeyraSkillEffectsTests
 		static constexpr int32 HookCast = 3;
 		static constexpr int32 FallCast = 7;
 		static constexpr double Slack = 1e-6;
+		static constexpr const TCHAR* OwnAttackEffect = TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraTrail.NS_VeyraTrail");
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -257,6 +278,12 @@ namespace VeyraSkillEffectsTests
 			Landing.Impact.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraImpact.NS_VeyraImpact")));
 			Landing.Impact.Scale = 1.0f;
 			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Landing);
+			// A Vanguard whose basic attacks fly a look of their own, in place of the shared one (ADR-072 §9).
+			FVeyraVanguardAttack Own;
+			Own.Vanguard = TEXT("test_attacker");
+			Own.Travel.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(OwnAttackEffect));
+			Own.Travel.Scale = 1.0f;
+			GetMutableDefault<UVeyraKitPresentationSettings>()->VanguardAttacks.Add(Own);
 			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
 			Caster = &World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
 		}
@@ -266,6 +293,8 @@ namespace VeyraSkillEffectsTests
 			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.RemoveAll(
 				[](const FVeyraAbilityEffects& Effects)
 				{ return Effects.Ability == TEXT("test_charged") || Effects.Ability == TEXT("test_hook") || Effects.Ability == TEXT("test_fall"); });
+			GetMutableDefault<UVeyraKitPresentationSettings>()->VanguardAttacks.RemoveAll(
+				[](const FVeyraVanguardAttack& Attack) { return Attack.Vanguard == TEXT("test_attacker"); });
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
 		}
 
@@ -315,6 +344,43 @@ namespace VeyraSkillEffectsTests
 			// As on a client that does not see its caster: the replicated launcher resolves to nothing.
 			Flung.SetInstigator(nullptr);
 			ASSERT_THAT(IsFalse(Skills->HidesProjectileBody(Flung), TEXT("with no caster to chain it to, it shows itself")));
+		}
+
+		/** A basic attack Launcher fires from From: a projectile of no ability, as the server launches one. */
+		AVeyraProjectile& BasicAttack(const AActor& Launcher, const FVector& From)
+		{
+			AVeyraProjectile* Shot = Spawner.GetWorld().SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(From));
+			check(Shot);
+			Shot->LaunchLine(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Launcher), FVector::ForwardVector,
+				FVeyraProjectileTuning{ Range, Range / 10.0, Range }, EVeyraSkillshotCollision::FirstEnemy, FVeyraPreparedEffects(), FVeyraPreparedEffects(),
+				FVeyraContentId(), 0);
+			return *Shot;
+		}
+
+		TEST_METHOD(ABasicAttackFliesTheSharedLookInPlaceOfItsBody)
+		{
+			// A unit that is no Vanguard, as a minion, has no look of its own.
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			const AActor& Minion = World.SpawnFluxborn(EVeyraTeam::A, FVector::ZeroVector);
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			const AVeyraProjectile& Shot = BasicAttack(Minion, FVector(Range, 0.0, 0.0));
+			float Scale = 0.0f;
+			const UNiagaraSystem* Flies = Skills->ProjectileTravelOf(Shot, Scale);
+			ASSERT_THAT(IsNotNull(Flies, TEXT("the shared attack look flies")));
+			ASSERT_THAT(AreEqual(FSoftObjectPath(Flies), GetDefault<UVeyraKitPresentationSettings>()->AttackTravel.Effect.ToSoftObjectPath()));
+			ASSERT_THAT(IsTrue(Skills->HidesProjectileBody(Shot), TEXT("with no grey-box ball under it")));
+		}
+
+		TEST_METHOD(AVanguardsOwnAttackLookReplacesTheShared)
+		{
+			Caster->GetPlayerState<AVeyraPlayerState>()->SetVanguardId(FVeyraContentId::FromText(TEXT("test_attacker")).GetValue());
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			float Scale = 0.0f;
+			const UNiagaraSystem* Flies = Skills->ProjectileTravelOf(BasicAttack(*Caster, FVector(Range, 0.0, 0.0)), Scale);
+			ASSERT_THAT(IsNotNull(Flies));
+			ASSERT_THAT(AreEqual(FSoftObjectPath(Flies), FSoftObjectPath(OwnAttackEffect), TEXT("its Vanguard's own look, found through who launched it")));
 		}
 
 		TEST_METHOD(ADelayedAreaLandsWhenTheServerResolvesIt)

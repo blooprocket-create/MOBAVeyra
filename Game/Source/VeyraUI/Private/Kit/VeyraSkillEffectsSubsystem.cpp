@@ -20,6 +20,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraPlayerState.h"
 #include "VeyraUILog.h"
 
 namespace
@@ -140,6 +141,26 @@ void UVeyraSkillEffectsSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 	TArray<FString> Problems = Settings.Validate();
 	if (Problems.IsEmpty())
 	{
+		// Basic attacks in flight (ADR-072 §9): the shared look, and each Vanguard's own.
+		TArray<TPair<FName, const FVeyraSkillEffectStage*>> Attacks;
+		if (Settings.AttackTravel.IsSet())
+		{
+			Attacks.Emplace(NAME_None, &Settings.AttackTravel);
+		}
+		for (const FVeyraVanguardAttack& Attack : Settings.VanguardAttacks)
+		{
+			Attacks.Emplace(Attack.Vanguard, &Attack.Travel);
+		}
+		for (const TPair<FName, const FVeyraSkillEffectStage*>& Attack : Attacks)
+		{
+			UNiagaraSystem* System = Attack.Value->Effect.LoadSynchronous();
+			if (!System)
+			{
+				Problems.Add(FString::Printf(TEXT("Attacks: %s's effect in flight %s does not load; run BuildEffects.ps1."),
+					Attack.Key.IsNone() ? TEXT("AttackTravel") : *Attack.Key.ToString(), *Attack.Value->Effect.ToString()));
+			}
+			Systems.Add(SkillStageKey(Attack.Key, TEXT("Attack")), System);
+		}
 		for (const FVeyraAbilityEffects& Effects : Settings.AbilityEffects)
 		{
 			// A windup, channel or trail runs until its stage ends it; a commit or an impact is one burst that ends on its own,
@@ -466,6 +487,12 @@ void UVeyraSkillEffectsSubsystem::NoteProjectileDrawn(const AVeyraProjectile& Pr
 
 bool UVeyraSkillEffectsSubsystem::HidesProjectileBody(const AVeyraProjectile& Projectile) const
 {
+	// A basic attack hides its body when an effect flies in its place.
+	if (!Projectile.GetAbility().IsValid())
+	{
+		float Scale = 0.0f;
+		return ProjectileTravelOf(Projectile, Scale) != nullptr;
+	}
 	// A hook drawn on its chain only from a caster seen here; one whose caster is not shows its own body.
 	const FVeyraAbilityEffects* Effects = EffectsOf(Projectile.GetAbility());
 	return Effects && Effects->bHideProjectileBody && (Effects->TetherBone.IsNone() || CasterOf(Projectile));
@@ -715,6 +742,30 @@ UNiagaraSystem* UVeyraSkillEffectsSubsystem::TravelEffectOf(const FVeyraContentI
 	}
 	OutScale = Effects->Travel.Scale;
 	return Loaded(*Effects, TEXT("Travel"));
+}
+
+UNiagaraSystem* UVeyraSkillEffectsSubsystem::ProjectileTravelOf(const AVeyraProjectile& Projectile, float& OutScale) const
+{
+	if (Projectile.GetAbility().IsValid())
+	{
+		return TravelEffectOf(Projectile.GetAbility(), OutScale);
+	}
+	// A basic attack's: its Vanguard's own, found through who launched it, or the shared one.
+	const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+	const APawn* Attacker = Projectile.GetInstigator();
+	const AVeyraPlayerState* Participant = Attacker ? Attacker->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	const FName Vanguard = Participant ? FName(*Participant->GetVanguardId().ToString()) : NAME_None;
+	if (const FVeyraVanguardAttack* Own = Vanguard.IsNone() ? nullptr : Settings.VanguardAttackOf(Vanguard))
+	{
+		OutScale = Own->Travel.Scale;
+		return Systems.FindRef(SkillStageKey(Own->Vanguard, TEXT("Attack")));
+	}
+	if (!Settings.AttackTravel.IsSet())
+	{
+		return nullptr;
+	}
+	OutScale = Settings.AttackTravel.Scale;
+	return Systems.FindRef(SkillStageKey(NAME_None, TEXT("Attack")));
 }
 
 TArray<UNiagaraComponent*> UVeyraSkillEffectsSubsystem::FindWindupEffects(const AActor& Caster) const
