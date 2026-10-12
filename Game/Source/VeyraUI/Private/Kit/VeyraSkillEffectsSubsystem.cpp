@@ -10,9 +10,9 @@
 #include "GameFramework/Pawn.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
 #include "Delivery/VeyraLingeringArea.h"
+#include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Greybox/VeyraVanguardAnimInstance.h"
-#include "Teams/VeyraTeam.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Kit/VeyraKitPresentationSettings.h"
@@ -271,7 +271,7 @@ void UVeyraSkillEffectsSubsystem::NoteCue(const FVeyraCombatCue& Cue)
 		const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
 		if ((Effects->Impact.IsSet() || Effects->Mark.IsSet() || Effects->Arc.IsSet()) && Delay > 0.0 && Greybox)
 		{
-			FLanding& Landing = Landings.Add_GetRef({ Cue.Ability, Cue.Location, Greybox->GetServerNow() + Delay, Greybox->SideColorOf(*Caster) });
+			FLanding& Landing = Landings.Add_GetRef({ Cue.Ability, Cue.CastId, Cue.Location, Greybox->GetServerNow() + Delay, false, Greybox->SideColorOf(*Caster) });
 			if (UNiagaraSystem* Mark = Effects->Mark.IsSet() ? Loaded(*Effects, TEXT("Mark")) : nullptr)
 			{
 				// Across the area it marks, as Abilities.json shapes it.
@@ -464,10 +464,21 @@ void UVeyraSkillEffectsSubsystem::NoteProjectileDrawn(const AVeyraProjectile& Pr
 	}
 }
 
-bool UVeyraSkillEffectsSubsystem::HidesProjectileBody(const FVeyraContentId& Ability) const
+bool UVeyraSkillEffectsSubsystem::HidesProjectileBody(const AVeyraProjectile& Projectile) const
 {
-	const FVeyraAbilityEffects* Effects = EffectsOf(Ability);
-	return Effects && Effects->bHideProjectileBody;
+	// A hook drawn on its chain only from a caster seen here; one whose caster is not shows its own body.
+	const FVeyraAbilityEffects* Effects = EffectsOf(Projectile.GetAbility());
+	return Effects && Effects->bHideProjectileBody && (Effects->TetherBone.IsNone() || CasterOf(Projectile));
+}
+
+TArray<double> UVeyraSkillEffectsSubsystem::GetLandingTimes() const
+{
+	TArray<double> Times;
+	for (const FLanding& Landing : Landings)
+	{
+		Times.Add(Landing.At);
+	}
+	return Times;
 }
 
 TOptional<FVector> UVeyraSkillEffectsSubsystem::FindTether(const AActor& Caster) const
@@ -484,29 +495,8 @@ TOptional<FVector> UVeyraSkillEffectsSubsystem::FindTether(const AActor& Caster)
 
 const AActor* UVeyraSkillEffectsSubsystem::CasterOf(const AVeyraProjectile& Projectile) const
 {
-	// The one whose cast it is, while that cast's state still holds; else its side's pawn nearest where it set off.
-	const AActor* Nearest = nullptr;
-	double NearestSquared = TNumericLimits<double>::Max();
-	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
-	{
-		const APawn& Pawn = **It;
-		if (VeyraTeams::TeamOf(&Pawn) != Projectile.GetVeyraTeam())
-		{
-			continue;
-		}
-		const UVeyraCastStateComponent* Casts = SkillCasterState(Pawn);
-		if (Casts && Casts->GetState().CastId == Projectile.GetCastId() && Projectile.GetCastId() != 0)
-		{
-			return &Pawn;
-		}
-		const double Squared = FVector::DistSquared(Pawn.GetActorLocation(), Projectile.GetLaunchedFrom());
-		if (Squared < NearestSquared)
-		{
-			NearestSquared = Squared;
-			Nearest = &Pawn;
-		}
-	}
-	return Nearest;
+	// Who launched it, as the server named it; none while its caster is not seen here.
+	return Projectile.GetInstigator();
 }
 
 void UVeyraSkillEffectsSubsystem::NoteProjectileEnd(const FVeyraCombatCue& Cue)
@@ -584,6 +574,24 @@ void UVeyraSkillEffectsSubsystem::RefreshLandings(double Now)
 	{
 		FLanding& Landing = Landings[Index];
 		const FVeyraAbilityEffects* Effects = EffectsOf(Landing.Ability);
+		// It lands when its area resolves, by the server's time, once that area is seen here.
+		if (!Landing.bServerTime)
+		{
+			const AVeyraDelayedArea* Nearest = nullptr;
+			for (TActorIterator<AVeyraDelayedArea> Area(GetWorld()); Area; ++Area)
+			{
+				if (Area->GetAbility() == Landing.Ability && Area->GetCastId() == Landing.CastId
+					&& (!Nearest || FVector::DistSquared(Area->GetActorLocation(), Landing.Where) < FVector::DistSquared(Nearest->GetActorLocation(), Landing.Where)))
+				{
+					Nearest = *Area;
+				}
+			}
+			if (Nearest)
+			{
+				Landing.At = Nearest->GetResolvesAt();
+				Landing.bServerTime = true;
+			}
+		}
 		if (Now < Landing.At)
 		{
 			// What it throws flies on toward where it lands.

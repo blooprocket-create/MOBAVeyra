@@ -95,6 +95,9 @@ void AVeyraProjectile::LaunchHoming(UAbilitySystemComponent& InCaster, AActor& T
 void AVeyraProjectile::Launch(UAbilitySystemComponent& InCaster, const FVeyraContentId& InAbility, int32 InCastId)
 {
 	Caster = &InCaster;
+	// Who launched it, replicated with the actor so a client's presentation draws it from its caster (ADR-072 §8); it
+	// decides nothing in play.
+	SetInstigator(Cast<APawn>(InCaster.GetAvatarActor()));
 	LaunchedFrom = GetActorLocation();
 	LaunchedAt = GetWorld()->GetTimeSeconds();
 	Team = VeyraTeams::TeamOf(InCaster.GetOwner());

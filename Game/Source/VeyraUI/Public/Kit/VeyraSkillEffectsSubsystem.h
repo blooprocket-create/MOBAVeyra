@@ -100,7 +100,7 @@ public:
 	void NoteProjectileDrawn(const AVeyraProjectile& Projectile, const FVector& At, const FLinearColor& Color);
 
 	/** Whether Ability's projectiles draw no grey-box body (ADR-072 §4). */
-	bool HidesProjectileBody(const FVeyraContentId& Ability) const;
+	bool HidesProjectileBody(const AVeyraProjectile& Projectile) const;
 
 	/** Where Caster's tethered bone is drawn now, if one is flung away from its body. */
 	TOptional<FVector> FindTether(const AActor& Caster) const;
@@ -116,6 +116,9 @@ public:
 
 	/** How many delayed areas are still to land. */
 	int32 GetPendingLandings() const { return Landings.Num(); }
+
+	/** When each delayed area still to land lands, in the server's time. */
+	TArray<double> GetLandingTimes() const;
 
 private:
 	const FVeyraAbilityEffects* EffectsOf(const FVeyraContentId& Ability) const;
@@ -169,8 +172,11 @@ private:
 	struct FLanding
 	{
 		FVeyraContentId Ability;
+		int32 CastId = 0;
 		FVector Where = FVector::ZeroVector;
+		/** Its delay from Abilities.json after the commit was seen, until its area arrives with the server's own time. */
 		double At = 0.0;
+		bool bServerTime = false;
 		FLinearColor Color = FLinearColor::White;
 		TWeakObjectPtr<UNiagaraComponent> Mark;
 		TWeakObjectPtr<UNiagaraComponent> Arc;

@@ -1780,7 +1780,7 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 			const UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
 			UNiagaraSystem* OwnTrail = Skills ? Skills->TravelEffectOf(Visual->Ability, OwnScale) : nullptr;
 			// An ability whose projectile is its own (a lance of light, a hook on its chain) draws no sphere for it.
-			if (Skills && Skills->HidesProjectileBody(Visual->Ability))
+			if (Skills && Skills->HidesProjectileBody(Projectile))
 			{
 				Mesh->SetVisibility(false, /*bPropagateToChildren*/ false);
 			}
