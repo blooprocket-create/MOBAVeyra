@@ -11,6 +11,8 @@
 #include "Engine/World.h"
 #include "HAL/FileManager.h"
 #include "Misc/PackageName.h"
+#include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "NavMesh/NavMeshBoundsVolume.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
@@ -26,22 +28,35 @@ UVeyraGreyboxMapCommandlet::UVeyraGreyboxMapCommandlet()
 	LogToConsole = true;
 }
 
-int32 UVeyraGreyboxMapCommandlet::Main(const FString& /*Params*/)
+int32 UVeyraGreyboxMapCommandlet::Main(const FString& Params)
 {
 #if WITH_EDITOR
+	FString LayoutFile = VeyraGreybox::TestMapLayoutFile;
+	FString MapPackage = MapPackageName;
+	FParse::Value(*Params, TEXT("Layout="), LayoutFile);
+	FParse::Value(*Params, TEXT("Map="), MapPackage);
+	// A layout is a file beside the test map's, and a map is a developer map.
+	if (LayoutFile.IsEmpty() || LayoutFile != FPaths::GetCleanFilename(LayoutFile) || !LayoutFile.EndsWith(TEXT(".json"))
+		|| !MapPackage.StartsWith(MapFolder) || !FPackageName::IsValidLongPackageName(MapPackage))
+	{
+		UE_LOG(LogVeyraGreybox, Error, TEXT("-Layout= names a .json file in Source/VeyraDeveloper/Greybox/, and -Map= a package under %s."), MapFolder);
+		return 1;
+	}
 	FVeyraGreyboxLayout Layout;
-	const VeyraTuning::FErrors Errors = VeyraGreybox::LoadLayout(Layout);
+	const VeyraTuning::FErrors Errors = VeyraGreybox::LoadLayout(Layout, *LayoutFile);
 	for (const FString& Error : Errors)
 	{
-		UE_LOG(LogVeyraGreybox, Error, TEXT("Greybox.json: %s"), *Error);
+		UE_LOG(LogVeyraGreybox, Error, TEXT("%s: %s"), *LayoutFile, *Error);
 	}
 	if (!Errors.IsEmpty())
 	{
 		return 1;
 	}
 
-	UPackage* Package = CreatePackage(MapPackageName);
-	UWorld* World = UWorld::CreateWorld(EWorldType::Editor, /*bInformEngineOfWorld*/ false, FName(FPackageName::GetShortName(MapPackageName)), Package);
+	UPackage* Package = CreatePackage(*MapPackage);
+	// Built whole here, so it saves over the map already on disk rather than refusing it as partly loaded.
+	Package->MarkAsFullyLoaded();
+	UWorld* World = UWorld::CreateWorld(EWorldType::Editor, /*bInformEngineOfWorld*/ false, FName(FPackageName::GetShortName(MapPackage)), Package);
 	World->SetFlags(RF_Public | RF_Standalone);
 
 	VeyraGreybox::SpawnFloor(*World, Layout, EComponentMobility::Static);
@@ -60,7 +75,7 @@ int32 UVeyraGreyboxMapCommandlet::Main(const FString& /*Params*/)
 	ADirectionalLight* Sun = World->SpawnActor<ADirectionalLight>(FVector::ZeroVector, FRotator(Layout.Sun.PitchDegrees, Layout.Sun.YawDegrees, 0.0));
 	Sun->GetRootComponent()->SetMobility(EComponentMobility::Movable);
 
-	const FString Filename = FPackageName::LongPackageNameToFilename(MapPackageName, FPackageName::GetMapPackageExtension());
+	const FString Filename = FPackageName::LongPackageNameToFilename(MapPackage, FPackageName::GetMapPackageExtension());
 	IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename), /*Tree*/ true);
 	FSavePackageArgs SaveArgs;
 	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;

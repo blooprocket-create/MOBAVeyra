@@ -78,9 +78,6 @@ private:
 	AVeyraPlayerController* GetController() const;
 	AVeyraGameState* GetGameState() const;
 
-	/** The living enemy Vanguard nearest From; null if none has a body. */
-	AActor* FindNearestEnemyBody(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState, const FVector& From) const;
-
 	/** Orders the Vanguard toward the map's centre, stopping a fraction of StopDistance short of it. */
 	void StartMove(AVeyraPlayerController& Controller, const AVeyraVanguardCharacter& Vanguard, double StopDistance);
 

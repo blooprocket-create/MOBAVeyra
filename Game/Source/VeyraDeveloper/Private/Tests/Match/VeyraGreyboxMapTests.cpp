@@ -17,8 +17,9 @@
 
 namespace VeyraMatchTests
 {
-	// Veyra.Match.GreyboxMap.*: the saved grey-box map still matches Greybox.json. When it does not,
-	// run Game/Scripts/BuildGreyboxMap.ps1.
+	// Veyra.Match.GreyboxMap.*: the saved grey-box maps still match their layouts: the test map Greybox.json, and the
+	// skill showcase's stage Showcase.json (ADR-074 §1). When one does not, run Game/Scripts/BuildGreyboxMap.ps1, with
+	// -Showcase for the stage.
 	TEST_CLASS(GreyboxMap, "Veyra.Match")
 	{
 		// Positions are saved as doubles; this only absorbs transform round-off.
@@ -26,10 +27,19 @@ namespace VeyraMatchTests
 
 		TEST_METHOD(SavedMapMatchesTheLayout)
 		{
-			FVeyraGreyboxLayout Layout;
-			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
+			ExpectSavedMapMatches(VeyraGreybox::TestMapLayoutFile, UVeyraGreyboxMapCommandlet::MapPackageName);
+		}
 
-			const FString MapPackage(UVeyraGreyboxMapCommandlet::MapPackageName);
+		TEST_METHOD(SavedShowcaseStageMatchesItsLayout)
+		{
+			ExpectSavedMapMatches(TEXT("Showcase.json"), FString(UVeyraGreyboxMapCommandlet::MapFolder) + TEXT("L_Showcase"));
+		}
+
+		void ExpectSavedMapMatches(const TCHAR* LayoutFile, const FString& MapPackage)
+		{
+			FVeyraGreyboxLayout Layout;
+			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout, LayoutFile).IsEmpty(), LayoutFile));
+
 			const UWorld* Map = LoadObject<UWorld>(nullptr, *(MapPackage + TEXT(".") + FPackageName::GetShortName(MapPackage)));
 			ASSERT_THAT(IsNotNull(Map));
 

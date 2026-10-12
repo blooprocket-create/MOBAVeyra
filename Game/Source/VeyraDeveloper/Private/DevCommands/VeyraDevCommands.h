@@ -129,10 +129,26 @@ namespace VeyraDevCommands
 	AVeyraPlayerState* ParticipantOf(const AVeyraPlayerController& Requester);
 	UAbilitySystemComponent* AbilitySystemOf(const AVeyraPlayerController& Requester);
 
+	// What the Vanguard commands do, for any participant: the typist's own, or the skill showcase's dummy (ADR-074 §2).
+	// Each says what it did, or why it could not.
+
+	/** Fills Participant's Health and resource; only a living Vanguard. */
+	FString HealParticipant(AVeyraPlayerState& Participant);
+
+	/** Makes every ability, spell and item Active of Participant ready now, and fills its ward charges. */
+	FString ResetCooldownsOf(AVeyraPlayerState& Participant);
+
+	/**
+	 * Moves Participant's living Vanguard onto the walkable ground nearest Wanted, turned to Facing when given, stopping
+	 * its orders and any Recall; whether it moved.
+	 */
+	bool TeleportParticipant(AVeyraPlayerState& Participant, const FVector& Wanted, const FRotator* Facing, FString& OutReply);
+
 	// The catalog's parts, one per category, each in its own file.
 
 	void AddHelpCommands(TArray<FVeyraDevCommand>& Out);
 	void AddVanguardCommands(TArray<FVeyraDevCommand>& Out);
 	void AddEconomyCommands(TArray<FVeyraDevCommand>& Out);
 	void AddMatchCommands(TArray<FVeyraDevCommand>& Out);
+	void AddShowcaseCommands(TArray<FVeyraDevCommand>& Out);
 }

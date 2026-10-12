@@ -28,12 +28,12 @@ namespace
 	}
 }
 
-VeyraTuning::FErrors LoadLayout(FVeyraGreyboxLayout& OutLayout)
+VeyraTuning::FErrors LoadLayout(FVeyraGreyboxLayout& OutLayout, const TCHAR* LayoutFile)
 {
 	VeyraTuning::FErrors Errors;
 	TArray<uint8> DocumentBytes;
 	TArray<uint8> SchemaBytes;
-	for (const auto& [Path, Bytes] : { TPair<FString, TArray<uint8>*>(LayoutPath(TEXT("Greybox.json")), &DocumentBytes),
+	for (const auto& [Path, Bytes] : { TPair<FString, TArray<uint8>*>(LayoutPath(LayoutFile), &DocumentBytes),
 		TPair<FString, TArray<uint8>*>(LayoutPath(TEXT("Greybox.schema.json")), &SchemaBytes) })
 	{
 		if (!FFileHelper::LoadFileToArray(*Bytes, *Path, FILEREAD_Silent))

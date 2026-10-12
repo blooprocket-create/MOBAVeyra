@@ -1387,13 +1387,18 @@ EVeyraBuybackRefusal AVeyraGameMode::HandleBuybackOrder(AVeyraPlayerState* Playe
 bool AVeyraGameMode::HandleDeveloperRespawn(const APlayerController& Requester)
 {
 	AVeyraPlayerState* PlayerState = Requester.GetPlayerState<AVeyraPlayerState>();
-	if (!PlayerState || VeyraTargeting::IsAlive(PlayerState) || CheckOrdersAllowed() != EVeyraOrderRejection::None)
+	return PlayerState && HandleDeveloperRespawn(*PlayerState);
+}
+
+bool AVeyraGameMode::HandleDeveloperRespawn(AVeyraPlayerState& Participant)
+{
+	if (VeyraTargeting::IsAlive(&Participant) || CheckOrdersAllowed() != EVeyraOrderRejection::None)
 	{
 		return false;
 	}
-	UE_LOG(LogVeyraMatch, Log, TEXT("%s asked for a developer respawn."), *PlayerState->GetPlayerName());
-	RespawnNow(*PlayerState);
-	return VeyraTargeting::IsAlive(PlayerState);
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s asked for a developer respawn."), *Participant.GetPlayerName());
+	RespawnNow(Participant);
+	return VeyraTargeting::IsAlive(&Participant);
 }
 
 void AVeyraGameMode::RespawnNow(AVeyraPlayerState& PlayerState)
