@@ -4,6 +4,37 @@ import re
 from pathlib import Path
 
 D = Path(__file__).resolve().parent
+import base64
+import io as _io
+from PIL import Image
+
+SAVED = Path("C:/dev/MOBAVeyra/Game/Saved")
+
+
+def jpeg(path, width=1280):
+    image = Image.open(path).convert("RGB")
+    image = image.resize((width, round(image.height * width / image.width)), Image.LANCZOS)
+    buffer = _io.BytesIO()
+    image.save(buffer, "JPEG", quality=80, optimize=True)
+    return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+
+def figure(path, caption):
+    return f'<figure class="shot"><img src="{jpeg(path)}" alt="{caption}" loading="lazy"><figcaption>{caption}</figcaption></figure>'
+
+
+P2 = SAVED / "CrucibleSlice/Pass2_StyleSun"
+P3 = SAVED / "CrucibleSlice/Pass3_HighSun"
+slice_html = "\n".join([
+    '<div class="pair">' + figure(SAVED / "VisualAudit/Pass13/before-high/Play_Jungle_A0.png", "Today: a jungle camp on the current map, gameplay camera") + figure(P3 / "Slice_TopCrossroads.png", "Prototype: the top crossroads, same camera, Cairn for scale") + '</div>',
+    '<div class="pair">' + figure(P2 / "Slice_Stonehorn.png", "Pass 2: the style\'s 38° sun leaves Stonehorn\'s camp in shade") + figure(P3 / "Slice_Stonehorn.png", "Pass 3: a 58° sun with more sky light opens the clearing") + '</div>',
+    '<div class="grid3">' + figure(P3 / "Slice_TopLane_Mid.png", "The top lane between forest walls; a Spire on the shoulder")
+    + figure(P3 / "Slice_Gate_Top.png", "The keep\'s top gate: wall, merlons, pillars and lintel")
+    + figure(P3 / "Slice_Ashfang_River.png", "Ashfang\'s river mouth and the north Well\'s island")
+    + figure(P3 / "Slice_Razorback_Outer.png", "Outer jungle: the boundary cliff and Razorback\'s glade")
+    + figure(P3 / "Slice_NorthWell.png", "The north Flux Well arena")
+    + figure(P3 / "Slice_Overview.png", "The slice from above") + '</div>',
+])
 m = json.loads((D / "metrics.json").read_text(encoding="utf-8"))
 
 
@@ -117,11 +148,16 @@ td.new {{ color: var(--flux); }}
 .decision p strong {{ color: var(--text); font-weight: 500; }}
 ol.steps {{ margin: 0; padding-left: 22px; display: grid; gap: 8px; max-width: 72ch; }}
 code {{ font-family: var(--mono); font-size: .9em; background: var(--sunk); padding: 1px 5px; }}
+.pair {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
+.grid3 {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }}
+.shot {{ margin: 0; display: grid; gap: 6px; min-width: 0; }}
+.shot img {{ width: 100%; height: auto; display: block; border: 1px solid var(--line); }}
+.shot figcaption {{ font-size: 12.5px; color: var(--muted); }}
 footer {{ color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; max-width: 80ch; }}
 @media (max-width: 860px) {{
   .mapcard {{ grid-template-columns: minmax(0, 1fr); }}
   .side {{ border-left: 0; border-top: 1px solid var(--line); }}
-  .cols, .twocol {{ grid-template-columns: minmax(0, 1fr); }}
+  .cols, .twocol, .pair, .grid3 {{ grid-template-columns: minmax(0, 1fr); }}
 }}
 @media (prefers-reduced-motion: no-preference) {{ .toggle button {{ transition: background .15s, color .15s; }} }}
 </style>
@@ -137,6 +173,27 @@ footer {{ color: var(--muted); font-size: 13px; border-top: 1px solid var(--line
     <span class="chip">Units are Unreal centimetres · 330 per second walking</span>
   </div>
 </header>
+
+<section>
+  <h2>Prototype slice: the first look</h2>
+  <p style="max-width:72ch">Team A&#39;s keep, top lane and top inner and outer jungle, built in Unreal by ADR-073&#39;s method: every mass extruded with Geometry Script from the plan&#39;s exact shape, so its foot <em>is</em> the gameplay edge, then lit with the battleground&#39;s sun, sky and haze and captured from the real gameplay camera (1,600 out, &minus;60&deg;, 90&deg; field of view). Throwaway level, nothing saved; each pass takes about five minutes.</p>
+  {slice_html}
+  <ul class="facts">
+    <li><strong>The technology holds.</strong> The edges are exact by construction, and a full rebuild and capture runs in minutes, so the art can be iterated on.</li>
+    <li><strong>Readability came from art, not height.</strong> The first pass, with moss tops like the floor, read as raised lawns. Bare slate on rock and dense canopy on forest make blocked ground unmistakable.</li>
+    <li><strong>The sun is a decision (D8).</strong> At the style&#39;s 38&deg;, trees and cliffs throw long shadows over camp clearings. At 58&deg; with more sky light, the clearings read and the forest keeps its depth.</li>
+    <li><strong>Still ahead in the art pass:</strong>
+      <ul>
+        <li>toon ink outlines on mass edges;</li>
+        <li>beveled and ledged cliff faces;</li>
+        <li>detail on rock tops and on the ground (grass, flowers, worn paths);</li>
+        <li>river banks and falls;</li>
+        <li>presenting the fog banks;</li>
+        <li>the measured gates: performance with Nanite on and off, the server cook, determinism and collision agreement.</li>
+      </ul>
+    </li>
+  </ul>
+</section>
 
 <section>
   <h2>Revisions from your notes</h2>
@@ -254,6 +311,7 @@ footer {{ color: var(--muted); font-size: 13px; border-top: 1px solid var(--line
     <div class="decision"><div class="id">D5</div><div><h3>Jungle density</h3><p><strong>Interior masses at {interior}% of the jungle.</strong> Raise it toward 30 to 35% for more cover and sight-blocking, or lower it for more open fighting room.</p></div></div>
     <div class="decision"><div class="id">D6</div><div><h3>New camps&#39; wildlife</h3><p><strong>The two new camps per team need species.</strong> Reuse two of the six existing ones (camps keep fixed identities, so a second Ashfang den is allowed), or add new Veyran wildlife to the Battleground Bible.</p></div></div>
     <div class="decision"><div class="id">D7</div><div><h3>Data model</h3><p><strong>Write ADR-073: author the playable spaces, derive the masses.</strong> This comes before any generation pass.</p></div></div>
+    <div class="decision"><div class="id">D8</div><div><h3>Sun height</h3><p><strong>Raise the Crucible&#39;s sun from 38&deg; to 58&deg;, with sky light 3.3 &rarr; 4.4,</strong> so shadows stop blanketing clearings at the gameplay camera. It keeps the warm late-afternoon colour. The alternative keeps the low sun and shortens shadows another way (lower trees and cliffs).</p></div></div>
   </div>
 </section>
 
