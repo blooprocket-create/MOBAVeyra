@@ -137,6 +137,9 @@ The author played the pilot and found its skills still read as indicators. Cairn
 - **Immovable reads apart:** its status body holds a brace (`braced` in the kit): sunk, wide-set, forearms crossed, the hook drawn up. A held mark of heaved stone (`NS_VeyraStoneGuard`) wheels about his feet. He gains no glow: his Visual language keeps him unlit from within.
 - **Larger bursts:** the first systems read as small sparks at the gameplay camera, so they grew by half or more.
 - **Verification:** each skill is checked in motion in a running match before review, not only in frozen captures.
+- **Whose hook it is:** a projectile carries the body that launched it as its replicated instigator, which decides nothing in play. A tether is drawn only from that body; a hook whose caster this machine does not see shows its own body rather than chaining to another unit or vanishing.
+- **When a delayed area lands:** its mark and what it throws run until the server resolves the area. The ability's delay from its commit stands in only until the area itself is seen here, carrying the server's resolve time.
+- **The performance gate moves:** the pilot carries 3 of 26 kits, so a ten-Vanguard fight now would mostly measure older effects, and a packaged build cooked only for it would duplicate a release's own. ADR-068 §5's ten-Vanguard comparison (`Smoke.ps1 -PerfSeconds`, eight playing bots with Cairn, Oriel and Varkesh among the bots' Vanguards, as shipped against `ShowFlag.Particles 0`) runs at two gates instead. It runs at the next friends release's gate on the packaged client that release builds, before any player gets these effects. It runs again at the roster rollout's gate.
 
 ## Configuration
 - **Skill clips:** the kit's `skills` per Vanguard, and the motion primitives in the generator. Art values.
@@ -147,7 +150,7 @@ The author played the pilot and found its skills still read as indicators. Cairn
 ## Consequences
 - **Each skill reads as itself:** a skill with data shows its own motion, windup, release and result, and the telegraph becomes one cue among several.
 - **More takes per FBX:** a Vanguard's FBX grows by one take per listed skill, typically four or five. A body rebuilt for new takes is new LFS content, so each Vanguard's skills land in one rebuild.
-- **More effects per fight:** the windup and channel stages add pooled looping components while casts last. ADR-068 §5's budget applies, and the pilot's gate measures a ten-Vanguard fight with every skill in use.
+- **More effects per fight:** the windup and channel stages add pooled looping components while casts last. ADR-068 §5's budget applies. The ten-Vanguard fight is measured at the next friends release's gate and again at the roster rollout's gate (§8).
 - **`AbilityCastEffects` migrates:** Patch's entries move to `AbilityEffects` as Commit stages, unchanged in look.
 
 ## Provisional answers for the author
