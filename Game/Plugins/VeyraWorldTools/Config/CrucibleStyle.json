@@ -27,7 +27,7 @@
     "sunLux": 22000,
     "sunTemperature": 4800,
     "shadowDistance": 20000,
-    "skyIntensity": 1.1,
+    "skyIntensity": 3.3,
     "exposureEV100": 12,
     "hazeBaseZ": -400,
     "hazeDensity": 0.006,
@@ -85,8 +85,6 @@
       { "family": "Boulder", "spacing": 1100, "chance": 0.3, "radius": 120, "scale": [0.55, 1.05], "sink": 25 }
     ],
     "shoreClearance": 120,
-    "fogReedSpacing": 95,
-    "fogReedScale": [0.85, 1.15],
     "shoreBoulderSpacing": 420,
     "shoreBoulderChance": 0.4,
     "shoreBoulderBand": [-20, 220],

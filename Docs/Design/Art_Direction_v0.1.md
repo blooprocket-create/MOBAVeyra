@@ -375,7 +375,7 @@ first thing to cut.
 
 ## Appearance coverage — resolved
 
-**All 25 Vanguards carry a `**Visual language:**` paragraph.** The original blocker was that
+**All 26 Vanguards carry a `**Visual language:**` paragraph.** The original blocker was that
 only 8 did, so for the other seventeen the sole record of how the character looked was the
 concept sheet itself — the same failure as text baked into an image, in a more expensive
 form: the design existed only as pixels, and nothing could validate, diff or correct it.

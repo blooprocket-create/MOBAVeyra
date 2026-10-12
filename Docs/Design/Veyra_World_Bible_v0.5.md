@@ -1,9 +1,9 @@
-> Repository Markdown edition: expands the world to the current 25-Vanguard design roster, including Bramblehollow and updated regional lore. Original Word concept art is omitted.
+> Repository Markdown edition: expands the world to the current 26-Vanguard design roster, including Bramblehollow, Whetstone City, and updated regional lore. Original Word concept art is omitted.
 
 # Veyra World Bible
 
-**Version:** 0.5 — 25-Vanguard current design roster  
-**Status:** Working canon; geography remains provisional. All 25 designed Vanguards belong to the current roster target, which can grow further; their design does not imply release or implementation.
+**Version:** 0.5 — 26-Vanguard current design roster  
+**Status:** Working canon; geography remains provisional. All 26 designed Vanguards belong to the current roster target, which can grow further; their design does not imply release or implementation.
 
 ## 1. World identity
 
@@ -163,13 +163,23 @@ Merrin should remain a source of strange memory-born life without turning every 
 
 A harsh region of uplifted stone shelves, jagged mineral canyons, caves, subterranean water, mineral-rich fungi, and extreme native ecology.
 
-**Known Vanguards:** Korruk, the Splinterbeast, and Aurelisse, the Open Sky.
+**Known Vanguards:** Korruk, the Splinterbeast; Aurelisse, the Open Sky; and Rheyzekx, the Sharpest Apex.
 
 The upper Shatterdeep includes inhabited cliff settlements linked by narrow bridges, dangerous exposed paths, and resonant mineral canyons. Chimes and route-guidance traditions help travelers navigate fierce winds. **Aurelisse** is a naturally formed wind-and-mineral-dust elemental who learned to guide people through storms; newly disturbed ancient Flux infrastructure is making crossings and weather less predictable. Her emergence is not a Merrin-style memory Echo or a consequence of Bramblehollow's experimentation.
 
 Korruk is biological fauna. His species evolved mineralized bone armor, hollow spines, and pressure organs naturally. He is not an Echo, Flux mutation, construct, or disguised person.
 
 Industrial demand for the species' mineralized spines brought hunters and miners into breeding grounds. Korruk follows the resonance of harvested material and destroys stockpiles containing it.
+
+### Whetstone City and the Scarzekh
+
+**Whetstone City** is a Scarzekh settlement within Shatterdeep. The Scarzekh are a sapient, blade-bearing insectoid people whose natural cutting limbs shape both survival and culture. Their civilization treats the blade as lineage, status, discipline and proof; sharpness matters, but mastery, combat judgment and demonstrated superiority matter with it.
+
+Whetstone City is ruled by its **Alpha**. There are no elections and no ordinary hereditary succession. A Scarzekh who believes the ruler is not the true Alpha may challenge them directly for supremacy; victory transfers rulership. Rheyzekx is the current Alpha and has repeatedly killed challengers who attempted to replace him. His continued survival at the top of that system is itself the city's accepted proof of legitimacy.
+
+Rheyzekx treats Whetstone City less as a community he serves than as his horde, territory and resource base. Dedicated Scarzekh assassins answer directly to the Alpha and act as extensions of his will. The wider population both fears and worships him, and many Scarzekh defend even his cruelty because their culture reads his unmatched dominance as the strongest available claim to authority.
+
+One formal challenger remains uniquely significant. His blades were not sharper than Rheyzekx's, but his unusually durable exoskeleton withstood cuts that should have ended the challenge. Rheyzekx spared him out of curiosity. The challenger accepts Rheyzekx as superior, fears him deeply and avoids him, yet a dissident sect follows the challenger as the only Scarzekh known to have endured the Alpha so effectively. Rheyzekx hunts that sect repeatedly and takes pleasure in doing so; keeping the challenger alive also keeps a living focal point around which dissenters reveal themselves.
 
 ## 9. The Wildwood / Verdant Depths
 
@@ -318,7 +328,7 @@ Politics should be messy rather than faction-color-coded.
 - **Drowned Cantons:** strong maritime local identity and broad trade; not currently locked into a larger alliance bloc.
 - **Merrin:** a ruined city, not a functioning state.
 - **Wildwood:** geographic/ecological region, not one political actor.
-- **Shatterdeep:** contested frontier ecology; political claims remain open.
+- **Shatterdeep:** contested frontier ecology overall; political claims remain open beyond established local polities. **Whetstone City** is a locked Scarzekh polity ruled by its challenge-based Alpha.
 - **Reed Provinces:** region shaped by rival martial houses whose influence extends into law, protection, intelligence, and local politics. Exact political structure remains open.
 - **Bramblehollow:** autonomous biological communities with varied attitudes toward inherited experimental history, not a functioning ancient research state or a unified ideological faction.
 - **Vanguards:** represent personal histories and loyalties. Allies can disagree; enemies can be friends.
@@ -332,6 +342,8 @@ Individual matches are **not literal historical canon**.
 Resonant Forms allow Vanguards who are lovers, allies, relatives, or enemies to appear on either side of a match without rewriting their real relationships.
 
 Character lore tells who these people are. A match shows what could happen if the Crucible placed those Vanguards on opposite sides.
+
+Participation is **not always voluntary**. The Scarzekh challenger who once survived Rheyzekx is canonically abducted by the Crucible and forced into participation against his will. Resonant Forms can therefore place him against Rheyzekx or on Rheyzekx's team without changing their real relationship or implying that he chose to enter.
 
 ## 16. Known origin index
 

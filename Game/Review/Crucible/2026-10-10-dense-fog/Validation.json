@@ -1,0 +1,752 @@
+{
+	"map": "/Game/Veyra/World/Maps/L_Battleground",
+	"generatedUtc": "2026-10-10T12:56:31.344Z",
+	"collision":
+	{
+		"presentationComponents": 61,
+		"groundComponents": 100
+	},
+	"anchors": [
+		{
+			"anchor": "Fountain",
+			"stands": true,
+			"teamA": 200,
+			"teamB": 200
+		},
+		{
+			"anchor": "Spire.Top.0",
+			"stands": true,
+			"teamA": 0,
+			"teamB": 0
+		},
+		{
+			"anchor": "Spire.Top.1",
+			"stands": true,
+			"teamA": 0,
+			"teamB": 0
+		},
+		{
+			"anchor": "Spire.Top.2",
+			"stands": true,
+			"teamA": 70.5,
+			"teamB": 70.5
+		},
+		{
+			"anchor": "Inhibitor.Top",
+			"stands": true,
+			"teamA": 200,
+			"teamB": 200
+		},
+		{
+			"anchor": "Spire.Mid.0",
+			"stands": true,
+			"teamA": -0.20000000000000001,
+			"teamB": -0.20000000000000001
+		},
+		{
+			"anchor": "Spire.Mid.1",
+			"stands": true,
+			"teamA": 0,
+			"teamB": 0
+		},
+		{
+			"anchor": "Spire.Mid.2",
+			"stands": true,
+			"teamA": 100,
+			"teamB": 100
+		},
+		{
+			"anchor": "Inhibitor.Mid",
+			"stands": true,
+			"teamA": 200,
+			"teamB": 200
+		},
+		{
+			"anchor": "Spire.Bottom.0",
+			"stands": true,
+			"teamA": 0,
+			"teamB": 0
+		},
+		{
+			"anchor": "Spire.Bottom.1",
+			"stands": true,
+			"teamA": 0,
+			"teamB": 0
+		},
+		{
+			"anchor": "Spire.Bottom.2",
+			"stands": true,
+			"teamA": 70.5,
+			"teamB": 70.5
+		},
+		{
+			"anchor": "Inhibitor.Bottom",
+			"stands": true,
+			"teamA": 200,
+			"teamB": 200
+		},
+		{
+			"anchor": "BaseTower.0",
+			"stands": true,
+			"teamA": 200,
+			"teamB": 200
+		},
+		{
+			"anchor": "BaseTower.1",
+			"stands": true,
+			"teamA": 200,
+			"teamB": 200
+		},
+		{
+			"anchor": "PrimeWell",
+			"stands": true,
+			"teamA": 200,
+			"teamB": 200
+		},
+		{
+			"anchor": "Camp.ashfang",
+			"stands": true,
+			"teamA": 249.90000000000001,
+			"teamB": 249.90000000000001
+		},
+		{
+			"anchor": "Camp.stonehorn",
+			"stands": true,
+			"teamA": 260.19999999999999,
+			"teamB": 260.19999999999999
+		},
+		{
+			"anchor": "Camp.skittermaw",
+			"stands": true,
+			"teamA": 231.40000000000001,
+			"teamB": 231.40000000000001
+		},
+		{
+			"anchor": "Camp.miremother",
+			"stands": true,
+			"teamA": 260.19999999999999,
+			"teamB": 260.19999999999999
+		},
+		{
+			"anchor": "Camp.razorback",
+			"stands": true,
+			"teamA": 252.20000000000002,
+			"teamB": 252.20000000000002
+		},
+		{
+			"anchor": "Camp.gloomwing",
+			"stands": true,
+			"teamA": 252.20000000000002,
+			"teamB": 252.20000000000002
+		},
+		{
+			"anchor": "FluxWell.0",
+			"stands": true,
+			"teamA": -140.70000000000002,
+			"teamB": -140.70000000000002
+		},
+		{
+			"anchor": "FluxWell.1",
+			"stands": true,
+			"teamA": -140.70000000000002,
+			"teamB": -140.70000000000002
+		},
+		{
+			"anchor": "Crossing.Top",
+			"stands": true,
+			"teamA": -279.69999999999999,
+			"teamB": -279.69999999999999
+		},
+		{
+			"anchor": "Crossing.Mid",
+			"stands": true,
+			"teamA": -279.69999999999999,
+			"teamB": -279.69999999999999
+		},
+		{
+			"anchor": "Crossing.Bottom",
+			"stands": true,
+			"teamA": -279.69999999999999,
+			"teamB": -279.69999999999999
+		}
+	],
+	"terrain":
+	{
+		"samples": 4095,
+		"missing": 0,
+		"uneven": 0,
+		"largestDelta": 0,
+		"largestAt": "X=6600.000 Y=-8400.000"
+	},
+	"navigation":
+	{
+		"agentRadius": 35,
+		"agentMaxSlope": 44,
+		"walls": 376
+	},
+	"walls":
+	{
+		"walls": 376,
+		"walkable": 0
+	},
+	"routes": [
+		{
+			"route": "Fountain > Spire.Top.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 11494,
+				"climb": 0,
+				"descent": 200,
+				"steepestGrade": 0.23900000000000002
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 11494,
+				"climb": 0,
+				"descent": 200,
+				"steepestGrade": 0.23900000000000002
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Spire.Mid.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 9241,
+				"climb": 0,
+				"descent": 200,
+				"steepestGrade": 0.30299999999999999
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 9241,
+				"climb": 0,
+				"descent": 200,
+				"steepestGrade": 0.30299999999999999
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Spire.Bottom.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 11495,
+				"climb": 0,
+				"descent": 200,
+				"steepestGrade": 0.23900000000000002
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 11495,
+				"climb": 0,
+				"descent": 200,
+				"steepestGrade": 0.23900000000000002
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Camp.ashfang",
+			"teamA":
+			{
+				"complete": true,
+				"length": 10197,
+				"climb": 116,
+				"descent": 66,
+				"steepestGrade": 0.20000000000000001
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 10197,
+				"climb": 116,
+				"descent": 66,
+				"steepestGrade": 0.20000000000000001
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Camp.stonehorn",
+			"teamA":
+			{
+				"complete": true,
+				"length": 7728,
+				"climb": 63,
+				"descent": 3,
+				"steepestGrade": 0.094
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 7728,
+				"climb": 63,
+				"descent": 3,
+				"steepestGrade": 0.094
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Camp.skittermaw",
+			"teamA":
+			{
+				"complete": true,
+				"length": 9644,
+				"climb": 258,
+				"descent": 226,
+				"steepestGrade": 0.373
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 9645,
+				"climb": 258,
+				"descent": 226,
+				"steepestGrade": 0.374
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Camp.miremother",
+			"teamA":
+			{
+				"complete": true,
+				"length": 7728,
+				"climb": 72,
+				"descent": 12,
+				"steepestGrade": 0.122
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 7728,
+				"climb": 72,
+				"descent": 12,
+				"steepestGrade": 0.122
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Camp.razorback",
+			"teamA":
+			{
+				"complete": true,
+				"length": 10309,
+				"climb": 68,
+				"descent": 15,
+				"steepestGrade": 0.076999999999999999
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 10309,
+				"climb": 68,
+				"descent": 16,
+				"steepestGrade": 0.076999999999999999
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > Camp.gloomwing",
+			"teamA":
+			{
+				"complete": true,
+				"length": 10309,
+				"climb": 73,
+				"descent": 21,
+				"steepestGrade": 0.072999999999999995
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 10309,
+				"climb": 73,
+				"descent": 21,
+				"steepestGrade": 0.072999999999999995
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > FluxWell.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 12440,
+				"climb": 198,
+				"descent": 539,
+				"steepestGrade": 0.59499999999999997
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 12440,
+				"climb": 198,
+				"descent": 539,
+				"steepestGrade": 0.59499999999999997
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Fountain > FluxWell.1",
+			"teamA":
+			{
+				"complete": true,
+				"length": 12266,
+				"climb": 382,
+				"descent": 723,
+				"steepestGrade": 0.59399999999999997
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 12266,
+				"climb": 382,
+				"descent": 723,
+				"steepestGrade": 0.59399999999999997
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Spire.Top.0 > Crossing.Top",
+			"teamA":
+			{
+				"complete": true,
+				"length": 2912,
+				"climb": 0,
+				"descent": 280,
+				"steepestGrade": 0.214
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 2911,
+				"climb": 0,
+				"descent": 280,
+				"steepestGrade": 0.214
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Spire.Mid.0 > Crossing.Mid",
+			"teamA":
+			{
+				"complete": true,
+				"length": 1821,
+				"climb": 0,
+				"descent": 280,
+				"steepestGrade": 0.26200000000000001
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 1819,
+				"climb": 0,
+				"descent": 280,
+				"steepestGrade": 0.26200000000000001
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Spire.Bottom.0 > Crossing.Bottom",
+			"teamA":
+			{
+				"complete": true,
+				"length": 2911,
+				"climb": 0,
+				"descent": 280,
+				"steepestGrade": 0.25900000000000001
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 2912,
+				"climb": 0,
+				"descent": 280,
+				"steepestGrade": 0.25900000000000001
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Spire.Top.0 > FluxWell.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 3887,
+				"climb": 140,
+				"descent": 281,
+				"steepestGrade": 0.32400000000000001
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 3887,
+				"climb": 140,
+				"descent": 281,
+				"steepestGrade": 0.32400000000000001
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Spire.Mid.0 > FluxWell.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 4736,
+				"climb": 254,
+				"descent": 395,
+				"steepestGrade": 0.59999999999999998
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 4736,
+				"climb": 254,
+				"descent": 395,
+				"steepestGrade": 0.59999999999999998
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Spire.Mid.0 > FluxWell.1",
+			"teamA":
+			{
+				"complete": true,
+				"length": 4629,
+				"climb": 140,
+				"descent": 280,
+				"steepestGrade": 0.25700000000000001
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 4628,
+				"climb": 140,
+				"descent": 280,
+				"steepestGrade": 0.25700000000000001
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Spire.Bottom.0 > FluxWell.1",
+			"teamA":
+			{
+				"complete": true,
+				"length": 3554,
+				"climb": 150,
+				"descent": 291,
+				"steepestGrade": 0.27300000000000002
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 3554,
+				"climb": 150,
+				"descent": 291,
+				"steepestGrade": 0.26200000000000001
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Crossing.Top > FluxWell.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 4956,
+				"climb": 220,
+				"descent": 81,
+				"steepestGrade": 0.252
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 4956,
+				"climb": 220,
+				"descent": 81,
+				"steepestGrade": 0.252
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Crossing.Bottom > FluxWell.1",
+			"teamA":
+			{
+				"complete": true,
+				"length": 4956,
+				"climb": 220,
+				"descent": 81,
+				"steepestGrade": 0.252
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 4956,
+				"climb": 220,
+				"descent": 81,
+				"steepestGrade": 0.252
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Camp.ashfang > FluxWell.0",
+			"teamA":
+			{
+				"complete": true,
+				"length": 2428,
+				"climb": 138,
+				"descent": 528,
+				"steepestGrade": 0.59299999999999997
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 2429,
+				"climb": 138,
+				"descent": 528,
+				"steepestGrade": 0.59299999999999997
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"passed": true
+		},
+		{
+			"route": "Camp.skittermaw > FluxWell.1",
+			"teamA":
+			{
+				"complete": true,
+				"length": 2865,
+				"climb": 152,
+				"descent": 524,
+				"steepestGrade": 0.59799999999999998
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 2864,
+				"climb": 152,
+				"descent": 524,
+				"steepestGrade": 0.59799999999999998
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"passed": true
+		}
+	],
+	"lanes": [
+		{
+			"route": "Lane.Top",
+			"teamA":
+			{
+				"complete": true,
+				"length": 20421,
+				"climb": 480,
+				"descent": 480,
+				"steepestGrade": 0.29999999999999999
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 20420,
+				"climb": 480,
+				"descent": 480,
+				"steepestGrade": 0.29999999999999999
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"detour": 0.001,
+			"passed": true
+		},
+		{
+			"route": "Lane.Mid",
+			"teamA":
+			{
+				"complete": true,
+				"length": 12784,
+				"climb": 480,
+				"descent": 480,
+				"steepestGrade": 0.30299999999999999
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 12784,
+				"climb": 480,
+				"descent": 480,
+				"steepestGrade": 0.30299999999999999
+			},
+			"lengthDelta": 0,
+			"climbDelta": 0,
+			"detour": 0,
+			"passed": true
+		},
+		{
+			"route": "Lane.Bottom",
+			"teamA":
+			{
+				"complete": true,
+				"length": 20420,
+				"climb": 480,
+				"descent": 480,
+				"steepestGrade": 0.29999999999999999
+			},
+			"teamB":
+			{
+				"complete": true,
+				"length": 20421,
+				"climb": 480,
+				"descent": 480,
+				"steepestGrade": 0.29999999999999999
+			},
+			"lengthDelta": 1,
+			"climbDelta": 0,
+			"detour": 0.001,
+			"passed": true
+		}
+	],
+	"navigationMap": "Saved/WorldGeneration/Navigation.png",
+	"passed": true,
+	"findings": []
+}

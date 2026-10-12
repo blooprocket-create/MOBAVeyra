@@ -2,10 +2,12 @@
 
 This directory contains the **current working canon** for Veyra's game design. Contributors and coding agents should use these files as the default design references. For task-specific ownership and bounded reads, start with the [agent context map](../CONTEXT_MAP.md) and its [large-document section locators](../Index/README.md), rather than loading every bible.
 
+For producing or polishing **client UI, in-match HUD, Vanguards, animation, combat VFX, the Crucible or rendering**, read the [Visual Production Standard](../Production/VEYRA_VISUAL_PRODUCTION_STANDARD.md) and [Upgrade Roadmap](../Production/VEYRA_VISUAL_UPGRADE_ROADMAP.md) after selecting the governing design bible. These guides set production workflow and acceptance evidence; they do not change the design canon below.
+
 ## Current documents
 
-- `Veyra_Initial_Roster_Character_Bible_v0.6.md` (25 designed Vanguards, including Mimzi, Celandrine, Gorraveth, Aurelisse, and Eudora; full kits and lore)
-- `Veyra_World_Bible_v0.5.md` (adds Bramblehollow, Thistlewick, the Root Vaults, and expanded Ember Basin, Shatterdeep, and Iron March lore)
+- `Veyra_Initial_Roster_Character_Bible_v0.6.md` (26 designed Vanguards, including Mimzi, Celandrine, Gorraveth, Aurelisse, Eudora, and Rheyzekx; full kits and lore)
+- `Veyra_World_Bible_v0.5.md` (adds Bramblehollow, Thistlewick, the Root Vaults, Whetstone City and the Scarzekh, and expanded Ember Basin, Shatterdeep, and Iron March lore)
 - `Veyra_Battleground_Bible_v0.9.md`
 - `Veyra_Item_Bible_v0.3.md`
 - `Veyra_Combat_Bible_v0.5.md` (adds §56 Ride states)

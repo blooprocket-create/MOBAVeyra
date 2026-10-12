@@ -67,6 +67,28 @@ def sample(graph, column, texture, uv, sampler_type):
     return expression
 
 
+def world_aligned(g, column, function, texture_asset, size, output):
+    """Shared world projection for static terrain and kit surfaces; size is cm or a scalar expression.
+
+    WorldAlignedNormal's default outputs are tangent-space normals (WorldSpace defaults false).
+    Keep that convention when blending them with ordinary tangent-space layer normals.
+    """
+    def pin(names, prefix):
+        match = next((name for name in names if str(name).startswith(prefix)), None)
+        assert match, f"no pin {prefix} among {names}"
+        return str(match)
+
+    tex = g.node(unreal.MaterialExpressionTextureObject, column - 1, texture=texture_asset)
+    call = g.node(unreal.MaterialExpressionMaterialFunctionCall, column)
+    call.set_editor_property("material_function", unreal.load_asset(f"/Engine/Functions/Engine_MaterialFunctions01/Texturing/{function}"))
+    inputs = EDIT.get_material_expression_input_names(call)
+    g.link(tex, "", call, pin(inputs, "TextureObject"))
+    tile = (g.node(unreal.MaterialExpressionConstant3Vector, column - 1, constant=unreal.LinearColor(size, size, size, 0.0))
+            if isinstance(size, (int, float)) else size)
+    g.link(tile, "", call, pin(inputs, "TextureSize"))
+    return call, pin(EDIT.get_material_expression_output_names(call), output)
+
+
 def link_named(g, source, output, target, names):
     """Links to the first of `names` the target answers to: custom outputs name pins by property or display name."""
     for name in names:

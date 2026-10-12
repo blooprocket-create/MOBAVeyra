@@ -79,7 +79,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 - **Authored volumes:** `World.json`'s layout gains `denseFog`: circles in Team A's half, with Team B's derived by the layout's mirror. Placement is Battleground §11's grey-box decision; §11 of this record lists the spots.
 - **Runtime volumes:** Vision owns an API, `AddFogVolume(centre, radius, lifetime)`, for abilities that make fog (Sylra, later; ADR-003).
 - **Connected volumes:** overlapping circles are one volume while they touch, recomputed when a volume comes or goes.
-- **Presentation:** the grey box draws each volume as a dark translucent disc. Fogged enemies vanish because they are no longer replicated; darkening unseen ground waits for real presentation.
+- **Presentation (updated by the author's 2026-10-10 direction):** the original grey-box dark discs are replaced by spatial fog banks. The shared presentation builder consumes the authoritative circle footprints without owning visibility. Smaller overlapping layout lobes produce irregular pockets; the connected-volume rules are unchanged. Fogged enemies vanish because they are no longer replicated. See World Production Bible §11 for the current visual method.
 
 ### 5. Presence is a channel, not vision
 

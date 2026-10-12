@@ -43,18 +43,23 @@ $arguments = @(
     '-AllowCommandletRendering'
     '-RenderOffscreen'
     '-NoTextureStreaming'
+    # Landscape generation creates temporary render views; skip the volumetric-fog path there.
+    # This process-only setting does not change the map's authored fog or runtime settings.
+    '-ini:Engine:[SystemSettings]:r.VolumetricFog=0'
     '-nosplash'
     '-nosound'
 ) -join ' '
 
 Write-Host 'Building the battleground map.'
-$process = Start-Process -FilePath $editor -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
+$process = Start-Process -FilePath $editor -ArgumentList $arguments -WindowStyle Hidden -PassThru
+# Wait for the editor itself; its persistent asset-cache service may outlive it.
+$process.WaitForExit()
 if ($process.ExitCode -ne 0) {
     Write-Host "The commandlet failed with exit code $($process.ExitCode). Log: $logFile"
     exit 1
 }
 $repoDir = Split-Path -Parent $gameDir
-$sourcePaths = @('Game/Tuning/World.json', 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json', 'Game/ArtSource/Environment/CrucibleKit.json', 'Game/ArtSource/Environment/Terrain/TerrainTextures.json')
+$sourcePaths = @('Game/Tuning/World.json', 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json', 'Game/ArtSource/Environment/CrucibleKit.json', 'Game/ArtSource/Environment/Terrain/TerrainTextures.json', 'Game/Config/DefaultGame.ini', 'Game/ArtSource/Presentation/Effects.json', 'Game/ArtSource/Presentation/PresentationMaterials.json')
 $inputs = @($sourcePaths | ForEach-Object {
     @{ path = $_; sha256 = (Get-FileHash -LiteralPath (Join-Path $repoDir $_) -Algorithm SHA256).Hash.ToLowerInvariant() }
 })

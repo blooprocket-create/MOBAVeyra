@@ -33,6 +33,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Fog/VeyraDenseFogBank.h"
+#include "Vision/VeyraDenseFogVisuals.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/HUD.h"
@@ -92,9 +93,6 @@
 
 namespace
 {
-	/** Dense Fog lies on top of the ground's other markings, the map's and an ability's alike. */
-	constexpr int32 FogMarkingLayer = 4;
-
 	/** The cast state beside Unit's Ability System Component: on a Vanguard, its participant's. */
 	const UVeyraCastStateComponent* FindGreyboxCastState(const AActor& Unit)
 	{
@@ -1605,7 +1603,7 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		}
 		for (const FVeyraFogCircle& Circle : Circles)
 		{
-			AddGroundMarking(Bank, *PadMesh, Settings.DenseFogColor, Circle.Center, 0.0, FVector2D(Circle.Radius), FogMarkingLayer);
+			VeyraDenseFogVisuals::Add(Bank, Circle.Center, Circle.Radius, UVeyraWorldTuningSubsystem::Get().Layout.Surface);
 		}
 		DrawnFogBanks.Add(&Bank);
 	}
@@ -1706,10 +1704,14 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 			PadMaterials.Add(Team, Material);
 		}
 	}
-	// Dense Fog is marked on top: a player sees where it lies, not who is in it.
+	// Generated maps already contain fog visuals; fallback maps use the same builder.
+	const bool bAuthoredFog = VeyraDenseFogVisuals::HasAuthoredVisuals(*World);
 	for (const FVeyraFogPlacement& Fog : VeyraLayout::DenseFog(Layout))
 	{
-		AddGroundMarking(*Owner, *PadMesh, Settings.DenseFogColor, Fog.Center, 0.0, FVector2D(Fog.Radius), FogMarkingLayer);
+		if (!bAuthoredFog)
+		{
+			VeyraDenseFogVisuals::Add(*Owner, Fog.Center, Fog.Radius, Layout.Surface);
+		}
 		// And a body in it on the viewer's side shows that it is hidden (ADR-068 §6).
 		MapFog.Add(FVeyraFogCircle{ Fog.Center, Fog.Radius });
 	}
@@ -2211,4 +2213,3 @@ TArray<UStaticMeshComponent*> UVeyraGreyboxSubsystem::GetTelegraphFills() const
 	}
 	return Shown;
 }
-

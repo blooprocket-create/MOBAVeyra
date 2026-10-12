@@ -150,6 +150,9 @@ def flagstones(spec, size, rng):
 
 def moss(spec, size, rng):
     """Jungle floor: patches of dark soil under cushions of moss in several greens, leaf litter, small stones."""
+    for key in ("cushionContrast", "cushionRelief"):
+        if not isinstance(spec[key], (int, float)) or isinstance(spec[key], bool) or not 0 <= spec[key] <= 1:
+            raise ValueError(f"Moss {key} must be a number in [0, 1]")
     cover = fbm(size, 3, 6, rng)
     fine = fbm(size, 64, 3, rng)
     tone = fbm(size, 6, 4, rng)
@@ -158,7 +161,8 @@ def moss(spec, size, rng):
     moss_mask = smoothstep(1 - spec["mossCover"] - 0.08, 1 - spec["mossCover"] + 0.08, cover + 0.12 * (fine - 0.5))
     soil = np.asarray(spec["soil"])[None, None, :] * (0.7 + 0.6 * fine[..., None])
     moss_col = mix(spec["moss"], spec["mossLight"], smoothstep(0.35, 0.8, tone) * 0.85)
-    moss_col = moss_col * (0.75 + 0.35 * cushions[..., None] + 0.15 * fine[..., None])
+    # Keep the broad colour field dominant at gameplay distance; small cushions should not read as paving.
+    moss_col = moss_col * (0.925 + spec["cushionContrast"] * (cushions[..., None] - 0.5) + 0.15 * fine[..., None])
     albedo = mix(soil, moss_col, moss_mask)
     litter_f1, _, litter_ids = cellular(size, 80, rng, stretch=(1.0, 2.4))
     # Leaf litter on a share of the cells: per_cell spreads -1..1, so the share keeps the cells above 1 - 2 * share.
@@ -169,7 +173,7 @@ def moss(spec, size, rng):
     stones_f1, _, stone_ids = cellular(size, 24, rng)
     stones = np.sqrt(np.clip(1 - (stones_f1 / 0.22) ** 2, 0, 1)) * (per_cell(stone_ids, 24, rng, 1.0) > 0.6) * (1 - moss_mask)
     albedo = mix(albedo, np.asarray([0.36, 0.34, 0.30])[None, None, :] * (0.7 + 0.4 * stones[..., None]), smoothstep(0.0, 0.2, stones))
-    height = 0.3 * moss_mask * (0.4 + 0.6 * cushions) + 0.2 * fine + 0.12 * litter + 0.2 * cover + 0.35 * stones
+    height = 0.3 * moss_mask * (0.7 + spec["cushionRelief"] * (cushions - 0.5)) + 0.2 * fine + 0.12 * litter + 0.2 * cover + 0.35 * stones
     rough_lo, rough_hi = spec["roughness"]
     roughness = rough_hi - (rough_hi - rough_lo) * np.clip(0.6 * litter + 0.4 * stones + 0.2 * (1 - moss_mask), 0, 1)
     return albedo, height, roughness

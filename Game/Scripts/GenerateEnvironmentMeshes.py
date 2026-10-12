@@ -377,14 +377,43 @@ def join(target, others):
     bm.free()
 
 
-def lumpy_mass(bm, centre, radii, rng, offset, lumps):
-    """A foliage mass: a squashed icosphere pushed out in lumps."""
-    made = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=1.0)["verts"]
-    for vertex in made:
-        direction = vertex.co.normalized()
-        bump = 1.0 + lumps * fractal(direction * 1.7 + offset, 1.0, 3)
-        vertex.co = centre + Vector((direction.x * radii.x, direction.y * radii.y, direction.z * radii.z)) * bump
-    return made
+def lumpy_mass(bm, centre, radii, rng, offset, lumps, spec):
+    """Layered crown clusters and pointed edge leaves, bounded by the original mass ellipsoid."""
+    count = spec["leafClusters"]
+    edge_leaves = spec["edgeLeaves"]
+    flatten = spec["clusterFlatten"]
+    assert 3 <= count <= 8 and 0 <= edge_leaves <= 16 and 0.2 <= flatten <= 0.8
+    phase = offset.x % math.tau
+    for index in range(count):
+        made = []
+        angle = phase + math.tau * index / count
+        anchor = Vector((math.cos(angle) * 0.43, math.sin(angle) * 0.43,
+                         0.18 * math.sin(angle * 2 + phase)))
+        cluster = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=1.0)["verts"]
+        for vertex in cluster:
+            direction = vertex.co.normalized()
+            bump = 1.0 + lumps * fractal(direction * 2.7 + offset, 1.0, 3)
+            vertex.co = anchor + Vector((direction.x * 0.53, direction.y * 0.53,
+                                         direction.z * flatten)) * bump
+        made.extend(cluster)
+        # Folded lance-shaped leaves interrupt the silhouette without alpha cards or a new material.
+        for leaf_index in range(edge_leaves):
+            a = angle + math.tau * leaf_index / edge_leaves
+            out = Vector((math.cos(a), math.sin(a), 0))
+            side = Vector((-out.y, out.x, 0))
+            base = anchor + out * 0.28
+            mid = anchor + out * 0.52 + Vector((0, 0, 0.10))
+            tip = anchor + out * 0.76 + Vector((0, 0, -0.08))
+            points = [base, mid-side*0.12, mid+Vector((0,0,0.06)), mid+side*0.12, tip]
+            vertices = [bm.verts.new(p) for p in points]
+            for face in ((0,1,2),(0,2,3),(1,4,2),(2,4,3)):
+                bm.faces.new([vertices[i] for i in face])
+            made.extend(vertices)
+        for vertex in made:
+            local = vertex.co.copy()
+            if local.length > 1.0:
+                local.normalize()
+            vertex.co = centre + Vector((local.x*radii.x, local.y*radii.y, local.z*radii.z))
 
 
 def tree(spec, rng):
@@ -416,7 +445,7 @@ def tree(spec, rng):
         anchor = tips[index % len(tips)]
         spread = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.2, 0.6))) * canopy * 0.35
         size = canopy * rng.uniform(0.38, 0.55)
-        lumpy_mass(leaves, anchor + spread + Vector((0, 0, size * 0.3)), Vector((size, size, size * 0.72)), rng, offset + Vector((index * 7.1, 0, 0)), 0.35)
+        lumpy_mass(leaves, anchor + spread + Vector((0, 0, size * 0.3)), Vector((size, size, size * 0.72)), rng, offset + Vector((index * 7.1, 0, 0)), 0.35, spec)
     leaf_obj = to_object("leaves", leaves, ["leaves"])
     join(obj, [leaf_obj])
     ground_pivot(obj, sink=0.2)
@@ -451,7 +480,7 @@ def shrub(spec, rng):
         distance = radius * rng.uniform(0.0, 0.6)
         size = radius * rng.uniform(0.45, 0.7)
         centre = Vector((math.cos(angle) * distance, math.sin(angle) * distance, size * rng.uniform(0.55, 0.8)))
-        lumpy_mass(leaves, centre, Vector((size, size, size * 0.8)), rng, offset + Vector((index * 5.3, 0, 0)), 0.3)
+        lumpy_mass(leaves, centre, Vector((size, size, size * 0.8)), rng, offset + Vector((index * 5.3, 0, 0)), 0.3, spec)
     obj = to_object("shrub", leaves, ["leaves"])
     decimate(obj, spec["triangles"])
     ground_pivot(obj, sink=0.08)
@@ -486,6 +515,9 @@ def fern(spec, rng):
 
 
 def grass(spec, rng):
+    for key in ("bladeWidthRatio", "leanRatio"):
+        assert len(spec[key]) == 2 and 0 < spec[key][0] <= spec[key][1] < 1, key
+    assert 0 <= spec["bladeFold"] <= 0.5, "bladeFold"
     bm = bmesh.new()
     spread = spec["spreadMetres"]
     for _ in range(rng.randint(*spec["blades"])):
@@ -495,20 +527,24 @@ def grass(spec, rng):
         height = rng.uniform(*spec["heightMetres"])
         facing = rng.uniform(0, math.tau)
         side = Vector((math.cos(facing), math.sin(facing), 0))
-        lean = Vector((root.x, root.y, 0)).normalized() * height * rng.uniform(0.15, 0.4) if distance > 0 else Vector()
-        width = height * rng.uniform(0.03, 0.05)
+        lean = Vector((root.x, root.y, 0)).normalized() * height * rng.uniform(*spec["leanRatio"]) if distance > 0 else Vector()
+        width = height * rng.uniform(*spec["bladeWidthRatio"])
+        fold = Vector((-side.y, side.x, 0)) * width * spec["bladeFold"]
         levels = 3
         row = []
         for k in range(levels + 1):
             t = k / levels
             centre = root + lean * t * t + Vector((0, 0, height * t))
             half = width * (1.0 - t) * 0.5
-            row.append((bm.verts.new(centre - side * half), bm.verts.new(centre + side * half)) if k < levels else (bm.verts.new(centre),))
+            row.append((bm.verts.new(centre - side * half), bm.verts.new(centre + fold * (1.0-t)),
+                        bm.verts.new(centre + side * half)) if k < levels else (bm.verts.new(centre),))
         for k in range(levels - 1):
-            (a, b), (c, d) = row[k], row[k + 1]
-            bm.faces.new((a, b, d, c))
-        (a, b), (tip,) = row[levels - 1], row[levels]
-        bm.faces.new((a, b, tip))
+            (a, ridge, b), (c, next_ridge, d) = row[k], row[k + 1]
+            bm.faces.new((a, ridge, next_ridge, c))
+            bm.faces.new((ridge, b, d, next_ridge))
+        (a, ridge, b), (tip,) = row[levels - 1], row[levels]
+        bm.faces.new((a, ridge, tip))
+        bm.faces.new((ridge, b, tip))
     obj = to_object("grass", bm, ["grass"])
     ground_pivot(obj, sink=0.0)
     shade(obj, 89)
@@ -573,7 +609,7 @@ def preview(objects):
 
 
 # The kit's look is the importer's alone (EnvironmentKit/inputs.py), so the manifest hashes the rest: what the meshes are made from.
-report = {"generator": "GenerateEnvironmentMeshes.v3", "blender": bpy.app.version_string, "seed": KIT["seed"],
+report = {"generator": "GenerateEnvironmentMeshes.v4", "blender": bpy.app.version_string, "seed": KIT["seed"],
           "meshProfileSha256": mesh_profile_sha256(KIT),
           "collision": "None; gameplay terrain is owned by World.json and VeyraWorld", "assets": []}
 made = []
@@ -588,6 +624,8 @@ for family_index, family in enumerate(KIT["families"]):
         name = f'SM_Crucible_{family["id"]}_{variant:02d}'
         obj = BUILDERS[family["kind"]](family, rng)
         finish(obj, name)
+        assert len(obj.data.polygons) <= family["triangles"], f"{name}: triangle budget exceeded"
+        assert all(math.isfinite(c) for v in obj.data.vertices for c in v.co), f"{name}: non-finite vertex"
         geometry = json.dumps({"vertices": [[round(c, 6) for c in v.co] for v in obj.data.vertices],
                                "faces": [list(p.vertices) for p in obj.data.polygons]}, separators=(",", ":"))
         filename = SOURCE / "FBX" / (name + ".fbx")

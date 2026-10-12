@@ -1,4 +1,4 @@
-> Repository Markdown edition: 25-Vanguard current design roster, expanded from the prior 20. Embedded concept art is omitted; consult the character-art directory for images actually uploaded to the repository.
+> Repository Markdown edition: 26-Vanguard current design roster, expanded from the prior 20. Embedded concept art is omitted; consult the character-art directory for images actually uploaded to the repository.
 
 # Veyra Initial Roster Character Bible
 
@@ -19,8 +19,9 @@
 **Clean redesign (2026-09-20):** Raska, Kade and Angeru now carry `**Visual language:**` paragraphs, completing appearance coverage for all 25 Vanguards. These three are **new designs built from written canon alone** — role, region, kit, lore and personality — because their earlier sheets were withdrawn for third-party content and reconstructing that look would carry the reason for the withdrawal forward. Nothing was taken from the withdrawn art, and it must not be reintroduced. No kit, lore, role, region or roster count changed.  
 **New splash art (2026-10-07):** The author supplied new splash art for Gorraveth and Aurelisse, and art is canon, so their `**Visual language:**` paragraphs follow it. Gorraveth is the same design drawn cleaner: his mane of black spikes, cream throat and chest, dark horn, bronze-bound harness and pauldrons, dark gauntlets and greaves are now named, and his slag is **molten where it drips and black where it has cooled** rather than black throughout. Aurelisse changes more: she is no longer translucent air narrowing to a cyclone below the waist, but a figure with **periwinkle-blue skin veined with light, a calm face with glowing eyes, long legs and bare feet**, and her chimes are **bells** rather than tubes. Her nature is unchanged — wind and mineral dust that has taken a recognisable form — and so are her kit, lore, role, region and the roster count. New art for Vera, Varkesh and Marek followed the same day: the same designs drawn cleaner, and only Vera's paragraph changes — her side-tail is fuller and tied in a bow, and a long red cloak torn to ribbons now streams over her black coat. Mavra and Korruk followed: Korruk is the same design, his crest drawn sweeping back; Mavra's coat hem is now torn red and black rather than painted with red-and-white hazard striping. Angeru and Oriel followed too, the same designs drawn cleaner; Oriel's glass is now mostly pearl-pale touched with lavender and blue, its amber kept to the panes lit about her core. Patch followed last, the same bear drawn cleaner; his worn leather backpack, in both his old and new art, is now named. His new art also gives him two matching dark button eyes where canon had one dark and one pale; by the author's ruling the art wins, and his eyes are now both dark. Tavi, Torr, Neris, Moro and Relay followed on 2026-10-08, the same designs drawn cleaner; their models already match, and so do their paragraphs but for Tavi's cross-shaped pupils, which her third hero declined and which are withdrawn (see Tavi's cross pupils above). Raska, Qazharr and Mimzi followed the same day, again the same designs drawn cleaner; their paragraphs and models already match. The last five, Bryn, Sylra, Eudora, Celandrine and Kade, completed the redraw: all the same designs drawn cleaner, and three move at the author's review of their models against it: Bryn's coat goes from dark teal to navy trimmed in gold and Mournwake from riding over her shoulder to her hip; Sylra's storm cloth goes from grey-blue to near black, with gold chains, a medallion and a gold-fitted lantern; and Eudora narrows through the hips, her coat falling close at her sides.
 **Angeru's skill points (2026-09-25):** one point in Q, W or E ranks both stances' abilities in that slot; Q, W and E rank to 6; Forsake the Schools costs no skill point and never ranks (§15). No lore, role or roster count changed.  
-**Current roster target:** 25 Vanguards (and growing as new designs are added)  
-**Status:** Working character canon for the planned first-playable roster. All 25 Vanguards below belong to this design target; the number designed is not the number implemented/released.
+**Rheyzekx addition (2026-10-08):** Added Rheyzekx, The Sharpest Apex, as Vanguard 26: Scarzekh Alpha of Whetstone City, physical cleave assassin/skirmisher, and the first roster entry to establish Scarzekh society and its dissident-challenger thread. The unnamed challenger is a future-character anchor, not Vanguard 27 yet.  
+**Current roster target:** 26 Vanguards (and growing as new designs are added)  
+**Status:** Working character canon for the planned first-playable roster. All 26 Vanguards below belong to this design target; the number designed is not the number implemented/released.
 
 ## Roster principles
 
@@ -68,6 +69,7 @@ The game supplies a three-lane battlefield, an encompassing jungle, Flux Wells, 
 | 23 | **Gorraveth, The Slagmaw** | Fast-clear Melee Skirmisher | Physical | Ember Basin | Scarred reptilian hunter; camp momentum |
 | 24 | **Aurelisse, The Open Sky** | Disengage Enchanter / Protector | Magic / Utility | Shatterdeep | Wind elemental; protection and directional peel |
 | 25 | **Eudora Blackbridge, The Fieldwright** | Deployable Engineer / Siege | Physical / Utility | Iron March | Picket gun/bulwark machine |
+| 26 | **Rheyzekx, The Sharpest Apex** | Assassin / Cleave Skirmisher | Physical | Whetstone City, Shatterdeep | Natural scythe-blades, cleave, kill-reset dash |
 
 ---
 
@@ -1632,7 +1634,7 @@ Gather floating shards into an overhead prism, then channel a huge, **telegraphe
 
 ---
 
-# Vanguards 21–25
+# Vanguards 21–26
 
 The following five are full members of the current planned roster. Existing combat, targeting, Dense Fog, jungle, Flux, and open-composition rules remain authoritative.
 
@@ -1800,11 +1802,60 @@ Unanchor the **existing operational Picket** and order it to follow a nearby sel
 
 ---
 
+# 26. Rheyzekx, The Sharpest Apex
+
+**Origin:** Whetstone City, Shatterdeep. **Species:** Scarzekh — a sapient, blade-bearing insectoid people. **Identity:** Physical assassin / cleave skirmisher built around raw Physical Power, broad cuts, and kill-confirmed movement rather than sustained basic-attack speed. **Primary damage:** Physical. **Weapons:** his own paired natural scythe-blades; they are body parts, not carried weapons.
+
+**Visual language:** A tall, predatory Scarzekh with a low forward fighting posture, angular dark chitin and armor-like plates, bronze-gold hard edges, crimson wing/back plates, a narrow non-human head, and two enormous integrated forearm scythes that dominate the silhouette. His body reads as a disciplined sapient warrior rather than wildlife: deliberate stance, economical movement, and visibly maintained cutting edges. The blades must always read as **one paired set attached to his forelimbs** — never extra floating scythes, duplicated weapon limbs, or a carried polearm. His Vanguard rendering follows Veyra's toon-character rule against the painterly-real world.
+
+**Lore:** Among the Scarzekh, the blade is lineage, status, discipline, and proof. Rheyzekx was born with the sharpest natural blades known among his people, but biology did not make him their apex by itself. He trained obsessively, mastered and surpassed Scarzekh martial traditions, refined his instincts and combat intelligence, and became the fighter against whom every other Scarzekh was measured. When Whetstone City chose a representative for the Crucible, its greatest warriors entered a lethal tournament. Rheyzekx fought through the field and killed every other competitor. When the final body fell, he had earned the right to represent his people.
+
+Rheyzekx is also the **Alpha of Whetstone City**, and therefore its absolute ruler. There are no elections or ordinary successions: a Scarzekh who believes they are the true Alpha may challenge the reigning Alpha directly. Rheyzekx is challenged periodically and repeatedly proves the claimant wrong. He does not think of Whetstone City as a community he serves; he regards its people as his horde, resources and instruments. Dedicated Scarzekh assassins answer directly to him and act as extensions of his will when a target is not worth his personal attention. His people fear him, worship him, and defend or rationalize his actions because his superiority is culturally undeniable.
+
+He is emotionally cold, remorseless, predatory, deliberately cruel, and has no inherent respect for life. He understands fear, suffering, loyalty and social rules; he simply gives them no moral authority over him. He can cooperate, wait and obey a rule when it serves him. His violence is frightening precisely because it is controlled. Entering the Crucible changed his ambition: representing the Scarzekh ceased to be enough. Surrounded by champions already considered apex beings in their own worlds, he decided to become the **apex of apexes**. Anyone between him and that proof is something to cut through.
+
+When Rheyzekx encounters a person, monster or entity he genuinely judges superior, he does not rage. His bloodlust becomes quieter and more surgical. He studies timing, range, durability, habits and openings; the more excited he is to kill a target, the calmer he becomes. Defeat does not humiliate him into recklessness. It identifies a summit. He remembers whoever survived or defeated him and becomes dangerously intent on testing, cutting down and ultimately surpassing them.
+
+**Speech:** Rheyzekx can communicate intentionally, but Scarzekh speech does not use human vocalization. He produces chirps, clicks, chitters and throat-rattles arranged so closely around recognizable words that listeners can understand him. His dialogue should stay short and economical. The sound remains unmistakably insectoid even when the meaning is clear.
+
+**The one who did not break:** Exactly one Scarzekh challenger has ever come close to cutting Rheyzekx down in a formal Alpha challenge. The challenger did **not** have sharper blades. His exoskeleton was simply far more durable against Rheyzekx's cuts than expected; strikes that should have ended the challenge failed to sever cleanly. The surprise became genuine curiosity, and Rheyzekx chose to let him live. The challenger accepts Rheyzekx as his superior and holds no personal hatred toward him, but fears him enough to avoid him completely whenever possible.
+
+That survival created a dissident Scarzekh sect that follows the challenger instead of recognizing the Alpha. The challenger does not want their cause, but his existence gives them a living symbol. Rheyzekx hunts members of the sect regularly and takes personal joy in killing them. This is also part of why he keeps the challenger alive: the challenger remains an unresolved test **and** a living focal point that draws dissenters into the open. The Crucible later abducts the challenger and forces him into participation against his will. Resonant matchmaking can place the two Scarzekh on opposite sides or on the same team; the latter is intentionally darkly comic because the challenger is forced to cooperate with the being he most wants to avoid while Rheyzekx treats the proximity as useful and entertaining.
+
+**Interaction / VO anchors:** Their dialogue is tense rather than slapstick. Enemy-side examples include Rheyzekx's calm recognition — *"You survived once."* — and pleased approval after a difficult kill — *"Still difficult. Good."* Allied-side examples include *"Beside me."* / *"Absolutely not."* and, after Rheyzekx saves him, the challenger's *"Why?"* answered by *"Mine to test."* These are tone anchors, not an exhaustive final recording script.
+
+### Passive — Razor Anatomy
+
+After Rheyzekx uses an ability, his next basic attack becomes a broad **cleaving strike**, dealing additional physical damage through the target area. The passive exists to make his ordinary attack cadence feed the same cut-through-everything fantasy without turning him into an Attack Speed or on-hit carry.
+
+### Q — Reaping Arc
+
+Sweep both scythe-blades through a broad forward arc, dealing physical damage to every valid enemy struck. This is his dependable close-range cut and wave-clearing tool.
+
+### W — Serrated Edge
+
+**Passive — Butcher's Edge:** Rheyzekx deals increased physical damage to sufficiently wounded enemies, emphasizing finishing power rather than prolonged attrition.
+
+**Active:** Prime the **next Q**, not the next basic attack. The empowered Reaping Arc is wider and more damaging and leaves a physical bleed on enemies struck. Activating W never converts his ordinary attacks into the empowered effect.
+
+### E — Razorbound
+
+Dash to a target location, dealing physical damage to valid enemies crossed during the dash. **If Razorbound itself kills anything during that dash, its cooldown refreshes immediately.** Fluxborn, jungle wildlife, summons and Vanguards can therefore become reset points when the E damage actually kills them; merely passing through or assisting on a later death does not refresh it.
+
+### R — Skyrend
+
+After a short, clearly visible windup, Rheyzekx slashes the air and releases **three sequential damaging waves** in a broad forward arc. Each wave is visibly produced by a separate scythe motion and deals physical damage; a well-positioned enemy may be struck by all three. The windup is intentional counterplay and must remain readable.
+
+**Play/counterplay:** Build raw Physical Power, line enemies up, cleave through clustered targets, and use lethal E paths to keep moving. He has no hard crowd control, no innate stealth, and no role lock to the jungle. W → empowered Q is his deliberate heavy cut; E resets reward exact kill judgment; Skyrend threatens groups but announces itself before the waves leave him.
+
+---
+
 ## New roster relationship and system anchors
 
 - **Bramblehollow:** Mimzi and Celandrine are distinct adult fox- and hare-lineage Bramblekin. Their people are independent biological descendants of early living-subject Flux experiments, not summoned Fluxborn or universally magical beings. Thistlewick is their living settlement and the Root Vaults are abandoned labs beneath the valley.
 - **Ember Basin:** Gorraveth is a living reptilian native with severe mine injuries, **not** another Forgeheart like Varkesh. No automatic duo effect. Varkesh's disapproval is no longer about manners.
-- **Shatterdeep:** Aurelisse's naturally formed wind consciousness and cliff-rescue tradition differ from Korruk's evolved predatory fauna and from the Bramblekin's experimental history.
+- **Shatterdeep:** Aurelisse's naturally formed wind consciousness and cliff-rescue tradition differ from Korruk's evolved predatory fauna, the Scarzekh civilization of Whetstone City, and the Bramblekin's experimental history.
+- **Scarzekh / Whetstone City:** Rheyzekx is the current Alpha and absolute ruler. Alpha authority is won and retained through direct challenge rather than election; the one challenger he spared is a reluctant symbol for a dissident sect Rheyzekx hunts for pleasure. That challenger is not part of the current numbered roster yet.
 - **Iron March:** Eudora knows Raska, Kade, and Mavra through engineering, but her hometown is not fixed. She treats Relay and Torr as conscious beings.
 - **Team synergies:** Qualifying allied displacement from Aurelisse can activate Kade's existing Tracked passive; Aurelisse and Eudora provide opportunities for stationary carries to attack safely; Celandrine can exploit teammate-created space; Mimzi and Gorraveth add alternate approach angles. These are natural kit interactions, **not mandatory lanes or named duo buffs**.
 - **System boundaries:** Mimzi uses normal Camouflage; her homing bolts and Eudora's Picket require valid direct acquisition. Celandrine's pierce is not separate basic attacks. Neither Gorraveth's jungle efficiency nor Eudora's machine alters the map's Flux Wells, jungle camp evolution, or team resource rules.

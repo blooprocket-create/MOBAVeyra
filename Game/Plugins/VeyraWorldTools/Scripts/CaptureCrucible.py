@@ -31,23 +31,34 @@ for name in ("ViewDistance", "AntiAliasing", "Shadow", "GlobalIllumination", "Re
     unreal.SystemLibrary.execute_console_command(WORLD, f"sg.{name}Quality {QUALITY}")
 unreal.SystemLibrary.execute_console_command(WORLD, "r.ScreenPercentage 100")
 unreal.SystemLibrary.execute_console_command(WORLD, "r.VSync 0")
+# HighResShot otherwise switches to LOD 0 only during capture, after the view's
+# materials have warmed up. Console priority keeps distance-based LOD selection
+# through that temporary SetByCode override, matching the prepared viewport.
+unreal.SystemLibrary.execute_console_command(WORLD, "r.ForceLOD -1")
 # The mode's console commands, then any extra ones for a diagnostic capture, separated by semicolons.
 for command in MODE_COMMANDS[MODE] + list(filter(None, os.environ.get("VEYRA_REVIEW_COMMANDS", "").split(";"))):
     unreal.SystemLibrary.execute_console_command(WORLD, command.strip())
 if MODE in MODE_VIEWS:
     unreal.AutomationLibrary.set_editor_viewport_view_mode(MODE_VIEWS[MODE])
 ACTORS = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
+FOG_EFFECTS = [component for actor in ACTORS if "Veyra.AuthoredDenseFog" in [str(t) for t in actor.tags]
+               for component in actor.get_components_by_class(unreal.NiagaraComponent)]
 CAMERAS = sorted([a for a in ACTORS if isinstance(a, unreal.CameraActor) and "Veyra.ReviewCamera" in [str(t) for t in a.tags]], key=lambda a: a.get_actor_label())
 FILTER = os.environ.get("VEYRA_REVIEW_VIEWS", "")
 if FILTER:
     CAMERAS = [a for a in CAMERAS if a.get_actor_label().removeprefix("Review_") in FILTER.split(",")]
 assert CAMERAS, "No requested review cameras found"
-STATE = {"index": 0, "task": None, "next": time.monotonic() + 15, "started": time.monotonic(), "captures": []}
+# Budget for both preparation passes and each screenshot across the full camera suite.
+CAPTURE_TIMEOUT_SECONDS = max(900, 120 + len(CAMERAS) * 30)
+STATE = {"index": 0, "task": None, "readiness_pass": 0, "compiling": False, "next": time.monotonic() + 15, "started": time.monotonic(), "captures": []}
 
 
 def tick(delta):
+    # Compilation can pump Slate ticks while waiting on worker processes.
+    if STATE["compiling"]:
+        return
     try:
-        if time.monotonic() - STATE["started"] > 900:
+        if time.monotonic() - STATE["started"] > CAPTURE_TIMEOUT_SECONDS:
             raise RuntimeError("World capture timed out")
         if time.monotonic() < STATE["next"]:
             return
@@ -59,20 +70,43 @@ def tick(delta):
             assert Path(previous["file"]).is_file(), "Screenshot task finished without an image"
             STATE["task"] = None
         if STATE["index"] >= len(CAMERAS):
-            (OUTPUT / "manifest.json").write_text(json.dumps({"status": "captured", "profile": PROFILE, "mode": MODE, "resolution": [1920, 1080], "renderScalePercent": 100, "captures": STATE["captures"]}, indent=2), encoding="utf-8")
+            (OUTPUT / "manifest.json").write_text(json.dumps({"status": "captured", "profile": PROFILE, "mode": MODE, "resolution": [1920, 1080], "renderScalePercent": 100, "forceLOD": unreal.SystemLibrary.get_console_variable_int_value("r.ForceLOD"), "diagnosticCommands": os.environ.get("VEYRA_REVIEW_COMMANDS", ""), "captures": STATE["captures"]}, indent=2), encoding="utf-8")
             unreal.unregister_slate_post_tick_callback(HANDLE)
             unreal.SystemLibrary.quit_editor()
             return
         camera = CAMERAS[STATE["index"]]
+        if STATE["readiness_pass"] < 2:
+            if STATE["readiness_pass"] == 0:
+                LEVEL.pilot_level_actor(camera)
+            # Let the new view render between barriers so deferred material jobs
+            # triggered by its first frames are also complete before the screenshot.
+            unreal.log(f"Preparing {camera.get_actor_label()}: compilation pass {STATE['readiness_pass'] + 1}")
+            STATE["compiling"] = True
+            try:
+                # Editor worlds do not advance these particles as a live match does.
+                # Prepare one stable three-second simulation for the review stills.
+                if FOG_EFFECTS and not STATE.get("effects_prepared", False):
+                    for effect in FOG_EFFECTS:
+                        effect.activate(True)
+                        effect.set_paused(False)
+                        effect.advance_simulation(180, 1.0 / 60.0)
+                        effect.set_paused(True)
+                    STATE["effects_prepared"] = True
+                unreal.SystemLibrary.execute_console_command(WORLD, "Editor.AsyncAssetCompilationFinishAll")
+            finally:
+                STATE["compiling"] = False
+            STATE["readiness_pass"] += 1
+            STATE["next"] = time.monotonic() + 5
+            return
         filename = OUTPUT / (camera.get_actor_label() + ".png")
         if filename.exists():
             filename.unlink()
-        LEVEL.pilot_level_actor(camera)
         unreal.log(f"Capturing {camera.get_actor_label()}")
         unreal.SystemLibrary.execute_console_command(WORLD, f'HighResShot 1920x1080 filename="{filename.as_posix()}"')
         task = str(filename)
         STATE["task"] = task
         STATE["index"] += 1
+        STATE["readiness_pass"] = 0
         STATE["next"] = time.monotonic() + 5
         STATE["captures"].append({"camera": camera.get_actor_label(), "file": str(filename), "location": str(camera.get_actor_location()), "rotation": str(camera.get_actor_rotation())})
     except Exception:

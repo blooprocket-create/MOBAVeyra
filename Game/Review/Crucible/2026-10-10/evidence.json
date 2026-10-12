@@ -1,0 +1,12 @@
+[
+  {
+    "file": "low-overview-after.png",
+    "sha256": "794c051c39c4e514f89cc38b61bb41bb1d332efdbd9a261db4930741b5ea67fd",
+    "source": "Game/Saved/VisualAudit/Pass09/verified-low/Review_Overview.png"
+  },
+  {
+    "file": "low-overview-before.png",
+    "sha256": "4cc6fe775b74fa93af4b20b880abcd066eaa3de4cee27025f4a0a5e7ba9eeafe",
+    "source": "Game/Saved/VisualAudit/Pass09/baseline/Review_Overview.png"
+  }
+]

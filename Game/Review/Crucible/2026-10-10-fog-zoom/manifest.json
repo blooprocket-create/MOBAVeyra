@@ -1,0 +1,50 @@
+{
+  "status": "captured",
+  "profile": "low",
+  "mode": "Lit",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "renderScalePercent": 100,
+  "forceLOD": -1,
+  "diagnosticCommands": "",
+  "captures": [
+    {
+      "camera": "MinDistance_off",
+      "file": "C:\\dev\\MOBAVeyra\\Game\\Saved\\VisualAudit\\Pass11\\ReviewFix\\zoom-low\\MinDistance_off.png",
+      "location": "<Struct 'Vector' (0x00000190035DEA90) {x: 810.000000, y: -6130.000000, z: 1039.230485}>",
+      "rotation": "<Struct 'Rotator' (0x00000190035DEA90) {pitch: -60.000000, yaw: 0.000000, roll: -0.000000}>"
+    },
+    {
+      "camera": "MinDistance_base",
+      "file": "C:\\dev\\MOBAVeyra\\Game\\Saved\\VisualAudit\\Pass11\\ReviewFix\\zoom-low\\MinDistance_base.png",
+      "location": "<Struct 'Vector' (0x00000190035DEA90) {x: 810.000000, y: -6130.000000, z: 1039.230485}>",
+      "rotation": "<Struct 'Rotator' (0x00000190035DEA90) {pitch: -60.000000, yaw: 0.000000, roll: -0.000000}>"
+    },
+    {
+      "camera": "Distance_off",
+      "file": "C:\\dev\\MOBAVeyra\\Game\\Saved\\VisualAudit\\Pass11\\ReviewFix\\zoom-low\\Distance_off.png",
+      "location": "<Struct 'Vector' (0x00000190035DEA90) {x: 610.000000, y: -6130.000000, z: 1385.640646}>",
+      "rotation": "<Struct 'Rotator' (0x00000190035DEA90) {pitch: -60.000000, yaw: 0.000000, roll: -0.000000}>"
+    },
+    {
+      "camera": "Distance_base",
+      "file": "C:\\dev\\MOBAVeyra\\Game\\Saved\\VisualAudit\\Pass11\\ReviewFix\\zoom-low\\Distance_base.png",
+      "location": "<Struct 'Vector' (0x00000190035DEA90) {x: 610.000000, y: -6130.000000, z: 1385.640646}>",
+      "rotation": "<Struct 'Rotator' (0x00000190035DEA90) {pitch: -60.000000, yaw: 0.000000, roll: -0.000000}>"
+    },
+    {
+      "camera": "MaxDistance_off",
+      "file": "C:\\dev\\MOBAVeyra\\Game\\Saved\\VisualAudit\\Pass11\\ReviewFix\\zoom-low\\MaxDistance_off.png",
+      "location": "<Struct 'Vector' (0x00000190035DEA90) {x: 310.000000, y: -6130.000000, z: 1905.255888}>",
+      "rotation": "<Struct 'Rotator' (0x00000190035DEA90) {pitch: -60.000000, yaw: 0.000000, roll: -0.000000}>"
+    },
+    {
+      "camera": "MaxDistance_base",
+      "file": "C:\\dev\\MOBAVeyra\\Game\\Saved\\VisualAudit\\Pass11\\ReviewFix\\zoom-low\\MaxDistance_base.png",
+      "location": "<Struct 'Vector' (0x00000190035DEA90) {x: 310.000000, y: -6130.000000, z: 1905.255888}>",
+      "rotation": "<Struct 'Rotator' (0x00000190035DEA90) {pitch: -60.000000, yaw: 0.000000, roll: -0.000000}>"
+    }
+  ]
+}

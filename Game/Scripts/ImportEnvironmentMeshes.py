@@ -16,7 +16,7 @@ import unreal
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from EnvironmentKit.inputs import stale  # noqa: E402
 from KitMaterials.spec import glyph_problems  # noqa: E402
-from veyra_material_graph import EDIT, Graph, materials_named, refuse_locked  # noqa: E402
+from veyra_material_graph import EDIT, Graph, materials_named, refuse_locked, world_aligned  # noqa: E402
 
 GAME = Path(__file__).resolve().parents[1]
 SOURCE = GAME / "ArtSource" / "Environment"
@@ -45,24 +45,6 @@ def texture(name):
     return asset
 
 
-def pin(names, prefix):
-    match = next((name for name in names if str(name).startswith(prefix)), None)
-    assert match, f"no pin {prefix} among {names}"
-    return str(match)
-
-
-def world_aligned(g, column, function, texture_asset, size, output):
-    """The engine's world-aligned (triplanar) projection of Texture Asset, Size units to a tile."""
-    tex = g.node(unreal.MaterialExpressionTextureObject, column - 1, texture=texture_asset)
-    call = g.node(unreal.MaterialExpressionMaterialFunctionCall, column)
-    call.set_editor_property("material_function", unreal.load_asset(f"/Engine/Functions/Engine_MaterialFunctions01/Texturing/{function}"))
-    inputs = EDIT.get_material_expression_input_names(call)
-    g.link(tex, "", call, pin(inputs, "TextureObject"))
-    tile = g.node(unreal.MaterialExpressionConstant3Vector, column - 1, constant=unreal.LinearColor(size, size, size, 0.0))
-    g.link(tile, "", call, pin(inputs, "TextureSize"))
-    return call, pin(EDIT.get_material_expression_output_names(call), output)
-
-
 def material(name, build):
     path = f"{DEST}/Materials/{name}"
     asset = unreal.load_asset(path) if ASSETS.does_asset_exist(path) else None
@@ -87,7 +69,8 @@ def mossy_stone(base_texture, tint, look):
     def build(asset, g):
         stone, stone_out = world_aligned(g, 2, "WorldAlignedTexture", texture(base_texture), look["stoneTileCm"], "XYZ Texture")
         normal, normal_out = world_aligned(g, 2, "WorldAlignedNormal", texture("Slate_Normal"), look["stoneTileCm"], "XYZ Texture")
-        moss, moss_out = world_aligned(g, 2, "WorldAlignedTexture", texture("Moss_BaseColor"), look["mossTileCm"], "XY Texture")
+        moss, moss_out = world_aligned(g, 2, "WorldAlignedTexture", texture("Moss_BaseColor"), look["mossTileCm"], "XYZ Texture")
+        moss_normal, moss_normal_out = world_aligned(g, 2, "WorldAlignedNormal", texture("Moss_Normal"), look["mossTileCm"], "XYZ Texture")
         grey = g.node(unreal.MaterialExpressionDesaturation, 3)
         g.link(stone, stone_out, grey, "")
         amount = g.node(unreal.MaterialExpressionConstant, 3, r=look["desaturate"])
@@ -110,7 +93,13 @@ def mossy_stone(base_texture, tint, look):
         g.link(mask, "", base, "Alpha")
         roughness = g.scalar(6, "Roughness", look["stoneRoughness"], "Stone")
         EDIT.connect_material_property(base, "", unreal.MaterialProperty.MP_BASE_COLOR)
-        EDIT.connect_material_property(normal, normal_out, unreal.MaterialProperty.MP_NORMAL)
+        surface_normal = g.node(unreal.MaterialExpressionLinearInterpolate, 6)
+        g.link(normal, normal_out, surface_normal, "A")
+        g.link(moss_normal, moss_normal_out, surface_normal, "B")
+        g.link(mask, "", surface_normal, "Alpha")
+        normalized = g.node(unreal.MaterialExpressionNormalize, 7)
+        g.link(surface_normal, "", normalized, "VectorInput")
+        EDIT.connect_material_property(normalized, "", unreal.MaterialProperty.MP_NORMAL)
         EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS)
 
     return build
@@ -158,6 +147,10 @@ def foliage(colour_key, two_sided, root_key=None):
 
     def build(asset, g):
         asset.set_editor_property("two_sided", two_sided)
+        # Thin blades transmit the world's light instead of presenting an opaque black back face.
+        # Solid canopy masses retain ordinary surface shading; both use the kit's existing colour data.
+        asset.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_TWO_SIDED_FOLIAGE
+                                  if root_key else unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
         # The vertex colour's alpha is the height share up the plant (its own output: the default output is RGB).
         vertex = g.node(unreal.MaterialExpressionVertexColor, 0)
         tip = g.node(unreal.MaterialExpressionVectorParameter, 1, parameter_name="Colour", group="Foliage",
@@ -172,12 +165,15 @@ def foliage(colour_key, two_sided, root_key=None):
             g.link(vertex, "A", colour, "Alpha")
         tint = g.node(unreal.MaterialExpressionComponentMask, 1, r=True, g=True, b=True, a=False)
         g.link(vertex, "", tint, "")
-        # Leafy detail: the jungle's moss, projected from above, under the look's colour and each mass's tint.
-        leafy, leafy_out = world_aligned(g, 2, "WorldAlignedTexture", texture("Moss_BaseColor"), LOOK["leafDetailTileCm"], "XY Texture")
+        # Include the Z projection so upward-facing surfaces do not stretch the side projections.
+        # Triplanar detail follows both canopy tops and sides under each mass's tint.
+        leafy, leafy_out = world_aligned(g, 2, "WorldAlignedTexture", texture("Moss_BaseColor"), LOOK["leafDetailTileCm"], "XYZ Texture")
         detail = g.op(unreal.MaterialExpressionMultiply, 3, leafy, colour, a_out=leafy_out, b_out="RGB" if not root_key else "")
         base = g.op(unreal.MaterialExpressionMultiply, 3, detail, tint)
         roughness = g.scalar(3, "Roughness", LOOK["foliageRoughness"], "Foliage")
         EDIT.connect_material_property(base, "", unreal.MaterialProperty.MP_BASE_COLOR)
+        if root_key:
+            assert EDIT.connect_material_property(base, "", unreal.MaterialProperty.MP_SUBSURFACE_COLOR)
         EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS)
         sway = swaying(g, g.op(unreal.MaterialExpressionMultiply, 5, vertex, vertex, a_out="A", b_out="A"))
         EDIT.connect_material_property(sway, "", unreal.MaterialProperty.MP_WORLD_POSITION_OFFSET)

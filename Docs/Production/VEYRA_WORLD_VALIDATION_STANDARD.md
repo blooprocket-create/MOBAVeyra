@@ -3,7 +3,7 @@
 **Version:** 0.2  
 **Status:** Acceptance standard for Meridian Crucible world, asset, and VFX changes  
 **Engine target:** Unreal Engine 5.8.3, Epic source build  
-**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md)
+**Read with:** [Context Map](../CONTEXT_MAP.md), [Architecture](../../ARCHITECTURE.md), [World Production Bible](VEYRA_WORLD_PRODUCTION_BIBLE.md), [Asset & VFX Pipeline](VEYRA_ASSET_AND_VFX_PIPELINE.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md), [Art Direction](../Design/Art_Direction_v0.1.md), [Visual Production Standard](VEYRA_VISUAL_PRODUCTION_STANDARD.md), [ADR-011](../ADR/ADR-011-battleground-runtime.md), [ADR-040](../ADR/ADR-040-crucible-world-authoring-toolchain.md)
 
 ## 1. Purpose
 
@@ -21,6 +21,8 @@ The final result must preserve **gameplay integrity, Veyra visual identity, comp
 The core rule is:
 
 > **Validate the shipped result in Unreal from the gameplay camera and gameplay conditions players will actually experience.**
+
+For cross-game presentation quality, see the [Visual Production Standard](VEYRA_VISUAL_PRODUCTION_STANDARD.md); for review evidence, use its [Visual Review Template](VEYRA_VISUAL_REVIEW_TEMPLATE.md). This world-specific standard remains the authority on world/asset validation levels, gameplay geometry, and Crucible acceptance. Neither changes approved gameplay or UI behavior.
 
 ## 2. Validation levels
 
@@ -315,6 +317,28 @@ Capture modes:
 - performance/debug.
 
 ### 13.1 Existing screenshot path
+
+Authored Dense Fog Niagara components are advanced by three seconds at a fixed
+1/60-second simulation step, then paused before the compilation barriers. This
+lets editor stills show the populated bank instead of an empty initial emitter.
+Motion validation must additionally advance simulation between captures; a
+warmed still does not demonstrate animation or live-match performance.
+
+The Crucible editor capture script pilots each camera and finishes asset
+compilation twice, allowing five seconds of rendered frames after each barrier.
+The second pass catches deferred material jobs submitted by the first frames.
+A fixed startup delay alone does not guarantee loaded materials with a cold
+shader cache. Inspect the images as well as the completion manifest: a written
+PNG can still show fallback materials or an unready view. Guard against callback
+re-entry while the compiler pumps editor ticks.
+
+The capture script pins `r.ForceLOD=-1` at console priority before warm-up so
+`HighResShot` cannot temporarily force LOD 0 after material preparation. This
+preserves distance-based detail selection and avoids capture-time landscape
+fallbacks observed on the low profile. The manifest records the effective
+`forceLOD` and diagnostic commands. Older captures used HighResShot's implicit
+LOD 0 and are not identical-detail baselines. This editor capture remains visual
+evidence, not packaged-client or performance acceptance.
 
 ADR-006 already gives `Game/Scripts/Smoke.ps1 -Screenshot` a packaged-client screenshot role for the current grey-box presentation.
 

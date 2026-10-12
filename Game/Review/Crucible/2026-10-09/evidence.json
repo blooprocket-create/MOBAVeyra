@@ -1,0 +1,37 @@
+[
+  {
+    "file": "foliage-before.png",
+    "capture": "Pass06/before/Play_Jungle_A0.png",
+    "sha256": "673bf394535c335ab3dc6b2113770c9621a159d638d43ffd1d10d14fa55d9633"
+  },
+  {
+    "file": "foliage-after.png",
+    "capture": "Pass06/after/Play_Jungle_A0.png",
+    "sha256": "57d0e3d34fae755b5b883fd0561b1b172021f2acb5bf18462d768ef4aca22986"
+  },
+  {
+    "file": "lighting-before.png",
+    "capture": "Pass07/baseline-all/Play_Jungle_A0.png",
+    "sha256": "d0ec6147da2587ffff130acd1c52d4e92896d83a0430cb44e1a9e787b44bbffd"
+  },
+  {
+    "file": "lighting-after.png",
+    "capture": "Pass07/after-all/Play_Jungle_A0.png",
+    "sha256": "dd80265db3a436a4166f8b7c533d9b7d8d81b8348e5e4f4ab47dd7fdf4e165fc"
+  },
+  {
+    "file": "water-before.png",
+    "capture": "Pass08/before/Review_Overview.png",
+    "sha256": "a424d8d615b5ab87e4ac20b52eebb8bf96885e735d3c42a80abef82a5ed05abd"
+  },
+  {
+    "file": "water-after.png",
+    "capture": "Pass08/verified-high/Review_Overview.png",
+    "sha256": "5f4280bf9b4c23cb10990f17534926287a3eb46c022dfbcea06f65118480df44"
+  },
+  {
+    "file": "low-overview-open-issue.png",
+    "capture": "Pass08/low/Review_Overview.png",
+    "sha256": "440ce4a40e175fad7e490d890d7fb0d80d7227921962b6f1e07b283f3c32e92a"
+  }
+]

@@ -51,12 +51,12 @@ BIBLE = newest("Veyra_Initial_Roster_Character_Bible")
 COMBAT = newest("Veyra_Combat_Bible")
 REGISTER = newest("Sheet_Canon_Discrepancy_Register")
 
-EXPECTED_COUNT = 25
+EXPECTED_COUNT = 26
 
 # --- controlled vocabularies -------------------------------------------------
 
 NATURE = {"human", "echo", "elemental", "fluxborn", "ancient_machine", "possessed_object",
-          "wakebound", "native_fauna", "living_landscape", "bramblekin", "drakari"}
+          "wakebound", "native_fauna", "living_landscape", "bramblekin", "drakari", "scarzekh"}
 
 ROLE_TAGS = {"tank", "bruiser", "skirmisher", "fighter", "duelist", "assassin", "marksman",
              "ranged_carry", "hypercarry", "utility_carry", "kiter", "artillery", "control_mage",

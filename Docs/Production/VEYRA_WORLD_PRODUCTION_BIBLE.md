@@ -436,6 +436,26 @@ Dense Fog boundaries must remain legible on all supported graphics-quality level
 
 No gameplay-critical fog boundary may depend solely on a particle system that disappears on low settings.
 
+The 2026-10-10 author direction replaces reed-filled circles and runtime floor
+markers with local fog volumes. `VeyraDenseFogVisuals` in the presentation module
+is shared by runtime fog banks and VeyraWorldTools map generation. It consumes
+the existing layout circles; overlapping circles already form one Vision volume.
+It resolves ground height through VeyraSurfacePlacement, creates no collision,
+and never decides concealment. `DefaultGame.ini`'s DenseFogVisualSettings owns
+the visual profile. Native local fog provides the baseline without requiring
+volumetric-fog scalability; evaluate high/low captures and in-volume unit and
+telegraph readability. Following the author's toon-and-motion clarification,
+`NS_VeyraDenseFog` adds continuously moving Niagara wisps with scalloped silhouettes,
+broad shade bands and rolling internal curls. `Effects.json` owns emission and
+motion; `PresentationMaterials.json` owns the toon material. The persistent fog
+base remains independent of particle scalability. Neither layer grants vision.
+
+`DefaultEngine.ini` sets `r.LocalFogVolume.GlobalStartDistance=100` so the base
+is not clipped by the renderer's distant-fog start plane at close gameplay zoom.
+Validate the minimum, standard and maximum configured camera distances with
+Niagara hidden, comparing local fog enabled/disabled. A high overview camera
+alone does not establish close-camera readability.
+
 ## 12. Lighting and atmosphere
 
 Global lighting is a shared world system.
@@ -449,6 +469,23 @@ A local asset task may not solve itself by changing:
 - tone mapping.
 
 Global lighting changes require whole-map screenshot regression.
+
+The Crucible's lighting controls live in
+`Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json` and are consumed by
+`VeyraReviewScene.cpp` during map generation. Tune shadow fill through the skylight
+before compensating with local material tints. Rebuild through
+`Game/Scripts/BuildBattlegroundMap.ps1`, validate through
+`Game/Scripts/ValidateBattleground.ps1`, and capture all named review cameras before
+and after a global change. Compare team-equivalent routes and terrain samples as
+well as shaded foliage, exposed paving, objectives and bases. A successful still
+review does not replace live combat, temporal, performance or package validation.
+
+The generation wrapper disables volumetric fog for that process at startup to
+avoid the pinned renderer's volumetric-fog path while landscape edit layers create
+temporary views. It waits for the editor process itself, not the lifetime of its
+asset-cache child services. Neither setting changes authored fog or packaged
+runtime rendering. Run generation and map capture sequentially: an open capture
+holds the generated map file and prevents replacement.
 
 Local lights should be:
 - justified;
