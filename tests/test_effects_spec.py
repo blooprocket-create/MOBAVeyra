@@ -76,5 +76,23 @@ class EffectsSpec(unittest.TestCase):
                     self.assertNotIn("ribbonMaterial", emitter)
                     self.assertNotIn("Beam.", emitter["template"])
 
+    def test_a_skill_effects_offsets_along_its_facing_turn_with_it(self):
+        # A shape offset is in the simulation's frame unless it says otherwise; one along a skill's facing (a beam's length)
+        # left in it ran the beam the wrong way (ADR-072 §8). Only a vertical or zero offset may stay there.
+        for system in SHIPPED["systems"]:
+            if not system["purpose"].startswith("ADR-072"):
+                continue
+            inputs = system.get("inputs", [])
+            for entry in inputs:
+                if entry["module"] != "ShapeLocation" or entry["input"] != "Offset":
+                    continue
+                horizontal = [part.strip() for part in entry.get("expression", "").split("(", 1)[-1].split(",")[:2]]
+                if all(part in ("0", "0.0") for part in horizontal):
+                    continue
+                with self.subTest(system=system["name"], emitter=entry.get("emitter")):
+                    self.assertTrue(any(other["module"] == "ShapeLocation" and other["input"] == "Offset Coordinate Space"
+                                        and other.get("emitter") == entry.get("emitter") and other.get("enum") == "Local"
+                                        for other in inputs))
+
 if __name__ == "__main__":
     unittest.main()
