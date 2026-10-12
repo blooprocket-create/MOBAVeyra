@@ -62,6 +62,22 @@ def polygon_points(poly, tolerance=12):
     return list(reversed(world)) if area > 0 else world
 
 
+def jitter_inward(poly, rng, reach=55.0):
+    """Moves each vertex of an upper stratum part of the way toward a ring inside it, so its face reads as broken rock.
+    Only ever inward: the outline stays within its layer, never past the gameplay edge."""
+    inner = poly.buffer(-reach)
+    if inner.is_empty or inner.geom_type != "Polygon":
+        return poly
+    simple = poly.simplify(10, preserve_topology=True)
+    moved = []
+    for x, y in list(simple.exterior.coords)[:-1]:
+        q = inner.exterior.interpolate(inner.exterior.project(Point(x, y)))
+        f = rng.uniform(0.0, 0.8)
+        moved.append((x + (q.x - x) * f, y + (q.y - y) * f))
+    candidate = Polygon(moved).buffer(0)
+    return candidate if candidate.geom_type == "Polygon" and candidate.within(poly.buffer(1)) else poly
+
+
 playable = plan["playable"]
 boundary_ring = playable.exterior.buffer(5)
 masses = []
@@ -82,6 +98,8 @@ for index, mass in enumerate(m for m in plan["blocked"].geoms):
                     continue
                 if sub.interiors:
                     sub = Polygon(sub.exterior)  # a hole would be inside rock anyway; the top cap covers it
+                if inset > 0:
+                    sub = jitter_inward(sub, random.Random(SEED * 31 + index * 7 + inset))
                 layers.append({
                     "points": polygon_points(sub),
                     "bottom": -SINK if bottom is None else round(bottom * height, 1),
@@ -132,14 +150,6 @@ xs = np.arange(minx, maxx + 1, FLOOR_STEP)
 ys = np.arange(miny, maxy + 1, FLOOR_STEP)
 gx, gy = np.meshgrid(xs, ys)
 px, py = gx.ravel(), gy.ravel()
-points = shapely.points(px, py)
-d_lane = np.min([shapely.distance(line, points) for line in lane_lines], axis=0)
-d_river = shapely.distance(river_line, points)
-in_keep = shapely.contains_xy(keep_a, px, py)
-in_island = shapely.contains_xy(islands, px, py)
-in_arena = shapely.contains_xy(arenas, px, py)
-in_camp = shapely.contains_xy(camps, px, py)
-camp_depth = np.where(in_camp, shapely.distance(camps.boundary, points), 0.0)  # how far inside a camp's ground
 
 
 def smooth(edge0, edge1, x):
@@ -148,21 +158,39 @@ def smooth(edge0, edge1, x):
 
 
 JUNGLE_Z, KEEP_Z, BED_Z = 45.0, 70.0, -290.0
-jungle = smooth(ENV - 120, ENV + 260, d_lane)               # 0 on the road and shoulder, 1 in the jungle
-height = JUNGLE_Z * jungle
-height = np.where(in_keep, np.maximum(height, KEEP_Z * smooth(0, 1, np.ones_like(height))), height)
-# River: the bed under the water, banks rising to the jungle; arenas' water ring is wet too, islands stand dry.
-wet_d = np.where(in_arena & ~in_island, 0.0, d_river)
-bank = smooth(WATER_HALF - 120, WATER_HALF + BANK, wet_d)
-height = np.where(wet_d < WATER_HALF + BANK, BED_Z + (height - BED_Z) * bank, height)
-height = np.where(in_island, 20.0, height)
-road = 1.0 - smooth(ROAD_HALF := plan["ROAD"] / 2 - 40, plan["ROAD"] / 2 + 60, d_lane)
-road = np.maximum(road, np.where(in_keep, 0.85, 0.0))
-shore = np.clip(1.0 - smooth(WATER_HALF + BANK - 60, WATER_HALF + BANK + 220, wet_d), 0, 1) * (1 - road)
-# Camp ground: trodden earth that fades in from the clearing's edge, never a hard disc.
-earth = 0.42 * smooth(0.0, 420.0, camp_depth) * (1 - road) * (1 - shore)
-moss = np.clip(1.0 - road - shore - earth, 0, 1)
-colours = np.stack([road, moss, earth, shore], axis=1)
+
+
+def ground(px, py):
+    """The floor at screen-frame points: its height and what it's made of, for the grid and for anything set on it."""
+    points = shapely.points(px, py)
+    d_lane = np.min([shapely.distance(line, points) for line in lane_lines], axis=0)
+    d_river = shapely.distance(river_line, points)
+    in_keep = shapely.contains_xy(keep_a, px, py)
+    in_island = shapely.contains_xy(islands, px, py)
+    in_arena = shapely.contains_xy(arenas, px, py)
+    in_camp = shapely.contains_xy(camps, px, py)
+    camp_depth = np.where(in_camp, shapely.distance(camps.boundary, points), 0.0)  # how far inside a camp's ground
+    jungle = smooth(ENV - 120, ENV + 260, d_lane)               # 0 on the road and shoulder, 1 in the jungle
+    height = JUNGLE_Z * jungle
+    height = np.where(in_keep, np.maximum(height, KEEP_Z), height)
+    # River: the bed under the water, banks rising to the jungle; arenas' water ring is wet too, islands stand dry.
+    wet_d = np.where(in_arena & ~in_island, 0.0, d_river)
+    bank = smooth(WATER_HALF - 120, WATER_HALF + BANK, wet_d)
+    height = np.where(wet_d < WATER_HALF + BANK, BED_Z + (height - BED_Z) * bank, height)
+    height = np.where(in_island, 20.0, height)
+    road = 1.0 - smooth(plan["ROAD"] / 2 - 40, plan["ROAD"] / 2 + 60, d_lane)
+    road = np.maximum(road, np.where(in_keep, 0.85, 0.0))
+    shore = np.clip(1.0 - smooth(WATER_HALF + BANK - 60, WATER_HALF + BANK + 220, wet_d), 0, 1) * (1 - road)
+    # Camp ground: trodden earth that fades in from the clearing's edge, never a hard disc.
+    earth = 0.42 * smooth(0.0, 420.0, camp_depth) * (1 - road) * (1 - shore)
+    moss = np.clip(1.0 - road - shore - earth, 0, 1)
+    return {"height": height, "road": road, "moss": moss, "earth": earth, "shore": shore, "wet_d": wet_d,
+            "d_lane": d_lane, "in_keep": in_keep, "camp_depth": camp_depth, "in_island": in_island}
+
+
+G = ground(px, py)
+height = G["height"]
+colours = np.stack([G["road"], G["moss"], G["earth"], G["shore"]], axis=1)
 nx, ny = len(xs), len(ys)
 vertices = [to_world((x, y)) + [round(float(z), 1)] for x, y, z in zip(px, py, height)]
 triangles = []
@@ -170,6 +198,73 @@ for j in range(ny - 1):
     for i in range(nx - 1):
         a, b, c, d = j * nx + i, j * nx + i + 1, (j + 1) * nx + i, (j + 1) * nx + i + 1
         triangles += [[a, c, b], [b, c, d]]
+
+# ---------------------------------------------------------------- ink lines and ground clutter
+blocked = plan["blocked"]
+
+
+def at_ground(points2d):
+    arr = np.array(points2d, dtype=float)
+    g = ground(arr[:, 0], arr[:, 1])
+    return g
+
+
+inks = []
+for mass_spec, part in ((m, None) for m in masses):
+    pass
+# Base ink: a dark line where every mass meets the floor, just outside its gameplay edge, following the ground.
+for mass in plan["blocked"].geoms:
+    piece = mass.intersection(SLICE)
+    for part in rings(piece):
+        if part.area < 200_000:
+            continue
+        ring = part.buffer(10, join_style="mitre").exterior.simplify(14)
+        pts = [c for c in list(ring.coords)]
+        g = at_ground([(x, y) for x, y in pts])
+        inks.append({"points": [to_world((x, y)) + [round(float(z) + 4, 1)] for (x, y), z in zip(pts, g["height"])], "size": 24})
+# Top ink: the lip of each mass's top stratum.
+for mass in masses:
+    top = mass["layers"][-1]
+    pts = [[x, y, top["top"] + 2] for x, y in top["points"]] + [[top["points"][0][0], top["points"][0][1], top["top"] + 2]]
+    inks.append({"points": pts, "size": 16})
+
+clutter = []
+rng = random.Random(SEED + 99)
+open_ground = SLICE.difference(blocked)
+# Clumps along each mass's foot, where grass gathers against rock and root.
+for mass in plan["blocked"].geoms:
+    for part in rings(mass.intersection(SLICE)):
+        if part.area < 200_000:
+            continue
+        ring = part.buffer(rng.uniform(70, 150)).exterior
+        d = rng.uniform(0, 110)
+        while d < ring.length:
+            q = ring.interpolate(d)
+            clutter.append({"kind": "fern" if rng.random() < 0.35 else "grass", "xy": (q.x, q.y)})
+            d += rng.uniform(90, 160)
+# Sparse tufts across open jungle ground.
+for gx_ in np.arange(SLICE.bounds[0], SLICE.bounds[2], 380):
+    for gy_ in np.arange(SLICE.bounds[1], SLICE.bounds[3], 380):
+        clutter.append({"kind": "grass", "xy": (gx_ + rng.uniform(-150, 150), gy_ + rng.uniform(-150, 150))})
+# Reeds along the river's banks.
+for gx_ in np.arange(SLICE.bounds[0], SLICE.bounds[2], 150):
+    for gy_ in np.arange(SLICE.bounds[1], SLICE.bounds[3], 150):
+        clutter.append({"kind": "reeds", "xy": (gx_ + rng.uniform(-60, 60), gy_ + rng.uniform(-60, 60)), "bank": True})
+cxy = np.array([c["xy"] for c in clutter])
+g = ground(cxy[:, 0], cxy[:, 1])
+inside_mass = shapely.contains_xy(blocked, cxy[:, 0], cxy[:, 1])
+kept = []
+for i, c in enumerate(clutter):
+    if inside_mass[i] or g["in_keep"][i] or g["d_lane"][i] < ENV + 70 or g["camp_depth"][i] > 180:
+        continue
+    bank_zone = WATER_HALF - 30 < g["wet_d"][i] < WATER_HALF + BANK + 110
+    if bool(c.get("bank")) != bank_zone:
+        continue
+    if not c.get("bank") and g["wet_d"][i] < WATER_HALF + BANK + 110:
+        continue
+    kept.append({"kind": c["kind"], "at": to_world(c["xy"]) + [round(float(g["height"][i]), 1)],
+                 "yaw": round(rng.uniform(0, 360), 1), "scale": round(rng.uniform(0.8, 1.3), 2)})
+clutter = kept
 
 # ---------------------------------------------------------------- water, keep, structures, cameras
 water = unary_union([plan["river_water"], arenas.difference(islands)]).intersection(SLICE)
@@ -224,6 +319,8 @@ data = {
     "water": {"z": -220, "polygons": water_polys}, "solids": solids, "structures": structures,
     "fog": [{"center": to_world(c) + [0], "radius": r} for _, lobes in plan["fog_a"] for c, r in lobes if SLICE.contains(Point(c))],
     "cameras": cameras,
+    "inks": inks,
+    "clutter": clutter,
     # Lighting test against the style's provisional sun (CrucibleStyle.json lighting): a higher sun shortens the shadows
     # that blanket clearings at the gameplay camera, and more sky light lifts what shadow remains.
     "lighting": {"sunPitch": -58, "skyIntensity": 4.4},
@@ -234,4 +331,4 @@ summary = {k: sum(1 for m in masses if m["kind"] == k) for k in PROFILES}
 print(json.dumps({"bytes": len(text), "sha256": hashlib.sha256(text.encode()).hexdigest()[:16], "masses": summary,
                   "trees": sum(len(m["trees"]) for m in masses), "floorVertices": len(vertices),
                   "layers": sum(len(m["layers"]) for m in masses), "water": len(water_polys),
-                  "structures": len(structures), "fogLobes": len(data["fog"])}, indent=1))
+                  "structures": len(structures), "fogLobes": len(data["fog"]), "inks": len(inks), "clutter": len(clutter)}, indent=1))

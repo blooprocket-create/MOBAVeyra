@@ -271,6 +271,43 @@ def build_trees():
     log(f"{count} trees and shrubs")
 
 
+def ink_material():
+    """The toon ink: near-black, matte, so it reads as a drawn line under any light."""
+    material = TOOLS.create_asset("M_SliceInk", FOLDER, unreal.Material, unreal.MaterialFactoryNew())
+    g = Graph(material)
+    EDIT.connect_material_property(g.node(unreal.MaterialExpressionConstant3Vector, 1, constant=unreal.LinearColor(0.018, 0.026, 0.024, 1.0)), "", unreal.MaterialProperty.MP_BASE_COLOR)
+    EDIT.connect_material_property(g.node(unreal.MaterialExpressionConstant, 1, r=1.0), "", unreal.MaterialProperty.MP_ROUGHNESS)
+    EDIT.connect_material_property(g.node(unreal.MaterialExpressionConstant, 1, r=0.0), "", unreal.MaterialProperty.MP_SPECULAR)
+    EDIT.recompile_material(material)
+    return material
+
+
+def build_inks():
+    """A square tube swept along each ink path: the line where a mass meets the floor, and its top lip."""
+    material = ink_material()
+    actor, component, mesh, _ = mesh_actor("Slice_Ink", material)
+    for ink in DATA.get("inks", []):
+        points = ink["points"]
+        if len(points) > 2 and points[0] == points[-1]:
+            points = points[:-1]
+        s = ink["size"] / 2.0
+        profile = [unreal.Vector2D(-s, -s), unreal.Vector2D(s, -s), unreal.Vector2D(s, s), unreal.Vector2D(-s, s)]
+        PRIM.append_simple_swept_polygon(mesh, unreal.GeometryScriptPrimitiveOptions(), unreal.Transform(), profile,
+                                         [unreal.Vector(*p) for p in points], True, False, 1.0, 1.0, 0.0, 1.0)
+    finish(component, mesh, material)
+
+
+def build_clutter():
+    found = ASSETS.list_assets("/Game/Veyra/World/Environment/Meshes", recursive=True, include_folder=False)
+    families = {kind: [static_mesh(a.split(".")[0]) for a in found if f"SM_Crucible_{name}" in a]
+                for kind, name in (("grass", "Grass"), ("fern", "Fern"), ("reeds", "Reeds"))}
+    target = {"grass": 70.0, "fern": 85.0, "reeds": 150.0}
+    for i, c in enumerate(DATA.get("clutter", [])):
+        family = families[c["kind"]]
+        mesh = family[i % len(family)]
+        place(mesh, c["at"], c["yaw"], target[c["kind"]] / height_of(mesh) * c["scale"])
+    log(f"{len(DATA.get('clutter', []))} clutter pieces")
+
 def build_scale_figures():
     body = unreal.load_asset("/Game/Veyra/Vanguards/Cairn/SK_Cairn")
     if not body:
@@ -335,6 +372,8 @@ def tick(delta):
             log("masses"); build_solids()
             log("keep"); build_structures()
             log("structures"); build_trees()
+            build_inks(); log("inks")
+            build_clutter()
             build_scale_figures()
             CAMERAS = build_cameras()
             STATE["phase"] = "capture"
