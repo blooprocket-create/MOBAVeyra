@@ -27,6 +27,9 @@ enum class EVeyraCombatTextKind : uint8
 /**
  * One combat text number, as the server sends it to the one player it concerns (ADR-052 §1). Presentation only:
  * nothing reads it to decide anything.
+ *
+ * The client keeps a line while its number shows, outside anything the garbage collector traces, so its units are held
+ * weakly: a unit gone in the meantime reads as null.
  */
 USTRUCT()
 struct VEYRAMATCH_API FVeyraCombatTextLine
@@ -35,11 +38,11 @@ struct VEYRAMATCH_API FVeyraCombatTextLine
 
 	/** The unit the number shows at: the one damaged, healed or shielded. */
 	UPROPERTY()
-	TObjectPtr<AActor> Unit;
+	TWeakObjectPtr<AActor> Unit;
 
 	/** The unit at the other end, while the player's side sees it; Reduced density totals by it. */
 	UPROPERTY()
-	TObjectPtr<AActor> Other;
+	TWeakObjectPtr<AActor> Other;
 
 	UPROPERTY()
 	EVeyraCombatTextKind Kind = EVeyraCombatTextKind::DamageDealt;

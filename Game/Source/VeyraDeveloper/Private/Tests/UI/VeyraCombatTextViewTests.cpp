@@ -159,6 +159,31 @@ namespace VeyraCombatTextViewTests
 			ASSERT_THAT(IsTrue(Reduced.IsEmpty(), TEXT("its parts go with it")));
 		}
 
+		TEST_METHOD(AUnitCollectedWhileItsNumbersShowReadsAsNobody)
+		{
+			AActor& Target = Spawner.SpawnActor<AActor>();
+			// Straight into the test world, so the world is all that holds it.
+			AActor* Dealer = Spawner.GetWorld().SpawnActor<AActor>();
+			ASSERT_THAT(IsNotNull(Dealer));
+			// Its hit on the target, and the target's on it, as the client still holds them after it is gone.
+			TArray<FVeyraCombatTextArrival> Arrivals = {
+				ArrivalOf(Target, Dealer, EVeyraCombatTextKind::DamageDealt, 10.0, 0.0),
+				ArrivalOf(*Dealer, &Target, EVeyraCombatTextKind::DamageDealt, 8.0, 0.0),
+			};
+			const TWeakObjectPtr<AActor> Gone = Dealer;
+			Dealer->Destroy();
+			Dealer = nullptr;
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+			ASSERT_THAT(IsTrue(Gone.IsStale(/*bIncludingGarbage*/ false), TEXT("the dealer was collected, not just destroyed")));
+			ASSERT_THAT(IsTrue(!Arrivals[0].Line.Other.IsValid() && !Arrivals[1].Line.Unit.IsValid(), TEXT("a collected unit reads as nobody")));
+
+			// Reduced density compares both ends of every number, and starts a total from each.
+			const TArray<FVeyraCombatTextShown> Shown = VeyraCombatTextView::Describe(Arrivals, 0.1, OptionsOf(/*bReduced*/ true));
+			ASSERT_THAT(IsTrue(Shown.Num() == 2 && Shown[0].Unit.Get() == &Target && Shown[0].Amount == 10.0 && !Shown[1].Unit.IsValid()));
+			VeyraCombatTextView::Forget(Arrivals, 0.1, OptionsOf(/*bReduced*/ true));
+			ASSERT_THAT(IsTrue(Arrivals.Num() == 2, TEXT("and each still goes in its own time")));
+		}
+
 		TEST_METHOD(ThePlayersCombatTextSettingsTakeTheirPlace)
 		{
 			using namespace VeyraInterfacePreferences;

@@ -72,7 +72,7 @@ namespace
 				{
 					FRunning& Each = Running[Latest];
 					const bool bSamePlace = Each.Shown.bFixed == Line.bFixed && (!Line.bFixed || Each.Shown.Where.Equals(FVector(Line.Where)));
-					if (Each.Shown.Unit.Get() == Line.Unit.Get() && Each.Other.Get() == Line.Other.Get() && bSamePlace && Each.Shown.Kind == Line.Kind
+					if (Each.Shown.Unit == Line.Unit && Each.Other == Line.Other && bSamePlace && Each.Shown.Kind == Line.Kind
 						&& Each.Shown.DamageType == Line.DamageType)
 					{
 						Joins = Arrival.ReceivedAt - Each.LastAt <= Window.GetValue() ? &Each : nullptr;
@@ -89,14 +89,14 @@ namespace
 				continue;
 			}
 			FRunning& Started = Running.AddDefaulted_GetRef();
-			Started.Shown.Unit = Line.Unit.Get();
+			Started.Shown.Unit = Line.Unit;
 			Started.Shown.Kind = Line.Kind;
 			Started.Shown.DamageType = Line.DamageType;
 			Started.Shown.bCritical = bCritical;
 			Started.Shown.Amount = Line.Amount;
 			Started.Shown.bFixed = Line.bFixed;
 			Started.Shown.Where = Line.Where;
-			Started.Other = Line.Other.Get();
+			Started.Other = Line.Other;
 			Started.LastAt = Arrival.ReceivedAt;
 			Started.Parts.Add(Index);
 		}
