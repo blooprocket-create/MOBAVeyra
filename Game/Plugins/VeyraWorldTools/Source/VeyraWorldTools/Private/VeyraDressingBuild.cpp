@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "VeyraWorldBuild.h"
+#include "Vision/VeyraDenseFogVisuals.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -536,27 +537,16 @@ namespace VeyraWorldBuild
 			}
 		}
 
-		// Dense Fog: each circle filled with reeds, so brush reads as brush from the camera.
+		// The visual consumes exactly the layout circles that Vision joins into volumes.
+		AActor* FogOwner = World.SpawnActor<AActor>();
+		FogOwner->SetActorLabel(TEXT("DenseFog_Visuals"));
+		FogOwner->Tags.Add(VeyraDenseFogVisuals::AuthoredTag());
+		for (const FVeyraFogPlacement& Fog : VeyraLayout::DenseFog(Layout))
 		{
-			FRandomStream Random(Seed + 4);
-			FRegion& Reeds = Region(TEXT("Fog_Reeds"), TEXT("Reeds"));
-			const double Spacing = Dress.Number(TEXT("fogReedSpacing"));
-			const FVector2D Scale = Dress.Range(TEXT("fogReedScale"));
-			for (const FVeyraFogLayout& Fog : Layout.DenseFog)
+			if (!VeyraDenseFogVisuals::Add(*FogOwner, Fog.Center, Fog.Radius, Layout.Surface))
 			{
-				const FVector2D Centre = VeyraLayout::ToVector(Fog.Center);
-				for (double X = -Fog.Radius; X <= Fog.Radius; X += Spacing)
-				{
-					for (double Y = -Fog.Radius; Y <= Fog.Radius; Y += Spacing)
-					{
-						const FVector2D Point = Centre + FVector2D(X, Y) + FVector2D(Random.FRandRange(-0.4, 0.4), Random.FRandRange(-0.4, 0.4)) * Spacing;
-						if (FVector2D::Distance(Point, Centre) > Fog.Radius * 0.95 || Dress.River.SignedDistance(Point) < 0.0)
-						{
-							continue;
-						}
-						Dress.Place(Reeds, Random, Kit[TEXT("Reeds")].Num(), Point, Random.FRandRange(0.0, 360.0), FVector(Random.FRandRange(Scale.X, Scale.Y)), 0.0);
-					}
-				}
+				Error = TEXT("Could not place Dense Fog presentation on the playable surface.");
+				return false;
 			}
 		}
 

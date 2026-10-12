@@ -576,6 +576,80 @@
         { "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
         { "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [3] }
       ]
+    },
+    {
+      "name": "NS_VeyraDenseFog",
+      "purpose": "Continuous toon fog wisps for authored and ability-created Dense Fog, contained within the supplied lobe radius. User.Scale is the lobe radius in world units.",
+      "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",
+      "material": "/Game/Veyra/UI/Presentation/M_VeyraDenseFog.M_VeyraDenseFog",
+      "inputs": [
+        {
+          "script": "EmitterUpdateScript",
+          "module": "SpawnRate",
+          "input": "SpawnRate",
+          "value": [
+            4
+          ]
+        },
+        {
+          "script": "ParticleSpawnScript",
+          "module": "InitializeParticle",
+          "input": "Lifetime Min",
+          "value": [
+            2.0
+          ]
+        },
+        {
+          "script": "ParticleSpawnScript",
+          "module": "InitializeParticle",
+          "input": "Lifetime Max",
+          "value": [
+            3.0
+          ]
+        },
+        {
+          "script": "ParticleSpawnScript",
+          "module": "InitializeParticle",
+          "input": "Uniform Sprite Size Min",
+          "expression": "1.65 * User.Scale"
+        },
+        {
+          "script": "ParticleSpawnScript",
+          "module": "InitializeParticle",
+          "input": "Uniform Sprite Size Max",
+          "expression": "1.9 * User.Scale"
+        },
+        {
+          "script": "ParticleSpawnScript",
+          "module": "ShapeLocation",
+          "input": "Sphere Radius",
+          "expression": "0.1 * User.Scale"
+        },
+        {
+          "script": "ParticleSpawnScript",
+          "module": "AddVelocity",
+          "input": "Velocity Speed",
+          "expression": "0.035 * User.Scale"
+        },
+        {
+          "script": "ParticleUpdateScript",
+          "module": "GravityForce",
+          "input": "Gravity",
+          "value": [
+            0,
+            0,
+            3
+          ]
+        },
+        {
+          "script": "ParticleUpdateScript",
+          "module": "Drag",
+          "input": "Drag",
+          "value": [
+            1.2
+          ]
+        }
+      ]
     }
   ]
 }

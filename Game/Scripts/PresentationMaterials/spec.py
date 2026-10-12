@@ -10,7 +10,8 @@ SCHEMA_VERSION = 1
 # The version of BuildPresentationMaterials.py's graphs; a spec names the version it was written for. Version 3: the
 # toon characters' ink (ADR-068 §3), and a hover outline that looks only for the hover's own stencils. Version 4: the
 # combat effects' graphic shapes (ADR-068 §4). Version 5: the telegraphs' shaded fill (ADR-068 §4).
-GENERATOR_VERSION = 5
+# Version 6: animated scalloped toon fog clouds (Battleground Bible §11).
+GENERATOR_VERSION = 6
 # Presentation materials live where the UI's content is always cooked.
 DESTINATION_ROOT = "/Game/Veyra/UI/"
 ASSET_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
@@ -104,6 +105,14 @@ RULES = {
         "rimOpacity": (_unit, "a number from 0 to 1"),
         "landingOpacity": (_unit, "a number from 0 to 1"),
         "glowGain": (_positive, "a number above 0"),
+    },
+    "toonFog": {
+        "opacity": (_open_unit, "a number strictly between 0 and 1"),
+        "glowGain": (_positive, "a number above 0"),
+        "shadowValue": (_open_unit, "a number strictly between 0 and 1"),
+        "curlSpeed": (_positive, "a number above 0"),
+        "edgeSoftness": (_open_unit, "a number strictly between 0 and 1"),
+        "depthFadeDistance": (_positive, "a world-space distance above 0"),
     },
     "particleSmoke": {
         "noiseScale": (_positive, "a number above 0"),

@@ -1,0 +1,19 @@
+{
+  "images": [
+    {
+      "file": "low-dense-fog.png",
+      "source": "Game/Saved/VisualAudit/Pass10/softened-low/Play_DenseFog.png",
+      "sha256": "c4bd8eaec5fc3d9323b7712c9b3a736bfef0f9909097902f6b7d2eeb62fe3d1a"
+    },
+    {
+      "file": "high-dense-fog.png",
+      "source": "Game/Saved/VisualAudit/Pass10/softened-high/Play_DenseFog.png",
+      "sha256": "9d55490994feff5362bbaa2acd66698fbaa59c3fde3f8beb4b92e8e1265fade7"
+    }
+  ],
+  "mapValidationUtc": "2026-10-10T12:56:31.344Z",
+  "visionTests": 49,
+  "worldTests": 95,
+  "specificationTests": 14,
+  "imageProcessing": "none"
+}

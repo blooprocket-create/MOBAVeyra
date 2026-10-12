@@ -43,7 +43,7 @@ namespace VeyraWorldTests
 	}
 
 	/** Real collision ground for tests that previously relied on implicit Z=0. Fixture dimensions only. */
-	inline void SpawnCompactGround(UWorld& World)
+	inline UBoxComponent* SpawnCompactGround(UWorld& World)
 	{
 		const double HalfExtent = CompactBattleground().HalfExtent;
 		AActor* Floor = World.SpawnActor<AActor>();
@@ -55,6 +55,7 @@ namespace VeyraWorldTests
 		VeyraUnitCollision::SetResponseToUnits(*Box, ECR_Ignore);
 		Box->RegisterComponent();
 		Floor->SetActorLocation(FVector(0.0, 0.0, -50.0));
+		return Box;
 	}
 
 	/** World tuning a test may change, starting from the committed one. Get() returns it while this object lives. */

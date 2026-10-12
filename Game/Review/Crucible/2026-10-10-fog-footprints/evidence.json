@@ -1,0 +1,17 @@
+{
+  "images": [
+    {
+      "file": "low-dense-fog.png",
+      "sha256": "fabcf6436b903af8a10092d35a408e854f5a47f8cf9d7a4669d6263f4e7b9387",
+      "source": "Game/Saved/VisualAudit/Pass11/low/Play_DenseFog.png"
+    },
+    {
+      "file": "high-dense-fog.png",
+      "sha256": "1e1d65b1179cae6a487ca3b6647f88bec87254dc95e24d1ba6be4a01d62e0332",
+      "source": "Game/Saved/VisualAudit/Pass11/high-fixed/Play_DenseFog.png"
+    }
+  ],
+  "worldTests": 95,
+  "report": "20261010-135801",
+  "imageProcessing": "none"
+}

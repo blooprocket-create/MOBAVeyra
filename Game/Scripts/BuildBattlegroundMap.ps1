@@ -59,7 +59,7 @@ if ($process.ExitCode -ne 0) {
     exit 1
 }
 $repoDir = Split-Path -Parent $gameDir
-$sourcePaths = @('Game/Tuning/World.json', 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json', 'Game/ArtSource/Environment/CrucibleKit.json', 'Game/ArtSource/Environment/Terrain/TerrainTextures.json')
+$sourcePaths = @('Game/Tuning/World.json', 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json', 'Game/ArtSource/Environment/CrucibleKit.json', 'Game/ArtSource/Environment/Terrain/TerrainTextures.json', 'Game/Config/DefaultGame.ini', 'Game/ArtSource/Presentation/Effects.json', 'Game/ArtSource/Presentation/PresentationMaterials.json')
 $inputs = @($sourcePaths | ForEach-Object {
     @{ path = $_; sha256 = (Get-FileHash -LiteralPath (Join-Path $repoDir $_) -Algorithm SHA256).Hash.ToLowerInvariant() }
 })

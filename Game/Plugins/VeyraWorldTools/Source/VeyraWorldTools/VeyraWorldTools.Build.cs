@@ -9,5 +9,10 @@ public class VeyraWorldTools : ModuleRules
             "Json", "Projects", "AssetRegistry", "MeshDescription", "StaticMeshDescription", "PCG", "NavigationSystem", "ImageCore",
             "VeyraCore", "VeyraCombat", "VeyraWorld", "VeyraMatch"
         });
+        // Editor review generation shares the client fog presentation; servers never load it.
+        if (Target.Type != TargetType.Server)
+        {
+            PrivateDependencyModuleNames.Add("VeyraUI");
+        }
     }
 }

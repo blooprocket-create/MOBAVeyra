@@ -284,7 +284,8 @@ Veyra does **not** currently use traditional brush/bush concealment. Instead, th
 - This remains true even if an allied Vanguard is currently inside that fog.
 - Champion vision inside Dense Fog is **local to the observer**: to directly see enemy Vanguards in the fog, your own Vanguard must also be inside that same fog volume.
 - Dense Fog therefore creates commitment zones rather than ordinary shared-vision bushes.
-- **Placements are deferred on purpose.** Where map-authored Dense Fog sits is decided with the grey-box map, not in this bible; it is not required before implementation starts. The rules above, and the Vision Bible, apply to every placement.
+- **Placement direction (author, 2026-10-10, revised after visual review):** use substantial irregular fog banks with enough space for positioning and ambushes. Avoid both giant isolated circles and tiny identical three-puff pockets. Fit distinct ribbons, bends, crescents and broader pockets to lane edges and jungle approaches. `World.json` owns the provisional positions and radii; connected overlapping lobes form each pocket under the existing Vision rules. Preserve half-turn team symmetry and open routes around pockets. Exact positions remain subject to playtesting.
+- **Presentation direction (author, 2026-10-10):** Dense Fog must read as fog occupying space, not a floor circle or a patch of concealment vegetation. It uses the same toon special-effects language and visible motion as the game's effects. The visible edge must still communicate the gameplay footprint on high and low graphics profiles.
 
 ### Wards inside Dense Fog
 

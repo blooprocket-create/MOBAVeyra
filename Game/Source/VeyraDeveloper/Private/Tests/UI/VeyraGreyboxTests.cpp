@@ -11,6 +11,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/LocalFogVolumeComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Cues/VeyraCombatCueSubsystem.h"
 #include "Greybox/VeyraFountainShop.h"
@@ -404,11 +405,14 @@ namespace VeyraAbilitiesTests
 		{
 			ASSERT_THAT(IsNull(RefreshedGreybox().GetGround(), TEXT("a world with no battleground draws none")));
 			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
-			VeyraWorldTests::SpawnCompactGround(Spawner.GetWorld());
+			// Presentation reads the full authored layout, so every fog lobe needs a playable surface.
+			UBoxComponent* Floor = VeyraWorldTests::SpawnCompactGround(Spawner.GetWorld());
+			const double HalfExtent = UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent;
+			Floor->SetBoxExtent(FVector(HalfExtent, HalfExtent, Floor->GetUnscaledBoxExtent().Z));
 			Battleground->SpawnStructures(VeyraWorldTests::CompactBattleground());
 			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
 
-			// The river, each stretch of each lane's road, both bases' pads, and both halves' Dense Fog, from
+			// The river, each stretch of each lane's road, and both bases' pads, from
 			// World.json's layout.
 			const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
 			int32 Stretches = 0;
@@ -425,7 +429,22 @@ namespace VeyraAbilitiesTests
 			{
 				RiverStretches += Channel.Samples.Num() - 1;
 			}
-			ASSERT_THAT(AreEqual(RiverStretches + Stretches + 2 + VeyraLayout::DenseFog(Layout).Num(), Markings.Num()));
+			ASSERT_THAT(AreEqual(RiverStretches + Stretches + 2, Markings.Num()));
+			TArray<ULocalFogVolumeComponent*> FogVolumes;
+			TArray<UNiagaraComponent*> FogWisps;
+			Ground->GetComponents(FogVolumes);
+			Ground->GetComponents(FogWisps);
+			ASSERT_THAT(AreEqual(VeyraLayout::DenseFog(Layout).Num(), FogVolumes.Num()));
+			ASSERT_THAT(AreEqual(FogVolumes.Num(), FogWisps.Num()));
+			for (const ULocalFogVolumeComponent* Fog : FogVolumes)
+			{
+				ASSERT_THAT(IsTrue(Fog->IsRegistered() && Fog->IsVisible()));
+			}
+			for (const UNiagaraComponent* Wisp : FogWisps)
+			{
+				ASSERT_THAT(IsNotNull(Wisp->GetAsset()));
+				ASSERT_THAT(IsTrue(Wisp->IsRegistered() && Wisp->GetCollisionEnabled() == ECollisionEnabled::NoCollision));
+			}
 			for (const UStaticMeshComponent* Marking : Markings)
 			{
 				ASSERT_THAT(IsTrue(Marking->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Marking->CanEverAffectNavigation(),

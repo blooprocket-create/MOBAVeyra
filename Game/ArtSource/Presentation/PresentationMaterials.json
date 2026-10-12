@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generator": "Game/Scripts/BuildPresentationMaterials.py",
-  "generatorVersion": 5,
+  "generatorVersion": 6,
   "destination": "/Game/Veyra/UI/Presentation",
   "materials": [
     {
@@ -152,6 +152,17 @@
       "glowGain": 0.12,
       "albedo": 0.85,
       "clip": 0.02
+    },
+    {
+      "name": "M_VeyraDenseFog",
+      "kind": "toonFog",
+      "purpose": "Dense Fog: scalloped translucent clouds, broad toon shade bands and rolling internal curls; presentation only.",
+      "opacity": 0.82,
+      "glowGain": 0.75,
+      "shadowValue": 0.62,
+      "curlSpeed": 5.0,
+      "edgeSoftness": 0.09,
+      "depthFadeDistance": 60.0
     }
   ]
 }
