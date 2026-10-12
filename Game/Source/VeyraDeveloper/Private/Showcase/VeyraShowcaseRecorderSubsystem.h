@@ -47,6 +47,7 @@ private:
 		Approach,
 		Cast,
 		Prime,
+		Attack,
 		Record,
 		Flush,
 		Finished,
@@ -84,8 +85,14 @@ private:
 	/** Leaves the current slot's ability out of the recording, for Reason, and goes on to the next. */
 	void SkipAbility(const FVeyraContentId& Ability, const FString& Reason);
 
-	/** Goes on to the next slot, or ends the rehearsal or the recording after the last. */
+	/** Goes on to the next slot, or ends the rehearsal, or goes on to the basic attack after the last. */
 	void NextSlot(const FString& Description);
+
+	/** Orders a basic attack at Dummy and starts its clip (ADR-074 §3). */
+	void OrderAttack(AVeyraPlayerController& Controller, AActor& Dummy);
+
+	/** How far the Vanguard's basic attack reaches, from Vanguards.json; 0 when unknown. */
+	double AttackReach(const AVeyraPlayerController& Controller) const;
 
 	void StartCapture();
 	void CaptureFrame();
@@ -114,6 +121,10 @@ private:
 	bool bPrimed = false;
 	/** When the priming attack is ordered again, until one commits. */
 	double PrimeRetryAt = 0.0;
+	/** Whether the kit is recorded and its basic attack is being recorded, and whether that attack has been seen to commit. */
+	bool bRecordingAttack = false;
+	bool bAttackCommitted = false;
+	bool bFirstSwingDone = false;
 
 	/** The cast awaiting the server, and what it was asked for. */
 	bool bCastPending = false;

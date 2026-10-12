@@ -28,6 +28,7 @@
 #include "Showcase/VeyraShowcaseRules.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Showcase/VeyraShowcaseSettings.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
@@ -265,6 +266,20 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		// abilities are. One that never ends, as a passive's, is waited out no longer than the patience.
 		const UVeyraStatusComponent* Statuses = Own->FindComponentByClass<UVeyraStatusComponent>();
 		const bool bClean = !Statuses || Statuses->GetLedger().Entries.IsEmpty() || Now - SetAt.GetValue() >= Settings.SettleSeconds + Settings.CastPatienceSeconds;
+		if (bRecordingAttack && Now - SetAt.GetValue() >= Settings.SettleSeconds && bClean && Dummy)
+		{
+			// The basic attack, within its own reach of the dummy first.
+			const double Reach = AttackReach(*Controller);
+			if (Reach > 0.0 && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) > Reach)
+			{
+				const FVector Toward = (Vanguard->GetActorLocation() - Dummy->GetActorLocation()).GetSafeNormal2D();
+				Controller->IssueMoveOrder(Dummy->GetActorLocation() + Toward * Reach * Settings.ApproachShareOfReach);
+				Advance(EStep::Approach, TEXT("stepping within the basic attack's reach"));
+				break;
+			}
+			OrderAttack(*Controller, *Dummy);
+			break;
+		}
 		if (Now - SetAt.GetValue() >= Settings.SettleSeconds && bClean && Dummy)
 		{
 			// Within the ability's reach of the dummy before the clip starts, so it shows the cast, not a walk.
@@ -290,6 +305,22 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 
 	case EStep::Approach:
 	{
+		if (bRecordingAttack)
+		{
+			if (Dummy && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) <= AttackReach(*Controller))
+			{
+				OrderAttack(*Controller, *Dummy);
+			}
+			else if (Now - StepSince > Settings.CastPatienceSeconds)
+			{
+				FClip& Clip = Clips.AddDefaulted_GetRef();
+				Clip.Ability = FVeyraContentId::FromText(TEXT("basic_attack")).GetValue();
+				Clip.Slot = TEXT("Attack");
+				Clip.Failure = TEXT("could not step within the basic attack's reach of the dummy");
+				Advance(EStep::Flush, TEXT("left the basic attack out"));
+			}
+			break;
+		}
 		const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
 		const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(VeyraAbilitySlots::All[SlotIndex]) : nullptr;
 		if (Entry && Dummy && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) <= VeyraKitOrders::ReachOf(Entry->Ability))
@@ -306,6 +337,40 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::Cast:
 		TickCast(*Controller);
 		break;
+
+	case EStep::Attack:
+	{
+		// The clip runs until the attack has swung through and the tail has passed, within its limit.
+		const UVeyraBasicAttackComponent* Attacks = Own->FindComponentByClass<UVeyraBasicAttackComponent>();
+		const EVeyraAttackPhase Phase = Attacks ? Attacks->GetState().Phase : EVeyraAttackPhase::None;
+		FClip& Clip = Clips.Last();
+		if (Phase == EVeyraAttackPhase::Backswing && !bAttackCommitted)
+		{
+			bAttackCommitted = true;
+			Clip.CommittedAt = ServerNow();
+		}
+		// The attack order goes on attacking: the clip holds the first, from its windup until the tail after its backswing.
+		if (bAttackCommitted && Phase != EVeyraAttackPhase::Backswing)
+		{
+			bFirstSwingDone = true;
+		}
+		if (!bFirstSwingDone)
+		{
+			LastBusyAt = ServerNow();
+		}
+		const double Since = ServerNow() - Clip.OrderedAt;
+		const bool bThrough = bAttackCommitted && ServerNow() - LastBusyAt >= Settings.TailSeconds;
+		if (bThrough || Since >= Settings.MaxClipSeconds)
+		{
+			StopCapture();
+			if (!bAttackCommitted)
+			{
+				Clip.Failure = TEXT("the basic attack never committed");
+			}
+			Advance(EStep::Flush, *FString::Printf(TEXT("recorded the basic attack in %d frame(s) over %.2f s"), Clip.Frames.Num(), Since));
+		}
+		break;
+	}
 
 	case EStep::Prime:
 	{
@@ -572,7 +637,34 @@ void UVeyraShowcaseRecorderSubsystem::NextSlot(const FString& Description)
 		Advance(EStep::Reset, *Description);
 		return;
 	}
-	Advance(bLast ? EStep::Flush : EStep::Reset, *Description);
+	// After the kit, its basic attack, from a stage set again.
+	if (bLast)
+	{
+		bRecordingAttack = true;
+		SlotIndex = UE_ARRAY_COUNT(VeyraAbilitySlots::All) - 1;
+	}
+	Advance(EStep::Reset, *Description);
+}
+
+void UVeyraShowcaseRecorderSubsystem::OrderAttack(AVeyraPlayerController& Controller, AActor& Dummy)
+{
+	FClip& Clip = Clips.AddDefaulted_GetRef();
+	Clip.Ability = FVeyraContentId::FromText(TEXT("basic_attack")).GetValue();
+	Clip.Slot = TEXT("Attack");
+	Clip.OrderedAt = ServerNow();
+	LastBusyAt = Clip.OrderedAt;
+	bAttackCommitted = false;
+	bFirstSwingDone = false;
+	StartCapture();
+	Controller.IssueAttackOrder(&Dummy);
+	Advance(EStep::Attack, TEXT("attacking the dummy"));
+}
+
+double UVeyraShowcaseRecorderSubsystem::AttackReach(const AVeyraPlayerController& Controller) const
+{
+	const AVeyraPlayerState* Own = Controller.GetPlayerState<AVeyraPlayerState>();
+	const FVeyraVanguardDefinition* Definition = Own ? UVeyraVanguardsTuningSubsystem::FindVanguard(Own->GetVanguardId()) : nullptr;
+	return Definition ? Definition->BasicAttack.Range : 0.0;
 }
 
 void UVeyraShowcaseRecorderSubsystem::StartCapture()
@@ -596,7 +688,7 @@ void UVeyraShowcaseRecorderSubsystem::StartCapture()
 void UVeyraShowcaseRecorderSubsystem::CaptureFrame()
 {
 #if WITH_VEYRA_UI
-	if (!Grabber || !Grabber->IsCapturingFrames() || Clips.IsEmpty() || (Step != EStep::Cast && Step != EStep::Record))
+	if (!Grabber || !Grabber->IsCapturingFrames() || Clips.IsEmpty() || (Step != EStep::Cast && Step != EStep::Record && Step != EStep::Attack))
 	{
 		return;
 	}
