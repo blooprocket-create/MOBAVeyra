@@ -213,7 +213,7 @@ namespace VeyraNetTests
 				.ThenServer(TEXT("The observer hits the enemy out of sight"), [this](FState& State) { HitEnemy(State); })
 				.UntilClients(TEXT("The enemy sees what it took, but not from whom"), [this](FState& State) {
 					return State.ClientIndex != EnemyIndex || Algo::AnyOf(Received[EnemyIndex], [](const FVeyraCombatTextLine& Line) {
-						return Line.Kind == EVeyraCombatTextKind::DamageReceived && Line.Other == nullptr;
+						return Line.Kind == EVeyraCombatTextKind::DamageReceived && !Line.Other.IsValid();
 					});
 				});
 			Hold(Hit).ThenClients(TEXT("Its dealer learned nothing of a unit in the fog"), [this](FState& State) {
