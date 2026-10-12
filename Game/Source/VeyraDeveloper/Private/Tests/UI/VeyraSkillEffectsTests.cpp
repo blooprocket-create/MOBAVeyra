@@ -4,7 +4,11 @@
 
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
+#include "AbilitySystemGlobals.h"
 #include "Components/ActorTestSpawner.h"
+#include "Cues/VeyraCombatCues.h"
+#include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraProjectile.h"
 #include "Kit/VeyraKitPresentationSettings.h"
 #include "Kit/VeyraSkillEffectsSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -130,6 +134,61 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsFalse(VeyraSkillEffects::SawItEnd(Seen, FVector(500.0 + Speed * Window * 2.0, 0.0, 0.0), SeenAt + 0.05, Window)));
 		}
 
+		TEST_METHOD(AThrownThingArcsFromTheHandToWhereItLands)
+		{
+			const FVector From(0.0, 0.0, 200.0);
+			const FVector To(800.0, 0.0, 0.0);
+			constexpr double Height = 300.0;
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::ArcPoint(From, To, 0.0, Height).Equals(From)));
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::ArcPoint(From, To, 1.0, Height).Equals(To)));
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::ArcPoint(From, To, 0.5, Height).Equals(FVector(400.0, 0.0, 100.0 + Height)), TEXT("highest halfway, by its height")));
+		}
+
+		TEST_METHOD(ATetherComesHomeAtItsSpeedAndStopsThere)
+		{
+			const FVector From(1000.0, 0.0, 0.0);
+			const FVector Hand(0.0, 0.0, 0.0);
+			constexpr double Speed = 2000.0;
+			bool bHome = true;
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::RetractPoint(From, Hand, 0.25, Speed, bHome).Equals(FVector(500.0, 0.0, 0.0))));
+			ASSERT_THAT(IsFalse(bHome));
+			ASSERT_THAT(IsTrue(VeyraSkillEffects::RetractPoint(From, Hand, 1.0, Speed, bHome).Equals(Hand)));
+			ASSERT_THAT(IsTrue(bHome, TEXT("it never overshoots the hand")));
+		}
+
+		TEST_METHOD(ATetherReturnsAtItsPullsSpeedOrElseItsFlights)
+		{
+			FVeyraAbilitiesTuning Fixture;
+			FVeyraSkillshotAbilityTuning Hook;
+			Hook.Projectile.Speed = 1600.0;
+			Hook.Effects.Displacement.Add(FVeyraDisplacementTuning{ EVeyraDisplacementDirection::TowardOrigin, 1000.0, 1200.0 });
+			Fixture.Skillshot.Add(Id(TEXT("test_hook")), Hook);
+			FVeyraSkillshotAbilityTuning Bolt;
+			Bolt.Projectile.Speed = 1800.0;
+			Fixture.Skillshot.Add(Id(TEXT("test_bolt")), Bolt);
+			ASSERT_THAT(IsNear(VeyraSkillEffects::RetractSpeedOf(Fixture, Id(TEXT("test_hook"))), 1200.0, Slack, TEXT("hauled in at its pull's speed")));
+			ASSERT_THAT(IsNear(VeyraSkillEffects::RetractSpeedOf(Fixture, Id(TEXT("test_bolt"))), 1800.0, Slack, TEXT("one that pulls nothing flies back")));
+			ASSERT_THAT(IsNear(VeyraSkillEffects::RetractSpeedOf(Fixture, Id(TEXT("test_unknown"))), 0.0, Slack));
+		}
+
+		TEST_METHOD(ATetherAnArcAndAChannelBoneAreWholeOrAbsent)
+		{
+			FVeyraAbilityEffects Half = Recipe(TEXT("test_half_tether"));
+			Half.TetherBone = TEXT("prop_r");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Half }).IsEmpty(), TEXT("a tether names where it flies from too")));
+			Half.TetherFromBone = TEXT("hand_r");
+			ASSERT_THAT(IsTrue(ProblemsWith({ Half }).IsEmpty()));
+			FVeyraAbilityEffects Arc = Recipe(TEXT("test_arc"));
+			Arc.Arc = Arc.Commit;
+			ASSERT_THAT(IsFalse(ProblemsWith({ Arc }).IsEmpty(), TEXT("an arc needs its bone and a height")));
+			Arc.ArcBone = TEXT("hand_r");
+			Arc.ArcHeight = 200.0f;
+			ASSERT_THAT(IsTrue(ProblemsWith({ Arc }).IsEmpty()));
+			FVeyraAbilityEffects Anchored = Recipe(TEXT("test_anchor"));
+			Anchored.ChannelBone = TEXT("hand_r");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Anchored }).IsEmpty(), TEXT("only a channel pours from a channel bone")));
+		}
+
 		TEST_METHOD(EveryShippedRecipeNamesAnAbility)
 		{
 			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
@@ -152,6 +211,11 @@ namespace VeyraSkillEffectsTests
 	{
 		static constexpr double Range = 1000.0;
 		static constexpr double LongSeconds = 60.0;
+		static constexpr double ShortSeconds = 2.0;
+		static constexpr double Nearer = 50.0;
+		static constexpr int32 HookCast = 3;
+		static constexpr int32 FallCast = 7;
+		static constexpr double Slack = 1e-6;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -174,6 +238,25 @@ namespace VeyraSkillEffectsTests
 			Effects.Windup.Scale = 1.0f;
 			Effects.WindupBones = { TEXT("hand_r") };
 			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Effects);
+			// A hook flung on its chain from the caster's hand, drawn in place of its projectile.
+			Tuning.Skillshot.Add(VeyraAbilitiesTests::ArchetypeTestId(TEXT("test_hook"))).Projectile = FVeyraProjectileTuning{ Range, Range / 10.0, Range };
+			FVeyraAbilityEffects Hook;
+			Hook.Ability = TEXT("test_hook");
+			Hook.bHideProjectileBody = true;
+			Hook.TetherBone = TEXT("prop_r");
+			Hook.TetherFromBone = TEXT("hand_r");
+			Hook.Tether.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraChainLine.NS_VeyraChainLine")));
+			Hook.Tether.Scale = 1.0f;
+			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Hook);
+			// A fall that lands long after it is aimed, by its tuning, with an impact where it lands.
+			FVeyraAreaAbilityTuning& Fall = Tuning.Area.Add(VeyraAbilitiesTests::ArchetypeTestId(TEXT("test_fall")));
+			Fall.DelaySeconds = LongSeconds;
+			Fall.Zones.AddDefaulted_GetRef().Shape.Radius = Range / 4.0;
+			FVeyraAbilityEffects Landing;
+			Landing.Ability = TEXT("test_fall");
+			Landing.Impact.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraImpact.NS_VeyraImpact")));
+			Landing.Impact.Scale = 1.0f;
+			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Landing);
 			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
 			Caster = &World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
 		}
@@ -181,7 +264,8 @@ namespace VeyraSkillEffectsTests
 		AFTER_EACH()
 		{
 			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.RemoveAll(
-				[](const FVeyraAbilityEffects& Effects) { return Effects.Ability == TEXT("test_charged"); });
+				[](const FVeyraAbilityEffects& Effects)
+				{ return Effects.Ability == TEXT("test_charged") || Effects.Ability == TEXT("test_hook") || Effects.Ability == TEXT("test_fall"); });
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
 		}
 
@@ -196,6 +280,67 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsFalse(Skills->IsShowing(*Caster)));
 			Skills->Refresh();
 			ASSERT_THAT(IsTrue(Skills->IsShowing(*Caster), TEXT("it takes up the windup it is seen holding")));
+		}
+
+		/** A hook Launcher flings from From, as the server launches one. */
+		AVeyraProjectile& Hook(const AActor& Launcher, const FVector& From)
+		{
+			AVeyraProjectile* Flung = Spawner.GetWorld().SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(From));
+			check(Flung);
+			Flung->LaunchLine(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Launcher), FVector::ForwardVector,
+				FVeyraProjectileTuning{ Range, Range / 10.0, Range }, EVeyraSkillshotCollision::FirstEnemy, FVeyraPreparedEffects(), FVeyraPreparedEffects(),
+				VeyraAbilitiesTests::ArchetypeTestId(TEXT("test_hook")), HookCast);
+			return *Flung;
+		}
+
+		TEST_METHOD(AHookIsDrawnFromTheOneWhoLaunchedIt)
+		{
+			// Its side's other Vanguard stands nearer where it set off, and no cast state names its caster.
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			const FVector From(Range, 0.0, 0.0);
+			AVeyraVanguardCharacter& Bystander = World.Spawn(EVeyraTeam::A, From + FVector(Nearer, 0.0, 0.0));
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			Skills->NoteProjectileDrawn(Hook(*Caster, From), From, FLinearColor::White);
+			ASSERT_THAT(IsTrue(Skills->FindTether(*Caster).IsSet(), TEXT("its chain runs from the one who launched it")));
+			ASSERT_THAT(IsFalse(Skills->FindTether(Bystander).IsSet()));
+		}
+
+		TEST_METHOD(AHookWhoseCasterIsNotSeenShowsItsOwnBody)
+		{
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			AVeyraProjectile& Flung = Hook(*Caster, FVector(Range, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(Skills->HidesProjectileBody(Flung), TEXT("drawn on its chain from a caster seen here")));
+			// As on a client that does not see its caster: the replicated launcher resolves to nothing.
+			Flung.SetInstigator(nullptr);
+			ASSERT_THAT(IsFalse(Skills->HidesProjectileBody(Flung), TEXT("with no caster to chain it to, it shows itself")));
+		}
+
+		TEST_METHOD(ADelayedAreaLandsWhenTheServerResolvesIt)
+		{
+			// Its commit is seen here; its delay counted from then runs past when the server's area resolves.
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			const FVeyraContentId Fall = VeyraAbilitiesTests::ArchetypeTestId(TEXT("test_fall"));
+			const FVector Where(Range, 0.0, 0.0);
+			FVeyraCombatCue Commit;
+			Commit.Kind = EVeyraCombatCueKind::CastCommit;
+			Commit.Unit = Caster;
+			Commit.Ability = Fall;
+			Commit.Location = Where;
+			Commit.CastId = FallCast;
+			Skills->NoteCue(Commit);
+			ASSERT_THAT(AreEqual(Skills->GetPendingLandings(), 1));
+			AVeyraDelayedArea* Area = Spawner.GetWorld().SpawnActor<AVeyraDelayedArea>(AVeyraDelayedArea::StaticClass(), FTransform(Where));
+			ASSERT_THAT(IsNotNull(Area));
+			FVeyraEffectFrame Placement;
+			Placement.Origin = Where;
+			Area->Arm(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Caster), Placement, TArray<FVeyraPreparedZone>(), ShortSeconds, Fall, FallCast);
+			Skills->Refresh();
+			const TArray<double> Times = Skills->GetLandingTimes();
+			ASSERT_THAT(AreEqual(Times.Num(), 1));
+			ASSERT_THAT(IsNear(Times[0], Area->GetResolvesAt(), Slack, TEXT("it lands when the server's area resolves")));
 		}
 	};
 }

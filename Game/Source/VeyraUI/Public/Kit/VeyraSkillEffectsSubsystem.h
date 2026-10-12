@@ -7,6 +7,8 @@
 
 #include "VeyraSkillEffectsSubsystem.generated.h"
 
+class AVeyraLingeringArea;
+class AVeyraProjectile;
 class UNiagaraComponent;
 class UNiagaraSystem;
 struct FVeyraAbilitiesTuning;
@@ -27,6 +29,18 @@ namespace VeyraSkillEffects
 
 	/** Where a commit effect plays: at its caster (From), or at the ground point it was aimed at, its height and all. */
 	VEYRAUI_API FVector CommitPlacement(const FVector& From, const FVector& Aimed, bool bAtTarget);
+
+	/**
+	 * How fast a tethered projectile of Ability comes back to its caster, in units a second (ADR-072 §4): the speed its
+	 * pull drags what it caught (its first displacement toward its origin), or it flies at when it pulls nothing.
+	 */
+	VEYRAUI_API double RetractSpeedOf(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/** Where a thrown thing is Share of its way from From to To, rising Height over its middle. */
+	VEYRAUI_API FVector ArcPoint(const FVector& From, const FVector& To, double Share, double Height);
+
+	/** Where a tether coming back from From to To at Speed is after Seconds, and whether it is home. */
+	VEYRAUI_API FVector RetractPoint(const FVector& From, const FVector& To, double Seconds, double Speed, bool& bOutHome);
 }
 
 /** Where and when this machine last drew a cast's projectile (ADR-072 §4), to match the server's end of it. */
@@ -82,8 +96,14 @@ public:
 	/** Ability's own trail for its projectiles and its scale; null for the shared trail. */
 	UNiagaraSystem* TravelEffectOf(const FVeyraContentId& Ability, float& OutScale) const;
 
-	/** This machine draws a projectile of Ability's cast CastId at At, flying at Speed, in Color, now. */
-	void NoteProjectileDrawn(const FVeyraContentId& Ability, int32 CastId, const FVector& At, double Speed, const FLinearColor& Color);
+	/** This machine draws Projectile at At, in Color, now: its impact and its tether follow what is drawn. */
+	void NoteProjectileDrawn(const AVeyraProjectile& Projectile, const FVector& At, const FLinearColor& Color);
+
+	/** Whether Ability's projectiles draw no grey-box body (ADR-072 §4). */
+	bool HidesProjectileBody(const AVeyraProjectile& Projectile) const;
+
+	/** Where Caster's tethered bone is drawn now, if one is flung away from its body. */
+	TOptional<FVector> FindTether(const AActor& Caster) const;
 
 	/** Whether Caster's windup or channel stages show now (begun by a cue, or by seeing it already held). */
 	bool IsShowing(const AActor& Caster) const { return Showing.Contains(&Caster); }
@@ -97,6 +117,9 @@ public:
 	/** How many delayed areas are still to land. */
 	int32 GetPendingLandings() const { return Landings.Num(); }
 
+	/** When each delayed area still to land lands, in the server's time. */
+	TArray<double> GetLandingTimes() const;
+
 private:
 	const FVeyraAbilityEffects* EffectsOf(const FVeyraContentId& Ability) const;
 	UNiagaraSystem* Loaded(const FVeyraAbilityEffects& Effects, const TCHAR* Stage) const;
@@ -108,8 +131,20 @@ private:
 	/** Shows the stages of casts this machine first sees already held: a caster seen mid-windup or mid-channel. */
 	void SeedHeldCasts();
 
-	/** Plays an impact where the server ended a projectile, if this machine saw it coming. */
+	/** Plays an impact where the server ended a projectile, if this machine saw it coming, and calls its tether home. */
 	void NoteProjectileEnd(const FVeyraCombatCue& Cue);
+
+	/** Moves each tether with its projectile, or home once its flight is over; draws its bone and its chain. */
+	void RefreshTethers(double Now);
+
+	/** Moves each thrown thing along its arc and ends each mark as its area lands. */
+	void RefreshLandings(double Now);
+
+	/** Pours each lingering area's own effect over it while it lasts. */
+	void RefreshLingering(double Now);
+
+	/** The pawn that launched Projectile: the one whose cast it is, or else its side's nearest to where it set off. */
+	const AActor* CasterOf(const AVeyraProjectile& Projectile) const;
 
 	bool bReady = false;
 	FDelegateHandle CueHandle;
@@ -130,15 +165,48 @@ private:
 	/** Fades out everything Shown pours: its windup's effects and its channel's. */
 	static void FadeOut(FShowing& Shown);
 
-	/** The delayed areas still to land: where, when (in the server's time), what and in whose colour. */
+	/**
+	 * The delayed areas still to land: where, when (in the server's time), what and in whose colour; the mark made there
+	 * and the thing thrown there, from where and since when.
+	 */
 	struct FLanding
 	{
 		FVeyraContentId Ability;
+		int32 CastId = 0;
 		FVector Where = FVector::ZeroVector;
+		/** Its delay from Abilities.json after the commit was seen, until its area arrives with the server's own time. */
 		double At = 0.0;
+		bool bServerTime = false;
 		FLinearColor Color = FLinearColor::White;
+		TWeakObjectPtr<UNiagaraComponent> Mark;
+		TWeakObjectPtr<UNiagaraComponent> Arc;
+		FVector ArcFrom = FVector::ZeroVector;
+		double ArcSince = 0.0;
 	};
 	TArray<FLanding> Landings;
+
+	/** A part of its caster's body flung away on a projectile (a hook): which, where, and where its flight ended. */
+	struct FTether
+	{
+		TWeakObjectPtr<const AActor> Caster;
+		FName Bone;
+		FName FromBone;
+		FVector At = FVector::ZeroVector;
+		/** When its projectile was last drawn, in the server's time. */
+		double SeenAt = 0.0;
+		/** Once its flight is over: where it comes back from, since when, and how fast. */
+		bool bReturning = false;
+		FVector ReturnFrom = FVector::ZeroVector;
+		double ReturnSince = 0.0;
+		double ReturnSpeed = 0.0;
+		TWeakObjectPtr<UNiagaraComponent> Chain;
+		FLinearColor Color = FLinearColor::White;
+	};
+	/** By ability and cast, as projectiles are keyed. */
+	TMap<TPair<FName, int32>, FTether> Tethers;
+
+	/** Each lingering area's own effect, by area. */
+	TMap<TWeakObjectPtr<const AVeyraLingeringArea>, TWeakObjectPtr<UNiagaraComponent>> Lingering;
 
 	/** The cast projectiles drawn lately, by ability and cast, until their end comes or their window passes. */
 	TMap<TPair<FName, int32>, FVeyraSeenProjectile> Seen;

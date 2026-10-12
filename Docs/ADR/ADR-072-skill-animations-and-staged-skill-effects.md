@@ -121,16 +121,36 @@ The pilot kits' existing effects (`NS_VeyraEmbers`, `NS_VeyraDrip`) serve as the
 2. The pilot: Cairn, Oriel and Varkesh, captured in engine at the gameplay camera before and after, and reviewed by the author.
 3. The rest of the roster in batches, after the author approves the pilot's look.
 
+### 8. Pilot round 2 (author review, 2026-10-08)
+The author played the pilot and found its skills still read as indicators. Cairn's hook was a sphere, not the hook on his arm. Immovable looked like his normal body. Oriel's lance was a "snowball". Shattered Sky showed no mark and no strike. Final Radiance's beam was smoky and sat off her. Round 2 adds these recipe fields, all data, with no ability named in code:
+- **Projectile bodies:** `bHideProjectileBody` draws no grey-box sphere for an ability's projectiles. What flies is its Travel effect, turned to face its flight (Oriel's lance of light, Forge Divide's molten wave, which spans the projectile's width), or its tether's bone.
+- **Tethered projectiles:**
+  - **Fields:** `TetherBone` (Cairn's `prop_r`, the hook skinned to it), `TetherFromBone` (`hand_r`) and a looping `Tether` effect (the chain). The caster's own bone is drawn where its projectile is drawn, through the animation instance's bone targets (`SetBoneTarget`: presentation only; the bone keeps its clips' rotation).
+  - **Retract:** when the server ends the flight (§4's projectile end) the bone comes home from that point to the hand. It travels at the ability's pull speed (its first toward-origin displacement in `Abilities.json`), or at its flight speed if it pulls nothing.
+  - **Fog and gameplay:** a flight that leaves sight with no end comes home from where it was last drawn. Nothing changes the pull, the hit or their timing.
+- **Mark:** a looping effect where a delayed area was aimed, from its commit until it lands, sized to the area (`Abilities.json`). Shattered Sky marks its area, then light strikes it: a pillar of light, jagged streaks down it, a flash, a shockwave and glass shards (`NS_VeyraLightStrike`). The in-game text and the Bible's falling glass are both kept.
+- **Arc:** a looping effect thrown from `ArcBone` of the caster to where a delayed area lands, over its delay, rising `ArcHeight` (Slagshot's molten glob).
+- **Linger:** a looping effect over each lingering area of the ability while it lasts. Its length and width come from the area's replicated shape (Molten Ground's burning strip).
+- **Channel anchor:** `ChannelBone` pours a channel from that bone of the caster's body (Final Radiance from Oriel's hands). Its beam is now a sprite set out along the effect's own facing, so it runs from her hands the way she casts; the first version's world-space offset put it off her.
+- **The beam material:** `M_VeyraFxBeam`, a graphic band of light drawn along a sprite aligned to its velocity. It does not age, so a held beam stays whole.
+- **Beams as aligned sprites:** a beam (the lance's shaft, the strike's pillar, the prism's core and its refracted shafts, the chain's strand) is one long sprite, sized width by length, offset half its length from the effect along the effect's own frame and aligned along it by a slow velocity on that axis. The presentation turns the effect toward where the beam ends and sets its `Length`. Beam ribbons were tried and dropped: they cast a shadow but drew nothing on camera. Emitters stay in world space; switching them to the system's own frame drew nothing either. The effects generator sets a module's switch from a `bool`, and the spec test refuses `localSpace` and beam ribbons.
+- **Immovable reads apart:** its status body holds a brace (`braced` in the kit): sunk, wide-set, forearms crossed, the hook drawn up. A held mark of heaved stone (`NS_VeyraStoneGuard`) wheels about his feet. He gains no glow: his Visual language keeps him unlit from within.
+- **Larger bursts:** the first systems read as small sparks at the gameplay camera, so they grew by half or more.
+- **Verification:** each skill is checked in motion in a running match before review, not only in frozen captures.
+- **Whose hook it is:** a projectile carries the body that launched it as its replicated instigator, which decides nothing in play. A tether is drawn only from that body; a hook whose caster this machine does not see shows its own body rather than chaining to another unit or vanishing.
+- **When a delayed area lands:** its mark and what it throws run until the server resolves the area. The ability's delay from its commit stands in only until the area itself is seen here, carrying the server's resolve time.
+- **The performance gate moves:** the pilot carries 3 of 26 kits, so a ten-Vanguard fight now would mostly measure older effects, and a packaged build cooked only for it would duplicate a release's own. ADR-068 §5's ten-Vanguard comparison (`Smoke.ps1 -PerfSeconds`, eight playing bots with Cairn, Oriel and Varkesh among the bots' Vanguards, as shipped against `ShowFlag.Particles 0`) runs at two gates instead. It runs at the next friends release's gate on the packaged client that release builds, before any player gets these effects. It runs again at the roster rollout's gate.
+
 ## Configuration
 - **Skill clips:** the kit's `skills` per Vanguard, and the motion primitives in the generator. Art values.
 - **Effect recipes:** `[/Script/VeyraUI.VeyraKitPresentationSettings]` `AbilityEffects` in `Game/Config/DefaultGame.ini`. Presentation, validated at start.
 - **Cast glow:** the material parameter in the kit's `bodyMaterial.castGlow` (art, read by the importer); `BodyCastGlowParameter`, `CastGlowGain`, `CastEffectGain`, `CastGlowRiseSeconds` and `CastGlowFallSeconds` in `[/Script/VeyraUI.VeyraGreyboxSettings]` (presentation, validated at start).
-- **Channel length:** `ChannelLengthParameter` in the kit presentation settings names the user float a channel's effect takes its length by. The effects generator gives a system user floats of its own (`userFloats` in `Effects.json`), as `NS_VeyraBeam`'s `Length`.
+- **Lengths and widths:** `LengthParameter` and `WidthParameter` in the kit presentation settings name the user floats an effect that runs along something takes (a channel's reach, a tether's span, a mark's area, a lingering area's shape, a projectile's width). The effects generator gives a system user floats of its own (`userFloats` in `Effects.json`).
 
 ## Consequences
 - **Each skill reads as itself:** a skill with data shows its own motion, windup, release and result, and the telegraph becomes one cue among several.
 - **More takes per FBX:** a Vanguard's FBX grows by one take per listed skill, typically four or five. A body rebuilt for new takes is new LFS content, so each Vanguard's skills land in one rebuild.
-- **More effects per fight:** the windup and channel stages add pooled looping components while casts last. ADR-068 §5's budget applies, and the pilot's gate measures a ten-Vanguard fight with every skill in use.
+- **More effects per fight:** the windup and channel stages add pooled looping components while casts last. ADR-068 §5's budget applies. The ten-Vanguard fight is measured at the next friends release's gate and again at the roster rollout's gate (§8).
 - **`AbilityCastEffects` migrates:** Patch's entries move to `AbilityEffects` as Commit stages, unchanged in look.
 
 ## Provisional answers for the author

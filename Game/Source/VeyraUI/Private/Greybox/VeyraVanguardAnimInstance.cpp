@@ -51,6 +51,16 @@ namespace
 			UpperBodyBone = Instance.GetUpperBodyBone();
 			State = Instance.GetState();
 			Limbs = Instance.GetLimbFrame();
+			// Bones flung away from the body, in its skin's space as it stands this frame.
+			BoneTargets.Reset();
+			if (const USkeletalMeshComponent* Skin = Instance.GetSkelMeshComponent(); Skin && !Instance.GetBoneTargets().IsEmpty())
+			{
+				const FTransform ToSkin = Skin->GetComponentTransform().Inverse();
+				for (const TPair<FName, FVector>& Target : Instance.GetBoneTargets())
+				{
+					BoneTargets.Add(Target.Key, ToSkin.TransformPosition(Target.Value));
+				}
+			}
 		}
 
 		virtual bool Evaluate(FPoseContext& Output) override
@@ -93,6 +103,7 @@ namespace
 			}
 			SolveLimbs(Output.Pose);
 			SolveSprings(Output.Pose);
+			PlaceBones(Output.Pose);
 			return true;
 		}
 
@@ -101,6 +112,36 @@ namespace
 		{
 			FAnimationPoseData Pose(Into);
 			Sequence.GetAnimationPose(Pose, FAnimExtractContext(static_cast<double>(Time), false, FDeltaTimeRecord(), bLooping));
+		}
+
+		/** Moves each bone the presentation has flung away (a hook on its chain) to where it is, keeping its clips' turn. */
+		void PlaceBones(FCompactPose& Pose) const
+		{
+			if (BoneTargets.IsEmpty())
+			{
+				return;
+			}
+			const FBoneContainer& Bones = Pose.GetBoneContainer();
+			FCSPose<FCompactPose> Space;
+			Space.InitPose(Pose);
+			bool bMoved = false;
+			for (const TPair<FName, FVector>& Target : BoneTargets)
+			{
+				const int32 Mesh = Bones.GetPoseBoneIndexForBoneName(Target.Key);
+				if (Mesh == INDEX_NONE)
+				{
+					continue;
+				}
+				const FCompactPoseBoneIndex Bone = Bones.MakeCompactPoseIndex(FMeshPoseBoneIndex(Mesh));
+				FTransform Placed = Space.GetComponentSpaceTransform(Bone);
+				Placed.SetTranslation(Target.Value);
+				Space.SetComponentSpaceTransform(Bone, Placed);
+				bMoved = true;
+			}
+			if (bMoved)
+			{
+				FCSPose<FCompactPose>::ConvertComponentPosesToLocalPoses(MoveTemp(Space), Pose);
+			}
 		}
 
 		/** Which of the pose's bones are the upper body: the upper-body bone and every bone below it. */
@@ -298,6 +339,8 @@ namespace
 		}
 
 		const UAnimSequence* Clips[ClipCount] = {};
+		/** Bones flung away from the body, where they are in its skin's space (ADR-072 §4). */
+		TMap<FName, FVector> BoneTargets;
 		/** The skills' own clips the state plays now (ADR-072 §1). */
 		TMap<FName, const UAnimSequence*> SkillClips;
 		FName UpperBodyBone;

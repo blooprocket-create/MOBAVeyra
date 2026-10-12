@@ -640,6 +640,10 @@ for spec in SELECTED:
         material = TOOLS.create_asset(spec["name"], DEST, unreal.Material, unreal.MaterialFactoryNew())
     assert isinstance(material, unreal.Material), "Not a material: " + path
     EDIT.delete_all_material_expressions(material)
+    # The bulk delete leaves some expressions behind, and a rebuilt graph laid over a stale one stacks every rebuild.
+    for left in EDIT.get_material_expressions(material):
+        EDIT.delete_material_expression(material, left)
+    assert not EDIT.get_material_expressions(material), "Material graph not cleared: " + path
     BUILDERS[spec["kind"]](material, spec)
     EDIT.recompile_material(material)
     assert unreal.EditorAssetLibrary.save_loaded_asset(material), "Material save failed: " + path

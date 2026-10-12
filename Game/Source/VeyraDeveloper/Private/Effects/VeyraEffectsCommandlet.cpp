@@ -51,6 +51,8 @@ namespace
 		TArray<double> Value;
 		FString Expression;
 		FString Enum;
+		/** A switch's setting; a switch takes neither a number nor an expression. */
+		TOptional<bool> Switch;
 		FName Emitter;
 	};
 
@@ -135,6 +137,12 @@ namespace
 		{
 			Value.InitializeAs<FNiagaraExt_StackInputData_HlslExpression>();
 			Value.GetMutable<FNiagaraExt_StackInputData_HlslExpression>().HlslExpression = Input.Expression;
+		}
+		else if (Input.Switch.IsSet())
+		{
+			FNiagaraBool Switch;
+			Switch.SetValue(Input.Switch.GetValue());
+			Value.InitializeAs(FNiagaraBool::StaticStruct(), reinterpret_cast<const uint8*>(&Switch));
 		}
 		else if (Input.Value.Num() == 1)
 		{
@@ -409,17 +417,23 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				const bool bNumbers = InputObject && InputObject->TryGetArrayField(TEXT("value"), Numbers);
 				const bool bExpression = InputObject && InputObject->TryGetStringField(TEXT("expression"), Expression) && !Expression.IsEmpty();
 				const bool bEnum = InputObject && InputObject->TryGetStringField(TEXT("enum"), Enum) && !Enum.IsEmpty();
+				bool bSwitchOn = false;
+				const bool bSwitch = InputObject && InputObject->TryGetBoolField(TEXT("bool"), bSwitchOn);
 				if (!InputObject || !InputObject->TryGetStringField(TEXT("script"), Script) || !InputObject->TryGetStringField(TEXT("module"), Module)
-					|| !InputObject->TryGetStringField(TEXT("input"), Input) || int32(bNumbers) + int32(bExpression) + int32(bEnum) != 1
+					|| !InputObject->TryGetStringField(TEXT("input"), Input) || int32(bNumbers) + int32(bExpression) + int32(bEnum) + int32(bSwitch) != 1
 					|| (bNumbers && !(Numbers->Num() == 1 || Numbers->Num() == 3 || Numbers->Num() == 4)))
 				{
-					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and one of a value of 1, 3 or 4 numbers, an expression or an enum's display name."),
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and one of a value of 1, 3 or 4 numbers, an expression, an enum's display name or a bool."),
 						*SpecFile, *Effect.Name);
 					return 1;
 				}
 				FEffectInput& Set = Effect.Inputs.Add_GetRef({ FName(*Script), FName(*Module), FName(*Input) });
 				Set.Expression = Expression;
 				Set.Enum = Enum;
+				if (bSwitch)
+				{
+					Set.Switch = bSwitchOn;
+				}
 				if (InputObject->TryGetStringField(TEXT("emitter"), Emitter))
 				{
 					if (Emitter.IsEmpty())

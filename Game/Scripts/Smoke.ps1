@@ -185,6 +185,9 @@
     one in alphabetical order.
 .PARAMETER ClientStaySeconds
     Seconds each client stays connected after its script before quitting.
+.PARAMETER KitShots
+    With -Vanguards and -Screenshot: the rendering (second) client also saves each of its skills in motion (ADR-072 §8): a
+    shot as each cast winds up and a burst after it commits, as <ability>_<n>.png in KitShots under the report folder.
 .PARAMETER Screenshot
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
     With -Flow, the client renders in a window and saves each screen it passes, as Flow-<screen>.png.
@@ -269,6 +272,7 @@ param(
     [int]$ClientStaySeconds = 0,
 
     [switch]$Screenshot,
+    [switch]$KitShots,
 
     [ValidateRange(0, 600)]
     [int]$PerfSeconds = 0,
@@ -1278,6 +1282,11 @@ $clientProcesses = foreach ($index in 1..$clientCount) {
     $clientArguments += $(if ($measures) { $PerfWindow + '-VeyraSmokeFrameTimes' } elseif ($renders) { $ScreenshotWindow } else { @('-nullrhi') })
     if ($renders -and $Screenshot) {
         $clientArguments += "-VeyraSmokeScreenshot=`"$screenshotPath`""
+        if ($KitShots -and $kitMode) {
+            $kitShotsDir = Join-Path $reportDir 'KitShots'
+            New-Item -ItemType Directory -Force -Path $kitShotsDir | Out-Null
+            $clientArguments += "-VeyraSmokeKitShots=`"$kitShotsDir`""
+        }
     }
     if ($kitMode) {
         $clientArguments += '-VeyraSmokeKit'

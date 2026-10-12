@@ -53,6 +53,7 @@
 #include "Engine/NetConnection.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "Hud/VeyraFogOfWarModel.h"
+#include "Kit/VeyraKitPresentationSettings.h"
 #include "Kit/VeyraSkillEffectsSubsystem.h"
 #include "Greybox/VeyraCastGlow.h"
 #include "Settings/VeyraDisplayRules.h"
@@ -1778,6 +1779,11 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 			float OwnScale = 0.0f;
 			const UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
 			UNiagaraSystem* OwnTrail = Skills ? Skills->TravelEffectOf(Visual->Ability, OwnScale) : nullptr;
+			// An ability whose projectile is its own (a lance of light, a hook on its chain) draws no sphere for it.
+			if (Skills && Skills->HidesProjectileBody(Projectile))
+			{
+				Mesh->SetVisibility(false, /*bPropagateToChildren*/ false);
+			}
 			if (UNiagaraSystem* Trailing = OwnTrail ? OwnTrail : TrailEffect.Get())
 			{
 				Visual->Trail = UNiagaraFunctionLibrary::SpawnSystemAttached(Trailing, Mesh, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
@@ -1788,7 +1794,9 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 					Trail->SetVariableLinearColor(GetDefault<UVeyraGreyboxSettings>()->EffectColorParameter, Visual->Color);
 					if (OwnTrail)
 					{
+						// An ability's own trail spans the projectile it follows: a wave as wide as its body.
 						Trail->SetVariableFloat(GetDefault<UVeyraGreyboxSettings>()->EffectScaleParameter, OwnScale);
+						Trail->SetVariableFloat(GetDefault<UVeyraKitPresentationSettings>()->WidthParameter, static_cast<float>(Radius * 2.0));
 					}
 				}
 			}
@@ -1807,10 +1815,15 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 		}
 		Visual->PresentedAt = Now;
 		Visual->Mesh->SetWorldLocation(Location);
+		// Its trail faces its flight, so an ability's own (a lance) points the way it flies.
+		if (UNiagaraComponent* Trail = Visual->Trail.Get(); Trail && !Projectile.GetDirection().IsNearlyZero())
+		{
+			Trail->SetWorldRotation(Projectile.GetDirection().Rotation());
+		}
 		// Seen here, so its impact may show where the server ends it (ADR-072 §4).
 		if (UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>())
 		{
-			Skills->NoteProjectileDrawn(Projectile.GetAbility(), Projectile.GetCastId(), Location, Projectile.GetSpeed(), Visual->Color);
+			Skills->NoteProjectileDrawn(Projectile, Location, Visual->Color);
 		}
 	}
 	for (auto It = Projectiles.CreateIterator(); It; ++It)
