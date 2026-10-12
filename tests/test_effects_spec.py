@@ -48,12 +48,33 @@ class EffectsSpec(unittest.TestCase):
                     with self.subTest(system=system["name"], input=entry["input"]):
                         self.assertIn(name, known)
 
-    def test_local_space_is_a_flag_on_a_system_or_its_emitters(self):
+    def test_switches_are_set_by_a_bool_never_an_expression(self):
+        # A module's switch takes only a true/false value; an expression of "true" on one crashed the generator's editor.
+        for system in SHIPPED["systems"]:
+            for entry in system.get("inputs", []):
+                with self.subTest(system=system["name"], input=entry["input"]):
+                    if "bool" in entry:
+                        self.assertIsInstance(entry["bool"], bool)
+                        self.assertFalse({"value", "expression", "enum"} & set(entry))
+                    self.assertNotIn(entry.get("expression", "").strip().lower(), ("true", "false"))
+
+    def test_no_system_asks_for_local_space(self):
+        # Emitters stay in world space (ADR-072 §8): switched to the system's own frame they drew nothing. A beam is a sprite
+        # offset in the system's frame instead, which turns with it.
         for system in SHIPPED["systems"]:
             with self.subTest(system=system["name"]):
                 for holder in [system] + system.get("emitters", []):
-                    self.assertIsInstance(holder.get("localSpace", False), bool)
+                    self.assertNotIn("localSpace", holder)
 
+    def test_no_ribbon_draws_a_skill_effect(self):
+        # A skill's beam is a sprite aligned along it (ADR-072 §8): beam ribbons cast a shadow but drew nothing on camera.
+        for system in SHIPPED["systems"]:
+            if not system["purpose"].startswith("ADR-072"):
+                continue
+            for emitter in system.get("emitters", []):
+                with self.subTest(system=system["name"], emitter=emitter["name"]):
+                    self.assertNotIn("ribbonMaterial", emitter)
+                    self.assertNotIn("Beam.", emitter["template"])
 
 if __name__ == "__main__":
     unittest.main()

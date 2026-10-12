@@ -14,7 +14,6 @@
 #include "Misc/SecureHash.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraEmitter.h"
-#include "NiagaraEmitterHandle.h"
 #include "NiagaraExternalSystemEditorUtilities.h"
 #include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraSpriteRendererProperties.h"
@@ -52,6 +51,8 @@ namespace
 		TArray<double> Value;
 		FString Expression;
 		FString Enum;
+		/** A switch's setting; a switch takes neither a number nor an expression. */
+		TOptional<bool> Switch;
 		FName Emitter;
 	};
 
@@ -98,8 +99,6 @@ namespace
 		FString Material;
 		FString RibbonMaterial;
 		TSharedPtr<FJsonObject> Sprite;
-		/** Whether its particles live in the system's own frame, so its shapes and offsets turn and move with it (ADR-072 §6). */
-		bool bLocalSpace = false;
 	};
 
 	/**
@@ -117,9 +116,6 @@ namespace
 		/** Settings of every sprite renderer whose emitter gives none of its own. */
 		TSharedPtr<FJsonObject> Sprite;
 		TArray<FEffectInput> Inputs;
-
-		/** Whether every emitter's particles live in the system's own frame (each emitter may also say so of itself). */
-		bool bLocalSpace = false;
 
 		/** User floats of its own beyond the colour and scale every system has, as a beam's length (ADR-072 §4), and their defaults. */
 		TArray<TPair<FString, double>> UserFloats;
@@ -141,6 +137,12 @@ namespace
 		{
 			Value.InitializeAs<FNiagaraExt_StackInputData_HlslExpression>();
 			Value.GetMutable<FNiagaraExt_StackInputData_HlslExpression>().HlslExpression = Input.Expression;
+		}
+		else if (Input.Switch.IsSet())
+		{
+			FNiagaraBool Switch;
+			Switch.SetValue(Input.Switch.GetValue());
+			Value.InitializeAs(FNiagaraBool::StaticStruct(), reinterpret_cast<const uint8*>(&Switch));
 		}
 		else if (Input.Value.Num() == 1)
 		{
@@ -374,7 +376,6 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				}
 				EmitterObject->TryGetStringField(TEXT("material"), Emitter.Material);
 				EmitterObject->TryGetStringField(TEXT("ribbonMaterial"), Emitter.RibbonMaterial);
-				EmitterObject->TryGetBoolField(TEXT("localSpace"), Emitter.bLocalSpace);
 				if (EmitterObject->TryGetObjectField(TEXT("sprite"), Sprite))
 				{
 					Emitter.Sprite = *Sprite;
@@ -383,7 +384,6 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 		}
 		Object->TryGetStringField(TEXT("material"), Effect.Material);
 		Object->TryGetStringField(TEXT("ribbonMaterial"), Effect.RibbonMaterial);
-		Object->TryGetBoolField(TEXT("localSpace"), Effect.bLocalSpace);
 		const TSharedPtr<FJsonObject>* SystemSprite = nullptr;
 		if (Object->TryGetObjectField(TEXT("sprite"), SystemSprite))
 		{
@@ -417,17 +417,23 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				const bool bNumbers = InputObject && InputObject->TryGetArrayField(TEXT("value"), Numbers);
 				const bool bExpression = InputObject && InputObject->TryGetStringField(TEXT("expression"), Expression) && !Expression.IsEmpty();
 				const bool bEnum = InputObject && InputObject->TryGetStringField(TEXT("enum"), Enum) && !Enum.IsEmpty();
+				bool bSwitchOn = false;
+				const bool bSwitch = InputObject && InputObject->TryGetBoolField(TEXT("bool"), bSwitchOn);
 				if (!InputObject || !InputObject->TryGetStringField(TEXT("script"), Script) || !InputObject->TryGetStringField(TEXT("module"), Module)
-					|| !InputObject->TryGetStringField(TEXT("input"), Input) || int32(bNumbers) + int32(bExpression) + int32(bEnum) != 1
+					|| !InputObject->TryGetStringField(TEXT("input"), Input) || int32(bNumbers) + int32(bExpression) + int32(bEnum) + int32(bSwitch) != 1
 					|| (bNumbers && !(Numbers->Num() == 1 || Numbers->Num() == 3 || Numbers->Num() == 4)))
 				{
-					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and one of a value of 1, 3 or 4 numbers, an expression or an enum's display name."),
+					UE_LOG(LogVeyraEffects, Error, TEXT("%s: %s: each input needs a script, a module, an input and one of a value of 1, 3 or 4 numbers, an expression, an enum's display name or a bool."),
 						*SpecFile, *Effect.Name);
 					return 1;
 				}
 				FEffectInput& Set = Effect.Inputs.Add_GetRef({ FName(*Script), FName(*Module), FName(*Input) });
 				Set.Expression = Expression;
 				Set.Enum = Enum;
+				if (bSwitch)
+				{
+					Set.Switch = bSwitchOn;
+				}
 				if (InputObject->TryGetStringField(TEXT("emitter"), Emitter))
 				{
 					if (Emitter.IsEmpty())
@@ -699,16 +705,6 @@ int32 UVeyraEffectsCommandlet::Main(const FString& Params)
 				UE_LOG(LogVeyraEffects, Error, TEXT("%s: its spec names a %s for %s, which has no %s renderer."), *Effect.Name, Field,
 					Unused ? *Unused->Name : TEXT("the system"), What);
 				return 1;
-			}
-		}
-		// Emitters whose particles live in the system's frame: a beam, a chain or a strip that must run the way it faces.
-		for (FNiagaraEmitterHandle& Handle : System->GetEmitterHandles())
-		{
-			const FEmitterSpec* Own = Effect.Emitters.FindByPredicate([&Handle](const FEmitterSpec& Spec) { return FName(*Spec.Name) == Handle.GetName(); });
-			FVersionedNiagaraEmitterData* Data = Handle.GetEmitterData();
-			if (Data && (Effect.bLocalSpace || (Own && Own->bLocalSpace)))
-			{
-				Data->bLocalSpace = true;
 			}
 		}
 		System->RequestCompile(/*bForce*/ false);

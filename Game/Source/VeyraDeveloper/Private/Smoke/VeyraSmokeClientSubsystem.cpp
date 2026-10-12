@@ -21,6 +21,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
@@ -62,6 +63,11 @@ namespace
 	// Between the kit's attack orders until one commits: no faster than the server allows orders.
 	constexpr double KitAttackRetryRealSeconds = 1.0;
 
+	// -VeyraSmokeKitShots: when the shot of a cast's windup is taken after its order, and the burst after its commit, in
+	// real seconds: the release, the flight, the landing and what lingers. Capture timings, not gameplay.
+	constexpr double KitWindupShotRealSeconds = 0.15;
+	constexpr double KitCommitShotRealSeconds[] = { 0.05, 0.25, 0.5, 0.9, 1.4 };
+
 	/** -VeyraSmokeKit: whether a refused cast may succeed if tried again a moment later. */
 	bool IsPassingKitRejection(EVeyraCastRejection Rejection)
 	{
@@ -99,6 +105,7 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
 	bMeasureFrames = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeFrameTimes"));
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeScreenshot="), ScreenshotPath);
+	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeKitShots="), KitShotsDir);
 	bKit = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeKit"));
 	bEndCustomMatch = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeEndCustomMatch"));
 	StartRealTime = FPlatformTime::Seconds();
@@ -150,6 +157,7 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	{
 		return false;
 	}
+	TickKitShots();
 	if (FPlatformTime::Seconds() - StartRealTime > SmokeTimeoutRealSeconds)
 	{
 		// Where things stood, so a failed run explains itself.
@@ -504,6 +512,10 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 		if (Cooldowns->GetReadyAt(Loadout->CooldownIdOf(KitCastAbility)) > KitReadyAtBefore)
 		{
 			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s committed after %d attempt(s)."), *KitCastAbility.ToString(), KitCastAttempts);
+			for (int32 Shot = 0; Shot < UE_ARRAY_COUNT(KitCommitShotRealSeconds); ++Shot)
+			{
+				QueueKitShot(KitCastAbility, Shot + 1, KitCommitShotRealSeconds[Shot]);
+			}
 			bKitCastPending = false;
 			KitCastAttempts = 0;
 			KitFirstRefusedAt.Reset();
@@ -561,7 +573,8 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 		}
 		return;
 	}
-	if (FPlatformTime::Seconds() < KitNextTryAt)
+	// The last cast's burst is saved before the next cast, so each shows alone.
+	if (FPlatformTime::Seconds() < KitNextTryAt || !KitShots.IsEmpty())
 	{
 		return;
 	}
@@ -594,6 +607,29 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 	bKitCastPending = true;
 	KitCastAbility = Entry->Ability;
 	Controller.IssueCastOrder(Slot, CastTarget);
+	if (KitCastAttempts == 1)
+	{
+		QueueKitShot(KitCastAbility, 0, KitWindupShotRealSeconds);
+	}
+}
+
+void UVeyraSmokeClientSubsystem::QueueKitShot(const FVeyraContentId& Ability, int32 Index, double DelaySeconds)
+{
+	if (!KitShotsDir.IsEmpty())
+	{
+		KitShots.Add({ FPlatformTime::Seconds() + DelaySeconds, FPaths::Combine(KitShotsDir, FString::Printf(TEXT("%s_%d.png"), *Ability.ToString(), Index)) });
+	}
+}
+
+void UVeyraSmokeClientSubsystem::TickKitShots()
+{
+	if (KitShots.IsEmpty() || FPlatformTime::Seconds() < KitShots[0].At)
+	{
+		return;
+	}
+	FScreenshotRequest::RequestScreenshot(KitShots[0].Path, /*bShowUI*/ true, /*bAddFilenameSuffix*/ false);
+	UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: asked for a kit shot at %s."), *KitShots[0].Path);
+	KitShots.RemoveAt(0);
 }
 
 bool UVeyraSmokeClientSubsystem::HasAnEnemyTakenDamage(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState) const

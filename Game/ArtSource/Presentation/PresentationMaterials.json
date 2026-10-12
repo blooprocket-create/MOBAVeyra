@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generator": "Game/Scripts/BuildPresentationMaterials.py",
-  "generatorVersion": 6,
+  "generatorVersion": 5,
   "destination": "/Game/Veyra/UI/Presentation",
   "materials": [
     {
@@ -84,17 +84,6 @@
       "glowGain": 1.4,
       "tailGlow": 0.4,
       "shrink": 0.8
-    },
-    {
-      "name": "M_VeyraFxBeam",
-      "kind": "graphicShape",
-      "purpose": "ADR-072 §6: a graphic beam drawn along a ribbon, a hard band of light white-hot down its middle and cooling to its colour at its edges, tapering over its ends and steady however long it is held: a channelled beam, a strike of light.",
-      "shape": "beam",
-      "coreShare": 0.45,
-      "coreWhiten": 0.95,
-      "glowGain": 1.8,
-      "tailGlow": 1.0,
-      "taper": 0.04
     },    {
       "name": "M_VeyraTelegraphFill",
       "kind": "telegraphFill",

@@ -444,14 +444,6 @@ float Size = pow(max(1.0 - Shrink.r * Age, 0.0), Points.r);
 float Inside = Size - S;
 float InCore = Size * pow(CoreShare.r, Points.r) - S;
 """,
-    # A band across a ribbon (V across it, U along it), tapering to nothing over each end's Taper share of its length;
-    # it does not age, so a beam held for a channel stays whole.
-    "beam": """
-Age = 0.0;
-float Width = saturate(min(UV.x, 1.0 - UV.x) / Taper.r);
-float Inside = Width - abs(P.y);
-float InCore = Width * CoreShare.r - abs(P.y);
-""",
     # A diamond filling the sprite, long along its long side (a sprite drawn along its velocity), shrinking.
     "streak": """
 float2 A = abs(P);
@@ -490,9 +482,6 @@ def build_graphic_shape(material, spec):
     material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
     material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
     material.set_editor_property("used_with_niagara_sprites", True)
-    # A beam is drawn along a ribbon.
-    if spec["shape"] == "beam":
-        material.set_editor_property("used_with_niagara_ribbons", True)
     inputs = [("UV", expression(material, unreal.MaterialExpressionTextureCoordinate, -1400, -400), ""),
               ("Life", expression(material, unreal.MaterialExpressionParticleRelativeTime, -1400, -250), ""),
               ("Color", expression(material, unreal.MaterialExpressionParticleColor, -1400, -100), "")]
@@ -608,6 +597,10 @@ for spec in SELECTED:
         material = TOOLS.create_asset(spec["name"], DEST, unreal.Material, unreal.MaterialFactoryNew())
     assert isinstance(material, unreal.Material), "Not a material: " + path
     EDIT.delete_all_material_expressions(material)
+    # The bulk delete leaves some expressions behind, and a rebuilt graph laid over a stale one stacks every rebuild.
+    for left in EDIT.get_material_expressions(material):
+        EDIT.delete_material_expression(material, left)
+    assert not EDIT.get_material_expressions(material), "Material graph not cleared: " + path
     BUILDERS[spec["kind"]](material, spec)
     EDIT.recompile_material(material)
     assert unreal.EditorAssetLibrary.save_loaded_asset(material), "Material save failed: " + path

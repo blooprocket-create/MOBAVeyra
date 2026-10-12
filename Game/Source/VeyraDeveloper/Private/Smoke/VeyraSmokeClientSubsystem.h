@@ -110,6 +110,24 @@ private:
 	/** Where to save a screenshot once the cast has landed (-VeyraSmokeScreenshot=); empty for none. */
 	FString ScreenshotPath;
 	bool bScreenshotRequested = false;
+
+	/**
+	 * -VeyraSmokeKitShots=<dir>: a rendering kit client saves each skill in motion (ADR-072 §8): a shot as its cast
+	 * winds up, and a burst after it commits, as <ability>_<n>.png. The next cast waits for the burst.
+	 */
+	FString KitShotsDir;
+	struct FKitShot
+	{
+		double At = 0.0;
+		FString Path;
+	};
+	TArray<FKitShot> KitShots;
+
+	/** Queues a shot of the kit's current cast, named for its ability and Index, DelaySeconds of real time from now. */
+	void QueueKitShot(const FVeyraContentId& Ability, int32 Index, double DelaySeconds);
+
+	/** Saves the next shot due, one a frame. */
+	void TickKitShots();
 	bool bKit = false;
 	/** -VeyraSmokeEndCustomMatch: a practice match's host moves, then ends the match. */
 	bool bEndCustomMatch = false;
