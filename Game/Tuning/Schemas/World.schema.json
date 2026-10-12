@@ -44,9 +44,10 @@
       "description": "The river both teams share (ADR-040 §6; author ruling 2026-10-05): Team A's half authored, Team B's its rotation half a turn about the centre. The main channel runs from the centre (its first control is 0, 0) outward off the floor; each island's side channel leaves and rejoins it around a Flux Well site.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["samplesPerSegment", "surfaceZ", "bedZ", "flowSpeed", "main", "islands"],
+      "required": ["samplesPerSegment", "surfaceZ", "bedZ", "flowSpeed", "walkableEnd", "main", "islands"],
       "properties": {
         "samplesPerSegment": { "description": "Samples to each span between controls.", "type": "integer", "minimum": 1, "maximum": 64 },
+        "walkableEnd": { "description": "How far along the main channel from the centre its water is ground (ADR-073 §1): beyond it, both ways, the river drops through a gorge of falls that rock masses close off.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "surfaceZ": { "description": "The water's surface.", "type": "number", "minimum": -1000000 },
         "bedZ": { "description": "The riverbed units wade on, below the surface.", "type": "number", "minimum": -1000000 },
         "flowSpeed": { "description": "How fast the water is drawn flowing, in units a second. Presentation only.", "type": "number", "minimum": 0 },
@@ -86,7 +87,7 @@
       "description": "One Fluxway (Battleground Bible §2, §4) and Team A's structures on it; Team B's are their mirror.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["lane", "points", "width", "inhibitorDistance", "spireDistances", "fluxbornSpawnDistance"],
+      "required": ["lane", "points", "width", "inhibitorDistance", "spireDistances", "spireSides", "fluxbornSpawnDistance"],
       "properties": {
         "lane": { "type": "string", "enum": ["Top", "Mid", "Bottom"] },
         "points": {
@@ -102,6 +103,12 @@
           "type": "array",
           "minItems": 1,
           "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+        },
+        "spireSides": {
+          "description": "Which side of the road each Spire stands, in spireDistances' order (author ruling 2026-10-12): +1 the lane's left seen walking from Team A's end in world x/y, -1 its right. Each stands layout.spireOffset from the centre line.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "integer", "minimum": -1, "maximum": 1, "enum": [-1, 1] }
         },
         "fluxbornSpawnDistance": { "description": "Where Team A's Fluxborn of this lane spawn: their distance along the lane from Team A's end, clear of the inhibitor (Battleground Bible §17).", "type": "number", "minimum": 0 }
       }
@@ -210,8 +217,9 @@
       "description": "One of Team A's camps; Team B's is its mirror (Battleground Bible §7, §17).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["species", "count", "center", "spawnSeconds", "respawnSeconds", "leashRadius", "spacing"],
+      "required": ["id", "species", "count", "center", "spawnSeconds", "respawnSeconds", "leashRadius", "spacing"],
       "properties": {
+        "id": {"description": "The camp's own name (ADR-073 §1): its ground is the layout clearing of the same id. Two camps may share a species, never an id.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"},
         "species": {"description": "A species in wildlife.species.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"},
         "count": {"description": "How many creatures of its species it holds.", "type": "integer", "minimum": 1},
         "center": {"$ref": "#/definitions/point", "description": "Where it sits: its leash's centre."},
@@ -219,6 +227,107 @@
         "respawnSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How long after its last creature dies it spawns again (§17: each camp on its own timer)."},
         "leashRadius": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How far from its centre its creatures fight before they walk home and heal (§17)."},
         "spacing": {"type": "number", "minimum": 0, "description": "With several creatures, how far from the centre each stands."}
+      }
+    },
+    "keep": {
+      "description": "Team A's walled keep (ADR-073 §1): its floor, its wall runs, and the gates that break them. Team B's is its rotation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["floor", "walls", "gates"],
+      "properties": {
+        "floor": { "description": "The keep's floor: a simple polygon, its corners in order.", "type": "array", "minItems": 3, "items": { "$ref": "#/definitions/point" } },
+        "walls": {
+          "description": "The keep's wall runs: architecture along the floor's edge, broken only where a gate stands.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["points", "thickness", "height"],
+            "properties": {
+              "points": { "type": "array", "minItems": 2, "items": { "$ref": "#/definitions/point" } },
+              "thickness": { "description": "The wall's full thickness.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+              "height": { "description": "How tall it is drawn.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            }
+          }
+        },
+        "gates": {
+          "description": "One gate to each lane, where its lane leaves the keep.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["lane", "center", "width"],
+            "properties": {
+              "lane": { "type": "string", "enum": ["Top", "Mid", "Bottom"] },
+              "center": { "$ref": "#/definitions/point" },
+              "width": { "description": "The opening's width.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            }
+          }
+        }
+      }
+    },
+    "clearing": {
+      "description": "One of Team A's clearings (ADR-073 §1): open ground kept at its full size. A camp's ground is the clearing of its id; a glade is a junction, river mouth, pocket or ford.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "center", "radius", "kind"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+        "center": { "$ref": "#/definitions/point" },
+        "radius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "kind": { "type": "string", "enum": ["Camp", "Glade"] }
+      }
+    },
+    "route": {
+      "description": "One of Team A's jungle routes (ADR-073 §1): open ground along a path, as wide as its width. Team B's is its rotation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "width", "points"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$" },
+        "width": { "description": "The route's full width: rotation 1000, approach 700, outer 900 (provisional).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "points": { "type": "array", "minItems": 2, "items": { "$ref": "#/definitions/point" } }
+      }
+    },
+    "massRules": {
+      "description": "How the rock and forest masses are derived and turned into terrain (ADR-073 §2, §3, §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minThickness", "minArea", "simplifyTolerance", "riverMargin", "forestMinArea", "edgeThickness", "edgeMaxLength", "visualTolerance"],
+      "properties": {
+        "minThickness": { "description": "No mass thinner than this survives: thinner leftovers become open ground.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "minArea": { "description": "Leftovers smaller than this, in square units, become open ground.", "type": "number", "minimum": 0 },
+        "simplifyTolerance": { "description": "How far a mass's outline may move when simplified.", "type": "number", "minimum": 0 },
+        "riverMargin": { "description": "Walkable bank beside the water, each side.", "type": "number", "minimum": 0 },
+        "forestMinArea": { "description": "Inner masses at least this large are forest; smaller ones rock; masses touching the floor's rim are cliff.", "type": "number", "minimum": 0 },
+        "edgeThickness": { "description": "How deep each terrain box along a mass's edge reaches inside it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "edgeMaxLength": { "description": "The longest a single edge box may be: longer edges are split.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "visualTolerance": { "description": "How far a mass mesh's footprint may lie from its gameplay edge.", "type": "number", "minimum": 0 }
+      }
+    },
+    "masses": {
+      "description": "GENERATED by Game/Scripts/Crucible/BuildCrucibleMasses.py, never edited by hand (ADR-073 §2): the rock and forest masses of both teams, and the hash of the inputs they were derived from.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputSha256", "items"],
+      "properties": {
+        "inputSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "points"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[ab][0-9]{2}$" },
+              "kind": { "type": "string", "enum": ["Rock", "Forest", "Cliff"] },
+              "points": { "description": "Its outline, counter-clockwise in world x/y.", "type": "array", "minItems": 3, "items": { "$ref": "#/definitions/point" } }
+            }
+          }
+        }
       }
     },
     "fluxbornDefinition": {
@@ -240,13 +349,13 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [7]
+      "enum": [8]
     },
     "layout": {
       "description": "The grey-box battleground (Battleground Bible §2, macro shape ruled 2026-09-28): bases in opposite corners, top and bot lanes along the sides set in from the edge with outer jungle beyond, mid on the diagonal, the river curving across the other. Team A's half is authored; Team B's is its rotation half a turn about the centre (author ruling 2026-10-05).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "halfExtent", "surface", "terrain", "river", "lanes", "base", "denseFog", "walls", "wallSamplesPerSegment", "wallHalfHeight", "wallClearance"],
+      "required": ["provenance", "halfExtent", "surface", "terrain", "river", "lanes", "spireOffset", "base", "keep", "clearings", "routes", "denseFog", "wallHalfHeight", "massRules", "masses"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "halfExtent": { "description": "The square floor reaches this far from the centre in each direction.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -277,47 +386,22 @@
             }
           }
         },
-        "walls": {
-          "description": "Team A's walls (ADR-043 §1, as amended 2026-10-05): ridges of impassable terrain along smooth curves, each as thick at its points as their widths, rounded at its ends, wholly in Team A's half and clear of the lanes, camps, Flux Wells, structures, the fountain and Dense Fog by wallClearance. Walls may overlap, so a massif can bend and branch. Team B's are their rotation. They block movement, paths, forced moves, line projectiles and sight.",
-          "type": "array",
-          "minItems": 0,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["name", "points"],
-            "properties": {
-              "name": { "description": "What designers call it; play never reads it.", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9 ,.'-]*$" },
-              "points": {
-                "description": "The spine's control points, in order: a Catmull-Rom curve passes through them.",
-                "type": "array",
-                "minItems": 2,
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": ["x", "y", "width"],
-                  "properties": {
-                    "x": { "type": "number", "minimum": -1000000 },
-                    "y": { "type": "number", "minimum": -1000000 },
-                    "width": { "description": "The wall's full thickness at this point, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "wallSamplesPerSegment": { "description": "How finely each wall's curve is sampled between two of its points: what blocks and hides is one box to each sample's span.", "type": "integer", "minimum": 1 },
-        "wallHalfHeight": { "description": "Half of every wall's height: taller than any body it blocks.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "wallClearance": { "description": "How far every wall keeps from a lane's road, a camp's creatures, a Flux Well's radius, a structure's body, the fountain and Dense Fog.", "type": "number", "minimum": 0 },
+        "spireOffset": { "description": "How far each Spire stands from its lane's centre line, on the side spireSides gives (author ruling 2026-10-12): beside the road, not on it.", "type": "number", "minimum": 0 },
+        "keep": { "$ref": "#/definitions/keep" },
+        "clearings": { "description": "Team A's clearings: camps' ground and glades; Team B's are their rotation.", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/clearing" } },
+        "routes": { "description": "Team A's jungle routes; Team B's are their rotation.", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/route" } },
+        "wallHalfHeight": { "description": "Half the height of the terrain raised along masses and keep walls: taller than any body it blocks.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "massRules": { "$ref": "#/definitions/massRules" },
+        "masses": { "$ref": "#/definitions/masses" },
         "base": {
           "description": "Team A's base (Battleground Bible §3, §12, §18).",
           "type": "object",
           "additionalProperties": false,
-          "required": ["primeWell", "baseTowers", "fountain", "padRadius", "fountainRadius"],
+          "required": ["primeWell", "baseTowers", "fountain", "fountainRadius"],
           "properties": {
             "primeWell": { "$ref": "#/definitions/point" },
             "baseTowers": { "description": "The two base-defense towers (§18).", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/point" } },
             "fountain": { "$ref": "#/definitions/point", "description": "Where the team's Vanguards start and respawn." },
-            "padRadius": { "description": "The base's pad, drawn around the Prime Well.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "fountainRadius": { "description": "How far from the fountain point a Vanguard counts as at its fountain (§12).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }

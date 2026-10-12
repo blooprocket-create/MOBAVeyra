@@ -9,6 +9,8 @@ on:
       - 'scripts/check_tuning.py'
       - 'scripts/requirements-tuning.txt'
       - 'tests/test_tuning.py'
+      - 'Game/Scripts/Crucible/**'
+      - 'tests/test_crucible_layout.py'
       - '.github/workflows/tuning.yml'
   pull_request:
     paths:
@@ -18,6 +20,8 @@ on:
       - 'scripts/check_tuning.py'
       - 'scripts/requirements-tuning.txt'
       - 'tests/test_tuning.py'
+      - 'Game/Scripts/Crucible/**'
+      - 'tests/test_crucible_layout.py'
       - '.github/workflows/tuning.yml'
 
 jobs:
@@ -36,3 +40,7 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_tuning.py'
       - name: Validate Game/Tuning against its schemas
         run: python3 scripts/check_tuning.py
+      - name: Install the Crucible mass generator's pinned geometry
+        run: python3 -m pip install -r Game/Scripts/Crucible/requirements.txt
+      - name: The Crucible's generated masses are current and its ids line up (ADR-073 §2)
+        run: python3 -m unittest discover -s tests -p 'test_crucible_layout.py'
