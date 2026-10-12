@@ -130,6 +130,12 @@
         "rightElbow": [-0.2, -0.9, -0.3], "leftElbow": [0.1, 0.35, -0.93], "headPitch": 24, "headRoll": 16,
         "carry": { "forwardShare": 0.09, "rightShare": 0.08, "heightShare": 0.53, "pitch": 22, "yaw": 35 } },
       "model": { "script": "kade", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "kade_throughline", "motion": "Thrust", "seconds": 1.0, "releaseShare": 0.4, "options": {"side": "r"}},
+        {"ability": "kade_sightline", "motion": "Sweep", "seconds": 0.9, "releaseShare": 0.28, "options": {"side": "r"}},
+        {"ability": "kade_reposition", "motion": "Heave", "seconds": 0.8, "releaseShare": 0.19},
+        {"ability": "kade_kill_corridor", "motion": "Brace", "seconds": 1.2, "releaseShare": 0.42}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "hairStyle": "short", "features": ["longCloak"], "props": [{ "kind": "rifle", "hand": "right" }] },
     { "id": "patch", "archetype": "humanoid", "seed": 105, "heightShare": 0.80, "build": "round", "headShare": 0.37,
@@ -154,6 +160,12 @@
     { "id": "vera", "archetype": "humanoid", "seed": 107, "heightShare": 0.92, "build": "lean", "headShare": 0.14,
       "legShare": 0.46,
       "model": { "script": "vera", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "vera_range_found", "motion": "Thrust", "seconds": 1.0, "releaseShare": 0.35, "options": {"side": "r"}},
+        {"ability": "vera_dig_in", "motion": "Anchor", "seconds": 0.8, "releaseShare": 0.2},
+        {"ability": "vera_break_the_line", "motion": "Sweep", "seconds": 0.8, "releaseShare": 0.25, "options": {"side": "r"}},
+        {"ability": "vera_the_last_volley", "motion": "Summon", "seconds": 1.0, "releaseShare": 0.2, "options": {"side": "r"}}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.92, 0.84, 0.80], "primary": [0.07, 0.07, 0.08], "secondary": [0.18, 0.17, 0.18], "hair": [0.92, 0.92, 0.95], "accent": [1.00, 0.18, 0.10],
       "lining": [0.60, 0.06, 0.06], "ribbon": [0.65, 0.06, 0.06], "boots": [0.16, 0.15, 0.16], "stance": "aim",
@@ -190,6 +202,12 @@
     { "id": "qazharr", "archetype": "humanoid", "seed": 113, "heightShare": 0.98, "build": "heavy", "headShare": 0.135,
       "legShare": 0.46, "hipShare": 0.07, "shoulderShare": 0.115, "armShare": 0.38,
       "model": { "script": "qazharr", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "qazharr_heavy_hand", "motion": "Clench", "seconds": 0.7, "releaseShare": 0.25, "options": {"side": "r"}},
+        {"ability": "qazharr_weather_it", "motion": "Brace", "seconds": 0.9, "releaseShare": 0.3},
+        {"ability": "qazharr_boarding_rush", "motion": "Thrust", "seconds": 0.6, "releaseShare": 0.15, "options": {"side": "l"}},
+        {"ability": "qazharr_no_quarter", "motion": "Sweep", "seconds": 1.3, "releaseShare": 0.46, "options": {"side": "r"}}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.62, 0.42, 0.30], "primary": [0.16, 0.19, 0.24], "secondary": [0.13, 0.12, 0.13], "hair": [0.09, 0.07, 0.06], "accent": [0.30, 0.55, 0.85],
       "tattoo": [0.08, 0.11, 0.20], "jacketUnder": "skin",
@@ -232,6 +250,12 @@
     { "id": "bryn", "archetype": "humanoid", "seed": 119, "heightShare": 0.90, "build": "normal", "headShare": 0.125,
       "legShare": 0.46, "hipShare": 0.06, "shoulderShare": 0.11, "armShare": 0.36,
       "model": { "script": "bryn", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "bryn_breach_round", "motion": "Harden", "seconds": 0.7, "releaseShare": 0.2},
+        {"ability": "bryn_sounding_flare", "motion": "Lob", "seconds": 0.9, "releaseShare": 0.22, "options": {"side": "r"}},
+        {"ability": "bryn_kickback", "motion": "Thrust", "seconds": 0.6, "releaseShare": 0.15, "options": {"side": "r"}},
+        {"ability": "bryn_last_broadside", "motion": "Anchor", "seconds": 2.0, "releaseShare": 0.62}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.76, 0.60, 0.50], "primary": [0.10, 0.28, 0.30], "secondary": [0.18, 0.15, 0.12], "hair": [0.72, 0.72, 0.70], "accent": [0.35, 0.65, 1.00],
       "sash": [0.62, 0.08, 0.08], "gloves": [0.20, 0.14, 0.10],
@@ -240,6 +264,12 @@
     { "id": "mimzi", "archetype": "humanoid", "seed": 121, "heightShare": 0.78, "build": "normal", "headShare": 0.24, "shoulderShare": 0.115,
       "hipShare": 0.085,
       "model": { "script": "mimzi", "triangleBudget": 5000, "voxelCm": 0.5 },
+      "skills": [
+        {"ability": "mimzi_twinklebolt", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "mimzi_winkbomb", "motion": "Lob", "seconds": 0.9, "releaseShare": 0.22, "options": {"side": "r"}},
+        {"ability": "mimzi_now_you_see_me", "motion": "Veil", "seconds": 0.9, "releaseShare": 0.25},
+        {"ability": "mimzi_grand_prank", "motion": "Heave", "seconds": 1.0, "releaseShare": 0.3}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "skirt": { "stiffness": 60.0, "drag": 6.0, "damping": 3.0, "maxAngle": 60.0 } },
       "skin": [0.88, 0.75, 0.58], "fur": [0.98, 0.94, 0.86], "earInner": [0.93, 0.60, 0.56], "eyes": [0.92, 0.55, 0.12],
       "primary": [0.10, 0.45, 0.48], "secondary": [0.22, 0.16, 0.12], "hair": [0.88, 0.75, 0.58], "accent": [0.35, 0.70, 1.00],

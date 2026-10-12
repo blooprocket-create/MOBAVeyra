@@ -4,7 +4,7 @@ import random
 
 from mathutils import Euler, Matrix, Vector
 
-from . import holds, locomotion, springs
+from . import holds, locomotion, motions, springs
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
 # The humanoid skeleton: every humanoid has every bone, so all share one definition. A bone a body does not use (a
@@ -104,6 +104,16 @@ IK_OFF_HAND_ANCHOR = "hand_r"
 IK_TWO_HANDED_STANCES = ("aim", "braced")
 # How far a leg the clips solve may stretch past its length at full reach, as a share of it (under a tenth).
 LEG_STRETCH = 0.04
+# A skill's own clip (ADR-072 §2): the name its stance passes see; how far the pelvis drops at a full crouch and at a
+# full spread, as shares of the leg; how far a full spread steps the left foot forward and the right back, as a share
+# of the leg; and how high a full rise lifts the body, as a share of its height.
+SKILL_CLIP = "Skill"
+SKILL_CROUCH_DROP = 0.2
+SKILL_SPREAD_DROP = 0.04
+SKILL_STANCE_STEP = 0.3
+SKILL_RISE_LIFT = 0.03
+# How far a held weapon's kick rocks back on a skill's strike, against a basic attack's recoil.
+SKILL_RECOIL = 0.6
 
 
 def layout(spec, capsule):
@@ -1787,6 +1797,35 @@ def pose(name, t, melee, d):
         lift = -d["height"] * 0.06 * settle
     else:
         raise AssertionError("Unknown animation: " + name)
+    return stance_pass(pose, lift, name, t, melee, d)
+
+
+def skill_pose(skill, t, d):
+    """A skill's own clip (ADR-072 §2) at t from 0 to 1: its motion's upper body, the feet planted (a spread stepping
+    them apart, front and back, as the camera above sees a stance widen), the pelvis sinking with the crouch and rising
+    with the rise. Its stance holds through it: a weapon held in both hands is raised to its sight through the motion's
+    rise and kicks on its strike, a gun carried low keeps both hands on it, and a kneel stays down."""
+    if d.get("stillPose") == "slumped":
+        return slumped(d)
+    pose, hints = motions.motion(skill, t)
+    if d.get("stance") == "braced" and not d.get("holds"):
+        # A gun carried low across the chest goes where the chest goes: a motion's lean would tip its muzzle into the
+        # ground, so the chest stays level and the legs, the turn and the rise carry the motion.
+        for bone in [bone for bone in pose if bone.startswith("spine_")]:
+            pose[bone] = (pose[bone][0], 0.0, pose[bone][2])
+    crouch, spread, rise = hints.get("crouch", 0.0), hints.get("spread", 0.0), hints.get("rise", 0.0)
+    lift = -d["leg"] * (SKILL_CROUCH_DROP * crouch + SKILL_SPREAD_DROP * spread) + d["height"] * SKILL_RISE_LIFT * max(0.0, rise)
+    step = d["leg"] * SKILL_STANCE_STEP * spread
+    plant_legs(pose, d, lift, {"l": (step, None, 0.0), "r": (-step, None, 0.0)})
+    raise_, strike, settle = motions.beats(skill, t)
+    held = (raise_ * (1.0 - settle), SKILL_RECOIL * math.sin(strike * math.pi) * (1.0 - settle), True)
+    return stance_pass(pose, lift, SKILL_CLIP, t, False, d, held)
+
+
+def stance_pass(pose, lift, name, t, melee, d, held=None):
+    """What a body's stance does over any clip's pose (named name, at t), and the lift it ends with: a hunch, a weapon
+    held, carried or aimed, a kneel, a wave ridden, a cloak and what hangs plumb. held overrides a two-handed hold's
+    schedule (holds.pose_arms), as a skill's motion sets it."""
     if d.get("hunch") and name != "Death":
         # A brute's hunch, held through everything it does: the back bowed forward by hunch degrees, the head raised
         # against it to keep looking ahead, the arms hanging forward of the body.
@@ -1795,7 +1834,7 @@ def pose(name, t, melee, d):
         pose["spine_02"] = combine(pose.get("spine_02", (0.0, 0.0, 0.0)), lean(bow * 0.4))
         pose["head"] = combine(pose.get("head", (0.0, 0.0, 0.0)), lean(-bow * 0.85))
     if d.get("holds"):
-        holds.pose_arms(pose, name, t, melee, d, BONES, LIFT_BONE, lift)
+        holds.pose_arms(pose, name, t, melee, d, BONES, LIFT_BONE, lift, held)
     elif d.get("stance") in ("aim", "braced"):
         aim_pose(pose, name, t, melee, sight=d["stance"] == "aim")
     if d.get("stance") == "shoulderCarry":

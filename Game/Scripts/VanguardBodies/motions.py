@@ -42,6 +42,12 @@ def _beats(t, release, strike=STRIKE_SHARE, settle_start=SETTLE_START):
     return rise, hit, settle
 
 
+def beats(skill, t):
+    """The beats of a kit entry's motion at t (rise, strike, settle; each 0 to 1), for an archetype that carries
+    something through them of its own, as a weapon raised to its sight through the rise and lowered by the settle."""
+    return _beats(t, skill["releaseShare"])
+
+
 def _side(options):
     """The arm a one-armed motion uses (options "side": "l" or "r", right by default) and its sign for roll_side."""
     side = options.get("side", "r")

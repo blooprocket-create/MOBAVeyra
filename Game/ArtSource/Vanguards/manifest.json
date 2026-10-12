@@ -2,7 +2,7 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "370f5075e4494212f59b553923a61d20b7775855bd09981a1f2ed9f325d78444",
+  "kitSha256": "d89a72c9abbcc911c8b84ce473d2012286331263cecfa56efda85e75daebebb3",
   "assets": [
     {
       "id": "angeru",
@@ -63,7 +63,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "8d540f9db799fc9936db89827b665f6ff631cd337c6a9a87baacec5662cd2236",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "d3c92b23a931bf6e80f9e4f5229933e5069f5ac9decaf508b033e147a5f066ff",
       "contentVersion": 3,
@@ -274,7 +274,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "5de8a64fac9aa8373f32481ac85c3e9011343f5553aba2c6d51c69b7be449020",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "e0df2b31c8bc275e109c9feb220d1cfbe453a7cb19de06c074a757bc00c5da59",
       "contentVersion": 3,
@@ -486,7 +486,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "731b05ae47980a6d963bd60300d6a79ca715a671424758c255412ba47c74358e",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "ef8d4dc85f802d53115befb04ecf782ffb51818168bd1e0c26c05d218ecb20ef",
       "contentVersion": 3,
@@ -569,7 +569,7 @@
       "name": "SK_Bryn",
       "archetype": "humanoid",
       "file": "FBX/SK_Bryn.fbx",
-      "sha256": "56739ddc9bf990fe376bb62112b60961dcb0a66068cffb0f4fe2a0a3a46444b8",
+      "sha256": "e3603d4242f2699d52367a4287c2504d3b9058d24013cf648b02ecd777c0c8ff",
       "triangles": 4913,
       "triangleBudget": 5000,
       "bones": 47,
@@ -619,13 +619,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_bryn_breach_round",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_bryn_sounding_flare",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_bryn_kickback",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_bryn_last_broadside",
+          "frames": 61,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "ffa293dfe3724af15f953c4910a095547495247380fbcc0ad366c59801db8a97",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "abilityCasts": [
+        {
+          "ability": "bryn_breach_round",
+          "clip": "Skill_bryn_breach_round",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "bryn_sounding_flare",
+          "clip": "Skill_bryn_sounding_flare",
+          "releaseShare": 0.22
+        },
+        {
+          "ability": "bryn_kickback",
+          "clip": "Skill_bryn_kickback",
+          "releaseShare": 0.15
+        },
+        {
+          "ability": "bryn_last_broadside",
+          "clip": "Skill_bryn_last_broadside",
+          "releaseShare": 0.62
+        }
+      ],
+      "inputSha256": "bb3d80bf48245a9195026428de7a4184a561f23113bf8568c80290fd22cb54eb",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
-      "contentSha256": "49b85bd6f41e360d114874c25932109cd40dccb13b948728c23dab1ffc16bd17",
+      "contentSha256": "b094707357adfe9332178363e97b4226af740999a5a70098ee09787f87cc6391",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -847,7 +888,7 @@
         }
       ],
       "inputSha256": "e63b8256ad6b76726e3d6a60a5031eca4d390c47d7aad03d0a715afe9818f662",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "469cbf56fa3f9f18525204de7c2a49201e76061cc01f367b01779db194aad064",
       "contentVersion": 3,
@@ -1011,7 +1052,7 @@
         }
       ],
       "inputSha256": "88645d529a2bdb5ba012dd61638ceb663a0416310babc4019b357c440157c674",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "e9145ebc8f5bff4ca6a6385aaf52fb27588c36f388744bfd141eec0164720357",
       "contentVersion": 3,
@@ -1135,7 +1176,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "eabdd10732181ed756948b0f891afe105a0fd5aec252a6cc616d1527f81307c5",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "3009c7f3ddb50fafbc2d86b8b09fd237113b10408ce9f0e72e628206047b2d89",
       "contentVersion": 3,
@@ -1328,7 +1369,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "4db6f3cdc17fa1b1162c0567b8ab4038f5d2b80a698bad21a1c357c521822c0b",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "6f9263ced632bd15ca071e5e0e217a350585f1b88a6d7651e698696e5574151c",
       "contentVersion": 3,
@@ -1503,7 +1544,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "f0729c58ab2e58921d01862904eedf940f77e3025fb47101595b3ed6d1ff10cd",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "9199c232f6f44c2a84193a429fde66beaf3e49a52ebf4416f45769df539e16b4",
       "contentVersion": 3,
@@ -1568,7 +1609,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "a92ed3a78a453de285a9c237bef98979133cae27ded33e0f42bc1945b7519550",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "310c91e77b0466bd4c32e7ed4761990bd8c7f33f556fc218f9e65230f73a5056",
       "contentVersion": 3,
@@ -1634,7 +1675,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "377666565b6408c719f1fb6c125ba0f691a90d411e6d8905065ada4b6040a953",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "5e0ccc6b6a714bd7f53e1e1c1ed52174e026cdf7f897afa9852a741165ef593b",
       "contentVersion": 3,
@@ -1673,7 +1714,7 @@
       "name": "SK_Kade",
       "archetype": "humanoid",
       "file": "FBX/SK_Kade.fbx",
-      "sha256": "cdc532662d149f86659fc0a24897bdb1a85d6853f17dc0632c8f0393424f1e5d",
+      "sha256": "87ca613f0e45f5707fe7a1d024b5d43a0876a7c86bb719c376adc6147625bb6e",
       "triangles": 4928,
       "triangleBudget": 5000,
       "bones": 56,
@@ -1723,13 +1764,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_kade_throughline",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Skill_kade_sightline",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_kade_reposition",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_kade_kill_corridor",
+          "frames": 37,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "53de43331e057a71015957a7bb97c7f697ebdf0c473c3b760b65c3f090094e2e",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "abilityCasts": [
+        {
+          "ability": "kade_throughline",
+          "clip": "Skill_kade_throughline",
+          "releaseShare": 0.4
+        },
+        {
+          "ability": "kade_sightline",
+          "clip": "Skill_kade_sightline",
+          "releaseShare": 0.28
+        },
+        {
+          "ability": "kade_reposition",
+          "clip": "Skill_kade_reposition",
+          "releaseShare": 0.19
+        },
+        {
+          "ability": "kade_kill_corridor",
+          "clip": "Skill_kade_kill_corridor",
+          "releaseShare": 0.42
+        }
+      ],
+      "inputSha256": "471b15dee9400d359d49db337d678d9f9cbbe3d706ca2a7fd5440b9338891e73",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
-      "contentSha256": "7e971513428a0c87f93281204898ad5e0f7a43d78096c0e402bf96d713d62cc8",
+      "contentSha256": "df9762edb515653bda5f15fca3c272ef9488f405643d3b583d5e95308893c944",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -1946,7 +2028,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "79e0b3af2dab4c05bbb9a5b1429edd512971aec8bee4d6cabc5315b54b8e1d11",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "e9c855b861ef2d5ca6f90a06e5cad60fd58f9a412d3933a306eb00e6582b24e7",
       "contentVersion": 3
@@ -2010,7 +2092,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "34556393502eef8305d2e4d8d6544e1337e936626c113373572800184ca66e0b",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "1ca7822afc8c7248910ae9804e8769f7bf6535f51d4d11fbb023b7580b938a03",
       "contentVersion": 3,
@@ -2221,7 +2303,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "81d1126b421e2fc0aefe70e01c1edb03d66dc1398cb4c5ccad7cf9677c7ac0de",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "2aaac75a112602e2db74e7ce51950a65d062444c066fb96c837010dc9ae913dc",
       "contentVersion": 3,
@@ -2313,7 +2395,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "32272e0e33b241dbbfb1bdb3bb3151df33c765d3d375d7d2a149804555e4e2c3",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "17e3303b0106d85de2ba3a3ac942803ee0841f84af1a835ffa16e4a56b21b6ab",
       "contentVersion": 3,
@@ -2406,7 +2488,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "53bc55204f38bbdf1cfe5b77ebc09f1438e35f6b7ec254895753b1e5951f8012",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "2bf6e39385db3ec036e687e49c29fcde707d2991529f6faa10cfcd1408c24625",
       "contentVersion": 3,
@@ -2527,7 +2609,7 @@
       "name": "SK_Mimzi",
       "archetype": "humanoid",
       "file": "FBX/SK_Mimzi.fbx",
-      "sha256": "7955d30b15b10bf090e59989fa943ee539fc6dba67d14aacda22513ecf2c4ef3",
+      "sha256": "70f2716334ce15f793de5574ff945310b7e79b5a2a7cb17e366cb4b3f3e75d10",
       "triangles": 4905,
       "triangleBudget": 5000,
       "bones": 54,
@@ -2577,13 +2659,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_mimzi_twinklebolt",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_mimzi_winkbomb",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_mimzi_now_you_see_me",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_mimzi_grand_prank",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "173ed6f18f07b8f6230302aaae8c1877b4493ac3a68fd753023d7c0fef90355c",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "abilityCasts": [
+        {
+          "ability": "mimzi_twinklebolt",
+          "clip": "Skill_mimzi_twinklebolt",
+          "releaseShare": 0.31
+        },
+        {
+          "ability": "mimzi_winkbomb",
+          "clip": "Skill_mimzi_winkbomb",
+          "releaseShare": 0.22
+        },
+        {
+          "ability": "mimzi_now_you_see_me",
+          "clip": "Skill_mimzi_now_you_see_me",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "mimzi_grand_prank",
+          "clip": "Skill_mimzi_grand_prank",
+          "releaseShare": 0.3
+        }
+      ],
+      "inputSha256": "c51fd45337f235bfb1e2e2ca6d53cd5bc419e49f45fa3df914c4f774d8948007",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
-      "contentSha256": "fb2e01cddd93626bcb4fe02e5138bf390fa1ec498812b91b370d18d052e5c9f7",
+      "contentSha256": "69491b7bb686db5ca066a04066bd3ac5f12cac6afa274ac0168fd0173306410b",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -2774,7 +2897,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "f5a204486ca4fde9d2f88e28907471a666b03ac5f3723c71626a130b1ad52d43",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "cb4b26454b7bc0076d37ba3abc93f1bf6b9fac014c7bbe5f6210c52d6dc309e9",
       "contentVersion": 3
@@ -2838,7 +2961,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "5f2dc63cdce60fd1a2f41697b5dbea7d998a117d65c712ff1683b69ac9a6c2da",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "78e0ec45aaab51632929757aa0edfb129e8923012db22724c5f66af78bb284eb",
       "contentVersion": 3,
@@ -2903,7 +3026,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "572e0f1c83949853404844fe8bdc977e4547c6c533c32e749f115eb8b8abea66",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "78e0ec45aaab51632929757aa0edfb129e8923012db22724c5f66af78bb284eb",
       "contentVersion": 3,
@@ -2985,7 +3108,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "10b1be36c416101952e8e5ce3eae52ffda473819ce4b6018e9b99b565e0a82e9",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "bc10b5b1baec7af35cbb6dc0cb7c97fdffdebf9658a37f4cd9621c287f80c29e",
       "contentVersion": 3,
@@ -3173,7 +3296,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "94b67bcbf67e783df608f75c79ae790cea5683ac3e58efb26f89bf93302a3020",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "bc10b5b1baec7af35cbb6dc0cb7c97fdffdebf9658a37f4cd9621c287f80c29e",
       "contentVersion": 3,
@@ -3362,7 +3485,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "9093984b1d8bc8dc953b29b064dfdeaa83c2ef18834eb29a2a32e7a59392819e",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "1aa3a9a2b70a2b64b22666a23ca2e922c78a5aec05b4a06cc886b2deff936dc1",
       "contentVersion": 3,
@@ -3552,7 +3675,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "7109fde3010cfa5ed1da5742dfb3ab6c94c184b40daf2b43608ef93ea7af0eb9",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "748ab4a5416ee20340f08deb6f0d121ad462a2855e37caf85d41330ed6f1e5b6",
       "contentVersion": 3,
@@ -3742,7 +3865,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "edab63812c296450a177504fb8a37617dd08a79f74937bfb6507c4f5ad41caf6",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "30af87ffaa2065fa4d7263cfb647cb8ba2b269e936ce9a95817634c9d3ed9cfe",
       "contentVersion": 3,
@@ -3862,7 +3985,7 @@
         }
       ],
       "inputSha256": "a1fa15ec6ab8e2612708d344fca6c23967d13d3efd54d16e5604537790a4c557",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "bdd5eaebf96961b5e84b3b2d8911b4e6dfb5b4be96dc6b7ff21e4f07a8f6e3d6",
       "contentVersion": 3
@@ -3926,7 +4049,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "febafe811111966cda7c685189c70d38e0114fae1653e259bb3897ef619da268",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "b71019934e741c7c16a42fd0aa0963b305668936747431d2e48c829335f229f9",
       "contentVersion": 3,
@@ -4081,7 +4204,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "679305153df7845bb06ab620c99b5d24d5632c3f7d010c967ed3c0429f9b6c6d",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "8c5d0132e8f8712f2e2e721b61e505b6c99b67817936b63c7384ab5a9b66b114",
       "contentVersion": 3,
@@ -4237,7 +4360,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "ebb1063502c5e43ca730a89d82c82e76acfcd9e6a42bf2229ddafd0493a4c064",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "521f5130c9476642b18363be74069a7809d5a148d6de524aa05dfc5a070f2312",
       "contentVersion": 3,
@@ -4339,7 +4462,7 @@
       "name": "SK_Qazharr",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr.fbx",
-      "sha256": "c225c41854578fc5c6fd2bb04c53fb5a4d0f1aa7cdd9ecf21166d710017d8e8b",
+      "sha256": "54634daf53ea0be24ed73de295a9e21bbdff6eb95c490277c7cf060828211f1f",
       "triangles": 4868,
       "triangleBudget": 5000,
       "bones": 47,
@@ -4389,13 +4512,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_qazharr_heavy_hand",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_qazharr_weather_it",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_qazharr_boarding_rush",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_qazharr_no_quarter",
+          "frames": 40,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "577d8a574c96d686595a6579fd5809c267c560a6838b74ee81d3ae37d2f5f442",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "abilityCasts": [
+        {
+          "ability": "qazharr_heavy_hand",
+          "clip": "Skill_qazharr_heavy_hand",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "qazharr_weather_it",
+          "clip": "Skill_qazharr_weather_it",
+          "releaseShare": 0.3
+        },
+        {
+          "ability": "qazharr_boarding_rush",
+          "clip": "Skill_qazharr_boarding_rush",
+          "releaseShare": 0.15
+        },
+        {
+          "ability": "qazharr_no_quarter",
+          "clip": "Skill_qazharr_no_quarter",
+          "releaseShare": 0.46
+        }
+      ],
+      "inputSha256": "66d2c569c7f899e61da189c3052eb0cb572632c8ad07b5fe25fadee4f62865b3",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
-      "contentSha256": "bdbae61993c4c93eb7bbe7031239b16e14da1a0237bd506aecc570377623180c",
+      "contentSha256": "75a90771479f99f1acda5da531df0ba86d8dec5270fd3250f0bc7a8e577e5a31",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -4514,7 +4678,7 @@
       "name": "SK_Qazharr_NoQuarter",
       "archetype": "humanoid",
       "file": "FBX/SK_Qazharr_NoQuarter.fbx",
-      "sha256": "f303837042666c02dbe221170401ba3e6f981f219ad504e1ae195908e20f6f0c",
+      "sha256": "fe31733a8795bb2cd23bc84e052137f77d690e2ba93606c5835ebb91bc8746ce",
       "triangles": 4868,
       "triangleBudget": 5000,
       "bones": 47,
@@ -4564,13 +4728,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_qazharr_heavy_hand",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_qazharr_weather_it",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_qazharr_boarding_rush",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_qazharr_no_quarter",
+          "frames": 40,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "648f01e643e60665e4aa2df7e3ba08bb8627bc7fb5e1da87ab0cd88bcb437f2e",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "abilityCasts": [
+        {
+          "ability": "qazharr_heavy_hand",
+          "clip": "Skill_qazharr_heavy_hand",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "qazharr_weather_it",
+          "clip": "Skill_qazharr_weather_it",
+          "releaseShare": 0.3
+        },
+        {
+          "ability": "qazharr_boarding_rush",
+          "clip": "Skill_qazharr_boarding_rush",
+          "releaseShare": 0.15
+        },
+        {
+          "ability": "qazharr_no_quarter",
+          "clip": "Skill_qazharr_no_quarter",
+          "releaseShare": 0.46
+        }
+      ],
+      "inputSha256": "3248a6efe351a3bb27bef822632df99a380202e2274c067109889da26d9d3138",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
-      "contentSha256": "b66fd02685bdfe0f4394574e30fec3df385bf861aeb9fa39e42b765791b4fe1b",
+      "contentSha256": "8c40a6046ca5018e97194cb0ef056391715260e0295fb09ffdfbb211103c8c8b",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -4744,7 +4949,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "6a87e5057a205c80146794441ac02e1c89d098ad970db13d480ddd5ded250486",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "690fe2e7fc0fc29706c024bfa6dc579063b996f8b36bed93eac8f5e53f66d37c",
       "contentVersion": 3,
@@ -4897,7 +5102,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "397c9d95e40954b405e6599e871626b006a14f41d7a14325e7cd0ee14bcc8515",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "c86566c426c7d7d5a72d84e925413db074b11b30250e6a39182b2fa78dfa52f0",
       "contentVersion": 3,
@@ -4962,7 +5167,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "5fa0473becc0d5aeb236218821a40645b54d19fede256b0f539781b9700173bb",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "2e1e1967332f29e4a77efae64983d5186509686ce24950185b8d028cd7b063fe",
       "contentVersion": 3,
@@ -5058,7 +5263,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "34c226b340af336e960c58ae4cade4f14a7822c36b4ffb48e5468c6499e2f557",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "5e1e10b9e6c20c1fa2280a176663c9bf58d9853b1597f3d4f35bd4fb9f3ea09f",
       "contentVersion": 3,
@@ -5167,7 +5372,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "eb4c1ba1356c38fe8b2d699e57992baf1c375aa4b5f2fbf069008725e2a7a052",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "45038fba451a96d11fa6d80c2bc77d93e53922c9be33b7fa0c35e2944175c15f",
       "contentVersion": 3,
@@ -5408,7 +5613,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "f55d82d3289ddfe43cdfd923eb4bfefcfc90f05487f961da89c679f2f9f2aa7d",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "e8805e5c6daf9f256862aa85346b698a080367ad49ad1502b9b0ec751f732853",
       "contentVersion": 3,
@@ -5561,7 +5766,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "3c526257089eaa0b00609d0548678c652a386ec758137123dfa3643f9c79a904",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "43aa62cc107e3645a65caf06d143a7dae9a712b15affba6f7f10503cabacc20b",
       "contentVersion": 3
@@ -5625,7 +5830,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "052e8faf79a3ea7d5a5c73b8c07049fda4f4da447310f06bd77a9cbe9508e7a1",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "ac50d1ce08727746a97e01db19f2cd3e1ee6af362006352a2b73020c72d42122",
       "contentVersion": 3,
@@ -5690,7 +5895,7 @@
       ],
       "abilityCasts": [],
       "inputSha256": "c3d7e4e74dfed41ef5f5bdc3c84e8f45c0018b2341b7c5bd874c848760834f5a",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "61dc1d8709a76b5bbe0c337febc1a5ba617e0f8e03342f8b53c3d72a7e780fbf",
       "contentVersion": 3,
@@ -5806,7 +6011,7 @@
         }
       ],
       "inputSha256": "9159c117c39d0bfdb70e7030d24789b1bf4f3febff82f08bc7d13b519c09ef1b",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "99adb7e5b37409fd06718a0b1211865de4f3618d6e3f533a701ec09a2a6bf941",
       "contentVersion": 3,
@@ -5981,7 +6186,7 @@
         }
       ],
       "inputSha256": "c48ef07ea9304fbdd4bc6e72ecaf53b503a700523f6fd8ba0199e84a8b38dc46",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
       "contentSha256": "da555d72bbb18c2a22231b2ebf02c01d14689846ff790058dddcfd0eadb97cf5",
       "contentVersion": 3,
@@ -6035,7 +6240,7 @@
       "name": "SK_Vera",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera.fbx",
-      "sha256": "eb6d41139e76b00cd96cda7493d99cb021f368fcdc1efa5b133ad95b853626c4",
+      "sha256": "816d6c31740cdafb62551204468a3ba0e93ad6010ccb8429950812355168a2c0",
       "triangles": 4924,
       "triangleBudget": 5000,
       "bones": 56,
@@ -6085,13 +6290,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_vera_range_found",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Skill_vera_dig_in",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_vera_break_the_line",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_vera_the_last_volley",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "fd6578151c95962fb2b1a75cc92b343e472d20ebd6f55f65f94dbb15c0e57d82",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "abilityCasts": [
+        {
+          "ability": "vera_range_found",
+          "clip": "Skill_vera_range_found",
+          "releaseShare": 0.35
+        },
+        {
+          "ability": "vera_dig_in",
+          "clip": "Skill_vera_dig_in",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "vera_break_the_line",
+          "clip": "Skill_vera_break_the_line",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "vera_the_last_volley",
+          "clip": "Skill_vera_the_last_volley",
+          "releaseShare": 0.2
+        }
+      ],
+      "inputSha256": "6b71856aa1f69a2468eddfbc8d45775486f4c24f4a27e5c96fb88448b96979e2",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
-      "contentSha256": "9c0387976169af87c52723f8b6c56ff4554a85f7e94415b6b98bdc91d3c1a240",
+      "contentSha256": "29cc5cd6d0716a4b85daff7b0387a8aa421339cc081496109218371685e723f1",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -6254,7 +6500,7 @@
       "name": "SK_Vera_DigIn",
       "archetype": "humanoid",
       "file": "FBX/SK_Vera_DigIn.fbx",
-      "sha256": "e984908fb59a3e6197ca1567181e77abc8ff17dcdabfc6086c604bc68dee5a2d",
+      "sha256": "efd5ecd0cde33772c3ddb7de93a08f28db2522973e904a5839e7fd7aeca699b6",
       "triangles": 4924,
       "triangleBudget": 5000,
       "bones": 56,
@@ -6304,13 +6550,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_vera_range_found",
+          "frames": 31,
+          "loop": false
+        },
+        {
+          "name": "Skill_vera_dig_in",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_vera_break_the_line",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_vera_the_last_volley",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "de469ba09e775fc4e733e25d45b5fa81a9f9708dea2d9c8498e76a8d690055b4",
-      "generatorSha256": "6fa201ac03198b6c01f0f9e4c95643cb1fc6a532f37cf66fd2bc18932548b5f0",
+      "abilityCasts": [
+        {
+          "ability": "vera_range_found",
+          "clip": "Skill_vera_range_found",
+          "releaseShare": 0.35
+        },
+        {
+          "ability": "vera_dig_in",
+          "clip": "Skill_vera_dig_in",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "vera_break_the_line",
+          "clip": "Skill_vera_break_the_line",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "vera_the_last_volley",
+          "clip": "Skill_vera_the_last_volley",
+          "releaseShare": 0.2
+        }
+      ],
+      "inputSha256": "d11e2bd52cbd502c140ff6c428d95db2e58c4e584216fd43cd49942630bab136",
+      "generatorSha256": "e172265054947d4d56c83a6fc99ea5f270349fe178fc9bd10b5b755df028c2b9",
       "blender": "5.2.1 LTS",
-      "contentSha256": "5674372f29b97da3cb7a33e234d62e042b96bf8202968d005d992e2c7d46b115",
+      "contentSha256": "9f17e5dd299a1603a9fbfc6765e5fb1d63f2ad37729230cd3a6d8e5966ee6422",
       "contentVersion": 3,
       "ik": {
         "feet": [
