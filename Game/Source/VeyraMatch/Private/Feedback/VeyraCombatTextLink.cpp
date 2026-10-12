@@ -79,10 +79,10 @@ void FVeyraCombatTextLink::OnGoldGranted(double Amount, EVeyraGoldReason Reason,
 		}
 		else
 		{
-			Line->Unit = nullptr;
+			Line->Unit.Reset();
 		}
 	}
-	if (Line->bFixed || Line->Unit)
+	if (Line->bFixed || Line->Unit.IsValid())
 	{
 		Controller->ClientCombatText(Line.GetValue());
 	}
@@ -135,19 +135,20 @@ void FVeyraCombatTextLink::Send(UAbilitySystemComponent* Player, FVeyraCombatTex
 {
 	const AVeyraPlayerState* Participant = Player ? Cast<AVeyraPlayerState>(Player->GetOwner()) : nullptr;
 	AVeyraPlayerController* Controller = Participant ? Cast<AVeyraPlayerController>(Participant->GetPlayerController()) : nullptr;
-	if (!Controller || !Line.Unit)
+	const AActor* Unit = Line.Unit.Get();
+	if (!Controller || !Unit)
 	{
 		return;
 	}
 	// Combat text never reveals a unit in the fog: its unit must be seen, and the other end travels only while it is.
 	const EVeyraTeam Team = Participant->GetVeyraTeam();
-	if (!VeyraVisibility::IsVisibleToTeam(Team, *Line.Unit))
+	if (!VeyraVisibility::IsVisibleToTeam(Team, *Unit))
 	{
 		return;
 	}
-	if (Line.Other && !VeyraVisibility::IsVisibleToTeam(Team, *Line.Other))
+	if (const AActor* Other = Line.Other.Get(); Other && !VeyraVisibility::IsVisibleToTeam(Team, *Other))
 	{
-		Line.Other = nullptr;
+		Line.Other.Reset();
 	}
 	Controller->ClientCombatText(Line);
 }

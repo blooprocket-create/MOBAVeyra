@@ -14,6 +14,7 @@ const SIZES: [u32; 2] = [32, 256];
 
 fn main() {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR");
+    sync_splash_art(Path::new(&manifest_dir));
     // tauri-build watches capabilities/, and a watched path that does not exist is always stale, which
     // would rebuild the launcher every time. The launcher grants no capabilities (its window calls only
     // the app's own commands), so the folder exists and stays empty.
@@ -28,6 +29,25 @@ fn main() {
     }
     println!("cargo:rerun-if-changed=build.rs");
     tauri_build::build();
+}
+
+/// Bundle the current canonical illustrations instead of retaining stale launcher copies.
+fn sync_splash_art(manifest_dir: &Path) {
+    let art_dir = manifest_dir.join("../ui/art");
+    let source_dir = manifest_dir.join("../../ConceptArt/Vanguards");
+    println!("cargo:rerun-if-changed={}", art_dir.display());
+    for entry in fs::read_dir(&art_dir).expect("read launcher art directory") {
+        let destination = entry.expect("read launcher art entry").path();
+        if destination.extension().and_then(|extension| extension.to_str()) != Some("webp") {
+            continue;
+        }
+        let source = source_dir.join(destination.file_stem().expect("art has a Vanguard ID")).join("hero.webp");
+        println!("cargo:rerun-if-changed={}", source.display());
+        let bytes = fs::read(&source).unwrap_or_else(|error| panic!("read canonical splash {}: {error}", source.display()));
+        if fs::read(&destination).ok().as_deref() != Some(bytes.as_slice()) {
+            fs::write(&destination, bytes).expect("sync launcher splash art");
+        }
+    }
 }
 
 /// An ICO file holding one 32-bit image per size: a "V" in the accent colour on the background.
