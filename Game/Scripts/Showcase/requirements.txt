@@ -1,0 +1,5 @@
+# The skill showcase encoder's dependencies (ADR-074 §5), pinned. Install with:
+#   python -m pip install -r Game/Scripts/Showcase/requirements.txt
+# imageio-ffmpeg bundles its own ffmpeg build (7.1 at this version), so nothing else needs installing.
+Pillow==12.3.0
+imageio-ffmpeg==0.6.0

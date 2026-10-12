@@ -10,8 +10,9 @@
 
 class UWorld;
 
-// The grey-box test map's layout, bound from Source/VeyraDeveloper/Greybox/Greybox.json with the
-// tuning framework. UHT forbids preprocessor guards around USTRUCTs, so this header is unconditional.
+// A grey-box layout, bound from a file in Source/VeyraDeveloper/Greybox/ with the tuning framework: the test map's
+// (Greybox.json), or the skill showcase's stage (Showcase.json, ADR-074 §1). UHT forbids preprocessor guards around
+// USTRUCTs, so this header is unconditional.
 
 USTRUCT()
 struct FVeyraGreyboxFloor
@@ -84,8 +85,11 @@ struct FVeyraGreyboxLayout
  */
 namespace VeyraGreybox
 {
-	/** Reads and validates the layout file. */
-	VeyraTuning::FErrors LoadLayout(FVeyraGreyboxLayout& OutLayout);
+	/** The test map's layout file, the one every caller reads unless it names another. */
+	inline const TCHAR* const TestMapLayoutFile = TEXT("Greybox.json");
+
+	/** Reads and validates LayoutFile, a file name in Source/VeyraDeveloper/Greybox/. */
+	VeyraTuning::FErrors LoadLayout(FVeyraGreyboxLayout& OutLayout, const TCHAR* LayoutFile = TestMapLayoutFile);
 
 	/** The size of the navigation bounds, centred on the origin. */
 	FVector NavigationBoundsSize(const FVeyraGreyboxLayout& Layout);

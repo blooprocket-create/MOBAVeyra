@@ -7,9 +7,10 @@
 #include "VeyraGreyboxMapCommandlet.generated.h"
 
 /**
- * Saves the grey-box test map from Source/VeyraDeveloper/Greybox/Greybox.json, so the map stays
- * reproducible from reviewed text (AGENTS.md: document how an asset-side change is made). Run it
- * with Game/Scripts/BuildGreyboxMap.ps1. It needs the editor; other builds report an error.
+ * Saves a grey-box map from its layout in Source/VeyraDeveloper/Greybox/, so the map stays reproducible from reviewed
+ * text (AGENTS.md: document how an asset-side change is made). With no arguments it writes the test map from
+ * Greybox.json; -Layout=<file> -Map=<package> writes another, as the skill showcase's stage (ADR-074 §1). Run it with
+ * Game/Scripts/BuildGreyboxMap.ps1. It needs the editor; other builds report an error.
  */
 UCLASS()
 class UVeyraGreyboxMapCommandlet : public UCommandlet
@@ -19,8 +20,11 @@ class UVeyraGreyboxMapCommandlet : public UCommandlet
 public:
 	UVeyraGreyboxMapCommandlet();
 
-	/** The map this commandlet writes. */
+	/** The map this commandlet writes unless told another. */
 	static constexpr const TCHAR* MapPackageName = TEXT("/Game/Veyra/Developer/Maps/L_Greybox");
+
+	/** Where every map it writes lives: developer maps only. */
+	static constexpr const TCHAR* MapFolder = TEXT("/Game/Veyra/Developer/Maps/");
 
 	virtual int32 Main(const FString& Params) override;
 };

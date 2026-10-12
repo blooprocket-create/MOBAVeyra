@@ -13,6 +13,8 @@ public class VeyraDeveloper : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			// The skill showcase's settings (ADR-074 §4).
+			"DeveloperSettings",
 			// The front-end map test reads the default maps.
 			"EngineSettings",
 			"EnhancedInput",
@@ -70,6 +72,9 @@ public class VeyraDeveloper : ModuleRules
 			PrivateDependencyModuleNames.Add("VeyraUI");
 			// The presentation tests check the fight's effects, which are Niagara systems (ADR-063 §4).
 			PrivateDependencyModuleNames.Add("Niagara");
+			// The skill showcase recorder grabs the window's frames and writes them as images off the game thread
+			// (ADR-074 §3).
+			PrivateDependencyModuleNames.AddRange(new string[] { "ImageWriteQueue", "MovieSceneCapture", "Slate", "SlateCore" });
 			PrivateDefinitions.Add("WITH_VEYRA_UI=1");
 		}
 		else

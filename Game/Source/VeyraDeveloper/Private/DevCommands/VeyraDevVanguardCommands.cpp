@@ -56,34 +56,44 @@ namespace VeyraDevVanguardCommands
 
 	FString RunHeal(AVeyraPlayerController& Requester, TConstArrayView<FString> /*Args*/)
 	{
-		UAbilitySystemComponent* AbilitySystem = VeyraDevCommands::AbilitySystemOf(Requester);
-		if (!AbilitySystem)
-		{
-			return NoVanguard;
-		}
-		if (!VeyraTargeting::IsAlive(VeyraDevCommands::ParticipantOf(Requester)))
-		{
-			return DeadVanguard;
-		}
-		const double MissingHealth = VeyraCombat::GetMissingHealth(*AbilitySystem);
-		if (MissingHealth > 0.0)
-		{
-			VeyraCombat::RestoreHealth(*AbilitySystem, MissingHealth);
-		}
-		// A Vanguard without a resource has no resource set.
-		double MissingResource = 0.0;
-		if (AbilitySystem->HasAttributeSetForAttribute(UVeyraResourceSet::GetMaxResourceAttribute()))
-		{
-			MissingResource = FMath::Max(0.0, AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute())
-					- AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute()));
-			if (MissingResource > 0.0)
-			{
-				VeyraCombat::RestoreResource(*AbilitySystem, MissingResource);
-			}
-		}
-		return FString::Printf(TEXT("Restored %.0f Health and %.0f resource."), MissingHealth, MissingResource);
+		AVeyraPlayerState* Participant = VeyraDevCommands::ParticipantOf(Requester);
+		return Participant ? VeyraDevCommands::HealParticipant(*Participant) : FString(NoVanguard);
 	}
+}
 
+FString VeyraDevCommands::HealParticipant(AVeyraPlayerState& Participant)
+{
+	using namespace VeyraDevVanguardCommands;
+	UAbilitySystemComponent* AbilitySystem = Participant.GetAbilitySystemComponent();
+	if (!AbilitySystem)
+	{
+		return NoVanguard;
+	}
+	if (!VeyraTargeting::IsAlive(&Participant))
+	{
+		return DeadVanguard;
+	}
+	const double MissingHealth = VeyraCombat::GetMissingHealth(*AbilitySystem);
+	if (MissingHealth > 0.0)
+	{
+		VeyraCombat::RestoreHealth(*AbilitySystem, MissingHealth);
+	}
+	// A Vanguard without a resource has no resource set.
+	double MissingResource = 0.0;
+	if (AbilitySystem->HasAttributeSetForAttribute(UVeyraResourceSet::GetMaxResourceAttribute()))
+	{
+		MissingResource = FMath::Max(0.0, AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute())
+				- AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute()));
+		if (MissingResource > 0.0)
+		{
+			VeyraCombat::RestoreResource(*AbilitySystem, MissingResource);
+		}
+	}
+	return FString::Printf(TEXT("Restored %.0f Health and %.0f resource."), MissingHealth, MissingResource);
+}
+
+namespace VeyraDevVanguardCommands
+{
 	FString RunGod(AVeyraPlayerController& Requester, TConstArrayView<FString> Args)
 	{
 		UAbilitySystemComponent* AbilitySystem = VeyraDevCommands::AbilitySystemOf(Requester);
@@ -186,17 +196,7 @@ namespace VeyraDevVanguardCommands
 	FString RunResetCooldowns(AVeyraPlayerController& Requester, TConstArrayView<FString> /*Args*/)
 	{
 		AVeyraPlayerState* Participant = VeyraDevCommands::ParticipantOf(Requester);
-		UVeyraCooldownComponent* Cooldowns = Participant ? Participant->FindComponentByClass<UVeyraCooldownComponent>() : nullptr;
-		if (!Cooldowns)
-		{
-			return NoVanguard;
-		}
-		const int32 Cleared = Cooldowns->ClearAllCooldowns();
-		if (UVeyraVisionToolComponent* Tool = Participant->FindComponentByClass<UVeyraVisionToolComponent>())
-		{
-			Tool->RefillWardCharges();
-		}
-		return FString::Printf(TEXT("%d cooldown(s) cleared, and your ward charges refilled."), Cleared);
+		return Participant ? VeyraDevCommands::ResetCooldownsOf(*Participant) : FString(NoVanguard);
 	}
 
 	/** Without coordinates, the teleport goes where the cursor points. */
@@ -225,40 +225,15 @@ namespace VeyraDevVanguardCommands
 			return VeyraDevCommands::UsageReply(TEXT("Teleport"));
 		}
 		AVeyraPlayerState* Participant = VeyraDevCommands::ParticipantOf(Requester);
-		UAbilitySystemComponent* AbilitySystem = VeyraDevCommands::AbilitySystemOf(Requester);
-		AVeyraVanguardCharacter* Body = Requester.GetVanguard();
-		if (!Participant || !AbilitySystem || !Body || !VeyraTargeting::IsAlive(Participant))
+		const AVeyraVanguardCharacter* Body = Requester.GetVanguard();
+		if (!Participant || !Body)
 		{
 			return DeadVanguard;
 		}
-		if (VeyraCombat::IsRiding(*AbilitySystem) || VeyraCombat::GetAttachHost(*AbilitySystem))
-		{
-			return TEXT("Your Vanguard rides, or holds on to another body; teleport once it lets go.");
-		}
-
-		// Onto ground the navigation knows, so orders move it on from there.
-		const FVector Wanted(X.GetValue(), Y.GetValue(), Z.IsSet() ? Z.GetValue() : Body->GetActorLocation().Z);
-		const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(Requester.GetWorld());
-		FNavLocation Ground;
-		if (!Navigation || !Navigation->ProjectPointToNavigation(Wanted, Ground))
-		{
-			return FString::Printf(TEXT("(%.0f, %.0f) is not ground your Vanguard can walk on."), Wanted.X, Wanted.Y);
-		}
-		if (AVeyraVanguardController* Orders = Participant->GetVanguardController())
-		{
-			Orders->StopOrders();
-		}
-		if (UVeyraRecallComponent* Recall = Participant->FindComponentByClass<UVeyraRecallComponent>())
-		{
-			Recall->Interrupt();
-		}
-		const FVector Destination = Ground.Location + FVector(0.0, 0.0, Body->GetSimpleCollisionHalfHeight());
-		if (!Body->TeleportTo(Destination, Body->GetActorRotation()))
-		{
-			return TEXT("Something stands there; try a little further away.");
-		}
-		const FVector Arrived = Body->GetActorLocation();
-		return FString::Printf(TEXT("Teleported to (%.0f, %.0f, %.0f)."), Arrived.X, Arrived.Y, Arrived.Z);
+		FString Reply;
+		VeyraDevCommands::TeleportParticipant(*Participant, FVector(X.GetValue(), Y.GetValue(), Z.IsSet() ? Z.GetValue() : Body->GetActorLocation().Z),
+			nullptr, Reply);
+		return Reply;
 	}
 
 	/** Where the typist's Vanguard and cursor are, as this machine sees them, in Teleport's argument form. */
@@ -279,6 +254,63 @@ namespace VeyraDevVanguardCommands
 			Output.Logf(TEXT("The cursor points at %.0f %.0f %.0f."), Ground.Location.X, Ground.Location.Y, Ground.Location.Z);
 		}
 	}
+}
+
+FString VeyraDevCommands::ResetCooldownsOf(AVeyraPlayerState& Participant)
+{
+	UVeyraCooldownComponent* Cooldowns = Participant.FindComponentByClass<UVeyraCooldownComponent>();
+	if (!Cooldowns)
+	{
+		return VeyraDevVanguardCommands::NoVanguard;
+	}
+	const int32 Cleared = Cooldowns->ClearAllCooldowns();
+	if (UVeyraVisionToolComponent* Tool = Participant.FindComponentByClass<UVeyraVisionToolComponent>())
+	{
+		Tool->RefillWardCharges();
+	}
+	return FString::Printf(TEXT("%d cooldown(s) cleared, and your ward charges refilled."), Cleared);
+}
+
+bool VeyraDevCommands::TeleportParticipant(AVeyraPlayerState& Participant, const FVector& Wanted, const FRotator* Facing, FString& OutReply)
+{
+	UAbilitySystemComponent* AbilitySystem = Participant.GetAbilitySystemComponent();
+	AVeyraVanguardCharacter* Body = Cast<AVeyraVanguardCharacter>(Participant.GetPawn());
+	if (!AbilitySystem || !Body || !VeyraTargeting::IsAlive(&Participant))
+	{
+		OutReply = VeyraDevVanguardCommands::DeadVanguard;
+		return false;
+	}
+	if (VeyraCombat::IsRiding(*AbilitySystem) || VeyraCombat::GetAttachHost(*AbilitySystem))
+	{
+		OutReply = TEXT("Your Vanguard rides, or holds on to another body; teleport once it lets go.");
+		return false;
+	}
+
+	// Onto ground the navigation knows, so orders move it on from there.
+	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(Participant.GetWorld());
+	FNavLocation Ground;
+	if (!Navigation || !Navigation->ProjectPointToNavigation(Wanted, Ground))
+	{
+		OutReply = FString::Printf(TEXT("(%.0f, %.0f) is not ground your Vanguard can walk on."), Wanted.X, Wanted.Y);
+		return false;
+	}
+	if (AVeyraVanguardController* Orders = Participant.GetVanguardController())
+	{
+		Orders->StopOrders();
+	}
+	if (UVeyraRecallComponent* Recall = Participant.FindComponentByClass<UVeyraRecallComponent>())
+	{
+		Recall->Interrupt();
+	}
+	const FVector Destination = Ground.Location + FVector(0.0, 0.0, Body->GetSimpleCollisionHalfHeight());
+	if (!Body->TeleportTo(Destination, Facing ? *Facing : Body->GetActorRotation()))
+	{
+		OutReply = TEXT("Something stands there; try a little further away.");
+		return false;
+	}
+	const FVector Arrived = Body->GetActorLocation();
+	OutReply = FString::Printf(TEXT("Teleported to (%.0f, %.0f, %.0f)."), Arrived.X, Arrived.Y, Arrived.Z);
+	return true;
 }
 
 void VeyraDevCommands::AddVanguardCommands(TArray<FVeyraDevCommand>& Out)

@@ -1,0 +1,115 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Containers/Ticker.h"
+#include "Content/VeyraContentId.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+
+#include "VeyraShowcaseRecorderSubsystem.generated.h"
+
+class AVeyraGameState;
+class AVeyraPlayerController;
+class AVeyraVanguardCharacter;
+class FFrameGrabber;
+
+/**
+ * The skill showcase recorder (ADR-074 §3): a client started with -VeyraShowcase=<directory>, connected to the
+ * showcase's stage, records each of its Vanguard's abilities in motion. It takes developer levels up to the first
+ * ultimate rank and ranks every ability, hides the HUD and on-screen messages, and locks the camera on its Vanguard. With
+ * the settings' rehearsal it casts the whole kit once unrecorded first. Then, for each ability in slot order, it:
+ * - asks the server to reset the stage (Veyra.Dev.ResetShowcase) and waits for it to settle;
+ * - steps toward the dummy if the dummy stands beyond the ability's reach;
+ * - casts at the dummy, or at itself for an ability cast for an ally, capturing one frame in every FrameStride from the
+ *   order until the cast has ended and the tail has passed, or the clip's limit.
+ * Frames are written off the game thread as <directory>/<ability>/<index>.png, and manifest.json lists each clip's
+ * frames with their server times. It logs "VeyraShowcase: DONE" or "VeyraShowcase: FAIL" and quits. Developer client
+ * builds only; it does nothing on a client that is not connected to a server.
+ */
+UCLASS()
+class UVeyraShowcaseRecorderSubsystem : public UGameInstanceSubsystem
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+
+private:
+	enum class EStep : uint8
+	{
+		WaitForLiveMatch,
+		WaitForLevels,
+		WaitForRanks,
+		Reset,
+		Settle,
+		Approach,
+		Cast,
+		Record,
+		Flush,
+		Finished,
+	};
+
+	/** One clip: the ability, and each frame's file name and server time. */
+	struct FClip
+	{
+		FVeyraContentId Ability;
+		FString Slot;
+		TArray<TPair<FString, double>> Frames;
+		double OrderedAt = 0.0;
+		double CommittedAt = -1.0;
+	};
+
+	bool Tick(float DeltaSeconds);
+	void Advance(EStep Next, const TCHAR* Description);
+	void Finish(bool bDone, const FString& Reason);
+
+	AVeyraPlayerController* GetController() const;
+	AVeyraGameState* GetGameState() const;
+	double ServerNow() const;
+
+	/** Hides the HUD and locks the camera on the Vanguard, at the settings' distance. */
+	void FrameTheStage(AVeyraPlayerController& Controller);
+
+	/** Orders the cast of the current slot's ability, and starts its clip if it is the first try. */
+	void OrderCast(AVeyraPlayerController& Controller, const AVeyraVanguardCharacter& Vanguard);
+
+	/** One step of waiting for the ordered cast: its commit, a refusal to try again after, or a failure. */
+	void TickCast(AVeyraPlayerController& Controller);
+
+	void StartCapture();
+	void CaptureFrame();
+	/** Hands the frames read back so far to the image writer. */
+	void WriteCapturedFrames();
+	void StopCapture();
+	/** Whether frames captured are still being read back or not yet handed to the writer. */
+	bool HasOutstandingFrames() const;
+	bool WriteManifest() const;
+
+	EStep Step = EStep::WaitForLiveMatch;
+	FString OutputDir;
+	FTSTicker::FDelegateHandle TickHandle;
+	double StartRealTime = 0.0;
+	double StepSince = 0.0;
+	int32 KitLevel = 0;
+	int32 SlotIndex = 0;
+	/** Whether the kit is being cast once unrecorded, so every effect is ready before it is recorded. */
+	bool bRehearsing = false;
+
+	/** The cast awaiting the server, and what it was asked for. */
+	bool bCastPending = false;
+	FVeyraContentId CastAbility;
+	double ReadyAtBefore = 0.0;
+	int32 RejectionsBefore = 0;
+	int32 OrderRejectionsBefore = 0;
+	TOptional<double> FirstRefusedAt;
+	double NextTryAt = 0.0;
+	bool bAskedForResource = false;
+	/** When the recorded cast's caster was last busy, in server time. */
+	double LastBusyAt = 0.0;
+
+	TSharedPtr<FFrameGrabber> Grabber;
+	int32 FrameCount = 0;
+	TArray<FClip> Clips;
+};

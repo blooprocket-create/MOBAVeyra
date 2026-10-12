@@ -77,6 +77,11 @@ public:
 	bool HandleDeveloperRespawn(const APlayerController& Requester);
 
 	/**
+	 * Developer builds: as the above, for any participant, a bot among them, as the skill showcase's dummy (ADR-074 §2).
+	 */
+	bool HandleDeveloperRespawn(AVeyraPlayerState& Participant);
+
+	/**
 	 * A player asks to end the custom match as its host (Custom Matches Bible §4; ADR-010 §7). Only
 	 * the host of a practice match may; the match then ends host-ended, with no winner. Returns why it
 	 * was refused, or None.
