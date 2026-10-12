@@ -62,6 +62,13 @@ struct FVeyraRiverLayout
 	UPROPERTY()
 	int32 SamplesPerSegment = 0;
 
+	/**
+	 * How far along the main channel from the centre its water is ground, both ways (ADR-073 §1), in units. Beyond, the
+	 * river drops through a gorge of falls the rock masses close off.
+	 */
+	UPROPERTY()
+	double WalkableEnd = 0.0;
+
 	/** The water's surface and the riverbed under it, in world units. Units wade on the bed. */
 	UPROPERTY()
 	double SurfaceZ = 0.0;
@@ -83,7 +90,7 @@ struct FVeyraTerrainTuning
 {
 	GENERATED_BODY()
 
-	/** Each lane's road, each base's pad, the jungle's shelves, the Wells' islands and the ridges walls stand on. */
+	/** Each lane's road, each keep's floor, the jungle's shelves and the Wells' islands. */
 	UPROPERTY()
 	double LaneZ = 0.0;
 
@@ -95,9 +102,6 @@ struct FVeyraTerrainTuning
 
 	UPROPERTY()
 	double IslandZ = 0.0;
-
-	UPROPERTY()
-	double RidgeZ = 0.0;
 
 	/** How far beside a lane's road the ground stays at the road's level. */
 	UPROPERTY()
@@ -115,25 +119,24 @@ struct FVeyraTerrainTuning
 	UPROPERTY()
 	double UnderwaterShelfShare = 0.0;
 
-	/** The share of a camp's leash radius that stays level as its clearing, and the share beyond it over which the ground returns. */
+	/** The share of a clearing's radius that stays level, and the share beyond it over which the ground returns. */
 	UPROPERTY()
 	double ClearingCoreShare = 0.0;
 
 	UPROPERTY()
 	double ClearingFadeShare = 0.0;
 
-	/** The run of a ridge's cliff face, rising from its wall's edge inward: the whole cliff stands within the wall. */
-	UPROPERTY()
-	double RidgeSkirt = 0.0;
-
-	/** The rim beyond the floor's edge: its height and the run of its face. */
+	/**
+	 * The rim (ADR-073 §2, §3): the band inside the floor's edge that no open space reaches, so the playable square is the
+	 * floor less this width each side. Its height, risen at the floor's edge, and the band's width.
+	 */
 	UPROPERTY()
 	double BoundaryZ = 0.0;
 
 	UPROPERTY()
 	double BoundaryWidth = 0.0;
 
-	/** How far a wall's collision reaches below the lowest ground under it. */
+	/** How far a terrain box's collision reaches below the lowest ground under it. */
 	UPROPERTY()
 	double WallFootingClearance = 0.0;
 };

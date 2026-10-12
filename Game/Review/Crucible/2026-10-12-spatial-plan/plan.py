@@ -88,7 +88,8 @@ spire_distances = {"Top": [900, 3900, 7300], "Mid": [800, 3000, 5200], "Bottom":
 # Spires stand beside the road, not on the centre line (author, 2026-10-12): 450 to one side, alternating along each
 # lane, measured from the owner's walking direction (+1 its left) so the half turn keeps both teams' towers equivalent.
 SPIRE_OFFSET = 450
-spire_sides = {"Top": [1, -1, 1], "Mid": [-1, 1, -1], "Bottom": [-1, 1, -1]}
+# Top and bottom share their sides: the half turn carries one onto the other, keeping left as left along each walk.
+spire_sides = {"Top": [1, -1, 1], "Mid": [-1, 1, -1], "Bottom": [1, -1, 1]}
 
 
 def spire_points(lane, from_b=False):

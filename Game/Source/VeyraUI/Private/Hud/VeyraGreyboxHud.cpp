@@ -371,9 +371,9 @@ namespace
 	}
 
 	/**
-	 * The minimap, bottom-right (Settings Bible §3.2; ADR-020 §2): the river, the walls (ADR-043 §4), the
-	 * lanes, every unit this client has (so only what its side sees), its side's presence pings, and where
-	 * the camera looks.
+	 * The minimap, bottom-right (Settings Bible §3.2; ADR-020 §2): the river, the masses and keep walls
+	 * (ADR-073 §3), the lanes, every unit this client has (so only what its side sees), its side's presence
+	 * pings, and where the camera looks.
 	 */
 	void DrawMinimap(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const FVeyraMinimapView& View)
 	{
@@ -388,6 +388,12 @@ namespace
 		{
 			FCanvasTriangleItem Piece(View.River[Index - 2], View.River[Index - 1], View.River[Index], GWhiteTexture);
 			Piece.SetColor(Settings.RiverColor);
+			Canvas.DrawItem(Piece);
+		}
+		for (int32 Index = 2; Index < View.Masses.Num(); Index += 3)
+		{
+			FCanvasTriangleItem Piece(View.Masses[Index - 2], View.Masses[Index - 1], View.Masses[Index], GWhiteTexture);
+			Piece.SetColor(Settings.MinimapWallColor);
 			Canvas.DrawItem(Piece);
 		}
 		for (const FVeyraMinimapWall& Wall : View.Walls)

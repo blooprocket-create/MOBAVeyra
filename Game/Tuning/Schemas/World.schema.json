@@ -10,23 +10,21 @@
       "description": "The battleground's ground levels and the runs between them (ADR-040 §3), in world units: they decide its slopes, so how it is walked.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["laneZ", "baseZ", "jungleZ", "islandZ", "ridgeZ", "laneShoulder", "jungleRise", "bankWidth", "underwaterShelfShare", "clearingCoreShare", "clearingFadeShare", "ridgeSkirt", "boundaryZ", "boundaryWidth", "wallFootingClearance"],
+      "required": ["laneZ", "baseZ", "jungleZ", "islandZ", "laneShoulder", "jungleRise", "bankWidth", "underwaterShelfShare", "clearingCoreShare", "clearingFadeShare", "boundaryZ", "boundaryWidth", "wallFootingClearance"],
       "properties": {
         "laneZ": { "description": "Each lane's road.", "type": "number", "minimum": -1000000 },
-        "baseZ": { "description": "Each base's pad.", "type": "number", "minimum": -1000000 },
+        "baseZ": { "description": "Each keep's floor.", "type": "number", "minimum": -1000000 },
         "jungleZ": { "description": "The jungle's shelves.", "type": "number", "minimum": -1000000 },
         "islandZ": { "description": "Each Flux Well's island platform, above the water.", "type": "number", "minimum": -1000000 },
-        "ridgeZ": { "description": "The ridge each wall stands on.", "type": "number", "minimum": -1000000 },
-        "laneShoulder": { "description": "How far beside a road the ground stays at the road's level.", "type": "number", "minimum": 0 },
-        "jungleRise": { "description": "The run over which ground climbs from a road, a pad or a clearing to the jungle.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "laneShoulder": { "description": "How far beside a road the ground stays at the road's level; the masses keep clear of it (ADR-073 §2).", "type": "number", "minimum": 0 },
+        "jungleRise": { "description": "The run over which ground climbs from a road, a keep or a clearing to the jungle.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "bankWidth": { "description": "The run from the water's edge to the top of its bank.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "underwaterShelfShare": { "description": "Under the water, the share of a bank's run over which the bed rises to the waterline: the shore's shelf.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
-        "clearingCoreShare": { "description": "The share of a camp's leash radius that stays level as its clearing.", "type": "number", "minimum": 0 },
-        "clearingFadeShare": { "description": "The share of a camp's leash radius beyond its clearing over which the ground returns to the jungle.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "ridgeSkirt": { "description": "The run of a ridge's cliff face, rising from its wall's edge inward: the whole cliff stands within the wall.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "boundaryZ": { "description": "The rim beyond the floor's edge.", "type": "number", "minimum": -1000000 },
-        "boundaryWidth": { "description": "The run of the rim's face.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "wallFootingClearance": { "description": "How far a wall's collision reaches below the lowest ground under it.", "type": "number", "minimum": 0 }
+        "clearingCoreShare": { "description": "The share of a clearing's radius that stays level.", "type": "number", "minimum": 0 },
+        "clearingFadeShare": { "description": "The share of a clearing's radius beyond its level core over which the ground returns to the jungle.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "boundaryZ": { "description": "The rim's height at the floor's edge.", "type": "number", "minimum": -1000000 },
+        "boundaryWidth": { "description": "The rim's band inside the floor's edge: the playable square is the floor less this each side (ADR-073 §2, §3).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "wallFootingClearance": { "description": "How far a terrain box's collision reaches below the lowest ground under it.", "type": "number", "minimum": 0 }
       }
     },
     "riverPoint": {
@@ -295,7 +293,7 @@
       "description": "How the rock and forest masses are derived and turned into terrain (ADR-073 §2, §3, §5).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["minThickness", "minArea", "simplifyTolerance", "riverMargin", "forestMinArea", "edgeThickness", "edgeMaxLength", "visualTolerance"],
+      "required": ["minThickness", "minArea", "simplifyTolerance", "riverMargin", "forestMinArea", "edgeThickness", "edgeMaxLength", "cornerRadius", "visualTolerance"],
       "properties": {
         "minThickness": { "description": "No mass thinner than this survives: thinner leftovers become open ground.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "minArea": { "description": "Leftovers smaller than this, in square units, become open ground.", "type": "number", "minimum": 0 },
@@ -304,6 +302,7 @@
         "forestMinArea": { "description": "Inner masses at least this large are forest; smaller ones rock; masses touching the floor's rim are cliff.", "type": "number", "minimum": 0 },
         "edgeThickness": { "description": "How deep each terrain box along a mass's edge reaches inside it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "edgeMaxLength": { "description": "The longest a single edge box may be: longer edges are split.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "cornerRadius": { "description": "Each convex corner of a mass is rounded to this radius, and spikes narrower than twice it cut back, so no corner is sharper than a right angle and its edge boxes stay inside it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "visualTolerance": { "description": "How far a mass mesh's footprint may lie from its gameplay edge.", "type": "number", "minimum": 0 }
       }
     },

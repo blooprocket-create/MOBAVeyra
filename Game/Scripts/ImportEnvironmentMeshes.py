@@ -123,6 +123,16 @@ def glyph(asset, g):
     assert EDIT.connect_material_property(g.unexposed(6, glow), "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
 
 
+def ink(asset, g):
+    """The masses' ink line (ADR-073 §5), where each meets the floor and round its top lip: near-black and matte, so it
+    reads as a drawn line under any light, as the toon ink outlines the characters."""
+    colour = g.node(unreal.MaterialExpressionVectorParameter, 1, parameter_name="InkColour", group="Ink",
+                    default_value=unreal.LinearColor(*LOOK["inkColour"], 1.0))
+    assert EDIT.connect_material_property(colour, "RGB", unreal.MaterialProperty.MP_BASE_COLOR), "base colour"
+    assert EDIT.connect_material_property(g.scalar(1, "Roughness", 1.0, "Ink"), "", unreal.MaterialProperty.MP_ROUGHNESS), "roughness"
+    assert EDIT.connect_material_property(g.node(unreal.MaterialExpressionConstant, 1, r=0.0), "", unreal.MaterialProperty.MP_SPECULAR), "specular"
+
+
 def swaying(g, height_share):
     """A gentle sway that grows with Height Share, phased across the world so no two plants move as one."""
     world = g.node(unreal.MaterialExpressionWorldPosition, 0)
@@ -189,6 +199,8 @@ BUILDS = {
     "Glyph": ("M_CrucibleGlyph", glyph),
     "Leaves": ("M_CrucibleLeaves", foliage("leafColour", two_sided=True)),
     "Grass": ("M_CrucibleGrass", foliage("grassTipColour", two_sided=True, root_key="grassRootColour")),
+    # No kit mesh has this slot: the world build draws the masses' ink with it.
+    "Ink": ("M_CrucibleInk", ink),
 }
 # Materials named on the command line are rebuilt alone, and no mesh is imported; otherwise everything is.
 NAMED = materials_named([name for name, _ in BUILDS.values()])

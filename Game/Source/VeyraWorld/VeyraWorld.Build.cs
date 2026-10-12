@@ -35,6 +35,8 @@ public class VeyraWorld : ModuleRules
 			// Push-model replication for the structures and Fluxborn.
 			"NetCore",
 			"NavigationSystem",
+			// The masses' outlines filled as triangles for the map (ADR-073 §3): a production runtime module.
+			"GeometryCore",
 		});
 
 		// The World tuning, the battleground's layout among it, ships with every build that runs a

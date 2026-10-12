@@ -14,8 +14,13 @@ import io
 import math
 import re
 import runpy
+import sys
 
 from crucible_geometry import REPO, SCHEMA_VERSION, load_world, sample_width_curve, write_world
+
+if "--rewrite" not in sys.argv[1:]:
+    sys.exit("World.json is the layout's authority now; this migration would overwrite it from the plan. "
+             "Pass --rewrite only to redo the migration on purpose.")
 
 PLAN = REPO / "Game" / "Review" / "Crucible" / "2026-10-12-spatial-plan" / "plan.py"
 with contextlib.redirect_stdout(io.StringIO()):
@@ -123,7 +128,8 @@ layout = {
     "denseFog": fog,
     "wallHalfHeight": old["wallHalfHeight"],
     "massRules": {"minThickness": 300, "minArea": 250000, "simplifyTolerance": 10, "riverMargin": plan["RIVER_BANK"],
-                  "forestMinArea": 1200000, "edgeThickness": 120, "edgeMaxLength": 600, "visualTolerance": 10},
+                  "forestMinArea": 1200000, "edgeThickness": 120, "edgeMaxLength": 600, "cornerRadius": 150,
+                  "visualTolerance": 10},
     "masses": {"inputSha256": "", "items": []},
 }
 world["schemaVersion"] = SCHEMA_VERSION

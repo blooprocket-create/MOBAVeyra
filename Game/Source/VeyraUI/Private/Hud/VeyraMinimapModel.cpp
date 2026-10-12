@@ -125,7 +125,15 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 			View.River.Append({ ALeft, ARight, BRight, ALeft, BRight, BLeft });
 		}
 	}
-	for (const FVeyraTerrainBox& Wall : VeyraLayout::Walls(Layout))
+	// The masses filled, and the keeps' walls as their boxes; the rim lies outside the playable square and is not drawn.
+	for (const FVeyraMassShape& Mass : VeyraLayout::Masses(Layout))
+	{
+		for (const FVector2D& Corner : Mass.Triangles())
+		{
+			View.Masses.Add(ToMap(Frame, FVector(Corner, 0.0)));
+		}
+	}
+	for (const FVeyraTerrainBox& Wall : VeyraLayout::KeepWalls(Layout))
 	{
 		FVeyraMinimapWall& Drawn = View.Walls.AddDefaulted_GetRef();
 		for (const FVector2D& Corner : Wall.Corners())

@@ -1,6 +1,5 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
-#include "Algo/MaxElement.h"
 #include "CQTest.h"
 
 #if WITH_AUTOMATION_WORKER
@@ -16,8 +15,8 @@
 namespace VeyraWorldTests
 {
 	// Veyra.World.TerrainField.*: the battleground's ground as World authoring composes it (ADR-040 §3), from the committed
-	// layout: the same for both teams, with real relief, walkable where it is walked, the water below its banks and a ridge
-	// on every wall.
+	// layout: the same for both teams, with real relief, walkable where it is walked, the water below its banks, and the floor
+	// running on under the masses (ADR-073 §5).
 	TEST_CLASS(TerrainField, "Veyra.World")
 	{
 		// Fixture values: how densely the ground is probed, how far apart a slope is measured, and slack in units.
@@ -54,7 +53,6 @@ namespace VeyraWorldTests
 			FVeyraTerrainRelief Relief;
 			Relief.Amplitude = TestReliefAmplitude;
 			Relief.Wavelength = TestReliefWavelength;
-			Relief.CrestAmplitude = TestReliefAmplitude;
 			const FVeyraTerrainField Field(Committed(), Relief);
 			ForEachProbe(Committed().Layout.Terrain.BoundaryWidth, [&](const FVector2D& Point) {
 				ASSERT_THAT(IsNear(Field.Height(Point), Field.Height(VeyraLayout::Rotate(Point)), HeightSlack, TEXT("a point and its rotation stand at one height")));
@@ -74,18 +72,24 @@ namespace VeyraWorldTests
 				const double Island = Field.Height(VeyraLayout::ToVector(Site));
 				ASSERT_THAT(IsTrue(Island > Tuning.Layout.River.SurfaceZ && Island <= Terrain.IslandZ + HeightSlack));
 			}
-			// A base's Prime Well stands on its pad, a wall on its ridge: at its spine's thickest, the crest.
+			// A keep's Prime Well stands on its floor.
 			ASSERT_THAT(IsNear(Field.Height(VeyraLayout::ToVector(Tuning.Layout.Base.PrimeWell)), Terrain.BaseZ, HeightSlack));
-			for (const FVeyraWallShape& Wall : VeyraLayout::WallShapes(Tuning.Layout))
-			{
-				const FVeyraCurveSample* Thickest = Algo::MaxElementBy(Wall.Spine, &FVeyraCurveSample::Width);
-				ASSERT_THAT(IsTrue(Thickest && Thickest->Width / 2.0 > Terrain.RidgeSkirt, TEXT("every wall is broad enough somewhere to reach its crest")));
-				ASSERT_THAT(IsNear(Field.Height(Thickest->Point), Terrain.RidgeZ, HeightSlack));
-			}
-			// Beyond the floor's corner, away from the river, the rim rises.
-			const double Beyond = Tuning.Layout.HalfExtent + Terrain.BoundaryWidth;
-			ASSERT_THAT(IsNear(Field.Height(FVector2D(-Beyond, -Beyond)), Terrain.BoundaryZ, HeightSlack));
-			ASSERT_THAT(IsTrue(Terrain.RidgeZ - Tuning.Layout.River.BedZ > Terrain.JungleZ - Terrain.LaneZ, TEXT("metres of relief, not centimetres")));
+			ASSERT_THAT(IsNear(Field.Sample(VeyraLayout::ToVector(Tuning.Layout.Base.PrimeWell)).Keep, 1.0, HeightSlack));
+			// Deep in a mass, its mesh's ground: the field marks it, and raises no cliff of its own there.
+			bool bInAMass = false;
+			ForEachProbe(0.0, [&](const FVector2D& Point) {
+				const FVeyraTerrainSample Sample = Field.Sample(Point);
+				if (Sample.Mass >= 1.0 && Sample.Rim <= 0.0)
+				{
+					bInAMass = true;
+					ASSERT_THAT(IsTrue(Sample.Height <= FMath::Max3(Terrain.JungleZ, Terrain.BaseZ, Terrain.LaneZ) + HeightSlack, TEXT("no cliff of the field's under a mass")));
+				}
+			});
+			ASSERT_THAT(IsTrue(bInAMass));
+			// At the floor's corner, away from the river, the rim has risen.
+			const double Corner = Tuning.Layout.HalfExtent;
+			ASSERT_THAT(IsNear(Field.Height(FVector2D(-Corner, -Corner)), Terrain.BoundaryZ, HeightSlack));
+			ASSERT_THAT(IsTrue(Terrain.BoundaryZ - Tuning.Layout.River.BedZ > Terrain.JungleZ - Terrain.LaneZ, TEXT("metres of relief, not centimetres")));
 		}
 
 		TEST_METHOD(EveryLanesRoadRunsLevelExceptWhereItFords)
@@ -99,7 +103,7 @@ namespace VeyraWorldTests
 				{
 					const FVector2D Point = VeyraLayout::PointAlong(Lane.Points, Along);
 					const FVeyraTerrainSample Sample = Field.Sample(Point);
-					if (Sample.WaterDistance > Tuning.Layout.Terrain.BankWidth && Sample.Pad <= 0.0 && Sample.Ridge <= 0.0)
+					if (Sample.WaterDistance > Tuning.Layout.Terrain.BankWidth && Sample.Keep <= 0.0)
 					{
 						ASSERT_THAT(IsNear(Sample.Height, Tuning.Layout.Terrain.LaneZ, HeightSlack));
 					}
@@ -109,18 +113,18 @@ namespace VeyraWorldTests
 
 		TEST_METHOD(WalkedGroundIsWalkable)
 		{
-			// Everywhere on the floor outside the walls, whose ridges' cliffs stand within them, every slope is gentler than
-			// the surface allows a unit to stand on.
+			// Everywhere in the playable square outside the terrain's boxes, every slope is gentler than the surface allows a
+			// unit to stand on. The rim beyond it rises steeply, and none can reach it.
 			const FVeyraWorldTuning& Tuning = Committed();
 			const FVeyraTerrainField Field(Tuning);
 			const double MaxSlope = Tuning.Layout.Surface.MaxSlopeDegrees;
 			const TArray<FVeyraTerrainBox> Walls = VeyraLayout::Walls(Tuning.Layout);
 			double Steepest = 0.0;
 			ForEachProbe(-SlopeSpan, [&](const FVector2D& Point) {
-				const bool bByARidge = Walls.ContainsByPredicate([&](const FVeyraTerrainBox& Wall) {
+				const bool bByTerrain = Walls.ContainsByPredicate([&](const FVeyraTerrainBox& Wall) {
 					return Wall.DistanceTo(Point) < SlopeSpan;
 				});
-				if (bByARidge)
+				if (bByTerrain || FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) > VeyraLayout::PlayableHalfExtent(Tuning.Layout) - SlopeSpan)
 				{
 					return;
 				}

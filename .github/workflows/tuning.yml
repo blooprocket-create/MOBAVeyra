@@ -11,6 +11,9 @@ on:
       - 'tests/test_tuning.py'
       - 'Game/Scripts/Crucible/**'
       - 'tests/test_crucible_layout.py'
+      - 'tests/test_crucible_art.py'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleMassArt.json'
       - '.github/workflows/tuning.yml'
   pull_request:
     paths:
@@ -22,6 +25,9 @@ on:
       - 'tests/test_tuning.py'
       - 'Game/Scripts/Crucible/**'
       - 'tests/test_crucible_layout.py'
+      - 'tests/test_crucible_art.py'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleMassArt.json'
       - '.github/workflows/tuning.yml'
 
 jobs:
@@ -44,3 +50,5 @@ jobs:
         run: python3 -m pip install -r Game/Scripts/Crucible/requirements.txt
       - name: The Crucible's generated masses are current and its ids line up (ADR-073 §2)
         run: python3 -m unittest discover -s tests -p 'test_crucible_layout.py'
+      - name: The Crucible's mass art is current and stays within each gameplay edge (ADR-073 §5)
+        run: python3 -m unittest discover -s tests -p 'test_crucible_art.py'

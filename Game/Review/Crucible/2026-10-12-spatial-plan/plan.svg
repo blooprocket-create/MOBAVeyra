@@ -37,9 +37,9 @@
 <circle cx="-3697" cy="3060" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
 <circle cx="-1505" cy="2141" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
 <rect x="-5150" y="6150" width="300" height="300" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
-<circle cx="-4100" cy="6750" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
-<circle cx="-1100" cy="5850" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
-<circle cx="2300" cy="6750" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
+<circle cx="-4100" cy="5850" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
+<circle cx="-1100" cy="6750" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
+<circle cx="2300" cy="5850" r="150" fill="#4f7fd6" stroke="#111" stroke-width="30"/>
 <rect x="6740" y="-7260" width="520" height="520" transform="rotate(45 7000 -7000)" fill="#d65a4f" stroke="#111" stroke-width="40"/>
 <circle cx="8450" cy="-8450" r="650" fill="#d65a4f" fill-opacity="0.35" stroke="#d65a4f" stroke-width="40"/>
 <circle cx="6258" cy="-6752" r="140" fill="#d65a4f" stroke="#111" stroke-width="30"/>
@@ -53,9 +53,9 @@
 <circle cx="3697" cy="-3060" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
 <circle cx="1505" cy="-2141" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
 <rect x="4850" y="-6450" width="300" height="300" fill="#d65a4f" stroke="#111" stroke-width="30"/>
-<circle cx="5850" cy="-4100" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
-<circle cx="6750" cy="-1100" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
-<circle cx="5850" cy="2300" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
+<circle cx="6750" cy="-4100" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
+<circle cx="5850" cy="-1100" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
+<circle cx="6750" cy="2300" r="150" fill="#d65a4f" stroke="#111" stroke-width="30"/>
 <path d="M-2795.980189921554,-3756.5594845200644 L-2465.980189921554,-3426.5594845200644 L-2795.980189921554,-3096.5594845200644 L-3125.980189921554,-3426.5594845200644 Z" fill="#c9a2ff" stroke="#3a1f66" stroke-width="40"/>
 <path d="M2795.980189921554,3096.5594845200644 L3125.980189921554,3426.5594845200644 L2795.980189921554,3756.5594845200644 L2465.980189921554,3426.5594845200644 Z" fill="#c9a2ff" stroke="#3a1f66" stroke-width="40"/>
 <circle cx="-4300" cy="1700" r="170" fill="#f0c04a" stroke="#3b2a05" stroke-width="40"/>

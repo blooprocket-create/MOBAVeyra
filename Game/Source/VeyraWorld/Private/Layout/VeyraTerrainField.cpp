@@ -24,23 +24,19 @@ FVeyraTerrainField::FVeyraTerrainField(const FVeyraWorldTuning& InTuning, const 
 	: Tuning(InTuning)
 	, Relief(InRelief)
 	, River(VeyraRiver::ShapeOf(InTuning.Layout))
-	, Walls(VeyraLayout::WallShapes(InTuning.Layout))
+	, Masses(VeyraLayout::Masses(InTuning.Layout))
 {
 	const FVeyraBattlegroundLayout& Layout = Tuning.Layout;
-	for (const FVeyraWallShape& Wall : Walls)
+	for (const FVeyraMassShape& Mass : Masses)
 	{
-		FBox2D& Bounds = WallBounds.Add_GetRef(FBox2D(ForceInit));
-		for (const FVeyraCurveSample& Sample : Wall.Spine)
-		{
-			Bounds += FBox2D(Sample.Point - FVector2D(Sample.Width / 2.0), Sample.Point + FVector2D(Sample.Width / 2.0));
-		}
+		MassBounds.Add(FBox2D(Mass.Outline));
 	}
 	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
 	{
-		Pads.Add(VeyraLayout::ForTeam(VeyraLayout::ToVector(Layout.Base.PrimeWell), Team));
-		for (const FVeyraCampTuning& Camp : Tuning.Wildlife.Camps)
+		Keeps.Add(VeyraLayout::KeepFloor(Layout, Team));
+		for (const FVeyraClearingLayout& Clearing : Layout.Clearings)
 		{
-			Clearings.Add({ VeyraLayout::ForTeam(VeyraLayout::ToVector(Camp.Center), Team), Camp.LeashRadius });
+			Clearings.Add({ VeyraLayout::ForTeam(VeyraLayout::ToVector(Clearing.Center), Team), Clearing.Radius });
 		}
 	}
 	for (const FVeyraMapPoint& Site : Tuning.FluxWells.Sites)
@@ -67,7 +63,7 @@ double FVeyraTerrainField::Ground(const FVector2D& Point, FVeyraTerrainSample& O
 	const FVeyraBattlegroundLayout& Layout = Tuning.Layout;
 	const FVeyraTerrainTuning& Terrain = Layout.Terrain;
 
-	// The jungle's shelves, swelling gently, level in the camps' clearings.
+	// The jungle's shelves, swelling gently, level in the clearings.
 	double Swell = 1.0;
 	for (const TPair<FVector2D, double>& Clearing : Clearings)
 	{
@@ -85,14 +81,14 @@ double FVeyraTerrainField::Ground(const FVector2D& Point, FVeyraTerrainSample& O
 	Out.Road = 1.0 - Smooth(FromRoad / FMath::Max(Terrain.LaneShoulder, UE_DOUBLE_KINDA_SMALL_NUMBER));
 	double Height = FMath::Lerp(Terrain.LaneZ, Jungle, Smooth((FromRoad - Terrain.LaneShoulder) / Terrain.JungleRise));
 
-	// Each base's pad, raised, the lanes climbing into it.
-	double FromPad = TNumericLimits<double>::Max();
-	for (const FVector2D& Pad : Pads)
+	// Each keep's floor, raised, the lanes climbing to it through their gates.
+	double FromKeep = TNumericLimits<double>::Max();
+	for (const TArray<FVector2D>& Keep : Keeps)
 	{
-		FromPad = FMath::Min(FromPad, FVector2D::Distance(Point, Pad) - Layout.Base.PadRadius);
+		FromKeep = FMath::Min(FromKeep, -VeyraLayout::DepthInPolygon(Keep, Point));
 	}
-	Out.Pad = 1.0 - Smooth(FromPad / Terrain.JungleRise);
-	Height = FMath::Lerp(Terrain.BaseZ, Height, Smooth(FromPad / Terrain.JungleRise));
+	Out.Keep = 1.0 - Smooth(FromKeep / Terrain.JungleRise);
+	Height = FMath::Lerp(Terrain.BaseZ, Height, Smooth(FromKeep / Terrain.JungleRise));
 
 	// Each Flux Well's island, a low platform around the Well.
 	double FromWell = TNumericLimits<double>::Max();
@@ -124,26 +120,19 @@ FVeyraTerrainSample FVeyraTerrainField::Sample(const FVector2D& Point) const
 		Height = FMath::Lerp(Water.SurfaceZ, Height, Smooth(Out.WaterDistance / Terrain.BankWidth));
 	}
 
-	// A ridge on every wall, raised after the river cut its banks so a wall by the water keeps its cliff. Its cliff
-	// rises within the wall's footprint, so all of it stands inside the wall's collision and the ground around a wall
-	// stays as walkable as it was.
+	// The masses: the floor runs on beneath them, where their meshes stand (ADR-073 §5).
 	double Inside = -TNumericLimits<double>::Max();
-	for (int32 Index = 0; Index < Walls.Num(); ++Index)
+	for (int32 Index = 0; Index < Masses.Num(); ++Index)
 	{
-		if (WallBounds[Index].IsInside(Point))
+		if (MassBounds[Index].IsInside(Point))
 		{
-			Inside = FMath::Max(Inside, Walls[Index].DepthInside(Point));
+			Inside = FMath::Max(Inside, Masses[Index].DepthInside(Point));
 		}
 	}
-	Out.Ridge = Smooth(Inside / Terrain.RidgeSkirt);
-	if (Out.Ridge > 0.0)
-	{
-		const double Crest = Terrain.RidgeZ + ReliefAt(Point, Relief.Wavelength * Relief.CrestWavelengthShare, Relief.CrestAmplitude);
-		Height = FMath::Lerp(Height, Crest, Out.Ridge);
-	}
+	Out.Mass = Smooth(Inside / FMath::Max(Layout.MassRules.EdgeThickness, UE_DOUBLE_KINDA_SMALL_NUMBER));
 
-	// The rim beyond the floor's edge, open where the river runs through it.
-	const double Beyond = FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) - Layout.HalfExtent;
+	// The rim, rising beyond the playable square to the floor's edge, open where the river runs through it.
+	const double Beyond = FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) - VeyraLayout::PlayableHalfExtent(Layout);
 	if (Beyond > 0.0)
 	{
 		const double Gorge = Smooth((Out.WaterDistance - Terrain.BankWidth) / Terrain.BankWidth);

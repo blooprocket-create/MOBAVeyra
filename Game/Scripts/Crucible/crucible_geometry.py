@@ -5,7 +5,8 @@
 - The open spaces are read from World.json: lane envelopes, the walkable river, keeps, clearings and routes, each
   team's the other's half turn.
 - Masses are what the playable square leaves: pieces thinner than minThickness or smaller than minArea are opened,
-  outlines simplified, Team A's kept by their centroids and Team B's written as their exact half turns.
+  convex corners rounded to cornerRadius (necks kept), outlines simplified, Team A's kept by their centroids and Team B's
+  written as their exact half turns.
 - inputSha256 hashes the canonical JSON of every input, so a stale `masses` is caught without recomputing it.
 
 Everything but the hash needs shapely (pinned in requirements.txt beside this file).
@@ -18,6 +19,9 @@ import math
 from pathlib import Path
 
 SCHEMA_VERSION = 8
+# Segments to each quarter circle of every buffer: arcs within half a unit of true for radii to 1,500, so a mass edge stands
+# where the validator measures it (ADR-073 §2). Resolution, not tuning.
+ARC_SEGMENTS = 64
 REPO = Path(__file__).resolve().parents[3]
 WORLD_JSON = REPO / "Game" / "Tuning" / "World.json"
 
@@ -162,7 +166,7 @@ def _band(samples, extra, LineString, unary_union):
     pieces = []
     for a, b in zip(samples, samples[1:]):
         r = max(a[2], b[2]) / 2.0 + extra
-        pieces.append(LineString([a[:2], b[:2]]).buffer(r, quad_segs=6))
+        pieces.append(LineString([a[:2], b[:2]]).buffer(r, quad_segs=ARC_SEGMENTS))
     return unary_union(pieces)
 
 
@@ -172,7 +176,7 @@ def open_spaces(world: dict):
     rules = layout["massRules"]
     turned = lambda g: affinity.rotate(g, 180, origin=(0, 0))
     shoulder = layout["terrain"]["laneShoulder"]
-    lanes = [LineString([(p["x"], p["y"]) for p in lane["points"]]).buffer(lane["width"] / 2.0 + shoulder, quad_segs=8)
+    lanes = [LineString([(p["x"], p["y"]) for p in lane["points"]]).buffer(lane["width"] / 2.0 + shoulder, quad_segs=ARC_SEGMENTS)
              for lane in layout["lanes"]]
     channels = river_channels(layout["river"])
     river = []
@@ -182,10 +186,36 @@ def open_spaces(world: dict):
         river.append(_band(samples, rules["riverMargin"], LineString, unary_union))
     keep = layout["keep"]
     keep_floor = Polygon([(p["x"], p["y"]) for p in keep["floor"]])
-    clearings = [Point(c["center"]["x"], c["center"]["y"]).buffer(c["radius"], quad_segs=16) for c in layout["clearings"]]
-    routes = [LineString([(p["x"], p["y"]) for p in r["points"]]).buffer(r["width"] / 2.0, quad_segs=8) for r in layout["routes"]]
+    clearings = [Point(c["center"]["x"], c["center"]["y"]).buffer(c["radius"], quad_segs=ARC_SEGMENTS) for c in layout["clearings"]]
+    routes = [LineString([(p["x"], p["y"]) for p in r["points"]]).buffer(r["width"] / 2.0, quad_segs=ARC_SEGMENTS) for r in layout["routes"]]
     team_a = unary_union([keep_floor] + clearings + routes)
     return unary_union(lanes + river + [team_a, turned(team_a)])
+
+
+def is_acute(a, v, b):
+    """Whether the counter-clockwise outline turns left at v by more than a right angle: a convex corner sharper than one."""
+    d1 = (v[0] - a[0], v[1] - a[1])
+    d2 = (b[0] - v[0], b[1] - v[1])
+    return d1[0] * d2[1] - d1[1] * d2[0] > 0 and d1[0] * d2[0] + d1[1] * d2[1] < 0
+
+
+def _parts(geom):
+    if geom.is_empty:
+        return []
+    return list(geom.geoms) if geom.geom_type in ("MultiPolygon", "GeometryCollection") else [geom]
+
+
+def round_corners(solid, radius):
+    """Rounds every convex corner of a mass to radius and cuts back every spike narrower than twice it (ADR-073 §3), so
+    no corner is sharper than a right angle: an edge box lies flush along its span, and at a sharper corner it would stand
+    out of the mass. A neck narrower than twice radius that holds two parts together is kept, so no new way opens through
+    a mass. It only ever removes mass, so open ground never shrinks."""
+    _, _, _, _, unary_union, _ = _shapely()
+    opened = solid.buffer(-radius, quad_segs=16).buffer(radius, quad_segs=16)
+    kept = _parts(opened)
+    necks = [piece for piece in _parts(solid.difference(opened))
+             if piece.area > 1.0 and sum(1 for part in kept if piece.buffer(1.0).intersects(part)) >= 2]
+    return _parts(unary_union(kept + necks))
 
 
 def derive_masses(world: dict) -> list:
@@ -202,16 +232,22 @@ def derive_masses(world: dict) -> list:
         if piece.is_empty or piece.area < rules["minArea"] or piece.buffer(-rules["minThickness"] / 2.0).is_empty:
             continue
         solid = Polygon(piece.exterior)  # open ground wholly inside a mass is unreachable: the mass keeps it
-        simple = solid.simplify(rules["simplifyTolerance"], preserve_topology=True)
-        centroid = simple.centroid
-        if centroid.x + centroid.y >= 0:
-            continue  # Team B's side of the river line: written as Team A's half turn below
-        kind = "Cliff" if simple.intersects(edge) else ("Forest" if simple.area >= rules["forestMinArea"] else "Rock")
-        coords = [(round(x), round(y)) for x, y in list(simple.exterior.coords)[:-1]]
-        area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(coords, coords[1:] + coords[:1]))
-        if area < 0:
-            coords.reverse()  # counter-clockwise in world x/y
-        team_a.append({"kind": kind, "points": coords, "key": (round(centroid.x), round(centroid.y))})
+        for part in round_corners(solid, rules["cornerRadius"]):
+            if part.area < rules["minArea"]:
+                continue
+            simple = Polygon(part.exterior).simplify(rules["simplifyTolerance"], preserve_topology=True)
+            centroid = simple.centroid
+            if centroid.x + centroid.y >= 0:
+                continue  # Team B's side of the river line: written as Team A's half turn below
+            kind = "Cliff" if simple.intersects(edge) else ("Forest" if simple.area >= rules["forestMinArea"] else "Rock")
+            coords = [(round(x), round(y)) for x, y in list(simple.exterior.coords)[:-1]]
+            area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(coords, coords[1:] + coords[:1]))
+            if area < 0:
+                coords.reverse()  # counter-clockwise in world x/y
+            sharp = [coords[i] for i in range(len(coords)) if is_acute(coords[i - 1], coords[i], coords[(i + 1) % len(coords)])]
+            if sharp:
+                raise ValueError(f"A mass keeps corners sharper than a right angle at {sharp}: widen cornerRadius or the open spaces there.")
+            team_a.append({"kind": kind, "points": coords, "key": (round(centroid.x), round(centroid.y))})
     team_a.sort(key=lambda m: m["key"])
     masses = []
     for i, m in enumerate(team_a):

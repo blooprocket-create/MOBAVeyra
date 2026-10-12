@@ -21,7 +21,7 @@
   "fog_lane_overlap_m2": 0.0,
   "fog_min_clearance_to_lane_envelope": 13,
   "fog_bank_count_per_team": 21,
-  "fog_min_clearance_to_structures": 599,
+  "fog_min_clearance_to_structures": 610,
   "fog_lobes_per_team": 48,
   "camps": {
     "stonehorn": {

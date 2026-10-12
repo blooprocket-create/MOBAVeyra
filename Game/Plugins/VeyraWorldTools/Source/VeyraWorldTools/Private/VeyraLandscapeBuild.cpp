@@ -74,8 +74,6 @@ namespace VeyraWorldBuild
 		FVeyraTerrainRelief Relief;
 		Style.TryGetNumberField(TEXT("reliefAmplitude"), Relief.Amplitude);
 		Style.TryGetNumberField(TEXT("reliefWavelength"), Relief.Wavelength);
-		Style.TryGetNumberField(TEXT("crestAmplitude"), Relief.CrestAmplitude);
-		Style.TryGetNumberField(TEXT("crestWavelengthShare"), Relief.CrestWavelengthShare);
 		Relief.Seed = static_cast<int32>(Style.GetNumberField(TEXT("seed")));
 		return Relief;
 	}
@@ -108,9 +106,8 @@ namespace VeyraWorldBuild
 			return false;
 		}
 
-		// The floor, the rim beyond it, and an inaccessible vista beyond that, so the view never ends in nothing.
-		const FVeyraTerrainTuning& Terrain = Tuning.Layout.Terrain;
-		const double Rim = Tuning.Layout.HalfExtent + Terrain.BoundaryWidth;
+		// The floor, its rim rising to the floor's edge (ADR-073 §2), and an inaccessible vista beyond, so the view never ends in nothing.
+		const double Rim = Tuning.Layout.HalfExtent;
 		const double Extent = Rim + VistaWidth;
 		const double Spacing = Extent * 2.0 / (Size - 1);
 		ALandscape* Ground = World.SpawnActor<ALandscape>();
@@ -158,10 +155,10 @@ namespace VeyraWorldBuild
 				const double Beyond = FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) - Rim;
 				const double Vista = Beyond > 0.0 ? Sample.Rim * Smooth(Beyond / VistaRise) * VistaAmplitude * Ridged(Point, VistaWavelength, Relief.Seed) : 0.0;
 				Heights[Index] = LandscapeDataAccess::GetTexHeight((Sample.Height + Vista) / ZScale);
-				// Weights in order of precedence: the water's shore, then roads and pads, the jungle the rest. Ridge tops,
-				// the rim and the vista stay jungle, overgrown; the material lays rock on whatever is steep.
+				// Weights in order of precedence: the water's shore, then roads and keeps, the jungle the rest. The floor under
+				// the masses, the rim and the vista stay jungle, overgrown; the material lays rock on whatever is steep.
 				const double Bank = 1.0 - Smooth(Sample.WaterDistance / BankBand);
-				const double Road = (1.0 - Bank) * FMath::Max(Sample.Road, Sample.Pad);
+				const double Road = (1.0 - Bank) * FMath::Max(Sample.Road, Sample.Keep);
 				const int32 B = FMath::Clamp(FMath::RoundToInt(Bank * 255.0), 0, 255);
 				const int32 R = FMath::Clamp(FMath::RoundToInt(Road * 255.0), 0, 255 - B);
 				Layers[0].LayerData[Index] = static_cast<uint8>(255 - B - R);

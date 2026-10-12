@@ -190,7 +190,7 @@ default tangent-space convention.
 Environment moss colour and foliage detail use the full `XYZ Texture` projection,
 including upward-facing surfaces. Do not use the side-only `XY Texture` output
 as a top projection: it stretches into directional bands on caps and canopies.
-Review both tops and steep sides from `Play_Jungle_A0` and `Play_Wall_03` after
+Review both tops and steep sides from `Play_Jungle_A_stonehorn` and `Play_Mass_a03` after
 rebuilding these shared materials.
 
 ### 5.5 Material slots

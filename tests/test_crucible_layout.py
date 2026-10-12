@@ -42,6 +42,28 @@ class CrucibleLayout(unittest.TestCase):
             area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(pts, pts[1:] + pts[:1]))
             self.assertGreater(area, 0, mass["id"])
 
+    def test_no_mass_corner_is_sharper_than_a_right_angle(self):
+        # Each edge box lies flush along its span: at a sharper corner it would stand out of its mass (ADR-073 §3).
+        for mass in LAYOUT["masses"]["items"]:
+            pts = [(p["x"], p["y"]) for p in mass["points"]]
+            sharp = [pts[i] for i in range(len(pts)) if geometry.is_acute(pts[i - 1], pts[i], pts[(i + 1) % len(pts)])]
+            self.assertEqual(sharp, [], mass["id"])
+
+    @unittest.skipUnless(HAS_SHAPELY, "shapely (Game/Scripts/Crucible/requirements.txt) rounds the corners")
+    def test_rounding_blunts_a_spike_but_keeps_a_neck(self):
+        from shapely.geometry import Point, Polygon, box
+        from shapely.ops import unary_union
+
+        # Two blocks joined by a neck narrower than twice the radius, a thin spike off the second: the spike goes, the
+        # neck stays, so no new way opens through the mass.
+        spike = Polygon([(2200, 450), (2900, 500), (2200, 550)])
+        solid = unary_union([box(0, 0, 1000, 1000), box(1000, 450, 1200, 550), box(1200, 0, 2200, 1000), spike])
+        parts = geometry.round_corners(solid, 150)
+        self.assertEqual(len(parts), 1)
+        self.assertTrue(parts[0].contains(Point(1100, 500)), "the neck is kept")
+        self.assertFalse(parts[0].contains(Point(2600, 500)), "the spike is cut back")
+        self.assertTrue(parts[0].within(solid.buffer(0.5)), "it only removes mass")
+
     def test_ids_are_unique_and_every_camp_stands_on_its_own_clearing(self):
         for key in ("clearings", "routes"):
             ids = [item["id"] for item in LAYOUT[key]]
@@ -56,6 +78,13 @@ class CrucibleLayout(unittest.TestCase):
     def test_each_spire_has_a_side(self):
         for lane in LAYOUT["lanes"]:
             self.assertEqual(len(lane["spireSides"]), len(lane["spireDistances"]), lane["lane"])
+
+    def test_top_and_bottom_spires_share_their_sides(self):
+        # The half turn carries Team A's top lane onto Team B's bottom, keeping left as left along each team's walk, so
+        # Team B's bottom Spires stand where Team A's top ones do only if the two lanes list the same sides.
+        lanes = {lane["lane"]: lane for lane in LAYOUT["lanes"]}
+        self.assertEqual(lanes["Top"]["spireSides"], lanes["Bottom"]["spireSides"])
+        self.assertEqual(lanes["Top"]["spireDistances"], lanes["Bottom"]["spireDistances"])
 
 
 if __name__ == "__main__":
