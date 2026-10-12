@@ -110,15 +110,24 @@ def write_mp4(files: list[Path], durations: list[float], target: Path) -> None:
         subprocess.run(command, check=True)
 
 
-def encode(folder: Path, out: Path, gif_width: int, gif_fps: float = 20.0) -> list[Path]:
+def encode(folder: Path, out: Path, gif_width: int, gif_fps: float = 20.0, missing: list[str] | None = None) -> list[Path]:
+    """Writes each clip the manifest lists; the abilities with nothing to encode, as the recorder left one out or its
+    frames were never written, are added to missing."""
     manifest = read_manifest(folder)
     out.mkdir(parents=True, exist_ok=True)
     written = []
     for clip in manifest["clips"]:
+        if clip.get("failure"):
+            print(f"{clip['ability']}: the recorder left it out: {clip['failure']}")
+            if missing is not None:
+                missing.append(clip["ability"])
+            continue
         files = [folder / frame["file"] for frame in clip["frames"]]
         files_present = [file for file in files if file.is_file()]
         if not files_present:
-            print(f"{clip['ability']}: no frames were written; skipped.")
+            print(f"{clip['ability']}: no frames were written.")
+            if missing is not None:
+                missing.append(clip["ability"])
             continue
         times = [frame["time"] for frame, file in zip(clip["frames"], files) if file.is_file()]
         durations = frame_durations(times)
@@ -138,9 +147,13 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--gif-width", type=int, default=640, help="the GIFs' width in pixels, to keep them small; 0 keeps the frames' own")
     parser.add_argument("--gif-fps", type=float, default=20.0, help="the GIFs' frame rate, to keep them small; 0 keeps every frame")
     arguments = parser.parse_args(argv)
-    written = encode(arguments.recording, arguments.out or arguments.recording.parent, arguments.gif_width, arguments.gif_fps)
+    missing: list[str] = []
+    written = encode(arguments.recording, arguments.out or arguments.recording.parent, arguments.gif_width, arguments.gif_fps, missing)
     print(f"Wrote {len(written)} file(s).")
-    return 0 if written else 1
+    # A recording passes only whole: every clip the manifest lists encoded.
+    if missing:
+        print(f"Missing {len(missing)} clip(s): {', '.join(missing)}.")
+    return 0 if written and not missing else 1
 
 
 if __name__ == "__main__":

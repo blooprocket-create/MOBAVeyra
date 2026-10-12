@@ -35,7 +35,8 @@ namespace VeyraKitOrders
 	FVeyraCastTarget TargetAt(AActor& Aim);
 
 	/**
-	 * When Ability's cooldown is next due for Own. A cast counts once the server starts its cooldown, at Commit
+	 * When Ability's cooldown is next due for Own, its own or a shared one it starts, whichever is later. A cast counts
+	 * once the server starts its cooldown, at Commit
 	 * (ADR-008 §4), so a later due time than before the order means it committed. It is read by when it is due, not by
 	 * what remains: a client's estimate of the server's clock can run seconds ahead, as a render-less client's does.
 	 */

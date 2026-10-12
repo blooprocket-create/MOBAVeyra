@@ -136,19 +136,21 @@ finally {
 
 $verdict = if (Test-Path -LiteralPath $clientLogPath) { Select-String -LiteralPath $clientLogPath -Pattern 'VeyraShowcase: (DONE|FAIL).*' | Select-Object -Last 1 } else { $null }
 Write-Host ("Recorder: {0}" -f $(if ($verdict) { $verdict.Matches[0].Value } else { 'no verdict logged' }))
-if (-not $verdict -or $verdict.Matches[0].Value -notmatch 'DONE') {
+$recorded = $verdict -and $verdict.Matches[0].Value -match 'DONE'
+# A recording that left an ability out still wrote its manifest: the clips it made are encoded, and it still fails.
+if (-not (Test-Path -LiteralPath (Join-Path $framesDir 'manifest.json'))) {
     Write-Host "Logs: $recordingDir"
     exit $ExitFailed
 }
 if ($SkipEncode) {
     Write-Host "Frames: $framesDir"
-    exit $ExitRecorded
+    exit $(if ($recorded) { $ExitRecorded } else { $ExitFailed })
 }
 
 & python (Join-Path $PSScriptRoot 'Showcase\encode_showcase.py') $framesDir --out $recordingDir
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Encoding failed. Install the encoder's dependencies with: python -m pip install -r $(Join-Path $PSScriptRoot 'Showcase\requirements.txt')"
-    exit $ExitFailed
+$encoded = $LASTEXITCODE -eq 0
+if (-not $encoded) {
+    Write-Host "Not every clip was encoded. If the encoder could not start, install its dependencies with: python -m pip install -r $(Join-Path $PSScriptRoot 'Showcase\requirements.txt')"
 }
 Write-Host "Clips: $recordingDir"
-exit $ExitRecorded
+exit $(if ($recorded -and $encoded) { $ExitRecorded } else { $ExitFailed })

@@ -38,7 +38,10 @@ The stage is a plain floor with two team starts facing each other. Between reset
 `Veyra.Dev.ResetShowcase` is a server developer command that works only on such a server. It puts the stage back as it began, through the owners' own verbs:
 - the caster's Health and resource are refilled and its cooldowns cleared;
 - the dummy respawns if it died, through a participant-based form of the game mode's developer respawn, and its Health and resource are refilled;
+- a ride either body is still on is ended through Combat, as if its time ran out;
 - both bodies return to their marks, facing each other.
+
+The recorder numbers each reset it asks for, and the reply carries that number and whether the stage is set. It is set only when both bodies stand at their marks. A body that cannot be stood there yet, such as one held on to another, leaves the stage unset, and the recorder asks again.
 
 Crowd control and other statuses are not stripped: the recorder waits for them to run out (§3).
 
@@ -48,12 +51,14 @@ Crowd control and other statuses are not stripped: the recorder waits for them t
 2. **View:** it hides the HUD and the engine's on-screen messages, locks the camera onto its Vanguard at the game's own zoom, as a player sees the fight, and turns edge scrolling off.
 3. **Rehearsal:** with the settings' `bRehearse`, it first casts the whole kit once without capturing. An effect a client first plays may still be compiling, and would be missing from its first clip.
 4. **Each ability, in slot order:**
-   - it asks for `ResetShowcase` and waits the settle time;
+   - it asks for `ResetShowcase` and, once the stage is set, waits the settle time and until the caster carries no status, within the patience. A mode the last clip turned on would otherwise change what its abilities are;
    - it starts capturing and casts at the dummy, or at itself for an ability aimed at an ally;
+   - a cast counts as taken when its cooldown starts, its own or a shared one, or when its caster is seen in a new cast of it. An order that goes unanswered while the caster is free is sent again. A retry refused as cooling down shows that the first order was taken;
+   - if the server refuses the cast because the target is not prepared, for example an ability that needs a target hurt a moment ago, it drops the clip, hurts the dummy with a basic attack and casts again at once, as a new clip;
    - it keeps capturing until the cast has ended and the tail time has passed, or the clip limit is reached.
 5. **Frames:** every Nth frame is captured through `FFrameGrabber` at the settings' resolution. Each is written as a PNG off the game thread, as `<directory>/<ability>/<index>.png`.
 6. **Manifest:** `manifest.json` records each clip's frames and their world times, so the encoder plays them back at the speed they happened.
-7. **Exit:** once every ability is recorded it quits. A refusal it cannot outlast, or a timeout, fails the recording, with the reason logged.
+7. **Exit:** once every ability is recorded it quits. An ability it cannot record leaves the rest unaffected. Examples are a refusal it cannot outlast or prime away, or a stage it cannot reset. That ability is listed in the manifest with the reason, and the recording fails. A timeout fails it outright. The encoder encodes what was recorded, and fails unless every listed clip was encoded.
 
 The kit smoke and the recorder share their kit orders: the nearest enemy body, the target an ability aims at, which refusals pass, and the test that a cast committed. These live in `VeyraKitOrders`, not duplicated in each.
 

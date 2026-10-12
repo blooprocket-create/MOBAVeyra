@@ -5,6 +5,8 @@
 #include "DevCommands/VeyraDevCommands.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "AbilitySystemComponent.h"
+#include "Showcase/VeyraShowcaseRules.h"
 #include "Showcase/VeyraShowcaseSettings.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -103,7 +105,7 @@ void UVeyraShowcaseSubsystem::Seat(UWorld& World)
 	UE_LOG(LogVeyraShowcaseStage, Display, TEXT("VeyraShowcase: %s the dummy."), Dummy.IsValid() ? TEXT("seated") : TEXT("could not seat"));
 }
 
-FString UVeyraShowcaseSubsystem::Reset(AVeyraPlayerController& Requester)
+FString UVeyraShowcaseSubsystem::Reset(AVeyraPlayerController& Requester, int32 Token)
 {
 	UWorld* World = GetWorld();
 	AVeyraGameMode* GameMode = World ? World->GetAuthGameMode<AVeyraGameMode>() : nullptr;
@@ -111,33 +113,41 @@ FString UVeyraShowcaseSubsystem::Reset(AVeyraPlayerController& Requester)
 	AVeyraPlayerState* Seated = Dummy.Get();
 	if (!bActive || !GameMode || !Caster || !Seated)
 	{
-		return TEXT("This match is not the skill showcase's stage, or its dummy is not seated yet (ADR-074 §2).");
+		return VeyraShowcase::ResetReply(Token, false, TEXT("This match is not the skill showcase's stage, or its dummy is not seated yet (ADR-074 §2)."));
 	}
 	const AVeyraTeamStart* StartA = StartOf(*World, EVeyraTeam::A);
 	const AVeyraTeamStart* StartB = StartOf(*World, EVeyraTeam::B);
 	if (!StartA || !StartB)
 	{
-		return TEXT("The stage has no start for each side.");
+		return VeyraShowcase::ResetReply(Token, false, TEXT("The stage has no start for each side."));
 	}
 	// Each body stands on the line between the starts, its settings' distance from the centre on its own side, facing
 	// the other.
 	const FVector Centre = (StartA->GetActorLocation() + StartB->GetActorLocation()) / 2.0;
 	const double Stand = GetDefault<UVeyraShowcaseSettings>()->StandDistanceFromCenter;
 	TArray<FString> Done;
+	bool bSet = true;
 	for (AVeyraPlayerState* Participant : { Caster, Seated })
 	{
 		if (!VeyraTargeting::IsAlive(Participant))
 		{
 			GameMode->HandleDeveloperRespawn(*Participant);
 		}
+		// A ride still under way, as the last clip's, ends, and a body held on to is let go, so it can stand at its mark.
+		if (UAbilitySystemComponent* AbilitySystem = Participant->GetAbilitySystemComponent())
+		{
+			VeyraShowcase::ReleaseHolds(*AbilitySystem);
+		}
 		Done.Add(VeyraDevCommands::HealParticipant(*Participant));
 		const AVeyraTeamStart* Own = Participant->GetVeyraTeam() == EVeyraTeam::A ? StartA : StartB;
 		const FVector Outward = (Own->GetActorLocation() - Centre).GetSafeNormal2D();
 		const FRotator Facing = (-Outward).Rotation();
 		FString Moved;
-		VeyraDevCommands::TeleportParticipant(*Participant, Centre + Outward * Stand, &Facing, Moved);
+		// A body that cannot be stood at its mark yet, as one held on to another, leaves the stage unset: the recorder asks
+		// again.
+		bSet &= VeyraDevCommands::TeleportParticipant(*Participant, Centre + Outward * Stand, &Facing, Moved);
 		Done.Add(Moved);
 	}
 	Done.Add(VeyraDevCommands::ResetCooldownsOf(*Caster));
-	return FString::Printf(TEXT("The stage is set: %s"), *FString::Join(Done, TEXT(" ")));
+	return VeyraShowcase::ResetReply(Token, bSet, FString::Join(Done, TEXT(" ")));
 }

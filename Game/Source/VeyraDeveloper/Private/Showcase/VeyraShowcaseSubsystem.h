@@ -33,11 +33,11 @@ public:
 
 	/**
 	 * Puts the stage back as it began, for Requester's recording: each of Requester's Vanguard and the dummy respawns
-	 * if it died, has its Health and resource filled and stands at its mark between the sides' starts, facing the
-	 * other; Requester's cooldowns are cleared. Statuses run their course. Returns what was done, or why the stage
-	 * cannot be reset.
+	 * if it died, has a ride it is on ended, has its Health and resource filled and stands at its mark between the
+	 * sides' starts, facing the other; Requester's cooldowns are cleared. Statuses run their course. Returns the reply
+	 * to the reset asked for with Token (VeyraShowcase::ResetReply): set only when both bodies stand at their marks.
 	 */
-	FString Reset(AVeyraPlayerController& Requester);
+	FString Reset(AVeyraPlayerController& Requester, int32 Token);
 
 private:
 	void Seat(UWorld& World);

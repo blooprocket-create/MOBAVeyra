@@ -82,6 +82,21 @@ class Encode(unittest.TestCase):
                 self.assertEqual(gif.n_frames, 3)
                 self.assertEqual(gif.width, 32)
 
+    def test_a_recording_missing_a_clip_fails_though_the_rest_are_encoded(self):
+        # The recorder lists a clip's frames as it asks for them; one whose images were never written, or one the
+        # recorder had to leave out, must not pass for a whole recording.
+        with tempfile.TemporaryDirectory() as scratch:
+            folder = Path(scratch) / "frames"
+            self.write_recording(folder)
+            manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+            manifest["clips"].append({"ability": "test_unwritten", "slot": "W", "orderedAt": 11.0, "committedAt": 11.0,
+                                      "frames": [{"file": "test_unwritten/0000.png", "time": 11.0}]})
+            manifest["clips"].append({"ability": "test_left_out", "slot": "E", "orderedAt": 12.0, "committedAt": -1.0,
+                                      "failure": "the server refused it: NotLearned", "frames": []})
+            (folder / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            self.assertEqual(encoder.main([str(folder), "--out", scratch, "--gif-fps", "0"]), 1)
+            self.assertTrue((Path(scratch) / "test_ability.mp4").is_file(), "the clips that were recorded are still encoded")
+
     def test_a_manifest_of_another_version_is_refused(self):
         with tempfile.TemporaryDirectory() as scratch:
             folder = Path(scratch)

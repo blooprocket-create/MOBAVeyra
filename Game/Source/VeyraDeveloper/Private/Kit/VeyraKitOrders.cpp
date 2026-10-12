@@ -4,6 +4,8 @@
 
 #include "Brain/VeyraBotAbilities.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Targeting/VeyraTargeting.h"
@@ -82,6 +84,15 @@ namespace VeyraKitOrders
 	{
 		const UVeyraCooldownComponent* Cooldowns = Own.FindComponentByClass<UVeyraCooldownComponent>();
 		const UVeyraAbilityLoadoutComponent* Loadout = Own.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
-		return Cooldowns && Loadout ? Cooldowns->GetReadyAt(Loadout->CooldownIdOf(Ability)) : 0.0;
+		if (!Cooldowns || !Loadout)
+		{
+			return 0.0;
+		}
+		// Its own cooldown, or a shared one it starts, as a dash a mode grants may: whichever is due later.
+		const FVeyraContentId Id = Loadout->CooldownIdOf(Ability);
+		const AGameStateBase* Clock = Own.GetWorld() ? Own.GetWorld()->GetGameState() : nullptr;
+		const double Now = Clock ? Clock->GetServerWorldTimeSeconds() : 0.0;
+		const double Shared = Cooldowns->GetSharedRemainingSeconds(Id, Now);
+		return FMath::Max(Cooldowns->GetReadyAt(Id), Shared > 0.0 ? Now + Shared : 0.0);
 	}
 }

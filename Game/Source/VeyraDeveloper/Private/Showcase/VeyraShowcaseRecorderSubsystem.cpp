@@ -24,6 +24,9 @@
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
+#include "Showcase/VeyraShowcaseRules.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Showcase/VeyraShowcaseSettings.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
@@ -51,6 +54,9 @@ namespace
 	// often; and how long the frames still in flight may take to be written once the last clip ends.
 	constexpr double RetryRealSeconds = 0.25;
 	constexpr double FlushRealSeconds = 30.0;
+	// How long a cast may go unanswered, neither committed nor refused, with its caster free again, before it is ordered
+	// again, as the kit smoke does.
+	constexpr double UnansweredRealSeconds = 3.0;
 
 #if WITH_VEYRA_UI
 	/** What a captured frame carries to where it is written: its clip, its file and its server time. */
@@ -174,7 +180,7 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 	{
 		return true;
 	}
-	const AActor* Dummy = VeyraKitOrders::FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation());
+	AActor* Dummy = VeyraKitOrders::FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation());
 
 	switch (Step)
 	{
@@ -226,12 +232,40 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		{
 			break;
 		}
-		VeyraDevCommands::Request(*Controller, TEXT("ResetShowcase"));
+		ResetSince = Now;
+		SetAt.Reset();
+		VeyraDevCommands::Request(*Controller, TEXT("ResetShowcase"), { FString::FromInt(++ResetToken) });
 		Advance(EStep::Settle, *FString::Printf(TEXT("asked to reset the stage for slot %d"), SlotIndex));
 		break;
 
 	case EStep::Settle:
-		if (Now - StepSince >= Settings.SettleSeconds && Dummy)
+	{
+		// The settle starts once the server says this reset set the stage; a stage it could not set yet is asked again.
+		const VeyraShowcase::EResetAnswer Answer = VeyraShowcase::ReadResetReply(Controller->GetLastDeveloperCommandReply(), ResetToken);
+		if (!SetAt.IsSet() && Answer == VeyraShowcase::EResetAnswer::Set)
+		{
+			SetAt = Now;
+		}
+		else if (!SetAt.IsSet())
+		{
+			if (Now - ResetSince > Settings.CastPatienceSeconds)
+			{
+				const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+				const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(VeyraAbilitySlots::All[SlotIndex]) : nullptr;
+				SkipAbility(Entry ? Entry->Ability : FVeyraContentId(), FString::Printf(TEXT("the stage could not be reset: %s"), *Controller->GetLastDeveloperCommandReply()));
+			}
+			else if (Answer == VeyraShowcase::EResetAnswer::NotSet && Now - StepSince >= RetryRealSeconds)
+			{
+				VeyraDevCommands::Request(*Controller, TEXT("ResetShowcase"), { FString::FromInt(++ResetToken) });
+				StepSince = Now;
+			}
+			break;
+		}
+		// The caster starts clean: a state the last clip left on it, as a mode its ultimate turns on, changes what its
+		// abilities are. One that never ends, as a passive's, is waited out no longer than the patience.
+		const UVeyraStatusComponent* Statuses = Own->FindComponentByClass<UVeyraStatusComponent>();
+		const bool bClean = !Statuses || Statuses->GetLedger().Entries.IsEmpty() || Now - SetAt.GetValue() >= Settings.SettleSeconds + Settings.CastPatienceSeconds;
+		if (Now - SetAt.GetValue() >= Settings.SettleSeconds && bClean && Dummy)
 		{
 			// Within the ability's reach of the dummy before the clip starts, so it shows the cast, not a walk.
 			const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
@@ -252,6 +286,7 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 			OrderCast(*Controller, *Vanguard);
 		}
 		break;
+	}
 
 	case EStep::Approach:
 	{
@@ -263,7 +298,7 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		}
 		else if (Now - StepSince > Settings.CastPatienceSeconds)
 		{
-			Finish(false, FString::Printf(TEXT("could not step within reach of the dummy for slot %d"), SlotIndex));
+			SkipAbility(Entry ? Entry->Ability : FVeyraContentId(), TEXT("could not step within its reach of the dummy"));
 		}
 		break;
 	}
@@ -271,6 +306,27 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::Cast:
 		TickCast(*Controller);
 		break;
+
+	case EStep::Prime:
+	{
+		// The dummy is hurt by a basic attack, as an ability that needs a target hurt a moment ago asks; once the attack
+		// lands, the cast goes again at once, as a new clip.
+		const UVeyraBasicAttackComponent* Attacks = Own->FindComponentByClass<UVeyraBasicAttackComponent>();
+		if (Attacks && Attacks->GetState().Phase == EVeyraAttackPhase::Backswing)
+		{
+			OrderCast(*Controller, *Vanguard);
+		}
+		else if (Now - StepSince > Settings.CastPatienceSeconds)
+		{
+			SkipAbility(CastAbility, TEXT("the dummy could not be primed with a basic attack"));
+		}
+		else if (Now >= PrimeRetryAt && Dummy)
+		{
+			Controller->IssueAttackOrder(Dummy);
+			PrimeRetryAt = Now + RetryRealSeconds * 4.0;
+		}
+		break;
+	}
 
 	case EStep::Record:
 	{
@@ -284,17 +340,8 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		if ((!CastState->IsBusy() && ServerNow() - LastBusyAt >= Settings.TailSeconds) || Since >= Settings.MaxClipSeconds)
 		{
 			StopCapture();
-			const FString Recorded = FString::Printf(TEXT("%s %s in %d frame(s) over %.2f s"), bRehearsing ? TEXT("rehearsed") : TEXT("recorded"),
-				*Clip.Ability.ToString(), Clip.Frames.Num(), Since);
-			const bool bLast = ++SlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All);
-			if (bLast && bRehearsing)
-			{
-				// The rehearsal leaves nothing behind: the recording starts again from the first slot.
-				bRehearsing = false;
-				SlotIndex = 0;
-				Clips.Reset();
-			}
-			Advance(bLast && !bRehearsing && Clips.Num() > 0 ? EStep::Flush : EStep::Reset, *Recorded);
+			NextSlot(FString::Printf(TEXT("%s %s in %d frame(s) over %.2f s"), bRehearsing ? TEXT("rehearsed") : TEXT("recorded"),
+				*Clip.Ability.ToString(), Clip.Frames.Num(), Since));
 		}
 		break;
 	}
@@ -314,7 +361,18 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 			}
 			else
 			{
-				Finish(bWritten, bWritten ? FString::Printf(TEXT("recorded %d clip(s) into %s"), Clips.Num(), *OutputDir) : FString(TEXT("frames were still being written")));
+				// A recording passes only whole: every ability recorded and every frame written.
+				TArray<FString> LeftOut;
+				for (const FClip& Clip : Clips)
+				{
+					if (!Clip.Failure.IsEmpty())
+					{
+						LeftOut.Add(FString::Printf(TEXT("%s (%s)"), *Clip.Ability.ToString(), *Clip.Failure));
+					}
+				}
+				Finish(bWritten && LeftOut.IsEmpty(), !bWritten ? FString(TEXT("frames were still being written"))
+					: LeftOut.IsEmpty() ? FString::Printf(TEXT("recorded %d clip(s) into %s"), Clips.Num(), *OutputDir)
+					: FString::Printf(TEXT("recorded into %s without %s"), *OutputDir, *FString::Join(LeftOut, TEXT("; "))));
 			}
 		}
 		break;
@@ -367,11 +425,14 @@ void UVeyraShowcaseRecorderSubsystem::OrderCast(AVeyraPlayerController& Controll
 	if (Step != EStep::Cast)
 	{
 		// The clip starts with the first order, so it holds the windup.
+		bClipForSlot = true;
 		FClip& Clip = Clips.AddDefaulted_GetRef();
 		Clip.Ability = Entry->Ability;
 		Clip.Slot = StaticEnum<EVeyraAbilitySlot>()->GetNameStringByValue(static_cast<int64>(Slot));
 		Clip.OrderedAt = ServerNow();
 		LastBusyAt = Clip.OrderedAt;
+		CastSince = FPlatformTime::Seconds();
+		bOrderedAgain = false;
 		FirstRefusedAt.Reset();
 		bAskedForResource = false;
 		if (!bRehearsing)
@@ -385,6 +446,9 @@ void UVeyraShowcaseRecorderSubsystem::OrderCast(AVeyraPlayerController& Controll
 	ReadyAtBefore = VeyraKitOrders::ReadyAtOf(*Own, Entry->Ability);
 	CastAbility = Entry->Ability;
 	bCastPending = true;
+	PendingSince = FPlatformTime::Seconds();
+	const UVeyraCastStateComponent* CastState = Own->FindComponentByClass<UVeyraCastStateComponent>();
+	CastIdBefore = CastState ? CastState->GetState().CastId : 0;
 	Controller.IssueCastOrder(Slot, VeyraKitOrders::TargetAt(*Aim));
 }
 
@@ -397,6 +461,11 @@ void UVeyraShowcaseRecorderSubsystem::TickCast(AVeyraPlayerController& Controlle
 	{
 		return;
 	}
+	if (Now - CastSince > GetDefault<UVeyraShowcaseSettings>()->CastPatienceSeconds)
+	{
+		SkipAbility(CastAbility, TEXT("it was never seen to commit"));
+		return;
+	}
 	if (!bCastPending)
 	{
 		if (Now >= NextTryAt)
@@ -405,7 +474,12 @@ void UVeyraShowcaseRecorderSubsystem::TickCast(AVeyraPlayerController& Controlle
 		}
 		return;
 	}
-	if (VeyraKitOrders::ReadyAtOf(*Own, CastAbility) > ReadyAtBefore)
+	// The order is taken when its cooldown starts, or when its caster is seen in a new cast of its ability: a follow-up
+	// in the slot, such as a dash a mode grants, may start no cooldown of its own.
+	const UVeyraCastStateComponent* CastState = Own->FindComponentByClass<UVeyraCastStateComponent>();
+	const bool bNewCast = CastState && CastState->GetState().Ability == CastAbility && CastState->GetState().CastId != CastIdBefore
+		&& CastState->GetState().Phase != EVeyraCastPhase::None;
+	if (VeyraKitOrders::ReadyAtOf(*Own, CastAbility) > ReadyAtBefore || bNewCast)
 	{
 		bCastPending = false;
 		Clips.Last().CommittedAt = ServerNow();
@@ -415,18 +489,48 @@ void UVeyraShowcaseRecorderSubsystem::TickCast(AVeyraPlayerController& Controlle
 	const bool bRefused = Controller.GetCastRejectionCount() > RejectionsBefore;
 	if (!bRefused && Controller.GetOrderRejectionCount() <= OrderRejectionsBefore)
 	{
+		// Neither committed nor refused, with nothing holding the caster: the server let it go. Order it again.
+		if (CastState && !CastState->IsBusy() && Now - PendingSince >= UnansweredRealSeconds)
+		{
+			UE_LOG(LogVeyraShowcaseRecorder, Display, TEXT("VeyraShowcase: %s went unanswered; ordering it again."), *CastAbility.ToString());
+			bCastPending = false;
+			bOrderedAgain = true;
+			NextTryAt = Now + RetryRealSeconds;
+		}
 		return;
 	}
 	// Refused while something passing held the Vanguard, as crowd control still running from the last clip, or the
 	// order itself turned away: try again shortly, for as long as the settings allow.
 	const EVeyraCastRejection Rejection = Controller.GetLastCastRejection();
+	// Sent again after going unanswered, and refused as cooling down: the first order was taken after all, though nothing
+	// this client saw showed it. The clip has held it since that order.
+	if (bRefused && bOrderedAgain && Rejection == EVeyraCastRejection::OnCooldown)
+	{
+		bCastPending = false;
+		Clips.Last().CommittedAt = Clips.Last().OrderedAt;
+		Advance(EStep::Record, *FString::Printf(TEXT("%s was taken at its first order (its retry is cooling down)"), *CastAbility.ToString()));
+		return;
+	}
 	if (!FirstRefusedAt.IsSet())
 	{
 		FirstRefusedAt = Now;
 	}
-	if ((bRefused && !VeyraKitOrders::IsPassingRejection(Rejection)) || Now - FirstRefusedAt.GetValue() >= GetDefault<UVeyraShowcaseSettings>()->CastPatienceSeconds)
+	const VeyraShowcase::EAfterRefusal After = bRefused ? VeyraShowcase::AfterRefusal(Rejection, bPrimed) : VeyraShowcase::EAfterRefusal::Retry;
+	if (After == VeyraShowcase::EAfterRefusal::Prime)
 	{
-		Finish(false, FString::Printf(TEXT("the server refused %s: %s"), *CastAbility.ToString(), bRefused ? LexToString(Rejection) : TEXT("the order")));
+		// A target the ability needs prepared: this clip is dropped, the dummy is hurt, and the cast goes again as a new one.
+		StopCapture();
+		Clips.Pop();
+		bClipForSlot = false;
+		bPrimed = true;
+		bCastPending = false;
+		PrimeRetryAt = 0.0;
+		Advance(EStep::Prime, *FString::Printf(TEXT("%s needs its target prepared (%s); priming the dummy"), *CastAbility.ToString(), LexToString(Rejection)));
+		return;
+	}
+	if (After == VeyraShowcase::EAfterRefusal::Skip || Now - FirstRefusedAt.GetValue() >= GetDefault<UVeyraShowcaseSettings>()->CastPatienceSeconds)
+	{
+		SkipAbility(CastAbility, FString::Printf(TEXT("the server refused it: %s"), bRefused ? LexToString(Rejection) : TEXT("the order")));
 		return;
 	}
 	// A resource only effects restore may hold nothing yet: the stage's reset fills it, once for the clip.
@@ -437,6 +541,38 @@ void UVeyraShowcaseRecorderSubsystem::TickCast(AVeyraPlayerController& Controlle
 	}
 	bCastPending = false;
 	NextTryAt = Now + RetryRealSeconds;
+}
+
+void UVeyraShowcaseRecorderSubsystem::SkipAbility(const FVeyraContentId& Ability, const FString& Reason)
+{
+	StopCapture();
+	bCastPending = false;
+	if (!bClipForSlot)
+	{
+		FClip& Clip = Clips.AddDefaulted_GetRef();
+		Clip.Ability = Ability;
+		Clip.Slot = StaticEnum<EVeyraAbilitySlot>()->GetNameStringByValue(static_cast<int64>(VeyraAbilitySlots::All[SlotIndex]));
+	}
+	Clips.Last().Failure = Reason;
+	UE_LOG(LogVeyraShowcaseRecorder, Warning, TEXT("VeyraShowcase: left %s out: %s"), *Clips.Last().Ability.ToString(), *Reason);
+	NextSlot(FString::Printf(TEXT("left %s out"), *Clips.Last().Ability.ToString()));
+}
+
+void UVeyraShowcaseRecorderSubsystem::NextSlot(const FString& Description)
+{
+	bClipForSlot = false;
+	bPrimed = false;
+	const bool bLast = ++SlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All);
+	if (bLast && bRehearsing)
+	{
+		// The rehearsal leaves nothing behind: the recording starts again from the first slot.
+		bRehearsing = false;
+		SlotIndex = 0;
+		Clips.Reset();
+		Advance(EStep::Reset, *Description);
+		return;
+	}
+	Advance(bLast ? EStep::Flush : EStep::Reset, *Description);
 }
 
 void UVeyraShowcaseRecorderSubsystem::StartCapture()
@@ -542,6 +678,10 @@ bool UVeyraShowcaseRecorderSubsystem::WriteManifest() const
 		Entry->SetStringField(TEXT("slot"), Clip.Slot);
 		Entry->SetNumberField(TEXT("orderedAt"), Clip.OrderedAt);
 		Entry->SetNumberField(TEXT("committedAt"), Clip.CommittedAt);
+		if (!Clip.Failure.IsEmpty())
+		{
+			Entry->SetStringField(TEXT("failure"), Clip.Failure);
+		}
 		TArray<TSharedPtr<FJsonValue>> FrameValues;
 		for (const TPair<FString, double>& Frame : Clip.Frames)
 		{

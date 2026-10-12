@@ -46,6 +46,7 @@ private:
 		Settle,
 		Approach,
 		Cast,
+		Prime,
 		Record,
 		Flush,
 		Finished,
@@ -59,6 +60,8 @@ private:
 		TArray<TPair<FString, double>> Frames;
 		double OrderedAt = 0.0;
 		double CommittedAt = -1.0;
+		/** Why the recorder left it out, if it did. */
+		FString Failure;
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -75,8 +78,14 @@ private:
 	/** Orders the cast of the current slot's ability, and starts its clip if it is the first try. */
 	void OrderCast(AVeyraPlayerController& Controller, const AVeyraVanguardCharacter& Vanguard);
 
-	/** One step of waiting for the ordered cast: its commit, a refusal to try again after, or a failure. */
+	/** One step of waiting for the ordered cast: its commit, a refusal to try again after, to prime for, or to skip. */
 	void TickCast(AVeyraPlayerController& Controller);
+
+	/** Leaves the current slot's ability out of the recording, for Reason, and goes on to the next. */
+	void SkipAbility(const FVeyraContentId& Ability, const FString& Reason);
+
+	/** Goes on to the next slot, or ends the rehearsal or the recording after the last. */
+	void NextSlot(const FString& Description);
 
 	void StartCapture();
 	void CaptureFrame();
@@ -96,6 +105,15 @@ private:
 	int32 SlotIndex = 0;
 	/** Whether the kit is being cast once unrecorded, so every effect is ready before it is recorded. */
 	bool bRehearsing = false;
+	/** The number of the latest reset asked for, which its reply carries; when this slot's first was asked for; and when the stage was set. */
+	int32 ResetToken = 0;
+	double ResetSince = 0.0;
+	TOptional<double> SetAt;
+	/** Whether the current slot's clip is open, and whether the dummy has been primed for it (VeyraShowcase::EAfterRefusal::Prime). */
+	bool bClipForSlot = false;
+	bool bPrimed = false;
+	/** When the priming attack is ordered again, until one commits. */
+	double PrimeRetryAt = 0.0;
 
 	/** The cast awaiting the server, and what it was asked for. */
 	bool bCastPending = false;
@@ -105,6 +123,13 @@ private:
 	int32 OrderRejectionsBefore = 0;
 	TOptional<double> FirstRefusedAt;
 	double NextTryAt = 0.0;
+	/** When the pending order went, and when the clip's first did, in real seconds. */
+	double PendingSince = 0.0;
+	double CastSince = 0.0;
+	/** The caster's cast before the pending order, so a new one for its ability shows the order was taken. */
+	int32 CastIdBefore = 0;
+	/** Whether an order for this clip went unanswered and was sent again. */
+	bool bOrderedAgain = false;
 	bool bAskedForResource = false;
 	/** When the recorded cast's caster was last busy, in server time. */
 	double LastBusyAt = 0.0;
