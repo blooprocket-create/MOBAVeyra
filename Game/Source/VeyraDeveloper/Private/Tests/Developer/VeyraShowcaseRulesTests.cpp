@@ -6,6 +6,7 @@
 
 #include "Components/ActorTestSpawner.h"
 #include "Showcase/VeyraShowcaseRules.h"
+#include "Showcase/VeyraShowcaseSettings.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "VeyraCombatVerbs.h"
 
@@ -36,6 +37,29 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(AreEqual(VeyraShowcase::AfterRefusal(EVeyraCastRejection::InvalidTarget, true), EAfterRefusal::Skip,
 				TEXT("prepared once and still refused, the ability is left out and the rest are recorded")));
 			ASSERT_THAT(AreEqual(VeyraShowcase::AfterRefusal(EVeyraCastRejection::NotLearned, false), EAfterRefusal::Skip));
+		}
+
+		TEST_METHOD(TheMarksTurnAboutTheCentre)
+		{
+			// Fixture values: starts on the X axis, and a body's distance from the centre.
+			const FVector StartA(-2000.0, 0.0, 0.0);
+			const FVector StartB(2000.0, 0.0, 0.0);
+			const double Stand = 300.0;
+			const double Slack = 0.01;
+			ASSERT_THAT(IsTrue(VeyraShowcase::MarkOf(FVector::ZeroVector, StartA, Stand, 0.0).Equals(FVector(-Stand, 0.0, 0.0), Slack),
+				TEXT("unturned, a body stands on the line between the starts")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::MarkOf(FVector::ZeroVector, StartA, Stand, 90.0).Equals(FVector(0.0, -Stand, 0.0), Slack),
+				TEXT("turned 90 degrees, the side starting at -X stands at -Y, the screen's left")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::MarkOf(FVector::ZeroVector, StartB, Stand, 90.0).Equals(FVector(0.0, Stand, 0.0), Slack)));
+		}
+
+		TEST_METHOD(TheRecordedVanguardStandsLeftOfTheDummy)
+		{
+			// The player fills side A, which starts at -X; the camera looks along +X, so the screen's left is -Y.
+			const UVeyraShowcaseSettings& Settings = *GetDefault<UVeyraShowcaseSettings>();
+			const FVector Caster = VeyraShowcase::MarkOf(FVector::ZeroVector, FVector(-1.0, 0.0, 0.0), Settings.StandDistanceFromCenter, Settings.MarkYawDegrees);
+			const FVector Dummy = VeyraShowcase::MarkOf(FVector::ZeroVector, FVector(1.0, 0.0, 0.0), Settings.StandDistanceFromCenter, Settings.MarkYawDegrees);
+			ASSERT_THAT(IsTrue(Caster.Y < Dummy.Y, TEXT("the recorded Vanguard on the left, the dummy on the right")));
 		}
 	};
 

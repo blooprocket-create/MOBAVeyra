@@ -30,7 +30,7 @@ What exists that a recorder can use:
 ### 1. The stage
 A small map, `/Game/Veyra/Developer/Maps/L_Showcase`, is generated from `Source/VeyraDeveloper/Greybox/Showcase.json` by the same commandlet as the grey box. The commandlet takes the layout file and output map as arguments, and the grey box stays its default.
 
-The stage is a plain floor with two team starts facing each other. Between resets the bodies stand at marks inside the starts, on the line between them: close enough that the dummy is always within the caster's sight, and so in the same shot, with the start markers behind them. The starts are the layout file's data and the marks the settings'.
+The stage is a plain floor with two team starts facing each other. Between resets the bodies stand at marks inside the starts, on the line between them: close enough that the dummy is always within the caster's sight, and so in the same shot, with the start markers behind them. The starts are the layout file's data and the marks the settings'. The marks' line is turned from the starts' line, 90 degrees as shipped, so the recorded Vanguard stands on the left of the screen and the dummy on the right, the camera looking across the line between them (the author's ruling, 2026-10-12).
 
 ### 2. The dummy (server)
 `UVeyraShowcaseSubsystem`, in VeyraDeveloper, exists only on a dedicated server whose map URL carries `?VeyraShowcase`. Once preparation begins it seats one brainless bot Vanguard on the side opposite the player: the Vanguard `?VeyraShowcaseDummy=<id>` names, or the settings' default. That bot has no brain, does not wander and does not fight back.
@@ -67,7 +67,7 @@ The kit smoke and the recorder share their kit orders: the nearest enemy body, t
 - the frame stride, the client's frame rate limit while it records, and the capture resolution;
 - the settle time, the tail time and the clip limit;
 - how long a refused cast may be retried;
-- where the bodies stand;
+- where the bodies stand, and how far their line is turned;
 - whether the HUD shows;
 - the default dummy Vanguard.
 

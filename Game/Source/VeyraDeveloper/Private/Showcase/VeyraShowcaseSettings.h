@@ -58,6 +58,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Stage")
 	double StandDistanceFromCenter = 0.0;
 
+	/**
+	 * How far the line the bodies stand on is turned from the line between the starts, in degrees about the stage's
+	 * centre. The camera looks along that line, so 0 stands them top and bottom on the screen and 90 left and right.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Stage")
+	double MarkYawDegrees = 0.0;
+
 	/** An ability cast at the dummy from further than its reach steps in to this share of it first. */
 	UPROPERTY(Config, EditAnywhere, Category = "Stage")
 	double ApproachShareOfReach = 0.0;
