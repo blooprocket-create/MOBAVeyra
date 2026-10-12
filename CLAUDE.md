@@ -13,7 +13,7 @@ Always begin substantial gameplay tasks by reading:
 - `ARCHITECTURE.md`
 - `PROJECT_STRUCTURE.md`
 - the relevant owning sections in `Docs/Design/` selected by the context map
-- for world/environment/Blender/asset/material/PCG/water/lighting/VFX tasks: `Docs/Production/README.md` and the relevant production guide
+- for client UI/HUD, world/environment/Blender/asset/material/PCG/water/lighting/rendering/animation/VFX tasks: `Docs/Production/README.md` and the relevant production guide
 - relevant records in `Docs/ADR/`
 
 `ARCHITECTURE.md` is the source of truth for technical boundaries. Do not duplicate or reinterpret its rules here.
@@ -25,6 +25,10 @@ The intended workflow is:
 > inspect → identify authoritative owner → implement through reusable systems → build → test → architecture check → report
 
 Do not optimize for the fewest edited files if doing so creates the wrong ownership or dependency. Prefer a small clean primitive over a local hack that future features will duplicate.
+
+## Production-quality visual work
+
+For UI/HUD, character, animation, combat effect, world, lighting and renderer polish, read [Visual Production Standard](Docs/Production/VEYRA_VISUAL_PRODUCTION_STANDARD.md), [Visual Upgrade Roadmap](Docs/Production/VEYRA_VISUAL_UPGRADE_ROADMAP.md), and use [Visual Review Template](Docs/Production/VEYRA_VISUAL_REVIEW_TEMPLATE.md). Reuse existing C++ view models, client intents, shared generators/materials and Niagara recipes; don't replace approved client navigation or accessibility semantics while reskinning. Gather matched in-engine captures, record frame-time/Slate/particle costs where relevant, and seek author approval for distinctive visual changes before scaling across screens/the roster. A passed generator/build does not certify appearance.
 
 ## World, environment, asset, and VFX tasks
 
