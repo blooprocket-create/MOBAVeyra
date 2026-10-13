@@ -99,6 +99,13 @@ namespace VeyraLayout
 	/** The point Distance along the path through Points, clamped to its ends. */
 	VEYRAWORLD_API FVector2D PointAlong(TConstArrayView<FVeyraMapPoint> Points, double Distance);
 
+	/**
+	 * The way the path through Points runs Distance along it: the unit direction of the segment PointAlong finds there.
+	 * At a bend it is the segment arriving; before the start and past the end, the first and last. Zero when no segment
+	 * has length.
+	 */
+	VEYRAWORLD_API FVector2D DirectionAlong(TConstArrayView<FVeyraMapPoint> Points, double Distance);
+
 	/** The lane's path as Team walks it toward the enemy base: forward for Team A, reversed for Team B. */
 	VEYRAWORLD_API TArray<FVector2D> Waypoints(const FVeyraLaneLayout& Lane, EVeyraTeam Team);
 

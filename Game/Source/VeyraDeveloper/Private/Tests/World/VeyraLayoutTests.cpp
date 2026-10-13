@@ -136,6 +136,10 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(VeyraLayout::PointAlong(Lane.Points, 40.0).Equals(FVector2D(40.0, 0.0), Tolerance)));
 			ASSERT_THAT(IsTrue(VeyraLayout::PointAlong(Lane.Points, 120.0).Equals(FVector2D(100.0, 20.0), Tolerance)));
 			ASSERT_THAT(IsTrue(VeyraLayout::PointAlong(Lane.Points, 1000.0).Equals(FVector2D(100.0, 50.0), Tolerance), TEXT("clamped to the end")));
+			ASSERT_THAT(IsTrue(VeyraLayout::DirectionAlong(Lane.Points, 40.0).Equals(FVector2D(1.0, 0.0), Tolerance)));
+			ASSERT_THAT(IsTrue(VeyraLayout::DirectionAlong(Lane.Points, 100.0).Equals(FVector2D(1.0, 0.0), Tolerance), TEXT("at a bend, the way it arrived")));
+			ASSERT_THAT(IsTrue(VeyraLayout::DirectionAlong(Lane.Points, 120.0).Equals(FVector2D(0.0, 1.0), Tolerance)));
+			ASSERT_THAT(IsTrue(VeyraLayout::DirectionAlong(Lane.Points, 1000.0).Equals(FVector2D(0.0, 1.0), Tolerance), TEXT("past the end, its last way")));
 			const TArray<FVector2D> TeamB = VeyraLayout::Waypoints(Lane, EVeyraTeam::B);
 			ASSERT_THAT(IsTrue(TeamB.Num() == 3 && TeamB[0].Equals(FVector2D(100.0, 50.0), Tolerance), TEXT("Team B walks it the other way")));
 		}
@@ -423,6 +427,26 @@ namespace VeyraWorldTests
 			Lopsided.Layout.SpireOffset = Committed().SpireOffset;
 			const FString Turned = FString::Join(VeyraWorld::Validate(Lopsided), TEXT(" | "));
 			ASSERT_THAT(IsTrue(Turned.Contains(TEXT("turned half a turn must be Team B's")), Turned));
+		}
+
+		TEST_METHOD(ASpireJustShortOfABendStandsSquareToTheRoadItIsOn)
+		{
+			// Its side is taken from the road's own segment, so no sampling distance can tilt it toward the bend ahead.
+			static constexpr double ShortOfTheBend = 2.0;
+			static constexpr double Leg = 1000.0;
+			FVeyraBattlegroundLayout Layout = Committed();
+			FVeyraLaneLayout Bent = Layout.Lanes[0];
+			Bent.Points = { { 0.0, 0.0 }, { Leg, 0.0 }, { Leg, Leg } };
+			Bent.InhibitorDistance = 0.0;
+			Bent.SpireDistances = { Leg - ShortOfTheBend };
+			Bent.SpireSides = { 1 };
+			Layout.Lanes = { Bent };
+			const FVeyraStructurePlacement* Spire = VeyraLayout::Structures(Layout).FindByPredicate([](const FVeyraStructurePlacement& P) {
+				return P.Team == EVeyraTeam::A && P.Kind == EVeyraStructureKind::LaneSpire;
+			});
+			const FVector2D Expected(Leg - ShortOfTheBend, Layout.SpireOffset);
+			ASSERT_THAT(IsTrue(Spire && Spire->Location.Equals(Expected, Tolerance),
+				Spire ? *FString::Printf(TEXT("stands at %s, not %s"), *Spire->Location.ToString(), *Expected.ToString()) : TEXT("no Spire")));
 		}
 
 		TEST_METHOD(MapFogCannotCoverALaneOrItsShoulder)

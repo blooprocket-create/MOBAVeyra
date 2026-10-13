@@ -186,6 +186,29 @@ FVector2D PointAlong(TConstArrayView<FVeyraMapPoint> Points, double Distance)
 	return ToVector(Points.Last());
 }
 
+FVector2D DirectionAlong(TConstArrayView<FVeyraMapPoint> Points, double Distance)
+{
+	// Walks the segments as PointAlong does, so the way found is the segment that point lies on.
+	FVector2D Direction = FVector2D::ZeroVector;
+	double Remaining = FMath::Max(0.0, Distance);
+	for (int32 Index = 1; Index < Points.Num(); ++Index)
+	{
+		const FVector2D From = ToVector(Points[Index - 1]);
+		const FVector2D To = ToVector(Points[Index]);
+		const double Segment = FVector2D::Distance(From, To);
+		if (Segment > 0.0)
+		{
+			Direction = (To - From) / Segment;
+			if (Remaining <= Segment)
+			{
+				return Direction;
+			}
+		}
+		Remaining -= Segment;
+	}
+	return Direction;
+}
+
 double DistanceToPath(TConstArrayView<FVeyraMapPoint> Points, const FVector2D& Point)
 {
 	if (Points.Num() == 1)
@@ -432,8 +455,9 @@ TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layo
 			{
 				const double Distance = Lane.InhibitorDistance + Lane.SpireDistances[Index];
 				const FVector2D OnLane = PointAlong(Path, Distance);
-				// Beside the road, on its side as this team walks the lane: the half turn keeps both teams' towers alike.
-				const FVector2D Ahead = (PointAlong(Path, Distance + 5.0) - PointAlong(Path, FMath::Max(0.0, Distance - 5.0))).GetSafeNormal();
+				// Beside the road, on its side as this team walks the lane, square to the segment it stands on: the half turn
+				// keeps both teams' towers alike.
+				const FVector2D Ahead = DirectionAlong(Path, Distance);
 				const int32 Side = Lane.SpireSides.IsValidIndex(Index) ? Lane.SpireSides[Index] : 0;
 				const FVector2D Aside = FVector2D(-Ahead.Y, Ahead.X) * (Side * Layout.SpireOffset);
 				Placements.Add({ EVeyraStructureKind::LaneSpire, Team, Lane.Lane, Spires - 1 - Index, OnLane + Aside });
