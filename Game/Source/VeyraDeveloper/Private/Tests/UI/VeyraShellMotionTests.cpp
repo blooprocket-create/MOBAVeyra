@@ -50,6 +50,27 @@ namespace VeyraShellMotionTests
 			ASSERT_THAT(IsTrue(UVeyraShellButton::FindBySlate(Primary->GetCachedWidget()) == Primary));
 		}
 
+		TEST_METHOD(MotesKeepStillUnderReduceUiAnimationAndDriftAgainOnceItIsOff)
+		{
+			const FVeyraShellLook Before = VeyraShellLook::Current();
+			FVeyraShellLook Moving = Before;
+			Moving.bStillAnimation = false;
+			FVeyraShellLook Still = Before;
+			Still.bStillAnimation = true;
+			VeyraShellLook::Use(Moving);
+			const TSharedRef<SVeyraShellMotes> Motes = SNew(SVeyraShellMotes);
+			const bool bDriftedFirst = Motes->IsDrifting();
+			VeyraShellLook::Use(Still);
+			Motes->Wake();
+			const bool bKeptStill = !Motes->IsDrifting();
+			VeyraShellLook::Use(Moving);
+			Motes->Wake();
+			const bool bDriftedAgain = Motes->IsDrifting();
+			VeyraShellLook::Use(Before);
+			ASSERT_THAT(IsTrue(bDriftedFirst && bKeptStill, TEXT("still while motion is reduced")));
+			ASSERT_THAT(IsTrue(bDriftedAgain, TEXT("the setting undone: drifting again")));
+		}
+
 		TEST_METHOD(MotesFillTheirAreaAsTheSettingsSay)
 		{
 			const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();

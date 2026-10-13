@@ -19,6 +19,15 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
+	/**
+	 * Follows Reduce UI Animation as it is now: drifting again once it is off, still and empty while it is on. A menu calls it
+	 * as it rebuilds, so the setting is undone as soon as it is changed.
+	 */
+	void Wake();
+
+	/** Whether its motes are moving. */
+	bool IsDrifting() const { return Timer.IsValid(); }
+
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
 		int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override { return FVector2D::ZeroVector; }
@@ -46,6 +55,8 @@ private:
 
 	TArray<FMote> Motes;
 	FRandomStream Random;
+	/** Its step while it drifts. */
+	TSharedPtr<FActiveTimerHandle> Timer;
 	/** The area it last painted, which its step moves the motes over. */
 	mutable FVector2D LastArea = FVector2D::ZeroVector;
 	/** The area the motes were last scattered over. */
@@ -60,6 +71,9 @@ class VEYRAUI_API UVeyraShellMotes : public UWidget
 
 public:
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+
+	/** See SVeyraShellMotes::Wake. */
+	void Wake();
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;

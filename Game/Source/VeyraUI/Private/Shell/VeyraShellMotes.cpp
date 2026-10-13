@@ -30,9 +30,24 @@ void SVeyraShellMotes::Construct(const FArguments& InArgs)
 	constexpr int32 Seed = 7177;
 	Random.Initialize(Seed);
 	SetVisibility(EVisibility::HitTestInvisible);
-	if (!VeyraShellLook::Current().bStillAnimation)
+	Wake();
+}
+
+void SVeyraShellMotes::Wake()
+{
+	if (VeyraShellLook::Current().bStillAnimation)
 	{
-		RegisterActiveTimer(0.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SVeyraShellMotes::Step));
+		if (const TSharedPtr<FActiveTimerHandle> Stepping = Timer)
+		{
+			UnRegisterActiveTimer(Stepping.ToSharedRef());
+		}
+		Timer.Reset();
+		Motes.Reset();
+		Invalidate(EInvalidateWidgetReason::Paint);
+	}
+	else if (!Timer.IsValid())
+	{
+		Timer = RegisterActiveTimer(0.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SVeyraShellMotes::Step));
 	}
 }
 
@@ -90,6 +105,8 @@ EActiveTimerReturnType SVeyraShellMotes::Step(double CurrentTime, float DeltaTim
 {
 	if (VeyraShellLook::Current().bStillAnimation)
 	{
+		// Still until Wake finds the setting off again.
+		Timer.Reset();
 		Motes.Reset();
 		return EActiveTimerReturnType::Stop;
 	}
@@ -130,6 +147,14 @@ int32 SVeyraShellMotes::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 		Dot(Mote.Radius * 1.6f, Mote.bHot ? Hot : Color, Alpha);
 	}
 	return LayerId;
+}
+
+void UVeyraShellMotes::Wake()
+{
+	if (Motes)
+	{
+		Motes->Wake();
+	}
 }
 
 TSharedRef<SWidget> UVeyraShellMotes::RebuildWidget()

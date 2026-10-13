@@ -571,6 +571,8 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	// The motes drift behind the shell, a lobby and the results; champion select and the moments before a match keep still.
 	const bool bDrifting = Shown == EVeyraShellScreen::Shell || Shown == EVeyraShellScreen::Lobby || Shown == EVeyraShellScreen::Results;
 	Motes->SetVisibility(bDrifting ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	// Drifting again as soon as Reduce UI Animation is turned off, as every rebuild follows the setting.
+	Motes->Wake();
 }
 
 void UVeyraShellScreen::RevealArrivals()
