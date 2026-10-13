@@ -108,13 +108,18 @@ impl Stage {
     }
 }
 
-/// How far a run has got. `done_bytes` of `total_bytes` of the stage's files are ready.
+/// How far a run has got. `done_bytes` of `total_bytes` of the stage's files are ready: while it
+/// downloads, the files it rebuilds, most of whose chunks may already be on disk. `downloaded_bytes` of
+/// `download_total_bytes` are what it fetches from the release store, as stored: the download itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Progress {
     pub stage: Stage,
     pub done_bytes: u64,
     pub total_bytes: u64,
     pub downloaded_bytes: u64,
+    /// While it downloads: every chunk the run must fetch, once each, as stored. Otherwise what it has
+    /// fetched, or 0 before it downloads.
+    pub download_total_bytes: u64,
 }
 
 /// How a run works, from the launcher's configuration.
@@ -495,6 +500,10 @@ pub fn install(
         }
         for file in &old.files {
             let old_planned = Planned::new(folder, file);
+            // A file gone or of another size holds none of its chunks: the run downloads them, as it says.
+            if !size_matches(&old_planned) {
+                continue;
+            }
             for (chunk, &offset) in file.chunks.iter().zip(&old_planned.offsets) {
                 locations.entry(chunk.hash.clone()).or_insert(Location {
                     path: old_planned.path.clone(),
@@ -534,6 +543,7 @@ pub fn install(
             done_bytes: 0,
             total_bytes: jobs.iter().map(|job| planned[job.file].file.chunks[job.chunk].size).sum(),
             downloaded_bytes: 0,
+            download_total_bytes: 0,
         };
         progress(&status);
         let check = |job: Job| -> Result<bool, InstallError> {
@@ -573,18 +583,42 @@ pub fn install(
         part.set_len(planned.file.size).map_err(io_error(&planned.part))?;
         jobs.extend((0..planned.file.chunks.len()).map(|chunk| Job { file, chunk }));
     }
+    // A part an interrupted run left behind already holds some chunks; the rest come from files on disk,
+    // or from the store. What the store must send is the download, known before any of it starts.
+    let held: HashSet<(usize, usize)> = jobs
+        .iter()
+        .filter(|job| {
+            resumable[job.file]
+                && holds(
+                    &planned[job.file].part,
+                    planned[job.file].offsets[job.chunk],
+                    &planned[job.file].file.chunks[job.chunk],
+                )
+                .is_some()
+        })
+        .map(|job| (job.file, job.chunk))
+        .collect();
+    let mut fetched: HashSet<&str> = HashSet::new();
+    let download_total_bytes = jobs
+        .iter()
+        .filter(|job| !held.contains(&(job.file, job.chunk)))
+        .map(|job| &planned[job.file].file.chunks[job.chunk])
+        .filter(|chunk| !locations.contains_key(&chunk.hash) && fetched.insert(chunk.hash.as_str()))
+        .map(|chunk| chunk.stored_size)
+        .sum();
     let mut status = Progress {
         stage: Stage::Downloading,
         done_bytes: 0,
         total_bytes: jobs.iter().map(|job| planned[job.file].file.chunks[job.chunk].size).sum(),
         downloaded_bytes: 0,
+        download_total_bytes,
     };
     progress(&status);
     let fetch = |job: Job| -> Result<Source, InstallError> {
         let planned = &planned[job.file];
         let chunk = &planned.file.chunks[job.chunk];
         let offset = planned.offsets[job.chunk];
-        if resumable[job.file] && holds(&planned.part, offset, chunk).is_some() {
+        if held.contains(&(job.file, job.chunk)) {
             return Ok(Source::Resumed);
         }
         if let Some(bytes) = locations.get(&chunk.hash).and_then(|found| holds(&found.path, found.offset, chunk)) {
@@ -631,6 +665,7 @@ pub fn install(
         done_bytes: 0,
         total_bytes: 0,
         downloaded_bytes: outcome.downloaded_bytes,
+        download_total_bytes: outcome.downloaded_bytes,
     });
     let kept: HashSet<String> = target.manifest.files.iter().map(|file| file.path.to_lowercase()).collect();
     let stale: Vec<String> = record.owned_paths().into_iter().filter(|path| !kept.contains(&path.to_lowercase())).collect();
@@ -832,12 +867,24 @@ mod tests {
 
     fn run(folder: &Path, target: &Target, store: &MemoryStore, mode: Mode) -> Result<Outcome, InstallError> {
         let mut last = None;
+        let mut planned = None;
         let result = install(folder, target, store, SETTINGS, mode, &AtomicBool::new(false), &mut |progress| {
             assert!(progress.done_bytes <= progress.total_bytes, "{progress:?}");
+            assert!(
+                progress.downloaded_bytes <= progress.download_total_bytes,
+                "never more than it planned: {progress:?}"
+            );
+            if progress.stage == Stage::Downloading {
+                planned = Some(progress.download_total_bytes);
+            }
             last = Some(progress.stage);
         });
-        if result.as_ref().is_ok_and(|outcome| outcome.changed) {
-            assert_eq!(last, Some(Stage::Finishing));
+        if let Ok(outcome) = result.as_ref() {
+            if outcome.changed {
+                assert_eq!(last, Some(Stage::Finishing));
+                // What it said it would download is what it downloaded: the download the player is shown.
+                assert_eq!(planned, Some(outcome.downloaded_bytes));
+            }
         }
         result
     }

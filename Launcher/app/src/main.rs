@@ -101,6 +101,8 @@ struct InstallStatus {
     done_bytes: u64,
     total_bytes: u64,
     downloaded_bytes: u64,
+    /// What the run must download, as stored: what the player waits for.
+    download_total_bytes: u64,
     problem: Option<String>,
 }
 
@@ -329,6 +331,7 @@ fn start_install(launcher: State<'_, Arc<Launcher>>, folder: Option<String>, rep
             status.done_bytes = progress.done_bytes;
             status.total_bytes = progress.total_bytes;
             status.downloaded_bytes = progress.downloaded_bytes;
+            status.download_total_bytes = progress.download_total_bytes;
         };
         let result = game::install_into(&source, &folder, &target, mode, &AtomicBool::new(false), &mut progress);
         let mut status = launcher.install.lock().unwrap();
