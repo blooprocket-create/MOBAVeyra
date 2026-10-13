@@ -249,7 +249,11 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		}
 		else if (!SetAt.IsSet())
 		{
-			if (Now - ResetSince > Settings.CastPatienceSeconds)
+			if (Now - ResetSince > Settings.CastPatienceSeconds && bRecordingAttack)
+			{
+				FailAttack(FString::Printf(TEXT("the stage could not be reset: %s"), *Controller->GetLastDeveloperCommandReply()));
+			}
+			else if (Now - ResetSince > Settings.CastPatienceSeconds)
 			{
 				const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
 				const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(VeyraAbilitySlots::All[SlotIndex]) : nullptr;
@@ -313,11 +317,7 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 			}
 			else if (Now - StepSince > Settings.CastPatienceSeconds)
 			{
-				FClip& Clip = Clips.AddDefaulted_GetRef();
-				Clip.Ability = FVeyraContentId::FromText(TEXT("basic_attack")).GetValue();
-				Clip.Slot = TEXT("Attack");
-				Clip.Failure = TEXT("could not step within the basic attack's reach of the dummy");
-				Advance(EStep::Flush, TEXT("left the basic attack out"));
+				FailAttack(TEXT("could not step within the basic attack's reach of the dummy"));
 			}
 			break;
 		}
@@ -349,10 +349,12 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 			bAttackCommitted = true;
 			Clip.CommittedAt = ServerNow();
 		}
-		// The attack order goes on attacking: the clip holds the first, from its windup until the tail after its backswing.
-		if (bAttackCommitted && Phase != EVeyraAttackPhase::Backswing)
+		// The clip holds one swing, from its windup until the tail after its backswing: once it has swung, the attack
+		// order gives way to standing where it is, or it would swing at the dummy again when its interval passes.
+		if (bAttackCommitted && Phase != EVeyraAttackPhase::Backswing && !bFirstSwingDone)
 		{
 			bFirstSwingDone = true;
+			Controller->IssueMoveOrder(Vanguard->GetActorLocation());
 		}
 		if (!bFirstSwingDone)
 		{
@@ -658,6 +660,17 @@ void UVeyraShowcaseRecorderSubsystem::OrderAttack(AVeyraPlayerController& Contro
 	StartCapture();
 	Controller.IssueAttackOrder(&Dummy);
 	Advance(EStep::Attack, TEXT("attacking the dummy"));
+}
+
+void UVeyraShowcaseRecorderSubsystem::FailAttack(const FString& Reason)
+{
+	StopCapture();
+	FClip& Clip = Clips.AddDefaulted_GetRef();
+	Clip.Ability = FVeyraContentId::FromText(TEXT("basic_attack")).GetValue();
+	Clip.Slot = TEXT("Attack");
+	Clip.Failure = Reason;
+	UE_LOG(LogVeyraShowcaseRecorder, Warning, TEXT("VeyraShowcase: left the basic attack out: %s"), *Reason);
+	Advance(EStep::Flush, TEXT("left the basic attack out"));
 }
 
 double UVeyraShowcaseRecorderSubsystem::AttackReach(const AVeyraPlayerController& Controller) const

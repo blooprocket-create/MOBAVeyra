@@ -750,7 +750,12 @@ UNiagaraSystem* UVeyraSkillEffectsSubsystem::ProjectileTravelOf(const AVeyraProj
 	{
 		return TravelEffectOf(Projectile.GetAbility(), OutScale);
 	}
-	// A basic attack's: its Vanguard's own, found through who launched it, or the shared one.
+	// A basic attack's: its Vanguard's own, found through who launched it, or the shared one. Another of no ability (an
+	// ability's return) keeps its own body.
+	if (!Projectile.IsBasicAttack())
+	{
+		return nullptr;
+	}
 	const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
 	const APawn* Attacker = Projectile.GetInstigator();
 	const AVeyraPlayerState* Participant = Attacker ? Attacker->GetPlayerState<AVeyraPlayerState>() : nullptr;

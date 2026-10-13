@@ -55,6 +55,13 @@ void AVeyraProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraProjectile, Team, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraProjectile, Ability, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraProjectile, CastId, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraProjectile, bBasicAttack, Params);
+}
+
+void AVeyraProjectile::MarkBasicAttack()
+{
+	bBasicAttack = true;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraProjectile, bBasicAttack, this);
 }
 
 void AVeyraProjectile::LaunchLine(UAbilitySystemComponent& InCaster, const FVector& InDirection, const FVeyraProjectileTuning& Tuning,
