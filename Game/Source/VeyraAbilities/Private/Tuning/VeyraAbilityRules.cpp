@@ -1582,6 +1582,49 @@ const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVey
 	return Cast;
 }
 
+TArray<FVeyraContentId> AbilitiesOpenedBy(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
+	TArray<FVeyraContentId> Opened;
+	if (const FVeyraCastTuning* Cast = FindCast(Tuning, Ability))
+	{
+		for (const FVeyraRecastTuning& Recast : Cast->RecastWindow)
+		{
+			Opened.Add(Recast.Ability);
+		}
+	}
+	if (const FVeyraSelfBuffAbilityTuning* Buff = Tuning.SelfBuff.Find(Ability))
+	{
+		for (const FVeyraVariantTuning& Variant : Buff->Variants)
+		{
+			Opened.Add(Variant.Ability);
+		}
+	}
+	if (const FVeyraStanceAbilityTuning* Stance = Tuning.Stance.Find(Ability))
+	{
+		for (const FVeyraStanceSlotTuning& Slot : Stance->Slots)
+		{
+			Opened.Add(Slot.Ability);
+		}
+	}
+	if (const FVeyraVolleyAbilityTuning* Volley = Tuning.Volley.Find(Ability))
+	{
+		Opened.Add(Volley->Shot);
+	}
+	if (const FVeyraRideAbilityTuning* Ride = Tuning.Ride.Find(Ability))
+	{
+		for (const FVeyraRideSlotTuning& Mounted : Ride->Mounted)
+		{
+			Opened.Add(Mounted.Ability);
+		}
+		Opened.Append(Ride->Vehicle);
+		for (const FVeyraRideTrailTuning& Trail : Ride->Trail)
+		{
+			Opened.Add(Trail.Area);
+		}
+	}
+	return Opened;
+}
+
 double ResourceCost(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
 {
 	if (const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability))
