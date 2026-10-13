@@ -132,10 +132,16 @@ private:
 	AActor* FindAttackMoveTarget(const UVeyraBasicAttackComponent& Attacks) const;
 
 	/**
-	 * Sends the path the Vanguard now follows to its player's machine alone, which draws the body ahead along it, unless
-	 * it is the path last sent (ADR-077 §3).
+	 * The player whose orders this controller takes now and whose machine draws its body ahead (ADR-077 §3): its Vanguard's,
+	 * or the one commanding its body in its Vanguard's stead. None for a bot's, or while that player's orders go elsewhere.
 	 */
-	void PublishOwnPath();
+	class AVeyraPlayerState* OwnPlayer() const;
+
+	/**
+	 * Sends the path the body now follows to Participant's machine alone, which draws the body ahead along it, unless it is
+	 * the path last sent (ADR-077 §3).
+	 */
+	void PublishOwnPath(class AVeyraPlayerState& Participant);
 
 	/** The point the latest move or Attack Move order named, as its player's machine sent it, before projection. */
 	FVector OrderedPoint = FVector::ZeroVector;

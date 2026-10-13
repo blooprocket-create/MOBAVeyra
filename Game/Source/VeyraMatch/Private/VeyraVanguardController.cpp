@@ -186,9 +186,31 @@ void AVeyraVanguardController::Tick(float DeltaSeconds)
 		UpdateAttackOrder();
 		UpdateRideArrival();
 		UpdateOccupiedArrival();
-		// After this tick's orders have planned their paths, which the orders received this frame have already done.
-		PublishOwnPath();
+		// After this tick's orders have planned their paths, which the orders received this frame have already done: the
+		// speed the server walks its body at now, slows and all, and its path, to the player whose orders it takes.
+		if (AVeyraPlayerState* Player = OwnPlayer())
+		{
+			if (const UVeyraMovementComponent* Movement = GetPawn()->FindComponentByClass<UVeyraMovementComponent>())
+			{
+				Player->SetOwnBodySpeed(Movement->GetMaxSpeed());
+			}
+			PublishOwnPath(*Player);
+		}
 	}
+}
+
+AVeyraPlayerState* AVeyraVanguardController::OwnPlayer() const
+{
+	// The player whose orders it takes: its Vanguard's, or the one that commands its body in its Vanguard's stead. Only the
+	// controller that player's orders go to now sends, so a Vanguard and a body it commands never send over each other; and
+	// only a player's machine draws its body ahead, so a bot's Vanguard sends nothing.
+	APawn* Body = GetPawn();
+	AVeyraPlayerState* Participant = Commander.IsValid() ? Commander.Get() : (Body ? Body->GetPlayerState<AVeyraPlayerState>() : nullptr);
+	if (!Body || !Participant || (Participant->GetOrdersGoTo() && Participant->GetOrdersGoTo() != this) || !Cast<APlayerController>(Participant->GetOwner()))
+	{
+		return nullptr;
+	}
+	return Participant;
 }
 
 void AVeyraVanguardController::TakeOrdersFrom(AVeyraPlayerState& Participant)
@@ -197,16 +219,11 @@ void AVeyraVanguardController::TakeOrdersFrom(AVeyraPlayerState& Participant)
 	Participant.SetOrdersGoTo(this);
 }
 
-void AVeyraVanguardController::PublishOwnPath()
+void AVeyraVanguardController::PublishOwnPath(AVeyraPlayerState& Participant)
 {
-	// To the player whose orders it takes: its Vanguard's, or the one that commands its body in its Vanguard's stead. Only
-	// the controller that player's orders go to now sends it, so a Vanguard and a body it commands never send over each
-	// other; and only a player's machine draws its body ahead, so a bot's Vanguard sends nothing.
 	APawn* Body = GetPawn();
-	AVeyraPlayerState* Participant = Commander.IsValid() ? Commander.Get() : (Body ? Body->GetPlayerState<AVeyraPlayerState>() : nullptr);
 	const UPathFollowingComponent* Following = GetPathFollowingComponent();
-	if (!Body || !Participant || (Participant->GetOrdersGoTo() && Participant->GetOrdersGoTo() != this) || !Cast<APlayerController>(Participant->GetOwner())
-		|| !Following || Following->GetStatus() != EPathFollowingStatus::Moving)
+	if (!Body || !Following || Following->GetStatus() != EPathFollowingStatus::Moving)
 	{
 		return;
 	}
@@ -238,7 +255,7 @@ void AVeyraVanguardController::PublishOwnPath()
 	const bool bAttackOrder = AttackTarget.IsValid() && !AttackMoveDestination.IsSet();
 	Own.Target = bAttackOrder ? AttackTarget.Get() : nullptr;
 	Own.Ordered = bAttackOrder ? FVector::ZeroVector : OrderedPoint;
-	Participant->SetOwnPath(MoveTemp(Own));
+	Participant.SetOwnPath(MoveTemp(Own));
 }
 
 void AVeyraVanguardController::UpdateOccupiedArrival()

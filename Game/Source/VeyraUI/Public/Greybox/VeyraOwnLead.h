@@ -61,7 +61,7 @@ struct FVeyraOwnLeadInputs
 	/** How fast the server's body moves now, as its updates tell. */
 	double ServerSpeed = 0.0;
 
-	/** How fast the body walks, before any slow: its Movement Speed. */
+	/** How fast the server walks the body now, slows, rides and all, as it tells the player's machine. */
 	double Speed = 0.0;
 
 	/**
@@ -101,8 +101,8 @@ struct FVeyraOwnLeadState
 	/** How long the server's body has stood while its path still runs on. */
 	double StandingFor = 0.0;
 
-	/** The server's body's speed when it last walked, slows included. */
-	double WalkingSpeed = 0.0;
+	/** Whether the order is done: its body has arrived and stood. It stays done until a new order is given. */
+	bool bFinished = false;
 
 	/** Where the body was last drawn, if it has been. */
 	TOptional<FVector2D> Shown;

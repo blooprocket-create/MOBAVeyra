@@ -150,6 +150,15 @@ public:
 	void SetOwnPath(FVeyraOwnPath Path);
 
 	/**
+	 * How fast the server walks the body this participant commands now, slows, rides and all, on its own player's machine
+	 * alone, which draws the body ahead at it (ADR-077 §2); 0 before the server has said.
+	 */
+	float GetOwnBodySpeed() const { return OwnBodySpeed; }
+
+	/** Server only: sends Speed to the participant's own machine at once, when it changes. */
+	void SetOwnBodySpeed(float Speed);
+
+	/**
 	 * Server only: the controller this participant's orders went to last, its Vanguard's or a body's it commands in its
 	 * stead; only it sends the participant its path (ADR-077 §3). None before its first order.
 	 */
@@ -278,6 +287,10 @@ private:
 	/** To the owning player's machine only. */
 	UPROPERTY(Replicated)
 	FVeyraOwnPath OwnPath;
+
+	/** To the owning player's machine only. */
+	UPROPERTY(Replicated)
+	float OwnBodySpeed = 0.0f;
 
 	/** Server only: when, in world time, the mastery emote may next show. */
 	double NextMasteryEmoteAt = 0.0;

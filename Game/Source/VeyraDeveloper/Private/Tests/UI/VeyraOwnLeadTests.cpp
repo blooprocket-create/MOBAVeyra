@@ -229,6 +229,35 @@ namespace VeyraOwnLeadTests
 				*FString::Printf(TEXT("jumped %.1f"), FVector2D::Distance(Before, After))));
 		}
 
+		TEST_METHOD(AFinishedOrderStaysFinishedThroughAPush)
+		{
+			// The body arrives and stands; later a knockback leaves it back on its old path, standing. The order is done: the
+			// lead stays gone rather than waking for a moment toward the old path's end.
+			const double Length = 300.0;
+			FServer Server = Straight(Length);
+			FVeyraOwnLeadState State;
+			FVeyraOwnLeadInputs In;
+			In.GivenAt = 0.0;
+			In.DeltaSeconds = Frame;
+			In.Goal = FVector2D(Length, 0.0);
+			In.Speed = Speed;
+			In.LeadSeconds = Answer + Trail;
+			In.bMayLead = true;
+			for (In.Now = Frame; In.Now < 2.0; In.Now += Frame)
+			{
+				In.Drawn = VeyraOwnLead::PointAt(Server.Path, Server.ArcAt(In.Now - Trail));
+				In.ServerSpeed = Server.WalksAt(In.Now - Trail) ? Speed : 0.0;
+				VeyraOwnLead::Step(State, In, Shape());
+			}
+			In.Drawn = FVector2D(Length / 2.0, 0.0);
+			In.ServerSpeed = 0.0;
+			for (int32 Frames = 0; Frames < 30; ++Frames, In.Now += Frame)
+			{
+				const FVeyraOwnLead Lead = VeyraOwnLead::Step(State, In, Shape());
+				ASSERT_THAT(IsTrue(Lead.Offset.IsNearlyZero(1e-6), *FString::Printf(TEXT("woke %.1f ahead"), Lead.Offset.Size())));
+			}
+		}
+
 		TEST_METHOD(PathsAreMeasuredAlongTheirSegments)
 		{
 			const TArray<FVector2D> Path = { FVector2D(0.0, 0.0), FVector2D(100.0, 0.0), FVector2D(100.0, 50.0) };

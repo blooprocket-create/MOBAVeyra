@@ -5,7 +5,11 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "AbilitySystemComponent.h"
+#include "Attributes/VeyraMobilitySet.h"
 #include "GameFramework/PlayerState.h"
+#include "Movement/VeyraMovementComponent.h"
+#include "VeyraCombatVerbs.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "VeyraPlayerState.h"
@@ -36,10 +40,14 @@ namespace VeyraNetTests
 		/** How far, at most, another machine drew the mover's capsule from its latest update. */
 		double MostPastUpdate = 0.0;
 
+		/** How fast the server walks the mover now. */
+		double ServerWalks = 0.0;
+
 		BEFORE_EACH()
 		{
 			IgnoreKnownIrisWarnings(*TestRunner);
 			MostPastUpdate = 0.0;
+			ServerWalks = 0.0;
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
@@ -100,6 +108,37 @@ namespace VeyraNetTests
 					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
 					const AVeyraPlayerState* Theirs = Mover ? Mover->GetPlayerState<AVeyraPlayerState>() : nullptr;
 					ASSERT_THAT(IsTrue(Theirs && Theirs->GetOwnPath().Points.IsEmpty(), TEXT("another player's machine never learns it")));
+				});
+		}
+
+		TEST_METHOD(TheServersSpeedForTheBodyReachesItsOwnPlayer)
+		{
+			// The player's machine draws its body ahead at the speed the server walks it at now, slows and all, not its raw
+			// Movement Speed (ADR-077 §2). Fixture values: a Slow that halves its speed, for longer than the test.
+			constexpr double SlowShare = 0.5;
+			constexpr double SlowSeconds = 600.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Slow the mover"), [this](FState& State) {
+					AVeyraPlayerState* Mover = ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>();
+					MoverId = Mover->GetPlayerId();
+					FVeyraStatusSpec Slow;
+					Slow.Id = FVeyraContentId::FromText(TEXT("test_slow")).GetValue();
+					Slow.Kind = EVeyraStatusKind::Slow;
+					Slow.Magnitude = SlowShare;
+					Slow.DurationSeconds = SlowSeconds;
+					UAbilitySystemComponent& Self = *Mover->GetAbilitySystemComponent();
+					ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, Slow)));
+				})
+				.UntilServer(TEXT("The server walks it slower than its Movement Speed"), [this](FState& State) {
+					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
+					const UVeyraMovementComponent* Movement = Mover ? Mover->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					const UAbilitySystemComponent* Combatant = Mover ? Mover->GetAbilitySystemComponent() : nullptr;
+					ServerWalks = Movement ? Movement->GetMaxSpeed() : 0.0;
+					return Combatant && ServerWalks > 0.0 && ServerWalks < Combatant->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
+				})
+				.UntilClient(0, [this](FState& State) {
+					const AVeyraPlayerState* Own = LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
+					return Own && FMath::IsNearlyEqual(Own->GetOwnBodySpeed(), ServerWalks, PositionSlack);
 				});
 		}
 

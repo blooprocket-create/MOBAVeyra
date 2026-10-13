@@ -29,7 +29,7 @@ The author's round trip was near zero, since the server ran on the same PC, yet 
 
 On the player's own machine only, and in presentation only:
 
-- **When it moves.** The moment an order is given, the drawn body walks toward the order's goal at the body's own speed. That is a move's point, an Attack Move's, or an attack's target beyond its reach.
+- **When it moves.** The moment an order is given, the drawn body walks toward the order's goal at the speed the server walks it at now: slows, rides and pursuit included, as `UVeyraMovementComponent::GetMaxSpeed` gives it and the server sends that player (§3). Its Movement Speed stands in only until the server has said. That is a move's point, an Attack Move's, or an attack's target beyond its reach.
 - **How far ahead it is drawn.** Ahead of where its smoothing has it by what the order will have done by now. That is the smoothing's delay, plus `OwnLeadPingShare` of the round trip, plus `OwnLeadServerWaitSeconds` for the server's next tick, at most `OwnLeadMaxSeconds`.
 - **Its limits.** It is never drawn:
   - past what it could have walked since the click;
@@ -43,7 +43,7 @@ On the player's own machine only, and in presentation only:
   - or the server's body strays more than `OwnLeadOffPathDistance` from the path (other bodies push it);
   - or the body is dead, may not move, or something other than its orders moves it (a displacement, dash, Fear or attach shows as a custom movement mode).
 
-  At the end of its path it waits for the server's body to stand there, then lets go with nothing left to pull back.
+  At the end of its path it waits for the server's body to stand there, then lets go with nothing left to pull back. A finished order stays finished until the next is given, so a later push never wakes it.
 - **Facing only.** An attack's target already within reach is only faced, as ADR-067 §2 has it.
 - **The server stays in charge.** Only the drawn mesh moves, through `UVeyraMovementComponent::SetDrawnLead`. The capsule, collision, targeting, damage and every rule follow the server's updates. Nothing the drawn body does reaches the server.
 
@@ -51,7 +51,8 @@ On the player's own machine only, and in presentation only:
 
 - The controller the player's orders go to now sends the path it follows to that player's `AVeyraPlayerState` (`FVeyraOwnPath`, replicated `COND_OwnerOnly` and sent at once). That is the Vanguard's own, or the controller of a body the player commands in its stead, such as an Echo. The GameMode tells each controller whose orders it takes as it passes an order on, so a Vanguard and a commanded body never send over each other. It sends the path as an order plans it, and again as a chased unit moves.
 - The path carries the body it moves and the order it answers: the point a move or Attack Move named, or the unit an attack chases. The player's machine uses only a path that answers its latest order, within `OwnLeadOrderMatchDistance`.
-- No other machine receives it, so a Vanguard's destination stays private. A bot's Vanguard sends nothing.
+- With it, the same controller sends that player the speed it walks the body at now (`OwnBodySpeed`, owner only, sent as it changes).
+- No other machine receives either, so a Vanguard's destination stays private. A bot's Vanguard sends nothing.
 - The player's machine does no pathfinding of its own and builds no navigation data.
 
 ### 4. Data

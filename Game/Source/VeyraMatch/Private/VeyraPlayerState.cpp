@@ -112,6 +112,18 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	OwnerOnly.bIsPushBased = true;
 	OwnerOnly.Condition = COND_OwnerOnly;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, OwnPath, OwnerOnly);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, OwnBodySpeed, OwnerOnly);
+}
+
+void AVeyraPlayerState::SetOwnBodySpeed(float Speed)
+{
+	if (Speed == OwnBodySpeed)
+	{
+		return;
+	}
+	OwnBodySpeed = Speed;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, OwnBodySpeed, this);
+	ForceNetUpdate();
 }
 
 AVeyraVanguardController* AVeyraPlayerState::GetOrdersGoTo() const

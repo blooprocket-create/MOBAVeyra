@@ -143,6 +143,7 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 		State.StepFrom = FVector2D::ZeroVector;
 		State.StepAge = 0.0;
 		State.StandingFor = 0.0;
+		State.bFinished = false;
 		State.Weight = In.bMayLead ? 1.0 : State.Weight;
 	}
 	else if (State.Serial == INDEX_NONE && State.Path.Num() == 2)
@@ -163,13 +164,9 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 		State.StepAge = 0.0;
 	}
 
-	// How fast the body truly walks: as the server moves it, slows and all, once it walks.
+	// How fast the body walks: the server's own speed for it, slows and all.
 	const bool bServerWalks = In.ServerSpeed > In.Speed * Shape.StandingSpeedShare;
-	if (bServerWalks)
-	{
-		State.WalkingSpeed = In.ServerSpeed;
-	}
-	const double Speed = State.WalkingSpeed > 0.0 ? State.WalkingSpeed : In.Speed;
+	const double Speed = In.Speed;
 	State.Ideal += Speed * Delta;
 
 	// Where it stops: an attack within its reach of its target, as the server stops it to attack; a move where the server's
@@ -185,8 +182,9 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 	State.StandingFor = bStanding ? State.StandingFor + Delta : 0.0;
 	// Done once the server's body stands where it stops: the drawn body waits there for it, and only then lets the lead go,
 	// with nothing left between them to pull back.
-	const bool bDone = bArrived && !bServerWalks;
-	const bool bLeads = In.bMayLead && !bDone && OffPath <= Shape.OffPathDistance && State.StandingFor <= Shape.StallSeconds;
+	// Once done it stays done: a later push that leaves the body near the old path does not wake the lead again.
+	State.bFinished = State.bFinished || (bArrived && !bServerWalks);
+	const bool bLeads = In.bMayLead && !State.bFinished && OffPath <= Shape.OffPathDistance && State.StandingFor <= Shape.StallSeconds;
 
 	// Ahead of the server's body by what the order will have done by now, but never past what it could have done walking since
 	// it was given, nor past the path's end; moving on no faster than its catch-up speed, and never back while it leads.
