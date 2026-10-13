@@ -117,8 +117,8 @@ pub struct Progress {
     pub done_bytes: u64,
     pub total_bytes: u64,
     pub downloaded_bytes: u64,
-    /// While it downloads: every chunk the run must fetch, once each, as stored. Otherwise what it has
-    /// fetched, or 0 before it downloads.
+    /// While it downloads: every fetch the run must make, as stored. Otherwise what it has fetched, or
+    /// 0 before it downloads.
     pub download_total_bytes: u64,
 }
 
@@ -598,12 +598,13 @@ pub fn install(
         })
         .map(|job| (job.file, job.chunk))
         .collect();
-    let mut fetched: HashSet<&str> = HashSet::new();
+    // Every fetch the run makes: a chunk two files share is fetched for each, as fetching does not coalesce them yet
+    // (ADR-022 §10), so the download shown is the download made.
     let download_total_bytes = jobs
         .iter()
         .filter(|job| !held.contains(&(job.file, job.chunk)))
         .map(|job| &planned[job.file].file.chunks[job.chunk])
-        .filter(|chunk| !locations.contains_key(&chunk.hash) && fetched.insert(chunk.hash.as_str()))
+        .filter(|chunk| !locations.contains_key(&chunk.hash))
         .map(|chunk| chunk.stored_size)
         .sum();
     let mut status = Progress {
@@ -961,6 +962,18 @@ mod tests {
         assert_eq!(outcome.removed_files, 1);
         assert_eq!(outcome.rebuilt_files, 3);
         assert_eq!(outcome.reused_bytes, 12 + 8 + 4);
+    }
+
+    #[test]
+    fn a_new_chunk_two_files_share_is_counted_for_each_fetch() {
+        // Both files need ZZZZ, which no file on disk holds: the run fetches it for each, and says so.
+        let mut store = MemoryStore::default();
+        let target = release(&mut store, "1", &[("Content/a.pak", b"ZZZZ1111"), ("Content/b.pak", b"2222ZZZZ")]);
+        let root = folder("shared");
+        let outcome = run(&root, &target, &store, Mode::Update).unwrap();
+        assert_eq!(served_of(&store, b"ZZZZ"), 2);
+        assert_eq!(read(&root, "Content/b.pak"), b"2222ZZZZ");
+        assert!(outcome.downloaded_bytes > download_size(&target.manifest, None), "more than each chunk once");
     }
 
     #[test]

@@ -10,6 +10,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
+use crate::install::{Outcome, Progress};
+
 /// The log, beside the launcher's state file.
 pub const LOG_FILE_NAME: &str = "LauncherInstalls.log";
 
@@ -26,13 +28,43 @@ pub struct Entry {
     pub build_version: String,
     pub folder: String,
     pub changed: bool,
-    /// Fetched from the release store, as stored: the download.
+    /// Fetched from the release store, as stored: the download. A run that failed keeps what it had fetched.
     pub downloaded_bytes: u64,
-    /// Taken from files already on disk.
+    /// Taken from files already on disk; what a finished run reports.
     pub reused_bytes: u64,
     pub rebuilt_files: usize,
     pub removed_files: usize,
+    /// The stage a run that failed had reached, as the player reads it; none for a finished run.
+    pub stage: Option<String>,
     pub problem: Option<String>,
+}
+
+/// The entry for a run in `mode` toward `build_version` in `folder`, at `at`, from what it returned and the last
+/// progress it reported: a finished run's outcome; for one that failed after doing work, what it had downloaded, the
+/// stage it had reached and why it failed.
+pub fn entry_of(at: u64, mode: &str, build_version: &str, folder: &Path, result: Result<&Outcome, String>, last: Option<&Progress>) -> Entry {
+    let mut entry = Entry {
+        at_unix_seconds: at,
+        mode: mode.to_string(),
+        build_version: build_version.to_string(),
+        folder: folder.display().to_string(),
+        ..Entry::default()
+    };
+    match result {
+        Ok(outcome) => {
+            entry.changed = outcome.changed;
+            entry.downloaded_bytes = outcome.downloaded_bytes;
+            entry.reused_bytes = outcome.reused_bytes;
+            entry.rebuilt_files = outcome.rebuilt_files;
+            entry.removed_files = outcome.removed_files;
+        }
+        Err(problem) => {
+            entry.downloaded_bytes = last.map_or(0, |progress| progress.downloaded_bytes);
+            entry.stage = last.map(|progress| progress.stage.describe().to_string());
+            entry.problem = Some(problem);
+        }
+    }
+    entry
 }
 
 /// The log for a launcher whose state is in `state_file`.
@@ -96,6 +128,30 @@ mod tests {
         assert_eq!(lines[0]["buildVersion"], "0.2.6");
         assert!(lines[0]["problem"].is_null());
         assert_eq!(lines[1]["problem"], "The install was stopped");
+    }
+
+    #[test]
+    fn a_run_that_fails_after_downloading_keeps_what_it_fetched() {
+        // Its last rename refused, as when the game is running: it had downloaded, and says so.
+        let last = Progress {
+            stage: crate::install::Stage::Finishing,
+            done_bytes: 0,
+            total_bytes: 0,
+            downloaded_bytes: 152_028_102,
+            download_total_bytes: 152_028_102,
+        };
+        let failed = entry_of(1, "update", "0.2.6", Path::new("Veyra"), Err("the game is running".to_string()), Some(&last));
+        assert_eq!(failed.downloaded_bytes, 152_028_102);
+        assert_eq!(failed.stage.as_deref(), Some("Finishing"));
+        assert_eq!(failed.problem.as_deref(), Some("the game is running"));
+        let outcome = Outcome {
+            changed: true,
+            downloaded_bytes: 7,
+            reused_bytes: 9,
+            ..Outcome::default()
+        };
+        let finished = entry_of(1, "update", "0.2.6", Path::new("Veyra"), Ok(&outcome), Some(&last));
+        assert_eq!((finished.downloaded_bytes, finished.reused_bytes, finished.stage), (7, 9, None));
     }
 
     #[test]
