@@ -44,6 +44,12 @@ namespace VeyraShowcase
 		return Rejection == EVeyraCastRejection::InvalidTarget && !bPrimed ? EAfterRefusal::Prime : EAfterRefusal::Skip;
 	}
 
+	FVector MarkOf(const FVector& Centre, const FVector& OwnStart, double Stand, double YawDegrees)
+	{
+		const FVector Outward = FRotator(0.0, YawDegrees, 0.0).RotateVector((OwnStart - Centre).GetSafeNormal2D());
+		return Centre + Outward * Stand;
+	}
+
 	void ReleaseHolds(UAbilitySystemComponent& Unit)
 	{
 		if (VeyraCombat::IsRiding(Unit))

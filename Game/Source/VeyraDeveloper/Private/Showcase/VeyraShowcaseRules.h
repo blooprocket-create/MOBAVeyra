@@ -41,6 +41,13 @@ namespace VeyraShowcase
 	EAfterRefusal AfterRefusal(EVeyraCastRejection Rejection, bool bPrimed);
 
 	/**
+	 * Where a body stands after a reset: Stand from Centre on its own side of the line between the starts, that line
+	 * turned YawDegrees about Centre. The camera looks along +X, so a turn of 90 stands the side starting at -X on the
+	 * screen's left and the other on its right.
+	 */
+	FVector MarkOf(const FVector& Centre, const FVector& OwnStart, double Stand, double YawDegrees);
+
+	/**
 	 * Server: frees Unit's body of what would keep it from its mark, through Combat: a ride it is on ends as if its time
 	 * ran out, and a body it holds on to is let go.
 	 */
