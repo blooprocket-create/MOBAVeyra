@@ -4,6 +4,7 @@
 
 #include "Kit/VeyraKitOrders.h"
 #include "Movement/VeyraForcedMovementTypes.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "VeyraCombatVerbs.h"
 
 namespace VeyraShowcase
@@ -53,6 +54,18 @@ namespace VeyraShowcase
 		if (VeyraCombat::GetAttachHost(Unit))
 		{
 			VeyraCombat::Detach(Unit);
+		}
+		if (UVeyraStatusComponent* Statuses = Unit.GetOwner() ? Unit.GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
+		{
+			TSet<FVeyraContentId> Held;
+			for (const FVeyraStatusEntry& Entry : Statuses->GetLedger().Entries)
+			{
+				Held.Add(Entry.Id);
+			}
+			for (const FVeyraContentId& Id : Held)
+			{
+				Statuses->Remove(Id);
+			}
 		}
 	}
 }

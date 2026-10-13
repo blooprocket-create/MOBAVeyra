@@ -6,6 +6,7 @@
 
 #include "Components/ActorTestSpawner.h"
 #include "Showcase/VeyraShowcaseRules.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "VeyraCombatVerbs.h"
 
@@ -66,6 +67,23 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(IsTrue(VeyraCombat::Attach(Holder, Host, HoldSeconds)));
 			VeyraShowcase::ReleaseHolds(Holder);
 			ASSERT_THAT(IsNull(VeyraCombat::GetAttachHost(Holder), TEXT("it lets go, so it can be stood at its mark")));
+		}
+
+		TEST_METHOD(AStatusTheLastClipLeftEnds)
+		{
+			// As a stance that plants its caster outlasts its clip and would keep it from stepping toward the next.
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			UAbilitySystemComponent& Planted = *World.Spawn(EVeyraTeam::A, FVector::ZeroVector).GetAbilitySystemComponent();
+			UVeyraStatusComponent* Statuses = Planted.GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
+			ASSERT_THAT(IsNotNull(Statuses));
+			FVeyraStatusSpec Stance;
+			Stance.Id = FVeyraContentId::FromText(TEXT("test_planted_stance")).GetValue();
+			Stance.Kind = EVeyraStatusKind::Planted;
+			Stance.DurationSeconds = HoldSeconds;
+			ASSERT_THAT(IsTrue(Statuses->Apply(Planted, Stance)));
+			ASSERT_THAT(IsFalse(Statuses->GetLedger().Entries.IsEmpty()));
+			VeyraShowcase::ReleaseHolds(Planted);
+			ASSERT_THAT(IsTrue(Statuses->GetLedger().Entries.IsEmpty(), TEXT("the stance ends, so the next clip starts from a free body")));
 		}
 
 		TEST_METHOD(AFreeBodyIsLeftAsItIs)

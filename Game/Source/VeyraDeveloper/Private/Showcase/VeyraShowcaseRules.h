@@ -41,8 +41,9 @@ namespace VeyraShowcase
 	EAfterRefusal AfterRefusal(EVeyraCastRejection Rejection, bool bPrimed);
 
 	/**
-	 * Server: frees Unit's body of what would keep it from its mark, through Combat: a ride it is on ends as if its time
-	 * ran out, and a body it holds on to is let go.
+	 * Server: frees Unit's body of what would keep it from its mark or carry the last clip into the next, through Combat:
+	 * a ride it is on ends as if its time ran out, a body it holds on to is let go, and every status it holds ends early,
+	 * as a stance that plants it.
 	 */
 	void ReleaseHolds(UAbilitySystemComponent& Unit);
 }
