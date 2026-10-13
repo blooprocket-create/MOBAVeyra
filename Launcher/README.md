@@ -13,8 +13,8 @@ It does its canon jobs:
 | Path | What it is |
 |---|---|
 | `core/` | `veyra-launcher-core`: the configuration, the build manifest, the backend client, Firebase sign-in and registration (`firebase.rs`, `player.rs`) and the launch handshake. All HTTP is here, in Rust over rustls, so the web view makes no requests. |
-| `app/` | `veyra-launcher`: the Tauri window, commands over the core. `build.rs` draws the app icon into the git-ignored `app/icons/`, so no binary icon is committed. |
-| `ui/` | The window's static HTML, CSS and JavaScript. No Node toolchain and no bundler. |
+| `app/` | `veyra-launcher`: the Tauri window, commands over the core. `build.rs` draws the app icon into the git-ignored `app/icons/`, so no binary icon is committed. The window has no system frame; `capabilities/window.json` grants its own title bar only dragging, minimizing and closing. |
+| `ui/` | The window's static HTML, CSS and JavaScript, in the client's Smoked Crucible style and type (Sora and Inter, `ui/fonts/`). No Node toolchain and no bundler. |
 | `cli/` | The launcher without its window, for scripts and tests:<br>• `veyra-launch-cli` launches (`Game/Scripts/Smoke.ps1 -Flow Practice -Launcher Cli`, and the opponent of `Play.ps1 -Opponent`);<br>• `veyra-install` installs, updates, repairs and uninstalls;<br>• `veyra-fake-game` is a stand-in game that speaks the handshake;<br>• `veyra-fake-setup` is a stand-in Setup that records the switches it was started with, for the self-update tests. |
 | `publish/` | `veyra-publish`: turns a packaged client into a release in a release store (ADR-022 §4), or publishes the Setup launchers update themselves with (`--setup`, ADR-022 §11). |
 | `setup/` | Veyra Setup:<br>• `VeyraSetup.nsi`, the NSIS script;<br>• `veyra-setup-art`, which draws Setup's bitmaps;<br>• `art.json`, which says which splash art they come from and how each is framed. |

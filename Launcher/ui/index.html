@@ -8,7 +8,16 @@
 <script src="launcher.js" defer></script>
 </head>
 <body>
-<div class="art" aria-hidden="true"></div>
+<!-- The window has no frame of its own: the art and the bar along its top move it. -->
+<div class="art" aria-hidden="true" data-tauri-drag-region></div>
+<div class="titlebar" data-tauri-drag-region>
+  <button id="minimize" type="button" class="window-control" aria-label="Minimize" title="Minimize">
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5h8"/></svg>
+  </button>
+  <button id="close" type="button" class="window-control close" aria-label="Close" title="Close">
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>
+  </button>
+</div>
 <main>
   <header>
     <p class="eyebrow">The Meridian Crucible</p>

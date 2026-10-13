@@ -428,6 +428,10 @@ async function follow() {
   }
 }
 
+// The window draws its own title bar (index.html); Close ends the launcher as the frame's did.
+const appWindow = window.__TAURI__.window.getCurrentWindow();
+element("minimize").addEventListener("click", () => appWindow.minimize());
+element("close").addEventListener("click", () => appWindow.close());
 element("play").addEventListener("click", () => play(null));
 element("dev-play").addEventListener("click", () => play(element("account").value));
 element("sign-in-form").addEventListener("submit", submitSignIn);
