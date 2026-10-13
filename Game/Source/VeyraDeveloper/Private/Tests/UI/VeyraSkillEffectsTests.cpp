@@ -13,6 +13,9 @@
 #include "VeyraPlayerState.h"
 #include "Kit/VeyraKitPresentationSettings.h"
 #include "Kit/VeyraSkillEffectsSubsystem.h"
+#include "Engine/SkeletalMesh.h"
+#include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraVanguardArtSet.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -206,6 +209,16 @@ namespace VeyraSkillEffectsTests
 			Arc.ArcBone = TEXT("hand_r");
 			Arc.ArcHeight = 200.0f;
 			ASSERT_THAT(IsTrue(ProblemsWith({ Arc }).IsEmpty()));
+			FVeyraAbilityEffects Thrown = Recipe(TEXT("test_thrown"));
+			Thrown.ThrownVanguard = TEXT("test_vanguard");
+			Thrown.ThrownBody = TEXT("test_ride");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Thrown }).IsEmpty(), TEXT("a thrown body names the chain it leaves and the animation it loops")));
+			Thrown.ThrownHiddenBone = TEXT("pelvis");
+			Thrown.ThrownAnimation = TEXT("Run");
+			ASSERT_THAT(IsTrue(ProblemsWith({ Thrown }).IsEmpty()));
+			Thrown.TetherBone = TEXT("prop_r");
+			Thrown.TetherFromBone = TEXT("hand_r");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Thrown }).IsEmpty(), TEXT("a thrown body is no tether")));
 			FVeyraAbilityEffects Anchored = Recipe(TEXT("test_anchor"));
 			Anchored.ChannelBone = TEXT("hand_r");
 			ASSERT_THAT(IsFalse(ProblemsWith({ Anchored }).IsEmpty(), TEXT("only a channel pours from a channel bone")));
@@ -323,6 +336,34 @@ namespace VeyraSkillEffectsTests
 				}
 			}
 			ASSERT_THAT(IsTrue(Missing.IsEmpty(), *FString::Printf(TEXT("no recipe for %s"), *FString::Join(Missing, TEXT(", ")))));
+		}
+
+		TEST_METHOD(EveryShippedThrownBodyIsInTheArtAndLeavesItsChainBehind)
+		{
+			// The body a projectile throws (ADR-072 §4) is one its Vanguard wears, with the animation it loops and the bone
+			// whose chain stays behind.
+			const UVeyraVanguardArtSet* Art = GetDefault<UVeyraGreyboxSettings>()->VanguardArt.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Art));
+			int32 Throwing = 0;
+			for (const FVeyraAbilityEffects& Effects : GetDefault<UVeyraKitPresentationSettings>()->AbilityEffects)
+			{
+				if (!Effects.ThrowsBody())
+				{
+					continue;
+				}
+				++Throwing;
+				const FVeyraVanguardBody* Body = VeyraSkillEffects::ThrownBodyOf(*Art, Effects);
+				ASSERT_THAT(IsNotNull(Body, *Effects.Ability.ToString()));
+				ASSERT_THAT(IsTrue(Body->Mesh->GetRefSkeleton().FindBoneIndex(Effects.ThrownHiddenBone) != INDEX_NONE,
+					*FString::Printf(TEXT("%s leaves %s behind"), *Effects.Ability.ToString(), *Effects.ThrownHiddenBone.ToString())));
+			}
+			ASSERT_THAT(IsTrue(Throwing > 0, TEXT("a shipped projectile throws a body")));
+			FVeyraAbilityEffects Unknown = Recipe(TEXT("test_unknown_body"));
+			Unknown.ThrownVanguard = TEXT("no_such_vanguard");
+			Unknown.ThrownBody = TEXT("no_such_body");
+			Unknown.ThrownHiddenBone = TEXT("pelvis");
+			Unknown.ThrownAnimation = TEXT("Run");
+			ASSERT_THAT(IsNull(VeyraSkillEffects::ThrownBodyOf(*Art, Unknown)));
 		}
 
 		TEST_METHOD(EveryShippedRecipeNamesAnAbility)
