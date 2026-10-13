@@ -604,7 +604,10 @@ private:
 	/** The fog banks drawn on the ground already: each carries its markings, and takes them as it goes (ADR-036 §1). */
 	TSet<TWeakObjectPtr<const AActor>> DrawnFogBanks;
 
-	/** Each base's pad, and the viewer's side they were coloured for. */
+	/** The map's terrain pieces drawn as blocks already, where no generated masses stand for them (ADR-073 §3). */
+	TSet<TWeakObjectPtr<const AActor>> DrawnTerrain;
+
+	/** Each keep's floor marking, and the viewer's side they were coloured for. */
 	TMap<EVeyraTeam, TWeakObjectPtr<UMaterialInstanceDynamic>> PadMaterials;
 	EVeyraTeam PadsDrawnFor = EVeyraTeam::None;
 

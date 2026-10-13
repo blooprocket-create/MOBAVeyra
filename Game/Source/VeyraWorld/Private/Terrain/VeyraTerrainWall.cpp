@@ -35,12 +35,6 @@ void AVeyraTerrainWall::SetHalfExtent(const FVector& InHalfExtent)
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraTerrainWall, HalfExtent, this);
 }
 
-void AVeyraTerrainWall::SetMapTerrain(bool bValue)
-{
-	bMapTerrain = bValue;
-	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraTerrainWall, bMapTerrain, this);
-}
-
 void AVeyraTerrainWall::BeginPlay()
 {
 	Super::BeginPlay();
@@ -68,5 +62,4 @@ void AVeyraTerrainWall::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraTerrainWall, HalfExtent, Params);
-	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraTerrainWall, bMapTerrain, Params);
 }

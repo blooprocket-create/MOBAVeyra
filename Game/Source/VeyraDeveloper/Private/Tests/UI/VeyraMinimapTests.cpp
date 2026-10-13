@@ -60,15 +60,23 @@ namespace VeyraMinimapTests
 			ASSERT_THAT(IsTrue(View.Lanes.Num() == 3 && View.Lanes[0].Points.Num() >= 2, TEXT("the battleground's three lanes")));
 			ASSERT_THAT(IsTrue(View.Focus.IsSet() && View.Focus->Equals(FVector2D(1800.0, 960.0))));
 			ASSERT_THAT(IsTrue(View.Dots.IsEmpty(), TEXT("a world with no units has no dots")));
-			// The river crosses from corner to corner, and every wall of both halves stands on it (ADR-043 §4).
+			// The river crosses from corner to corner; every mass of both halves stands on it filled, and every box of both
+			// keeps' walls (ADR-073 §3).
 			const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
 			ASSERT_THAT(IsTrue(View.River.Num() > 6 && View.River.Num() % 3 == 0, TEXT("sampled river triangles")));
 			for (const FVector2D& Corner : View.River)
 			{
 				ASSERT_THAT(IsTrue(Corner.X >= 1700.0 - 1e-6 && Corner.X <= 1900.0 + 1e-6 && Corner.Y >= 860.0 - 1e-6 && Corner.Y <= 1060.0 + 1e-6, TEXT("cut to the map")));
 			}
-			ASSERT_THAT(AreEqual(View.Walls.Num(), VeyraLayout::Walls(Layout).Num()));
-			const FVeyraTerrainBox First = VeyraLayout::Walls(Layout)[0];
+			int32 Triangles = 0;
+			for (const FVeyraMassShape& Mass : VeyraLayout::Masses(Layout))
+			{
+				// A simple polygon fills with two fewer triangles than it has corners.
+				Triangles += Mass.Outline.Num() - 2;
+			}
+			ASSERT_THAT(AreEqual(View.Masses.Num(), Triangles * 3));
+			ASSERT_THAT(AreEqual(View.Walls.Num(), VeyraLayout::KeepWalls(Layout).Num()));
+			const FVeyraTerrainBox First = VeyraLayout::KeepWalls(Layout)[0];
 			ASSERT_THAT(IsTrue(View.Walls[0].Corners.Num() == 4
 				&& View.Walls[0].Corners[0].Equals(VeyraMinimap::ToMap(Frame, FVector(First.Corners()[0], 0.0)))));
 		}

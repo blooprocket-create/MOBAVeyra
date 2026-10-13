@@ -171,14 +171,15 @@ Terrain shaping must respect lane/jungle/river geometry from `World.json`.
 `VeyraWorldTools` must derive or query these constraints from Veyra-owned layout/world APIs:
 - lane envelopes;
 - river corridor;
-- base pads;
+- keep floors and their gates;
 - structure clearances;
-- wildlife camp clearances;
-- Flux Well clearances;
+- clearings (camps, glades, the Wells' islands) and routes;
 - Dense Fog regions;
 - protected navigation bands.
 
 Broad terrain may be sculpted artistically around these constraints, but its playable result must remain valid against the same source.
+
+**Masses ([ADR-073](../ADR/ADR-073-the-crucible-from-its-playable-spaces.md)).** The Crucible's cliffs and forests are its rock and forest masses: whatever the playable spaces leave, generated into `World.json` by `Game/Scripts/Crucible/BuildCrucibleMasses.py` and never drawn by hand. Each is a generated static mesh sculpted over its exact gameplay outline as the style profile's `massForms` shape its kind (`VeyraWorldTools` sculpts it, seeded; `BuildCrucibleMassArt.py` derives what stands on its top), its face stepping back only inward as it climbs, its footprint at walking height the gameplay edge, its base sunk below the Landscape, with no collision: World raises the masses' own terrain on every machine. The Landscape stays the walkable floor and raises no cliffs. To change a mass, change the open spaces or the generator's rules, then regenerate; never edit a mass or its mesh.
 
 ### 6.3 Height and verticality
 

@@ -77,8 +77,10 @@
 #include "NiagaraSystem.h"
 #include "Structures/VeyraStructure.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraTerrainMass.h"
 #include "Terrain/VeyraTerrainWall.h"
 #include "Terrain/VeyraSurfacePlacement.h"
+#include "Components/BoxComponent.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -1572,10 +1574,35 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 	}
 	// Runtime terrain stands as a block across the way it faces, in the neutral colour (ADR-032 §4).
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	// The map's own terrain too, where no generated masses stand for it: a block on each of its boxes (ADR-073 §3).
+	for (TActorIterator<AVeyraTerrainMass> It(GetWorld()); It && !bAuthoredTerrain; ++It)
+	{
+		AVeyraTerrainMass& Piece = **It;
+		if (DrawnTerrain.Contains(&Piece))
+		{
+			continue;
+		}
+		DrawnTerrain.Add(&Piece);
+		for (UBoxComponent* Box : Piece.GetBoxes())
+		{
+			UMaterialInstanceDynamic* Material = nullptr;
+			UStaticMeshComponent* Mesh = Box ? AddShape(Piece, *GroundMesh, Material) : nullptr;
+			if (!Mesh)
+			{
+				continue;
+			}
+			Mesh->AttachToComponent(Box, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+			FitGreyboxShape(*Mesh, Box->GetUnscaledBoxExtent());
+			if (Material)
+			{
+				Material->SetVectorParameterValue(ColorParameter, Settings.NeutralColor);
+			}
+		}
+	}
 	for (TActorIterator<AVeyraTerrainWall> It(GetWorld()); It; ++It)
 	{
 		AVeyraTerrainWall& Wall = **It;
-		if ((bAuthoredTerrain && Wall.IsMapTerrain()) || Wall.GetHalfExtent().GetMin() <= 0.0 || (Bodies.Contains(&Wall) && Bodies.FindChecked(&Wall).Mesh.IsValid()))
+		if (Wall.GetHalfExtent().GetMin() <= 0.0 || (Bodies.Contains(&Wall) && Bodies.FindChecked(&Wall).Mesh.IsValid()))
 		{
 			continue;
 		}
@@ -1694,13 +1721,15 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 				AddGroundMarking(*Owner, *GroundMesh, Settings.LaneColor, (From + To) / 2.0, Yaw, FVector2D((Along.Size() + Lane.Width) / 2.0, Lane.Width / 2.0), 2);
 			}
 		}
+		// Each keep's floor, as the disc about its Prime Well that reaches the keep's nearest edge.
 		const FVector2D PrimeWell = VeyraLayout::ToVector(Layout.Base.PrimeWell);
+		const double KeepReach = FMath::Max(0.0, VeyraLayout::DepthInPolygon(VeyraLayout::KeepFloor(Layout, EVeyraTeam::A), PrimeWell));
 		PadMaterials.Reset();
 		PadsDrawnFor = GetViewerTeam();
 		for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
 		{
 			UMaterialInstanceDynamic* Material =
-				AddGroundMarking(*Owner, *PadMesh, BaseColorOf(Team), VeyraLayout::ForTeam(PrimeWell, Team), 0.0, FVector2D(Layout.Base.PadRadius), 3);
+				AddGroundMarking(*Owner, *PadMesh, BaseColorOf(Team), VeyraLayout::ForTeam(PrimeWell, Team), 0.0, FVector2D(KeepReach), 3);
 			PadMaterials.Add(Team, Material);
 		}
 	}

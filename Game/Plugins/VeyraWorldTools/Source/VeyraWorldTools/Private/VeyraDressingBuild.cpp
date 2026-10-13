@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "VeyraWorldBuild.h"
+#include "VeyraMassSculpt.h"
 #include "Vision/VeyraDenseFogVisuals.h"
 
 #include "Components/BoxComponent.h"
@@ -318,168 +319,109 @@ namespace VeyraWorldBuild
 			Kit.Add(Family, MoveTemp(Meshes));
 		}
 		const auto Size = [&Kit](const TCHAR* Family) { return Kit[Family][0]->GetBoundingBox().GetSize(); };
-		TArray<FRegion> Regions;
+		// Each region its own allocation, so a reference to one holds however many are added after it.
+		TIndirectArray<FRegion> Regions;
 		const auto Region = [&Regions](const TCHAR* Name, const TCHAR* Family) -> FRegion& {
-			FRegion& Made = Regions.AddDefaulted_GetRef();
+			FRegion& Made = Regions[Regions.Add(new FRegion())];
 			Made.Name = Name;
 			Made.Family = Family;
 			return Made;
 		};
-		// Each wall: slate cliff faces along both its edges, turning with it and closing round its ends, the terrain's mossy
-		// ridge showing between them; boulders fallen at its foot to break its outline; shrubs and the odd small tree on its
-		// crown where it is broad, low enough that the camera sees over it. Team B's are the rotation (Place).
+		// Each of Team A's masses (ADR-073 §5): what stands on its top, from the masses' art (a forest's canopy, a cliff's
+		// shrubs and boulders), and along every mass's foot, clumps of grass and fern where rock meets the floor. Its cliffs are its own mesh (Masses). Team B's
+		// are the rotation (Place).
 		{
-			FRandomStream Random(Seed + 1);
-			FRegion& Cliffs = Region(TEXT("Wall_Cliffs"), TEXT("Cliff"));
-			FRegion& Edges = Region(TEXT("Wall_Boulders"), TEXT("Boulder"));
-			FRegion& Crowns = Region(TEXT("Wall_Shrubs"), TEXT("Shrub"));
-			FRegion& Trees = Region(TEXT("Wall_Trees"), TEXT("Tree"));
-			const FVector Cliff = Size(TEXT("Cliff"));
-			const double Span = Dress.Number(TEXT("wallCliffSpan"));
-			const double Depth = Dress.Number(TEXT("wallCliffDepth"));
-			const double Inset = Dress.Number(TEXT("wallCliffInset"));
-			const FVector2D Height = Dress.Range(TEXT("wallCliffHeightScale"));
-			const FVector2D BoulderScale = Dress.Range(TEXT("wallBoulderScale"));
-			const FVector2D ShrubScale = Dress.Range(TEXT("wallCrownShrubScale"));
-			const FVector2D TreeScale = Dress.Range(TEXT("wallCrownTreeScale"));
-			TArray<FVeyraWallShape> Shapes;
-			for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
+			const TSharedPtr<FJsonObject> Art = LoadMassArt(Tuning, Error);
+			const TSharedPtr<FJsonObject>* Looks = nullptr;
+			FVeyraMassForms Forms;
+			if (!Art || !Style.TryGetObjectField(TEXT("massLooks"), Looks) || !FVeyraMassForms::Read(Style, Forms, Error))
 			{
-				Shapes.Add(VeyraLayout::WallShape(Layout, Index, EVeyraTeam::A));
+				Error = Error.IsEmpty() ? TEXT("Dressing the masses requires the style profile's massLooks.") : Error;
+				return false;
 			}
-			for (int32 Index = 0; Index < Shapes.Num(); ++Index)
+			const TArray<FVeyraMassShape> Shapes = VeyraLayout::Masses(Layout);
+			FRandomStream Random(Seed + 1);
+			// Each piece the art names: its region, the kit family it draws from, and the scale that stands it at its height.
+			struct FTopPiece
 			{
-				const FVeyraWallShape& Shape = Shapes[Index];
-				const TArray<FVeyraCurveSample>& Spine = Shape.Spine;
-				if (Spine.Num() < 2)
+				FRegion* Region;
+				const TCHAR* Family;
+				double Scale;
+			};
+			TMap<FString, FTopPiece> TopPieces;
+			for (const TPair<const TCHAR*, const TCHAR*>& Kind : { TPair<const TCHAR*, const TCHAR*>(TEXT("Tree"), TEXT("treeHeight")),
+					 TPair<const TCHAR*, const TCHAR*>(TEXT("Shrub"), TEXT("shrubHeight")), TPair<const TCHAR*, const TCHAR*>(TEXT("Boulder"), TEXT("boulderHeight")) })
+			{
+				FRegion& Made = Region(*(FString(TEXT("Mass_")) + Kind.Key + TEXT("s")), Kind.Key);
+				TopPieces.Add(Kind.Key, FTopPiece{ &Made, Kind.Key, (*Looks)->GetNumberField(Kind.Value) / FMath::Max(Size(Kind.Key).Z, 1.0) });
+			}
+			FRegion& Grass = Region(TEXT("Mass_FootGrass"), TEXT("Grass"));
+			FRegion& Ferns = Region(TEXT("Mass_FootFerns"), TEXT("Fern"));
+			const FVector2D Reach = Dress.Range(TEXT("massFootReach"));
+			const FVector2D Spacing = Dress.Range(TEXT("massFootSpacing"));
+			const FVector2D FootScale = Dress.Range(TEXT("massFootScale"));
+			const double FernShare = Dress.Number(TEXT("massFootFernShare"));
+			for (const TSharedPtr<FJsonValue>& Value : Art->GetArrayField(TEXT("masses")))
+			{
+				const FJsonObject& Mass = *Value->AsObject();
+				const FString Id = Mass.GetStringField(TEXT("id"));
+				const int32 EntryIndex = Layout.Masses.Items.IndexOfByPredicate([&Id](const FVeyraMassLayout& Each) { return Each.Id == Id; });
+				const FVeyraMassShape* Shape = Shapes.FindByPredicate([EntryIndex](const FVeyraMassShape& Each) { return Each.Index == EntryIndex; });
+				const FVeyraMassForm* Form = Shape ? Forms.Find(*Shape) : nullptr;
+				if (!Form)
 				{
-					continue;
-				}
-				// Where walls overlap, as a lobe on a massif, the edge inside the other is no edge: nothing stands there.
-				const auto InsideAnother = [&Shapes, Index](const FVector2D& Point) {
-					for (int32 Other = 0; Other < Shapes.Num(); ++Other)
-					{
-						if (Other != Index && Shapes[Other].DepthInside(Point) > 0.0)
-						{
-							return true;
-						}
-					}
+					Error = TEXT("CrucibleMassArt.json names a mass the layout lacks, or one whose kind has no form: ") + Id;
 					return false;
-				};
-				TArray<double> Reached = { 0.0 };
-				for (int32 Sample = 1; Sample < Spine.Num(); ++Sample)
-				{
-					Reached.Add(Reached.Last() + FVector2D::Distance(Spine[Sample - 1].Point, Spine[Sample].Point));
 				}
-				const double Length = Reached.Last();
-				// The spine Distance along it: where it passes, how wide it is, and which way it runs.
-				const auto At = [&Spine, &Reached](double Distance, FVector2D& OutPoint, double& OutWidth, FVector2D& OutAlong) {
-					int32 Segment = 1;
-					while (Segment < Spine.Num() - 1 && Reached[Segment] < Distance)
-					{
-						++Segment;
-					}
-					const double Gap = FMath::Max(Reached[Segment] - Reached[Segment - 1], UE_DOUBLE_KINDA_SMALL_NUMBER);
-					const double T = FMath::Clamp((Distance - Reached[Segment - 1]) / Gap, 0.0, 1.0);
-					OutPoint = FMath::Lerp(Spine[Segment - 1].Point, Spine[Segment].Point, T);
-					OutWidth = FMath::Lerp(Spine[Segment - 1].Width, Spine[Segment].Width, T);
-					OutAlong = (Spine[Segment].Point - Spine[Segment - 1].Point).GetSafeNormal();
-				};
-				// A cliff face standing at Point, running along Along: its foot on the lower ground outside it.
-				const auto Face = [&](const FVector2D& Point, const FVector2D& Along, const FVector2D& Out, double Run, double Deep) {
-					const FVector2D Outside = Point + Out * (Deep / 2.0 + Dress.Number(TEXT("wallFootReach")));
-					const TOptional<double> Foot = Dress.Ground(Outside);
-					if (!Foot.IsSet() || InsideAnother(Outside))
-					{
-						return;
-					}
-					const FVector Scale(Run * Dress.Number(TEXT("cliffOverlap")) / Cliff.X, Deep / Cliff.Y, Random.FRandRange(Height.X, Height.Y));
-					Dress.Place(Cliffs, Random, Kit[TEXT("Cliff")].Num(), Point, YawOf(Along) + Random.FRandRange(-6.0, 6.0) + (Random.FRand() < 0.5 ? 180.0 : 0.0),
-						Scale, Dress.Number(TEXT("cliffSink")), Foot);
-				};
-				const int32 Count = FMath::Max(1, FMath::CeilToInt(Length / Span));
-				const double Step = Length / Count;
-				for (int32 Piece = 0; Piece < Count; ++Piece)
+				const TArray<FVector2D>& Outline = Shape->Outline;
+				for (const TSharedPtr<FJsonValue>& PieceValue : Mass.GetArrayField(TEXT("canopy")))
 				{
-					FVector2D Point;
-					double Width = 0.0;
-					FVector2D Along;
-					At((Piece + 0.5) * Step, Point, Width, Along);
-					const FVector2D Across(-Along.Y, Along.X);
-					// Each edge's face stands just inside it; a wall too thin for two faces is one, across its whole width.
-					const double Deep = FMath::Min(Depth, Width);
-					const double Offset = FMath::Max(Width / 2.0 - Deep / 2.0 - Inset, 0.0);
-					for (const double Side : { -1.0, 1.0 })
+					const FJsonObject& Piece = *PieceValue->AsObject();
+					const TArray<TSharedPtr<FJsonValue>>& At = Piece.GetArrayField(TEXT("at"));
+					const FTopPiece* Kind = TopPieces.Find(Piece.GetStringField(TEXT("kind")));
+					if (!Kind)
 					{
-						if (Offset <= 0.0 && Side > 0.0)
+						Error = TEXT("CrucibleMassArt.json names a piece the dressing cannot place: ") + Piece.GetStringField(TEXT("kind"));
+						return false;
+					}
+					const FVector2D Spot(At[0]->AsNumber(), At[1]->AsNumber());
+					Dress.Place(*Kind->Region, Random, Kit[Kind->Family].Num(), Spot, Piece.GetNumberField(TEXT("yaw")),
+						FVector(Kind->Scale * Piece.GetNumberField(TEXT("scale"))), Dress.Number(TEXT("treeSink")),
+						VeyraMassSculpt::TopAt(*Shape, *Form, Dress.Field, Forms.SeedOf(*Shape), Spot));
+				}
+				// The foot's clumps, a little way out from its edge on open ground, never in play's way.
+				const double Out = Random.FRandRange(Reach.X, Reach.Y);
+				for (int32 Corner = 0; Corner < Outline.Num(); ++Corner)
+				{
+					const FVector2D& From = Outline[Corner];
+					const FVector2D& To = Outline[(Corner + 1) % Outline.Num()];
+					const double Length = FVector2D::Distance(From, To);
+					const FVector2D Along = (To - From).GetSafeNormal();
+					// Counter-clockwise, so open ground lies to the right of each span.
+					const FVector2D Outward(Along.Y, -Along.X);
+					for (double Distance = Random.FRandRange(0.0, Spacing.X); Distance < Length; Distance += Random.FRandRange(Spacing.X, Spacing.Y))
+					{
+						const FVector2D Spot = From + Along * Distance + Outward * Out;
+						const FVeyraTerrainSample Sample = Dress.Field.Sample(Spot);
+						if (Sample.Mass > 0.0 || Sample.Keep > 0.0 || Sample.Road > 0.0 || !VeyraDressing::Allows(Tuning, Spot, 0.0))
 						{
-							break;
+							continue;
 						}
-						Face(Point + Across * Side * Offset, Along, Across * Side, Step, Offset > 0.0 ? Deep : Width);
-					}
-				}
-				// Its ends, closed by a face across each.
-				for (const bool bStart : { true, false })
-				{
-					const FVeyraCurveSample& End = bStart ? Spine[0] : Spine.Last();
-					const FVector2D Inward = bStart ? (Spine[1].Point - Spine[0].Point).GetSafeNormal() : (Spine[Spine.Num() - 2].Point - Spine.Last().Point).GetSafeNormal();
-					const double Deep = FMath::Min(Depth, End.Width);
-					Face(End.Point + Inward * (Deep / 2.0), FVector2D(-Inward.Y, Inward.X), -Inward, End.Width, Deep);
-				}
-				// Boulders fallen at both edges.
-				for (double Distance = 0.0; Distance <= Length; Distance += Dress.Number(TEXT("wallBoulderSpacing")))
-				{
-					FVector2D Point;
-					double Width = 0.0;
-					FVector2D Along;
-					At(Distance, Point, Width, Along);
-					for (const double Side : { -1.0, 1.0 })
-					{
-						if (Random.FRand() < Dress.Number(TEXT("wallBoulderChance")))
-						{
-							const FVector2D Edge = Point + FVector2D(-Along.Y, Along.X) * Side * Width / 2.0 * Dress.Number(TEXT("wallBoulderReach"));
-							if (InsideAnother(Edge))
-							{
-								continue;
-							}
-							Dress.Place(Edges, Random, Kit[TEXT("Boulder")].Num(), Edge, Random.FRandRange(0.0, 360.0),
-								FVector(Random.FRandRange(BoulderScale.X, BoulderScale.Y)), Dress.Number(TEXT("wallBoulderSink")));
-						}
-					}
-				}
-				// Its crown, where it is broad: shrubs, and now and then a small tree.
-				for (double Distance = Dress.Number(TEXT("wallCrownSpacing")) / 2.0; Distance < Length; Distance += Dress.Number(TEXT("wallCrownSpacing")))
-				{
-					FVector2D Point;
-					double Width = 0.0;
-					FVector2D Along;
-					At(Distance, Point, Width, Along);
-					if (Width < Dress.Number(TEXT("wallCrownMinWidth")))
-					{
-						continue;
-					}
-					const FVector2D Crown = Point + FVector2D(-Along.Y, Along.X) * Random.FRandRange(-0.2, 0.2) * Width;
-					if (Random.FRand() < Dress.Number(TEXT("wallCrownTreeChance")))
-					{
-						Dress.Place(Trees, Random, Kit[TEXT("Tree")].Num(), Crown, Random.FRandRange(0.0, 360.0), FVector(Random.FRandRange(TreeScale.X, TreeScale.Y)),
-							Dress.Number(TEXT("treeSink")));
-					}
-					else
-					{
-						Dress.Place(Crowns, Random, Kit[TEXT("Shrub")].Num(), Crown, Random.FRandRange(0.0, 360.0), FVector(Random.FRandRange(ShrubScale.X, ShrubScale.Y)),
-							Dress.Number(TEXT("treeSink")));
+						const bool bFern = Random.FRand() < FernShare;
+						Dress.Place(bFern ? Ferns : Grass, Random, Kit[bFern ? TEXT("Fern") : TEXT("Grass")].Num(), Spot, Random.FRandRange(0.0, 360.0),
+							FVector(Random.FRandRange(FootScale.X, FootScale.Y)), 0.0);
 					}
 				}
 			}
 		}
-		// The floor's edge: a cliff line along the rim, open where the river leaves, and forest across the vista.
+		// The playable square's edge: a cliff line up the rim, open where the river leaves, and forest across the vista.
 		{
 			FRandomStream Random(Seed + 2);
 			FRegion& Cliffs = Region(TEXT("Rim_Cliffs"), TEXT("Cliff"));
 			FRegion& Forest = Region(TEXT("Vista_Forest"), TEXT("Tree"));
 			const FVector Cliff = Size(TEXT("Cliff"));
 			const double Span = Dress.Number(TEXT("rimCliffSpan"));
-			const double Edge = Layout.HalfExtent + Dress.Number(TEXT("rimInset"));
+			const double Edge = VeyraLayout::PlayableHalfExtent(Layout) + Dress.Number(TEXT("rimInset"));
 			const FVector2D Height = Dress.Range(TEXT("cliffHeightScale"));
 			const double Gorge = Layout.Terrain.BankWidth * Dress.Number(TEXT("gorgeClearance"));
 			// The two sides nearest Team A's base, walked once; Team B's are their rotation.
@@ -499,7 +441,7 @@ namespace VeyraWorldBuild
 				}
 			}
 			const FVector2D TreeScale = Dress.Range(TEXT("treeScale"));
-			const double Start = Layout.HalfExtent + Layout.Terrain.BoundaryWidth * Dress.Number(TEXT("vistaForestStart"));
+			const double Start = VeyraLayout::PlayableHalfExtent(Layout) + Layout.Terrain.BoundaryWidth * Dress.Number(TEXT("vistaForestStart"));
 			Dress.ScatterTeamA(Random, Dress.Number(TEXT("vistaTreeSpacing")), Layout.Terrain.BoundaryWidth + Dress.Root.GetNumberField(TEXT("vistaWidth")), [&](const FVector2D& Point) {
 				if (FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) < Start || Dress.River.SignedDistance(Point) < Gorge)
 				{
@@ -527,7 +469,7 @@ namespace VeyraWorldBuild
 						return;
 					}
 					const FVeyraTerrainSample Sample = Dress.Field.Sample(Point);
-					if (Sample.Road > 0.0 || Sample.Pad > 0.0 || Sample.Ridge > 0.0 || Sample.WaterDistance < Dress.Number(TEXT("shoreClearance")))
+					if (Sample.Road > 0.0 || Sample.Keep > 0.0 || Sample.Mass > 0.0 || Sample.WaterDistance < Dress.Number(TEXT("shoreClearance")))
 					{
 						return;
 					}
@@ -586,7 +528,7 @@ namespace VeyraWorldBuild
 					{
 						const FVector2D Spot = Point + Side * Sign * (Lane.Width / 2.0 + Dress.Number(TEXT("ruinOffset")) + Random.FRandRange(0.0, 120.0));
 						if (VeyraLayout::DepthInTeamAHalf(Layout, Spot) < 600.0 || Random.FRand() > Chance || !VeyraDressing::Allows(Tuning, Spot, 120.0)
-							|| Dress.Field.Sample(Spot).Ridge > 0.0)
+							|| Dress.Field.Sample(Spot).Mass > 0.0)
 						{
 							continue;
 						}
@@ -595,20 +537,29 @@ namespace VeyraWorldBuild
 					}
 				}
 			}
-			// Each base's pad ringed by the old Fluxway's ruins, clear of its lanes, towers, Well and fountain.
-			const FVector2D Pad = VeyraLayout::ToVector(Layout.Base.PrimeWell);
-			const double PadRing = Layout.Base.PadRadius - Dress.Number(TEXT("basePillarInset"));
-			const int32 Around = FMath::Max(6, FMath::RoundToInt(UE_TWO_PI * PadRing / Dress.Number(TEXT("basePillarSpacing"))));
-			for (int32 Index = 0; Index < Around; ++Index)
+			// Each keep's floor lined inside its edge by the old Fluxway's ruins, clear of its lanes, towers, Well and fountain.
+			const TArray<FVector2D> Floor = VeyraLayout::KeepFloor(Layout, EVeyraTeam::A);
+			const double PillarInset = Dress.Number(TEXT("basePillarInset"));
+			for (int32 Corner = 0; Corner < Floor.Num(); ++Corner)
 			{
-				const double Angle = UE_TWO_PI * (Index + Random.FRandRange(-0.2, 0.2)) / Around;
-				const FVector2D Spot = Pad + FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)) * PadRing;
-				if (!VeyraDressing::Allows(Tuning, Spot, 150.0) || FMath::Max(FMath::Abs(Spot.X), FMath::Abs(Spot.Y)) > Layout.HalfExtent)
+				const FVector2D From = Floor[Corner];
+				const FVector2D To = Floor[(Corner + 1) % Floor.Num()];
+				const double Length = FVector2D::Distance(From, To);
+				const FVector2D Along = (To - From).GetSafeNormal();
+				const int32 Count = FMath::FloorToInt(Length / Dress.Number(TEXT("basePillarSpacing")));
+				for (int32 Index = 1; Index < Count; ++Index)
 				{
-					continue;
+					const FVector2D OnEdge = From + Along * (Length * (Index + Random.FRandRange(-0.2, 0.2)) / Count);
+					// Inward, whichever way round the floor runs.
+					const FVector2D Left(-Along.Y, Along.X);
+					const FVector2D Spot = OnEdge + (VeyraLayout::IsInPolygon(Floor, OnEdge + Left * PillarInset) ? Left : -Left) * PillarInset;
+					if (!VeyraDressing::Allows(Tuning, Spot, 150.0) || !VeyraLayout::IsInPolygon(Floor, Spot))
+					{
+						continue;
+					}
+					FRegion& Into = Random.FRand() < 0.65 ? Pillars : Blocks;
+					Dress.Place(Into, Random, Kit[Into.Family].Num(), Spot, YawOf(Along), FVector(Random.FRandRange(0.95, 1.25)), 0.0);
 				}
-				FRegion& Into = Random.FRand() < 0.65 ? Pillars : Blocks;
-				Dress.Place(Into, Random, Kit[Into.Family].Num(), Spot, FMath::RadiansToDegrees(Angle) + 90.0, FVector(Random.FRandRange(0.95, 1.25)), 0.0);
 			}
 			// Steles round each Well: one of each pair of sites the half turn swaps, since Place sets the other's. The
 			// sites may stand on the line between the halves, so the pair, not the half, decides which.
@@ -633,6 +584,59 @@ namespace VeyraWorldBuild
 						continue;
 					}
 					Dress.Place(Steles, Random, Kit[TEXT("Stele")].Num(), Spot, FMath::RadiansToDegrees(Angle) + 90.0, FVector(1.0), 0.0);
+				}
+			}
+		}
+
+		// Each lane's edging (ADR-073 §5): kerbstones flush with the road along both its edges, some fallen away, so the
+		// causeway reads as built and old. Team A's half of each lane; Team B's are its rotation (Place).
+		{
+			const TSharedPtr<FJsonObject>* Edging = nullptr;
+			if (!Profile.TryGetObjectField(TEXT("laneEdging"), Edging))
+			{
+				Error = TEXT("Dressing requires the dressing profile's laneEdging.");
+				return false;
+			}
+			const auto Setting = [&Edging](const TCHAR* Key) { return (*Edging)->GetNumberField(Key); };
+			const TArray<TSharedPtr<FJsonValue>>& SizeValues = (*Edging)->GetArrayField(TEXT("size"));
+			const FVector Stone(SizeValues[0]->AsNumber(), SizeValues[1]->AsNumber(), SizeValues[2]->AsNumber());
+			const double Spacing = Setting(TEXT("spacing"));
+			if (!(Spacing > 0.0) || !(Stone.GetMin() > 0.0))
+			{
+				Error = TEXT("laneEdging needs a spacing and a stone size above 0.");
+				return false;
+			}
+			const FVector Block = Size(TEXT("Block"));
+			const FVector Scale(Stone.X / FMath::Max(Block.X, 1.0), Stone.Y / FMath::Max(Block.Y, 1.0), Stone.Z / FMath::Max(Block.Z, 1.0));
+			FRandomStream Random(Seed + 7);
+			FRegion& Kerbs = Region(TEXT("Lane_Edging"), TEXT("Block"));
+			for (int32 LaneIndex = 0; LaneIndex < Layout.Lanes.Num(); ++LaneIndex)
+			{
+				const FVeyraLaneLayout& Lane = Layout.Lanes[LaneIndex];
+				const double Length = VeyraLayout::Length(Lane.Points);
+				for (double Along = Random.FRandRange(0.0, Spacing); Along < Length; Along += Spacing)
+				{
+					const FVector2D Here = VeyraLayout::PointAlong(Lane.Points, Along);
+					// Clear of the dividing line, so a stone and its rotation never meet.
+					if (VeyraLayout::DepthInTeamAHalf(Layout, Here) < Spacing)
+					{
+						continue;
+					}
+					const FVector2D Ahead = (VeyraLayout::PointAlong(Lane.Points, Along + Spacing * 0.5) - Here).GetSafeNormal();
+					const FVector2D Side(-Ahead.Y, Ahead.X);
+					for (const double Sign : { -1.0, 1.0 })
+					{
+						const double Out = Lane.Width / 2.0 + Setting(TEXT("outset")) + Random.FRandRange(-1.0, 1.0) * Setting(TEXT("offsetJitter"));
+						const FVector2D Spot = Here + Side * Sign * Out;
+						const double Grown = 1.0 + Random.FRandRange(-1.0, 1.0) * Setting(TEXT("sizeJitter"));
+						const double Yaw = YawOf(Ahead) + Random.FRandRange(-1.0, 1.0) * Setting(TEXT("yawJitter"));
+						if (Random.FRand() < Setting(TEXT("missingShare")) || !VeyraDressing::AllowsEdging(Tuning, Spot, Stone.X / 2.0, LaneIndex)
+							|| Dress.Field.Sample(Spot).Mass > 0.0)
+						{
+							continue;
+						}
+						Dress.Place(Kerbs, Random, Kit[TEXT("Block")].Num(), Spot, Yaw, Scale * Grown, Setting(TEXT("sink")));
+					}
 				}
 			}
 		}

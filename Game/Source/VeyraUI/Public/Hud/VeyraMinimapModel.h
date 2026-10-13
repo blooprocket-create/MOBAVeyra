@@ -57,7 +57,7 @@ struct FVeyraMinimapLane
 	TArray<FVector2D> Points;
 };
 
-/** One of the battleground's walls (ADR-043 §4): its corners round its outline, in screen pixels. */
+/** One box of a keep's wall (ADR-073 §1): its corners round its outline, in screen pixels. */
 struct FVeyraMinimapWall
 {
 	TArray<FVector2D> Corners;
@@ -86,7 +86,8 @@ struct FVeyraMinimapView
 	FVeyraMinimapFrame Frame;
 	TArray<FVeyraMinimapLane> Lanes;
 	TArray<FVeyraMinimapWall> Walls;
-	/** The river: its band along the diagonal, cut to the map's square, as the outline of a convex polygon. */
+	/** The rock and forest masses (ADR-073 §3), filled: triangle corners, three at a time. */
+	TArray<FVector2D> Masses;
 	/** Sampled river triangle vertices, clipped to the minimap. */
 	TArray<FVector2D> River;
 	TArray<FVeyraMinimapDot> Dots;

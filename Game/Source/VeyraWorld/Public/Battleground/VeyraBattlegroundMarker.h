@@ -8,8 +8,9 @@
 
 /**
  * Marks a map as the battleground (ADR-011 §12): a server whose map holds one spawns the structures
- * from World.json's layout as the match loads. The generated L_Battleground places it; nothing else
- * does, so the development grey box stays a plain lane. It carries no data and never replicates.
+ * from World.json's layout as the match loads, and every machine raises the layout's terrain (ADR-073 §3).
+ * The generated L_Battleground places it; nothing else does, so the development grey box stays a plain
+ * lane. It carries no data and never replicates; clients load it with the map.
  */
 UCLASS(NotBlueprintable)
 class VEYRAWORLD_API AVeyraBattlegroundMarker : public AInfo
