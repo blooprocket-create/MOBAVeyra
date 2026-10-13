@@ -81,7 +81,8 @@ def toon_light():
     """MPC_VeyraToonLight, the toon light every body is shaded by (ADR-068 §2): the direction toward the sun (ToSun) and
     its colour (SunColor). The presentation sets both from the map's sun each frame; the kit's values are the defaults a
     world without a sun, or an editor preview, shades by. A parameter that already exists keeps its ID, so the
-    materials that read it stay linked. Returns it, and whether this import created it."""
+    materials that read it stay linked. Returns it, and whether this import gave it a parameter it lacked (or made it
+    whole): a new parameter has a new ID, which a material that read the old one no longer finds."""
     toon = KIT["bodyMaterial"]["toon"]
     path = DEST + "/" + toon["lightCollection"]
     writable(path)
@@ -96,7 +97,9 @@ def toon_light():
     existing = {str(parameter.get_editor_property("parameter_name")): parameter for parameter in collection.get_editor_property("vector_parameters")}
     parameters = []
     for name, value in wanted.items():
-        parameter = existing.get(name) or unreal.CollectionVectorParameter()
+        parameter = existing.get(name)
+        if parameter is None:
+            parameter, created = unreal.CollectionVectorParameter(), True
         parameter.set_editor_property("parameter_name", name)
         parameter.set_editor_property("default_value", unreal.LinearColor(*value))
         parameters.append(parameter)
@@ -108,13 +111,13 @@ def toon_light():
 
 def body_material(collection, created):
     """The one material every generated body wears (ADR-064 §4, ADR-068 §2), its graph built by vanguard_body_material
-    from the kit's bodyMaterial and linked to collection, the toon light (created: made by this import). It is kept as
-    it is while what it is built from is unchanged (KitMaterials/inputs.py): that hash is recorded on the asset, and a
-    rebuild, which makes the same graph with new expression IDs, would rewrite the asset for no change. Otherwise its
-    graph is rebuilt whole, so the generated asset always matches its definition."""
+    from the kit's bodyMaterial and linked to collection, the toon light (created: this import made a parameter of it
+    anew). It is kept as it is while what it is built from is unchanged (KitMaterials/inputs.py): that hash is recorded
+    on the asset, and a rebuild, which makes the same graph with new expression IDs, would rewrite the asset for no
+    change. Otherwise its graph is rebuilt whole, so the generated asset always matches its definition."""
     values = KIT["bodyMaterial"]
-    # Its graph links to the toon light's parameters, by the IDs a collection keeps (toon_light) and one made anew
-    # (created) does not: then the graph is linked again.
+    # Its graph links to the toon light's parameters by the IDs the collection keeps (toon_light); a parameter made anew
+    # (created) has another, so then the graph is linked again.
     bindings = {"collection": collection.get_path_name(),
                 "parameters": sorted(str(parameter.get_editor_property("parameter_name")) for parameter in collection.get_editor_property("vector_parameters"))}
     inputs = material_inputs_hash(values, [GAME / "Scripts" / "vanguard_body_material.py", GAME / "Scripts" / "veyra_material_graph.py"], bindings)
