@@ -286,6 +286,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FString ItemArtFolder;
 
+	/** Where the profile backgrounds' region panoramas are imported, such as "/Game/Veyra/UI/Backgrounds" (VeyraShellArt; ADR-082 §10). */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString BackgroundArtFolder;
+
 	/** Where the abilities' and Flux Spells' icons are imported, such as "/Game/Veyra/UI/Abilities" (VeyraShellArt). */
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FString AbilityArtFolder;
@@ -406,6 +410,37 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ShopDetailsWidth = 0.0f;
+
+	/**
+	 * A Vanguard's card in the Collection (ADR-082 §9): its size, seven to a row beside the friends rail at the reference
+	 * height, and how far a locked one's art stands back, as a share of its light.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float CollectionCardWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float CollectionCardHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
+	float CollectionLockedShade = 0.0f;
+
+	/**
+	 * A region background's panorama (ADR-082 §10): its width over its height, and where across it a picker's tile centres,
+	 * where the panoramas keep their landmarks.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProfileBackgroundAspect = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
+	float ProfileBackgroundFocus = 0.0f;
+
+	/** The region whose panorama the default background shows, and any background no longer offered (ADR-082 §10). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FString ProfileDefaultRegion;
+
+	/** The Profile page's field for a new display name, beside the name it replaces (ADR-082 §9). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProfileNameFieldWidth = 0.0f;
 
 	/** The shop's panel's opacity over the match, so nothing drawn behind it reads through (ADR-082 §8). */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))

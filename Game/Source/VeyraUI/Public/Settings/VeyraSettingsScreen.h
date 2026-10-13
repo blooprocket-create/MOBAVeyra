@@ -6,6 +6,7 @@
 #include "Settings/VeyraSettingsModels.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellLook.h"
+#include "Shell/VeyraShellMotion.h"
 
 #include "VeyraSettingsScreen.generated.h"
 
@@ -35,6 +36,9 @@ class VEYRAUI_API UVeyraSettingsScreen : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	/** Whether its window or a category's rows are still arriving (ADR-082 §9): captures wait for them. */
+	bool IsRevealing() const { return Reveal.IsPlaying(); }
+
 	virtual bool Initialize() override;
 
 	/**
@@ -159,6 +163,19 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Rows;
+
+	/** The window's parts, which rise in as it opens; then a category's rows arrive as it is shown (ADR-082 §9). */
+	UPROPERTY(Transient)
+	TObjectPtr<UVerticalBox> WindowFrame;
+
+	FVeyraShellReveal Reveal;
+	bool bRevealWindow = false;
+	bool bRevealingRows = false;
+	TOptional<EVeyraSettingCategory> RevealedCategory;
+	FString RevealedSearch;
+
+	/** Reveals what a show or a new category brought; carries a reveal under way over to a rebuild's parts. */
+	void RevealArrivals();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UHorizontalBox> Footer;

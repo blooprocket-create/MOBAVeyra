@@ -4,6 +4,7 @@
 
 #include "Misc/StringBuilder.h"
 #include "Shell/VeyraShellModels.h"
+#include "Text/VeyraContentText.h"
 
 #define LOCTEXT_NAMESPACE "VeyraProfileModels"
 
@@ -14,8 +15,15 @@ namespace
 	/** Catalog entries drawn from a released Vanguard's art (ADR-048 §2). */
 	const TCHAR* const VanguardEntryPrefix = TEXT("vanguard_");
 
+	/** Background entries drawn from a region's panorama (ADR-082 §10). */
+	const TCHAR* const RegionEntryPrefix = TEXT("region_");
+
 	FText EntryName(const FString& Entry)
 	{
+		if (const FString Region = RegionOfEntry(Entry); !Region.IsEmpty())
+		{
+			return VeyraContentText::RegionName(Region);
+		}
 		const FString Vanguard = VanguardOfEntry(Entry);
 		return Vanguard.IsEmpty() ? LOCTEXT("DefaultEntry", "Default") : VeyraShellModels::VanguardNameOf(Vanguard);
 	}
@@ -42,6 +50,11 @@ namespace
 	}
 }
 
+FString RegionOfEntry(const FString& Entry)
+{
+	return Entry.StartsWith(RegionEntryPrefix, ESearchCase::CaseSensitive) ? Entry.RightChop(FCString::Strlen(RegionEntryPrefix)) : FString();
+}
+
 FString VanguardOfEntry(const FString& Entry)
 {
 	return Entry.StartsWith(VanguardEntryPrefix, ESearchCase::CaseSensitive) ? Entry.RightChop(FCString::Strlen(VanguardEntryPrefix)) : FString();
@@ -53,6 +66,7 @@ FVeyraProfileCardModel DescribeCard(const VeyraBackendProtocol::FPublicProfile& 
 	Card.Name = FText::FromString(Profile.Name);
 	Card.IconVanguard = VanguardOfEntry(Profile.Icon);
 	Card.BackgroundVanguard = VanguardOfEntry(Profile.Background);
+	Card.BackgroundRegion = RegionOfEntry(Profile.Background);
 	Card.Level = FText::Format(LOCTEXT("Level", "Level {0}"), FText::AsNumber(Profile.Level));
 	// One chosen, permanently owned Vanguard with its base art and Mastery, or a neutral state (UX-71, UX-74).
 	if (Profile.Featured.IsSet())
@@ -138,7 +152,8 @@ FVeyraProfilePageModel DescribePage(const FVeyraClientSnapshot& Snapshot, const 
 	}
 	for (const FString& Background : Own.Catalog.Backgrounds)
 	{
-		Model.Backgrounds.Add({ Background, BackgroundLabel(Background), VanguardOfEntry(Background), Draft.Background == Background });
+		FVeyraProfileChoice& Choice = Model.Backgrounds.Add_GetRef({ Background, BackgroundLabel(Background), VanguardOfEntry(Background), Draft.Background == Background });
+		Choice.Region = RegionOfEntry(Background);
 	}
 	// Only a permanently owned Vanguard may be featured, or none (Profiles Bible §2).
 	Model.Featured.Add({ FString(), FeatureLabel(FString()), FString(), Draft.FeaturedVanguardId.IsEmpty() });

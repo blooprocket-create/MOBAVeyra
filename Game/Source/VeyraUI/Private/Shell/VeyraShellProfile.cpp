@@ -13,6 +13,7 @@
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
+#include "Components/ScaleBox.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
@@ -61,7 +62,8 @@ namespace
 	 * the illustration allows, with corners of CornerRadius (a circle when negative). With no Vanguard, a neutral
 	 * disc or box: the default icon or background.
 	 */
-	UImage* MakeProfileArt(UWidgetTree& Tree, const FString& VanguardId, const FVector2D& Size, float CornerRadius, bool bPortrait)
+	UImage* MakeProfileArt(UWidgetTree& Tree, const FString& VanguardId, const FVector2D& Size, float CornerRadius, bool bPortrait,
+		TOptional<FLinearColor> Edge = {}, float EdgeWidth = 0.0f)
 	{
 		const UVeyraShellStyleSettings& Style = ProfileStyle();
 		UTexture2D* Hero = VanguardId.IsEmpty() ? nullptr : VeyraShellArt::HeroOf(VanguardId);
@@ -72,7 +74,30 @@ namespace
 			Region = VeyraShellArt::Crop(VanguardId, Pixels.X, Pixels.Y, static_cast<float>(Size.X / Size.Y), bPortrait);
 		}
 		UImage* Image = Tree.ConstructWidget<UImage>(UImage::StaticClass());
-		Image->SetBrush(VeyraShellArt::Brush(Hero, Region, Size, CornerRadius, Style.PanelColor, Style.HairlineColor, Style.FrameWidth));
+		Image->SetBrush(VeyraShellArt::Brush(Hero, Region, Size, CornerRadius, Style.PanelColor, Edge.Get(Style.HairlineColor), Edge.IsSet() ? EdgeWidth : Style.FrameWidth));
+		return Image;
+	}
+
+	/**
+	 * Region's panorama at Size (ADR-082 §10): the part of it as wide as Size's proportions allow, its middle at Centre of the
+	 * way across, where the panoramas keep their landmarks; a neutral box until it is imported.
+	 */
+	UImage* MakeRegionArt(UWidgetTree& Tree, const FString& Region, const FVector2D& Size, float CornerRadius, float Centre,
+		TOptional<FLinearColor> Edge = {}, float EdgeWidth = 0.0f)
+	{
+		const UVeyraShellStyleSettings& Style = ProfileStyle();
+		UTexture2D* Panorama = VeyraShellArt::BackgroundOf(Region);
+		FBox2f Part(FVector2f::ZeroVector, FVector2f::UnitVector);
+		if (Panorama)
+		{
+			const FIntPoint Pixels = ProfileArtPixels(*Panorama);
+			const float Wide = Pixels.Y > 0 ? static_cast<float>(Pixels.X) / Pixels.Y : 1.0f;
+			const float Share = FMath::Min(1.0f, static_cast<float>(Size.X / Size.Y) / Wide);
+			const float Left = FMath::Clamp(Centre - Share / 2.0f, 0.0f, 1.0f - Share);
+			Part = FBox2f(FVector2f(Left, 0.0f), FVector2f(Left + Share, 1.0f));
+		}
+		UImage* Image = Tree.ConstructWidget<UImage>(UImage::StaticClass());
+		Image->SetBrush(VeyraShellArt::Brush(Panorama, Part, Size, CornerRadius, Style.PanelColor, Edge.Get(Style.HairlineColor), Edge.IsSet() ? EdgeWidth : Style.FrameWidth));
 		return Image;
 	}
 
@@ -101,38 +126,60 @@ namespace
 
 void UVeyraShellScreen::AddProfileCard(const FVeyraProfileCardModel& Card, UPanelWidget& Parent)
 {
+	// A banner (ADR-082 §9): the chosen background's art across it, the featured Vanguard's when none is chosen, shaded from
+	// the left so the words read; the icon round in a brass ring; the name in the display face over the Level and what is
+	// featured; and the featured Vanguard's art at the right (UX-74).
 	const UVeyraShellStyleSettings& Style = ProfileStyle();
 	const float Icon = Style.ProfileIconSize;
 	const FVector2D Featured(Style.ProfileFeaturedHeight * 0.75f, Style.ProfileFeaturedHeight);
-	// The background behind everything; a neutral surface when it is the default (UX-75).
+	UBorder* Frame = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(0.0f));
 	UOverlay* Layers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
-	UOverlaySlot* BackgroundSlot = Layers->AddChildToOverlay(
-		MakeProfileArt(*WidgetTree, Card.BackgroundVanguard, FVector2D(Style.DialogWidth, Style.ProfileFeaturedHeight), Style.PanelCornerRadius, false));
-	BackgroundSlot->SetHorizontalAlignment(HAlign_Fill);
-	BackgroundSlot->SetVerticalAlignment(VAlign_Fill);
-	UBorder* Shade = VeyraShellStyle::MakeBorder(*WidgetTree, Style.MenuScrimColor, Style.Spacing);
+	// The art covers the banner and is cut at its edges, never stretched to it.
+	Layers->SetClipping(EWidgetClipping::ClipToBounds);
+	Frame->SetContent(Layers);
+	const auto Fill = [Layers](UWidget* Layer) {
+		UOverlaySlot* Placed = Layers->AddChildToOverlay(Layer);
+		Placed->SetHorizontalAlignment(HAlign_Fill);
+		Placed->SetVerticalAlignment(VAlign_Fill);
+		return Placed;
+	};
+	// The banner is always a region's panorama (ADR-082 §10): the one chosen, or the default region for the default background
+	// and for a background no longer offered. Whole at its own proportions, scaled to cover the banner, never stretched to it.
+	const FString Region = Card.BackgroundRegion.IsEmpty() ? Style.ProfileDefaultRegion : Card.BackgroundRegion;
+	{
+		const FVector2D ArtSize(Style.ProfileFeaturedHeight * Style.ProfileBackgroundAspect, Style.ProfileFeaturedHeight);
+		UScaleBox* Cover = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass());
+		Cover->SetStretch(EStretch::ScaleToFill);
+		Cover->AddChild(&ProfileSized(*WidgetTree, *MakeRegionArt(*WidgetTree, Region, ArtSize, 0.0f, 0.5f, FLinearColor::Transparent, 0.0f), ArtSize));
+		Fill(Cover);
+	}
+	if (Gradients.IsValidIndex(0))
+	{
+		Fill(VeyraShellStyle::MakeGradient(*WidgetTree, Gradients[0], Style.ScrimColor));
+	}
 	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	Shade->SetContent(Row);
-	UOverlaySlot* ShadeSlot = Layers->AddChildToOverlay(Shade);
-	ShadeSlot->SetHorizontalAlignment(HAlign_Fill);
-	ShadeSlot->SetVerticalAlignment(VAlign_Fill);
+	Fill(Row)->SetPadding(FMargin(Style.Spacing * 1.5f));
 
-	UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(&ProfileSized(*WidgetTree, *MakeProfileArt(*WidgetTree, Card.IconVanguard, FVector2D(Icon), -1.0f, true), FVector2D(Icon)));
-	IconSlot->SetVerticalAlignment(VAlign_Top);
-	IconSlot->SetPadding(FMargin(0.0f, 0.0f, Style.Spacing, 0.0f));
+	UImage* Round = MakeProfileArt(*WidgetTree, Card.IconVanguard, FVector2D(Icon), -1.0f, true, Style.PrimaryColor, Style.FrameWidth * 2.0f);
+	UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(&ProfileSized(*WidgetTree, *Round, FVector2D(Icon)));
+	IconSlot->SetVerticalAlignment(VAlign_Center);
+	IconSlot->SetPadding(FMargin(0.0f, 0.0f, Style.Spacing * 1.5f, 0.0f));
 	UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	AddText(*Texts, Card.Name, ProfileRole(EVeyraShellText::Title));
-	AddText(*Texts, Card.Level, ProfileRole(EVeyraShellText::Muted));
+	UTextBlock* Level = AddText(*Texts, Card.Level, ProfileRole(EVeyraShellText::Eyebrow));
+	Level->SetColorAndOpacity(FSlateColor(Style.PrimaryColor));
+	AddText(*Texts, Card.Name, ProfileRole(EVeyraShellText::Display));
 	AddText(*Texts, Card.Featured, ProfileRole(EVeyraShellText::Body));
-	Row->AddChildToHorizontalBox(Texts)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	UHorizontalBoxSlot* TextSlot = Row->AddChildToHorizontalBox(Texts);
+	TextSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	TextSlot->SetVerticalAlignment(VAlign_Center);
 	// The featured Vanguard's base art (UX-74); nothing when none is featured.
 	if (!Card.FeaturedVanguard.IsEmpty())
 	{
-		Row->AddChildToHorizontalBox(&ProfileSized(*WidgetTree, *MakeProfileArt(*WidgetTree, Card.FeaturedVanguard, Featured, Style.PanelCornerRadius, false), Featured));
+		Row->AddChildToHorizontalBox(&ProfileSized(*WidgetTree, *MakeProfileArt(*WidgetTree, Card.FeaturedVanguard, Featured, Style.PanelCornerRadius, false, Style.PrimaryColor,
+			Style.FrameWidth), Featured))->SetVerticalAlignment(VAlign_Center);
 	}
-	VeyraShellStyle::AddSpaced(Parent, *Layers);
+	VeyraShellStyle::AddSpaced(Parent, *Frame);
 }
-
 void UVeyraShellScreen::BuildProfilePage(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
 {
 	const UVeyraShellStyleSettings& Style = ProfileStyle();
@@ -164,14 +211,17 @@ void UVeyraShellScreen::BuildProfilePage(const FVeyraClientSnapshot& Snapshot, U
 	const bool bCanSave = Client->CanIssue(EVeyraClientIntent::SaveProfileSettings);
 	const float Tile = Style.RosterTileSize;
 	const auto AddChoices = [this, &Rows, Tile](const FText& Title, const TArray<FVeyraProfileChoice>& Choices, bool bPortrait, TFunction<void(const FString&)> Apply) {
-		AddText(*Rows, Title, ProfileRole(EVeyraShellText::Heading));
+		// Each choice under its heading, as the client's sections are headed (ADR-082 §9).
+		AddText(*Rows, Title, ProfileRole(EVeyraShellText::Eyebrow));
 		UWrapBox* Wrap = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
 		Wrap->SetInnerSlotPadding(FVector2D(ProfileStyle().Spacing / 2.0f));
 		for (const FVeyraProfileChoice& Choice : Choices)
 		{
 			const FString Value = Choice.Value;
 			const FVector2D Size = bPortrait ? FVector2D(Tile) : FVector2D(Tile * 1.5f, Tile);
-			UImage* Picture = MakeProfileArt(*WidgetTree, Choice.Vanguard, Size, bPortrait ? -1.0f : ProfileStyle().PanelCornerRadius, bPortrait);
+			// A region's panorama shows its landmarks; a Vanguard its art (ADR-082 §10).
+			UImage* Picture = !Choice.Region.IsEmpty() ? MakeRegionArt(*WidgetTree, Choice.Region, Size, ProfileStyle().PanelCornerRadius, ProfileStyle().ProfileBackgroundFocus)
+														: MakeProfileArt(*WidgetTree, Choice.Vanguard, Size, bPortrait ? -1.0f : ProfileStyle().PanelCornerRadius, bPortrait);
 			AddContentButton(*Wrap, Choice.Label, ProfileSized(*WidgetTree, *Picture, Size), [this, Value, Apply] {
 				Apply(Value);
 				Refresh();
@@ -180,7 +230,16 @@ void UVeyraShellScreen::BuildProfilePage(const FVeyraClientSnapshot& Snapshot, U
 		VeyraShellStyle::AddSpaced(*Rows, *Wrap);
 	};
 	AddChoices(LOCTEXT("IconsHeading", "Icon"), Model.Icons, true, [this](const FString& Value) { ProfileDraft.Icon = Value; });
-	AddChoices(LOCTEXT("BackgroundsHeading", "Background"), Model.Backgrounds, false, [this](const FString& Value) { ProfileDraft.Background = Value; });
+	// The default background shows the default region's panorama, as the banner does (ADR-082 §10).
+	TArray<FVeyraProfileChoice> Backgrounds = Model.Backgrounds;
+	for (FVeyraProfileChoice& Background : Backgrounds)
+	{
+		if (Background.Region.IsEmpty())
+		{
+			Background.Region = Style.ProfileDefaultRegion;
+		}
+	}
+	AddChoices(LOCTEXT("BackgroundsHeading", "Background"), Backgrounds, false, [this](const FString& Value) { ProfileDraft.Background = Value; });
 	// A Vanguard the player permanently owns, or none; never chosen for them (UX-71).
 	AddChoices(LOCTEXT("FeaturedHeading", "Featured Vanguard"), Model.Featured, true, [this](const FString& Value) { ProfileDraft.FeaturedVanguardId = Value; });
 	// Private by default; the owner may share it and stop sharing it (UX-72).
@@ -293,6 +352,8 @@ void UVeyraShellScreen::BuildProfileOverlay(const FVeyraClientSnapshot& Snapshot
 
 void UVeyraShellScreen::BuildDisplayName(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
 {
+	// One row (ADR-082 §9): the name now with what a change costs, the field for a new one, and the change itself; a change's
+	// question takes the row's place while it is asked.
 	const UVeyraShellStyleSettings& Style = ProfileStyle();
 	const FVeyraDisplayNameModel Model = VeyraProfileModels::DescribeName(Snapshot, FDateTime::UtcNow());
 	if (!Model.bLoaded)
@@ -302,18 +363,24 @@ void UVeyraShellScreen::BuildDisplayName(const FVeyraClientSnapshot& Snapshot, U
 	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing));
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Panel->SetContent(Rows);
-	AddText(*Rows, LOCTEXT("DisplayNameHeading", "Display name"), ProfileRole(EVeyraShellText::Heading));
-	AddText(*Rows, Model.Current, ProfileRole(EVeyraShellText::Title));
-	AddText(*Rows, Model.Cost, ProfileRole(EVeyraShellText::Muted));
+	AddText(*Rows, LOCTEXT("DisplayNameHeading", "Display name"), ProfileRole(EVeyraShellText::Eyebrow));
+	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	UVerticalBox* Now = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	AddText(*Now, Model.Current, ProfileRole(EVeyraShellText::Heading))->SetAutoWrapText(false);
+	AddText(*Now, Model.Cost, ProfileRole(EVeyraShellText::Muted));
 	if (!Model.Next.IsEmpty())
 	{
-		AddText(*Rows, Model.Next, ProfileRole(EVeyraShellText::Muted));
+		AddText(*Now, Model.Next, ProfileRole(EVeyraShellText::Muted));
 	}
+	UHorizontalBoxSlot* NowSlot = Line->AddChildToHorizontalBox(Now);
+	NowSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	NowSlot->SetVerticalAlignment(VAlign_Center);
 	const FVeyraNameOffer* Asked = Model.Offers.FindByPredicate([this](const FVeyraNameOffer& Offer) {
 		return Confirm == EVeyraShellConfirm::NameChange && ConfirmId == (Offer.Currency.IsEmpty() ? FString(TEXT("free")) : Offer.Currency);
 	});
 	if (Asked && !NameDraft.TrimStartAndEnd().IsEmpty())
 	{
+		Rows->AddChild(Line);
 		// The change's question, naming the price; the old name is anyone's once it commits (Profiles Bible §4).
 		AddText(*Rows, VeyraProfileModels::NameChangePrompt(NameDraft.TrimStartAndEnd(), Asked->Price), ProfileRole(EVeyraShellText::Body));
 		UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -330,16 +397,24 @@ void UVeyraShellScreen::BuildDisplayName(const FVeyraClientSnapshot& Snapshot, U
 	{
 		NameBox = MakeTextField(LOCTEXT("NewNameHint", "New name"), NameDraft, Model.bCanChange);
 		NameBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleNameChanged);
-		VeyraShellStyle::AddSpaced(*Rows, *NameBox);
-		UHorizontalBox* Offers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		USizeBox* Field = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Field->SetWidthOverride(Style.ProfileNameFieldWidth);
+		Field->AddChild(NameBox);
+		UHorizontalBoxSlot* FieldSlot = Line->AddChildToHorizontalBox(Field);
+		FieldSlot->SetVerticalAlignment(VAlign_Center);
+		FieldSlot->SetPadding(FMargin(Style.Spacing, 0.0f));
 		const bool bCanAsk = Model.bCanChange && Client->CanIssue(EVeyraClientIntent::ChangeDisplayName);
 		for (const FVeyraNameOffer& Offer : Model.Offers)
 		{
 			const FString Id = Offer.Currency.IsEmpty() ? FString(TEXT("free")) : Offer.Currency;
-			AddKindButton(*Offers, EVeyraShellButtonKind::Secondary, Offer.Label, [this, Id] { AskToConfirm(EVeyraShellConfirm::NameChange, Id); }, bCanAsk)
-				->KeepLabelOnOneLine();
+			UVeyraShellButton* Change = AddKindButton(*Line, EVeyraShellButtonKind::Secondary, Offer.Label, [this, Id] { AskToConfirm(EVeyraShellConfirm::NameChange, Id); }, bCanAsk);
+			Change->KeepLabelOnOneLine();
+			if (UHorizontalBoxSlot* ChangeSlot = Cast<UHorizontalBoxSlot>(Change->Slot))
+			{
+				ChangeSlot->SetVerticalAlignment(VAlign_Center);
+			}
 		}
-		VeyraShellStyle::AddSpaced(*Rows, *Offers);
+		Rows->AddChild(Line);
 	}
 	if (!Model.Feedback.IsEmpty())
 	{

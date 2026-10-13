@@ -9,6 +9,9 @@
 #include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/Image.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
 #include "Components/Spacer.h"
@@ -17,6 +20,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Shell/VeyraProgressionModels.h"
+#include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellBrushes.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellLook.h"
@@ -67,6 +71,92 @@ namespace
 	FString PurchaseConfirmId(const FString& VanguardId, ECurrency Currency)
 	{
 		return VanguardId + TEXT("|") + VeyraBackendProtocol::CurrencyName(Currency);
+	}
+
+	/**
+	 * A Vanguard's card in the Collection (ADR-082 §9): its art whole, standing back while it is locked; a chip at its head
+	 * saying whether it is owned, in the free rotation or locked; and at its foot, over a shade, its name with a brass mark
+	 * when it is a favorite, its Mastery in brass once it has some, and its price in Flux while it can be bought.
+	 */
+	UWidget& MakeCollectionCard(UWidgetTree& Tree, const FVeyraCollectionCard& Card, UTexture2D* FootShade)
+	{
+		const UVeyraShellStyleSettings& Style = CollectionStyle();
+		const FVector2D Size(Style.CollectionCardWidth, Style.CollectionCardHeight);
+		USizeBox* Box = Tree.ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Box->SetWidthOverride(Size.X);
+		Box->SetHeightOverride(Size.Y);
+		UOverlay* Layers = Tree.ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		Box->AddChild(Layers);
+		const auto Fill = [Layers](UWidget* Layer, EHorizontalAlignment Across = HAlign_Fill, EVerticalAlignment Down = VAlign_Fill, const FMargin& Pad = FMargin(0.0f)) {
+			UOverlaySlot* Placed = Layers->AddChildToOverlay(Layer);
+			Placed->SetHorizontalAlignment(Across);
+			Placed->SetVerticalAlignment(Down);
+			Placed->SetPadding(Pad);
+			return Placed;
+		};
+
+		UImage* Art = Tree.ConstructWidget<UImage>(UImage::StaticClass());
+		UTexture2D* Hero = VeyraShellArt::HeroOf(Card.VanguardId);
+		const FBox2f Region = Hero ? VeyraShellArt::Crop(Card.VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), static_cast<float>(Size.X / Size.Y), false)
+								   : FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector);
+		Art->SetBrush(VeyraShellArt::Brush(Hero, Region, Size, Style.PanelCornerRadius, Style.SurfaceColor, FLinearColor::Transparent, 0.0f));
+		const bool bPlayable = Card.bOwned || Card.bRotation;
+		Art->SetColorAndOpacity(bPlayable ? Style.ShowcaseTint : (Style.ShowcaseTint * Style.CollectionLockedShade).CopyWithNewOpacity(1.0f));
+		Fill(Art);
+		// A shade rising from the foot, so the name reads over any art.
+		if (FootShade)
+		{
+			UImage* Shade = VeyraShellStyle::MakeGradient(Tree, FootShade, Style.ScrimColor);
+			Fill(Shade, HAlign_Fill, VAlign_Bottom)->SetPadding(FMargin(0.0f, Size.Y * 0.4f, 0.0f, 0.0f));
+		}
+
+		// The chip: owned in the accent, the rotation in brass, locked muted.
+		const FText Word = Card.bOwned ? LOCTEXT("CardOwned", "Owned") : Card.bRotation ? LOCTEXT("CardRotation", "Free Rotation") : LOCTEXT("CardLocked", "Locked");
+		const FLinearColor WordColor = Card.bOwned ? Style.AccentColor : Card.bRotation ? Style.PrimaryColor : Style.MutedTextColor;
+		UBorder* Chip = VeyraShellStyle::MakeBorder(Tree, Style.SurfaceColor.CopyWithNewOpacity(0.85f), 0.0f);
+		Chip->SetPadding(FMargin(Style.Spacing / 2.0f, 2.0f));
+		UTextBlock* ChipText = VeyraShellStyle::MakeText(Tree, Word, EVeyraShellText::Eyebrow);
+		ChipText->SetColorAndOpacity(FSlateColor(WordColor));
+		ChipText->SetAutoWrapText(false);
+		Chip->SetContent(ChipText);
+		Fill(Chip, HAlign_Left, VAlign_Top, FMargin(Style.Spacing / 2.0f));
+
+		// The foot: its name with the favorite's mark, and its Flux price while it can be bought.
+		UVerticalBox* Foot = Tree.ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		UHorizontalBox* NameLine = Tree.ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		UTextBlock* Name = VeyraShellStyle::MakeText(Tree, Card.Name, EVeyraShellText::Heading);
+		Name->SetAutoWrapText(false);
+		NameLine->AddChildToHorizontalBox(Name)->SetVerticalAlignment(VAlign_Center);
+		if (Card.bFavorite)
+		{
+			UWidget* Mark = VeyraShellStyle::MakeGlyph(Tree, VeyraShellBrushes::Diamond(Style.CurrencyGlyphSize * 1.25f, Style.PrimaryColor, Style.SurfaceColor.CopyWithNewOpacity(1.0f)));
+			UHorizontalBoxSlot* MarkSlot = NameLine->AddChildToHorizontalBox(Mark);
+			MarkSlot->SetVerticalAlignment(VAlign_Center);
+			MarkSlot->SetPadding(FMargin(Style.Spacing / 2.0f, 0.0f, 0.0f, 0.0f));
+		}
+		Foot->AddChild(NameLine);
+		// Its Mastery in brass under its name, once it has some.
+		if (Card.bHasMastery)
+		{
+			UTextBlock* Mastery = VeyraShellStyle::MakeText(Tree, Card.MasteryShort, EVeyraShellText::Small);
+			Mastery->SetAutoWrapText(false);
+			Mastery->SetColorAndOpacity(FSlateColor(Style.PrimaryColor));
+			Foot->AddChild(Mastery);
+		}
+		if (!bPlayable && Card.bPurchasable && Card.PriceFlux > 0)
+		{
+			UHorizontalBox* Price = Tree.ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+			UWidget* Flux = VeyraShellStyle::MakeGlyph(Tree, VeyraShellBrushes::Diamond(Style.CurrencyGlyphSize, Style.AccentColor, FLinearColor::Transparent));
+			Price->AddChildToHorizontalBox(Flux)->SetVerticalAlignment(VAlign_Center);
+			UTextBlock* Amount = VeyraShellStyle::MakeText(Tree, FText::AsNumber(Card.PriceFlux), EVeyraShellText::Small);
+			Amount->SetAutoWrapText(false);
+			UHorizontalBoxSlot* AmountSlot = Price->AddChildToHorizontalBox(Amount);
+			AmountSlot->SetVerticalAlignment(VAlign_Center);
+			AmountSlot->SetPadding(FMargin(Style.Spacing / 3.0f, 0.0f, 0.0f, 0.0f));
+			Foot->AddChild(Price);
+		}
+		Fill(Foot, HAlign_Left, VAlign_Bottom, FMargin(Style.Spacing * 0.75f));
+		return *Box;
 	}
 }
 
@@ -164,14 +254,9 @@ void UVeyraShellScreen::BuildCollection(const FVeyraClientSnapshot& Snapshot, UP
 	// Every card is built, and the search and tab show some of them, so typing narrows them in place.
 	for (const FVeyraCollectionCard& Card : Model.Cards)
 	{
-		const TArray<TPair<FText, uint8>> Plate = {
-			{ Card.Name, CollectionRole(EVeyraShellText::Heading) },
-			{ Card.Status, CollectionRole(EVeyraShellText::Muted) },
-			{ Card.MasteryShort, CollectionRole(EVeyraShellText::Muted) },
-		};
 		const FString Key = CollectionCardKey(Card.VanguardId);
-		UVeyraShellButton* Button =
-			AddArtCard(*Roster, VeyraProgressionModels::CollectionCardLabel(Card.VanguardId), Card.VanguardId, Plate, [this, Key] { OpenCard(Key); }, true, OpenCardId == Key);
+		UVeyraShellButton* Button = AddContentButton(*Roster, VeyraProgressionModels::CollectionCardLabel(Card.VanguardId),
+			MakeCollectionCard(*WidgetTree, Card, Gradients.IsValidIndex(1) ? Gradients[1].Get() : nullptr), [this, Key] { OpenCard(Key); }, true, OpenCardId == Key);
 		RosterCards.Add({ Button, Card.VanguardId, FVeyraRosterEntry{ Card.Name, Card.bOwned, Card.bRotation, Card.bFavorite } });
 	}
 	RosterNoMatch = AddText(*Roster, LOCTEXT("NoVanguardMatches", "No Vanguard matches."), CollectionRole(EVeyraShellText::Muted));
@@ -262,9 +347,17 @@ void UVeyraShellScreen::ShowRosterTab(EVeyraRosterTab Tab)
 void UVeyraShellScreen::BuildCollectionDetail(const FVeyraClientSnapshot& Snapshot, const FVeyraCollectionCard& Card, UPanelWidget& Parent)
 {
 	const UVeyraShellStyleSettings& Style = CollectionStyle();
+	// The Vanguard's card beside what it is, its Mastery, its favorite and its purchase (ADR-082 §9).
 	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing));
+	UHorizontalBox* Beside = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Panel->SetContent(Beside);
+	UHorizontalBoxSlot* CardSlot = Beside->AddChildToHorizontalBox(&MakeCollectionCard(*WidgetTree, Card, Gradients.IsValidIndex(1) ? Gradients[1].Get() : nullptr));
+	CardSlot->SetVerticalAlignment(VAlign_Top);
+	CardSlot->SetPadding(FMargin(0.0f, 0.0f, Style.Spacing * 1.5f, 0.0f));
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	Panel->SetContent(Rows);
+	UHorizontalBoxSlot* RowsSlot = Beside->AddChildToHorizontalBox(Rows);
+	RowsSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	RowsSlot->SetVerticalAlignment(VAlign_Center);
 	AddText(*Rows, Card.Name, CollectionRole(EVeyraShellText::Title));
 	AddText(*Rows, Card.Status, CollectionRole(EVeyraShellText::Body));
 	for (const FText& Line : Card.Details)

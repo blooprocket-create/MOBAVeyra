@@ -31,6 +31,8 @@ struct FVeyraCollectionCard
 	/** Owned, lent by the rotation, or neither. */
 	FText Status;
 	FText MasteryShort;
+	/** Whether it has any Mastery yet, so its card shows its Mastery (ADR-082 §9). */
+	bool bHasMastery = false;
 	/** The opened card's detail: Mastery Level and points toward the next, lifetime points, emote tier. */
 	TArray<FText> Details;
 	bool bPurchasable = false;

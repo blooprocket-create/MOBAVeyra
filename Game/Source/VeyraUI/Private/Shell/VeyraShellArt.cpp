@@ -30,6 +30,27 @@ UTexture2D* HeroOf(const FString& VanguardId)
 	return Cast<UTexture2D>(Path.TryLoad());
 }
 
+FString BackgroundPackageName(const FString& Region)
+{
+	return FString::Printf(TEXT("%s/T_%s_Background"), *GetDefault<UVeyraShellStyleSettings>()->BackgroundArtFolder, *Region);
+}
+
+UTexture2D* BackgroundOf(const FString& Region)
+{
+	if (Region.IsEmpty())
+	{
+		return nullptr;
+	}
+	const FString PackageName = BackgroundPackageName(Region);
+	// A region whose panorama is not imported yet is shown without it, so only a package that exists is loaded.
+	if (!FPackageName::DoesPackageExist(PackageName))
+	{
+		return nullptr;
+	}
+	const FSoftObjectPath Path(FString::Printf(TEXT("%s.%s"), *PackageName, *FPackageName::GetShortName(PackageName)));
+	return Cast<UTexture2D>(Path.TryLoad());
+}
+
 FString ItemIconPackageName(const FString& ItemId)
 {
 	return FString::Printf(TEXT("%s/T_%s_Icon"), *GetDefault<UVeyraShellStyleSettings>()->ItemArtFolder, *ItemId);

@@ -146,6 +146,7 @@ FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, b
 		Card.bFavorite = Snapshot.FavoriteVanguards.Contains(Entry.VanguardId);
 		Card.Status = Card.bFavorite ? FText::Format(LOCTEXT("FavoriteStatus", "{0} · Favorite"), StatusOf(Entry)) : StatusOf(Entry);
 		// The card shows the player's Mastery, or that they have none yet (UX-69).
+		Card.bHasMastery = Entry.Mastery.LifetimePoints > 0;
 		Card.MasteryShort = Entry.Mastery.LifetimePoints > 0 ? FText::Format(LOCTEXT("MasteryShort", "Mastery {0}"), FText::AsNumber(Entry.Mastery.Level))
 															 : LOCTEXT("NoMastery", "No Mastery Progress");
 		// The player's own Mastery shows whether or not they can play the Vanguard now (Bible §4).

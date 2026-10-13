@@ -145,6 +145,12 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ReportIconSize"), ReportIconSize },
 	};
 	Require(HomeHeroHeight > 0.0f && HomeHeroHeight < 1.0f, TEXT("HomeHeroHeight"), TEXT("must be above 0 and below 1."));
+	Require(CollectionCardWidth >= 1.0f && CollectionCardHeight >= 1.0f && CollectionLockedShade > 0.0f && CollectionLockedShade <= 1.0f, TEXT("CollectionCardWidth"),
+		TEXT("a Collection card needs a size, and a locked one's shade above 0 and at most 1."));
+	Require(ProfileNameFieldWidth >= 1.0f, TEXT("ProfileNameFieldWidth"), TEXT("must be at least 1."));
+	Require(!ProfileDefaultRegion.IsEmpty(), TEXT("ProfileDefaultRegion"), TEXT("names the region the default background shows."));
+	Require(ProfileBackgroundAspect >= 1.0f && ProfileBackgroundFocus >= 0.0f && ProfileBackgroundFocus <= 1.0f, TEXT("ProfileBackgroundAspect"),
+		TEXT("a region panorama is at least as wide as tall, and its focus lies across it."));
 	Require(ShopPanelOpacity > 0.0f && ShopPanelOpacity <= 1.0f, TEXT("ShopPanelOpacity"), TEXT("must be above 0 and at most 1."));
 	// The menus' motion (ADR-082 §7).
 	Require(RevealSeconds > 0.0f && RevealStagger >= 0.0f && SheenSeconds > 0.0f && SheenOpacity > 0.0f && PressBurstRadius >= 1.0f, TEXT("RevealSeconds"),
@@ -198,6 +204,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 	Require(VanguardArtFolder.StartsWith(TEXT("/Game/")) && !VanguardArtFolder.EndsWith(TEXT("/")), TEXT("VanguardArtFolder"),
 		TEXT("must be a folder under /Game, without a trailing slash."));
 	Require(ItemArtFolder.StartsWith(TEXT("/Game/")) && !ItemArtFolder.EndsWith(TEXT("/")), TEXT("ItemArtFolder"),
+		TEXT("must be a folder under /Game, without a trailing slash."));
+	Require(BackgroundArtFolder.StartsWith(TEXT("/Game/")) && !BackgroundArtFolder.EndsWith(TEXT("/")), TEXT("BackgroundArtFolder"),
 		TEXT("must be a folder under /Game, without a trailing slash."));
 	Require(AbilityArtFolder.StartsWith(TEXT("/Game/")) && !AbilityArtFolder.EndsWith(TEXT("/")), TEXT("AbilityArtFolder"),
 		TEXT("must be a folder under /Game, without a trailing slash."));

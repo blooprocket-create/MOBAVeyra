@@ -1193,10 +1193,13 @@ void UVeyraSmokeFlowSubsystem::TickProfileShell(IVeyraClientIntents& Flow)
 				Finish(false, TEXT("the Profile page offers no owned Vanguard to feature, or no icon besides the default"));
 				return;
 			}
-			// A portrait for the icon, an owned Vanguard to feature, and the history shared (ADR-048 §5).
+			// A portrait for the icon, a region's panorama behind it (ADR-082 §10), an owned Vanguard to feature, and the history
+			// shared (ADR-048 §5).
 			const FString Featured = Own.Catalog.FeaturedChoices[0];
 			const FString Icon = Own.Catalog.Icons.Last();
-			if (Click(VeyraProfileModels::IconLabel(Icon).ToString()) && Click(VeyraProfileModels::FeatureLabel(Featured).ToString())
+			const FString Background = Own.Catalog.Backgrounds.Last();
+			if (Click(VeyraProfileModels::IconLabel(Icon).ToString()) && Click(VeyraProfileModels::BackgroundLabel(Background).ToString())
+				&& Click(VeyraProfileModels::FeatureLabel(Featured).ToString())
 				&& Click(VeyraProfileModels::ShareHistoryLabel().ToString()) && Click(VeyraProfileModels::SaveLabel().ToString()))
 			{
 				ProfileStep = 2;
@@ -3004,7 +3007,7 @@ bool UVeyraSmokeFlowSubsystem::Capture(const TCHAR* Name)
 #if WITH_VEYRA_UI
 	// A page still arriving is waited for, so the capture shows it whole (ADR-082 §7).
 	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
-	if (const UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr; Screen && Screen->IsRevealing())
+	if (const UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr; Screen && (Screen->IsRevealing() || (Screen->GetSettingsScreen() && Screen->GetSettingsScreen()->IsRevealing())))
 	{
 		return true;
 	}

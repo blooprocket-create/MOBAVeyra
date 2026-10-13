@@ -51,6 +51,9 @@ namespace VeyraContentText
 	/** A stat's name on the stats panel, as stat.<Stat> words it: "Physical Power" (ADR-080 §3); Stat for a missing row. */
 	VEYRAUI_API FText StatName(const FString& Stat);
 
+	/** A profile background's region by name, from its profile_background row; its ID while it has none (ADR-082 §10). */
+	VEYRAUI_API FText RegionName(const FString& Region);
+
 	/** A mode's name, as mode.<id>.name gives it, or Fallback when the table has none. */
 	VEYRAUI_API FText ModeName(const FVeyraContentId& Mode, const FString& Fallback);
 

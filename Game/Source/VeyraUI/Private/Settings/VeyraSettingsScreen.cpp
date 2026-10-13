@@ -108,13 +108,14 @@ bool UVeyraSettingsScreen::Initialize()
 		Window->SetHeightOverride(VeyraSettingsLayout::Style().SettingsHeight);
 		WindowPanel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(VeyraSettingsLayout::Style().ScreenPadding));
 		UVerticalBox* Frame = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		WindowFrame = Frame;
 		WindowPanel->SetContent(Frame);
 		Window->AddChild(WindowPanel);
 		Scrim->SetContent(Window);
 
 		// The title, the search, and the screen's own actions.
 		UHorizontalBox* Header = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		Title = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Title", "Settings"), VeyraShellStyle::EVeyraShellText::Heading);
+		Title = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Title", "Settings"), VeyraShellStyle::EVeyraShellText::Title);
 		Title->SetAutoWrapText(false);
 		VeyraShellStyle::AddSpaced(*Header, *Title);
 		VeyraSettingsLayout::AddStretch(*WidgetTree, *Header);
@@ -153,7 +154,8 @@ void UVeyraSettingsScreen::StyleFrame()
 	FrameLook = VeyraShellLook::Current();
 	const UVeyraShellStyleSettings& Style = VeyraSettingsLayout::Style();
 	VeyraShellStyle::StyleSurface(*WindowPanel, VeyraShellStyle::EVeyraShellSurface::Raised);
-	Title->SetFont(VeyraShellStyle::FontFor(VeyraShellStyle::EVeyraShellText::Heading));
+	// The window's title in the display face, as every screen's (ADR-082 §9).
+	Title->SetFont(VeyraShellStyle::FontFor(VeyraShellStyle::EVeyraShellText::Title));
 	VeyraShellStyle::StyleTextField(*SearchBox, Style.ButtonPadding);
 }
 
@@ -183,6 +185,7 @@ void UVeyraSettingsScreen::Show(UVeyraSettingsSubsystem& InSettings, bool bInLiv
 	{
 		ConfirmationHandle = Applier->OnConfirmationChanged.AddWeakLambda(this, [this] { Rebuild(); });
 	}
+	bRevealWindow = true;
 	Rebuild();
 }
 
@@ -415,11 +418,41 @@ void UVeyraSettingsScreen::Rebuild()
 	{
 		VeyraSettingsLayout::AddText(*WidgetTree, *Rows, FText::Format(LOCTEXT("NoResults", "No setting matches \"{0}\"."), FText::FromString(Search)), VeyraShellStyle::EVeyraShellText::Muted);
 	}
+	if (!Model.bSearching)
+	{
+		// The shown category's name over its rows.
+		VeyraSettingsLayout::AddText(*WidgetTree, *Rows, VeyraSettingsModels::CategoryName(Model.Category), VeyraShellStyle::EVeyraShellText::Eyebrow);
+	}
 	for (const FVeyraSettingRowModel& Row : Model.Rows)
 	{
 		BuildRow(Row);
 	}
 	BuildFooter();
+	RevealArrivals();
+}
+
+void UVeyraSettingsScreen::RevealArrivals()
+{
+	// Opening, the window's parts rise in; a new category or search brings its rows in, one after another. A rebuild for a
+	// change carries a reveal under way over to the parts it made anew (ADR-082 §9).
+	const bool bNewRows = !RevealedCategory.IsSet() || RevealedCategory.GetValue() != Model.Category || RevealedSearch != Search;
+	if (bRevealWindow)
+	{
+		bRevealWindow = false;
+		bRevealingRows = false;
+		Reveal.Play(WindowFrame->GetAllChildren());
+	}
+	else if (bNewRows)
+	{
+		bRevealingRows = true;
+		Reveal.Play(Rows->GetAllChildren());
+	}
+	else
+	{
+		Reveal.Continue(bRevealingRows ? Rows->GetAllChildren() : WindowFrame->GetAllChildren());
+	}
+	RevealedCategory = Model.Category;
+	RevealedSearch = Search;
 }
 
 void UVeyraSettingsScreen::BuildRow(const FVeyraSettingRowModel& Row)

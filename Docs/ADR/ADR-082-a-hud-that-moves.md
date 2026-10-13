@@ -118,6 +118,35 @@ Reduce UI Animation holds every one of them still.
 - Gold has its coin (`VeyraShellBrushes::Coin`).
 - The panel is nearly opaque (`ShopPanelOpacity`), so the match's banners and numbers never read through it.
 
+### 9. Collection, Profile and Settings
+
+**Collection:** each Vanguard's card shows its art whole, standing back to `CollectionLockedShade` while locked.
+- A chip at its head says owned (in the accent), free rotation (in brass) or locked.
+- Its name sits at the foot over a shade, with a brass mark for a favorite, its Mastery in brass once it has some, and its Flux price while it can be bought.
+- Cards are `CollectionCardWidth` by `CollectionCardHeight`, seven to a row beside the friends rail.
+
+**Profile:** the profile card is a banner.
+- The chosen background's art (the featured Vanguard's when none is chosen) is shaded from the left.
+- The icon is round in a brass ring, with the Level in brass over the name in the display face.
+- The featured Vanguard's art is edged in brass.
+- The display name takes one row: the name now and what a change costs, the field (`ProfileNameFieldWidth`) and the change.
+- Each choice's heading is set as the client's sections are.
+
+**Settings:**
+- The window's title is in the display face, and the shown category's name heads its rows.
+- The window rises in as it opens, and a new category's or search's rows arrive one after another.
+
+Every label, text and behaviour is as before.
+
+### 10. Region panoramas for the profile banner
+
+At the author's request (2026-10-13), the profile banner is always a region's panorama, never a Vanguard's illustration.
+- **Art:** nine panoramas from `ConceptArt/ProfileBackgrounds` (Veyra's own region art). `Game/Scripts/BuildBackgroundArt.ps1` imports them through the art commandlet's `-Kind=Backgrounds` into `BackgroundArtFolder`.
+- **Catalog:** the backend's background entries are `region_<id>`, such as `region_iron_march`. Each is named by its `profile_background` row.
+- **Banner:** it shows the chosen region whole at its own proportions (`ProfileBackgroundAspect`), scaled to cover the banner and cut at its edges, never stretched. The default background, or one no longer offered, shows `ProfileDefaultRegion`.
+- **Picker:** each tile shows the part of its panorama around `ProfileBackgroundFocus`, where the landmarks stand.
+- **Release:** `Backend/config/local.json` lists the regions now. `public.json`, which the hosted backend reads, changes in the release that ships a client able to draw them; until then, players on an older client would see unnamed, unpainted choices.
+
 ## Consequences
 
 - The match HUD moves the way the website does, and its parts read as the approved board drew them.
