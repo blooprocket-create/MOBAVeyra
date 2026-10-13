@@ -7,6 +7,8 @@
 class UAbilitySystemComponent;
 
 /** What the skill showcase's server and recorder agree on (ADR-074 §2, §3). */
+enum class EVeyraAttackPhase : uint8;
+
 namespace VeyraShowcase
 {
 	/** What a reply says of the reset it answers. */
@@ -46,6 +48,20 @@ namespace VeyraShowcase
 	 * screen's left and the other on its right.
 	 */
 	FVector MarkOf(const FVector& Centre, const FVector& OwnStart, double Stand, double YawDegrees);
+
+	/**
+	 * Whether the basic attack's clip may start with its caster's attack in Phase (ADR-074 §3): only with none under way,
+	 * so an order left from priming the dummy is never recorded as the clip's swing.
+	 */
+	bool MayStartAttackClip(EVeyraAttackPhase Phase);
+
+	/** What follows the basic attack's clip (ADR-074 §3): the recording, after the rehearsal's; the encoding, after the recording's. */
+	enum class EAfterAttack : uint8
+	{
+		Record,
+		Flush,
+	};
+	EAfterAttack AfterAttack(bool bRehearsing);
 
 	/**
 	 * Server: frees Unit's body of what would keep it from its mark, through Combat: a ride it is on ends as if its time

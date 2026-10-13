@@ -57,6 +57,21 @@ struct FVeyraSkillEffectStage
 	bool IsSet() const { return !Effect.IsNull(); }
 };
 
+/** A Vanguard's own basic attack in flight (ADR-072 §9), in place of the shared one. */
+USTRUCT()
+struct FVeyraVanguardAttack
+{
+	GENERATED_BODY()
+
+	/** A Vanguard ID from Vanguards.json, compared ignoring case. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName Vanguard;
+
+	/** Looping, on each of its basic attacks' projectiles in flight, turned to face the flight. */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Travel;
+};
+
 /**
  * How an ability's cast shows beyond its body's clip (ADR-072 §4), stage by stage; a stage left unset shows what the
  * shared presentation does. Every stage is tinted by its caster's side.
@@ -206,6 +221,20 @@ public:
 	/** The abilities whose casts show their own effects, stage by stage (ADR-072 §4). */
 	UPROPERTY(Config, EditAnywhere, Category = "Casts")
 	TArray<FVeyraAbilityEffects> AbilityEffects;
+
+	/**
+	 * How a ranged basic attack shows in flight (ADR-072 §9), a Vanguard's, a minion's or a structure's: drawn in place of
+	 * the grey-box body and its trail, in the attacker's side colour. Unset keeps the grey-box body.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Attacks")
+	FVeyraSkillEffectStage AttackTravel;
+
+	/** Vanguards whose basic attacks show their own effect in flight, in place of AttackTravel. */
+	UPROPERTY(Config, EditAnywhere, Category = "Attacks")
+	TArray<FVeyraVanguardAttack> VanguardAttacks;
+
+	/** The Vanguard's own attack in flight; null for one with none. */
+	const FVeyraVanguardAttack* VanguardAttackOf(FName Vanguard) const;
 
 	/**
 	 * How long after this machine last drew a cast's projectile its server end may still show an impact there, in

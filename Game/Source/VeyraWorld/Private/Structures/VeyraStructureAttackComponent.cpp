@@ -138,6 +138,7 @@ void UVeyraStructureAttackComponent::Fire(AActor& Shot, bool bVanguard)
 	// A committed shot follows its target out of range and through projectile blockers (§55).
 	if (AVeyraProjectile* Projectile = World->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(Structure->GetActorLocation())))
 	{
+		Projectile->MarkBasicAttack();
 		Projectile->LaunchHoming(*Tower, Shot, Tuning.TowerAttack.ProjectileSpeed, Tuning.TowerAttack.ProjectileRadius, MoveTemp(Effects),
 			FVeyraContentId(), /*CastId*/ 0);
 	}

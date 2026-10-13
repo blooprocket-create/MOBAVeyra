@@ -5,6 +5,7 @@
 #if WITH_AUTOMATION_WORKER
 
 #include "Components/ActorTestSpawner.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Showcase/VeyraShowcaseRules.h"
 #include "Showcase/VeyraShowcaseSettings.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -37,6 +38,21 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(AreEqual(VeyraShowcase::AfterRefusal(EVeyraCastRejection::InvalidTarget, true), EAfterRefusal::Skip,
 				TEXT("prepared once and still refused, the ability is left out and the rest are recorded")));
 			ASSERT_THAT(AreEqual(VeyraShowcase::AfterRefusal(EVeyraCastRejection::NotLearned, false), EAfterRefusal::Skip));
+		}
+
+		TEST_METHOD(TheAttackClipStartsOnlyWithNoSwingUnderWay)
+		{
+			// A swing left from priming the dummy is never recorded as the clip's own (ADR-074 §3).
+			ASSERT_THAT(IsTrue(VeyraShowcase::MayStartAttackClip(EVeyraAttackPhase::None)));
+			ASSERT_THAT(IsFalse(VeyraShowcase::MayStartAttackClip(EVeyraAttackPhase::Windup)));
+			ASSERT_THAT(IsFalse(VeyraShowcase::MayStartAttackClip(EVeyraAttackPhase::Backswing)));
+		}
+
+		TEST_METHOD(TheBasicAttackIsRehearsedBeforeItIsRecorded)
+		{
+			// Its effect in flight compiles in the rehearsal, which then gives way to the recording (ADR-074 §3).
+			ASSERT_THAT(AreEqual(VeyraShowcase::AfterAttack(true), VeyraShowcase::EAfterAttack::Record));
+			ASSERT_THAT(AreEqual(VeyraShowcase::AfterAttack(false), VeyraShowcase::EAfterAttack::Flush));
 		}
 
 		TEST_METHOD(TheMarksTurnAboutTheCentre)

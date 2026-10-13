@@ -1179,6 +1179,12 @@ UStaticMeshComponent* UVeyraGreyboxSubsystem::FindProjectileVisual(const AVeyraP
 	return Visual ? Visual->Mesh.Get() : nullptr;
 }
 
+FVector UVeyraGreyboxSubsystem::FindProjectileHeading(const AVeyraProjectile& Projectile) const
+{
+	const FProjectileVisual* Visual = Projectiles.Find(&Projectile);
+	return Visual ? Visual->Heading : FVector::ZeroVector;
+}
+
 double UVeyraGreyboxSubsystem::GetServerNow() const
 {
 	const UWorld* World = GetWorld();
@@ -1807,8 +1813,9 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 			// ability's own, if it has one (ADR-072 §4).
 			float OwnScale = 0.0f;
 			const UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
-			UNiagaraSystem* OwnTrail = Skills ? Skills->TravelEffectOf(Visual->Ability, OwnScale) : nullptr;
-			// An ability whose projectile is its own (a lance of light, a hook on its chain) draws no sphere for it.
+			UNiagaraSystem* OwnTrail = Skills ? Skills->ProjectileTravelOf(Projectile, OwnScale) : nullptr;
+			// An ability whose projectile is its own (a lance of light, a hook on its chain), or a basic attack with its own look in
+			// flight (ADR-072 §9), draws no sphere for it.
 			if (Skills && Skills->HidesProjectileBody(Projectile))
 			{
 				Mesh->SetVisibility(false, /*bPropagateToChildren*/ false);
@@ -1832,22 +1839,30 @@ void UVeyraGreyboxSubsystem::RefreshProjectiles()
 		}
 
 		FVector Location = Projectile.GetLineLocationAt(Now);
+		FVector Heading = Projectile.GetDirection();
 		if (Projectile.GetFlight() == EVeyraProjectileFlight::Homing)
 		{
 			// After its target at its speed, in server time, as the server moves it.
 			const double Step = Projectile.GetSpeed() * FMath::Max(0.0, Now - Visual->PresentedAt);
 			if (const AActor* Target = Projectile.GetHomingTarget())
 			{
-				Visual->Position += (Target->GetActorLocation() - Visual->Position).GetClampedToMaxSize(Step);
+				const FVector Toward = Target->GetActorLocation() - Visual->Position;
+				Visual->Position += Toward.GetClampedToMaxSize(Step);
+				// Turning after its target as it moves, a homing one heads where it is flying now.
+				Heading = Toward;
 			}
 			Location = Visual->Position;
 		}
 		Visual->PresentedAt = Now;
 		Visual->Mesh->SetWorldLocation(Location);
-		// Its trail faces its flight, so an ability's own (a lance) points the way it flies.
-		if (UNiagaraComponent* Trail = Visual->Trail.Get(); Trail && !Projectile.GetDirection().IsNearlyZero())
+		if (!Heading.IsNearlyZero())
 		{
-			Trail->SetWorldRotation(Projectile.GetDirection().Rotation());
+			Visual->Heading = Heading.GetSafeNormal();
+		}
+		// Its trail faces its flight, so an ability's own (a lance, a bolt) points the way it flies.
+		if (UNiagaraComponent* Trail = Visual->Trail.Get(); Trail && !Visual->Heading.IsNearlyZero())
+		{
+			Trail->SetWorldRotation(Visual->Heading.Rotation());
 		}
 		// Seen here, so its impact may show where the server ends it (ADR-072 §4).
 		if (UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>())

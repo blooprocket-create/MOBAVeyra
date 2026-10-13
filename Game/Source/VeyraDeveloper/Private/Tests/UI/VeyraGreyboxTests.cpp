@@ -727,6 +727,23 @@ namespace VeyraAbilitiesTests
 				FString::Printf(TEXT("drawn at %s, expected %s"), *Sphere->GetComponentLocation().ToString(), *Expected.ToString())));
 		}
 
+		TEST_METHOD(AHomingProjectileIsDrawnHeadingAfterItsTarget)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Target = World.Spawn(EVeyraTeam::B, FVector(ProjectileRange, 0.0, 0.0));
+			AVeyraProjectile& Projectile = Spawner.SpawnActorAt<AVeyraProjectile>(Caster->GetActorLocation(), FRotator::ZeroRotator);
+			Projectile.LaunchHoming(*Caster->GetAbilitySystemComponent(), Target, ProjectileSpeed, ProjectileRadius, FVeyraPreparedEffects(),
+				ArchetypeTestId(TEXT("test_bolt_line")), 1);
+			RefreshedGreybox();
+			// The target steps aside after the launch: the projectile is drawn heading after it (as its trail faces), off the way it set off.
+			Target.SetActorLocation(FVector(ProjectileRange, ProjectileRange, Target.GetActorLocation().Z));
+			Wait(FlightSteps);
+			const FVector Facing = RefreshedGreybox().FindProjectileHeading(Projectile).GetSafeNormal2D();
+			const double Slack = 0.01;
+			const FVector Toward = (Target.GetActorLocation() - RefreshedGreybox().FindProjectileVisual(Projectile)->GetComponentLocation()).GetSafeNormal2D();
+			ASSERT_THAT(IsTrue(Facing.Equals(Toward, Slack), FString::Printf(TEXT("faces %s, flies toward %s"), *Facing.ToString(), *Toward.ToString())));
+		}
+
 		TEST_METHOD(TheHudShowsTheParticipantsProgressionAndCooldowns)
 		{
 			FArchetypeTestWorld World{ Spawner };

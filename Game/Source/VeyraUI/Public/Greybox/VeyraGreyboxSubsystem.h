@@ -186,6 +186,9 @@ public:
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
 
+	/** The way Projectile is drawn flying, which its trail or own effect in flight faces; zero before it is drawn. */
+	FVector FindProjectileHeading(const AVeyraProjectile& Projectile) const;
+
 	/** The actor holding the battleground's drawn ground, once the world shows the battleground. */
 	AActor* GetGround() const { return GroundMarkings.Get(); }
 
@@ -414,6 +417,9 @@ private:
 
 		/** Its trail, following the sphere (ADR-063 §4). */
 		TWeakObjectPtr<class UNiagaraComponent> Trail;
+
+		/** The way it is drawn flying: a line one's line, a homing one's way toward its target now. */
+		FVector Heading = FVector::ZeroVector;
 
 		/** Its ability and its side's colour (ADR-072 §4). */
 		FVeyraContentId Ability;

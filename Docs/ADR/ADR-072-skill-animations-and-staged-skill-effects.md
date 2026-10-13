@@ -141,6 +141,13 @@ The author played the pilot and found its skills still read as indicators. Cairn
 - **When a delayed area lands:** its mark and what it throws run until the server resolves the area. The ability's delay from its commit stands in only until the area itself is seen here, carrying the server's resolve time.
 - **The performance gate moves:** the pilot carries 3 of 26 kits, so a ten-Vanguard fight now would mostly measure older effects, and a packaged build cooked only for it would duplicate a release's own. ADR-068 §5's ten-Vanguard comparison (`Smoke.ps1 -PerfSeconds`, eight playing bots with Cairn, Oriel and Varkesh among the bots' Vanguards, as shipped against `ShowFlag.Particles 0`) runs at two gates instead. It runs at the next friends release's gate on the packaged client that release builds, before any player gets these effects. It runs again at the roster rollout's gate.
 
+### 9. Basic attacks in flight (author review, 2026-10-12)
+The author asked for ranged basic attacks to lose the grey-box ball and its trail. A basic attack's projectile (a Vanguard's, a minion's or a structure's) carries an explicit replicated mark, `AVeyraProjectile::MarkBasicAttack`, set where the basic-attack and structure-attack components launch it. An empty ability ID is no sign of one: an ability's return flies with none, and keeps its own body.
+- **The shared look:** `AttackTravel` in the kit presentation settings flies in place of the grey-box body and trail, in the attacker's side colour. As shipped it is `NS_VeyraAttackBolt`, a short white-hot streak with a small star at its point and a few glints.
+- **A Vanguard's own:** `VanguardAttacks` gives a Vanguard its own look in flight, in place of the shared one. The roster rollout adds these where a Vanguard's attack reads as its own.
+- **How the client chooses:** it finds the attacker through the projectile's replicated instigator, and from it the Vanguard's ID. A unit that is not a Vanguard, or a caster this machine does not see, flies the shared look.
+- **Presentation only:** the server still owns the projectile's flight and hit. Nothing here changes timing, speed or what it hits.
+
 ## Configuration
 - **Skill clips:** the kit's `skills` per Vanguard, and the motion primitives in the generator. Art values.
 - **Effect recipes:** `[/Script/VeyraUI.VeyraKitPresentationSettings]` `AbilityEffects` in `Game/Config/DefaultGame.ini`. Presentation, validated at start.

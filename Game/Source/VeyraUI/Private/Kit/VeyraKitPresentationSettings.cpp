@@ -44,6 +44,16 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 		[](const FVeyraAbilityEffects& Effects) { return Effects.Channel.IsSet() || Effects.Tether.IsSet() || Effects.Linger.IsSet(); });
 	Require(!bRuns || (!LengthParameter.IsNone() && !WidthParameter.IsNone() && LengthParameter != WidthParameter), TEXT("LengthParameter"),
 		TEXT("an effect that runs along a channel, a tether or a lingering area needs the two parameters its length and width are set by."));
+	Require(!AttackTravel.IsSet() || AttackTravel.Scale > 0.0f, TEXT("AttackTravel"),
+		TEXT("a basic attack's effect in flight needs a scale above 0."));
+	TSet<FName> AttackingVanguards;
+	for (const FVeyraVanguardAttack& Attack : VanguardAttacks)
+	{
+		const FName Named(*Attack.Vanguard.ToString().ToLower());
+		Require(!Attack.Vanguard.IsNone() && Attack.Travel.IsSet() && Attack.Travel.Scale > 0.0f && !AttackingVanguards.Contains(Named), TEXT("VanguardAttacks"),
+			FString::Printf(TEXT("%s needs a Vanguard named once, and an effect in flight with a scale above 0."), *Attack.Vanguard.ToString()));
+		AttackingVanguards.Add(Named);
+	}
 	for (const FVeyraAbilityEffects& Effects : AbilityEffects)
 	{
 		const FString Name = Effects.Ability.ToString();
@@ -72,6 +82,11 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 			TEXT("AbilityEffects"), FString::Printf(TEXT("%s is listed once."), *Name));
 	}
 	return Problems;
+}
+
+const FVeyraVanguardAttack* UVeyraKitPresentationSettings::VanguardAttackOf(FName Vanguard) const
+{
+	return VanguardAttacks.FindByPredicate([Vanguard](const FVeyraVanguardAttack& Attack) { return Attack.Vanguard.IsEqual(Vanguard, ENameCase::IgnoreCase); });
 }
 
 const FVeyraAbilityEffects* UVeyraKitPresentationSettings::EffectsOf(FName Ability) const

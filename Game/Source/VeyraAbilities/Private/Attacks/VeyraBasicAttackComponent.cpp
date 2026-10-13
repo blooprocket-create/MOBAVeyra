@@ -290,6 +290,7 @@ void UVeyraBasicAttackComponent::Commit()
 		const FVeyraAttackProjectileTuning& Flight = Profile.Projectile[0];
 		if (AVeyraProjectile* Projectile = GetWorld()->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(Body->GetActorLocation())))
 		{
+			Projectile->MarkBasicAttack();
 			Projectile->LaunchHoming(*Attacker, *Target, Flight.Speed, Flight.Radius, FVeyraPreparedEffects(), FVeyraContentId(), 0,
 				[WeakThis = TWeakObjectPtr<UVeyraBasicAttackComponent>(this), Landing](AActor&) {
 					if (UVeyraBasicAttackComponent* Attacks = WeakThis.Get())

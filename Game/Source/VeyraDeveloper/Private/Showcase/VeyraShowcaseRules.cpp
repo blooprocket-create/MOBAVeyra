@@ -2,6 +2,7 @@
 
 #include "Showcase/VeyraShowcaseRules.h"
 
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Kit/VeyraKitOrders.h"
 #include "Movement/VeyraForcedMovementTypes.h"
 #include "VeyraCombatVerbs.h"
@@ -42,6 +43,16 @@ namespace VeyraShowcase
 			return EAfterRefusal::Retry;
 		}
 		return Rejection == EVeyraCastRejection::InvalidTarget && !bPrimed ? EAfterRefusal::Prime : EAfterRefusal::Skip;
+	}
+
+	bool MayStartAttackClip(EVeyraAttackPhase Phase)
+	{
+		return Phase == EVeyraAttackPhase::None;
+	}
+
+	EAfterAttack AfterAttack(bool bRehearsing)
+	{
+		return bRehearsing ? EAfterAttack::Record : EAfterAttack::Flush;
 	}
 
 	FVector MarkOf(const FVector& Centre, const FVector& OwnStart, double Stand, double YawDegrees)
