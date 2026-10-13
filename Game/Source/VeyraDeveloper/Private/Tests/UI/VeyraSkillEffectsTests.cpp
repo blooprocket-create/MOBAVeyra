@@ -354,7 +354,21 @@ namespace VeyraSkillEffectsTests
 			Shot->LaunchLine(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Launcher), FVector::ForwardVector,
 				FVeyraProjectileTuning{ Range, Range / 10.0, Range }, EVeyraSkillshotCollision::FirstEnemy, FVeyraPreparedEffects(), FVeyraPreparedEffects(),
 				FVeyraContentId(), 0);
+			Shot->MarkBasicAttack();
 			return *Shot;
+		}
+
+		TEST_METHOD(AProjectileOfNoAbilityThatIsNoAttackKeepsItsBody)
+		{
+			// As an ability's return flies: launched with no ability, and no basic attack.
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			AVeyraProjectile* Return = Spawner.GetWorld().SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(FVector(Range, 0.0, 0.0)));
+			ASSERT_THAT(IsNotNull(Return));
+			Return->LaunchHoming(*Caster->GetAbilitySystemComponent(), *Caster, Range / 10.0, Range / 100.0, FVeyraPreparedEffects(), FVeyraContentId(), 0);
+			float Scale = 0.0f;
+			ASSERT_THAT(IsNull(Skills->ProjectileTravelOf(*Return, Scale), TEXT("no attack's look")));
+			ASSERT_THAT(IsFalse(Skills->HidesProjectileBody(*Return), TEXT("its own body still drawn")));
 		}
 
 		TEST_METHOD(ABasicAttackFliesTheSharedLookInPlaceOfItsBody)

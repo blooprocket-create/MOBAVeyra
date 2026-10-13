@@ -72,6 +72,12 @@ public:
 		const FVeyraContentId& Ability, int32 CastId, TFunction<void(AActor&)> OnLanded = nullptr);
 
 	/**
+	 * Server only: marks it as a basic attack's (a Vanguard's, a minion's or a structure's), which presentation draws as
+	 * one (ADR-072 §9). A projectile of no ability is not one by that alone: an ability's return flies with none.
+	 */
+	void MarkBasicAttack();
+
+	/**
 	 * Server only: flies Seconds further, hitting what it meets on the way, and is destroyed once it
 	 * ends. Its tick calls this; tests call it directly.
 	 */
@@ -95,6 +101,7 @@ public:
 	double GetRange() const { return Range; }
 	AActor* GetHomingTarget() const { return HomingTarget; }
 	const FVeyraContentId& GetAbility() const { return Ability; }
+	bool IsBasicAttack() const { return bBasicAttack; }
 	int32 GetCastId() const { return CastId; }
 
 private:
@@ -146,6 +153,9 @@ private:
 
 	UPROPERTY(Replicated)
 	int32 CastId = 0;
+
+	UPROPERTY(Replicated)
+	bool bBasicAttack = false;
 
 	/** Server only. */
 	TWeakObjectPtr<UAbilitySystemComponent> Caster;
