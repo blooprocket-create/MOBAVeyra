@@ -21,7 +21,8 @@
     "normalStrength": 0.35,
     "foamColor": [0.85, 0.90, 0.88],
     "foamBand": 0.35,
-    "stirFoam": 2.5,
+    "stirFoam": 1.5,
+    "stirFoamFrom": 0.3,
     "frothRoughness": 0.6
   },
   "layers": [

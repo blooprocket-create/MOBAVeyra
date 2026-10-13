@@ -195,8 +195,10 @@ def foliage(colour_key, two_sided, root_key=None):
         if root_key:
             assert EDIT.connect_material_property(base, "", unreal.MaterialProperty.MP_SUBSURFACE_COLOR)
         EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS)
-        sway = swaying(g, g.op(unreal.MaterialExpressionMultiply, 5, vertex, vertex, a_out="A", b_out="A"))
-        EDIT.connect_material_property(sway, "", unreal.MaterialProperty.MP_WORLD_POSITION_OFFSET)
+        # No wind, no offset: a moving vertex costs the foliage its cached shadows, and still foliage reads calmer.
+        if LOOK["windAmplitude"] > 0.0:
+            sway = swaying(g, g.op(unreal.MaterialExpressionMultiply, 5, vertex, vertex, a_out="A", b_out="A"))
+            EDIT.connect_material_property(sway, "", unreal.MaterialProperty.MP_WORLD_POSITION_OFFSET)
 
     return build
 
