@@ -11,6 +11,7 @@ import random
 
 from mathutils import Euler, Vector
 
+from . import motions
 from .parts import Body, combine, ease, forward_swing, lean, mix, roll_side, twist
 
 LEGS = ("upperarm", "lowerarm", "hand")
@@ -32,6 +33,20 @@ RUN_LEG_SWING = 30.0
 # The share of a melee windup spent gathering; the rest lunges through to the bite.
 LUNGE_COCK_SHARE = 0.65
 BUILD = {"lean": 0.9, "normal": 1.0, "heavy": 1.25}
+# A skill's own clip on four or six legs (ADR-072 §2, ADR-075): how far a full rise rears it (its spine back and its
+# forelegs lifted, as its Cast rears), how far a motion's chest lean at its fullest drives it into a lunge (degrees of
+# that lean for a full drive), how deep a full crouch sinks it on its haunches (as a share of its height), how wide a full
+# spread sets its legs, and how far a motion's turn whips its neck and its gather curls its tail, in degrees.
+SKILL_REAR_SPINE = 18.0
+SKILL_REAR_FORELEG = 55.0
+SKILL_FULL_DRIVE_LEAN = 40.0
+SKILL_DRIVE_NECK = 35.0
+SKILL_DRIVE_FORELEG = 35.0
+SKILL_CROUCH_DROP = 0.08
+SKILL_CROUCH_THIGH = 40.0
+SKILL_STANCE_SPREAD = 14.0
+SKILL_NECK_WHIP_SHARE = 0.6
+SKILL_TAIL_CURL = 30.0
 
 
 def layout(spec, capsule):
@@ -472,6 +487,36 @@ def legs(d):
         return four
     return [("upperarm_l", "lowerarm_l", 0.0), ("midleg_upper_r", "midleg_lower_r", 0.0), ("thigh_l", "calf_l", 0.0),
             ("upperarm_r", "lowerarm_r", 0.5), ("midleg_upper_l", "midleg_lower_l", 0.5), ("thigh_r", "calf_r", 0.5)]
+
+
+def skill_pose(skill, t, d):
+    """A skill's own clip (ADR-072 §2) at t from 0 to 1, a shared motion told in an animal's body: its rise rears it up,
+    forelegs lifted, as its Cast does; its chest's lean drives it forward into a lunge, neck and head thrust ahead (or
+    rocks it back); its turn whips its neck aside; its crouch sinks it onto its haunches and its spread sets its legs
+    wide; its gather curls its tail. The motion's arms are a humanoid's and are not used."""
+    motion, hints = motions.motion(skill, t)
+    chest = sum(math.degrees(motion.get(bone, (0.0, 0.0, 0.0))[1]) for bone in ("spine_02", "spine_03"))
+    turn = sum(math.degrees(motion.get(bone, (0.0, 0.0, 0.0))[2]) for bone in ("spine_02", "spine_03"))
+    rear = max(0.0, hints.get("rise", 0.0))
+    drive = max(-1.0, min(1.0, chest / SKILL_FULL_DRIVE_LEAN))
+    crouch, spread, gather = hints.get("crouch", 0.0), hints.get("spread", 0.0), hints.get("gather", 0.0)
+    pose = {}
+    pose["spine_01"] = lean(-SKILL_REAR_SPINE * rear + 0.3 * SKILL_REAR_SPINE * drive)
+    pose["spine_02"] = combine(lean(-0.7 * SKILL_REAR_SPINE * rear + 0.5 * SKILL_REAR_SPINE * drive), twist(0.4 * turn))
+    pose["neck_01"] = combine(lean(-SKILL_REAR_SPINE * rear + SKILL_DRIVE_NECK * drive), twist(SKILL_NECK_WHIP_SHARE * turn))
+    pose["head"] = lean(0.5 * SKILL_DRIVE_NECK * drive)
+    for side, sign in (("l", 1), ("r", -1)):
+        pose["upperarm_" + side] = combine(forward_swing(SKILL_REAR_FORELEG * rear + SKILL_DRIVE_FORELEG * max(0.0, drive)),
+                                           roll_side(SKILL_STANCE_SPREAD * spread, sign))
+        pose["lowerarm_" + side] = forward_swing(SKILL_REAR_FORELEG * rear)
+        pose["thigh_" + side] = combine(forward_swing(SKILL_CROUCH_THIGH * crouch - 0.2 * SKILL_REAR_FORELEG * rear),
+                                        roll_side(SKILL_STANCE_SPREAD * spread, sign))
+        pose["calf_" + side] = forward_swing(-1.5 * SKILL_CROUCH_THIGH * crouch)
+        if d.get("six"):
+            pose["midleg_upper_" + side] = roll_side(SKILL_STANCE_SPREAD * (spread + crouch), sign)
+    pose["tail_01"] = combine(lean(-SKILL_TAIL_CURL * gather), twist(0.3 * hints.get("spin", 0.0)))
+    lift = -d["height"] * SKILL_CROUCH_DROP * crouch
+    return pose, lift
 
 
 def pose(name, t, melee, d):

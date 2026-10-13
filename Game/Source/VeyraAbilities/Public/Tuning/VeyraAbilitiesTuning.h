@@ -2614,6 +2614,13 @@ namespace VeyraAbilityRules
 	VEYRAABILITIES_API const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 
 	/**
+	 * The other abilities a cast of Ability puts in its caster's slots or sends out under their own IDs: its recast
+	 * windows' follow-ups (ADR-018 §1), a self-buff's variants, a stance's slots (ADR-031 §3), a volley's shot (ADR-018
+	 * §6), and a ride's mounted actions, vehicle and trail areas (ADR-035 §6). Each is cast, and shown, by its own ID.
+	 */
+	VEYRAABILITIES_API TArray<FVeyraContentId> AbilitiesOpenedBy(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/**
 	 * Whether a cast of Ability may name an allied unit, its caster among them: a buff that may land on an ally,
 	 * or a companion command bound to one. The Self-Cast Modifier names the caster only for these (ADR-041 §3).
 	 */

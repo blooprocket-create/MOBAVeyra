@@ -16,6 +16,7 @@
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraVanguardCharacter.h"
 
 namespace VeyraSkillEffectsTests
@@ -249,6 +250,114 @@ namespace VeyraSkillEffectsTests
 				TEXT("turned only by its yaw")));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ground.SlopeAlong, Slope, 1e-3) && FMath::IsNearlyEqual(Ground.SlopeAcross, 0.0, 1e-3),
 				TEXT("rising up the slope along its length")));
+		}
+
+		TEST_METHOD(AnAbilityOpensWhatItPutsInItsSlotsOrSendsOut)
+		{
+			// Each is cast, and shown, by its own ID (ADR-075 §1): a recast's follow-up, a self-buff's variant, a stance's
+			// slot, a volley's shot, and a ride's mounted action, vehicle and trail.
+			FVeyraAbilitiesTuning Fixture;
+			FVeyraSelfBuffAbilityTuning& Buff = Fixture.SelfBuff.Add(Id(TEXT("test_form")));
+			Buff.Cast.RecastWindow.Add(FVeyraRecastTuning{ Id(TEXT("test_form_end")) });
+			Buff.Variants.Add(FVeyraVariantTuning{ EVeyraAbilitySlot::Q, Id(TEXT("test_form_q")) });
+			Fixture.Stance.Add(Id(TEXT("test_stance"))).Slots.Add(FVeyraStanceSlotTuning{ EVeyraAbilitySlot::W, Id(TEXT("test_stance_w")) });
+			Fixture.Volley.Add(Id(TEXT("test_volley"))).Shot = Id(TEXT("test_shot"));
+			FVeyraRideAbilityTuning& Ride = Fixture.Ride.Add(Id(TEXT("test_ride")));
+			Ride.Mounted.Add(FVeyraRideSlotTuning{ EVeyraAbilitySlot::E, Id(TEXT("test_mounted")) });
+			Ride.Vehicle.Add(Id(TEXT("test_vehicle")));
+			FVeyraRideTrailTuning Trail;
+			Trail.Area = Id(TEXT("test_trail"));
+			Ride.Trail.Add(Trail);
+			const auto Opens = [&Fixture](const TCHAR* Ability, TArray<FVeyraContentId> Expected) {
+				TArray<FVeyraContentId> Opened = VeyraAbilityRules::AbilitiesOpenedBy(Fixture, Id(Ability));
+				return Opened == Expected;
+			};
+			ASSERT_THAT(IsTrue(Opens(TEXT("test_form"), { Id(TEXT("test_form_end")), Id(TEXT("test_form_q")) })));
+			ASSERT_THAT(IsTrue(Opens(TEXT("test_stance"), { Id(TEXT("test_stance_w")) })));
+			ASSERT_THAT(IsTrue(Opens(TEXT("test_volley"), { Id(TEXT("test_shot")) })));
+			ASSERT_THAT(IsTrue(Opens(TEXT("test_ride"), { Id(TEXT("test_mounted")), Id(TEXT("test_vehicle")), Id(TEXT("test_trail")) })));
+			ASSERT_THAT(IsTrue(Opens(TEXT("test_form_q"), {})));
+		}
+
+		TEST_METHOD(EveryAbilityAPlayableKitCanCastHasARecipe)
+		{
+			// Not only its slots: whatever they open, as a form's, a stance's or a ride's own abilities (ADR-075 §4), each
+			// looked up by its own ID. A Developer Vanguard is left out.
+			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+			TSet<FString> Recipes;
+			for (const FVeyraAbilityEffects& Effects : Settings.AbilityEffects)
+			{
+				// Cooked FNames keep one spelling, so IDs compare ignoring case.
+				Recipes.Add(Effects.Ability.ToString().ToLower());
+			}
+			const FVeyraAbilitiesTuning& Committed = UVeyraAbilitiesTuningSubsystem::Get();
+			TArray<FString> Missing;
+			for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Vanguard : UVeyraVanguardsTuningSubsystem::Get().Vanguards)
+			{
+				if (Vanguard.Value.Availability != EVeyraVanguardAvailability::Playable)
+				{
+					continue;
+				}
+				const FVeyraVanguardKitTuning& Kit = Vanguard.Value.Abilities;
+				TArray<FVeyraContentId> Waiting;
+				for (const TArray<FVeyraContentId>* Slot : { &Kit.Q, &Kit.W, &Kit.E, &Kit.R })
+				{
+					Waiting.Append(*Slot);
+				}
+				TSet<FVeyraContentId> Reached(Waiting);
+				while (!Waiting.IsEmpty())
+				{
+					const FVeyraContentId Ability = Waiting.Pop();
+					if (!Recipes.Contains(Ability.ToString().ToLower()))
+					{
+						Missing.Add(FString::Printf(TEXT("%s's %s"), *Vanguard.Key.ToString(), *Ability.ToString()));
+					}
+					for (const FVeyraContentId& Opened : VeyraAbilityRules::AbilitiesOpenedBy(Committed, Ability))
+					{
+						if (!Reached.Contains(Opened))
+						{
+							Reached.Add(Opened);
+							Waiting.Add(Opened);
+						}
+					}
+				}
+			}
+			ASSERT_THAT(IsTrue(Missing.IsEmpty(), *FString::Printf(TEXT("no recipe for %s"), *FString::Join(Missing, TEXT(", ")))));
+		}
+
+		TEST_METHOD(EveryEffectThatStandsForAnAreaTakesItsSize)
+		{
+			// An Area or Linger effect hides its telegraph (ADR-075 §1), so it must draw the area's true size: it takes the
+			// shape, or a radius, or a length and a width, never only a point's motes.
+			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+			const auto Takes = [](const TSet<FName>& Names, FName Parameter) { return Names.Contains(Parameter); };
+			for (const FVeyraAbilityEffects& Effects : Settings.AbilityEffects)
+			{
+				for (const TPair<const FVeyraSkillEffectStage*, const TCHAR*>& Stage :
+					{ TPair<const FVeyraSkillEffectStage*, const TCHAR*>{ &Effects.Area, TEXT("Area") }, TPair<const FVeyraSkillEffectStage*, const TCHAR*>{ &Effects.Linger, TEXT("Linger") } })
+				{
+					if (!Stage.Key->IsSet())
+					{
+						continue;
+					}
+					const UNiagaraSystem* System = Stage.Key->Effect.LoadSynchronous();
+					ASSERT_THAT(IsNotNull(System, *FString::Printf(TEXT("%s's %s effect loads"), *Effects.Ability.ToString(), Stage.Value)));
+					TArray<FNiagaraVariable> Exposed;
+					System->GetExposedParameters().GetUserParameters(Exposed);
+					TSet<FName> Names;
+					for (const FNiagaraVariable& Variable : Exposed)
+					{
+						// User parameters are named "User.<name>".
+						FString Name = Variable.GetName().ToString();
+						Name.RemoveFromStart(TEXT("User."));
+						Names.Add(FName(*Name));
+					}
+					const bool bSized = Takes(Names, Settings.ShapeParameter) || Takes(Names, Settings.RadiusParameter)
+						|| (Takes(Names, Settings.LengthParameter) && Takes(Names, Settings.WidthParameter));
+					ASSERT_THAT(IsTrue(bSized, *FString::Printf(TEXT("%s's %s effect %s takes its area's size"), *Effects.Ability.ToString(), Stage.Value,
+						*System->GetName())));
+				}
+			}
 		}
 
 		TEST_METHOD(EveryShippedRecipeNamesAnAbility)
