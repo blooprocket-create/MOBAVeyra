@@ -3,7 +3,6 @@
 #include "Hud/VeyraHudDeck.h"
 
 #include "CanvasItem.h"
-#include "HAL/IConsoleManager.h"
 #include "Client/VeyraClientFlowSubsystem.h"
 #include "Client/VeyraClientIntents.h"
 #include "Engine/Canvas.h"
@@ -47,13 +46,6 @@
 // The engine keeps a smoothed frame rate, declared only where it is defined.
 extern ENGINE_API float GAverageFPS;
 
-#if !UE_BUILD_SHIPPING
-// For captures of the HUD (Smoke.ps1 -ScreenshotCommands): a deck tile's tooltip shown as if the cursor rested on it, and
-// the stats panel held open. Not in a shipping build.
-static TAutoConsoleVariable<FString> CVarDevHudHover(TEXT("Veyra.Dev.HudHover"), TEXT(""),
-	TEXT("Shows the tooltip of a deck tile as if hovered: Passive, Q, W, E, R or Item1 to Item6; empty for the cursor's own."));
-static TAutoConsoleVariable<bool> CVarDevStatsPanelOpen(TEXT("Veyra.Dev.StatsPanelOpen"), false, TEXT("Holds the HUD's stats panel open."));
-#endif
 
 namespace
 {
@@ -1002,12 +994,12 @@ namespace
 	 */
 	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns,
 		const FVeyraStatusDisplay& Statuses, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey,
-		const TOptional<FVector2D>& Cursor, double Now, float RankMarkOpacity, bool bInDenseFog, TOptional<FHover>& Hover, FVeyraHudStats& OutStats)
+		const TOptional<FVector2D>& Cursor, double Now, float RankMarkOpacity, bool bInDenseFog, const FString& Pinned, TOptional<FHover>& Hover,
+		FVeyraHudStats& OutStats)
 	{
 		TOptional<FVector2D> Mouse = Cursor;
-#if !UE_BUILD_SHIPPING
-		// A tile pinned for a capture is hovered at its centre.
-		if (const FString Pinned = CVarDevHudHover.GetValueOnGameThread(); !Pinned.IsEmpty())
+		// A tile pinned for a capture (Veyra.Dev.HudHover) is hovered at its centre.
+		if (!Pinned.IsEmpty())
 		{
 			const FVector2D Row = TopLeft + Deck.AbilitiesAt;
 			const TCHAR* Keys[] = { TEXT("Q"), TEXT("W"), TEXT("E"), TEXT("R") };
@@ -1029,7 +1021,6 @@ namespace
 				Mouse = TopLeft + Deck.ItemsAt + FVector2D((Index % 3) * (Deck.Item + Deck.ItemGap) + Deck.Item / 2.0f, (Index / 3) * (Deck.Item + Deck.ItemGap) + Deck.Item / 2.0f);
 			}
 		}
-#endif
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		FVeyraHudMotion* Motion = Paint.Motion;
 		// What the HUD remembers between frames (ADR-082 §2); still where there is no memory, as a test's canvas.
@@ -1489,7 +1480,8 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const bool bInDenseFog = Presentation && Vanguard && Presentation->HiddenKindOf(*Vanguard) == EVeyraHiddenKind::DenseFog;
 	FVeyraHudStats Stats;
 	DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own,
-		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, bInDenseFog, Hover, Stats);
+		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, bInDenseFog,
+		Presentation ? Presentation->GetPinnedHover() : FString(), Hover, Stats);
 	// The stats panel beside the portrait, which a click on it opens or closes (ADR-080 §3).
 	if (Presentation)
 	{
@@ -1497,10 +1489,7 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 		{
 			Presentation->ToggleStatsPanel();
 		}
-		bool bStatsOpen = Presentation->IsStatsPanelOpen();
-#if !UE_BUILD_SHIPPING
-		bStatsOpen |= CVarDevStatsPanelOpen.GetValueOnGameThread();
-#endif
+		const bool bStatsOpen = Presentation->IsStatsPanelOpen();
 		// Its more stats cut in as they open (ADR-082 §2).
 		const double MoreOpened = Motion ? Motion->Held(TEXT("StatsMore"), bStatsOpen) : (bStatsOpen ? FVeyraHudMotion::LongAgo : -1.0);
 		DrawStatsPanel(Paint.At(Layout.Stats), Stats, Layout.StatsCore, Layout.StatsMore, MoreOpened);
