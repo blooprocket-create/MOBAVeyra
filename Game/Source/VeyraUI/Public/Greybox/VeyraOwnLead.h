@@ -46,7 +46,10 @@ struct FVeyraOwnLeadInputs
 	/** Where the order leads: the point it named, or where the unit it chases is drawn. */
 	FVector2D Goal = FVector2D::ZeroVector;
 
-	/** An attack order's: how near its target the body stops, its reach. Unset for a move or an Attack Move. */
+	/**
+	 * How near the unit it chases the body stops, its attack's reach: an attack order's target, or the enemy an Attack Move
+	 * took on its way. Unset while it walks to a point.
+	 */
 	TOptional<double> StopWithin;
 
 	/** The server's path for this order once it has come, its points from start to end; empty until then. */
@@ -101,7 +104,7 @@ struct FVeyraOwnLeadState
 	/** How long the server's body has stood while its path still runs on. */
 	double StandingFor = 0.0;
 
-	/** Whether the order is done: its body has arrived and stood. It stays done until a new order is given. */
+	/** Whether the order is done: its body has arrived and stood. It stays done until a new order or a new server path. */
 	bool bFinished = false;
 
 	/** Where the body was last drawn, if it has been. */

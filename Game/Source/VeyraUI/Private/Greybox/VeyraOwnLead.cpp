@@ -151,7 +151,8 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 		// Until then the line follows a chased unit as it moves.
 		State.Path[1] = In.Goal;
 	}
-	// The server's path, once it comes, taken up where the body is shown: the step between the two closes gently.
+	// The server's path, once it comes, taken up where the body is shown: the step between the two closes gently. A new one
+	// means the server walks the body on, as a chase does once the unit it stopped to attack moves off: the order is not done.
 	if (In.ServerPath.Num() >= 2 && In.ServerPathSerial != State.Serial)
 	{
 		const FVector2D Shown = PointAt(State.Path, State.Arc) + StepNow();
@@ -162,6 +163,7 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 		State.Ideal = State.Arc + IdealGap;
 		State.StepFrom = Shown - PointAt(State.Path, State.Arc);
 		State.StepAge = 0.0;
+		State.bFinished = false;
 	}
 
 	// How fast the body walks: the server's own speed for it, slows and all.

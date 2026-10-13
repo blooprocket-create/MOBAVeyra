@@ -149,10 +149,11 @@ private:
 	/** The participant whose orders it takes, once it has taken one; until then its Vanguard's own. */
 	TWeakObjectPtr<class AVeyraPlayerState> Commander;
 
-	/** The path last sent to the player's machine: which it was, how many points it had, and where it ended. */
+	/** The path last sent to the player's machine: which it was, how many points it had, where it ended, and the unit it chased. */
 	TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> PublishedPath;
 	int32 PublishedPoints = 0;
 	FVector PublishedEnd = FVector::ZeroVector;
+	TWeakObjectPtr<AActor> PublishedTarget;
 
 	/** The walkable destination of the latest move order, until the Vanguard reaches it or it fails. */
 	TOptional<FVector> MoveOrder;

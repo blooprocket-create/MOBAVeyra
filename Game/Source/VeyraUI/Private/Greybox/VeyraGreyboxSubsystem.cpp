@@ -350,6 +350,16 @@ FVeyraBodyLead UVeyraGreyboxSubsystem::LeadOwnBody(const APawn& Unit, double Rad
 	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
 	if (!Local || Local->GetCommandedBody() != &Unit)
 	{
+		// The body the player's orders moved until now, as its Vanguard while its Echo is commanded: drawn where it is.
+		if (OwnLeadBody.Get() == &Unit)
+		{
+			if (UVeyraMovementComponent* Was = Unit.FindComponentByClass<UVeyraMovementComponent>())
+			{
+				Was->SetDrawnLead(FVector2D::ZeroVector);
+			}
+			OwnLead = FVeyraOwnLeadState();
+			OwnLeadBody.Reset();
+		}
 		return FVeyraBodyLead();
 	}
 	UVeyraMovementComponent* Movement = Unit.FindComponentByClass<UVeyraMovementComponent>();
@@ -375,11 +385,19 @@ FVeyraBodyLead UVeyraGreyboxSubsystem::LeadOwnBody(const APawn& Unit, double Rad
 		return FVeyraBodyLead();
 	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	const AActor* Target = Mark->Target.Get();
-	// An attack stops where the server stops it to attack: its reach to this target, edge to edge.
+	const AVeyraPlayerState* OwnState = Local->GetPlayerState<AVeyraPlayerState>();
+	// The server's path, once it has come: for this body, and for this order's unit or point (ADR-077 §3).
+	const FVeyraOwnPath* Path = OwnState ? &OwnState->GetOwnPath() : nullptr;
+	const bool bAttack = Mark->Kind == EVeyraOrderMarkKind::Attack;
+	const bool bThisOrder = Path && Path->Body == &Unit && Path->Points.Num() >= 2
+		&& (bAttack ? Mark->Target.IsValid() && Path->Target == Mark->Target.Get()
+					: FVector::Dist2D(Path->Ordered, Mark->Location) <= Settings.OwnLeadOrderMatchDistance);
+	// The unit it chases: an attack's, or the enemy an Attack Move took on its way, as the server's path names it.
+	const AActor* Target = bAttack ? Mark->Target.Get()
+		: bThisOrder && Mark->Kind == EVeyraOrderMarkKind::AttackMove ? Path->Target.Get() : nullptr;
+	// It stops where the server stops it to attack: its reach to that unit, edge to edge.
 	const TOptional<double> Reach = Target ? VeyraHud::AttackReachTo(Unit, *Target) : TOptional<double>();
 	// The speed the server walks it at now, slows, rides and all; until the server has said, its Movement Speed.
-	const AVeyraPlayerState* OwnState = Local->GetPlayerState<AVeyraPlayerState>();
 	const double ServerSpeed = OwnState ? OwnState->GetOwnBodySpeed() : 0.0;
 	const double Speed = ServerSpeed > 0.0 ? ServerSpeed : Abilities->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
 	// It may be drawn ahead while it lives, may move, and moves under its own orders: never while displaced, dashing,
@@ -392,25 +410,18 @@ FVeyraBodyLead UVeyraGreyboxSubsystem::LeadOwnBody(const APawn& Unit, double Rad
 	In.GivenAt = Mark->GivenAt;
 	In.DeltaSeconds = GetWorld()->GetDeltaSeconds();
 	In.Goal = FVector2D(Target ? VeyraDrawnBody::LocationOf(*Target) : Mark->Location);
-	if (Mark->Kind == EVeyraOrderMarkKind::Attack)
+	if (Target)
 	{
 		In.StopWithin = Reach.Get(0.0);
 	}
-	// The server's path, once it has come: for this body, and for this order's unit or point (ADR-077 §3).
-	if (const AVeyraPlayerState* Own = Local->GetPlayerState<AVeyraPlayerState>())
+	if (bThisOrder)
 	{
-		const FVeyraOwnPath& Path = Own->GetOwnPath();
-		const bool bThisOrder = Mark->Kind == EVeyraOrderMarkKind::Attack ? Target && Path.Target == Target
-			: FVector::Dist2D(Path.Ordered, Mark->Location) <= Settings.OwnLeadOrderMatchDistance;
-		if (Path.Body == &Unit && bThisOrder && Path.Points.Num() >= 2)
+		In.ServerPath.Reserve(Path->Points.Num());
+		for (const FVector_NetQuantize10& Point : Path->Points)
 		{
-			In.ServerPath.Reserve(Path.Points.Num());
-			for (const FVector_NetQuantize10& Point : Path.Points)
-			{
-				In.ServerPath.Add(FVector2D(Point));
-			}
-			In.ServerPathSerial = Path.Serial;
+			In.ServerPath.Add(FVector2D(Point));
 		}
+		In.ServerPathSerial = Path->Serial;
 	}
 	In.Drawn = FVector2D(Movement->GetSmoothedLocation());
 	In.ServerSpeed = Unit.GetVelocity().Size2D();
@@ -1408,7 +1419,7 @@ void UVeyraGreyboxSubsystem::RefreshFluxbornArt(const AVeyraFluxborn& Unit, FBod
 	}
 }
 
-void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
+void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body, const FVeyraBodyLead& Lead)
 {
 	// A Vanguard's arrives with its participant, a companion's with its definition; until then, and for one without
 	// art, its body shows.
@@ -1451,8 +1462,7 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
 	Skin->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
 	Skin->SetRelativeScale3D(FVector(Settings.VisualScaleOf(Unit)));
-	// The player's own body is drawn ahead along its latest order's path, and faces and runs as it goes (ADR-077 §2).
-	const FVeyraBodyLead Lead = LeadOwnBody(Unit, Radius);
+	// Drawn ahead, it faces and runs as it goes (ADR-077 §2).
 	FVeyraVanguardAnimInputs Inputs = VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow());
 	Inputs.GroundSpeed = static_cast<float>(VeyraBodyLead::GroundSpeedOf(Lead, Inputs.GroundSpeed));
 	RefreshBodyLook(Unit, Body, *Skin, Worn, Inputs.bAlive && Inputs.bCastHeld);
@@ -1642,6 +1652,9 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 			Material->SetVectorParameterValue(ColorParameter, Color);
 			Body->Shown = Color;
 		}
+		// The player's own body is drawn ahead along its latest order's path, whatever draws it: its Vanguard, or a body it
+		// commands in its stead, as an Echo (ADR-077 §2).
+		const FVeyraBodyLead Lead = LeadOwnBody(Unit, Radius);
 		if (const AVeyraStructure* Structure = Cast<AVeyraStructure>(&Unit))
 		{
 			RefreshStructureArt(*Structure, *Body);
@@ -1652,7 +1665,7 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		}
 		else if (Unit.IsA<AVeyraVanguardCharacter>() || Unit.IsA<AVeyraCompanion>())
 		{
-			RefreshVanguardArt(Unit, *Body);
+			RefreshVanguardArt(Unit, *Body, Lead);
 		}
 		// Its art may have just arrived or changed: a character's is inked (ADR-068 §3), and the hovered keeps its outline.
 		SetStencils(Unit, &Unit == Hovered.Get());

@@ -352,8 +352,9 @@ private:
 	TArray<FVeyraFogCircle> MapFog;
 
 	/**
-	 * If Unit is the body the player commands: draws it ahead along its latest order's path (ADR-077 §2), and returns how it
-	 * faces and runs meanwhile, or how it turns to an attack's target within its reach (ADR-067 §2). None for another body.
+	 * If Unit is the body the player commands, its Vanguard or a body it commands in its stead: draws it ahead along its latest
+	 * order's path (ADR-077 §2), and returns how it faces and runs meanwhile, or how it turns to an attack's target within its
+	 * reach (ADR-067 §2). None for another body; one the player has just stopped commanding is drawn where it is again.
 	 */
 	struct FVeyraBodyLead LeadOwnBody(const APawn& Unit, double Radius);
 
@@ -452,10 +453,10 @@ private:
 
 	/**
 	 * Dresses Unit, a Vanguard or a companion, in its generated body once its Vanguard (or companion definition) is known
-	 * and has art, and tells its animation what it is doing. Its body becomes a disc under its feet, keeping its side's
-	 * colour and its status tint.
+	 * and has art, and tells its animation what it is doing, as Lead draws it ahead. Its body becomes a disc under its feet,
+	 * keeping its side's colour and its status tint.
 	 */
-	void RefreshVanguardArt(const APawn& Unit, FBody& Body);
+	void RefreshVanguardArt(const APawn& Unit, FBody& Body, const struct FVeyraBodyLead& Lead);
 
 	/** Pours Worn's effect off its bones on Skin, replacing what an earlier body poured; nothing for a body that is all mesh. */
 	void RefreshBodyEffects(FBody& Body, class USkeletalMeshComponent& Skin, const struct FVeyraVanguardBody& Worn);

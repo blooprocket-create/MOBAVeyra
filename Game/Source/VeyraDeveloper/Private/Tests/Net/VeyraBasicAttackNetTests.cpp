@@ -265,6 +265,22 @@ namespace VeyraNetTests
 					return Target && HealthLost(Target) >= BaseDamage();
 				});
 		}
+
+		TEST_METHOD(AnAttackMoveTellsItsPlayerWhichEnemyItChases)
+		{
+			// Its player's machine draws the body ahead only as far as the server stops it to attack the enemy it took on, not to
+			// its path's end (ADR-077 §3): the path names that enemy, and still answers to the point the order named.
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Prepare the duel"), [this](FState& State) { PrepareDuel(State); })
+				.ThenClient(TEXT("Attack-move to the lane's centre"), 0, [](FState& State) {
+					LocalControllerOf(State.World)->IssueAttackMoveOrder(FVector::ZeroVector);
+				})
+				.UntilClient(TEXT("Its machine learns the path chases the enemy"), 0, [this](FState& State) {
+					const AVeyraPlayerState* Own = LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
+					const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, TargetId);
+					return Own && Enemy && Own->GetOwnPath().Target == Enemy && FVector::Dist2D(Own->GetOwnPath().Ordered, FVector::ZeroVector) <= 1.0;
+				});
+		}
 	};
 }
 

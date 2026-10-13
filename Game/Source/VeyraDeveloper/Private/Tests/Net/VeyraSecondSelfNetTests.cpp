@@ -10,6 +10,7 @@
 #include "Echoes/VeyraEcho.h"
 #include "Echoes/VeyraEchoSubsystem.h"
 #include "Gold/VeyraGoldComponent.h"
+#include "Movement/VeyraMovementComponent.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -170,6 +171,29 @@ namespace VeyraNetTests
 					const AVeyraPlayerController* Player = LocalControllerOf(State.World);
 					const AVeyraPlayerState* Own = Player->GetPlayerState<AVeyraPlayerState>();
 					return Own && Own->GetOwnPath().Body == Player->GetCommandedBody() && Own->GetOwnPath().Points.Num() >= 2;
+				});
+		}
+
+		TEST_METHOD(ItsPlayersMachineDrawsTheEchoAhead)
+		{
+			// Its machine draws the Echo ahead along its order's path as it would its Vanguard, and its Vanguard, which its orders
+			// no longer move, where it stands (ADR-077 §2).
+			ProjectAndCommand()
+				.UntilClient(TEXT("Its camera follows the Echo"), 0, [](FState& State) {
+					const APawn* Body = LocalControllerOf(State.World)->GetCommandedBody();
+					return Body && Body->IsA<AVeyraEcho>();
+				})
+				.ThenClient(TEXT("Order a move"), 0, [](FState& State) {
+					AVeyraPlayerController* Player = LocalControllerOf(State.World);
+					Player->IssueMoveOrder(Player->GetCommandedBody()->GetActorLocation() + FVector(0.0, Walk, 0.0));
+				})
+				.UntilClient(TEXT("Its machine draws the Echo ahead"), 0, [](FState& State) {
+					const AVeyraPlayerController* Player = LocalControllerOf(State.World);
+					const APawn* Echo = Player->GetCommandedBody();
+					const APawn* Vanguard = Player->GetVanguard();
+					const UVeyraMovementComponent* Ahead = Echo ? Echo->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					const UVeyraMovementComponent* Waits = Vanguard ? Vanguard->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					return Ahead && Waits && !Ahead->GetDrawnLead().IsNearlyZero() && Waits->GetDrawnLead().IsZero();
 				});
 		}
 

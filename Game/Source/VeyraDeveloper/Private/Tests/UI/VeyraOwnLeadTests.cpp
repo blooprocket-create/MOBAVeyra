@@ -258,6 +258,44 @@ namespace VeyraOwnLeadTests
 			}
 		}
 
+		TEST_METHOD(AChaseLeadsAgainOnceItsTargetMovesOff)
+		{
+			// The body stops within reach and stands to attack; its target moves off, and the server plans a new path after it
+			// and walks on. The order is not done: the body is drawn ahead again.
+			const double Reach = 150.0;
+			const double Stop = 1000.0 - Reach;
+			FVeyraOwnLeadState State;
+			FVeyraOwnLeadInputs In;
+			In.GivenAt = 0.0;
+			In.DeltaSeconds = Frame;
+			In.Goal = FVector2D(1000.0, 0.0);
+			In.StopWithin = Reach;
+			In.Speed = Speed;
+			In.LeadSeconds = Answer + Trail;
+			In.bMayLead = true;
+			In.ServerPath = { FVector2D::ZeroVector, FVector2D(1000.0, 0.0) };
+			In.ServerPathSerial = 1;
+			for (In.Now = Frame; In.Now < 4.0; In.Now += Frame)
+			{
+				const double Arc = FMath::Min(FMath::Max(0.0, In.Now - Trail - Answer) * Speed, Stop);
+				In.Drawn = FVector2D(Arc, 0.0);
+				In.ServerSpeed = Arc < Stop ? Speed : 0.0;
+				VeyraOwnLead::Step(State, In, Shape());
+			}
+			In.Goal = FVector2D(2000.0, 0.0);
+			In.ServerPath = { FVector2D(Stop, 0.0), FVector2D(2000.0, 0.0) };
+			In.ServerPathSerial = 2;
+			const double WalksOn = In.Now;
+			double Most = 0.0;
+			for (; In.Now < WalksOn + 0.5; In.Now += Frame)
+			{
+				In.Drawn = FVector2D(Stop + FMath::Max(0.0, In.Now - WalksOn - Trail) * Speed, 0.0);
+				In.ServerSpeed = Speed;
+				Most = FMath::Max(Most, VeyraOwnLead::Step(State, In, Shape()).Offset.X);
+			}
+			ASSERT_THAT(IsTrue(Most > Close, *FString::Printf(TEXT("led at most %.1f"), Most)));
+		}
+
 		TEST_METHOD(PathsAreMeasuredAlongTheirSegments)
 		{
 			const TArray<FVector2D> Path = { FVector2D(0.0, 0.0), FVector2D(100.0, 0.0), FVector2D(100.0, 50.0) };

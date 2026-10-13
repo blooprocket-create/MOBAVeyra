@@ -232,16 +232,18 @@ void AVeyraVanguardController::PublishOwnPath(AVeyraPlayerState& Participant)
 	{
 		return;
 	}
-	// A new order's path, or the same order's planned again as the unit it chases moves.
+	// A new order's path, or the same order's planned again as the unit it chases moves, or the same path chasing another unit.
 	const TArray<FNavPathPoint>& Points = Path->GetPathPoints();
 	const FVector End = Points.Last().Location;
-	if (PublishedPath.Pin() == Path && PublishedPoints == Points.Num() && PublishedEnd.Equals(End))
+	AActor* Chased = AttackTarget.Get();
+	if (PublishedPath.Pin() == Path && PublishedPoints == Points.Num() && PublishedEnd.Equals(End) && PublishedTarget.Get() == Chased)
 	{
 		return;
 	}
 	PublishedPath = Path;
 	PublishedPoints = Points.Num();
 	PublishedEnd = End;
+	PublishedTarget = Chased;
 
 	FVeyraOwnPath Own;
 	Own.Body = Body;
@@ -251,9 +253,9 @@ void AVeyraVanguardController::PublishOwnPath(AVeyraPlayerState& Participant)
 		Own.Points.Add(Point.Location);
 	}
 	// An attack order answers to the unit it named; a move or an Attack Move to the point it named, even as an Attack
-	// Move chases what it found on its way.
-	const bool bAttackOrder = AttackTarget.IsValid() && !AttackMoveDestination.IsSet();
-	Own.Target = bAttackOrder ? AttackTarget.Get() : nullptr;
+	// Move chases what it found on its way. Either names the unit it chases, which it stops within its attack's reach of.
+	const bool bAttackOrder = Chased && !AttackMoveDestination.IsSet();
+	Own.Target = Chased;
 	Own.Ordered = bAttackOrder ? FVector::ZeroVector : OrderedPoint;
 	Participant.SetOwnPath(MoveTemp(Own));
 }

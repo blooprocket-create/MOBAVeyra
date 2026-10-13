@@ -33,7 +33,7 @@ On the player's own machine only, and in presentation only:
 - **How far ahead it is drawn.** Ahead of where its smoothing has it by what the order will have done by now. That is the smoothing's delay, plus `OwnLeadPingShare` of the round trip, plus `OwnLeadServerWaitSeconds` for the server's next tick, at most `OwnLeadMaxSeconds`.
 - **Its limits.** It is never drawn:
   - past what it could have walked since the click;
-  - past where it stops (a move where the server's path following accepts it as arrived; an attack where the server stops it to attack, its range to that target edge to edge, with what the target's statuses from it add: `VeyraHud::AttackReachTo`, by `VeyraTargeting::CentreReach`);
+  - past where it stops (a move where the server's path following accepts it as arrived; an attack, or an Attack Move once the server's path names the enemy it took on, where the server stops it to attack, its range to that target edge to edge, with what the target's statuses from it add: `VeyraHud::AttackReachTo`, by `VeyraTargeting::CentreReach`);
   - more than `OwnLeadMaxDistance` from its smoothed place;
   - backward while it leads.
 - **Catching up.** It may move at up to `OwnLeadCatchUpScale` times its speed to regain its lead.
@@ -43,14 +43,15 @@ On the player's own machine only, and in presentation only:
   - or the server's body strays more than `OwnLeadOffPathDistance` from the path (other bodies push it);
   - or the body is dead, may not move, or something other than its orders moves it (a displacement, dash, Fear or attach shows as a custom movement mode).
 
-  At the end of its path it waits for the server's body to stand there, then lets go with nothing left to pull back. A finished order stays finished until the next is given, so a later push never wakes it.
+  At the end of its path it waits for the server's body to stand there, then lets go with nothing left to pull back. A finished order stays finished until the next is given or the server sends a new path for it, so a later push never wakes it, while a chase that walks on after its target leads again.
+- **Which body.** Whichever body the player commands: its Vanguard, or a body it commands in its stead, such as an Echo, whatever draws it. A body the player stops commanding is drawn where it is at once.
 - **Facing only.** An attack's target already within reach is only faced, as ADR-067 §2 has it.
 - **The server stays in charge.** Only the drawn mesh moves, through `UVeyraMovementComponent::SetDrawnLead`. The capsule, collision, targeting, damage and every rule follow the server's updates. Nothing the drawn body does reaches the server.
 
 ### 3. The server sends the player's own body's path to that player alone
 
 - The controller the player's orders go to now sends the path it follows to that player's `AVeyraPlayerState` (`FVeyraOwnPath`, replicated `COND_OwnerOnly` and sent at once). That is the Vanguard's own, or the controller of a body the player commands in its stead, such as an Echo. The GameMode tells each controller whose orders it takes as it passes an order on, so a Vanguard and a commanded body never send over each other. It sends the path as an order plans it, and again as a chased unit moves.
-- The path carries the body it moves and the order it answers: the point a move or Attack Move named, or the unit an attack chases. The player's machine uses only a path that answers its latest order, within `OwnLeadOrderMatchDistance`.
+- The path carries the body it moves and the order it answers: the point a move or Attack Move named, or the unit an attack names. It also names the unit it chases, an attack's or the enemy an Attack Move took on its way, and is sent again when that unit alone changes. The player's machine uses only a path that answers its latest order, within `OwnLeadOrderMatchDistance`.
 - With it, the same controller sends that player the speed it walks the body at now (`OwnBodySpeed`, owner only, sent as it changes).
 - No other machine receives either, so a Vanguard's destination stays private. A bot's Vanguard sends nothing.
 - The player's machine does no pathfinding of its own and builds no navigation data.

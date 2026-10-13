@@ -29,7 +29,10 @@ struct VEYRAMATCH_API FVeyraOwnPath
 	UPROPERTY()
 	FVector_NetQuantize10 Ordered = FVector::ZeroVector;
 
-	/** The unit the attack order it answers chases; none for a move or an Attack Move. */
+	/**
+	 * The unit the path chases, where the server stops the body within its attack's reach: an attack order's, or the enemy an
+	 * Attack Move took on its way; none while it walks to a point.
+	 */
 	UPROPERTY()
 	TObjectPtr<AActor> Target;
 
