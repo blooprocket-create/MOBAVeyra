@@ -1,6 +1,8 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+#include "Casting/VeyraCastTelegraphs.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Delivery/VeyraVolleySubsystem.h"
 #include "EngineUtils.h"
@@ -162,6 +164,25 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FireToward(FVector::ForwardVector) == EVeyraCastRejection::None));
 			AdvanceWorld(LaneSeconds + WorldStep);
 			ASSERT_THAT(IsTrue(Holds(TEXT("test_corridor")) && !Planted() && ShotsLeft() == 0));
+		}
+
+		TEST_METHOD(EveryMachineIsShownTheOpenLaneUntilItCloses)
+		{
+			// The lane its caster holds open replicates beside its cast state, so presentation shows where its shots can go
+			// (ADR-075 §5); its shape is the volley's tuning, as its windup's telegraph is.
+			const UVeyraCastStateComponent* CastState = Caster->GetPlayerState()->FindComponentByClass<UVeyraCastStateComponent>();
+			ASSERT_THAT(IsNotNull(CastState));
+			ASSERT_THAT(IsFalse(CastState->GetLane().Ability.IsValid(), TEXT("no lane before it opens")));
+			ASSERT_THAT(IsTrue(FireToward(FVector::ForwardVector) == EVeyraCastRejection::None));
+			const FVeyraVolleyLaneState& Lane = CastState->GetLane();
+			ASSERT_THAT(IsTrue(Lane.Ability == ArchetypeTestId(TEXT("test_corridor")) && Lane.Direction.Equals(FVector::ForwardVector)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Lane.ClosesAt, Spawner.GetWorld().GetTimeSeconds() + LaneSeconds, WorldStep)));
+			const TArray<FVeyraPlacedShape> Shown = VeyraCastTelegraphs::ForLane(Tuning, Lane, Caster->GetActorLocation());
+			ASSERT_THAT(AreEqual(Shown.Num(), 1));
+			ASSERT_THAT(IsTrue(Shown[0].Shape.Kind == EVeyraShapeKind::Sector && Shown[0].Shape.Radius == LaneRange
+				&& FMath::IsNearlyEqual(Shown[0].Shape.ArcDegrees, 2.0 * HalfAngle), TEXT("as far as a shot reaches, as wide as the lane")));
+			AdvanceWorld(LaneSeconds + WorldStep);
+			ASSERT_THAT(IsFalse(CastState->GetLane().Ability.IsValid(), TEXT("closed, it shows nothing")));
 		}
 
 		TEST_METHOD(ValidationChecksTheShotAndTheBonus)

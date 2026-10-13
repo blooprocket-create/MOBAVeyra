@@ -37,7 +37,7 @@ EVeyraTelegraphShow VeyraTelegraphFill::ShowOf(const FVeyraAbilityEffects* Effec
 	{
 		return EVeyraTelegraphShow::Full;
 	}
-	const bool bCast = Source == EVeyraTelegraphSource::Windup || Source == EVeyraTelegraphSource::Channel;
+	const bool bCast = Source == EVeyraTelegraphSource::Windup || Source == EVeyraTelegraphSource::Channel || Source == EVeyraTelegraphSource::VolleyLane;
 	const bool bDelayed = Source == EVeyraTelegraphSource::DelayedArea;
 	const bool bLingering = Source == EVeyraTelegraphSource::LingeringArea || Source == EVeyraTelegraphSource::LingeringAreaEnding;
 	const bool bLane = Source == EVeyraTelegraphSource::ProjectileLane;
@@ -55,6 +55,7 @@ bool VeyraTelegraphFill::IsFilled(EVeyraTelegraphSource Source)
 	case EVeyraTelegraphSource::LingeringAreaEnding:
 	case EVeyraTelegraphSource::Indicator:
 	case EVeyraTelegraphSource::ProjectileLane:
+	case EVeyraTelegraphSource::VolleyLane:
 		return true;
 	case EVeyraTelegraphSource::Selection:
 	case EVeyraTelegraphSource::AttackRange:
@@ -77,6 +78,7 @@ double VeyraTelegraphFill::LandingOf(EVeyraTelegraphSource Source, double Remain
 	case EVeyraTelegraphSource::Selection:
 	case EVeyraTelegraphSource::ProjectileLane:
 	case EVeyraTelegraphSource::AttackRange:
+	case EVeyraTelegraphSource::VolleyLane:
 		break;
 	}
 	return 0.0;

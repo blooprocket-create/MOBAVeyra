@@ -80,6 +80,24 @@ ADR-068's gate shaded every telegraph, and ADR-072 gave skills their own motion 
   | Mimzi | Brass rings and star sparks |
 
 - The effects are generated from `Effects.json`, as ADR-072's are, and the batch is reviewed by the author before the rollout goes on.
+- **Clipping:** a camera-facing flare or ring played on the ground was cut in half by it and read as a half-dome. The author asked for this to be fixed. Each such emitter in a skill effect that plays on the ground is lifted by 0.3 of its own size, so its lower edge clears the ground at the match camera's 60-degree pitch, where the edge drops a quarter of the size. Effects that fly through the air aren't lifted.
+
+### 5. A volley lane held open shows where its shots can go
+
+On 2026-10-12 the author asked for Kade's ultimate to "show where he can shoot".
+
+- **What used to show:** a volley's lane (UVeyraVolleySubsystem) showed only during its windup. Once open, it lived on the server alone, though its shots stay inside it for as long as it lasts.
+- **The open lane replicates:** it now replicates beside its caster's cast state as `FVeyraVolleyLaneState`, which holds:
+  - which volley opened it;
+  - the way it faces;
+  - when it closes at the latest.
+- **Who writes it:** the server's lane writes it as it opens and clears it as it closes. Presentation reads it; the server's lane still decides where every shot goes.
+- **Cast presentation state:** like the cast state it sits beside, the lane replicates push-model behind the fog. Only the caster, its teammates and those who see it receive it (ADR-016 §3), and it is never authority. `Veyra.Net.Vision.AnEnemysOpenLaneReachesOnlyThoseWhoSeeIt` checks the gate.
+- **One shape:** `VeyraCastTelegraphs::ForLane` gives its shape from the volley's tuning. That's the same cone the windup's telegraph shows, from the caster as far as a shot reaches, so the two can't drift apart.
+- **How it's drawn:**
+  - The open lane is a telegraph source of its own (`VolleyLane`), thinned by §1's rule as a windup is: only beside an `Area` effect.
+  - The volley's `Area` effect is drawn over the lane until it closes.
+  - Show Skill Outlines brings its outline back.
 
 ## Consequences
 

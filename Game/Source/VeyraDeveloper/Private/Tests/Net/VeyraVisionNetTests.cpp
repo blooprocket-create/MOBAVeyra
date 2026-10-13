@@ -7,6 +7,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Algo/AllOf.h"
 #include "Algo/Count.h"
@@ -148,6 +149,21 @@ namespace VeyraNetTests
 				}
 			}
 			return { false, false };
+		}
+
+		/** Whether this machine knows the participant with PlayerId holds a volley lane open (ADR-075 §5). */
+		static bool SeenLane(const UWorld* World, int32 PlayerId)
+		{
+			const AVeyraGameState* GameState = GameStateOf(World);
+			for (const APlayerState* Candidate : GameState ? GameState->PlayerArray : TArray<TObjectPtr<APlayerState>>())
+			{
+				if (Candidate && Candidate->GetPlayerId() == PlayerId)
+				{
+					const UVeyraCastStateComponent* CastState = Candidate->FindComponentByClass<UVeyraCastStateComponent>();
+					return CastState && CastState->GetLane().Ability.IsValid();
+				}
+			}
+			return false;
 		}
 
 		/** The Health this machine holds for the participant with PlayerId, or -1 if it has no participant. */
@@ -706,6 +722,44 @@ namespace VeyraNetTests
 					const TPair<bool, bool> Seen = SeenShieldAndRecall(State.World, Participants[EnemyIndex].PlayerId);
 					ASSERT_THAT(IsFalse(Seen.Key, TEXT("its shield")));
 					ASSERT_THAT(IsFalse(Seen.Value, TEXT("its Recall")));
+				}
+			});
+		}
+
+		TEST_METHOD(AnEnemysOpenLaneReachesOnlyThoseWhoSeeIt)
+		{
+			// Cast presentation state behind the fog like the cast itself (ADR-075 §5): out of sight, nobody learns where its
+			// shots can go.
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			const FVector2D Far(SightRadius() * 1.5, 0.0);
+			// Fixture value: a lane that outlasts the test.
+			constexpr double LongSeconds = 60.0;
+			FPIENetworkComponent<FState>& Hidden = IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Part the sides"), [this, Observer, Bystander, Far](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Far);
+				})
+				.UntilServer(TEXT("Vision loses the enemy"), [this](FState& State) {
+					const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+					return Enemy && !VeyraVisibility::IsVisibleToTeam(Participants[ObserverIndex].Team, *Enemy);
+				})
+				.ThenServer(TEXT("Out of sight, it holds a lane open"), [this, LongSeconds](FState& State) {
+					AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+					UVeyraCastStateComponent* CastState = Enemy ? Enemy->FindComponentByClass<UVeyraCastStateComponent>() : nullptr;
+					ASSERT_THAT(IsNotNull(CastState));
+					CastState->SetLane(FVeyraContentId::FromText(TEXT("test_lane")).GetValue(), FVector::ForwardVector, State.World->GetTimeSeconds() + LongSeconds);
+				})
+				.UntilClients(TEXT("Its own client sees it"), [this](FState& State) {
+					return State.ClientIndex != EnemyIndex || SeenLane(State.World, Participants[EnemyIndex].PlayerId);
+				})
+				.ThenServer([this](FState& State) { HoldStartRealTime = State.World->GetRealTimeSeconds(); })
+				.UntilServer(TEXT("Give it time to leak"), [this](FState& State) { return State.World->GetRealTimeSeconds() - HoldStartRealTime >= NegativeCheckRealSeconds; });
+			Hidden.ThenClients(TEXT("Nobody who cannot see it learned of the lane"), [this](FState& State) {
+				if (State.ClientIndex != EnemyIndex)
+				{
+					ASSERT_THAT(IsFalse(SeenLane(State.World, Participants[EnemyIndex].PlayerId)));
 				}
 			});
 		}

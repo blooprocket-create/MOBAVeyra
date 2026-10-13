@@ -681,6 +681,9 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::Indicator, false) == EVeyraTelegraphShow::Full, TEXT("the player's own indicator always shows")));
 			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::DelayedArea, true) == EVeyraTelegraphShow::Full, TEXT("Show Skill Outlines brings it back")));
 			ASSERT_THAT(IsTrue(ShowOf(nullptr, EVeyraTelegraphSource::DelayedArea, false) == EVeyraTelegraphShow::Full, TEXT("an ability without effects keeps it")));
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::VolleyLane, false) == EVeyraTelegraphShow::Full, TEXT("a mark shows no open lane")));
+			Effects.Area = Effects.Mark;
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::VolleyLane, false) == EVeyraTelegraphShow::None, TEXT("an Area shows an open lane (ADR-075 §5)")));
 		}
 
 		TEST_METHOD(ASkillshotTelegraphsItsPath)

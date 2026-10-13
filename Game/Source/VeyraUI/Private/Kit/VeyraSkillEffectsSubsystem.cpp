@@ -52,6 +52,9 @@ namespace
 		return Phase == EVeyraCastPhase::Windup || Phase == EVeyraCastPhase::Channel;
 	}
 
+	/** The first index a lane's areas take beside its caster's windup zones, so the two never share an effect. */
+	constexpr int32 LaneAreaIndex = 1000;
+
 	/** Fades Component out: it stops emitting and lets what it emitted finish, then releases itself. */
 	void FadeSkillEffect(const TWeakObjectPtr<UNiagaraComponent>& Component)
 	{
@@ -764,6 +767,23 @@ void UVeyraSkillEffectsSubsystem::RefreshAreas(double Now)
 		for (int32 Index = 0; Index < Placed.Num(); ++Index)
 		{
 			ShowArea(Caster, Index, *Effects, Placed[Index], FMath::Max(0.0, State->PhaseEndsAt - Now), Source, Greybox->SideColorOf(Caster));
+		}
+	}
+	// Each volley lane held open, where its shots can go, until it closes (ADR-075 §5). Its areas follow a windup's.
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const APawn& Caster = **It;
+		const UVeyraCastStateComponent* Casts = SkillCasterState(Caster);
+		const FVeyraVolleyLaneState* Lane = Casts ? &Casts->GetLane() : nullptr;
+		const FVeyraAbilityEffects* Effects = Lane && Lane->Ability.IsValid() && Now < Lane->ClosesAt && !Caster.IsHidden() ? EffectsOf(Lane->Ability) : nullptr;
+		if (!Effects || !Effects->Area.IsSet())
+		{
+			continue;
+		}
+		const TArray<FVeyraPlacedShape> Placed = VeyraCastTelegraphs::ForLane(Tuning, *Lane, Caster.GetActorLocation());
+		for (int32 Index = 0; Index < Placed.Num(); ++Index)
+		{
+			ShowArea(Caster, LaneAreaIndex + Index, *Effects, Placed[Index], Lane->ClosesAt - Now, EVeyraTelegraphSource::VolleyLane, Greybox->SideColorOf(Caster));
 		}
 	}
 	// Each delayed area, until it lands.

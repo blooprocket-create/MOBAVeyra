@@ -71,17 +71,28 @@ TArray<FVeyraPlacedShape> VeyraCastTelegraphs::ForCast(const FVeyraAbilitiesTuni
 			Shapes.Add(FVeyraPlacedShape{ TelegraphCircle(Aura.Radius), CasterLocation, State.Direction });
 		}
 	}
-	else if (const FVeyraVolleyAbilityTuning* Volley = Tuning.Volley.Find(State.Ability))
+	else if (Tuning.Volley.Contains(State.Ability))
 	{
-		// The lane its shots fly in (UVeyraVolleySubsystem): from the caster, as far as a shot reaches, the lane's
-		// half angle either side of the cast's direction; a lane with none is one shot's path.
-		if (const FVeyraSkillshotAbilityTuning* Shot = Tuning.Skillshot.Find(Volley->Shot))
-		{
-			const FVeyraProjectileTuning& Projectile = Shot->Projectile;
-			const FVeyraShape Lane = Volley->LaneHalfAngleDegrees > 0.0 ? TelegraphSector(Projectile.Range, 2.0 * Volley->LaneHalfAngleDegrees)
-				: TelegraphPath(Projectile.Range, 2.0 * Projectile.Radius);
-			Shapes.Add(FVeyraPlacedShape{ Lane, CasterLocation, State.Direction });
-		}
+		FVeyraVolleyLaneState Lane;
+		Lane.Ability = State.Ability;
+		Lane.Direction = State.Direction;
+		Shapes.Append(ForLane(Tuning, Lane, CasterLocation));
+	}
+	return Shapes;
+}
+
+TArray<FVeyraPlacedShape> VeyraCastTelegraphs::ForLane(const FVeyraAbilitiesTuning& Tuning, const FVeyraVolleyLaneState& Lane, const FVector& CasterLocation)
+{
+	TArray<FVeyraPlacedShape> Shapes;
+	// The lane its shots fly in (UVeyraVolleySubsystem): from the caster, as far as a shot reaches, the lane's half angle
+	// either side of its direction; a lane with none is one shot's path.
+	const FVeyraVolleyAbilityTuning* Volley = Lane.Ability.IsValid() ? Tuning.Volley.Find(Lane.Ability) : nullptr;
+	if (const FVeyraSkillshotAbilityTuning* Shot = Volley ? Tuning.Skillshot.Find(Volley->Shot) : nullptr)
+	{
+		const FVeyraProjectileTuning& Projectile = Shot->Projectile;
+		const FVeyraShape Shape = Volley->LaneHalfAngleDegrees > 0.0 ? TelegraphSector(Projectile.Range, 2.0 * Volley->LaneHalfAngleDegrees)
+			: TelegraphPath(Projectile.Range, 2.0 * Projectile.Radius);
+		Shapes.Add(FVeyraPlacedShape{ Shape, CasterLocation, Lane.Direction });
 	}
 	return Shapes;
 }

@@ -49,6 +49,8 @@ enum class EVeyraTelegraphSource : uint8
 	ProjectileLane,
 	/** The local player's attack range, a guide drawn as the indicator is (ADR-052 §4). */
 	AttackRange,
+	/** Where the shots of a volley lane its caster holds open can go, until it closes (ADR-075 §5). */
+	VolleyLane,
 };
 
 /** The player's own level-up as this machine announces it (ADR-065 §5): the new Level, and when it came by this machine's clock. */

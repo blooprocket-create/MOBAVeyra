@@ -1883,6 +1883,21 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 			AddCastTelegraph(Placed, Source, Team, Remaining, State.Ability);
 		}
 	}
+	// Each volley lane held open: where its shots can go, until it closes (ADR-075 §5).
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const APawn& Caster = **It;
+		const UVeyraCastStateComponent* CastState = FindGreyboxCastState(Caster);
+		const FVeyraVolleyLaneState* Lane = CastState ? &CastState->GetLane() : nullptr;
+		if (!Lane || !Lane->Ability.IsValid() || Now >= Lane->ClosesAt || Caster.IsHidden())
+		{
+			continue;
+		}
+		for (const FVeyraPlacedShape& Placed : VeyraCastTelegraphs::ForLane(Tuning, *Lane, Caster.GetActorLocation()))
+		{
+			AddCastTelegraph(Placed, EVeyraTelegraphSource::VolleyLane, VeyraTeams::TeamOf(&Caster), Lane->ClosesAt - Now, Lane->Ability);
+		}
+	}
 	for (TActorIterator<AVeyraDelayedArea> It(GetWorld()); It; ++It)
 	{
 		const AVeyraDelayedArea& Area = **It;
