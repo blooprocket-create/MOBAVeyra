@@ -125,6 +125,7 @@ Deferred: each clearing having at least two route entrances wide enough for its 
 
 - **The Landscape stays the walkable floor:**
   - painted layers: meadow, causeways, river banks, and trampled earth across each camp clearing, every painted edge broken by a noise the same at its rotation, so the causeway frays into the meadow and no edge looks drawn;
+  - each lane a causeway of big flags with a share laid as smaller setts and the odd flag gone to earth and grass, edged by kerbstones flush with the road along both sides, some fallen away, placed by the dressing rules (`VeyraDressing::AllowsEdging`: clear of water, structures, Wells, fountains, keep floors and every other lane);
   - the `VeyraGround` channel and everything that stands on it, unchanged;
   - gentle relief, and no ridges or cliffs from it any more.
 - **Each mass is a generated static mesh**, sculpted in `VeyraWorldTools` from the same polygon the runtime uses, as the style profile's `massForms` shape its kind:

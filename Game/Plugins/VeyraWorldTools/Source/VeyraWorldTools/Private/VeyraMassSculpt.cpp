@@ -21,11 +21,11 @@ namespace
 	constexpr int32 RoomSearchSteps = 10;
 	constexpr double RoomShare = 0.55;
 	constexpr int32 TopRetries = 4;
-	constexpr double UVSpan = 400.0;
+	constexpr double SculptUVSpan = 400.0;
 	constexpr double FootShare = 0.08;
 
 	// How finely the floor along an outline is sampled for the mass's base, in units a step. Resolution, not tuning.
-	constexpr double GroundStep = 50.0;
+	constexpr double SculptGroundStep = 50.0;
 
 	double Smooth(double From, double To, double X)
 	{
@@ -122,7 +122,7 @@ namespace
 				const FVector Axis = Normal.GetAbs();
 				const FVector& P = Positions[Index];
 				const FVector2D UV = Axis.Z >= Axis.X && Axis.Z >= Axis.Y ? FVector2D(P.X, P.Y) : (Axis.X >= Axis.Y ? FVector2D(P.Y, P.Z) : FVector2D(P.X, P.Z));
-				Attributes.GetVertexInstanceUVs().Set(Instance, 0, FVector2f(UV / UVSpan));
+				Attributes.GetVertexInstanceUVs().Set(Instance, 0, FVector2f(UV / SculptUVSpan));
 				Attributes.GetVertexInstanceColors()[Instance] = Colours[Index];
 				Instances.Add(Instance);
 			}
@@ -230,7 +230,7 @@ namespace VeyraMassSculpt
 			return Field.Height(Point) + Rise;
 		}
 		double Base = -TNumericLimits<double>::Max();
-		for (const FVector2D& Corner : Resampled(Mass.Outline, GroundStep))
+		for (const FVector2D& Corner : Resampled(Mass.Outline, SculptGroundStep))
 		{
 			Base = FMath::Max(Base, Field.Height(Corner));
 		}

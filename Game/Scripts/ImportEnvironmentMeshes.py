@@ -205,7 +205,8 @@ def foliage(colour_key, two_sided, root_key=None):
 BUILDS = {
     "Rock": ("M_CrucibleRock", mossy_stone("Slate", LOOK["rockTint"], dict(LOOK, stoneTileCm=LOOK["rockTileCm"]))),
     # Cut stone: the keeps' walls and the kit's pillars, blocks and steles, so what was built reads apart from rock.
-    "Ruin": ("M_CrucibleRuin", mossy_stone("Masonry", LOOK["ruinTint"], LOOK)),
+    # Its moss in patches, so cut stone seen from above reads as stone and not as a green tile.
+    "Ruin": ("M_CrucibleRuin", mossy_stone("Masonry", LOOK["ruinTint"], dict(LOOK, mossPatchFrom=LOOK["ruinMossPatch"][0], mossPatchTo=LOOK["ruinMossPatch"][1]))),
     "Bark": ("M_CrucibleBark", mossy_stone("Slate", LOOK["barkTint"], dict(LOOK, mossFrom=0.95, mossTo=1.0))),
     "Glyph": ("M_CrucibleGlyph", glyph),
     "Leaves": ("M_CrucibleLeaves", foliage("leafColour", two_sided=True)),

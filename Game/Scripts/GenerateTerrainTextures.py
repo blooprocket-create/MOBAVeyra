@@ -20,6 +20,8 @@ PROFILE = SOURCE / "TerrainTextures.json"
 # The macro variation's and the water's own random streams, apart from every layer's, so adding a layer never changes them.
 MACRO_STREAM = 1000
 WATER_STREAM = 1001
+# Still water is one value everywhere, so a handful of texels hold it. Resolution, not tuning.
+STILL_WATER_TEXELS = 8
 
 
 # Periodic noise. Every pattern is built on lattices whose periods divide the image, so it tiles exactly.
@@ -115,10 +117,15 @@ def per_cell(ids, cells, rng, spread):
 # Recipes: each returns (albedo [H,W,3] linear-ish sRGB 0..1, height [H,W] 0..1, roughness [H,W] 0..1).
 
 def flagstones(spec, size, rng):
-    """Pale weathered stone flags: uneven slabs, worn edges, moss creeping from the joints, lichen, a few cracks."""
+    """An old causeway: big uneven flags, a share of them laid as smaller setts instead, each settled a little higher or
+    lower; worn edges, moss creeping from the joints, blotches of lichen, a few cracks; here and there a flag gone,
+    its hole filled with earth and grass. Large slab-to-slab variation, so a long lane never reads as one even field."""
     cells = spec["cells"]
     f1, f2, ids = cellular(size, cells, rng, jitter=0.7, stretch=(1.0, 0.85))
-    edge = f2 - f1
+    s1, s2, sub_ids = cellular(size, cells * 2, rng, jitter=0.8, stretch=(1.0, 0.9))
+    split = per_cell(ids, cells, rng, 1.0) > 1.0 - 2.0 * spec["settShare"]
+    missing = (per_cell(ids, cells, rng, 1.0) > 1.0 - 2.0 * spec["missingShare"]) & ~split
+    edge = np.where(split, np.minimum(f2 - f1, s2 - s1), f2 - f1)
     joint_width = spec["grout"] * (0.7 + 0.6 * fbm(size, 4, 3, rng))
     grout = 1.0 - smoothstep(joint_width * 0.45, joint_width, edge)
     bevel = smoothstep(0.0, joint_width * 3.0, edge)
@@ -127,18 +134,19 @@ def flagstones(spec, size, rng):
     pits = smoothstep(0.7, 0.85, fbm(size, 24, 3, rng))
     _, crack_f2, _ = cellular(size, cells * 3, rng, jitter=1.0)
     crack_f1 = cellular(size, cells * 3, np.random.default_rng(rng.integers(1 << 30)), jitter=1.0)[0]
-    cracked = per_cell(ids, cells, rng, 1.0) > 0.45
+    cracked = (per_cell(ids, cells, rng, 1.0) > 0.45) & ~split
     cracks = (1.0 - smoothstep(0.0, 0.01, np.abs(crack_f2 - crack_f1))) * cracked * bevel
-    # Each slab sits a little higher or lower and tilts a little: the old causeway has settled unevenly.
-    level = per_cell(ids, cells, rng, 0.12)
+    # Each flag or sett sits a little higher or lower and tilts a little: the old causeway has settled unevenly.
+    level = np.where(split, per_cell(sub_ids, cells * 2, rng, 0.1), per_cell(ids, cells, rng, 0.12))
     coords = (np.arange(size) + 0.5) / size
     x, y = np.meshgrid(coords, coords, indexing="xy")
     tilt = per_cell(ids, cells, rng, 0.6) * np.sin(2 * np.pi * x * cells) * 0.04
     height = 0.5 * bevel + 0.2 * detail + 0.08 * grain - 0.1 * pits - 0.2 * cracks + level + tilt
     height = height * (1 - grout) + grout * (0.02 + 0.08 * detail)
 
-    brightness = 1.0 + per_cell(ids, cells, rng, spec["stoneVariation"])
-    warmth = per_cell(ids, cells, rng, spec["warmCool"])
+    variation = spec["stoneVariation"]
+    brightness = 1.0 + np.where(split, per_cell(sub_ids, cells * 2, rng, variation), per_cell(ids, cells, rng, variation))
+    warmth = np.where(split, per_cell(sub_ids, cells * 2, rng, spec["warmCool"]), per_cell(ids, cells, rng, spec["warmCool"]))
     stone = np.asarray(spec["stone"])[None, None, :] * brightness[..., None]
     stone = stone + np.stack([warmth, warmth * 0.3, -warmth], axis=-1)
     stone = stone * (0.84 + 0.22 * detail[..., None] + 0.08 * grain[..., None]) * (1 - 0.2 * pits[..., None])
@@ -151,8 +159,15 @@ def flagstones(spec, size, rng):
     groutcol = np.asarray(spec["groutColor"])[None, None, :] * (0.65 + 0.7 * detail[..., None])
     albedo = mix(albedo, groutcol, np.clip(grout + spill * 0.8, 0, 1))
     albedo = albedo * (1 - 0.4 * cracks[..., None])
+    # A flag gone: earth in its hole, grass coming up through it, sunk below its neighbours.
+    tuft = smoothstep(0.4, 0.65, fbm(size, 32, 3, rng))
+    hole = np.asarray(spec["holeEarth"])[None, None, :] * (0.8 + 0.4 * detail[..., None])
+    hole = mix(hole, spec["holeGrass"], tuft * 0.8)
+    albedo = mix(albedo, hole, missing.astype(float))
+    height = np.where(missing, 0.03 + 0.1 * tuft + 0.04 * detail, height)
     rough_lo, rough_hi = spec["roughness"]
     roughness = rough_lo + (rough_hi - rough_lo) * np.clip(0.4 * detail + grout + spill + 0.3 * lichen_mask, 0, 1)
+    roughness = np.where(missing, rough_hi, roughness)
     return albedo, height, roughness
 
 
@@ -429,6 +444,12 @@ def main():
         water_map = np.concatenate([normal_map(ripples, water["rippleStrength"]), foam[..., None]], axis=-1)
         path = out_dir / "T_Crucible_WaterNormal.png"
         to_image(water_map).save(path, optimize=False)
+        manifest["files"].append({"name": path.name, "layer": "Water", "tileMetres": water["tileMetres"],
+                                  "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+        # Still water (ADR-076): the ripples' heights where nothing stirs the river, black and linear, so the river's
+        # material and the ripples' step read nothing from it until the water's presentation gives them its own.
+        path = out_dir / "T_Crucible_StillWater.png"
+        to_image(np.zeros((STILL_WATER_TEXELS, STILL_WATER_TEXELS, 3))).save(path, optimize=False)
         manifest["files"].append({"name": path.name, "layer": "Water", "tileMetres": water["tileMetres"],
                                   "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
     if not only and not args.size:

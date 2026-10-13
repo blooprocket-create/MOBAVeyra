@@ -186,6 +186,53 @@ namespace VeyraWorldTests
 			ForEachProbe(0.0, [&](const FVector2D& Point) { bAnywhere |= VeyraDressing::Allows(Tuning, Point, DressingRadius); });
 			ASSERT_THAT(IsTrue(bAnywhere));
 		}
+		TEST_METHOD(LaneEdgingKeepsToItsOwnLanesEdge)
+		{
+			const FVeyraWorldTuning& Tuning = Committed();
+			const TArray<FVeyraLaneLayout>& Lanes = Tuning.Layout.Lanes;
+			ASSERT_THAT(IsFalse(VeyraDressing::AllowsEdging(Tuning, FVector2D::ZeroVector, DressingRadius, Lanes.Num()), TEXT("no such lane")));
+			for (int32 Lane = 0; Lane < Lanes.Num(); ++Lane)
+			{
+				for (const FVeyraStructurePlacement& Placement : VeyraLayout::Structures(Tuning.Layout))
+				{
+					ASSERT_THAT(IsFalse(VeyraDressing::AllowsEdging(Tuning, Placement.Location, DressingRadius, Lane)));
+				}
+				for (const FVeyraMapPoint& Site : Tuning.FluxWells.Sites)
+				{
+					ASSERT_THAT(IsFalse(VeyraDressing::AllowsEdging(Tuning, VeyraLayout::ToVector(Site), DressingRadius, Lane)));
+				}
+				for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+				{
+					ASSERT_THAT(IsFalse(VeyraDressing::AllowsEdging(Tuning, VeyraLayout::Fountain(Tuning.Layout, Team), DressingRadius, Lane)));
+					FVector2D Inside = FVector2D::ZeroVector;
+					const TArray<FVector2D> Floor = VeyraLayout::KeepFloor(Tuning.Layout, Team);
+					for (const FVector2D& Corner : Floor)
+					{
+						Inside += Corner / Floor.Num();
+					}
+					ASSERT_THAT(IsFalse(VeyraDressing::AllowsEdging(Tuning, Inside, DressingRadius, Lane), TEXT("not on a keep's floor")));
+				}
+				// Never on another lane's road.
+				for (int32 Other = 0; Other < Lanes.Num(); ++Other)
+				{
+					const FVector2D OnIt = VeyraLayout::PointAlong(Lanes[Other].Points, VeyraLayout::Length(Lanes[Other].Points) / 4.0);
+					ASSERT_THAT(IsTrue(Other == Lane || !VeyraDressing::AllowsEdging(Tuning, OnIt, DressingRadius, Lane)));
+				}
+				// And somewhere along its own edge, it may.
+				bool bSomewhere = false;
+				const double Length = VeyraLayout::Length(Lanes[Lane].Points);
+				for (double Along = 0.0; Along < Length; Along += ProbeStep)
+				{
+					const FVector2D Here = VeyraLayout::PointAlong(Lanes[Lane].Points, Along);
+					const FVector2D Ahead = VeyraLayout::PointAlong(Lanes[Lane].Points, Along + SlopeSpan);
+					const FVector2D Side = FVector2D(-(Ahead - Here).Y, (Ahead - Here).X).GetSafeNormal();
+					bSomewhere |= VeyraDressing::AllowsEdging(Tuning, Here + Side * (Lanes[Lane].Width / 2.0), DressingRadius, Lane);
+				}
+				ASSERT_THAT(IsTrue(bSomewhere));
+			}
+			const FVeyraRiverChannel& Main = VeyraRiver::ShapeOf(Tuning.Layout).GetChannels()[0];
+			ASSERT_THAT(IsFalse(VeyraDressing::AllowsEdging(Tuning, Main.Samples[Main.Samples.Num() / 2].Point, DressingRadius, 0), TEXT("not in the water")));
+		}
 		TEST_METHOD(NonFiniteTerrainAndUnqueryableHeightsAreRejected)
 		{
 			FVeyraWorldTuning Broken = Committed();

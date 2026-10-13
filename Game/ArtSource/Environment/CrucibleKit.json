@@ -25,6 +25,7 @@
     "mossPatchTileCm": 1200,
     "mossPatchFrom": -1.0,
     "mossPatchTo": 0.0,
+    "ruinMossPatch": [0.5, 0.68],
     "glyphColor": [0.25, 0.65, 1.0],
     "glyphStrength": 1.0,
     "glyphPulseRate": 0.9,

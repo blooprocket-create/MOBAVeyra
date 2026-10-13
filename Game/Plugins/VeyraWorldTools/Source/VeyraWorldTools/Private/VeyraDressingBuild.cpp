@@ -588,6 +588,59 @@ namespace VeyraWorldBuild
 			}
 		}
 
+		// Each lane's edging (ADR-073 §5): kerbstones flush with the road along both its edges, some fallen away, so the
+		// causeway reads as built and old. Team A's half of each lane; Team B's are its rotation (Place).
+		{
+			const TSharedPtr<FJsonObject>* Edging = nullptr;
+			if (!Profile.TryGetObjectField(TEXT("laneEdging"), Edging))
+			{
+				Error = TEXT("Dressing requires the dressing profile's laneEdging.");
+				return false;
+			}
+			const auto Setting = [&Edging](const TCHAR* Key) { return (*Edging)->GetNumberField(Key); };
+			const TArray<TSharedPtr<FJsonValue>>& SizeValues = (*Edging)->GetArrayField(TEXT("size"));
+			const FVector Stone(SizeValues[0]->AsNumber(), SizeValues[1]->AsNumber(), SizeValues[2]->AsNumber());
+			const double Spacing = Setting(TEXT("spacing"));
+			if (!(Spacing > 0.0) || !(Stone.GetMin() > 0.0))
+			{
+				Error = TEXT("laneEdging needs a spacing and a stone size above 0.");
+				return false;
+			}
+			const FVector Block = Size(TEXT("Block"));
+			const FVector Scale(Stone.X / FMath::Max(Block.X, 1.0), Stone.Y / FMath::Max(Block.Y, 1.0), Stone.Z / FMath::Max(Block.Z, 1.0));
+			FRandomStream Random(Seed + 7);
+			FRegion& Kerbs = Region(TEXT("Lane_Edging"), TEXT("Block"));
+			for (int32 LaneIndex = 0; LaneIndex < Layout.Lanes.Num(); ++LaneIndex)
+			{
+				const FVeyraLaneLayout& Lane = Layout.Lanes[LaneIndex];
+				const double Length = VeyraLayout::Length(Lane.Points);
+				for (double Along = Random.FRandRange(0.0, Spacing); Along < Length; Along += Spacing)
+				{
+					const FVector2D Here = VeyraLayout::PointAlong(Lane.Points, Along);
+					// Clear of the dividing line, so a stone and its rotation never meet.
+					if (VeyraLayout::DepthInTeamAHalf(Layout, Here) < Spacing)
+					{
+						continue;
+					}
+					const FVector2D Ahead = (VeyraLayout::PointAlong(Lane.Points, Along + Spacing * 0.5) - Here).GetSafeNormal();
+					const FVector2D Side(-Ahead.Y, Ahead.X);
+					for (const double Sign : { -1.0, 1.0 })
+					{
+						const double Out = Lane.Width / 2.0 + Setting(TEXT("outset")) + Random.FRandRange(-1.0, 1.0) * Setting(TEXT("offsetJitter"));
+						const FVector2D Spot = Here + Side * Sign * Out;
+						const double Grown = 1.0 + Random.FRandRange(-1.0, 1.0) * Setting(TEXT("sizeJitter"));
+						const double Yaw = YawOf(Ahead) + Random.FRandRange(-1.0, 1.0) * Setting(TEXT("yawJitter"));
+						if (Random.FRand() < Setting(TEXT("missingShare")) || !VeyraDressing::AllowsEdging(Tuning, Spot, Stone.X / 2.0, LaneIndex)
+							|| Dress.Field.Sample(Spot).Mass > 0.0)
+						{
+							continue;
+						}
+						Dress.Place(Kerbs, Random, Kit[TEXT("Block")].Num(), Spot, Yaw, Scale * Grown, Setting(TEXT("sink")));
+					}
+				}
+			}
+		}
+
 		for (int32 Index = 0; Index < Regions.Num(); ++Index)
 		{
 			if (!Bake(World, Regions[Index], Kit[Regions[Index].Family], Seed + 100 * (Index + 1), Timeout, Error))

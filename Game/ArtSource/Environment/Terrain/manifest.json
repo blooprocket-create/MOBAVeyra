@@ -1,24 +1,24 @@
 {
-  "profileSha256": "3519cf508d2f8ea2e36565484b37c28cd5c03a74d9e646f2098b428a569cba55",
+  "profileSha256": "7a6f1c6e2142a5fb1088901adedb2205aeec66be4959ed9890c9378f37200cac",
   "size": 2048,
   "files": [
     {
       "name": "T_Crucible_Causeway_BaseColor.png",
       "layer": "Causeway",
-      "tileMetres": 4.0,
-      "sha256": "023f3b015e0eb8655fff9a481672f61fadceba72d5d1bb87ce0dcbf054fe069b"
+      "tileMetres": 6.0,
+      "sha256": "286bcc18800040e8540ebeba1a8cc1b849871f52bfae58af4bd146e522ab0e6e"
     },
     {
       "name": "T_Crucible_Causeway_Normal.png",
       "layer": "Causeway",
-      "tileMetres": 4.0,
-      "sha256": "3d734c80ff7bc1c550ea616b776c3f9f1eefd5457ac561cd313074b5e98d0b8e"
+      "tileMetres": 6.0,
+      "sha256": "0497d02ae6a1d23aaa18b8227e1c25d3ccbcd27e6d5811c664b9dcca840017ed"
     },
     {
       "name": "T_Crucible_Causeway_ORMH.png",
       "layer": "Causeway",
-      "tileMetres": 4.0,
-      "sha256": "70d3a66c27d8137b775b7c7e4b26b832474b31d3107ef180a37a200d31ce4025"
+      "tileMetres": 6.0,
+      "sha256": "e1ef8bbc267937e8df53b0cf3b80e5fec2e72b42070af1f211f29ae4bd9f6950"
     },
     {
       "name": "T_Crucible_Moss_BaseColor.png",
@@ -121,6 +121,12 @@
       "layer": "Water",
       "tileMetres": 6.0,
       "sha256": "ba7422c163b8f7b09cc6167b41c94290b6a353baeb308bc20924776b3447f7a7"
+    },
+    {
+      "name": "T_Crucible_StillWater.png",
+      "layer": "Water",
+      "tileMetres": 6.0,
+      "sha256": "4a0945534329d26ce523a2f096e203aae59a9fffaec71895599fa3ef42d23f22"
     }
   ]
 }

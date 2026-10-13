@@ -18,4 +18,11 @@ namespace VeyraDressing
 	 * its own family) and the river's water.
 	 */
 	VEYRAWORLD_API bool Allows(const FVeyraWorldTuning& Tuning, const FVector2D& Point, double Radius);
+
+	/**
+	 * Whether a lane's edging, Radius across, may stand at Point along the edge of the lane at LaneIndex: flush with the
+	 * road, it may stand on that lane's shoulder, but clear of the water, every structure and Flux Well by a shoulder's
+	 * margin, both fountains, both keeps' floors and every other lane's road, so it never edges what play reads.
+	 */
+	VEYRAWORLD_API bool AllowsEdging(const FVeyraWorldTuning& Tuning, const FVector2D& Point, double Radius, int32 LaneIndex);
 }
