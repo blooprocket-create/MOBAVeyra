@@ -466,6 +466,16 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(AreEqual(Drawn.Num(), 1, TEXT("one effect over its one zone")));
 			ASSERT_THAT(IsTrue(Drawn[0].Shape == 0 && FMath::IsNearlyEqual(Drawn[0].Radius, Range / 4.0, Slack), TEXT("its circle, as Abilities.json shapes it")));
 			ASSERT_THAT(IsTrue(Drawn[0].Landing == 0.0, TEXT("long before it lands")));
+			ASSERT_THAT(IsTrue(Drawn[0].Normal.Equals(FVector::UpVector, 1e-3), TEXT("level over level ground")));
+
+			// The same place, a recipe of another scale: it is drawn for that one, not the first one's.
+			FVeyraAbilityEffects* Recipe = GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.FindByPredicate(
+				[](const FVeyraAbilityEffects& Effects) { return Effects.Ability == TEXT("test_fall"); });
+			ASSERT_THAT(IsNotNull(Recipe));
+			Recipe->Area.Scale *= 2.0f;
+			Skills->Refresh();
+			const TArray<FVeyraAreaParameters> Redrawn = Skills->FindAreas(*Area);
+			ASSERT_THAT(IsTrue(Redrawn.Num() == 1 && Redrawn[0].Scale == Recipe->Area.Scale && Redrawn[0].Recipe == FName(TEXT("test_fall"))));
 		}
 	};
 }

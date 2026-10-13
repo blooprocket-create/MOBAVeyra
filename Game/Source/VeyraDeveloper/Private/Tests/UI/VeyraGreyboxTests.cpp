@@ -688,6 +688,27 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(AreEqual(Presentation.GetTelegraphFills().Num(), Zones, TEXT("outlined and shaded")));
 		}
 
+		TEST_METHOD(AnAreaOverUnevenGroundKeepsItsOutline)
+		{
+			// An effect drawn on one plane follows a slope, but not a ridge under it (ADR-075 §3).
+			FVeyraShape Circle;
+			Circle.Kind = EVeyraShapeKind::Circle;
+			Circle.Radius = OuterRadius;
+			const FVeyraPlacedShape Placed{ Circle, FVector::ZeroVector, FVector::ForwardVector };
+			const double Slope = 0.25;
+			const FVeyraGroundFit Sloped = VeyraTelegraphFill::FitGround(Placed, [Slope](const FVector2D& Point) { return Slope * Point.X; });
+			ASSERT_THAT(IsTrue(Sloped.MaxStray < Tolerance, TEXT("a slope is one plane")));
+			ASSERT_THAT(IsTrue(Sloped.Normal.Equals(FVector(-Slope, 0.0, 1.0).GetSafeNormal(), 1e-3), TEXT("and the effect tilts to it")));
+			const double Ridge = OuterRadius;
+			const FVeyraGroundFit Ridged = VeyraTelegraphFill::FitGround(Placed, [Ridge](const FVector2D& Point) { return Point.Y > 0.0 ? Ridge : 0.0; });
+			const double Tolerated = GetDefault<UVeyraGreyboxSettings>()->AreaGroundTolerance;
+			ASSERT_THAT(IsTrue(Ridged.MaxStray > Tolerated, TEXT("a step under it is no plane")));
+			ASSERT_THAT(IsTrue(VeyraTelegraphFill::ShowOverGround(EVeyraTelegraphShow::None, Ridged, Tolerated) == EVeyraTelegraphShow::Outline,
+				TEXT("so its outline, which follows the ground, stays")));
+			ASSERT_THAT(IsTrue(VeyraTelegraphFill::ShowOverGround(EVeyraTelegraphShow::None, Sloped, Tolerated) == EVeyraTelegraphShow::None));
+			ASSERT_THAT(IsTrue(VeyraTelegraphFill::ShowOverGround(EVeyraTelegraphShow::Full, Ridged, Tolerated) == EVeyraTelegraphShow::Full));
+		}
+
 		TEST_METHOD(OnlyAnEffectThatShowsTheAreaCanThinItsTelegraph)
 		{
 			FVeyraAbilityEffects Effects;

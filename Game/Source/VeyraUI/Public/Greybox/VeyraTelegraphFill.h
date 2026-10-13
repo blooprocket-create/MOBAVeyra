@@ -9,6 +9,17 @@
 struct FVeyraAbilityEffects;
 enum class EVeyraTelegraphShow : uint8;
 
+/**
+ * How an area lies over the ground (ADR-075 §3): the plane that best fits the ground under its footprint (through Origin,
+ * facing Normal), and how far, in units, the ground strays from that plane anywhere under it.
+ */
+struct FVeyraGroundFit
+{
+	FVector Origin = FVector::ZeroVector;
+	FVector Normal = FVector::UpVector;
+	double MaxStray = 0.0;
+};
+
 /** Where a telegraph's shaded fill lies (ADR-068 §4): a flat quad, and the shape the fill material draws in it. */
 struct FVeyraTelegraphFill
 {
@@ -49,4 +60,16 @@ namespace VeyraTelegraphFill
 	 * opponent is never shown less than an effect shows them.
 	 */
 	VEYRAUI_API EVeyraTelegraphShow ShowOf(const FVeyraAbilityEffects* Effects, EVeyraTelegraphSource Source, bool bSkillOutlines);
+
+	/** Points across Placed's footprint, on the ground plane: its origin, and its rim and middle (a circle's or sector's), or its length and breadth (a rectangle's). */
+	VEYRAUI_API TArray<FVector2D> FootprintOf(const FVeyraPlacedShape& Placed);
+
+	/** The plane that best fits the ground under Placed's footprint, HeightAt giving the ground's height at a point. */
+	VEYRAUI_API FVeyraGroundFit FitGround(const FVeyraPlacedShape& Placed, TFunctionRef<double(const FVector2D&)> HeightAt);
+
+	/**
+	 * What a telegraph shows over ground that strays from its best plane (ADR-075 §3): an effect drawn on one plane cannot
+	 * follow ground that strays beyond Tolerance, so a hidden telegraph keeps its outline there, which follows the ground.
+	 */
+	VEYRAUI_API EVeyraTelegraphShow ShowOverGround(EVeyraTelegraphShow Show, const FVeyraGroundFit& Fit, double Tolerance);
 }
