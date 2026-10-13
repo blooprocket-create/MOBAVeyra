@@ -394,6 +394,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ModeCardHeight = 0.0f;
 
+	/** A starter Vanguard's card on the first-run choice (ADR-082 §11), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float StarterCardWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float StarterCardHeight = 0.0f;
+
 	/**
 	 * The shop (ADR-012 §11): a catalog tile, the smaller tiles of the quick-buy
 	 * panels, recipes and upgrades, and the widths of the quick-buy column and the selected item's pane,
@@ -706,6 +713,10 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ReportIconSize = 0.0f;
+
+	/** The bar of its outcome's colour down a Match History card's edge (ADR-082 §11), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float HistoryOutcomeBarWidth = 0.0f;
 
 	/** How far Home's welcome sits below the top bar, as a share of the room, from 0 to 1. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))

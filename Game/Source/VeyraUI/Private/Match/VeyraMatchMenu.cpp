@@ -147,7 +147,7 @@ void UVeyraMatchMenu::Rebuild()
 		const bool bSurrender = Confirming == EConfirming::Surrender;
 		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
 			bSurrender ? LOCTEXT("ConfirmSurrender", "Start a surrender vote?") : LOCTEXT("ConfirmRemake", "Start a remake vote?"),
-			VeyraShellStyle::EVeyraShellText::Heading));
+			VeyraShellStyle::EVeyraShellText::Title));
 		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
 			bSurrender ? LOCTEXT("ConfirmSurrenderDetail", "Your team votes; if enough agree, your team loses now.")
 					   : LOCTEXT("ConfirmRemakeDetail", "Your team votes; if enough agree, the match ends with no contest."),
@@ -171,7 +171,7 @@ void UVeyraMatchMenu::Rebuild()
 	if (Confirming == EConfirming::Leave && Leave)
 	{
 		// Stay first and focused, so a stray key keeps the player in (SET-76). The match does not pause.
-		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("ConfirmLeave", "Leave this match?"), VeyraShellStyle::EVeyraShellText::Heading));
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("ConfirmLeave", "Leave this match?"), VeyraShellStyle::EVeyraShellText::Title));
 		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
 			LOCTEXT("ConfirmLeaveDetail", "Your Vanguard plays on without you. While the match lasts, you can reconnect to it from the client."),
 			VeyraShellStyle::EVeyraShellText::Body));
@@ -190,7 +190,7 @@ void UVeyraMatchMenu::Rebuild()
 											   : LOCTEXT("ConfirmCustomTitle", "End this custom match?");
 		const FText Detail = bConfirmingCustom ? LOCTEXT("ConfirmDetail", "It ends now, with no winner.")
 											   : LOCTEXT("ConfirmDeveloperDetail", "A development build's shortcut: it ends now, with no winner.");
-		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, Title, VeyraShellStyle::EVeyraShellText::Heading));
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, Title, VeyraShellStyle::EVeyraShellText::Title));
 		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, Detail, VeyraShellStyle::EVeyraShellText::Body));
 		AddButton(bConfirmingCustom ? EndCustomLabel : DeveloperEndLabel, [this, bConfirmingCustom] {
 			if (AVeyraPlayerController* Player = Controller.Get())

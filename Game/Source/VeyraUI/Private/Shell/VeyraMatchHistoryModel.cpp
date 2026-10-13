@@ -99,10 +99,14 @@ FVeyraHistoryRow DescribeRow(const VeyraBackendProtocol::FHistoryEntry& Entry)
 {
 	FVeyraHistoryRow Row;
 	Row.MatchId = Entry.MatchId;
-	Row.Summary = FText::Format(LOCTEXT("Row", "{0}   {1}   {2}   {3}   {4}"), FText::AsDateTime(Entry.EndedAt, EDateTimeStyle::Medium, EDateTimeStyle::Short),
-		VeyraShellModels::ModeNameOf(Entry.Mode), VeyraShellModels::FormatCountdown(Entry.DurationSeconds),
-		Entry.VanguardId.IsEmpty() ? LOCTEXT("UnknownVanguard", "Unknown Vanguard") : VeyraShellModels::VanguardNameOf(Entry.VanguardId),
-		OutcomeText(Entry.Outcome, Entry.bPersonalLoss));
+	Row.VanguardId = Entry.VanguardId;
+	Row.Vanguard = Entry.VanguardId.IsEmpty() ? LOCTEXT("UnknownVanguard", "Unknown Vanguard") : VeyraShellModels::VanguardNameOf(Entry.VanguardId);
+	Row.Outcome = OutcomeText(Entry.Outcome, Entry.bPersonalLoss);
+	Row.OutcomeKind = Entry.bPersonalLoss ? FString(TEXT("loss")) : Entry.Outcome;
+	Row.Mode = VeyraShellModels::ModeNameOf(Entry.Mode);
+	Row.When = FText::AsDateTime(Entry.EndedAt, EDateTimeStyle::Medium, EDateTimeStyle::Short);
+	Row.Duration = VeyraShellModels::FormatCountdown(Entry.DurationSeconds);
+	Row.Summary = FText::Format(LOCTEXT("Row", "{0}   {1}   {2}   {3}   {4}"), Row.When, Row.Mode, Row.Duration, Row.Vanguard, Row.Outcome);
 	return Row;
 }
 }

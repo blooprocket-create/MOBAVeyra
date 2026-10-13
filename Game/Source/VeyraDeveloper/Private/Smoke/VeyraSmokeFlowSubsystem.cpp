@@ -2584,7 +2584,7 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 FString UVeyraSmokeFlowSubsystem::VanguardLabel(const FString& VanguardId)
 {
 #if WITH_VEYRA_UI
-	// A Vanguard's button shows its name, not its content ID: "Eudora Blackbridge" for eudora.
+	// A Vanguard's button shows the text table's name, not its content ID: "Eudora" for eudora.
 	return VeyraShellModels::VanguardNameOf(VanguardId).ToString();
 #else
 	return VanguardId;

@@ -288,6 +288,8 @@ struct FVeyraResultsModel
 	/** Whether the backend confirmed how the match ended (UX-15). */
 	bool bVerified = false;
 	FText Headline;
+	/** Whether the headline is the player's win ("win"), loss ("loss", a personal loss included) or neither (empty), for its colour. */
+	FString Tone;
 	TArray<FText> Lines;
 	/** The Scoreboard and Detailed Statistics, once the result is verified (UX-50). */
 	FVeyraMatchReport Report;

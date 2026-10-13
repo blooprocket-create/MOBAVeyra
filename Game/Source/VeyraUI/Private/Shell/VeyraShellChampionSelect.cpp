@@ -225,11 +225,20 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 			Portrait->SetColorAndOpacity(Settings.MutedTextColor);
 		}
 		Tile->AddChildToVerticalBox(Portrait)->SetHorizontalAlignment(HAlign_Center);
-		AddLine(*WidgetTree, *Tile, Card.Name, EVeyraShellText::Small, HAlign_Center);
+		// Every tile the portrait's width, a long name wrapping under it rather than widening its tile (ADR-082 §11).
+		AddLine(*WidgetTree, *Tile, Card.Name, EVeyraShellText::Small, HAlign_Center, /*bWrap*/ true);
+		USizeBox* TileBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		TileBox->SetWidthOverride(Settings.RosterTileSize);
+		TileBox->AddChild(Tile);
 		const FString Id = Card.VanguardId;
 		const bool bBan = Model.bBanning;
-		UVeyraShellButton* Button = AddContentButton(*Tiles, Card.Name, *Tile, [this, Id, bBan] { bBan ? Client->HoverBan(Id) : Client->HoverVanguard(Id); },
+		UVeyraShellButton* Button = AddContentButton(*Tiles, Card.Name, *TileBox, [this, Id, bBan] { bBan ? Client->HoverBan(Id) : Client->HoverVanguard(Id); },
 			Model.bCanChoose && !Card.bTaken, Card.bChosen);
+		if (UHorizontalBoxSlot* TileSlot = Cast<UHorizontalBoxSlot>(Button->Slot))
+		{
+			// Portraits level whatever their names' lines.
+			TileSlot->SetVerticalAlignment(VAlign_Top);
+		}
 		if (Card.bBanned)
 		{
 			Button->SetToolTipText(FText::Format(LOCTEXT("BannedTip", "{0} is banned."), Card.Name));

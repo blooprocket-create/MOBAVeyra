@@ -344,10 +344,10 @@ private:
 
 	/**
 	 * A card showing VanguardId's illustration with a plate of text along its bottom, as a button named
-	 * Label; dimmed when it cannot be chosen.
+	 * Label; dimmed when it cannot be chosen. Size is the card's, a mode card's when unset.
 	 */
 	UVeyraShellButton* AddArtCard(UPanelWidget& Parent, const FText& Label, const FString& VanguardId, const TArray<TPair<FText, uint8>>& Plate,
-		TFunction<void()> Action, bool bEnabled, bool bSelected);
+		TFunction<void()> Action, bool bEnabled, bool bSelected, TOptional<FVector2D> Size = {});
 
 	/** Centres Child across the screen, DialogWidth wide, with space above and below. */
 	void AddCentred(UWidget& Child);

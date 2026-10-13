@@ -20,6 +20,15 @@ struct FVeyraHistoryRow
 	FString MatchId;
 	/** Its date, mode, duration, the player's Vanguard and outcome, on one line. */
 	FText Summary;
+	/** The same, apart, for its card (ADR-082 §11): the player's Vanguard, the outcome and whether it was a win, a loss or
+	 * no contest ("win", "loss", "no_contest"; a personal loss is a loss), the mode, when it ended and how long it ran. */
+	FString VanguardId;
+	FText Vanguard;
+	FText Outcome;
+	FString OutcomeKind;
+	FText Mode;
+	FText When;
+	FText Duration;
 };
 
 /** Match History's page (Pre-Game Client UX Bible 51, 64, 67): the filters, the list, or an opened record. */

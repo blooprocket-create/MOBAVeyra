@@ -788,6 +788,7 @@ FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& In
 		else
 		{
 			Model.Headline = Outcome->Winner == Outcome->Side ? LOCTEXT("ResultVictory", "Victory") : LOCTEXT("ResultDefeat", "Defeat");
+			Model.Tone = Outcome->Winner == Outcome->Side ? TEXT("win") : TEXT("loss");
 		}
 		Model.Lines.Add(EndReasonText(Outcome->EndReason));
 		// A personal loss for absence is the player's own outcome, apart from its team's (Match Flow
@@ -798,6 +799,7 @@ FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& In
 				: Outcome->Winner == Outcome->Side ? LOCTEXT("TeamWon", "won") : LOCTEXT("TeamLost", "lost");
 			Model.Lines.Insert(FText::Format(LOCTEXT("ResultPersonalLoss", "Personal loss: you were away too long. Your team {0}."), Team), 0);
 			Model.Headline = LOCTEXT("ResultPersonalDefeat", "Defeat");
+			Model.Tone = TEXT("loss");
 		}
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultMode", "Mode: {0}"), ModeNameOf(Outcome->Mode)));
 		if (!Outcome->VanguardId.IsEmpty())

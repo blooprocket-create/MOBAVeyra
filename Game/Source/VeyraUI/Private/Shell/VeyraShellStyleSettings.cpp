@@ -110,6 +110,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("HomeColumnWidth"), HomeColumnWidth },
 		{ TEXT("ModeCardWidth"), ModeCardWidth },
 		{ TEXT("ModeCardHeight"), ModeCardHeight },
+		{ TEXT("StarterCardWidth"), StarterCardWidth },
+		{ TEXT("StarterCardHeight"), StarterCardHeight },
 		{ TEXT("DialogWidth"), DialogWidth },
 		{ TEXT("SettingsWidth"), SettingsWidth },
 		{ TEXT("SettingsHeight"), SettingsHeight },
@@ -143,6 +145,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SelectKitIconSize"), SelectKitIconSize },
 		{ TEXT("ReportPortraitSize"), ReportPortraitSize },
 		{ TEXT("ReportIconSize"), ReportIconSize },
+		{ TEXT("HistoryOutcomeBarWidth"), HistoryOutcomeBarWidth },
 	};
 	Require(HomeHeroHeight > 0.0f && HomeHeroHeight < 1.0f, TEXT("HomeHeroHeight"), TEXT("must be above 0 and below 1."));
 	Require(CollectionCardWidth >= 1.0f && CollectionCardHeight >= 1.0f && CollectionLockedShade > 0.0f && CollectionLockedShade <= 1.0f, TEXT("CollectionCardWidth"),

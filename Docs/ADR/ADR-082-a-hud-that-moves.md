@@ -147,6 +147,17 @@ At the author's request (2026-10-13), the profile banner is always a region's pa
 - **Picker:** each tile shows the part of its panorama around `ProfileBackgroundFocus`, where the landmarks stand.
 - **Release:** `Backend/config/local.json` lists the regions now. `public.json`, which the hosted backend reads, changes in the release that ships a client able to draw them; until then, players on an older client would see unnamed, unpainted choices.
 
+### 11. Match History, the starter choice, champion select's roster and the match menu
+
+- **Match History:** each saved match is a card that opens it, still named Open. A bar down its edge shows its outcome's colour, with the player's Vanguard, the outcome over the Vanguard's name, the mode over when it ended, and its length (`HistoryOutcomeBarWidth`). The row's one-line summary is now its tooltip. The filters wrap within the page, however many Vanguards there are.
+- **A saved record:** its headline is in the display face, coloured by that match's own outcome, with its facts in a line under it, as the results screen shows them.
+- **Starter choice:** centred, with larger cards (`StarterCardWidth`, `StarterCardHeight`), since the player's first decision is the Vanguards' art.
+- **Champion select:** every roster tile is its portrait's width. A long name wraps under the portrait instead of widening its tile, and the portraits stay level.
+- **Match menu:** its confirm questions are in the display face, as its title is.
+- **Eudora:** the client shows her given name only, at the author's request (2026-10-13). Her full name stays in the roster's canon.
+
+Every label and behaviour is as before.
+
 ## Consequences
 
 - The match HUD moves the way the website does, and its parts read as the approved board drew them.

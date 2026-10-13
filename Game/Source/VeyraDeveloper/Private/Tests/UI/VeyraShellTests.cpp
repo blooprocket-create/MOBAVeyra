@@ -12,6 +12,7 @@
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellLook.h"
+#include "Shell/VeyraMatchHistoryModel.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -840,6 +841,11 @@ namespace VeyraShellTests
 				HistoryBody({ HistoryEntry(MatchId, TEXT("win")), HistoryEntry(OlderMatchId, TEXT("no_contest")) }, TEXT("\"more\"")))));
 			FString Text = Screen->DescribeText();
 			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Blind Pick")) && Text.Contains(TEXT("Victory")) && Text.Contains(TEXT("No Contest")) && Text.Contains(TEXT("25:11")), Text));
+			// Each card's parts apart, its outcome's kind for its colour (ADR-082 §11).
+			const FVeyraHistoryModel Listed = VeyraMatchHistoryModel::Describe(Rig.Flow->GetSnapshot(), false);
+			ASSERT_THAT(IsTrue(Listed.Rows.Num() == 2 && Listed.Rows[0].OutcomeKind == TEXT("win") && Listed.Rows[1].OutcomeKind == TEXT("no_contest")));
+			ASSERT_THAT(IsTrue(Listed.Rows[0].Outcome.ToString() == TEXT("Victory") && Listed.Rows[0].Duration.ToString() == TEXT("25:11")
+				&& Listed.Rows[0].Mode.ToString() == TEXT("Blind Pick") && Listed.Rows[0].Summary.ToString().Contains(Listed.Rows[0].Vanguard.ToString())));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Load More"))));
 			ASSERT_THAT(IsTrue(Button(TEXT("All Vanguards")) && Button(TEXT("Oriel")) && Button(TEXT("All Modes")) && Button(TEXT("Defeat")), TEXT("each filter's choices")));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Custom Practice")), TEXT("a mode with saved matches, though none is on the pages read")));
@@ -856,6 +862,8 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), FString(TEXT("/v1/me/matches/")) + MatchId, 200, ScoredOutcomeBody())));
 			Text = Screen->DescribeText();
 			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your Team: Victory")) && Text.Contains(TEXT("DevOne (you)")), Text));
+			const FVeyraHistoryModel Record = VeyraMatchHistoryModel::Describe(Rig.Flow->GetSnapshot(), false);
+			ASSERT_THAT(IsTrue(Record.Opened.IsSet() && Record.Opened->Tone == TEXT("win"), TEXT("the record's headline coloured by its own outcome")));
 			Button(TEXT("Detailed Statistics"))->Press();
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Gold from Minions"))));
 			Button(TEXT("Back to Match History"))->Press();
