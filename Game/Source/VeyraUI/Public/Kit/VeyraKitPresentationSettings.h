@@ -153,6 +153,26 @@ struct FVeyraAbilityEffects
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	FVeyraSkillEffectStage Tether;
 
+	/**
+	 * A projectile that was part of its caster's body and is thrown off whole (ADR-072 §4), as a ridden machine sent on
+	 * as its rider jumps clear: ThrownVanguard's ThrownBody (the body it wears for that status or stance) flies with each
+	 * projectile of it, on the ground under it and facing its flight, with ThrownHiddenBone's chain hidden (the rider)
+	 * and its ThrownAnimation looping (its wheels turning). It draws no grey-box body. None for any other projectile.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName ThrownVanguard;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName ThrownBody;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName ThrownHiddenBone;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FName ThrownAnimation;
+
+	bool ThrowsBody() const { return !ThrownVanguard.IsNone(); }
+
 	/** Looping, where a delayed area of it was aimed, from its commit until it lands: the mark it makes there. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	FVeyraSkillEffectStage Mark;

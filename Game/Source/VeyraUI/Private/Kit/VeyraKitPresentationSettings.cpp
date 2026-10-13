@@ -73,7 +73,6 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 			bAny |= Stage->IsSet();
 			bScaled &= !Stage->IsSet() || Stage->Scale > 0.0f;
 		}
-		Require(!Effects.Ability.IsNone() && bAny, TEXT("AbilityEffects"), FString::Printf(TEXT("%s needs an ability and at least one stage."), *Name));
 		Require(bScaled, TEXT("AbilityEffects"), FString::Printf(TEXT("%s: every stage with an effect needs a scale above 0."), *Name));
 		// A telegraph is hidden or thinned only beside an effect that shows its area (ADR-075 §1).
 		Require(Effects.Telegraph == EVeyraTelegraphShow::Full || Effects.ShowsArea(true, true, true, true), TEXT("AbilityEffects"),
@@ -84,6 +83,11 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 			FString::Printf(TEXT("%s: only a commit effect is placed at the target."), *Name));
 		Require(Effects.TetherBone.IsNone() == Effects.TetherFromBone.IsNone() && (!Effects.Tether.IsSet() || !Effects.TetherBone.IsNone()), TEXT("AbilityEffects"),
 			FString::Printf(TEXT("%s: a tether names the bone that flies and the bone it returns to, and only a tether runs a tether effect."), *Name));
+		const bool bThrown = !Effects.ThrownBody.IsNone() && !Effects.ThrownHiddenBone.IsNone() && !Effects.ThrownAnimation.IsNone();
+		Require(Effects.ThrowsBody() == bThrown && (!Effects.ThrowsBody() || Effects.TetherBone.IsNone()), TEXT("AbilityEffects"),
+			FString::Printf(TEXT("%s: a thrown body names its Vanguard, the body, the bone whose chain it leaves behind and the animation it loops, and is no tether."), *Name));
+		bAny |= Effects.ThrowsBody();
+		Require(!Effects.Ability.IsNone() && bAny, TEXT("AbilityEffects"), FString::Printf(TEXT("%s needs an ability and at least one stage."), *Name));
 		Require(Effects.Arc.IsSet() == (!Effects.ArcBone.IsNone() && Effects.ArcHeight > 0.0f), TEXT("AbilityEffects"),
 			FString::Printf(TEXT("%s: an arc flies from the bone it names, rising a height above 0, and only an arc names them."), *Name));
 		Require(Effects.Channel.IsSet() || Effects.ChannelBone.IsNone(), TEXT("AbilityEffects"),

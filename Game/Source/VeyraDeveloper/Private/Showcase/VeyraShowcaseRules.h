@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Content/VeyraContentId.h"
 #include "VeyraAbilityTypes.h"
 
 class UAbilitySystemComponent;
@@ -75,4 +76,24 @@ namespace VeyraShowcase
 	 * mode, a lane, a slot it swapped), never by the reset, so the recorder waits for it.
 	 */
 	bool IsStageClean(bool bStatusesHeld, double SecondsSinceSet, double SettleSeconds, double StatusPatienceSeconds);
+
+	/**
+	 * Which slot to record next among what a skill opened (ADR-074 §3), before the stage is set again: of Held, each
+	 * slot's ability in slot order, the first that is one of Opened (VeyraAbilityRules::AbilitiesOpenedBy) and not yet
+	 * Recorded; none when no such slot is left. A ride's mounted actions are recorded while the ride lasts this way.
+	 */
+	TOptional<int32> NextOpenedSlot(TConstArrayView<FVeyraContentId> Held, TConstArrayView<FVeyraContentId> Opened,
+		TConstArrayView<FVeyraContentId> Recorded);
+
+	/** What the recorder does with an opened ability it chose (ADR-074 §3), given what its slot Held now. */
+	enum class EOpenedHold : uint8
+	{
+		/** The slot still holds it: cast it. */
+		Cast,
+		/** Its slot went back to another ability before its clip began, as a ride that ran out: go on without it. */
+		MoveOn,
+		/** Its slot went back once its clip had begun: the clip is left out, never recorded as the slot's other ability. */
+		Skip,
+	};
+	EOpenedHold OpenedHoldOf(const FVeyraContentId& Held, const FVeyraContentId& Opened, bool bClipOpen);
 }

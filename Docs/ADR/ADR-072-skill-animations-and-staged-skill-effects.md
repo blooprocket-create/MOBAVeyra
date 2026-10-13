@@ -149,6 +149,14 @@ The author asked for ranged basic attacks to lose the grey-box ball and its trai
 - **How the client chooses:** it finds the attacker through the projectile's replicated instigator, and from it the Vanguard's ID. A unit that is not a Vanguard, or a caster this machine does not see, flies the shared look.
 - **Presentation only:** the server still owns the projectile's flight and hit. Nothing here changes timing, speed or what it hits.
 
+### 10. Thrown bodies (author review, 2026-10-13)
+An amendment at the author's request: when Raska jumps clear of her bike, the bike itself should be the projectile. A projectile that was part of its caster's body and is sent off whole now flies as that body.
+- **Fields:** a recipe names `ThrownVanguard`, `ThrownBody` (the status or stance body it is drawn from, `raska_ride_body`), `ThrownHiddenBone` (`pelvis`: the rider's whole chain stays behind, hidden) and `ThrownAnimation` (`Run`, so its wheels turn). Hound and its NO BRAKES throw use them in place of a Travel effect.
+- **Placement:** the body stands on the playable surface under the projectile (the greybox's ground sampling, as §4's areas use), never at a fixed height. It faces its flight and is drawn at the Vanguard body scale, in place of the grey-box sphere.
+- **Lifetime:** it is a client component owned by its projectile, so it goes when the projectile does, however its flight ends.
+- **Presentation only:** nothing about the flight, its hit or their timing reads from it.
+- **Checks:** `Veyra.UI.SkillEffects` checks that every shipped thrown body is in the art and that its hidden bone is in its skeleton. `Veyra.UI.SkillEffectsWorld` checks that it stands on raised ground under its flight, faces it, and goes with its projectile.
+
 ## Configuration
 - **Skill clips:** the kit's `skills` per Vanguard, and the motion primitives in the generator. Art values.
 - **Effect recipes:** `[/Script/VeyraUI.VeyraKitPresentationSettings]` `AbilityEffects` in `Game/Config/DefaultGame.ini`. Presentation, validated at start.

@@ -6,6 +6,10 @@
 
 #include "AbilitySystemGlobals.h"
 #include "Components/ActorTestSpawner.h"
+#include "Components/BoxComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Movement/VeyraUnitCollision.h"
+#include "Terrain/VeyraGround.h"
 #include "Cues/VeyraCombatCues.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraProjectile.h"
@@ -13,6 +17,9 @@
 #include "VeyraPlayerState.h"
 #include "Kit/VeyraKitPresentationSettings.h"
 #include "Kit/VeyraSkillEffectsSubsystem.h"
+#include "Engine/SkeletalMesh.h"
+#include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraVanguardArtSet.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -206,6 +213,16 @@ namespace VeyraSkillEffectsTests
 			Arc.ArcBone = TEXT("hand_r");
 			Arc.ArcHeight = 200.0f;
 			ASSERT_THAT(IsTrue(ProblemsWith({ Arc }).IsEmpty()));
+			FVeyraAbilityEffects Thrown = Recipe(TEXT("test_thrown"));
+			Thrown.ThrownVanguard = TEXT("test_vanguard");
+			Thrown.ThrownBody = TEXT("test_ride");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Thrown }).IsEmpty(), TEXT("a thrown body names the chain it leaves and the animation it loops")));
+			Thrown.ThrownHiddenBone = TEXT("pelvis");
+			Thrown.ThrownAnimation = TEXT("Run");
+			ASSERT_THAT(IsTrue(ProblemsWith({ Thrown }).IsEmpty()));
+			Thrown.TetherBone = TEXT("prop_r");
+			Thrown.TetherFromBone = TEXT("hand_r");
+			ASSERT_THAT(IsFalse(ProblemsWith({ Thrown }).IsEmpty(), TEXT("a thrown body is no tether")));
 			FVeyraAbilityEffects Anchored = Recipe(TEXT("test_anchor"));
 			Anchored.ChannelBone = TEXT("hand_r");
 			ASSERT_THAT(IsFalse(ProblemsWith({ Anchored }).IsEmpty(), TEXT("only a channel pours from a channel bone")));
@@ -325,6 +342,34 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsTrue(Missing.IsEmpty(), *FString::Printf(TEXT("no recipe for %s"), *FString::Join(Missing, TEXT(", ")))));
 		}
 
+		TEST_METHOD(EveryShippedThrownBodyIsInTheArtAndLeavesItsChainBehind)
+		{
+			// The body a projectile throws (ADR-072 §4) is one its Vanguard wears, with the animation it loops and the bone
+			// whose chain stays behind.
+			const UVeyraVanguardArtSet* Art = GetDefault<UVeyraGreyboxSettings>()->VanguardArt.LoadSynchronous();
+			ASSERT_THAT(IsNotNull(Art));
+			int32 Throwing = 0;
+			for (const FVeyraAbilityEffects& Effects : GetDefault<UVeyraKitPresentationSettings>()->AbilityEffects)
+			{
+				if (!Effects.ThrowsBody())
+				{
+					continue;
+				}
+				++Throwing;
+				const FVeyraVanguardBody* Body = VeyraSkillEffects::ThrownBodyOf(*Art, Effects);
+				ASSERT_THAT(IsNotNull(Body, *Effects.Ability.ToString()));
+				ASSERT_THAT(IsTrue(Body->Mesh->GetRefSkeleton().FindBoneIndex(Effects.ThrownHiddenBone) != INDEX_NONE,
+					*FString::Printf(TEXT("%s leaves %s behind"), *Effects.Ability.ToString(), *Effects.ThrownHiddenBone.ToString())));
+			}
+			ASSERT_THAT(IsTrue(Throwing > 0, TEXT("a shipped projectile throws a body")));
+			FVeyraAbilityEffects Unknown = Recipe(TEXT("test_unknown_body"));
+			Unknown.ThrownVanguard = TEXT("no_such_vanguard");
+			Unknown.ThrownBody = TEXT("no_such_body");
+			Unknown.ThrownHiddenBone = TEXT("pelvis");
+			Unknown.ThrownAnimation = TEXT("Run");
+			ASSERT_THAT(IsNull(VeyraSkillEffects::ThrownBodyOf(*Art, Unknown)));
+		}
+
 		TEST_METHOD(EveryEffectThatStandsForAnAreaTakesItsSize)
 		{
 			// An Area or Linger effect hides its telegraph (ADR-075 §1), so it must draw the area's true size: it takes the
@@ -432,6 +477,15 @@ namespace VeyraSkillEffectsTests
 			Landing.Area.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraLightMark.NS_VeyraLightMark")));
 			Landing.Area.Scale = 1.0f;
 			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Landing);
+			// A machine thrown off whole as its rider jumps clear: a shipped Vanguard's ride body without its rider (ADR-072 §4).
+			Tuning.Skillshot.Add(VeyraAbilitiesTests::ArchetypeTestId(TEXT("test_thrown"))).Projectile = FVeyraProjectileTuning{ Range, Range / 10.0, Range };
+			FVeyraAbilityEffects Thrown;
+			Thrown.Ability = TEXT("test_thrown");
+			Thrown.ThrownVanguard = ThrownVanguard;
+			Thrown.ThrownBody = ThrownStatusBody;
+			Thrown.ThrownHiddenBone = TEXT("pelvis");
+			Thrown.ThrownAnimation = TEXT("Run");
+			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Thrown);
 			// A Vanguard whose basic attacks fly a look of their own, in place of the shared one (ADR-072 §9).
 			FVeyraVanguardAttack Own;
 			Own.Vanguard = TEXT("test_attacker");
@@ -446,7 +500,8 @@ namespace VeyraSkillEffectsTests
 		{
 			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.RemoveAll(
 				[](const FVeyraAbilityEffects& Effects)
-				{ return Effects.Ability == TEXT("test_charged") || Effects.Ability == TEXT("test_hook") || Effects.Ability == TEXT("test_fall"); });
+				{ return Effects.Ability == TEXT("test_charged") || Effects.Ability == TEXT("test_hook") || Effects.Ability == TEXT("test_fall")
+					|| Effects.Ability == TEXT("test_thrown"); });
 			GetMutableDefault<UVeyraKitPresentationSettings>()->VanguardAttacks.RemoveAll(
 				[](const FVeyraVanguardAttack& Attack) { return Attack.Vanguard == TEXT("test_attacker"); });
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
@@ -498,6 +553,49 @@ namespace VeyraSkillEffectsTests
 			// As on a client that does not see its caster: the replicated launcher resolves to nothing.
 			Flung.SetInstigator(nullptr);
 			ASSERT_THAT(IsFalse(Skills->HidesProjectileBody(Flung), TEXT("with no caster to chain it to, it shows itself")));
+		}
+
+		/** The shipped body the fixture throws: the one ride body the art carries. */
+		static constexpr const TCHAR* ThrownVanguard = TEXT("raska");
+		static constexpr const TCHAR* ThrownStatusBody = TEXT("raska_ride_body");
+
+		TEST_METHOD(AThrownBodyStandsOnTheGroundUnderItsFlightAndGoesWithIt)
+		{
+			// Fixture values: a raised slab under the flight, well above the caster's feet (ADR-073: the battleground is 3D).
+			constexpr double SlabTop = 300.0;
+			constexpr double SlabHalfThickness = 50.0;
+			constexpr double FlightAbove = 100.0;
+			constexpr double GroundTolerance = 1.0;
+			AActor* Slab = Spawner.GetWorld().SpawnActor<AActor>();
+			UBoxComponent* Box = NewObject<UBoxComponent>(Slab);
+			Slab->SetRootComponent(Box);
+			Box->SetBoxExtent(FVector(Range, Range, SlabHalfThickness));
+			VeyraGround::MakeGround(*Box);
+			VeyraUnitCollision::SetResponseToUnits(*Box, ECR_Ignore);
+			Box->RegisterComponent();
+			Slab->SetActorLocation(FVector(Range, 0.0, SlabTop - SlabHalfThickness));
+			const FVector At(Range, 0.0, SlabTop + FlightAbove);
+			AVeyraProjectile* Flung = Spawner.GetWorld().SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(At));
+			ASSERT_THAT(IsNotNull(Flung));
+			Flung->LaunchLine(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Caster), FVector::RightVector,
+				FVeyraProjectileTuning{ Range, Range / 10.0, Range }, EVeyraSkillshotCollision::FirstEnemy, FVeyraPreparedEffects(), FVeyraPreparedEffects(),
+				VeyraAbilitiesTests::ArchetypeTestId(TEXT("test_thrown")), HookCast);
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			ASSERT_THAT(IsTrue(Skills->HidesProjectileBody(*Flung), TEXT("no grey-box ball under it")));
+			Skills->NoteProjectileDrawn(*Flung, At, FLinearColor::White);
+			const USkeletalMeshComponent* Body = Skills->FindThrownBody(*Flung);
+			ASSERT_THAT(IsNotNull(Body, TEXT("its body flies with it")));
+			const double Expected = SlabTop + GetDefault<UVeyraGreyboxSettings>()->TelegraphLift;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Body->GetComponentLocation().Z, Expected, GroundTolerance),
+				*FString::Printf(TEXT("on the raised ground at Z %g, not at %g"), Body->GetComponentLocation().Z, Expected)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Body->GetComponentRotation().Yaw, FVector::RightVector.Rotation().Yaw, GroundTolerance),
+				TEXT("facing its flight")));
+			ASSERT_THAT(IsTrue(const_cast<USkeletalMeshComponent*>(Body)->IsBoneHiddenByName(TEXT("pelvis")), TEXT("its rider left behind")));
+			// Ended early, as a cancel or an early hit ends it, its body goes with it.
+			const TWeakObjectPtr<const USkeletalMeshComponent> Drawn = Body;
+			Flung->Destroy();
+			ASSERT_THAT(IsFalse(Drawn.IsValid(), TEXT("gone with its projectile")));
 		}
 
 		/** A basic attack Launcher fires from From: a projectile of no ability, as the server launches one. */

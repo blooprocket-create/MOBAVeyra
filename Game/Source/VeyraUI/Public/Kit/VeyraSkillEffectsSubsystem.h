@@ -7,7 +7,10 @@
 
 #include "VeyraSkillEffectsSubsystem.generated.h"
 
+class USkeletalMeshComponent;
+class UVeyraVanguardArtSet;
 struct FVeyraPlacedShape;
+struct FVeyraVanguardBody;
 enum class EVeyraTelegraphSource : uint8;
 
 class AVeyraLingeringArea;
@@ -87,6 +90,12 @@ namespace VeyraSkillEffects
 	};
 	VEYRAUI_API FVeyraGroundPlacement GroundPlacementOf(const FVeyraPlacedShape& Placed, TFunctionRef<double(const FVector2D&)> HeightAt);
 
+	/**
+	 * The body a projectile of Effects throws (ADR-072 §4): its Vanguard's art's body for its ThrownBody, if that body
+	 * has its ThrownAnimation; null for one that throws none, or whose art has no such body.
+	 */
+	VEYRAUI_API const FVeyraVanguardBody* ThrownBodyOf(const UVeyraVanguardArtSet& Art, const FVeyraAbilityEffects& Effects);
+
 	/** An Area effect's parameters over Shape, as Abilities.json shapes it, Landing of the way to landing (ADR-075 §3). */
 	VEYRAUI_API FVeyraAreaParameters AreaParametersOf(const FVeyraShape& Shape, double Landing);
 
@@ -158,6 +167,9 @@ public:
 
 	/** Whether Ability's projectiles draw no grey-box body (ADR-072 §4). */
 	bool HidesProjectileBody(const AVeyraProjectile& Projectile) const;
+
+	/** The body Projectile throws as drawn here (ADR-072 §4); null for none, or once it is gone with its projectile. */
+	const USkeletalMeshComponent* FindThrownBody(const AVeyraProjectile& Projectile) const;
 
 	/** Where Caster's tethered bone is drawn now, if one is flung away from its body. */
 	TOptional<FVector> FindTether(const AActor& Caster) const;
@@ -282,6 +294,12 @@ private:
 	};
 	/** By ability and cast, as projectiles are keyed. */
 	TMap<TPair<FName, int32>, FTether> Tethers;
+
+	/** Each projectile's thrown body (ADR-072 §4), its own component, gone with it. */
+	TMap<TWeakObjectPtr<const AVeyraProjectile>, TWeakObjectPtr<USkeletalMeshComponent>> Thrown;
+
+	/** Draws Projectile's thrown body on the ground under At, facing its flight. */
+	void ShowThrownBody(const AVeyraProjectile& Projectile, const FVeyraAbilityEffects& Effects, const FVector& At);
 
 	/** Each lingering area's own effect, by area. */
 	TMap<TWeakObjectPtr<const AVeyraLingeringArea>, TWeakObjectPtr<UNiagaraComponent>> Lingering;

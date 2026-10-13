@@ -14,6 +14,7 @@
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Greybox/VeyraVanguardAnimInstance.h"
+#include "Greybox/VeyraVanguardArtSet.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Greybox/VeyraTelegraphFill.h"
@@ -456,6 +457,10 @@ void UVeyraSkillEffectsSubsystem::NoteProjectileDrawn(const AVeyraProjectile& Pr
 	}
 	const double Now = Greybox->GetServerNow();
 	const TPair<FName, int32> Key{ SkillAbilityName(Projectile.GetAbility()), Projectile.GetCastId() };
+	if (Effects->ThrowsBody())
+	{
+		ShowThrownBody(Projectile, *Effects, At);
+	}
 	if (Effects->Impact.IsSet())
 	{
 		Seen.Add(Key, FVeyraSeenProjectile{ Now, At, Projectile.GetSpeed(), Color });
@@ -500,7 +505,55 @@ bool UVeyraSkillEffectsSubsystem::HidesProjectileBody(const AVeyraProjectile& Pr
 	}
 	// A hook drawn on its chain only from a caster seen here; one whose caster is not shows its own body.
 	const FVeyraAbilityEffects* Effects = EffectsOf(Projectile.GetAbility());
-	return Effects && Effects->bHideProjectileBody && (Effects->TetherBone.IsNone() || CasterOf(Projectile));
+	return Effects && (Effects->bHideProjectileBody || Effects->ThrowsBody()) && (Effects->TetherBone.IsNone() || CasterOf(Projectile));
+}
+
+const USkeletalMeshComponent* UVeyraSkillEffectsSubsystem::FindThrownBody(const AVeyraProjectile& Projectile) const
+{
+	return Thrown.FindRef(&Projectile).Get();
+}
+
+void UVeyraSkillEffectsSubsystem::ShowThrownBody(const AVeyraProjectile& Projectile, const FVeyraAbilityEffects& Effects, const FVector& At)
+{
+	USkeletalMeshComponent* Body = Thrown.FindRef(&Projectile).Get();
+	if (!Body)
+	{
+		const UVeyraGreyboxSettings& Greybox = *GetDefault<UVeyraGreyboxSettings>();
+		const UVeyraVanguardArtSet* Art = Greybox.VanguardArt.LoadSynchronous();
+		const FVeyraVanguardBody* Worn = Art ? VeyraSkillEffects::ThrownBodyOf(*Art, Effects) : nullptr;
+		if (!Worn)
+		{
+			return;
+		}
+		// Its own component on the projectile, so it goes when the projectile does; the drawing places it, as it does the sphere.
+		AVeyraProjectile& Owner = const_cast<AVeyraProjectile&>(Projectile);
+		Body = NewObject<USkeletalMeshComponent>(&Owner);
+		Body->SetUsingAbsoluteLocation(true);
+		Body->SetUsingAbsoluteRotation(true);
+		Body->SetUsingAbsoluteScale(true);
+		Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Body->SetCanEverAffectNavigation(false);
+		Body->SetupAttachment(Owner.GetRootComponent());
+		Body->RegisterComponent();
+		Body->SetSkeletalMesh(Worn->Mesh);
+		Body->SetWorldScale3D(FVector(Greybox.VanguardBodyScale));
+		Body->PlayAnimation(Worn->Animations.FindRef(Effects.ThrownAnimation), /*bLooping*/ true);
+		// What stays behind (the rider) is hidden with its whole chain.
+		Body->HideBoneByName(Effects.ThrownHiddenBone, EPhysBodyOp::PBO_None);
+		Thrown.Add(&Projectile, Body);
+	}
+	// On the ground under it, as its body stood, facing its flight.
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	const FVector Ground = Greybox ? Greybox->GroundUnder(At) : At;
+	const FVector Heading = Projectile.GetDirection().GetSafeNormal2D();
+	Body->SetWorldLocationAndRotation(Ground, Heading.IsNearlyZero() ? Body->GetComponentRotation() : Heading.Rotation());
+}
+
+const FVeyraVanguardBody* VeyraSkillEffects::ThrownBodyOf(const UVeyraVanguardArtSet& Art, const FVeyraAbilityEffects& Effects)
+{
+	const FVeyraVanguardArt* Vanguard = Effects.ThrowsBody() ? Art.Find(Effects.ThrownVanguard) : nullptr;
+	const FVeyraVanguardBody* Body = Vanguard ? Vanguard->StatusBodies.Find(Effects.ThrownBody) : nullptr;
+	return Body && Body->Mesh && Body->Animations.FindRef(Effects.ThrownAnimation) ? Body : nullptr;
 }
 
 TArray<double> UVeyraSkillEffectsSubsystem::GetLandingTimes() const
@@ -727,6 +780,14 @@ void UVeyraSkillEffectsSubsystem::Refresh()
 	for (auto It = Seen.CreateIterator(); It; ++It)
 	{
 		if (Now - It.Value().SeenAt > Window)
+		{
+			It.RemoveCurrent();
+		}
+	}
+	// A thrown body goes with its projectile's own component; only its entry is left to clear.
+	for (auto It = Thrown.CreateIterator(); It; ++It)
+	{
+		if (!It.Key().IsValid() || !It.Value().IsValid())
 		{
 			It.RemoveCurrent();
 		}
