@@ -4,6 +4,7 @@
 
 #include "Containers/Ticker.h"
 #include "Content/VeyraContentId.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
 #include "VeyraShowcaseRecorderSubsystem.generated.h"
