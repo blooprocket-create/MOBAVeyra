@@ -47,6 +47,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Timing")
 	double CastPatienceSeconds = 0.0;
 
+	/**
+	 * How long after the settle the recorder waits for the statuses the last clip left to end through their owners (a
+	 * stance, a mode), before casting anyway: longer than the longest such status the roster holds.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Timing")
+	double StatusPatienceSeconds = 0.0;
+
 	/** How long the whole recording may take, from the client's start. */
 	UPROPERTY(Config, EditAnywhere, Category = "Timing")
 	double TimeoutSeconds = 0.0;

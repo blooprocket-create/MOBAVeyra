@@ -18,6 +18,8 @@ TArray<FString> UVeyraShowcaseSettings::Validate() const
 	Require(SettleSeconds >= 0.0 && TailSeconds >= 0.0, TEXT("SettleSeconds"), TEXT("the settle and tail times are 0 or more."));
 	Require(MaxClipSeconds > TailSeconds, TEXT("MaxClipSeconds"), TEXT("a clip may run longer than its tail."));
 	Require(CastPatienceSeconds > 0.0, TEXT("CastPatienceSeconds"), TEXT("a refused cast is retried for a time above 0."));
+	Require(StatusPatienceSeconds > 0.0 && StatusPatienceSeconds < TimeoutSeconds, TEXT("StatusPatienceSeconds"),
+		TEXT("the wait for a clip's statuses to end is above 0 and inside the recording's timeout."));
 	Require(TimeoutSeconds > 0.0, TEXT("TimeoutSeconds"), TEXT("the recording needs a time above 0 to finish in."));
 	Require(ApproachShareOfReach > 0.0 && ApproachShareOfReach <= 1.0, TEXT("ApproachShareOfReach"),
 		TEXT("a cast steps in to a share of its reach above 0 and at most all of it."));

@@ -47,6 +47,7 @@ namespace VeyraShowcaseRulesTests
 		static constexpr double RideSpeed = 800.0;
 		static constexpr double TurnRate = 90.0;
 		static constexpr double HoldSeconds = 10.0;
+		static constexpr double SettleSeconds = 3.0;
 
 		FActorTestSpawner Spawner;
 
@@ -69,9 +70,10 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(IsNull(VeyraCombat::GetAttachHost(Holder), TEXT("it lets go, so it can be stood at its mark")));
 		}
 
-		TEST_METHOD(AStatusTheLastClipLeftEnds)
+		TEST_METHOD(AStatusTheLastClipLeftIsWaitedOutNotRemoved)
 		{
-			// As a stance that plants its caster outlasts its clip and would keep it from stepping toward the next.
+			// A stance that plants its caster belongs to the mode that set it (a lane, a swapped slot): the reset leaves it to
+			// end there, and the recorder waits for it, up to its patience (ADR-074 §3).
 			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
 			UAbilitySystemComponent& Planted = *World.Spawn(EVeyraTeam::A, FVector::ZeroVector).GetAbilitySystemComponent();
 			UVeyraStatusComponent* Statuses = Planted.GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
@@ -81,9 +83,11 @@ namespace VeyraShowcaseRulesTests
 			Stance.Kind = EVeyraStatusKind::Planted;
 			Stance.DurationSeconds = HoldSeconds;
 			ASSERT_THAT(IsTrue(Statuses->Apply(Planted, Stance)));
-			ASSERT_THAT(IsFalse(Statuses->GetLedger().Entries.IsEmpty()));
 			VeyraShowcase::ReleaseHolds(Planted);
-			ASSERT_THAT(IsTrue(Statuses->GetLedger().Entries.IsEmpty(), TEXT("the stance ends, so the next clip starts from a free body")));
+			ASSERT_THAT(IsFalse(Statuses->GetLedger().Entries.IsEmpty(), TEXT("the reset never ends a status behind its owner's back")));
+			ASSERT_THAT(IsFalse(VeyraShowcase::IsStageClean(true, SettleSeconds, SettleSeconds, HoldSeconds), TEXT("held: the recorder waits")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::IsStageClean(true, SettleSeconds + HoldSeconds, SettleSeconds, HoldSeconds), TEXT("until its patience runs out")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::IsStageClean(false, SettleSeconds, SettleSeconds, HoldSeconds), TEXT("or the status ends")));
 		}
 
 		TEST_METHOD(AFreeBodyIsLeftAsItIs)

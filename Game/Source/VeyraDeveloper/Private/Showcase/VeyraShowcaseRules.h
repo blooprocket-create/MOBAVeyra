@@ -41,9 +41,15 @@ namespace VeyraShowcase
 	EAfterRefusal AfterRefusal(EVeyraCastRejection Rejection, bool bPrimed);
 
 	/**
-	 * Server: frees Unit's body of what would keep it from its mark or carry the last clip into the next, through Combat:
-	 * a ride it is on ends as if its time ran out, a body it holds on to is let go, and every status it holds ends early,
-	 * as a stance that plants it.
+	 * Server: frees Unit's body of what would keep it from its mark, through Combat: a ride it is on ends as if its time
+	 * ran out, and a body it holds on to is let go.
 	 */
 	void ReleaseHolds(UAbilitySystemComponent& Unit);
+
+	/**
+	 * Whether the stage is clean for the next clip (ADR-074 §3): its caster holds no status, or it has waited
+	 * StatusPatienceSeconds past the settle for them to end. A status ends through the system that owns it (a stance's
+	 * mode, a lane, a slot it swapped), never by the reset, so the recorder waits for it.
+	 */
+	bool IsStageClean(bool bStatusesHeld, double SecondsSinceSet, double SettleSeconds, double StatusPatienceSeconds);
 }
