@@ -272,6 +272,13 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		const bool bClean = !Statuses || Statuses->GetLedger().Entries.IsEmpty() || Now - SetAt.GetValue() >= Settings.SettleSeconds + Settings.CastPatienceSeconds;
 		if (bRecordingAttack && Now - SetAt.GetValue() >= Settings.SettleSeconds && bClean && Dummy)
 		{
+			// An attack order left from priming the dummy gives way to standing still, and the clip waits for its swing to end.
+			const UVeyraBasicAttackComponent* Swings = Own->FindComponentByClass<UVeyraBasicAttackComponent>();
+			if (!VeyraShowcase::MayStartAttackClip(Swings ? Swings->GetState().Phase : EVeyraAttackPhase::None))
+			{
+				Controller->IssueMoveOrder(Vanguard->GetActorLocation());
+				break;
+			}
 			// The basic attack, within its own reach of the dummy first.
 			const double Reach = AttackReach(*Controller);
 			if (Reach > 0.0 && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) > Reach)
@@ -311,7 +318,9 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 	{
 		if (bRecordingAttack)
 		{
-			if (Dummy && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) <= AttackReach(*Controller))
+			const UVeyraBasicAttackComponent* Swings = Own->FindComponentByClass<UVeyraBasicAttackComponent>();
+			const bool bIdle = VeyraShowcase::MayStartAttackClip(Swings ? Swings->GetState().Phase : EVeyraAttackPhase::None);
+			if (bIdle && Dummy && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) <= AttackReach(*Controller))
 			{
 				OrderAttack(*Controller, *Dummy);
 			}
