@@ -2,7 +2,8 @@
 //! (Launcher/ui) shows what the launcher's core reports and asks it to act. It installs, updates or
 //! repairs the game from a release store (or uses a packaged build, in development), signs the player
 //! in or registers them with Firebase (ADR-038; a local backend also offers the development
-//! accounts), starts the game and hands it a launch code, then closes once the game has signed in. All HTTP is the core's, in Rust; the web view makes no requests of its own.
+//! accounts), starts the game and hands it a launch code, then closes once the game has signed in. It
+//! also shows whether the servers are up, when they run, and what the build changed (ADR-081). All HTTP is the core's, in Rust; the web view makes no requests of its own.
 //!
 //! `--config <file>` names the configuration; otherwise VEYRA_LAUNCHER_CONFIG, otherwise
 //! `VeyraLauncher.json` beside the launcher, otherwise Launcher/config/local.json beside the build
@@ -19,14 +20,14 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
-use veyra_launcher_core::backend::{Backend, BackendError, LauncherSession};
+use veyra_launcher_core::backend::{Backend, BackendError, LauncherSession, Readiness};
 use veyra_launcher_core::config::{self, GameSource, InstallSource, LoadedConfig};
 use veyra_launcher_core::install::{self, Mode, Progress, Target};
 use veyra_launcher_core::launch::{self, LaunchStage};
 use veyra_launcher_core::player::{self, SignIn};
 use veyra_launcher_core::secret::Secret;
 use veyra_launcher_core::update::{self, Check};
-use veyra_launcher_core::{game, manifest};
+use veyra_launcher_core::{game, manifest, website};
 
 /// The switch Setup's uninstaller starts the launcher with.
 const UNINSTALL_GAME_SWITCH: &str = "--uninstall-game";
@@ -198,6 +199,26 @@ fn launcher_update(launcher: State<'_, Arc<Launcher>>) -> LauncherUpdate {
             },
         },
         Err(_) => current,
+    }
+}
+
+/// The servers' hours and the patch notes from Veyra's website (ADR-081), or nothing: a launcher
+/// configured without a website, or a website that did not answer, shows neither.
+#[tauri::command(async)]
+fn launcher_feed() -> Option<website::Feed> {
+    let loaded = load().ok()?;
+    let feed_url = &loaded.config.website.as_ref()?.feed_url;
+    website::fetch(feed_url, loaded.http_timeout()).ok()
+}
+
+/// Whether the servers can play now (ADR-081): "online", "offline", or "unknown" when nothing answered.
+#[tauri::command(async)]
+fn server_status() -> &'static str {
+    let Ok(loaded) = load() else { return "unknown" };
+    match Backend::new(&loaded.config.backend.base_url, loaded.http_timeout()).readiness() {
+        Readiness::Online => "online",
+        Readiness::Offline => "offline",
+        Readiness::Unknown => "unknown",
     }
 }
 
@@ -503,6 +524,8 @@ fn main() -> ExitCode {
         .invoke_handler(tauri::generate_handler![
             launcher_update,
             apply_launcher_update,
+            launcher_feed,
+            server_status,
             game_status,
             choose_folder,
             start_install,

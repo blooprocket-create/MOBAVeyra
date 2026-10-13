@@ -9,6 +9,9 @@
       "apiKey": "AIzaSyCcZT7kXAiju0u-a6_Hhde08oiRA27IzXU"
     }
   },
+  "website": {
+    "feedUrl": "https://veyra-ten-chi.vercel.app/launcher.json"
+  },
   "http": {
     "timeoutSeconds": 10
   },

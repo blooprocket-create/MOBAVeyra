@@ -12,7 +12,9 @@
         "width": 960,
         "height": 600,
         "resizable": false,
-        "center": true
+        "center": true,
+        "decorations": false,
+        "shadow": true
       }
     ],
     "security": {

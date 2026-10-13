@@ -6,8 +6,10 @@
 // - Docs/Design/Vanguards/<nn>-<id>.yaml: each featured Vanguard's name, title, region and roles;
 // - Docs/Design/Vanguards/render_sheet.py: their signature colours (Art Direction, "Signature colours");
 // - ConceptArt/Vanguards/<id>/hero.webp: their approved hero art, for them and for any page that shows one;
-// - Launcher/ui/fonts: Roboto, the game's and the launcher's type.
-// Website/site/site.json holds only what is the website's own. No dependencies: Node's standard library only.
+// - Launcher/ui/fonts: the game's and the launcher's type, with its licences.
+// Website/site/site.json holds only what is the website's own, and Website/site/patch-notes.json what each game build
+// changed. The build also publishes launcher.json, which the launcher reads (ADR-081). No dependencies: Node's standard
+// library only.
 
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -19,6 +21,12 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = resolve(HERE, "..", "..");
 const SITE_SCHEMA_VERSION = 1;
 const LAUNCHER_SCHEMA_VERSION = 2;
+const PATCH_NOTES_SCHEMA_VERSION = 1;
+// The file the launcher reads (ADR-081): the servers' hours and each build's patch notes, at the site's root.
+export const LAUNCHER_FEED_FILE = "launcher.json";
+const LAUNCHER_FEED_SCHEMA_VERSION = 1;
+// How long a patch note's words may run, so the launcher's What's new panel and any page can lay them out.
+const PATCH_NOTE_LIMITS = Object.freeze({ title: 60, change: 160, changes: 8 });
 // How many hex digits of an art file's SHA-256 its published name carries: enough that two drawings never share one.
 const ART_HASH_LENGTH = 10;
 
@@ -130,6 +138,66 @@ function isTimeZone(value) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Website/site/patch-notes.json: what each game build changed, newest first, in words a player reads. Checked strictly,
+ * as site.json is: every field is required and an unknown one is an error.
+ */
+export function validatePatchNotes(patchNotes) {
+  const problems = [];
+  onlyKeys(patchNotes, ["schemaVersion", "notes"], "patch notes", problems);
+  if (patchNotes?.schemaVersion !== PATCH_NOTES_SCHEMA_VERSION) {
+    problems.push(`patch notes: schemaVersion must be ${PATCH_NOTES_SCHEMA_VERSION}`);
+  }
+  if (!Array.isArray(patchNotes?.notes)) {
+    problems.push("patch notes: notes must be a list");
+    return problems;
+  }
+  const seen = new Set();
+  let previousDate = null;
+  patchNotes.notes.forEach((note, index) => {
+    const where = `patch notes[${index}]`;
+    onlyKeys(note, ["version", "date", "title", "changes"], where, problems);
+    if (typeof note.version !== "string" || !/^\d+\.\d+\.\d+$/.test(note.version)) {
+      problems.push(`${where}.version must be a build version, such as 0.2.7`);
+    } else if (seen.has(note.version)) {
+      problems.push(`patch notes list ${note.version} twice`);
+    }
+    seen.add(note.version);
+    if (typeof note.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(note.date) || Number.isNaN(Date.parse(note.date))) {
+      problems.push(`${where}.date must be a date, "YYYY-MM-DD"`);
+    } else {
+      if (previousDate !== null && note.date > previousDate) {
+        problems.push(`${where}: notes run newest first, but ${note.date} follows ${previousDate}`);
+      }
+      previousDate = note.date;
+    }
+    if (typeof note.title !== "string" || note.title.trim() === "" || note.title.length > PATCH_NOTE_LIMITS.title) {
+      problems.push(`${where}.title must be words, at most ${PATCH_NOTE_LIMITS.title} characters`);
+    }
+    if (!Array.isArray(note.changes) || note.changes.length === 0 || note.changes.length > PATCH_NOTE_LIMITS.changes) {
+      problems.push(`${where}.changes must list 1 to ${PATCH_NOTE_LIMITS.changes} changes`);
+    } else {
+      note.changes.forEach((change, line) => {
+        if (typeof change !== "string" || change.trim() === "" || change.length > PATCH_NOTE_LIMITS.change) {
+          problems.push(`${where}.changes[${line}] must be words, at most ${PATCH_NOTE_LIMITS.change} characters`);
+        }
+      });
+    }
+  });
+  return problems;
+}
+
+/** What the launcher reads from the website (ADR-081): the servers' hours and the patch notes, as published. */
+export function makeLauncherFeed(root = REPO_ROOT) {
+  const site = readJson(join(root, "Website", "site", "site.json"));
+  const patchNotes = readJson(join(root, "Website", "site", "patch-notes.json"));
+  const problems = [...validateSite(site), ...validatePatchNotes(patchNotes)];
+  if (problems.length > 0) {
+    fail(problems);
+  }
+  return { schemaVersion: LAUNCHER_FEED_SCHEMA_VERSION, serverHours: site.serverHours, patchNotes: patchNotes.notes };
 }
 
 /** What the public launcher's configuration says about the Firebase project and the release store. */
@@ -349,7 +417,7 @@ export function build(root = REPO_ROOT, outDir = join(root, "Website", "site", "
   }
   const fonts = join(root, "Launcher", "ui", "fonts");
   mkdirSync(join(outDir, "fonts"), { recursive: true });
-  for (const name of readdirSync(fonts).filter((file) => /\.(ttf|md)$/.test(file))) {
+  for (const name of readdirSync(fonts).filter((file) => /\.(ttf|md|txt)$/.test(file))) {
     cpSync(join(fonts, name), join(outDir, "fonts", name));
   }
   mkdirSync(join(outDir, "art"), { recursive: true });
@@ -358,6 +426,7 @@ export function build(root = REPO_ROOT, outDir = join(root, "Website", "site", "
   }
   const banner = "// Generated by Website/site/build.mjs from site.json and Launcher/config/public.json. Do not edit.\n";
   writeFileSync(join(outDir, "js", "site-config.js"), `${banner}export default Object.freeze(${JSON.stringify(config, null, 2)});\n`);
+  writeFileSync(join(outDir, LAUNCHER_FEED_FILE), `${JSON.stringify(makeLauncherFeed(root), null, 2)}\n`);
   return { outDir, config };
 }
 

@@ -6,12 +6,14 @@ on:
       - 'Launcher/**'
       - 'Game/Source/VeyraServices/Contracts/LaunchHandshake.json'
       - 'ConceptArt/Vanguards/*/hero.webp'
+      - 'Website/site/src/js/hours.js'
       - '.github/workflows/launcher.yml'
   pull_request:
     paths:
       - 'Launcher/**'
       - 'Game/Source/VeyraServices/Contracts/LaunchHandshake.json'
       - 'ConceptArt/Vanguards/*/hero.webp'
+      - 'Website/site/src/js/hours.js'
       - '.github/workflows/launcher.yml'
 
 jobs:

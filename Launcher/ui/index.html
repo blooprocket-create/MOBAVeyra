@@ -5,12 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Veyra</title>
 <link rel="stylesheet" href="launcher.css">
-<script src="launcher.js" defer></script>
+<script type="module" src="launcher.js"></script>
 </head>
 <body>
-<div class="art" aria-hidden="true"></div>
-<main>
-  <header>
+<!-- The window has no frame of its own: the art and the bar along its top move it. -->
+<div class="art" aria-hidden="true" data-tauri-drag-region></div>
+<div class="titlebar" data-tauri-drag-region>
+  <button id="minimize" type="button" class="window-control" aria-label="Minimize" title="Minimize">
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5h8"/></svg>
+  </button>
+  <button id="close" type="button" class="window-control close" aria-label="Close" title="Close">
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>
+  </button>
+</div>
+<!--
+  Beside the art: whether the servers are up and when they run, and what this build changed (ADR-081), from the
+  website. Each stays hidden until the launcher has something to say.
+-->
+<div class="side">
+  <aside class="surface whats-new" id="whats-new" aria-labelledby="whats-new-title" hidden>
+    <p class="eyebrow">What's new in <span id="whats-new-version"></span></p>
+    <h2 id="whats-new-title"></h2>
+    <ul id="whats-new-changes"></ul>
+  </aside>
+  <aside class="surface servers" id="servers" aria-live="polite" hidden>
+    <p class="servers-state"><span class="dot" aria-hidden="true"></span><span id="servers-state"></span></p>
+    <p class="note" id="servers-hours"></p>
+    <p class="note" id="servers-detail" hidden></p>
+  </aside>
+</div>
+<main>  <header>
     <p class="eyebrow">The Meridian Crucible</p>
     <h1>Veyra</h1>
   </header>
@@ -65,6 +89,7 @@
       </div>
     </details>
     <p class="note warning" id="game-note" hidden></p>
+    <p class="note warning servers-note" hidden></p>
   </section>
 
   <section id="register" hidden>
@@ -103,6 +128,7 @@
     <p class="status" id="signed-in-as"></p>
     <button id="play" type="button" class="primary">Play</button>
     <p class="note warning" id="ready-note" hidden></p>
+    <p class="note warning servers-note" hidden></p>
     <div class="links">
       <button id="sign-out" type="button" class="link">Sign out</button>
     </div>
@@ -117,6 +143,7 @@
   <section id="problem" hidden>
     <h2>Something went wrong</h2>
     <p id="problem-text"></p>
+    <p class="note warning servers-note" hidden></p>
     <button id="retry" type="button">Try Again</button>
   </section>
 

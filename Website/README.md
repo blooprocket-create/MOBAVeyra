@@ -42,8 +42,11 @@ Static pages with no framework and no dependencies. `site/build.mjs` builds them
 | `Docs/Design/Vanguards/<nn>-<id>.yaml` | each featured Vanguard's name, title, region and roles |
 | `Docs/Design/Vanguards/render_sheet.py` | their signature colours |
 | `ConceptArt/Vanguards/<id>/hero.webp` | their art, and the art the pages show by hand as `/art/<id>.webp` |
-| `Launcher/ui/fonts` | Roboto |
+| `Launcher/ui/fonts` | Inter, the client's interface type, and its licence |
 | `site/site.json` | the website's own data: the featured Vanguards and their framing, the home page's rotation, the display-name and password rules the forms check first, the support contacts, and the servers' daily hours |
+| `site/patch-notes.json` | what each game build changed, newest first: its version, date, title and up to 8 changes, which the launcher shows as What's new |
+
+The build also writes **`/launcher.json`**, which the launcher reads (ADR-081): `site.json`'s server hours and every patch note. The website stays up when the servers don't, so the launcher can still say when they next open. Its schema only grows; the launcher ignores fields it doesn't know. The launcher words the hours with this site's own `src/js/hours.js`, which its build copies in.
 
 ### Pages
 
@@ -89,4 +92,5 @@ CI runs all four in `.github/workflows/website.yml`.
 - **When it builds:** each push to the production branch deploys; other branches get Preview deployments. Vercel skips a build when nothing the website reads has changed since the last deployment.
 - **Support contacts:** set `support.email` or `support.links` in `site/site.json`. Until then the support page says contact details are on their way.
 - **Server hours:** `serverHours` in `site/site.json` (an IANA time zone, and `opens` and `closes` as 24-hour times) is when the host's scheduled task starts and stops `Host.ps1`. Change both together. Pages show the hours on the host's clock, add the visitor's own when it differs, and next to the live status say when the next session opens, or why today's may not have started.
+- **Patch notes:** with each game release, add its note at the top of `site/patch-notes.json`, keyed by the build's version (such as `0.2.8`). The launcher shows it once the website deploys. A build with no note shows none.
 - **Firebase:** email and password sign-in is already on for the launcher. If the project's web API key is ever restricted to certain websites, add the website's domain.
