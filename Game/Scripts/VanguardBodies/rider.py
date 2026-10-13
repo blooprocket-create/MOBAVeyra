@@ -10,7 +10,7 @@ import math
 
 from mathutils import Euler, Vector
 
-from . import humanoid
+from . import humanoid, motions
 from .parts import ease, forward_swing, lean, mix, roll_side, twist, two_bone
 
 # The mount's chain beside the rider's, both under the root. (name, parent)
@@ -28,6 +28,14 @@ MELEE_COCK_SHARE = humanoid.MELEE_COCK_SHARE
 TYRE_KNOBS = 14
 # How far a crashed mount rolls onto its side, in degrees.
 CRASH_ROLL = 82.0
+# A skill's clip on the machine (ADR-072 §2, ADR-075): a full rise's wheelie and a full drive's forward pitch, in degrees;
+# the chest lean (degrees) a full drive takes; how far a full drive lunges the machine, as a share of its wheel; how far
+# a full crouch tucks the rider down, as a share of the height.
+SKILL_WHEELIE = 18.0
+SKILL_LUNGE_PITCH = 6.0
+SKILL_FULL_DRIVE_LEAN = 40.0
+SKILL_LUNGE_SHARE = 0.4
+SKILL_TUCK_DROP = 0.02
 RUBBER = [0.05, 0.05, 0.05]
 DARK = [0.08, 0.08, 0.09]
 
@@ -196,6 +204,24 @@ def _ride(pose, moved, d, turn=(0.0, 0.0, 0.0), shift=(0.0, 0.0, 0.0)):
     pivot, hip = d["rest"]["mount"], d["rest"]["pelvis"]
     moved["mount"] = Vector(shift)
     moved["pelvis"] = Vector(shift) + rotation @ (hip - pivot) - (hip - pivot)
+
+
+def skill_pose(skill, t, d):
+    """A skill's own clip (ADR-072 §2, ADR-075) at t from 0 to 1, ridden: the motion's arms, chest and head on the seated
+    rider (her legs stay on the machine), and its hints told through the machine: its rise rears the front into a
+    wheelie, as her Cast does; her chest's lean forward lunges the machine ahead; her crouch tucks her down over it."""
+    motion, hints = motions.motion(skill, t)
+    pose, moved = {}, {}
+    for bone, rotation in motion.items():
+        if bone.split("_")[0] in ("upperarm", "lowerarm", "hand", "spine", "head", "neck", "clavicle"):
+            pose[bone] = rotation
+    chest = sum(math.degrees(motion.get(bone, (0.0, 0.0, 0.0))[1]) for bone in ("spine_02", "spine_03"))
+    rear = max(0.0, hints.get("rise", 0.0))
+    drive = max(0.0, min(1.0, chest / SKILL_FULL_DRIVE_LEAN))
+    crouch = hints.get("crouch", 0.0)
+    _ride(pose, moved, d, lean(-SKILL_WHEELIE * rear + SKILL_LUNGE_PITCH * drive),
+          (d["wheel"] * SKILL_LUNGE_SHARE * drive, 0.0, -d["height"] * SKILL_TUCK_DROP * crouch))
+    return pose, moved
 
 
 def pose(name, t, melee, d):
