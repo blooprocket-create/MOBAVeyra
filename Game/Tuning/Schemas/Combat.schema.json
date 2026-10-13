@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "ground", "crowdControl", "combatState", "attribution", "killCredit", "structures", "crit", "critBag", "attackSpeed", "pursuit", "tethers"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "motion", "ground", "crowdControl", "combatState", "attribution", "killCredit", "structures", "crit", "critBag", "attackSpeed", "pursuit", "tethers"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
@@ -114,6 +114,112 @@
         },
         "navigationExtent": {
           "description": "How far, in units and in each direction, the end of a forced movement may be moved to reach walkable ground. With none that close, the unit stays where it is.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "motion": {
+      "description": "Motions (ADR-079): what the server tells every machine of each unit's movement, how every machine draws a body from it, and the clock both read it by. Network presentation only: none of it changes where the server moves a body.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "horizonSeconds", "refreshSeconds", "driftDistance", "speedChangeShare", "standingSpeedShare", "facingDegrees", "setDownDistance", "correctionSeconds", "correctionSnapDistance", "remoteDelaySeconds", "ownLeadMaxSeconds", "ownPredictionSeconds", "clockExchangeSeconds", "clockExchangesKept", "clockSlewRate", "clockSnapSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives no number, so it was drafted for playtesting.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "horizonSeconds": {
+          "description": "How far ahead a walking body's corners are told to every machine that sees it, in seconds of its walking. It is no more of its path than a watcher reads from its stride, so a Vanguard's destination stays its own.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "refreshSeconds": {
+          "description": "A walk is told afresh once less than this many seconds of what was told are left, so a late message never leaves a body standing.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "driftDistance": {
+          "description": "A body this many units from where its told motion has it (pushed by others, steering, a ride's arc) is told afresh.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "speedChangeShare": {
+          "description": "A body whose speed changes by more than this share of its told speed (a Slow, a haste) is told afresh.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "standingSpeedShare": {
+          "description": "A body moving slower than this share of its speed, though its path runs on (others in its way), is told standing.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true,
+          "maximum": 1
+        },
+        "facingDegrees": {
+          "description": "A standing body that turns this many degrees from its told facing is told afresh.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "setDownDistance": {
+          "description": "A body found this many units from where its told motion has it was set down there at once (a respawn, a Recall) and is drawn there at once.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "correctionSeconds": {
+          "description": "A drawn body eases from where it was drawn onto a newly told motion over this many seconds.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "correctionSnapDistance": {
+          "description": "A drawn body this many units from a newly told motion is drawn on it at once.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "remoteDelaySeconds": {
+          "description": "Bodies other than the player's own are drawn this many seconds behind the server's clock now. Zero draws them where the server has them now.",
+          "type": "number",
+          "minimum": 0
+        },
+        "ownLeadMaxSeconds": {
+          "description": "The most, in seconds, the player's own body is drawn ahead of its server motion to make up the time its order took to reach the server.",
+          "type": "number",
+          "minimum": 0
+        },
+        "ownPredictionSeconds": {
+          "description": "How long, in seconds, the player's own body walks toward an order the server has not answered yet before it waits for the answer.",
+          "type": "number",
+          "minimum": 0
+        },
+        "clockExchangeSeconds": {
+          "description": "A client times an exchange with the server's clock this often, in seconds.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "clockExchangesKept": {
+          "description": "How many of its latest clock exchanges a client keeps; it trusts the one with the shortest round trip.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "clockSlewRate": {
+          "description": "How fast a client's clock estimate moves toward a newly trusted one, in seconds per second, so the drawn world never jumps.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "clockSnapSeconds": {
+          "description": "A client's clock estimate this many seconds off a newly trusted one is set at once.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true

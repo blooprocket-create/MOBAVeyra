@@ -99,6 +99,83 @@ struct FVeyraForcedMovementTuning
 	double NavigationExtent = 0.0;
 };
 
+/**
+ * Motions (ADR-079): what the server tells every machine of each unit's movement, how every machine draws a body from it,
+ * and the clock both read it by. Network presentation, not balance: none of it changes where the server moves a body.
+ */
+USTRUCT()
+struct FVeyraMotionTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How far ahead a walking body's corners are told, in seconds of its walking (§2). */
+	UPROPERTY()
+	double HorizonSeconds = 0.0;
+
+	/** A walk is told afresh once less than this is left of what was told, in seconds of its walking (§2). */
+	UPROPERTY()
+	double RefreshSeconds = 0.0;
+
+	/** A body this far from where its told motion has it, in units, is told afresh (§2). */
+	UPROPERTY()
+	double DriftDistance = 0.0;
+
+	/** A body whose speed changes by more than this share of its told speed is told afresh (§2). */
+	UPROPERTY()
+	double SpeedChangeShare = 0.0;
+
+	/** A body moving slower than this share of its speed, though its path runs on, is told standing (§2). */
+	UPROPERTY()
+	double StandingSpeedShare = 0.0;
+
+	/** A standing body facing this far from its told yaw, in degrees, is told afresh (§2). */
+	UPROPERTY()
+	double FacingDegrees = 0.0;
+
+	/** A body found this far from where its told motion has it, in units, was set down there at once, and is drawn so (§2). */
+	UPROPERTY()
+	double SetDownDistance = 0.0;
+
+	/** A drawn body eases from where it was drawn onto a new motion over this many seconds (§3). */
+	UPROPERTY()
+	double CorrectionSeconds = 0.0;
+
+	/** A drawn body this far from a new motion, in units, is drawn on it at once (§3). */
+	UPROPERTY()
+	double CorrectionSnapDistance = 0.0;
+
+	/** Bodies other than the player's own are drawn this many seconds behind the server's clock now (§3). */
+	UPROPERTY()
+	double RemoteDelaySeconds = 0.0;
+
+	/** The most the player's own body is drawn ahead of its server motion, in seconds (§5). */
+	UPROPERTY()
+	double OwnLeadMaxSeconds = 0.0;
+
+	/** How long the player's own body walks an order the server has not yet answered before it waits, in seconds (§5). */
+	UPROPERTY()
+	double OwnPredictionSeconds = 0.0;
+
+	/** A client times an exchange with the server's clock this often, in seconds (§4). */
+	UPROPERTY()
+	double ClockExchangeSeconds = 0.0;
+
+	/** How many of its latest exchanges a client keeps, trusting the quickest (§4). */
+	UPROPERTY()
+	int32 ClockExchangesKept = 0;
+
+	/** How fast a client's clock estimate moves toward a new one, in seconds a second (§4). */
+	UPROPERTY()
+	double ClockSlewRate = 0.0;
+
+	/** A client's clock estimate this far off a new one, in seconds, is set at once (§4). */
+	UPROPERTY()
+	double ClockSnapSeconds = 0.0;
+};
+
 /** The playable ground (ADR-040 §4). */
 USTRUCT()
 struct FVeyraGroundTuning
@@ -303,6 +380,9 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraForcedMovementTuning ForcedMovement;
+
+	UPROPERTY()
+	FVeyraMotionTuning Motion;
 
 	UPROPERTY()
 	FVeyraGroundTuning Ground;

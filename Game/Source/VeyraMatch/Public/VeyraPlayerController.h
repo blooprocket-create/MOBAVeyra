@@ -364,6 +364,14 @@ private:
 	UFUNCTION(Client, Reliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection, uint16 OrderNumber);
 
+	/** Server: the client asks the server's clock, AskedAt by its own (ADR-079 §4). Unreliable: a lost one is asked again. */
+	UFUNCTION(Server, Unreliable)
+	void ServerTimeClock(double AskedAt);
+
+	/** Owning client: the server's clock read ServerTime as it answered the ask made at AskedAt. */
+	UFUNCTION(Client, Unreliable)
+	void ClientTimeClock(double AskedAt, double ServerTime);
+
 	UFUNCTION(Server, Reliable)
 	void ServerRecall();
 
@@ -373,7 +381,8 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerIssueCastOrder(EVeyraAbilitySlot Slot, FVeyraCastTarget Target);
 
-	UFUNCTION(Client, Unreliable)
+	/** Owning client: the server refused a cast. Reliable, so a refusal is always told; the order allowance bounds them. */
+	UFUNCTION(Client, Reliable)
 	void ClientCastRejected(EVeyraCastRejection Rejection);
 
 	UFUNCTION(Server, Reliable)
@@ -485,6 +494,37 @@ private:
 
 	/** The number of the last order marked; the next is one more, past 0 again after the largest. */
 	uint16 LastOrderNumber = 0;
+
+	/**
+	 * Owning client: draws the commanded body carrying out the order just given at once, until the server answers it
+	 * (ADR-079 §5). Presentation only.
+	 */
+	void PredictOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target, uint16 OrderNumber);
+
+	/** Server: the order numbered OrderNumber was taken; the commanded body's motion answers it from now (ADR-079 §5). */
+	void NoteOrderTaken(uint16 OrderNumber);
+
+	/**
+	 * Server: a cast refused only because the caster's last lockout is about to end, held to be cast the moment it may be,
+	 * until its time runs out (Combat Bible §26; ADR-079 §7). A newer cast replaces it; any order drops it.
+	 */
+	struct FHeldCast
+	{
+		EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Q;
+		FVeyraCastTarget Target;
+		double Until = 0.0;
+	};
+	TOptional<FHeldCast> HeldCast;
+
+	/** Server: how many seconds the caster's lockout has left, as a held cast measures it; unbounded for one not about to end. */
+	double CastLockSecondsLeft() const;
+
+	/** Server: tries the held cast again, holding it on while its lockout lasts and its time does. */
+	void RetryHeldCast();
+
+	/** Owning client: asks the server's clock, as the tuning's exchange time comes round (ADR-079 §4). */
+	void AskServerClock();
+	FTimerHandle ClockTimer;
 
 	/** Owning client: the zoom keys' presses this frame move the player's zoom level, which persists (ADR-052 §3). */
 	void TickZoom();

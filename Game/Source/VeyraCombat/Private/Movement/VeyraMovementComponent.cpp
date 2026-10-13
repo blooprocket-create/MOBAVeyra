@@ -2,6 +2,7 @@
 
 #include "Movement/VeyraMovementComponent.h"
 
+#include "AIController.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraMobilitySet.h"
@@ -12,8 +13,13 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Movement/VeyraMovementFields.h"
 #include "Movement/VeyraMovementRules.h"
+#include "Movement/VeyraPathFollowingComponent.h"
+#include "Movement/VeyraServerClock.h"
 #include "Movement/VeyraUnitCollision.h"
+#include "NavigationData.h"
 #include "NavigationSystem.h"
+#include "Net/Core/PushModel/PushModel.h"
+#include "Net/UnrealNetwork.h"
 #include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
@@ -33,75 +39,334 @@ namespace
 UVeyraMovementComponent::UVeyraMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// The server stamps each update with its own time, so a machine that only shows the body can ease it from one update
-	// to the next over the time that truly passed between them (Linear smoothing; ADR-077 §1).
-	bNetworkAlwaysReplicateTransformUpdateTimestamp = true;
+	// Its unit reaches its speed the moment it has somewhere to go and stops where it arrives: path following sets its
+	// velocity rather than accelerating it there (ADR-079 §6).
+	bRequestedMoveUseAcceleration = false;
+	// It carries the body's motion to every machine that sees the body (ADR-079 §1).
+	SetIsReplicatedByDefault(true);
 }
 
-void UVeyraMovementComponent::SetDrawnLead(const FVector2D& Lead)
+void UVeyraMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Only a machine that only shows the body draws one; the server's body is the truth. A lead that is no offset at all is
-	// none, so the drawn mesh never leaves the world.
-	DrawnLead = CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy && !Lead.ContainsNaN() ? Lead : FVector2D::ZeroVector;
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	FDoRepLifetimeParams Params;
+	Params.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraMovementComponent, Motion, Params);
 }
 
-FVector UVeyraMovementComponent::GetSmoothedLocation() const
+void UVeyraMovementComponent::BeginPlay()
 {
-	const FVector Capsule = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
-	if (!CharacterOwner || CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	Super::BeginPlay();
+	// Its motion tells every machine where the body is; the engine's own updates of its place would only fight it.
+	if (CharacterOwner && CharacterOwner->HasAuthority())
 	{
-		return Capsule;
+		CharacterOwner->SetReplicatingMovement(false);
+		PublishMotion();
 	}
-	const FNetworkPredictionData_Client_Character* Smoothing = GetPredictionData_Client_Character();
-	return Smoothing ? Capsule + Smoothing->MeshTranslationOffset : Capsule;
 }
 
-double UVeyraMovementComponent::GetDrawnDelaySeconds() const
+void UVeyraMovementComponent::SetMotionOrderNumber(uint16 OrderNumber)
 {
-	if (!CharacterOwner || CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy || NetworkSmoothingMode != ENetworkSmoothingMode::Linear)
+	MotionOrderNumber = OrderNumber;
+}
+
+namespace
+{
+	/** Whether order number A is B or was given after it; the numbers wrap. */
+	bool IsSameOrLaterOrder(uint16 A, uint16 B)
 	{
-		return 0.0;
+		return static_cast<int16>(static_cast<uint16>(A - B)) >= 0;
 	}
-	const FNetworkPredictionData_Client_Character* Smoothing = GetPredictionData_Client_Character();
-	return Smoothing ? FMath::Max(0.0, Smoothing->SmoothingServerTimeStamp - Smoothing->SmoothingClientTimeStamp) : 0.0;
+}
+
+const void* UVeyraMovementComponent::GetFollowedPath() const
+{
+	const AAIController* Controller = CharacterOwner ? Cast<AAIController>(CharacterOwner->GetController()) : nullptr;
+	const UPathFollowingComponent* PathFollowing = Controller ? Controller->GetPathFollowingComponent() : nullptr;
+	return PathFollowing && PathFollowing->GetStatus() == EPathFollowingStatus::Moving ? PathFollowing->GetPath().Get() : nullptr;
+}
+
+bool UVeyraMovementComponent::GetPathCornersAhead(const FVector& From, TArray<FVector>& OutCorners) const
+{
+	OutCorners.Reset();
+	const AAIController* Controller = CharacterOwner ? Cast<AAIController>(CharacterOwner->GetController()) : nullptr;
+	const UPathFollowingComponent* PathFollowing = Controller ? Controller->GetPathFollowingComponent() : nullptr;
+	if (const UVeyraPathFollowingComponent* Veyra = Cast<UVeyraPathFollowingComponent>(PathFollowing))
+	{
+		return Veyra->GetCornersAhead(From, OutCorners);
+	}
+	// Another path following tells its corners as they are, without where it stops short of its goal.
+	if (!PathFollowing || PathFollowing->GetStatus() != EPathFollowingStatus::Moving || !PathFollowing->GetPath().IsValid())
+	{
+		return false;
+	}
+	const FNavPathSharedPtr Path = PathFollowing->GetPath();
+	const TArray<FNavPathPoint>& Points = Path->GetPathPoints();
+	for (int32 Index = static_cast<int32>(PathFollowing->GetNextPathIndex()); Index < Points.Num(); ++Index)
+	{
+		OutCorners.Add(Points[Index].Location);
+	}
+	return !OutCorners.IsEmpty();
+}
+
+FVeyraMotion UVeyraMovementComponent::DescribeMotion(double Now) const
+{
+	const FVeyraMotionTuning& Tuning = UVeyraCombatTuningSubsystem::Get().Motion;
+	FVeyraMotion Described;
+	Described.StartTime = Now;
+	Described.Start = UpdatedComponent->GetComponentLocation();
+	Described.Yaw = static_cast<float>(UpdatedComponent->GetComponentRotation().Yaw);
+	Described.OrderNumber = MotionOrderNumber;
+	Described.SetDownSerial = Motion.SetDownSerial;
+	if (ForcedMove.IsSet())
+	{
+		if (ForcedMove->Mode == EVeyraCustomMovementMode::Attached)
+		{
+			Described.Kind = EVeyraMotionKind::Attached;
+			Described.Host = ForcedMove->Host.Get();
+			return Described;
+		}
+		// A forced move's path was planned whole as it began: it is told whole.
+		Described.Kind = EVeyraMotionKind::Forced;
+		Described.Speed = static_cast<float>(ForcedMove->Speed);
+		const FVector Destination = ForcedMove->Destination;
+		Described.Corners = VeyraMotion::CornersWithin(Described.Start, MakeArrayView(&Destination, 1), TNumericLimits<double>::Max());
+		return Described;
+	}
+	// Its walking speed goes with every motion, standing too, so its player's machine walks an order it gives at it (§5).
+	Described.Speed = GetMaxSpeed();
+	const double ToldLength = Described.Speed * Tuning.HorizonSeconds;
+	const double HalfHeight = CharacterOwner && CharacterOwner->GetCapsuleComponent() ? CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0;
+	TArray<FVector> Path;
+	if (!IsRiding() && GetPathCornersAhead(Described.Start, Path))
+	{
+		// A path's corners lie on the ground; the body's centre walks above them.
+		for (FVector& Corner : Path)
+		{
+			Corner.Z += HalfHeight;
+		}
+		// A body held where its path runs on (by others in its way) stands, unless that path is new and its first step to come.
+		const bool bHeld = Velocity.Size2D() < Described.Speed * Tuning.StandingSpeedShare && GetFollowedPath() == ToldPath;
+		if (!bHeld)
+		{
+			Described.Corners = VeyraMotion::CornersWithin(Described.Start, Path, ToldLength);
+		}
+	}
+	else if (Velocity.Size2D() > Described.Speed * Tuning.StandingSpeedShare)
+	{
+		// A ride's arc, or a move with no path: straight on along its heading, told afresh as it strays.
+		Described.Speed = static_cast<float>(Velocity.Size2D());
+		const FVector Ahead = Described.Start + Velocity.GetSafeNormal2D() * Described.Speed * Tuning.HorizonSeconds;
+		Described.Corners = VeyraMotion::CornersWithin(Described.Start, MakeArrayView(&Ahead, 1), ToldLength);
+	}
+	Described.Kind = Described.Corners.IsEmpty() ? EVeyraMotionKind::Stand : EVeyraMotionKind::Walk;
+	return Described;
+}
+
+void UVeyraMovementComponent::PublishMotion()
+{
+	const UWorld* World = GetWorld();
+	if (!UpdatedComponent || !World || !GetOwner())
+	{
+		return;
+	}
+	const FVeyraMotionTuning& Tuning = UVeyraCombatTuningSubsystem::Get().Motion;
+	const double Now = World->GetTimeSeconds();
+	FVeyraMotion Want = DescribeMotion(Now);
+	const void* Path = GetFollowedPath();
+
+	bool bSetDown = bSetDownPending;
+	bool bTell = !bHasMotion || Want.Kind != Motion.Kind || Want.Host != Motion.Host || Want.OrderNumber != Motion.OrderNumber || Path != ToldPath
+		|| FMath::Abs(Want.Speed - Motion.Speed) > Motion.Speed * Tuning.SpeedChangeShare;
+	if (bHasMotion && Want.Kind != EVeyraMotionKind::Attached && Motion.Kind != EVeyraMotionKind::Attached)
+	{
+		// Where the told motion has the body now, against where it is.
+		const double Drift = FVector::Dist2D(VeyraMotion::Sample(Motion, Now).Location, Want.Start);
+		bSetDown |= Drift > Tuning.SetDownDistance;
+		bTell |= Drift > Tuning.DriftDistance;
+		// A walk running short of what was told, with more still to walk, is told on before it runs out.
+		if (VeyraMotion::Walks(Motion) && VeyraMotion::Walks(Want))
+		{
+			const double Left = FMath::Max(0.0, VeyraMotion::EndTime(Motion) - Now);
+			bTell |= Left < Tuning.RefreshSeconds && VeyraMotion::Length(Want) > Left * Motion.Speed + Tuning.DriftDistance;
+		}
+	}
+	if (Want.Kind == EVeyraMotionKind::Stand && Motion.Kind == EVeyraMotionKind::Stand)
+	{
+		bTell |= FMath::Abs(FMath::FindDeltaAngleDegrees(Want.Yaw, Motion.Yaw)) > Tuning.FacingDegrees;
+	}
+	if (!(bTell || bSetDown))
+	{
+		return;
+	}
+	if (bSetDown)
+	{
+		++Want.SetDownSerial;
+	}
+	bSetDownPending = false;
+	ToldPath = Path;
+	Motion = MoveTemp(Want);
+	bHasMotion = true;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraMovementComponent, Motion, this);
+	// Told at once, however seldom the unit's other state is.
+	GetOwner()->ForceNetUpdate();
+}
+
+const FVeyraMotion& UVeyraMovementComponent::GetDrawnMotion() const
+{
+	return Predicted.IsSet() ? Predicted.GetValue() : Motion;
+}
+
+void UVeyraMovementComponent::OnRep_Motion()
+{
+	const FVector Before = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+	const bool bSetDown = !bHasMotion || Motion.SetDownSerial != DrawnSetDownSerial;
+	// The server's answer to the order it predicts, or to a later one, ends the prediction. A walk answering it is drawn
+	// ahead by what the order waited to begin on the server, so the body never steps back from where its prediction had
+	// it (ADR-079 §5); any other motion is drawn as it is.
+	if (Predicted.IsSet() && Motion.OrderNumber != 0 && IsSameOrLaterOrder(Motion.OrderNumber, Predicted->OrderNumber))
+	{
+		const bool bWalksIt = Motion.OrderNumber == Predicted->OrderNumber && Motion.Kind == EVeyraMotionKind::Walk;
+		LeadOrder = bWalksIt ? Motion.OrderNumber : 0;
+		LeadSeconds = bWalksIt ? FMath::Clamp(Motion.StartTime - Predicted->StartTime, 0.0, UVeyraCombatTuningSubsystem::Get().Motion.OwnLeadMaxSeconds) : 0.0;
+		Predicted.Reset();
+	}
+	else if (Motion.Kind != EVeyraMotionKind::Walk || Motion.OrderNumber != LeadOrder)
+	{
+		LeadOrder = 0;
+		LeadSeconds = 0.0;
+	}
+	bHasMotion = true;
+	DrawnSetDownSerial = Motion.SetDownSerial;
+	Rebase(Before, bSetDown);
+}
+
+void UVeyraMovementComponent::PredictMotion(const FVeyraMotion& Prediction)
+{
+	if (!UpdatedComponent || !CharacterOwner || CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy || !bHasMotion)
+	{
+		return;
+	}
+	const FVector Before = UpdatedComponent->GetComponentLocation();
+	Predicted = Prediction;
+	PredictedUntil = Prediction.StartTime + UVeyraCombatTuningSubsystem::Get().Motion.OwnPredictionSeconds;
+	LeadOrder = 0;
+	LeadSeconds = 0.0;
+	Rebase(Before, /*bSetDown*/ false);
+}
+
+void UVeyraMovementComponent::ForgetPrediction(uint16 OrderNumber)
+{
+	if (Predicted.IsSet() && Predicted->OrderNumber == OrderNumber && UpdatedComponent)
+	{
+		const FVector Before = UpdatedComponent->GetComponentLocation();
+		Predicted.Reset();
+		Rebase(Before, /*bSetDown*/ false);
+	}
+}
+
+FVector UVeyraMovementComponent::DrawnTargetAt(double Now, FVector& OutVelocity) const
+{
+	const FVeyraMotion& Drawn = GetDrawnMotion();
+	OutVelocity = FVector::ZeroVector;
+	if (Drawn.Kind == EVeyraMotionKind::Attached)
+	{
+		// At its host's back, wherever its host is drawn.
+		const AActor* Host = Drawn.Host;
+		if (!Host)
+		{
+			return Drawn.Start;
+		}
+		OutVelocity = Host->GetVelocity();
+		return AttachSeat(*Host);
+	}
+	// The player's own body is drawn ahead by what its order waited; other bodies at the server's clock now, less the
+	// tuning's delay (ADR-079 §3, §5).
+	const FVeyraMotionTuning& Tuning = UVeyraCombatTuningSubsystem::Get().Motion;
+	const bool bOwn = Predicted.IsSet() || LeadOrder != 0;
+	const double Time = Now + (Predicted.IsSet() ? 0.0 : LeadSeconds) - (bOwn ? 0.0 : Tuning.RemoteDelaySeconds);
+	const FVeyraMotionSample Sample = VeyraMotion::Sample(Drawn, Time);
+	OutVelocity = Sample.Velocity;
+	return Sample.Location;
+}
+
+void UVeyraMovementComponent::Rebase(const FVector& Before, bool bSetDown)
+{
+	const UVeyraServerClock* Clock = UVeyraServerClock::Get(GetWorld());
+	FVector Ignored;
+	const FVector After = DrawnTargetAt(Clock ? Clock->Now() : 0.0, Ignored);
+	const FVector2D Offset(Before - After);
+	// A body set down elsewhere, or drawn too far from its new motion, is drawn on it at once; otherwise it eases on.
+	const bool bAtOnce = bSetDown || Offset.Size() > UVeyraCombatTuningSubsystem::Get().Motion.CorrectionSnapDistance;
+	CorrectionFrom = bAtOnce ? FVector2D::ZeroVector : Offset;
+	CorrectionAge = 0.0;
+	if (bAtOnce)
+	{
+		DrawMotion(0.0f);
+	}
+}
+
+void UVeyraMovementComponent::DrawMotion(float DeltaSeconds)
+{
+	UWorld* World = GetWorld();
+	if (!UpdatedComponent || !World || !CharacterOwner)
+	{
+		return;
+	}
+	const FVeyraMotionTuning& Tuning = UVeyraCombatTuningSubsystem::Get().Motion;
+	const UVeyraServerClock* Clock = UVeyraServerClock::Get(World);
+	const double Now = Clock ? Clock->Now() : World->GetTimeSeconds();
+	// An order the server never answered in time lets go of its prediction.
+	if (Predicted.IsSet() && Now >= PredictedUntil)
+	{
+		const FVector Before = UpdatedComponent->GetComponentLocation();
+		Predicted.Reset();
+		Rebase(Before, /*bSetDown*/ false);
+	}
+
+	FVector DrawnVelocity;
+	FVector Target = DrawnTargetAt(Now, DrawnVelocity);
+	// The ease onto its latest motion closes smoothly over the tuning's correction time.
+	CorrectionAge += DeltaSeconds;
+	const double Left = FMath::Clamp(1.0 - CorrectionAge / Tuning.CorrectionSeconds, 0.0, 1.0);
+	Target += FVector(CorrectionFrom * FMath::SmoothStep(0.0, 1.0, Left), 0.0);
+
+	const FVeyraMotion& Drawn = GetDrawnMotion();
+	if (Drawn.Kind != EVeyraMotionKind::Attached)
+	{
+		// It stands on the ground under it, up a slope or down into the river, as the server's body does.
+		const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
+		Target = VeyraGround::StandingAt(*World, Target, Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 0.0);
+	}
+
+	// It faces the way it walks, its told facing while it stands or is moved, and turns no faster than it may.
+	double Facing = Drawn.Yaw;
+	if (Drawn.Kind == EVeyraMotionKind::Walk && !DrawnVelocity.IsNearlyZero())
+	{
+		Facing = DrawnVelocity.Rotation().Yaw;
+	}
+	else if (Drawn.Kind == EVeyraMotionKind::Attached && Drawn.Host)
+	{
+		Facing = Drawn.Host->GetActorRotation().Yaw;
+	}
+	const double Current = UpdatedComponent->GetComponentRotation().Yaw;
+	const double Turned = RotationRate.Yaw > 0.0 && DeltaSeconds > 0.0f
+		? FMath::FixedTurn(static_cast<float>(Current), static_cast<float>(Facing), static_cast<float>(RotationRate.Yaw * DeltaSeconds))
+		: Facing;
+	UpdatedComponent->SetWorldLocationAndRotation(Target, FRotator(0.0, Turned, 0.0), /*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+	// Its velocity is the motion's, for its stride.
+	Velocity = DrawnVelocity;
 }
 
 void UVeyraMovementComponent::SimulatedTick(float DeltaSeconds)
 {
-	// A lead to draw, or one just let go, places the mesh again this frame, even once its smoothing is done.
-	if (!DrawnLead.IsZero() || bLeadDrawn)
+	// Once told its motion, the body is drawn from it alone (ADR-079 §3); before, as the engine places it.
+	if (bHasMotion)
 	{
-		bNetworkSmoothingComplete = false;
-	}
-	Super::SimulatedTick(DeltaSeconds);
-}
-
-void UVeyraMovementComponent::SimulateMovement(float DeltaSeconds)
-{
-	// A machine that only shows the body draws it between the server's last two updates, never past the latest: its
-	// capsule holds the place the server last sent rather than sliding on at its last velocity, so a stop or a turn is
-	// never overshot and pulled back (ADR-077 §1). The velocity stays as sent, for the body's animation.
-	if (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
-	{
-		const FVector Sent = Velocity;
-		Velocity = FVector::ZeroVector;
-		Super::SimulateMovement(DeltaSeconds);
-		Velocity = Sent;
+		DrawMotion(DeltaSeconds);
 		return;
 	}
-	Super::SimulateMovement(DeltaSeconds);
-}
-
-void UVeyraMovementComponent::SmoothClientPosition(float DeltaSeconds)
-{
-	Super::SmoothClientPosition(DeltaSeconds);
-	// The smoothing has just placed the mesh afresh; the lead moves it on from there, so it never builds up.
-	USkeletalMeshComponent* Mesh = CharacterOwner ? CharacterOwner->GetMesh() : nullptr;
-	if (Mesh && !DrawnLead.IsZero())
-	{
-		Mesh->AddWorldOffset(FVector(DrawnLead, 0.0), false, nullptr, ETeleportType::TeleportPhysics);
-	}
-	bLeadDrawn = Mesh && !DrawnLead.IsZero();
+	Super::SimulatedTick(DeltaSeconds);
 }
 
 void UVeyraMovementComponent::BindCombatant(UAbilitySystemComponent* Combatant)
@@ -395,6 +660,11 @@ void UVeyraMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		Travelled += FVector::Dist2D(Before, UpdatedComponent->GetComponentLocation());
 	}
+	// Once it has moved this frame, the server tells every machine what it does, if that strays from what it told.
+	if (CharacterOwner && CharacterOwner->HasAuthority())
+	{
+		PublishMotion();
+	}
 }
 
 double UVeyraMovementComponent::TakeTravelled()
@@ -623,14 +893,28 @@ bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& F
 	{
 		EndDash(EVeyraDashEndReason::Replaced, nullptr);
 	}
-	// The move it was walking belongs to where it stood; its controller paths again from here.
+	// The path it was walking belongs to where it stood. Its controller drops that path but keeps the order it was
+	// walking, and paths again from here (OnRelocated), so a blink never leaves the body standing.
 	if (AController* Controller = CharacterOwner->GetController())
 	{
+		TGuardValue<bool> Relocating(bRelocating, true);
 		Controller->StopMovement();
 	}
 	StopMovementImmediately();
+	// Every machine draws it where it lands at once, never gliding there (ADR-079 §3).
+	bSetDownPending = true;
+	OnRelocated.Broadcast();
 	AnnounceOwnMove(EVeyraOwnMove::Blink, From);
 	return true;
+}
+
+double UVeyraMovementComponent::GetForcedMoveSecondsLeft() const
+{
+	if (!ForcedMove.IsSet() || ForcedMove->Mode == EVeyraCustomMovementMode::Attached || !UpdatedComponent || !(ForcedMove->Speed > 0.0))
+	{
+		return 0.0;
+	}
+	return FVector::Dist2D(UpdatedComponent->GetComponentLocation(), ForcedMove->Destination) / ForcedMove->Speed;
 }
 
 bool UVeyraMovementComponent::IsDisplaced() const

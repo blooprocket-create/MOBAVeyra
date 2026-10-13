@@ -40,6 +40,8 @@ Every projectile that flies a line is drawn with a faint lane on the ground. The
 
 **Amendment (2026-10-13, [ADR-077](ADR-077-smooth-bodies-and-the-players-own-body-ahead.md)):** a move, an Attack Move, or an attack beyond reach now draws the body ahead along its path instead of only turning it. The turn toward an attack's target within reach stays as above. The ease times of §1 are now the least a body eases over, as it eases on the server's own time between updates.
 
+**Amendment (2026-10-13, [ADR-079](ADR-079-motions-not-places.md)):** §1 and §2 are superseded. No body is eased between the server's places: every machine draws it from the motion the server tells, and the player's own machine draws an order it gives at once, an attack within reach as a turn to its target. §3 stands.
+
 ### 4. Not decided here
 - Client-side movement prediction, which would amend ADR-006's author ruling. Since decided, in presentation only, by ADR-077.
 - The match server's network path on Windows hosts. Docker's UDP forwarding adds a few milliseconds and some jitter even for the host's own client.

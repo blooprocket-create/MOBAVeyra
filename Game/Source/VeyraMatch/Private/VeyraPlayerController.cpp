@@ -4,11 +4,19 @@
 
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Camera/VeyraCameraPreferences.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Input/VeyraControlPreferences.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Input/VeyraOrderPrediction.h"
 #include "Movement/VeyraDrawnBody.h"
+#include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraServerClock.h"
+#include "Statuses/VeyraStatusComponent.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Developer/VeyraDeveloperCommandRoute.h"
@@ -82,8 +90,82 @@ uint16 AVeyraPlayerController::MarkOrder(EVeyraOrderMarkKind Kind, const FVector
 	if (IsLocalController())
 	{
 		OrderMark = FVeyraOrderMark{ Kind, Location, Target, GetWorld()->GetRealTimeSeconds(), LastOrderNumber, /*bRefused*/ false, GetCommandedBody() };
+		PredictOrder(Kind, Location, Target, LastOrderNumber);
 	}
 	return LastOrderNumber;
+}
+
+void AVeyraPlayerController::PredictOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target, uint16 OrderNumber)
+{
+	APawn* Body = GetCommandedBody();
+	UVeyraMovementComponent* Movement = Body ? Cast<UVeyraMovementComponent>(Body->GetMovementComponent()) : nullptr;
+	const UVeyraServerClock* Clock = UVeyraServerClock::Get(GetWorld());
+	if (!Movement || !Clock || !Movement->HasMotion() || (Kind == EVeyraOrderMarkKind::Attack && !Target))
+	{
+		return;
+	}
+	// The commanded body's combatant: a Vanguard's is its participant's, a commanded body's its own.
+	const UAbilitySystemComponent* Combatant = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Body);
+	const AActor* CombatantOwner = Combatant ? Combatant->GetOwner() : Body;
+	const UVeyraStatusComponent* Statuses = CombatantOwner ? CombatantOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	const EVeyraMotionKind Moved = Movement->GetMotion().Kind;
+
+	FVeyraOrderPredictionInputs In;
+	In.From = Body->GetActorLocation();
+	In.Yaw = Body->GetActorRotation().Yaw;
+	In.Speed = Movement->GetMotion().Speed;
+	In.ServerNow = Clock->Now();
+	In.OrderNumber = OrderNumber;
+	// As its machine knows it: alive, not held by its statuses, and moved by nothing but its orders.
+	In.bMayWalk = VeyraTargeting::IsAlive(Body) && !(Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Move))
+		&& Moved != EVeyraMotionKind::Forced && Moved != EVeyraMotionKind::Attached;
+	In.Goal = Location;
+	In.StopShort = UVeyraMatchTuningSubsystem::Get().Orders.ArrivalTolerance;
+	if (Kind == EVeyraOrderMarkKind::Attack)
+	{
+		// It walks until its target is within its attack's reach, edge to edge, as the server's own measure has it.
+		const UVeyraBasicAttackComponent* Attacks = CombatantOwner ? CombatantOwner->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+		if (!Attacks)
+		{
+			return;
+		}
+		In.Goal = Target->GetActorLocation();
+		In.StopShort = VeyraTargeting::CentreReach(*Body, *Target, Attacks->GetRange(Target));
+		In.bFacesWithinReach = true;
+	}
+	if (const TOptional<FVeyraMotion> Predicted = VeyraOrderPrediction::Predict(In))
+	{
+		Movement->PredictMotion(Predicted.GetValue());
+	}
+}
+
+void AVeyraPlayerController::NoteOrderTaken(uint16 OrderNumber)
+{
+	// A new order drops a cast held for its lockout to end.
+	HeldCast.Reset();
+	APawn* Body = GetCommandedBody();
+	if (UVeyraMovementComponent* Movement = Body ? Cast<UVeyraMovementComponent>(Body->GetMovementComponent()) : nullptr)
+	{
+		Movement->SetMotionOrderNumber(OrderNumber);
+	}
+}
+
+void AVeyraPlayerController::AskServerClock()
+{
+	ServerTimeClock(GetWorld()->GetTimeSeconds());
+}
+
+void AVeyraPlayerController::ServerTimeClock_Implementation(double AskedAt)
+{
+	ClientTimeClock(AskedAt, GetWorld()->GetTimeSeconds());
+}
+
+void AVeyraPlayerController::ClientTimeClock_Implementation(double AskedAt, double ServerTime)
+{
+	if (UVeyraServerClock* Clock = UVeyraServerClock::Get(GetWorld()))
+	{
+		Clock->AddExchange(AskedAt, ServerTime);
+	}
 }
 
 bool AVeyraPlayerController::CancelPendingCast()
@@ -153,6 +235,14 @@ void AVeyraPlayerController::BeginPlay()
 	}
 	// As the player joins the match, and again whenever they change it.
 	ReportAllChat();
+	// A client keeps its estimate of the server's clock, which every body is drawn by (ADR-079 §4): at once, then as the
+	// tuning's exchange time comes round.
+	if (IsLocalController() && GetNetMode() == NM_Client)
+	{
+		AskServerClock();
+		GetWorldTimerManager().SetTimer(ClockTimer, FTimerDelegate::CreateUObject(this, &AVeyraPlayerController::AskServerClock),
+			static_cast<float>(UVeyraCombatTuningSubsystem::Get().Motion.ClockExchangeSeconds), /*bLoop*/ true);
+	}
 }
 
 const UVeyraInputSettings& AVeyraPlayerController::GetKeys() const
@@ -611,9 +701,60 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 	{
 		Rejection = GameMode ? GameMode->HandleCastOrder(GetPlayerState<AVeyraPlayerState>(), Slot, Target) : EVeyraCastRejection::WrongPhase;
 	}
+	// A newer cast replaces one held.
+	HeldCast.Reset();
+	// Refused only because its last lockout is about to end, it is held and cast the moment it may be (Combat Bible §26).
+	const double Window = UVeyraMatchTuningSubsystem::Get().Orders.CastBufferSeconds;
+	if (Rejection == EVeyraCastRejection::Busy && CastLockSecondsLeft() <= Window)
+	{
+		HeldCast = FHeldCast{ Slot, Target, GetWorld()->GetTimeSeconds() + Window };
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &AVeyraPlayerController::RetryHeldCast));
+		return;
+	}
 	if (Rejection != EVeyraCastRejection::None)
 	{
 		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a cast from %s: %s."), *GetNameSafe(PlayerState), LexToString(Rejection));
+		ClientCastRejected(Rejection);
+	}
+}
+
+double AVeyraPlayerController::CastLockSecondsLeft() const
+{
+	const double Now = GetWorld()->GetTimeSeconds();
+	double Left = 0.0;
+	const UVeyraCastStateComponent* CastState = PlayerState ? PlayerState->FindComponentByClass<UVeyraCastStateComponent>() : nullptr;
+	if (CastState && CastState->IsBusy())
+	{
+		// Only a Recovery is the last of a cast's lockout; a windup or a channel has more to come.
+		const FVeyraCastState& Cast = CastState->GetState();
+		Left = Cast.Phase == EVeyraCastPhase::Recovery ? FMath::Max(0.0, Cast.PhaseEndsAt - Now) : TNumericLimits<double>::Max();
+	}
+	const APawn* Body = GetCommandedBody();
+	if (const UVeyraMovementComponent* Movement = Body ? Cast<UVeyraMovementComponent>(Body->GetMovementComponent()) : nullptr; Movement && Movement->IsDashing())
+	{
+		Left = FMath::Max(Left, Movement->GetForcedMoveSecondsLeft());
+	}
+	return Left;
+}
+
+void AVeyraPlayerController::RetryHeldCast()
+{
+	if (!HeldCast.IsSet())
+	{
+		return;
+	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const FHeldCast Held = HeldCast.GetValue();
+	const EVeyraCastRejection Rejection = GameMode ? GameMode->HandleCastOrder(GetPlayerState<AVeyraPlayerState>(), Held.Slot, Held.Target) : EVeyraCastRejection::WrongPhase;
+	if (Rejection == EVeyraCastRejection::Busy && GetWorld()->GetTimeSeconds() < Held.Until)
+	{
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &AVeyraPlayerController::RetryHeldCast));
+		return;
+	}
+	HeldCast.Reset();
+	if (Rejection != EVeyraCastRejection::None)
+	{
+		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a held cast from %s: %s."), *GetNameSafe(PlayerState), LexToString(Rejection));
 		ClientCastRejected(Rejection);
 	}
 }
@@ -1416,7 +1557,9 @@ void AVeyraPlayerController::ServerIssueAttackOrder_Implementation(AActor* Targe
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection, OrderNumber);
+		return;
 	}
+	NoteOrderTaken(OrderNumber);
 }
 
 void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination, EVeyraAttackMoveTarget Preference, uint16 OrderNumber)
@@ -1431,7 +1574,9 @@ void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector D
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection, OrderNumber);
+		return;
 	}
+	NoteOrderTaken(OrderNumber);
 }
 
 void AVeyraPlayerController::ServerRecall_Implementation()
@@ -1467,7 +1612,9 @@ void AVeyraPlayerController::ApplyMoveOrder(const FVector& Destination, uint16 O
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection, OrderNumber);
+		return;
 	}
+	NoteOrderTaken(OrderNumber);
 }
 
 void AVeyraPlayerController::ClientOrderRejected_Implementation(EVeyraOrderRejection Rejection, uint16 OrderNumber)
@@ -1478,6 +1625,12 @@ void AVeyraPlayerController::ClientOrderRejected_Implementation(EVeyraOrderRejec
 	if (OrderNumber != 0 && OrderMark && OrderMark->Number == OrderNumber)
 	{
 		OrderMark->bRefused = true;
+		const APawn* Marked = OrderMark->Body.Get();
+		UVeyraMovementComponent* Movement = Marked ? Cast<UVeyraMovementComponent>(Marked->GetMovementComponent()) : nullptr;
+		if (Movement)
+		{
+			Movement->ForgetPrediction(OrderNumber);
+		}
 	}
 	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused an order: %s."), LexToString(Rejection));
 }

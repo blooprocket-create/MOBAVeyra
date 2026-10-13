@@ -71,7 +71,7 @@ Dashes, displacement, skillshots, ground areas, channels and basic attacks are *
 
 - Every later kit, item and Flux Spell composes the same statuses, movement, delivery and attack primitives; none rediscovers them.
 - Statuses stay inside the §41 allow-list and the death cleanup with no new execution.
-- Forced movement and dashes are server-authoritative and exact; clients may see smoothing on fast movement.
+- Forced movement and dashes are server-authoritative and exact; clients may see smoothing on fast movement. (Since [ADR-079](ADR-079-motions-not-places.md), every machine draws a forced move from its whole planned path at its true speed, and a blink as one instant.)
 - Replicated combat state is visible to every client until Vision gates it.
 
 ## Open items

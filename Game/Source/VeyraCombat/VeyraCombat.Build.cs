@@ -20,6 +20,10 @@ public class VeyraCombat : ModuleRules
 			"VeyraCore",
 		});
 
+		// Every unit's controller follows its path with UVeyraPathFollowingComponent, which tells the unit's motion the
+		// corners ahead (ADR-079 §2); its public header derives from the engine's path following.
+		PublicDependencyModuleNames.Add("AIModule");
+
 		// Push-model replication for the attribute sets and the absorption ledger.
 		PrivateDependencyModuleNames.Add("NetCore");
 

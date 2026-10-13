@@ -10,6 +10,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "GameFramework/PlayerState.h"
+#include "Movement/VeyraMovementComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
@@ -45,6 +46,9 @@ namespace VeyraNetTests
 
 		int32 AttackerId = INDEX_NONE;
 		int32 TargetId = INDEX_NONE;
+		/** Where the server stands the attacker to attack, and how near its drawn body must come to it. */
+		FVector Stands = FVector::ZeroVector;
+		static constexpr double DrawnSlack = 20.0;
 		/** A second enemy, for the attack-move preference. */
 		AVeyraPlayerState* Decoy = nullptr;
 
@@ -266,26 +270,10 @@ namespace VeyraNetTests
 				});
 		}
 
-		TEST_METHOD(AnAttackMoveTellsItsPlayerWhichEnemyItChases)
+		TEST_METHOD(AnAttackMovesBodyIsDrawnWhereTheServerStandsItToAttack)
 		{
-			// Its player's machine draws the body ahead only as far as the server stops it to attack the enemy it took on, not to
-			// its path's end (ADR-077 §3): the path names that enemy, and still answers to the point the order named.
-			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
-				.ThenServer(TEXT("Prepare the duel"), [this](FState& State) { PrepareDuel(State); })
-				.ThenClient(TEXT("Attack-move to the lane's centre"), 0, [](FState& State) {
-					LocalControllerOf(State.World)->IssueAttackMoveOrder(FVector::ZeroVector);
-				})
-				.UntilClient(TEXT("Its machine learns the path chases the enemy"), 0, [this](FState& State) {
-					const AVeyraPlayerState* Own = LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
-					const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, TargetId);
-					return Own && Enemy && Own->GetOwnPath().Target == Enemy && FVector::Dist2D(Own->GetOwnPath().Ordered, FVector::ZeroVector) <= 1.0;
-				});
-		}
-
-		TEST_METHOD(AnAttackMoveTellsItsPlayerOfAnEnemyAlreadyInReach)
-		{
-			// It takes the enemy on where it stands, without a step to walk: its player's machine still learns which enemy, so it
-			// draws the body standing there rather than on toward the order's point (ADR-077 §3).
+			// It takes the enemy on where it stands, without a step to walk: its player's machine, which began walking the order
+			// toward its point at once, draws the body standing where the server stands it to attack (ADR-079 §5).
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
 				.ThenServer(TEXT("Prepare the duel, within reach"), [this](FState& State) {
 					PrepareDuel(State);
@@ -295,14 +283,14 @@ namespace VeyraNetTests
 				.ThenClient(TEXT("Attack-move to the lane's centre"), 0, [](FState& State) {
 					LocalControllerOf(State.World)->IssueAttackMoveOrder(FVector::ZeroVector);
 				})
-				.UntilServer(TEXT("It attacks the enemy where it stands"), [](FState& State) {
+				.UntilServer(TEXT("It attacks the enemy where it stands"), [this](FState& State) {
+					Stands = ParticipantOf(State, 0)->GetPawn()->GetActorLocation();
 					return HealthLost(ParticipantOf(State, 1)) > 0.0;
 				})
-				.UntilClient(TEXT("Its machine learns the enemy it attacks"), 0, [this](FState& State) {
-					const AVeyraPlayerState* Own = LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
-					const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, TargetId);
-					return Own && Enemy && Own->GetOwnPath().Target == Enemy && Own->GetOwnPath().Points.Num() >= 2
-						&& FVector::Dist2D(Own->GetOwnPath().Ordered, FVector::ZeroVector) <= 1.0;
+				.UntilClient(TEXT("Its machine draws it standing there"), 0, [this](FState& State) {
+					const APawn* Own = LocalControllerOf(State.World)->GetCommandedBody();
+					const UVeyraMovementComponent* Movement = Own ? Own->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					return Movement && Movement->GetMotion().Kind == EVeyraMotionKind::Stand && FVector::Dist2D(Own->GetActorLocation(), Stands) <= DrawnSlack;
 				});
 		}
 	};

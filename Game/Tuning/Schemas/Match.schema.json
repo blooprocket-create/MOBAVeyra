@@ -426,7 +426,7 @@
       "description": "How the server accepts a player's move orders (ADR-006 §7: server-only movement). Provisional values.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["maxPerSecond", "destinationProjectionExtent", "arrivalTolerance", "avoidanceConsiderationRadius", "avoidanceWeight"],
+      "required": ["maxPerSecond", "destinationProjectionExtent", "arrivalTolerance", "avoidanceConsiderationRadius", "avoidanceWeight", "castBufferSeconds"],
       "properties": {
         "maxPerSecond": {
           "description": "Sustained orders a player may send per second; the server refuses the rest.",
@@ -450,6 +450,11 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
+        },
+        "castBufferSeconds": {
+          "description": "A cast refused only because the caster's last lockout (a cast's Recovery, its own dash) has at most this many seconds left is held, and cast the moment it may be (Combat Bible §26 input buffering). It never bypasses a cooldown, crowd control, a cost or a targeting rule. Provisional.",
+          "type": "number",
+          "minimum": 0
         },
         "avoidanceWeight": {
           "description": "How much of the steering a Vanguard takes on itself when it meets such a unit, 0 to 1. Provisional.",

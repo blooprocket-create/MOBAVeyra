@@ -7,8 +7,12 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraMobilitySet.h"
+#include "Engine/NetDriver.h"
 #include "GameFramework/PlayerState.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "Movement/VeyraMotion.h"
+#include "Movement/VeyraServerClock.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -34,6 +38,12 @@ namespace VeyraNetTests
 		// Fixture values: a short preparation, and a comparison allowance for float positions.
 		static constexpr double ShortPreparationSeconds = 0.1;
 		static constexpr double PositionSlack = 1.0;
+		// Fixture values: half a hosted round trip of lag on each side, with jitter, and what counts as a hitch.
+		static constexpr int32 OneWayLagMs = 30;
+		static constexpr int32 JitterMs = 20;
+		static constexpr double HitchShare = 0.5;
+		static constexpr double EdgeSeconds = 0.2;
+		static constexpr int32 FewestFrames = 20;
 
 		int32 MoverId = INDEX_NONE;
 
@@ -42,12 +52,73 @@ namespace VeyraNetTests
 
 		/** How fast the server walks the mover now. */
 		double ServerWalks = 0.0;
+		uint16 GivenOrder = 0;
+		double ToldLength = 0.0;
+		double ToldSpeed = 0.0;
+
+		/** A walking body's drawn steps, frame by frame: how many were measured, and how many fell short (a hitch). */
+		struct FStride
+		{
+			TOptional<FVector> Last;
+			int32 Frames = 0;
+			int32 Hitches = 0;
+		};
+		FStride Stride;
+		/** Where the mover stood before its first walk, which it walks back to. */
+		FVector WalkedFrom = FVector::ZeroVector;
+		/** The latest motion another machine was told of the mover, by its start, and when, by that machine's world clock. */
+		double SeenMotionStart = -1.0;
+		double SeenMotionAt = 0.0;
+
+		/**
+		 * Measures one frame of Body's drawn walk on World: a frame mid-walk in which the body covers less than half of what
+		 * its motion walks is a hitch. The first and last moments of a walk, where it starts and stops, are not measured.
+		 */
+		void MeasureStride(const UWorld& World, const APawn& Body)
+		{
+			const UVeyraMovementComponent* Movement = Body.FindComponentByClass<UVeyraMovementComponent>();
+			const UVeyraServerClock* Clock = UVeyraServerClock::Get(&World);
+			const FVector Here = Body.GetActorLocation();
+			const TOptional<FVector> Before = Stride.Last;
+			Stride.Last = Here;
+			if (!Movement || !Clock || !Before.IsSet())
+			{
+				return;
+			}
+			const FVeyraMotion& Drawn = Movement->GetDrawnMotion();
+			const double Now = Clock->Now() + Movement->GetDrawnLeadSeconds();
+			const bool bMidWalk = Drawn.Kind == EVeyraMotionKind::Walk && Now > Drawn.StartTime + EdgeSeconds && Now < VeyraMotion::EndTime(Drawn) - EdgeSeconds;
+			if (!bMidWalk)
+			{
+				return;
+			}
+			++Stride.Frames;
+			const double Expected = Drawn.Speed * World.GetDeltaSeconds();
+			Stride.Hitches += FVector::Dist2D(Here, Before.GetValue()) < Expected * HitchShare ? 1 : 0;
+		}
+
+		/** Puts a hosted connection's lag and jitter on World's outgoing packets. */
+		static void Roughen(UWorld& World)
+		{
+#if DO_ENABLE_NET_TEST
+			if (UNetDriver* Driver = World.GetNetDriver())
+			{
+				FPacketSimulationSettings Rough;
+				Rough.PktLag = OneWayLagMs;
+				Rough.PktLagVariance = JitterMs;
+				Driver->SetPacketSimulationSettings(Rough);
+			}
+#endif
+		}
 
 		BEFORE_EACH()
 		{
 			IgnoreKnownIrisWarnings(*TestRunner);
 			MostPastUpdate = 0.0;
 			ServerWalks = 0.0;
+			GivenOrder = 0;
+			SeenMotionStart = -1.0;
+			SeenMotionAt = 0.0;
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
@@ -86,35 +157,39 @@ namespace VeyraNetTests
 				.ThenClient(0, [this](FState& State) { ASSERT_THAT(AreEqual(LocalControllerOf(State.World)->GetOrderRejectionCount(), 0)); });
 		}
 
-		TEST_METHOD(TheServersPathReachesItsOwnPlayerAlone)
+		TEST_METHOD(EveryMachineLearnsTheWalkButNotWhereItEnds)
 		{
-			// The player's machine draws its own body ahead along the path the server walks it; where it goes is for that
-			// player alone (ADR-077 §3).
+			// Every machine that sees the body is told its walk as a motion, but only as far as it walks in the tuning's horizon,
+			// so where a Vanguard is going stays its own (ADR-079 §2).
 			const FVector Destination = FVector::ZeroVector;
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
 				.ThenServer([this](FState& State) { MoverId = ServerControllerOf(State, 0)->PlayerState->GetPlayerId(); })
 				.ThenClient(0, [Destination](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(Destination); })
-				.UntilClient(0, [Destination](FState& State) {
-					const AVeyraPlayerController* Local = LocalControllerOf(State.World);
-					const AVeyraPlayerState* Own = Local ? Local->GetPlayerState<AVeyraPlayerState>() : nullptr;
-					const FVeyraOwnPath* Path = Own ? &Own->GetOwnPath() : nullptr;
-					return Path && Path->Points.Num() >= 2 && Path->Body == Local->GetCommandedBody()
-						&& FVector::Dist2D(Path->Ordered, Destination) <= PositionSlack;
+				.UntilClient(1, [this](FState& State) {
+					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
+					const UVeyraMovementComponent* Movement = Mover ? Mover->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					if (!Movement || Movement->GetMotion().Kind != EVeyraMotionKind::Walk)
+					{
+						return false;
+					}
+					ToldLength = VeyraMotion::Length(Movement->GetMotion());
+					ToldSpeed = Movement->GetMotion().Speed;
+					return true;
+				})
+				.ThenClient(1, [this](FState&) {
+					const double Horizon = UVeyraCombatTuningSubsystem::Get().Motion.HorizonSeconds * ToldSpeed;
+					ASSERT_THAT(IsTrue(ToldLength <= Horizon + PositionSlack, *FString::Printf(TEXT("told %.0f units of its walk"), ToldLength)));
 				})
 				.UntilServer(TEXT("The server moves the Vanguard"), [this, Destination](FState& State) {
 					return IsNear2D(FindVanguard(State.World, MoverId), Destination);
-				})
-				.ThenClient(1, [this](FState& State) {
-					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
-					const AVeyraPlayerState* Theirs = Mover ? Mover->GetPlayerState<AVeyraPlayerState>() : nullptr;
-					ASSERT_THAT(IsTrue(Theirs && Theirs->GetOwnPath().Points.IsEmpty(), TEXT("another player's machine never learns it")));
 				});
 		}
 
-		TEST_METHOD(TheServersSpeedForTheBodyReachesItsOwnPlayer)
+		TEST_METHOD(ItsMotionCarriesTheSpeedTheServerWalksItAt)
 		{
-			// The player's machine draws its body ahead at the speed the server walks it at now, slows and all, not its raw
-			// Movement Speed (ADR-077 §2). Fixture values: a Slow that halves its speed, for longer than the test.
+			// The player's machine walks an order it gives at the speed the server walks the body at now, slows and all, not its
+			// raw Movement Speed: every motion carries it (ADR-079 §5). Fixture values: a Slow that halves its speed, for longer
+			// than the test.
 			constexpr double SlowShare = 0.5;
 			constexpr double SlowSeconds = 600.0;
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
@@ -137,30 +212,124 @@ namespace VeyraNetTests
 					return Combatant && ServerWalks > 0.0 && ServerWalks < Combatant->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
 				})
 				.UntilClient(0, [this](FState& State) {
-					const AVeyraPlayerState* Own = LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
-					return Own && FMath::IsNearlyEqual(Own->GetOwnBodySpeed(), ServerWalks, PositionSlack);
+					const APawn* Own = LocalControllerOf(State.World)->GetCommandedBody();
+					const UVeyraMovementComponent* Movement = Own ? Own->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					return Movement && FMath::IsNearlyEqual(Movement->GetMotion().Speed, ServerWalks, PositionSlack);
 				});
 		}
 
-		TEST_METHOD(AnotherMachineDrawsAWalkingVanguardWhereTheServerLastSentIt)
+		TEST_METHOD(AnotherMachineDrawsAWalkingVanguardOnItsMotion)
 		{
-			// Never past the server's latest update: a machine that only shows the body eases it between updates rather than
-			// sliding it on and pulling it back at a stop (ADR-077 §1).
+			// A machine that only shows the body draws it where its motion has it on the server's clock now, once its ease onto a
+			// newly told motion has closed, and walks it to the very place the server's body stops (ADR-079 §3).
 			const FVector Destination = FVector::ZeroVector;
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
 				.ThenServer([this](FState& State) { MoverId = ServerControllerOf(State, 0)->PlayerState->GetPlayerId(); })
 				.ThenClient(0, [Destination](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(Destination); })
 				.UntilClient(1, [this, Destination](FState& State) {
 					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
+					const UVeyraMovementComponent* Movement = Mover ? Mover->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					const UVeyraServerClock* Clock = UVeyraServerClock::Get(State.World);
+					if (!Movement || !Clock || !Movement->HasMotion())
+					{
+						return false;
+					}
+					// Once its ease onto the latest motion has closed, the body is drawn where that motion has it.
+					const double WorldNow = State.World->GetTimeSeconds();
+					if (Movement->GetMotion().StartTime != SeenMotionStart)
+					{
+						SeenMotionStart = Movement->GetMotion().StartTime;
+						SeenMotionAt = WorldNow;
+					}
+					if (WorldNow - SeenMotionAt > UVeyraCombatTuningSubsystem::Get().Motion.CorrectionSeconds)
+					{
+						// This check may run before or after the body is drawn this frame: a frame's walk either way.
+						const FVector OnMotion = VeyraMotion::Sample(Movement->GetMotion(), Clock->Now()).Location;
+						const double FramesWalk = Movement->GetMotion().Speed * State.World->GetDeltaSeconds();
+						MostPastUpdate = FMath::Max(MostPastUpdate, FVector::Dist2D(Mover->GetActorLocation(), OnMotion) - FramesWalk);
+					}
+					return IsNear2D(Mover, Destination) && Movement->GetMotion().Kind == EVeyraMotionKind::Stand;
+				})
+				.ThenClient(1, [this](FState&) {
+					const double Allowed = PositionSlack;
+					ASSERT_THAT(IsTrue(MostPastUpdate <= Allowed, *FString::Printf(TEXT("drawn %.1f units from its motion"), MostPastUpdate)));
+				});
+		}
+
+		TEST_METHOD(ItsOwnMachineWalksAnOrderTheMomentItIsGiven)
+		{
+			// The player's own machine draws its body carrying out the order at once, and the server's answer to that very order
+			// takes over (ADR-079 §5).
+			const FVector Destination = FVector::ZeroVector;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenClient(0, [this, Destination](FState& State) {
+					AVeyraPlayerController* Local = LocalControllerOf(State.World);
+					Local->IssueMoveOrder(Destination);
+					const APawn* Own = Local->GetCommandedBody();
+					const UVeyraMovementComponent* Movement = Own ? Own->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					ASSERT_THAT(IsNotNull(Movement));
+					ASSERT_THAT(IsTrue(Local->GetOrderMark().IsSet()));
+					GivenOrder = Local->GetOrderMark()->Number;
+					ASSERT_THAT(IsTrue(Movement->GetDrawnMotion().Kind == EVeyraMotionKind::Walk && Movement->GetDrawnMotion().OrderNumber == GivenOrder,
+						TEXT("walks the order the frame it is given")));
+				})
+				.UntilClient(0, [this](FState& State) {
+					const APawn* Own = LocalControllerOf(State.World)->GetCommandedBody();
+					const UVeyraMovementComponent* Movement = Own ? Own->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					return Movement && Movement->GetMotion().OrderNumber == GivenOrder && &Movement->GetDrawnMotion() == &Movement->GetMotion();
+				});
+		}
+
+		TEST_METHOD(BodiesWalkSmoothlyThroughLagAndJitter)
+		{
+			// With a hosted connection's lag and jitter, a walking body never hitches: not on another player's machine, which
+			// draws it from its motion, nor on its own player's, which draws its order at once and then the server's answer
+			// (ADR-079 §3, §5).
+			const FVector Destination = FVector::ZeroVector;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer([this](FState& State) {
+					MoverId = ServerControllerOf(State, 0)->PlayerState->GetPlayerId();
+					Roughen(*State.World);
+				})
+				.ThenClient(0, [](FState& State) { Roughen(*State.World); })
+				.ThenClient(1, [](FState& State) { Roughen(*State.World); })
+				.ThenClient(0, [this](FState& State) {
+					Stride = FStride();
+					AVeyraPlayerController* Local = LocalControllerOf(State.World);
+					WalkedFrom = Local->GetCommandedBody()->GetActorLocation();
+					Local->IssueMoveOrder(FVector::ZeroVector);
+				})
+				.UntilClient(1, [this, Destination](FState& State) {
+					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
 					if (!Mover)
 					{
 						return false;
 					}
-					MostPastUpdate = FMath::Max(MostPastUpdate, FVector::Dist2D(Mover->GetActorLocation(), Mover->GetReplicatedMovement().Location));
-					return IsNear2D(Mover, Destination);
+					MeasureStride(*State.World, *Mover);
+					return IsNear2D(Mover, Destination) && Mover->FindComponentByClass<UVeyraMovementComponent>()->GetMotion().Kind == EVeyraMotionKind::Stand;
 				})
 				.ThenClient(1, [this](FState&) {
-					ASSERT_THAT(IsTrue(MostPastUpdate <= PositionSlack, *FString::Printf(TEXT("drawn %.1f units from its latest update"), MostPastUpdate)));
+					ASSERT_THAT(IsTrue(Stride.Frames >= FewestFrames, *FString::Printf(TEXT("measured %d frames"), Stride.Frames)));
+					ASSERT_THAT(AreEqual(Stride.Hitches, 0, TEXT("another machine drew the walk hitching")));
+				})
+				.ThenClient(0, [this](FState& State) {
+					Stride = FStride();
+					AVeyraPlayerController* Local = LocalControllerOf(State.World);
+					Local->IssueMoveOrder(WalkedFrom);
+				})
+				.UntilClient(0, [this](FState& State) {
+					const APawn* Own = LocalControllerOf(State.World)->GetCommandedBody();
+					const UVeyraMovementComponent* Movement = Own ? Own->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					if (!Movement)
+					{
+						return false;
+					}
+					MeasureStride(*State.World, *Own);
+					return Stride.Frames > 0 && Movement->GetMotion().Kind == EVeyraMotionKind::Stand && &Movement->GetDrawnMotion() == &Movement->GetMotion();
+				})
+				.ThenClient(0, [this](FState&) {
+					ASSERT_THAT(IsTrue(Stride.Frames >= FewestFrames, *FString::Printf(TEXT("measured %d frames"), Stride.Frames)));
+					ASSERT_THAT(AreEqual(Stride.Hitches, 0, TEXT("its own machine drew the walk hitching")));
 				});
 		}
 
