@@ -34,6 +34,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraTelegraphFill.h"
 #include "Kit/VeyraKitPresentationSettings.h"
+#include "Kit/VeyraSkillEffectsSubsystem.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Greybox/VeyraUnitArtSet.h"
@@ -641,6 +642,26 @@ namespace VeyraAbilitiesTests
 			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
 			ASSERT_THAT(IsTrue(Presentation.GetTelegraphs().IsEmpty(), TEXT("its own effect shows where it lands")));
 			ASSERT_THAT(IsTrue(Presentation.GetTelegraphFills().IsEmpty()));
+		}
+
+		TEST_METHOD(ATelegraphStaysWholeWhenTheEffectsCannotShow)
+		{
+			// An effect that failed to load shows nothing: the telegraph it would have stood in for stays (ADR-075 §1).
+			GiveSlamEffects(/*bArea*/ true, EVeyraTelegraphShow::None);
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			const bool bWasReady = Skills->IsReady();
+			Skills->SetReadyForTests(false);
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_slam")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector(0.0, CastRange / 2.0, 0.0)) == EVeyraCastRejection::None));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const int32 Zones = Tuning.Area[ArchetypeTestId(TEXT("test_slam"))].Zones.Num();
+			const int32 Shown = Presentation.GetTelegraphs().Num();
+			const int32 Filled = Presentation.GetTelegraphFills().Num();
+			Skills->SetReadyForTests(bWasReady);
+			ASSERT_THAT(AreEqual(Shown, Zones, TEXT("each zone's outline")));
+			ASSERT_THAT(AreEqual(Filled, Zones, TEXT("and its fill")));
 		}
 
 		TEST_METHOD(AnOutlinedThreatKeepsItsOutlineWithoutItsFill)

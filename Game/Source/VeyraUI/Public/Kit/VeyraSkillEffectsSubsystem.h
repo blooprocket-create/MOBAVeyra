@@ -136,6 +136,17 @@ public:
 	/** Whether Caster's windup or channel stages show now (begun by a cue, or by seeing it already held). */
 	bool IsShowing(const AActor& Caster) const { return Showing.Contains(&Caster); }
 
+	/**
+	 * Whether its settings held and every stage's effect loaded at start. Not ready, it shows nothing of its own, so no
+	 * telegraph may be thinned on its account (ADR-075 §1).
+	 */
+	bool IsReady() const { return bReady; }
+
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Tests only: as though its effects had failed to load. */
+	void SetReadyForTests(bool bInReady) { bReady = bInReady; }
+#endif
+
 	/** The windup effects pouring off Caster now, one per bone; empty while none does. */
 	TArray<UNiagaraComponent*> FindWindupEffects(const AActor& Caster) const;
 
