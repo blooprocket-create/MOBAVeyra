@@ -1,0 +1,4 @@
+# The Crucible's mass generator (ADR-073 §2), pinned. Install with:
+#   python -m pip install -r Game/Scripts/Crucible/requirements.txt
+shapely==2.2.0
+numpy==2.5.1

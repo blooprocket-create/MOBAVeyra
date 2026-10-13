@@ -24,7 +24,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Terrain/VeyraGround.h"
 #include "Terrain/VeyraSurfacePlacement.h"
-#include "Terrain/VeyraTerrainWall.h"
+#include "Terrain/VeyraTerrainMass.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraBattlegroundSubsystem.h"
 
@@ -130,9 +130,18 @@ namespace
 					Anchors.Add(NameOf(Placement), Placement.Location);
 				}
 			}
+			// Camps by id, as two may share a species; every clearing and each lane's keep gate too (ADR-073 §4).
 			for (const FVeyraCampTuning& Camp : Tuning.Wildlife.Camps)
 			{
-				Anchors.Add(TEXT("Camp.") + Camp.Species.ToString(), VeyraLayout::ToVector(Camp.Center));
+				Anchors.Add(TEXT("Camp.") + Camp.Id.ToString(), VeyraLayout::ToVector(Camp.Center));
+			}
+			for (const FVeyraClearingLayout& Clearing : Layout.Clearings)
+			{
+				Anchors.Add(TEXT("Clearing.") + Clearing.Id.ToString(), VeyraLayout::ToVector(Clearing.Center));
+			}
+			for (const FVeyraKeepGateLayout& Gate : Layout.Keep.Gates)
+			{
+				Anchors.Add(TEXT("Gate.") + LaneName(Gate.Lane), VeyraLayout::ToVector(Gate.Center));
 			}
 			for (int32 Site = 0; Site < Tuning.FluxWells.Sites.Num(); ++Site)
 			{
@@ -301,8 +310,8 @@ namespace
 		}
 
 		/**
-		 * Every wall blocks: no walkable navigation within the square inscribed in its thickness about its centre, which
-		 * stays inside its footprint however it faces.
+		 * Every terrain box blocks: no walkable navigation within the square inscribed in its shorter side about its centre,
+		 * which stays inside its footprint however it faces.
 		 */
 		TSharedRef<FJsonObject> Walls()
 		{
@@ -312,8 +321,11 @@ namespace
 			{
 				double Z = 0.0;
 				FNavLocation Location;
-				const double Half = Box.Thickness / 2.0 * UE_INV_SQRT_2;
-				// A wall is a dynamic obstacle: navigation marks its footprint with the obstacle area, which paths avoid.
+				// A short box, as a split edge's last piece can be, is shorter than it is thick: probing by its thickness
+				// alone would reach past its ends and could report open ground beside it as walkable terrain.
+				const double Half = FMath::Min(Box.Length, Box.Thickness) / 2.0 * UE_INV_SQRT_2;
+				// A terrain box cuts the navigation (ADR-073 §3), leaving nothing to stand on in its footprint; ground found there
+				// is walkable unless only an obstacle's cost lies on it.
 				if (Ground(Box.Centre, Z)
 					&& Navigation->ProjectPointToNavigation(FVector(Box.Centre, Z), Location, FVector(Half, Half, Layout.Surface.MaxZ - Layout.Surface.MinZ)))
 				{
@@ -467,12 +479,13 @@ namespace
 			return true;
 		}
 
+		/** How many terrain boxes stand in the world: every piece's. */
 		int32 CountWalls() const
 		{
 			int32 Walls = 0;
-			for (TActorIterator<AVeyraTerrainWall> It(&World); It; ++It)
+			for (TActorIterator<AVeyraTerrainMass> It(&World); It; ++It)
 			{
-				++Walls;
+				Walls += It->GetBoxes().Num();
 			}
 			return Walls;
 		}
@@ -698,7 +711,7 @@ int32 UVeyraWorldValidateCommandlet::Main(const FString& /*Params*/)
 	Report->SetArrayField(TEXT("anchors"), Validation.Surfaces());
 	Report->SetObjectField(TEXT("terrain"), Validation.Terrain());
 
-	// The layout's walls, raised as the server raises them, then the navigation the server builds over them. The
+	// The layout's terrain, raised as the server raises it, then the navigation the server builds round it. The
 	// structures stay out: each stands in its own navigation hole, and the layout check above places them.
 	UVeyraBattlegroundSubsystem* Battleground = World->GetSubsystem<UVeyraBattlegroundSubsystem>();
 	if (!Battleground)
@@ -706,13 +719,8 @@ int32 UVeyraWorldValidateCommandlet::Main(const FString& /*Params*/)
 		UE_LOG(LogVeyraWorldValidate, Error, TEXT("The map's world has no battleground subsystem."));
 		return 1;
 	}
-	Battleground->RaiseWalls(Tuning.Layout);
-	// A wall takes its shape, collision and obstacle as play begins (AVeyraTerrainWall::BeginPlay); this world never
-	// begins play, so begin theirs.
-	for (TActorIterator<AVeyraTerrainWall> It(World); It; ++It)
-	{
-		It->DispatchBeginPlay();
-	}
+	// Each box blocks and marks navigation from the moment it is built, so this world, which never begins play, needs no more.
+	Battleground->RaiseTerrain(Tuning.Layout);
 	FNavigationSystem::AddNavigationSystemToWorld(*World, FNavigationSystemRunMode::EditorMode);
 	if (UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World))
 	{

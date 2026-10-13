@@ -62,6 +62,7 @@ The terrain-fairness requirement remains binding: no starting side may receive a
 - Competitive distances should be balanced, but the final visual geometry does not need to be a literal mirror of the reference battleground's shape.
 - **Terrain fairness (author ruling, 2026-10-01):** neither team may gain an inherent competitive advantage from its starting side's terrain. Equivalent routes and combat spaces must preserve fair travel times, slopes and elevation transitions, chokepoints, crossings, objective access, cover, sightlines, collision, approach and escape options, and gameplay-camera readability. Visual asymmetry is allowed only where these gameplay conditions remain competitively equivalent. A terrain-induced side advantage blocks map acceptance.
 - **Symmetry and river (author ruling, 2026-10-05):** the prototype battleground is symmetric under a half turn about its centre: Team B's half is Team A's turned 180 degrees, so each lane, route, wall and objective has an equivalent on the other side, and top and bot trade places. The river follows a naturally curved course through the centre, and each Flux Well stands on an island in it, a side channel parting from the river and rejoining it around the Well.
+- **Playable spaces first (author approval, 2026-10-12; [ADR-073](../ADR/ADR-073-the-crucible-from-its-playable-spaces.md)):** the battleground is laid out from what is walked: the lanes with their shoulders, each team's walled keep with a gate for each lane, camp clearings and glades, routes of set widths, and the river, walkable as far as its outer fords before it falls away through a gorge. Everything else is rock and forest, generated from those spaces, so no clearing or route can be eaten by a wall drawn elsewhere. Spires stand beside their road, not on it, and a lane's Dense Fog lines its edges, never its road.
 
 **DESIGN INTENT**
 
@@ -192,6 +193,7 @@ The defining map difference is spatial: top and bot are not boundary lanes. Wild
 | **OUTER JUNGLE**    | Wilderness above top and below bot. Enables wraparound ganks, counter-jungling, double-roamer paths, and map movement that does not always pass through mid/river-style chokepoints. |
 | **GANK PHILOSOPHY** | More approach options than a traditional edge-lane map, but not so many entrances that laning becomes impossible to read.                                                            |
 | **SYMMETRY**        | Gameplay access and travel times should be competitively fair even if visual environments are not literal mirror copies.                                                             |
+| **MASSES**          | The jungle's walls are its rock and forest masses: whatever the clearings, routes, lanes, keeps and river leave (§2; ADR-073). Rock stands tall; forest is lower, with canopy on top. |
 
 **DOUBLE ROAMING**
 

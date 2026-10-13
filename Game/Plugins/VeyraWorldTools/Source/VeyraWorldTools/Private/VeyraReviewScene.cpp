@@ -1,7 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "VeyraWorldBuild.h"
-#include "Algo/MaxElement.h"
+#include "Algo/MinElement.h"
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
@@ -157,12 +157,17 @@ namespace VeyraWorldBuild
 			const FVector2D Well = VeyraLayout::ForTeam(VeyraLayout::ToVector(Layout.Base.PrimeWell), Team);
 			Beauty(TEXT("PrimeWell_") + Side, Well, Team == EVeyraTeam::B);
 			Play(TEXT("PrimeWell_") + Side, Well);
-			Play(TEXT("BaseApproach_") + Side, Well * (1.0 - Layout.Base.PadRadius / Well.Size()));
-			Beauty(TEXT("BaseApproach_") + Side, Well * (1.0 - Layout.Base.PadRadius / Well.Size()), Team == EVeyraTeam::B);
-			for (int32 Index = 0; Index < Tuning.Wildlife.Camps.Num(); ++Index)
+			// The approach to each keep through its mid gate (ADR-073 §1).
+			if (const FVeyraKeepGateLayout* Gate = Layout.Keep.Gates.FindByPredicate([](const FVeyraKeepGateLayout& Each) { return Each.Lane == EVeyraLane::Mid; }))
 			{
-				const FVector2D Camp = VeyraLayout::ForTeam(VeyraLayout::ToVector(Tuning.Wildlife.Camps[Index].Center), Team);
-				Play(FString::Printf(TEXT("Jungle_%s%d"), *Side, Index), Camp);
+				const FVector2D Approach = VeyraLayout::ForTeam(VeyraLayout::ToVector(Gate->Center), Team);
+				Play(TEXT("BaseApproach_") + Side, Approach);
+				Beauty(TEXT("BaseApproach_") + Side, Approach, Team == EVeyraTeam::B);
+			}
+			// Each camp by its id, as two camps may share a species (ADR-073 §1).
+			for (const FVeyraCampTuning& Camp : Tuning.Wildlife.Camps)
+			{
+				Play(FString::Printf(TEXT("Jungle_%s_%s"), *Side, *Camp.Id.ToString()), VeyraLayout::ForTeam(VeyraLayout::ToVector(Camp.Center), Team));
 			}
 		}
 		for (int32 Index = 0; Index < Tuning.FluxWells.Sites.Num(); ++Index)
@@ -175,13 +180,14 @@ namespace VeyraWorldBuild
 		{
 			Play(TEXT("DenseFog"), VeyraLayout::ToVector(Layout.DenseFog[0].Center));
 		}
-		// Each of Team A's walls where it is thickest, as a player meets it.
-		for (int32 Index = 0; Index < Layout.Walls.Num(); ++Index)
+		// Each of Team A's masses at the corner nearest the centre, where play usually meets it (ADR-073 §2).
+		for (const FVeyraMassShape& Mass : VeyraLayout::Masses(Layout))
 		{
-			const FVeyraWallShape Wall = VeyraLayout::WallShape(Layout, Index, EVeyraTeam::A);
-			if (const FVeyraCurveSample* Thickest = Algo::MaxElementBy(Wall.Spine, &FVeyraCurveSample::Width))
+			const FString& Id = Layout.Masses.Items[Mass.Index].Id;
+			const FVector2D* Nearest = Algo::MinElementBy(Mass.Outline, [](const FVector2D& Corner) { return Corner.SizeSquared(); });
+			if (Id.StartsWith(TEXT("a")) && Nearest)
 			{
-				Play(FString::Printf(TEXT("Wall_%02d"), Index), Thickest->Point);
+				Play(TEXT("Mass_") + Id, *Nearest);
 			}
 		}
 		// The camp farthest from the centre: the outer jungle, and the densest foliage to benchmark.

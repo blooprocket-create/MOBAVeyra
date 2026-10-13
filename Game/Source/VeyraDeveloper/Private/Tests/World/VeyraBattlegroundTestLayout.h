@@ -19,7 +19,9 @@ namespace VeyraWorldTests
 	inline FVeyraBattlegroundLayout CompactBattleground()
 	{
 		FVeyraBattlegroundLayout Layout;
-		Layout.HalfExtent = 3000.0;
+		// The committed floor's size: what the committed tuning places that a test does not override, as the Flux Wells,
+		// still has ground under it.
+		Layout.HalfExtent = UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent;
 		Layout.Surface = UVeyraWorldTuningSubsystem::Get().Layout.Surface;
 		Layout.Terrain = UVeyraWorldTuningSubsystem::Get().Layout.Terrain;
 		// A straight river from the centre off the floor, its rotation the other way; no islands.
@@ -37,8 +39,9 @@ namespace VeyraWorldTests
 		Layout.Base.PrimeWell = { -2400.0, -2400.0 };
 		Layout.Base.BaseTowers = { { -1800.0, -2300.0 }, { -2300.0, -1800.0 } };
 		Layout.Base.Fountain = { -2750.0, -2750.0 };
-		Layout.Base.PadRadius = 800.0;
 		Layout.Base.FountainRadius = 300.0;
+		// The keep's floor round the base, open to the lane; no masses, walls or rim, so nothing blocks the fixture.
+		Layout.Keep.Floor = { { -3000.0, -3000.0 }, { -1650.0, -3000.0 }, { -1650.0, -1650.0 }, { -3000.0, -1650.0 } };
 		return Layout;
 	}
 
