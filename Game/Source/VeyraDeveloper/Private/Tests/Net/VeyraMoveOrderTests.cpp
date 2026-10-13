@@ -9,6 +9,7 @@
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "VeyraPlayerState.h"
+#include "VeyraVanguardCharacter.h"
 #include "VeyraVanguardController.h"
 
 namespace VeyraNetTests
@@ -32,9 +33,13 @@ namespace VeyraNetTests
 
 		int32 MoverId = INDEX_NONE;
 
+		/** How far, at most, another machine drew the mover's capsule from its latest update. */
+		double MostPastUpdate = 0.0;
+
 		BEFORE_EACH()
 		{
 			IgnoreKnownIrisWarnings(*TestRunner);
+			MostPastUpdate = 0.0;
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
@@ -71,6 +76,53 @@ namespace VeyraNetTests
 					return IsNear2D(FindVanguard(State.World, MoverId), Destination);
 				})
 				.ThenClient(0, [this](FState& State) { ASSERT_THAT(AreEqual(LocalControllerOf(State.World)->GetOrderRejectionCount(), 0)); });
+		}
+
+		TEST_METHOD(TheServersPathReachesItsOwnPlayerAlone)
+		{
+			// The player's machine draws its own body ahead along the path the server walks it; where it goes is for that
+			// player alone (ADR-077 §3).
+			const FVector Destination = FVector::ZeroVector;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer([this](FState& State) { MoverId = ServerControllerOf(State, 0)->PlayerState->GetPlayerId(); })
+				.ThenClient(0, [Destination](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(Destination); })
+				.UntilClient(0, [Destination](FState& State) {
+					const AVeyraPlayerController* Local = LocalControllerOf(State.World);
+					const AVeyraPlayerState* Own = Local ? Local->GetPlayerState<AVeyraPlayerState>() : nullptr;
+					const FVeyraOwnPath* Path = Own ? &Own->GetOwnPath() : nullptr;
+					return Path && Path->Points.Num() >= 2 && Path->Body == Local->GetCommandedBody()
+						&& FVector::Dist2D(Path->Ordered, Destination) <= PositionSlack;
+				})
+				.UntilServer(TEXT("The server moves the Vanguard"), [this, Destination](FState& State) {
+					return IsNear2D(FindVanguard(State.World, MoverId), Destination);
+				})
+				.ThenClient(1, [this](FState& State) {
+					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
+					const AVeyraPlayerState* Theirs = Mover ? Mover->GetPlayerState<AVeyraPlayerState>() : nullptr;
+					ASSERT_THAT(IsTrue(Theirs && Theirs->GetOwnPath().Points.IsEmpty(), TEXT("another player's machine never learns it")));
+				});
+		}
+
+		TEST_METHOD(AnotherMachineDrawsAWalkingVanguardWhereTheServerLastSentIt)
+		{
+			// Never past the server's latest update: a machine that only shows the body eases it between updates rather than
+			// sliding it on and pulling it back at a stop (ADR-077 §1).
+			const FVector Destination = FVector::ZeroVector;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer([this](FState& State) { MoverId = ServerControllerOf(State, 0)->PlayerState->GetPlayerId(); })
+				.ThenClient(0, [Destination](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(Destination); })
+				.UntilClient(1, [this, Destination](FState& State) {
+					const AVeyraVanguardCharacter* Mover = FindVanguard(State.World, MoverId);
+					if (!Mover)
+					{
+						return false;
+					}
+					MostPastUpdate = FMath::Max(MostPastUpdate, FVector::Dist2D(Mover->GetActorLocation(), Mover->GetReplicatedMovement().Location));
+					return IsNear2D(Mover, Destination);
+				})
+				.ThenClient(1, [this](FState&) {
+					ASSERT_THAT(IsTrue(MostPastUpdate <= PositionSlack, *FString::Printf(TEXT("drawn %.1f units from its latest update"), MostPastUpdate)));
+				});
 		}
 
 		TEST_METHOD(SteeringAHeldOrderMovesTheVanguard)

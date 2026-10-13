@@ -207,7 +207,8 @@ namespace VeyraVanguardBodyTests
 			ASSERT_THAT(IsTrue(Presentation.FindBody(Unit)->GetAttachParent() == Unit.GetMesh(), TEXT("and so does its disc")));
 			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 			const UCharacterMovementComponent& Movement = *Unit.GetCharacterMovement();
-			ASSERT_THAT(IsTrue(Movement.NetworkSmoothingMode == ENetworkSmoothingMode::Exponential));
+			// Between the server's last two updates, on the server's own time between them, never past the latest (ADR-077 §1).
+			ASSERT_THAT(IsTrue(Movement.NetworkSmoothingMode == ENetworkSmoothingMode::Linear));
 			ASSERT_THAT(IsNear(Movement.NetworkSimulatedSmoothLocationTime, Settings.VanguardEaseLocationSeconds, KINDA_SMALL_NUMBER));
 			ASSERT_THAT(IsNear(Movement.NetworkSimulatedSmoothRotationTime, Settings.VanguardEaseRotationSeconds, KINDA_SMALL_NUMBER));
 			// At rest it is drawn where it stands; while the mesh eases, the body and the place drawn over it go with the mesh.

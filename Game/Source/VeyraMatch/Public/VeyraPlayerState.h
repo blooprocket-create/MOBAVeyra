@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "Content/VeyraContentId.h"
 #include "GameFramework/PlayerState.h"
+#include "Input/VeyraOwnPath.h"
 #include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
 
@@ -139,6 +140,15 @@ public:
 	 */
 	bool TryShowMasteryEmote(double Now, const FVeyraMasteryEmoteTuning& Emote);
 
+	/**
+	 * The path the server walks the body this participant commands along, on its own player's machine alone, which draws
+	 * the body ahead along it (ADR-077 §3). Empty before its first.
+	 */
+	const FVeyraOwnPath& GetOwnPath() const { return OwnPath; }
+
+	/** Server only: sends Path to the participant's own machine at once, numbered after the last. */
+	void SetOwnPath(FVeyraOwnPath Path);
+
 protected:
 	/**
 	 * The engine destroys a departing player's PlayerState. Veyra keeps it: the Vanguard stays in the
@@ -257,6 +267,10 @@ private:
 
 	UPROPERTY(Replicated)
 	double MasteryEmoteUntil = 0.0;
+
+	/** To the owning player's machine only. */
+	UPROPERTY(Replicated)
+	FVeyraOwnPath OwnPath;
 
 	/** Server only: when, in world time, the mastery emote may next show. */
 	double NextMasteryEmoteAt = 0.0;

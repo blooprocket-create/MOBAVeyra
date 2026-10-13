@@ -6,6 +6,7 @@
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include "Life/VeyraCombatEventSubsystem.h"
@@ -27,6 +28,79 @@ namespace
 	{
 		return !Direction.GetSafeNormal2D().IsNearlyZero() && FMath::IsFinite(Distance) && Distance > 0.0 && FMath::IsFinite(Speed) && Speed > 0.0;
 	}
+}
+
+UVeyraMovementComponent::UVeyraMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// The server stamps each update with its own time, so a machine that only shows the body can ease it from one update
+	// to the next over the time that truly passed between them (Linear smoothing; ADR-077 §1).
+	bNetworkAlwaysReplicateTransformUpdateTimestamp = true;
+}
+
+void UVeyraMovementComponent::SetDrawnLead(const FVector2D& Lead)
+{
+	// Only a machine that only shows the body draws one; the server's body is the truth.
+	DrawnLead = CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy ? Lead : FVector2D::ZeroVector;
+}
+
+FVector UVeyraMovementComponent::GetSmoothedLocation() const
+{
+	const FVector Capsule = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+	if (!CharacterOwner || CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy)
+	{
+		return Capsule;
+	}
+	const FNetworkPredictionData_Client_Character* Smoothing = GetPredictionData_Client_Character();
+	return Smoothing ? Capsule + Smoothing->MeshTranslationOffset : Capsule;
+}
+
+double UVeyraMovementComponent::GetDrawnDelaySeconds() const
+{
+	if (!CharacterOwner || CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy || NetworkSmoothingMode != ENetworkSmoothingMode::Linear)
+	{
+		return 0.0;
+	}
+	const FNetworkPredictionData_Client_Character* Smoothing = GetPredictionData_Client_Character();
+	return Smoothing ? FMath::Max(0.0, Smoothing->SmoothingServerTimeStamp - Smoothing->SmoothingClientTimeStamp) : 0.0;
+}
+
+void UVeyraMovementComponent::SimulatedTick(float DeltaSeconds)
+{
+	// A lead to draw, or one just let go, places the mesh again this frame, even once its smoothing is done.
+	if (!DrawnLead.IsZero() || bLeadDrawn)
+	{
+		bNetworkSmoothingComplete = false;
+	}
+	Super::SimulatedTick(DeltaSeconds);
+}
+
+void UVeyraMovementComponent::SimulateMovement(float DeltaSeconds)
+{
+	// A machine that only shows the body draws it between the server's last two updates, never past the latest: its
+	// capsule holds the place the server last sent rather than sliding on at its last velocity, so a stop or a turn is
+	// never overshot and pulled back (ADR-077 §1). The velocity stays as sent, for the body's animation.
+	if (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		const FVector Sent = Velocity;
+		Velocity = FVector::ZeroVector;
+		Super::SimulateMovement(DeltaSeconds);
+		Velocity = Sent;
+		return;
+	}
+	Super::SimulateMovement(DeltaSeconds);
+}
+
+void UVeyraMovementComponent::SmoothClientPosition(float DeltaSeconds)
+{
+	Super::SmoothClientPosition(DeltaSeconds);
+	// The smoothing has just placed the mesh afresh; the lead moves it on from there, so it never builds up.
+	USkeletalMeshComponent* Mesh = CharacterOwner ? CharacterOwner->GetMesh() : nullptr;
+	if (Mesh && !DrawnLead.IsZero())
+	{
+		Mesh->AddWorldOffset(FVector(DrawnLead, 0.0), false, nullptr, ETeleportType::TeleportPhysics);
+	}
+	bLeadDrawn = Mesh && !DrawnLead.IsZero();
 }
 
 void UVeyraMovementComponent::BindCombatant(UAbilitySystemComponent* Combatant)

@@ -38,8 +38,10 @@ On the player's own machine only, and in presentation only:
 ### 3. A skillshot shows the rest of its path
 Every projectile that flies a line is drawn with a faint lane on the ground. The lane runs from where the server's flight has it now to where it will end, as wide as the projectile, in its side's colour. A player sees where a shot is going while there is still time to step out of its way. Homing projectiles show none: they follow their target.
 
+**Amendment (2026-10-13, [ADR-077](ADR-077-smooth-bodies-and-the-players-own-body-ahead.md)):** a move, an Attack Move, or an attack beyond reach now draws the body ahead along its path instead of only turning it. The turn toward an attack's target within reach stays as above. The ease times of §1 are now the least a body eases over, as it eases on the server's own time between updates.
+
 ### 4. Not decided here
-- Client-side movement prediction, which would amend ADR-006's author ruling.
+- Client-side movement prediction, which would amend ADR-006's author ruling. Since decided, in presentation only, by ADR-077.
 - The match server's network path on Windows hosts. Docker's UDP forwarding adds a few milliseconds and some jitter even for the host's own client.
 
 ## Consequences

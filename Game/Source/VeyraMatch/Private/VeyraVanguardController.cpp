@@ -8,9 +8,11 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "Movement/VeyraUnitCollision.h"
+#include "NavigationData.h"
 #include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Shapes/VeyraShapes.h"
@@ -19,6 +21,7 @@
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraMatchLog.h"
+#include "VeyraPlayerState.h"
 
 namespace
 {
@@ -64,6 +67,7 @@ EVeyraOrderRejection AVeyraVanguardController::MoveToDestination(const FVector& 
 	{
 		return EVeyraOrderRejection::Unreachable;
 	}
+	OrderedPoint = Destination;
 
 	// Moving replaces an attack order, cancels an attack before its Commit and cuts a backswing short
 	// (§48); a mobile attacker's windup goes on while it walks (ADR-027 §1).
@@ -145,6 +149,7 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 	}
 	MoveOrder.Reset();
 	AttackTarget.Reset();
+	OrderedPoint = Destination;
 	AttackMoveDestination = Walkable.GetValue();
 	AttackMoveAim.Reset();
 	if (Preference == EVeyraAttackMoveTarget::ClosestToCursor)
@@ -181,7 +186,50 @@ void AVeyraVanguardController::Tick(float DeltaSeconds)
 		UpdateAttackOrder();
 		UpdateRideArrival();
 		UpdateOccupiedArrival();
+		// After this tick's orders have planned their paths, which the orders received this frame have already done.
+		PublishOwnPath();
 	}
+}
+
+void AVeyraVanguardController::PublishOwnPath()
+{
+	// Only a player's machine draws its body ahead: a bot's Vanguard has no one to send it to.
+	APawn* Body = GetPawn();
+	AVeyraPlayerState* Participant = Body ? Body->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	const UPathFollowingComponent* Following = GetPathFollowingComponent();
+	if (!Participant || !Cast<APlayerController>(Participant->GetOwner()) || !Following || Following->GetStatus() != EPathFollowingStatus::Moving)
+	{
+		return;
+	}
+	const FNavPathSharedPtr Path = Following->GetPath();
+	if (!Path.IsValid() || !Path->IsValid() || Path->GetPathPoints().IsEmpty())
+	{
+		return;
+	}
+	// A new order's path, or the same order's planned again as the unit it chases moves.
+	const TArray<FNavPathPoint>& Points = Path->GetPathPoints();
+	const FVector End = Points.Last().Location;
+	if (PublishedPath.Pin() == Path && PublishedPoints == Points.Num() && PublishedEnd.Equals(End))
+	{
+		return;
+	}
+	PublishedPath = Path;
+	PublishedPoints = Points.Num();
+	PublishedEnd = End;
+
+	FVeyraOwnPath Own;
+	Own.Body = Body;
+	Own.Points.Reserve(Points.Num());
+	for (const FNavPathPoint& Point : Points)
+	{
+		Own.Points.Add(Point.Location);
+	}
+	// An attack order answers to the unit it named; a move or an Attack Move to the point it named, even as an Attack
+	// Move chases what it found on its way.
+	const bool bAttackOrder = AttackTarget.IsValid() && !AttackMoveDestination.IsSet();
+	Own.Target = bAttackOrder ? AttackTarget.Get() : nullptr;
+	Own.Ordered = bAttackOrder ? FVector::ZeroVector : OrderedPoint;
+	Participant->SetOwnPath(MoveTemp(Own));
 }
 
 void AVeyraVanguardController::UpdateOccupiedArrival()

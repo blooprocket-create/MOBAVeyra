@@ -68,6 +68,8 @@
 #include "Greybox/VeyraTelegraphFill.h"
 #include "Greybox/VeyraToonLight.h"
 #include "Movement/VeyraDrawnBody.h"
+#include "Movement/VeyraMovementComponent.h"
+#include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
 #include "Sound/SoundAttenuation.h"
@@ -342,26 +344,98 @@ void UVeyraGreyboxSubsystem::OnCombatCue(const FVeyraCombatCue& Cue)
 	}
 }
 
-FVeyraBodyLead UVeyraGreyboxSubsystem::OwnLeadOf(const APawn& Unit, double Radius) const
+FVeyraBodyLead UVeyraGreyboxSubsystem::LeadOwnBody(const APawn& Unit, double Radius)
 {
-	// Only the body the player's orders move, and only while it may move (ADR-067 §2).
+	// Only the body the player's orders move (ADR-067 §2; ADR-077 §2).
 	const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController());
-	const TOptional<FVeyraOrderMark>& Mark = Local ? Local->GetOrderMark() : TOptional<FVeyraOrderMark>();
-	const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
-	if (!Mark || !Abilities || Local->GetCommandedBody() != &Unit || !VeyraTargeting::IsAlive(&Unit)
-		|| EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Abilities), EVeyraActionBlocks::Move))
+	if (!Local || Local->GetCommandedBody() != &Unit)
 	{
 		return FVeyraBodyLead();
 	}
-	// A move or an Attack Move is run toward, and so is an attack's target beyond the body's reach, which it chases; one
-	// within reach is only faced.
-	const AActor* Target = Mark->Target.Get();
-	const FVector Point = Target ? Target->GetActorLocation() : Mark->Location;
-	const TOptional<double> Reach = VeyraHud::AttackReachOf(Unit);
-	const bool bRun = Mark->Kind != EVeyraOrderMarkKind::Attack || (Target && Reach && FVector::Dist2D(Point, Unit.GetActorLocation()) > *Reach);
+	UVeyraMovementComponent* Movement = Unit.FindComponentByClass<UVeyraMovementComponent>();
+	if (OwnLeadBody.Get() != &Unit)
+	{
+		// Another body, as after a respawn or while an Echo is commanded: the last one is drawn where it is, and the lead
+		// starts afresh.
+		if (UVeyraMovementComponent* Before = OwnLeadBody.IsValid() ? OwnLeadBody->FindComponentByClass<UVeyraMovementComponent>() : nullptr)
+		{
+			Before->SetDrawnLead(FVector2D::ZeroVector);
+		}
+		OwnLead = FVeyraOwnLeadState();
+		OwnLeadBody = &Unit;
+	}
+	const TOptional<FVeyraOrderMark>& Mark = Local->GetOrderMark();
+	const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	if (!Mark || !Abilities || !Movement)
+	{
+		if (Movement)
+		{
+			Movement->SetDrawnLead(FVector2D::ZeroVector);
+		}
+		return FVeyraBodyLead();
+	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-	return VeyraBodyLead::For(Point, GetWorld()->GetRealTimeSeconds() - Mark->GivenAt, Unit.GetActorLocation(), Unit.GetVelocity(),
-		Abilities->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute()), bRun, Settings.OwnLeadSeconds, Settings.OwnLeadAlignDegrees, Radius);
+	const AActor* Target = Mark->Target.Get();
+	const TOptional<double> Reach = VeyraHud::AttackReachOf(Unit);
+	const double Speed = Abilities->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
+	// It may be drawn ahead while it lives, may move, and moves under its own orders: never while displaced, dashing,
+	// fleeing or held on, which its movement's custom modes show.
+	const bool bFree = VeyraTargeting::IsAlive(&Unit) && !EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Abilities), EVeyraActionBlocks::Move)
+		&& Movement->MovementMode != MOVE_Custom;
+
+	FVeyraOwnLeadInputs In;
+	In.Now = GetWorld()->GetRealTimeSeconds();
+	In.GivenAt = Mark->GivenAt;
+	In.DeltaSeconds = GetWorld()->GetDeltaSeconds();
+	In.Goal = FVector2D(Target ? VeyraDrawnBody::LocationOf(*Target) : Mark->Location);
+	if (Mark->Kind == EVeyraOrderMarkKind::Attack)
+	{
+		In.StopWithin = Reach.Get(0.0);
+	}
+	// The server's path, once it has come: for this body, and for this order's unit or point (ADR-077 §3).
+	if (const AVeyraPlayerState* Own = Local->GetPlayerState<AVeyraPlayerState>())
+	{
+		const FVeyraOwnPath& Path = Own->GetOwnPath();
+		const bool bThisOrder = Mark->Kind == EVeyraOrderMarkKind::Attack ? Target && Path.Target == Target
+			: FVector::Dist2D(Path.Ordered, Mark->Location) <= Settings.OwnLeadOrderMatchDistance;
+		if (Path.Body == &Unit && bThisOrder && Path.Points.Num() >= 2)
+		{
+			In.ServerPath.Reserve(Path.Points.Num());
+			for (const FVector_NetQuantize10& Point : Path.Points)
+			{
+				In.ServerPath.Add(FVector2D(Point));
+			}
+			In.ServerPathSerial = Path.Serial;
+		}
+	}
+	In.Drawn = FVector2D(Movement->GetSmoothedLocation());
+	In.ServerSpeed = Unit.GetVelocity().Size2D();
+	In.Speed = Speed;
+	// What the order will have done by now: as far as the drawn body trails the server's latest update, the way there, and
+	// the wait for the server's next tick.
+	const double PingSeconds = Local->PlayerState ? Local->PlayerState->GetPingInMilliseconds() / 1000.0 : 0.0;
+	In.LeadSeconds = FMath::Min(Movement->GetDrawnDelaySeconds() + PingSeconds * Settings.OwnLeadPingShare + Settings.OwnLeadServerWaitSeconds,
+		static_cast<double>(Settings.OwnLeadMaxSeconds));
+	In.bMayLead = bFree;
+	const FVeyraOwnLead Ahead = VeyraOwnLead::Step(OwnLead, In, Settings.OwnLeadShape(UVeyraMatchTuningSubsystem::Get().Orders.ArrivalTolerance));
+	Movement->SetDrawnLead(Ahead.Offset);
+
+	FVeyraBodyLead Lead;
+	if (Ahead.Yaw)
+	{
+		// It faces the way its path runs, and runs while it walks on ahead.
+		Lead.bLeads = true;
+		Lead.Yaw = *Ahead.Yaw;
+		Lead.GroundSpeed = Ahead.bWalks ? Ahead.Speed : 0.0;
+		return Lead;
+	}
+	// An attack's target within its reach is only faced (ADR-067 §2).
+	if (bFree && Target && Reach && FVector::Dist2D(Target->GetActorLocation(), Unit.GetActorLocation()) <= *Reach)
+	{
+		return VeyraBodyLead::For(Target->GetActorLocation(), In.Now - Mark->GivenAt, Unit.GetActorLocation(), Unit.GetVelocity(), Speed, /*bRun*/ false,
+			Settings.OwnLeadSeconds, Settings.OwnLeadAlignDegrees, Radius);
+	}
+	return Lead;
 }
 
 bool UVeyraGreyboxSubsystem::IsViewersVanguard(const AActor* Unit) const
@@ -1267,7 +1341,9 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 void UVeyraGreyboxSubsystem::EaseBody(APawn& Unit)
 {
 	// A machine that only shows the unit steps its capsule to each update from the server and eases its mesh, and so its
-	// drawn body, after it (ADR-065 §12). The server's own copy never eases.
+	// drawn body, after it (ADR-065 §12): from where the last update drew it to the newest, over the server's own time
+	// between the two, and never past it (Linear smoothing; ADR-077 §1). The ease times are the least it eases over.
+	// The server's own copy never eases.
 	const TOptional<FVector2f> Ease = GetDefault<UVeyraGreyboxSettings>()->EaseOf(Unit);
 	const ACharacter* Character = Cast<ACharacter>(&Unit);
 	UCharacterMovementComponent* Movement = Character ? Character->GetCharacterMovement() : nullptr;
@@ -1275,7 +1351,7 @@ void UVeyraGreyboxSubsystem::EaseBody(APawn& Unit)
 	{
 		return;
 	}
-	Movement->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
+	Movement->NetworkSmoothingMode = ENetworkSmoothingMode::Linear;
 	Movement->NetworkSimulatedSmoothLocationTime = Ease->X;
 	Movement->NetworkSimulatedSmoothRotationTime = Ease->Y;
 }
@@ -1371,8 +1447,8 @@ void UVeyraGreyboxSubsystem::RefreshVanguardArt(const APawn& Unit, FBody& Body)
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
 	Skin->SetRelativeLocation(FVector(0.0, 0.0, -HalfHeight));
 	Skin->SetRelativeScale3D(FVector(Settings.VisualScaleOf(Unit)));
-	// The player's own body leads its latest order until the server's movement reaches it (ADR-067 §2).
-	const FVeyraBodyLead Lead = OwnLeadOf(Unit, Radius);
+	// The player's own body is drawn ahead along its latest order's path, and faces and runs as it goes (ADR-077 §2).
+	const FVeyraBodyLead Lead = LeadOwnBody(Unit, Radius);
 	FVeyraVanguardAnimInputs Inputs = VeyraVanguardSkin::InputsOf(Unit, GetViewerTeam(), GetServerNow());
 	Inputs.GroundSpeed = static_cast<float>(VeyraBodyLead::GroundSpeedOf(Lead, Inputs.GroundSpeed));
 	RefreshBodyLook(Unit, Body, *Skin, Worn, Inputs.bAlive && Inputs.bCastHeld);

@@ -105,6 +105,21 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, EmoteTier, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, MasteryEmoteUntil, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, bAway, Params);
+
+	// Where the player's own body is going is for that player alone (ADR-077 §3).
+	FDoRepLifetimeParams OwnerOnly;
+	OwnerOnly.bIsPushBased = true;
+	OwnerOnly.Condition = COND_OwnerOnly;
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, OwnPath, OwnerOnly);
+}
+
+void AVeyraPlayerState::SetOwnPath(FVeyraOwnPath Path)
+{
+	Path.Serial = static_cast<uint16>(OwnPath.Serial + 1);
+	OwnPath = MoveTemp(Path);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, OwnPath, this);
+	// A player state replicates rarely; the player's machine draws its body by this path, so it should learn at once.
+	ForceNetUpdate();
 }
 
 void AVeyraPlayerState::SetAway(bool bNewAway)

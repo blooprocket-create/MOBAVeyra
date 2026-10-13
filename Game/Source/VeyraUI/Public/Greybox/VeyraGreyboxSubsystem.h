@@ -6,6 +6,7 @@
 #include "Greybox/VeyraBodyFeedback.h"
 #include "Greybox/VeyraHiddenBody.h"
 #include "Greybox/VeyraOrderMarks.h"
+#include "Greybox/VeyraOwnLead.h"
 #include "Rules/VeyraVisionRules.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Hud/VeyraKillFeedModel.h"
@@ -350,8 +351,15 @@ private:
 	TArray<FVeyraFogCircle> DenseFog;
 	TArray<FVeyraFogCircle> MapFog;
 
-	/** Unit's lead toward the player's latest order, if Unit is the body the player commands; none otherwise (ADR-067 §2). */
-	struct FVeyraBodyLead OwnLeadOf(const APawn& Unit, double Radius) const;
+	/**
+	 * If Unit is the body the player commands: draws it ahead along its latest order's path (ADR-077 §2), and returns how it
+	 * faces and runs meanwhile, or how it turns to an attack's target within its reach (ADR-067 §2). None for another body.
+	 */
+	struct FVeyraBodyLead LeadOwnBody(const APawn& Unit, double Radius);
+
+	/** The player's own body's lead along its path, from frame to frame, and the body it leads. */
+	FVeyraOwnLeadState OwnLead;
+	TWeakObjectPtr<const APawn> OwnLeadBody;
 
 	/** Notes a cue in its unit's body, and plays its effect. */
 	void OnCombatCue(const struct FVeyraCombatCue& Cue);

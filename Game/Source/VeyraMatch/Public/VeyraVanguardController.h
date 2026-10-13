@@ -124,6 +124,20 @@ private:
 	/** The nearest living enemy unit within the attack's acquisition radius of the Vanguard's edge. */
 	AActor* FindAttackMoveTarget(const UVeyraBasicAttackComponent& Attacks) const;
 
+	/**
+	 * Sends the path the Vanguard now follows to its player's machine alone, which draws the body ahead along it, unless
+	 * it is the path last sent (ADR-077 §3).
+	 */
+	void PublishOwnPath();
+
+	/** The point the latest move or Attack Move order named, as its player's machine sent it, before projection. */
+	FVector OrderedPoint = FVector::ZeroVector;
+
+	/** The path last sent to the player's machine: which it was, how many points it had, and where it ended. */
+	TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> PublishedPath;
+	int32 PublishedPoints = 0;
+	FVector PublishedEnd = FVector::ZeroVector;
+
 	/** The walkable destination of the latest move order, until the Vanguard reaches it or it fails. */
 	TOptional<FVector> MoveOrder;
 

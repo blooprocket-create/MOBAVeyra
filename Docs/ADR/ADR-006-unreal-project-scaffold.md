@@ -400,6 +400,7 @@ Modules are created **only when they receive real content**, as Project Structur
   - While crowd control locks movement, the Vanguard's controller holds the latest order and resumes it afterwards.
   - The PlayerController also sends attack and attack-move orders, which the Vanguard's controller carries out.
   - Dashes, displacement, skillshots, ground areas, channels and basic attacks are server-only, with no client prediction, like movement and the first ability.
+- **Amendment (2026-10-13): presentation-only prediction of the player's own walk** ([ADR-077](ADR-077-smooth-bodies-and-the-players-own-body-ahead.md); author request, 2026-10-13). The server still moves every unit, and no client sends moves. Every machine now draws a body between the server's last two updates, never past the latest. The player's own body is drawn ahead along the path the server sends that player alone, and reconciled to each update; nothing it draws reaches the server.
 
 ### 8. Pause and the gameplay clock
 
