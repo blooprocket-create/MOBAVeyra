@@ -317,7 +317,7 @@ namespace
 			const double Base = Abilities.GetNumericAttributeBase(Attribute);
 			constexpr double Tolerance = 0.001;
 			const bool bRaised = bLowerIsMore ? Now < Base - Tolerance : Now > Base + Tolerance;
-			return FVeyraHudStat{ VeyraContentText::StatName(Name), Format(Now), bRaised };
+			return FVeyraHudStat{ VeyraContentText::StatName(Name), Format(Now), bRaised, Name };
 		};
 		const auto Whole = [](double Value) { return StatNumber(Value); };
 		const auto Share = [](double Value) { return StatNumber(Value * Percent) + TEXT("%"); };
@@ -344,7 +344,7 @@ namespace
 			Stat(TEXT("physical_penetration"), UVeyraOffenceSet::GetPhysicalPenetrationFlatAttribute(), Whole),
 			Stat(TEXT("magic_penetration"), UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(), Whole),
 			Tenacity,
-			FVeyraHudStat{ VeyraContentText::StatName(TEXT("attack_range")), StatNumber(Kit ? Kit->BasicAttack.Range : 0.0), false },
+			FVeyraHudStat{ VeyraContentText::StatName(TEXT("attack_range")), StatNumber(Kit ? Kit->BasicAttack.Range : 0.0), false, TEXT("attack_range") },
 		};
 		return Stats;
 	}

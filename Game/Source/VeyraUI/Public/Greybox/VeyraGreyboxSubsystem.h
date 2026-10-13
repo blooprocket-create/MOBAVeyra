@@ -9,6 +9,7 @@
 #include "Greybox/VeyraOwnLead.h"
 #include "Rules/VeyraVisionRules.h"
 #include "Hud/VeyraCombatTextModel.h"
+#include "Hud/VeyraHudMotion.h"
 #include "Hud/VeyraKillFeedModel.h"
 #include "Hud/VeyraLastHit.h"
 #include "Shapes/VeyraShapes.h"
@@ -217,14 +218,17 @@ public:
 	double GetServerNow() const;
 
 	/**
-	 * The HUD's font: the engine's Roboto family, every weight of it, as a font asset, which canvas text
-	 * needs (a canvas draws no text from a font that is not an asset).
+	 * The HUD's font: the client's functional family, every weight of it, with its display family's weights as "Display" and
+	 * "DisplayBold", as a font asset, which canvas text needs (a canvas draws no text from a font that is not an asset).
 	 */
 	UFont* GetHudFont() const { return HudFont; }
 
 	/** Whether the stats panel beside the portrait shows its more stats; a click on the panel turns it (ADR-080 §3). */
 	bool IsStatsPanelOpen() const { return bStatsPanelOpen; }
 	void ToggleStatsPanel() { bStatsPanelOpen = !bStatsPanelOpen; }
+
+	/** What the HUD remembers between frames to move (ADR-082 §2): presentation only, its draw's to change. */
+	FVeyraHudMotion& GetHudMotion() const { return HudMotion; }
 
 	/** The side of this machine's player; None for a spectator or a world without one. */
 	EVeyraTeam GetViewerTeam() const;
@@ -661,6 +665,8 @@ private:
 	TObjectPtr<UFont> HudFont;
 
 	bool bStatsPanelOpen = false;
+
+	mutable FVeyraHudMotion HudMotion;
 
 	TMap<TWeakObjectPtr<const AActor>, FBody> Bodies;
 	TMap<TWeakObjectPtr<const AVeyraProjectile>, FProjectileVisual> Projectiles;

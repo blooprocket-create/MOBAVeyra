@@ -148,6 +148,17 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		Black.Font = Bold->Font;
 		Composite.DefaultTypeface.Fonts.Add(MoveTemp(Black));
 	}
+	// The display family for banners and headlines (ADR-082 §4): its semi-bold as "Display", its bold as "DisplayBold".
+	const FCompositeFont& Display = *VeyraShellFonts::FamilyFont(EVeyraFontFamily::Display);
+	for (const TPair<const TCHAR*, const TCHAR*> Weight : { TPair<const TCHAR*, const TCHAR*>(TEXT("SemiBold"), TEXT("Display")), TPair<const TCHAR*, const TCHAR*>(TEXT("Bold"), TEXT("DisplayBold")) })
+	{
+		if (const FTypefaceEntry* Face = Display.DefaultTypeface.Fonts.FindByPredicate([&Weight](const FTypefaceEntry& Entry) { return Entry.Name == Weight.Key; }))
+		{
+			FTypefaceEntry Entry(Weight.Value);
+			Entry.Font = Face->Font;
+			Composite.DefaultTypeface.Fonts.Add(MoveTemp(Entry));
+		}
+	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	TArray<FString> Problems = Settings.Validate();
 	if (Problems.IsEmpty())

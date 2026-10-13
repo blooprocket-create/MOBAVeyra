@@ -3001,6 +3001,14 @@ bool UVeyraSmokeFlowSubsystem::Capture(const TCHAR* Name)
 	{
 		return false;
 	}
+#if WITH_VEYRA_UI
+	// A page still arriving is waited for, so the capture shows it whole (ADR-082 §7).
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	if (const UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr; Screen && Screen->IsRevealing())
+	{
+		return true;
+	}
+#endif
 	Captured.Add(Name);
 	const FString Path = FPaths::Combine(ScreenshotFolder, FString::Printf(TEXT("Flow-%s.png"), Name));
 	FScreenshotRequest::RequestScreenshot(Path, /*bShowUI*/ true, /*bAddFilenameSuffix*/ false);

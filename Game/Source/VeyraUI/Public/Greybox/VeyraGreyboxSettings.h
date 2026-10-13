@@ -4,6 +4,7 @@
 
 #include "Battleground/VeyraBattlegroundTypes.h"
 #include "Engine/DeveloperSettings.h"
+#include "Hud/VeyraHudMotion.h"
 #include "Tuning/VeyraVanguardsTuning.h"
 
 #include "VeyraGreyboxSettings.generated.h"
@@ -1107,6 +1108,102 @@ public:
 	/** A tick across the health bar at each this much Health, so its length reads as an amount (ADR-080 §4). */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	float HealthTickAmount = 0.0f;
+
+	/**
+	 * An ability's, a Flux Spell's and an item's tile (ADR-082 §4): the cut across its corners at the reference height, its
+	 * edge shading brass from head to foot while it is ready and dim while it is not, the tint over its icon while it cools
+	 * or is not learned, and the colour of its cost.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float TileChamfer = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor TileReadyTopColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor TileReadyBottomColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor TileIdleColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor TileDimTint = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor TileCostColor = FLinearColor::Transparent;
+
+	/** Each stat's icon colour in the stats panel, by its key in the text table's stat rows (ADR-082 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	TMap<FString, FLinearColor> StatColors;
+
+	// How the HUD moves (ADR-082): the client's three timing curves, and how long and how far each motion runs. Reduce UI
+	// Animation holds every one still.
+
+	/** Snap: quick out of the start, settling soft; Smear: slow, then a rush; Settle: overshoots and comes back. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	FVeyraEaseCurve MotionSnap;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	FVeyraEaseCurve MotionSmear;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	FVeyraEaseCurve MotionSettle;
+
+	/** A tooltip or a panel cutting in: its seconds, and how far it rises as it comes, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionPanelSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionPanelRise = 0.0f;
+
+	/** A burst where something comes ready or lands: a ring, a white-hot core and four slashes, for its seconds, reaching this far. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionBurstSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "1"))
+	float MotionBurstRadius = 0.0f;
+
+	/** A tile's white flash as it comes ready, and the white-hot of every flash, core and glint. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionFlashSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	FLinearColor MotionHotColor = FLinearColor::Transparent;
+
+	/** A bar's lost part: held for its hold seconds, then drained over its drain seconds, in its colour. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionTrailHoldSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionTrailDrainSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion")
+	FLinearColor MotionTrailColor = FLinearColor::Transparent;
+
+	/** Gold and other counts running to a new value. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionCountSeconds = 0.0f;
+
+	/** A kill feed line sliding in from the right: its seconds and how far it slides, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionFeedSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionFeedSlide = 0.0f;
+
+	/** A banner (an announcement, a level, the ending) opening, and the glint that crosses its words after. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionBannerSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionGlintSeconds = 0.0f;
+
+	/** A combat text number popping in: its seconds, and how large it starts against its size. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MotionPopSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "1"))
+	float MotionPopScale = 0.0f;
 
 	// The chat log and its composer at the bottom left (VeyraChatLogModel; ADR-029 §5).
 

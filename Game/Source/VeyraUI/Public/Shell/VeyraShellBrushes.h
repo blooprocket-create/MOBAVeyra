@@ -70,6 +70,19 @@ namespace VeyraShellBrushes
 	 */
 	VEYRAUI_API FSlateBrush Diamond(float Size, const FLinearColor& Fill, const FLinearColor& Edge);
 
+	/**
+	 * Light for the HUD's and the shell's motion (ADR-082 §3), white for a tint to colour: a soft round glow falling to
+	 * nothing at its rim; a ring Thickness of its radius wide, its edges smooth; and a streak across, clear at both ends
+	 * and brightest in its middle, for a glint or a sheen. Each is premultiplied (its colour as strong as its alpha), so it
+	 * adds light as well as it blends.
+	 */
+	VEYRAUI_API UTexture2D* GlowTexture();
+	VEYRAUI_API UTexture2D* RingTexture(float Thickness);
+	VEYRAUI_API UTexture2D* StreakTexture();
+
+	/** The glow as an image brush Size slate units across, for the shell. */
+	VEYRAUI_API FSlateBrush Glow(float Size);
+
 	/** Nothing at all: a state that draws no surface. */
 	VEYRAUI_API FSlateBrush None();
 

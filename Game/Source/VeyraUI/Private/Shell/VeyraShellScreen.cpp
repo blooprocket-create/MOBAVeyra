@@ -42,6 +42,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellMotes.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
@@ -145,6 +146,10 @@ bool UVeyraShellScreen::Initialize()
 			Scrim->SetVisibility(ESlateVisibility::Collapsed);
 			Fill(Scrim);
 		}
+		// Flux motes drifting behind the menus, as on the website (ADR-082 §7).
+		Motes = WidgetTree->ConstructWidget<UVeyraShellMotes>(UVeyraShellMotes::StaticClass());
+		Motes->SetVisibility(ESlateVisibility::Collapsed);
+		Fill(Motes);
 		FeaturedVanguard = PickFeaturedVanguard();
 		UBorder* Frame = VeyraShellStyle::MakeBorder(*WidgetTree, FLinearColor::Transparent, Style.ScreenPadding);
 		Content = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
@@ -451,6 +456,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	PickBars.Reset();
 	Countdown = nullptr;
 	QueueStatus = nullptr;
+	PageBody = nullptr;
 	Shown = VeyraShellModels::ScreenFor(Snapshot.State);
 	// Settings belong to the shell, the lobby and the results, never to champion select, Match Found or
 	// Reconnect-only (ADR-024 §4); the choice between this device's settings and the account's comes first.
@@ -560,6 +566,38 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	}
 	BuildProblem(Snapshot);
 	BuildSettingsConflict(Snapshot);
+	RevealArrivals();
+	// The motes drift behind the shell, a lobby and the results; champion select and the moments before a match keep still.
+	const bool bDrifting = Shown == EVeyraShellScreen::Shell || Shown == EVeyraShellScreen::Lobby || Shown == EVeyraShellScreen::Results;
+	Motes->SetVisibility(bDrifting ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+}
+
+void UVeyraShellScreen::RevealArrivals()
+{
+	// A new screen's parts arrive in turn, its top bar sliding in; a new page in the shell brings in its own parts alone. A
+	// rebuild of what shows carries a reveal under way over to the parts it made anew, from where it had reached.
+	const bool bNewScreen = Shown != RevealedScreen;
+	const bool bNewPage = !bNewScreen && Shown == EVeyraShellScreen::Shell && Page != RevealedPage;
+	if (bNewScreen || bNewPage)
+	{
+		bRevealingPage = bNewPage;
+	}
+	TArray<UWidget*> Parts = bRevealingPage && PageBody ? PageBody->GetAllChildren() : Content->GetAllChildren();
+	TArray<EVeyraReveal> Kinds;
+	if (!bRevealingPage && Shown == EVeyraShellScreen::Shell && !Parts.IsEmpty())
+	{
+		Kinds.Add(EVeyraReveal::Slide);
+	}
+	if (bNewScreen || bNewPage)
+	{
+		Reveal.Play(Parts, Kinds);
+	}
+	else
+	{
+		Reveal.Continue(Parts, Kinds);
+	}
+	RevealedScreen = Shown;
+	RevealedPage = Page;
 }
 
 void UVeyraShellScreen::ShowShowcase(const FString& VanguardId)
@@ -740,6 +778,7 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	Split->AddChildToHorizontalBox(Main)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	AddFilling(*Main, *Body);
+	PageBody = Body;
 	AddGap(*WidgetTree, *Split, ShellStyle().Spacing * 2.0f);
 	BuildFriends(Snapshot, *Split);
 	if (Page == EVeyraShellPage::Play)

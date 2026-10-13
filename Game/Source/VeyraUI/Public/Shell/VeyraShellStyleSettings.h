@@ -672,6 +672,69 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
 	float HomeHeroHeight = 0.0f;
 
+	// The menus' motion (ADR-082 §7), in the HUD's curves; Reduce UI Animation holds it all still.
+
+	/**
+	 * A page arriving: each of its parts rises RevealRise or slides RevealSlide with RevealShear degrees of lean into place over
+	 * RevealSeconds, each RevealStagger seconds after the one before.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealStagger = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealRise = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealSlide = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealShear = 0.0f;
+
+	/** A button's sheen crossing it as the cursor arrives: its seconds and its light; and the burst where a button is pressed, this far across. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float SheenSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0", ClampMax = "1"))
+	float SheenOpacity = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "1"))
+	float PressBurstRadius = 0.0f;
+
+	/**
+	 * Flux motes drifting up behind Home, as on the website: one for every MoteArea square units, rising MoteRiseMin to
+	 * MoteRiseMax units a second, swaying MoteSway either side, MoteRadiusMin to MoteRadiusMax across; MoteBrassShare of them
+	 * brass rather than the Flux teal, MoteHotShare with a white-hot heart.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "1"))
+	float MoteArea = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	int32 MoteMost = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRiseMin = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRiseMax = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteSway = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRadiusMin = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRadiusMax = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0", ClampMax = "1"))
+	float MoteBrassShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0", ClampMax = "1"))
+	float MoteHotShare = 0.0f;
+
 	/** The faces' files, by family. */
 	const TArray<FVeyraFontFace>& FacesOf(EVeyraFontFamily Family) const;
 

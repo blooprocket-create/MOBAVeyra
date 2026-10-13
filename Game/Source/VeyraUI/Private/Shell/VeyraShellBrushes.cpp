@@ -296,6 +296,99 @@ FSlateBrush Diamond(float Size, const FLinearColor& Fill, const FLinearColor& Ed
 	return Brush;
 }
 
+namespace
+{
+	// How the light textures are made, not how they look: texels across a glow and a ring (smooth at any size the HUD draws
+	// them), and along a streak.
+	constexpr int32 RoundTexels = 128;
+	constexpr int32 StreakTexels = 128;
+
+	/** A Texels-square white texture whose alpha at each point is Alpha of its distance from the centre, 0 there to 1 at the rim. */
+	UTexture2D* RoundTexture(const FString& Key, TFunctionRef<float(float)> Alpha)
+	{
+		if (const FMade* Found = Made().Find(Key))
+		{
+			return Found->Texture;
+		}
+		TArray<FColor> Texels;
+		Texels.SetNumUninitialized(RoundTexels * RoundTexels);
+		const float Half = RoundTexels / 2.0f;
+		for (int32 Row = 0; Row < RoundTexels; ++Row)
+		{
+			for (int32 Column = 0; Column < RoundTexels; ++Column)
+			{
+				float Sum = 0.0f;
+				for (int32 SampleY = 0; SampleY < Samples; ++SampleY)
+				{
+					for (int32 SampleX = 0; SampleX < Samples; ++SampleX)
+					{
+						const float X = (Column + (SampleX + 0.5f) / Samples - Half) / Half;
+						const float Y = (Row + (SampleY + 0.5f) / Samples - Half) / Half;
+						Sum += FMath::Clamp(Alpha(FMath::Sqrt(X * X + Y * Y)), 0.0f, 1.0f);
+					}
+				}
+				// Premultiplied: light added to the screen takes its strength from its colour, not its alpha.
+				const uint8 Value = static_cast<uint8>(FMath::RoundToInt32(255.0f * Sum / (Samples * Samples)));
+				Texels[Row * RoundTexels + Column] = FColor(Value, Value, Value, Value);
+			}
+		}
+		FMade Fresh;
+		Fresh.Texture = MakeTexture(RoundTexels, RoundTexels, Texels);
+		return Made().Add(Key, MoveTemp(Fresh)).Texture;
+	}
+}
+
+UTexture2D* GlowTexture()
+{
+	// Falling off as the square of the way to the rim: bright at the heart, nothing at the edge.
+	return RoundTexture(TEXT("Glow"), [](float Distance) { const float Left = FMath::Max(0.0f, 1.0f - Distance); return Left * Left; });
+}
+
+UTexture2D* RingTexture(float Thickness)
+{
+	const float Width = FMath::Clamp(Thickness, 0.01f, 1.0f);
+	// The ring runs inward from the rim, its edges a texel soft.
+	const float Soft = 2.0f / RoundTexels;
+	return RoundTexture(FString::Printf(TEXT("Ring|%.3f"), Width), [Width, Soft](float Distance) {
+		return FMath::Min(FMath::Clamp((1.0f - Distance) / Soft, 0.0f, 1.0f), FMath::Clamp((Distance - (1.0f - Width)) / Soft, 0.0f, 1.0f));
+	});
+}
+
+UTexture2D* StreakTexture()
+{
+	const FString Key = TEXT("Streak");
+	if (const FMade* Found = Made().Find(Key))
+	{
+		return Found->Texture;
+	}
+	TArray<FColor> Texels;
+	Texels.SetNumUninitialized(StreakTexels);
+	for (int32 Column = 0; Column < StreakTexels; ++Column)
+	{
+		// Brightest in the middle, falling smoothly to clear at both ends.
+		const float Across = 1.0f - FMath::Abs(2.0f * (Column + 0.5f) / StreakTexels - 1.0f);
+		const uint8 Value = static_cast<uint8>(FMath::RoundToInt32(255.0f * FMath::SmoothStep(0.0f, 1.0f, Across)));
+		Texels[Column] = FColor(Value, Value, Value, Value);
+	}
+	FMade Fresh;
+	Fresh.Texture = MakeTexture(StreakTexels, 1, Texels);
+	return Made().Add(Key, MoveTemp(Fresh)).Texture;
+}
+
+FSlateBrush Glow(float Size)
+{
+	UTexture2D* Texture = GlowTexture();
+	if (!Texture)
+	{
+		return None();
+	}
+	FSlateBrush Brush;
+	Brush.SetResourceObject(Texture);
+	Brush.ImageSize = FVector2D(Size);
+	Brush.DrawAs = ESlateBrushDrawType::Image;
+	return Brush;
+}
+
 FSlateBrush None()
 {
 	return FSlateNoResource();

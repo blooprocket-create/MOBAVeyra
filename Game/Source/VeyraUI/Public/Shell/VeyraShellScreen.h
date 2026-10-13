@@ -7,6 +7,7 @@
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraRosterFilter.h"
 #include "Shell/VeyraShellModels.h"
+#include "Shell/VeyraShellMotion.h"
 #include "Types/SlateEnums.h"
 
 #include "VeyraShellScreen.generated.h"
@@ -215,6 +216,9 @@ public:
 	 * as each Flux Spell slot's choices do.
 	 */
 	UVeyraShellButton* FindButton(const FText& Label, int32 Occurrence = 0) const;
+
+	/** Whether a screen's or a page's parts are still arriving (ADR-082 §7): captures wait for them. */
+	bool IsRevealing() const { return Reveal.IsPlaying(); }
 
 	/** Every text on screen, joined by new lines, for tests. */
 	FString DescribeText() const;
@@ -441,6 +445,23 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Content;
+
+	/** Flux motes drifting behind the menus (ADR-082 §7). */
+	UPROPERTY(Transient)
+	TObjectPtr<class UVeyraShellMotes> Motes;
+
+	/** The shell's page under its top bar, which a page's reveal brings in alone (ADR-082 §7). */
+	UPROPERTY(Transient)
+	TObjectPtr<UVerticalBox> PageBody;
+
+	/** A screen's or a page's parts arriving, and the screen and page it last revealed (ADR-082 §7). */
+	FVeyraShellReveal Reveal;
+	EVeyraShellScreen RevealedScreen = EVeyraShellScreen::None;
+	EVeyraShellPage RevealedPage = EVeyraShellPage::Home;
+	bool bRevealingPage = false;
+
+	/** Reveals what this rebuild made, if it brought a new screen or page; carries a reveal under way over to it if not. */
+	void RevealArrivals();
 
 	/** The shown Vanguard's art behind champion select, scaled to fill the screen. */
 	UPROPERTY(Transient)

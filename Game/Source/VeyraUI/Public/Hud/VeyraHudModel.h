@@ -107,6 +107,8 @@ struct FVeyraHudStat
 	FString Value;
 	/** Above the Vanguard's own value, from items and effects: shown in brass. */
 	bool bRaised = false;
+	/** Its key in the text table's stat rows, as "armor": what its icon is drawn from (ADR-082 §4). */
+	FString Key;
 };
 
 /** The Vanguard's stats, as only its owner receives them (ADR-080 §3): the core eight, and more on request. */

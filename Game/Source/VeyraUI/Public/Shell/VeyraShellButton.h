@@ -81,6 +81,13 @@ public:
 
 	virtual void BeginDestroy() override;
 
+	/** Whether it takes the sheen as the cursor arrives (ADR-082 §7): the primary and secondary actions do. */
+	bool HasSheen() const { return bSheen; }
+
+protected:
+	/** Its Slate button, which paints the website's light over itself (ADR-082 §7). */
+	virtual TSharedRef<SWidget> RebuildWidget() override;
+
 private:
 	/** A button labelled Label that runs Action, before its style and content are set. */
 	static UVeyraShellButton* Create(UWidgetTree& Tree, const FText& Label, TFunction<void()> Action, bool bEnabled);
@@ -93,4 +100,5 @@ private:
 	/** Its own style while the enhanced focus outline shows. */
 	FButtonStyle OwnStyle;
 	bool bEnhancedFocus = false;
+	bool bSheen = false;
 };

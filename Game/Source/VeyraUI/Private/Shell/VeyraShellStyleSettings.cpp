@@ -145,6 +145,11 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ReportIconSize"), ReportIconSize },
 	};
 	Require(HomeHeroHeight > 0.0f && HomeHeroHeight < 1.0f, TEXT("HomeHeroHeight"), TEXT("must be above 0 and below 1."));
+	// The menus' motion (ADR-082 §7).
+	Require(RevealSeconds > 0.0f && RevealStagger >= 0.0f && SheenSeconds > 0.0f && SheenOpacity > 0.0f && PressBurstRadius >= 1.0f, TEXT("RevealSeconds"),
+		TEXT("a page's reveal and a button's sheen run above 0 seconds, and a press bursts at least 1 across."));
+	Require(MoteArea >= 1.0f && MoteRiseMax >= MoteRiseMin && MoteRadiusMax >= MoteRadiusMin && MoteRadiusMin > 0.0f, TEXT("MoteArea"),
+		TEXT("motes need an area each, and each range its least at most its most."));
 	for (const TPair<const TCHAR*, float>& Length : Lengths)
 	{
 		Require(Length.Value > 0.0f, Length.Key, TEXT("must be above 0."));
