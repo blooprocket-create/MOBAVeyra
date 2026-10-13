@@ -28,8 +28,10 @@ pub struct Entry {
     pub build_version: String,
     pub folder: String,
     pub changed: bool,
-    /// Fetched from the release store, as stored: the download.
+    /// Fetched from the release store and used, as stored: the download.
     pub downloaded_bytes: u64,
+    /// Fetched from the release store as well but failing its check, as stored: fetched again, or why the run failed.
+    pub rejected_bytes: u64,
     /// Taken from files already on disk.
     pub reused_bytes: u64,
     pub rebuilt_files: usize,
@@ -50,6 +52,7 @@ pub fn entry_of(at: u64, mode: &str, build_version: &str, folder: &Path, outcome
         folder: folder.display().to_string(),
         changed: outcome.changed,
         downloaded_bytes: outcome.downloaded_bytes,
+        rejected_bytes: outcome.rejected_bytes,
         reused_bytes: outcome.reused_bytes,
         rebuilt_files: outcome.rebuilt_files,
         removed_files: outcome.removed_files,
@@ -134,6 +137,7 @@ mod tests {
         let partial = Outcome {
             changed: true,
             downloaded_bytes: 152_028_102,
+            rejected_bytes: 65_536,
             reused_bytes: 317_000_000,
             rebuilt_files: 1,
             removed_files: 2,
@@ -149,8 +153,14 @@ mod tests {
             Some(&last),
         );
         assert_eq!(
-            (failed.downloaded_bytes, failed.reused_bytes, failed.rebuilt_files, failed.removed_files),
-            (152_028_102, 317_000_000, 1, 2)
+            (
+                failed.downloaded_bytes,
+                failed.rejected_bytes,
+                failed.reused_bytes,
+                failed.rebuilt_files,
+                failed.removed_files
+            ),
+            (152_028_102, 65_536, 317_000_000, 1, 2)
         );
         assert!(failed.changed);
         assert_eq!(failed.stage.as_deref(), Some("Finishing"));
