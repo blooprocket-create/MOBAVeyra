@@ -374,9 +374,10 @@ FVeyraBodyLead UVeyraGreyboxSubsystem::LeadOwnBody(const APawn& Unit, double Rad
 		OwnLead = FVeyraOwnLeadState();
 		OwnLeadBody = &Unit;
 	}
+	// Only an order given to this body: not one its Vanguard was given before an Echo took over, nor one a fallen body had.
 	const TOptional<FVeyraOrderMark>& Mark = Local->GetOrderMark();
 	const UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
-	if (!Mark || !Abilities || !Movement)
+	if (!Mark || Mark->Body.Get() != &Unit || !Abilities || !Movement)
 	{
 		if (Movement)
 		{

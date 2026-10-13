@@ -45,7 +45,7 @@ On the player's own machine only, and in presentation only:
   - or the server refused the order. Each order the player marks carries a number, and the refusal names it back, so only the refused order's lead goes.
 
   At the end of its path it waits for the server's body to stand there, then lets go with nothing left to pull back. A finished order stays finished until the next is given or the server sends a new path for it, so a later push never wakes it, while a chase that walks on after its target leads again.
-- **Which body.** Whichever body the player commands: its Vanguard, or a body it commands in its stead, such as an Echo, whatever draws it. A body the player stops commanding is drawn where it is at once.
+- **Which body.** Whichever body the player commands: its Vanguard, or a body it commands in its stead, such as an Echo, whatever draws it. A body the player stops commanding is drawn where it is at once. An order leads only the body it was given to, so neither an Echo nor a respawned Vanguard heads for an order another body was given.
 - **Facing only.** An attack's target already within reach is only faced, as ADR-067 §2 has it.
 - **The server stays in charge.** Only the drawn mesh moves, through `UVeyraMovementComponent::SetDrawnLead`. The capsule, collision, targeting, damage and every rule follow the server's updates. Nothing the drawn body does reaches the server.
 

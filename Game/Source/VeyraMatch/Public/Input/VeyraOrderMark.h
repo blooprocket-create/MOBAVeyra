@@ -6,6 +6,7 @@
 #include "UObject/WeakObjectPtrTemplates.h"
 
 class AActor;
+class APawn;
 
 /** What the local player's last order was, as its mark on the ground shows it (ADR-062 §6). */
 enum class EVeyraOrderMarkKind : uint8
@@ -38,4 +39,7 @@ struct FVeyraOrderMark
 
 	/** Whether the server refused it: its body is no longer drawn heading its way (ADR-077 §2). */
 	bool bRefused = false;
+
+	/** The body it ordered: the player's Vanguard, or a body it commanded in its stead. Only that body is drawn heading its way. */
+	TWeakObjectPtr<const APawn> Body;
 };

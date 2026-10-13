@@ -81,7 +81,7 @@ uint16 AVeyraPlayerController::MarkOrder(EVeyraOrderMarkKind Kind, const FVector
 	// The click shows where it went at once, a round trip before the server answers (ADR-062 §6).
 	if (IsLocalController())
 	{
-		OrderMark = FVeyraOrderMark{ Kind, Location, Target, GetWorld()->GetRealTimeSeconds(), LastOrderNumber };
+		OrderMark = FVeyraOrderMark{ Kind, Location, Target, GetWorld()->GetRealTimeSeconds(), LastOrderNumber, /*bRefused*/ false, GetCommandedBody() };
 	}
 	return LastOrderNumber;
 }

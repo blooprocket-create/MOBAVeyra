@@ -357,8 +357,11 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerIssueAttackMoveOrder(FVector Destination, EVeyraAttackMoveTarget Preference, uint16 OrderNumber);
 
-	/** Owning client: the server refused an order; OrderNumber names a marked one, 0 any other. */
-	UFUNCTION(Client, Unreliable)
+	/**
+	 * Owning client: the server refused an order; OrderNumber names a marked one, 0 any other. Reliable: it ends the refused
+	 * order's lead, and refusals are few.
+	 */
+	UFUNCTION(Client, Reliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection, uint16 OrderNumber);
 
 	UFUNCTION(Server, Reliable)
