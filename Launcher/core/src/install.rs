@@ -443,6 +443,24 @@ pub fn install(
     cancel: &AtomicBool,
     progress: &mut dyn FnMut(&Progress),
 ) -> Result<Outcome, InstallError> {
+    let mut outcome = Outcome::default();
+    install_counting(folder, target, store, settings, mode, cancel, progress, &mut outcome).map(|()| outcome)
+}
+
+/// As `install`, counting what it does in `outcome` as it goes, so a run that fails part-way still tells
+/// what it downloaded, reused, rebuilt and removed (the launcher's install log).
+// One more than clippy's limit: the counters stand beside the run's own inputs, as `install` passes them on.
+#[allow(clippy::too_many_arguments)]
+pub fn install_counting(
+    folder: &Path,
+    target: &Target,
+    store: &dyn ChunkStore,
+    settings: Settings,
+    mode: Mode,
+    cancel: &AtomicBool,
+    progress: &mut dyn FnMut(&Progress),
+    outcome: &mut Outcome,
+) -> Result<(), InstallError> {
     let kind = inspect_folder(folder).map_err(io_error(folder))?;
     if kind == FolderKind::Occupied {
         return Err(InstallError::Folder {
@@ -466,15 +484,12 @@ pub fn install(
     let interrupted = previous.as_ref().and_then(|record| record.target.clone());
     let trust = mode == Mode::Update && interrupted.is_none() && installed.is_some();
     let planned: Vec<Planned> = target.manifest.files.iter().map(|file| Planned::new(folder, file)).collect();
-    let mut outcome = Outcome {
-        build_version: target.manifest.build_version.clone(),
-        ..Outcome::default()
-    };
+    outcome.build_version = target.manifest.build_version.clone();
 
     // Up to date: the same release, and every file still there at its size.
     let size_matches = |planned: &Planned| fs::metadata(&planned.path).is_ok_and(|metadata| metadata.is_file() && metadata.len() == planned.file.size);
     if trust && installed.as_ref().is_some_and(|release| release.manifest_hash == target.manifest_hash) && planned.iter().all(size_matches) {
-        return Ok(outcome);
+        return Ok(());
     }
 
     // The record says a run is under way before anything is written.
@@ -651,6 +666,11 @@ pub fn install(
             Source::Downloaded(stored) => {
                 outcome.downloaded_bytes += stored;
                 status.downloaded_bytes += stored;
+                // A chunk planned from a file on disk that proved unusable, as a corrupt one of the right
+                // size: it is downloaded after all, and the download shown grows to say so.
+                if locations.contains_key(&planned[job.file].file.chunks[job.chunk].hash) {
+                    status.download_total_bytes += stored;
+                }
             }
         }
         status.done_bytes += size;
@@ -673,12 +693,14 @@ pub fn install(
     for path in &stale {
         if remove_file(&join(folder, path))? {
             outcome.removed_files += 1;
+            outcome.changed = true;
         }
     }
     prune_folders(folder, &stale);
     for planned in planned.iter().enumerate().filter(|(file, _)| build[*file]).map(|(_, planned)| planned) {
         fs::rename(&planned.part, &planned.path).map_err(io_error(&planned.path))?;
         outcome.rebuilt_files += 1;
+        outcome.changed = true;
     }
     remove_parts(folder)?;
     write_record(
@@ -691,7 +713,7 @@ pub fn install(
         },
     )?;
     outcome.changed = outcome.rebuilt_files > 0 || outcome.removed_files > 0;
-    Ok(outcome)
+    Ok(())
 }
 
 /// What an uninstall removed.
@@ -974,6 +996,49 @@ mod tests {
         assert_eq!(served_of(&store, b"ZZZZ"), 2);
         assert_eq!(read(&root, "Content/b.pak"), b"2222ZZZZ");
         assert!(outcome.downloaded_bytes > download_size(&target.manifest, None), "more than each chunk once");
+    }
+
+    #[test]
+    fn a_local_chunk_found_corrupt_is_added_to_the_download() {
+        // An update trusts a.pak, unchanged and of its size, though its 2222 has gone bad. new.pak needs 2222: the
+        // chunk on disk proves unusable, so it is downloaded, and the download shown grows to count it.
+        let mut store = MemoryStore::default();
+        let first = release(&mut store, "1", &[("Content/a.pak", b"11112222")]);
+        let root = folder("corrupt-local");
+        run(&root, &first, &store, Mode::Update).unwrap();
+        fs::write(root.join("Content/a.pak"), b"1111zzzz").unwrap();
+        let second = release(&mut store, "2", &[("Content/a.pak", b"11112222"), ("Content/new.pak", b"2222")]);
+        let served = served_of(&store, b"2222");
+        run(&root, &second, &store, Mode::Update).unwrap();
+        assert_eq!(served_of(&store, b"2222"), served + 1);
+        assert_eq!(read(&root, "Content/new.pak"), b"2222");
+    }
+
+    #[test]
+    fn a_run_that_fails_while_committing_keeps_its_counts() {
+        // As it starts to finish, something takes z.pak's place: a.pak's part is renamed into place, z.pak's cannot be.
+        let mut store = MemoryStore::default();
+        let target = release(&mut store, "1", &[("Content/a.pak", b"1111"), ("Content/z.pak", b"2222")]);
+        let root = folder("commit-fails");
+        let blocker = root.join("Content/z.pak/blocked");
+        let mut outcome = Outcome::default();
+        let result = install_counting(
+            &root,
+            &target,
+            &store,
+            SETTINGS,
+            Mode::Update,
+            &AtomicBool::new(false),
+            &mut |progress| {
+                if progress.stage == Stage::Finishing {
+                    fs::create_dir_all(&blocker).unwrap();
+                }
+            },
+            &mut outcome,
+        );
+        assert!(result.is_err());
+        assert!(outcome.downloaded_bytes > 0, "{outcome:?}");
+        assert!(outcome.rebuilt_files >= 1 && outcome.changed, "{outcome:?}");
     }
 
     #[test]
