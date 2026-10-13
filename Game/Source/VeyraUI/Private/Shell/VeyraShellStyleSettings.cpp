@@ -145,6 +145,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ReportIconSize"), ReportIconSize },
 	};
 	Require(HomeHeroHeight > 0.0f && HomeHeroHeight < 1.0f, TEXT("HomeHeroHeight"), TEXT("must be above 0 and below 1."));
+	Require(ShopPanelOpacity > 0.0f && ShopPanelOpacity <= 1.0f, TEXT("ShopPanelOpacity"), TEXT("must be above 0 and at most 1."));
 	// The menus' motion (ADR-082 §7).
 	Require(RevealSeconds > 0.0f && RevealStagger >= 0.0f && SheenSeconds > 0.0f && SheenOpacity > 0.0f && PressBurstRadius >= 1.0f, TEXT("RevealSeconds"),
 		TEXT("a page's reveal and a button's sheen run above 0 seconds, and a press bursts at least 1 across."));

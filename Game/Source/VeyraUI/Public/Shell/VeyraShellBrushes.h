@@ -83,6 +83,9 @@ namespace VeyraShellBrushes
 	/** The glow as an image brush Size slate units across, for the shell. */
 	VEYRAUI_API FSlateBrush Glow(float Size);
 
+	/** A coin Size slate units across, filled in Fill with a ring in Ring inside its rim: Gold's mark beside its amount (ADR-082 §8). */
+	VEYRAUI_API FSlateBrush Coin(float Size, const FLinearColor& Fill, const FLinearColor& Ring);
+
 	/** Nothing at all: a state that draws no surface. */
 	VEYRAUI_API FSlateBrush None();
 

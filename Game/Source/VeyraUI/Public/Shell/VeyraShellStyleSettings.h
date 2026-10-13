@@ -407,6 +407,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ShopDetailsWidth = 0.0f;
 
+	/** The shop's panel's opacity over the match, so nothing drawn behind it reads through (ADR-082 §8). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
+	float ShopPanelOpacity = 0.0f;
+
 	/** Match Found's and the status screens' centred panel, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float DialogWidth = 0.0f;

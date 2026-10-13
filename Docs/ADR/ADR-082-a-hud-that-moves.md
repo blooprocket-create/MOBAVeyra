@@ -104,6 +104,20 @@ All of these are presentation values in `[/Script/VeyraUI.VeyraShellStyleSetting
 
 Reduce UI Animation holds every one of them still.
 
+### 8. The scoreboard and the shop
+
+**Scoreboard:** it stacks the teams the way the results scoreboard does (ADR-078 §5): the viewer's team first, then the enemy's.
+- Each team has its heading in its side's colour, and the column heads stand over the first team.
+- Each row shows its side's bar, then the Vanguard's face with its level on a plate, then the Vanguard over its player. Its K/D/A, creep score and bounty come next, the bounty in brass while the player has one.
+- The build shows as item art: each slot's name is in that slot's tooltip, and the whole build is in the row's tooltip.
+- The viewer's own row stands raised, edged in the accent.
+
+**Shop:** its parts rise into place as it opens, as a page of the menus does.
+- The selected item's pane leads with its icon and name, and its whole cost beside a coin. Each stat shows as its amount in brass beside its name (`VeyraShopModel::StatParts`), then come its effect and the purchase button. "Builds from" and "Builds into" follow at the foot.
+- Tiles are edged in brass while their item can be bought, and in the accent when chosen.
+- Gold has its coin (`VeyraShellBrushes::Coin`).
+- The panel is nearly opaque (`ShopPanelOpacity`), so the match's banners and numbers never read through it.
+
 ## Consequences
 
 - The match HUD moves the way the website does, and its parts read as the approved board drew them.

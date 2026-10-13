@@ -135,6 +135,16 @@ namespace VeyraShopModel
 	/** Each stat the item gives, a line each in DescribeStats's words: "+20 Armor" (the HUD's item tooltip, ADR-080 §2). */
 	VEYRAUI_API TArray<FText> StatLines(const FVeyraItemStatsTuning& Stats);
 
+	/** One stat a line names: its amount, as "+20" or "+25%", and its name, as "Armor" (the shop's details, ADR-082 §8). */
+	struct FVeyraShopStatPart
+	{
+		FText Amount;
+		FText Name;
+	};
+
+	/** Each stat the item gives as its amount and its name, in StatLines's order. */
+	VEYRAUI_API TArray<FVeyraShopStatPart> StatParts(const FVeyraItemStatsTuning& Stats);
+
 	/**
 	 * Whether Item answers the shop's search (SET-58; ADR-058 §1): its name or one of its stats, as the shop lists them,
 	 * contains Search, ignoring case and the space around it. An empty search finds every item.

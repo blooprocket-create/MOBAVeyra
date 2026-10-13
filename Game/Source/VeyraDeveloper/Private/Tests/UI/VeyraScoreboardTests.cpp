@@ -129,20 +129,25 @@ namespace VeyraScoreboardTests
 			const FVeyraScoreboardView& View = Screen->GetView();
 			ASSERT_THAT(IsTrue(Lines.Contains(UVeyraScoreboard::SideHeading(View.Sides[0]).ToString())));
 			ASSERT_THAT(IsTrue(Lines.Contains(UVeyraScoreboard::SideHeading(View.Sides[1]).ToString())));
+			// Each player's Vanguard, name and K/D/A in words, and its build as art: a tile for each item slot (ADR-082 §8).
+			int32 Slots = 0;
 			for (const FVeyraScoreboardSide& Side : View.Sides)
 			{
 				for (const FVeyraScoreboardRow& Row : Side.Rows)
 				{
-					ASSERT_THAT(IsTrue(Lines.Contains(UVeyraScoreboard::RowLine(Row).ToString()) && Lines.Contains(UVeyraScoreboard::ItemsLine(Row).ToString())));
+					ASSERT_THAT(IsTrue(Lines.Contains(UVeyraScoreboard::VanguardLine(Row).ToString()) && Lines.Contains(UVeyraScoreboard::RowLine(Row).ToString())
+						&& Lines.Contains(VeyraScoreboardModel::KdaText(Row).ToString())));
+					Slots += Row.Items.Num();
 				}
 			}
+			ASSERT_THAT(AreEqual(Screen->GetItemTiles(), Slots));
 
 			// A kill the server reports shows at the next refresh, as each paint runs, or a script where
 			// nothing paints.
 			Enemy->FindComponentByClass<UVeyraScoreComponent>()->SetScore(MakeScore(1, 1, 0, 25, 0));
 			Screen->Refresh();
 			ASSERT_THAT(IsTrue(Screen->GetView().Sides[1].Kills == 1));
-			ASSERT_THAT(IsTrue(Screen->GetLines().Contains(UVeyraScoreboard::RowLine(Screen->GetView().Sides[1].Rows[0]).ToString())));
+			ASSERT_THAT(IsTrue(Screen->GetLines().Contains(VeyraScoreboardModel::KdaText(Screen->GetView().Sides[1].Rows[0]).ToString())));
 		}
 
 		TEST_METHOD(ItsSidesWearThePlayersColourVisionAndFollowAChange)

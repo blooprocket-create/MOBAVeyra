@@ -48,7 +48,8 @@ namespace VeyraAbilityNumbersTests
 		{
 			const FVeyraAbilitiesTuning& Tuning = UVeyraAbilitiesTuningSubsystem::Get();
 			const FVeyraContentId BearHug = Id(TEXT("patch_bear_hug"));
-			const FVeyraDamageTuning& Damage = VeyraAbilityRules::DamageParts(Tuning, BearHug)[0].Damage[0];
+			// A copy: the parts are a temporary list.
+			const FVeyraDamageTuning Damage = VeyraAbilityRules::DamageParts(Tuning, BearHug)[0].Damage[0];
 			const double Amount = VeyraAbilityRules::DamageAmount(Damage, Rank, 0.0, MagicPower);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Amount, VeyraAbilityRules::ValueAtRank(Damage.AmountByRank, Rank) + MagicPower * Damage.MagicPowerRatio)));
 
@@ -77,7 +78,8 @@ namespace VeyraAbilityNumbersTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Summary.CooldownSeconds, Expected) && Summary.Cooldown.EndsWith(TEXT(" s")), *Summary.Cooldown));
 			ASSERT_THAT(IsTrue(Summary.Cost.EndsWith(TEXT(" Mana")), *Summary.Cost));
 			// Its damage now, physical, and how it is made from the caster's power.
-			const FVeyraDamageTuning& Damage = VeyraAbilityRules::DamageParts(Tuning, Hold)[0].Damage[0];
+			// A copy: the parts are a temporary list.
+			const FVeyraDamageTuning Damage = VeyraAbilityRules::DamageParts(Tuning, Hold)[0].Damage[0];
 			const FString Amount = FString::Printf(TEXT("%.0f physical"), FMath::RoundToDouble(VeyraAbilityRules::DamageAmount(Damage, HoldRank, PhysicalPower, 0.0)));
 			const FVeyraAbilityFact* Hit = Summary.Facts.FindByPredicate([](const FVeyraAbilityFact& Fact) { return Fact.Tone == EVeyraFactTone::Physical; });
 			ASSERT_THAT(IsTrue(Hit && Hit->Value == Amount && Hit->Note.Contains(TEXT("of your 58 Physical Power")), Hit ? *Hit->Value : TEXT("no damage fact")));

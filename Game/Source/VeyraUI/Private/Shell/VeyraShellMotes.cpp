@@ -10,7 +10,7 @@
 
 namespace
 {
-	const UVeyraShellStyleSettings& Style()
+	const UVeyraShellStyleSettings& MotesLook()
 	{
 		return *GetDefault<UVeyraShellStyleSettings>();
 	}
@@ -38,7 +38,7 @@ void SVeyraShellMotes::Construct(const FArguments& InArgs)
 
 SVeyraShellMotes::FMote SVeyraShellMotes::Made(const FVector2D& Area, bool bAnywhere)
 {
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = MotesLook();
 	FMote Mote;
 	// Mostly small, now and then large, as the square of a fair draw falls.
 	const float Draw = Random.FRand();
@@ -56,7 +56,7 @@ SVeyraShellMotes::FMote SVeyraShellMotes::Made(const FVector2D& Area, bool bAnyw
 
 void SVeyraShellMotes::Advance(const FVector2D& Area, float Seconds)
 {
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = MotesLook();
 	if (Area.X <= 0.0 || Area.Y <= 0.0)
 	{
 		return;
@@ -107,7 +107,7 @@ int32 SVeyraShellMotes::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 	{
 		return LayerId;
 	}
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = MotesLook();
 	static const FSlateBrush Glow = VeyraShellBrushes::Glow(1.0f);
 	const FLinearColor Teal = Settings.AccentColor;
 	const FLinearColor Brass = Settings.PrimaryColor;

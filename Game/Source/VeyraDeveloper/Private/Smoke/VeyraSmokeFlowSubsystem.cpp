@@ -3008,6 +3008,12 @@ bool UVeyraSmokeFlowSubsystem::Capture(const TCHAR* Name)
 	{
 		return true;
 	}
+	// The shop too, as it opens over the match.
+	const UVeyraMatchMenuSubsystem* Screens = GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>();
+	if (const UVeyraShopScreen* Shop = Screens ? Screens->GetShop() : nullptr; Shop && Shop->IsRevealing())
+	{
+		return true;
+	}
 #endif
 	Captured.Add(Name);
 	const FString Path = FPaths::Combine(ScreenshotFolder, FString::Printf(TEXT("Flow-%s.png"), Name));

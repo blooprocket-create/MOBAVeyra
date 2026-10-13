@@ -12,6 +12,7 @@
 class APlayerController;
 class FVeyraSettingsStore;
 class UHorizontalBox;
+class UVerticalBox;
 
 /**
  * The in-match scoreboard (Settings Bible #56; ADR-017 §4), built in C++:
@@ -55,11 +56,17 @@ public:
 	/** A team's heading, as the scoreboard shows it. */
 	static FText SideHeading(const FVeyraScoreboardSide& Side);
 
-	/** A player's line: Vanguard, name, level, K/D/A and creep score. */
+	/** A player's Vanguard, as its row names it over its player. */
+	static FText VanguardLine(const FVeyraScoreboardRow& Row);
+
+	/** A player's name under its Vanguard, marked while the player is away. */
 	static FText RowLine(const FVeyraScoreboardRow& Row);
 
-	/** A player's items, in slot order, empty slots marked. */
+	/** A player's items in words, in slot order, empty slots marked: the build's tooltip. */
 	static FText ItemsLine(const FVeyraScoreboardRow& Row);
+
+	/** How many item tiles its last build drew. For tests. */
+	int32 GetItemTiles() const { return ItemTiles; }
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -73,7 +80,8 @@ private:
 	FVeyraShellLook BuiltLook;
 	const FVeyraSettingsStore* SettingsStore = nullptr;
 	bool bBuilt = false;
+	int32 ItemTiles = 0;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UHorizontalBox> Columns;
+	TObjectPtr<UVerticalBox> Board;
 };

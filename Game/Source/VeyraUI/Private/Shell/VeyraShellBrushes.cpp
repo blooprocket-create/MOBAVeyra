@@ -375,6 +375,58 @@ UTexture2D* StreakTexture()
 	return Made().Add(Key, MoveTemp(Fresh)).Texture;
 }
 
+FSlateBrush Coin(float Size, const FLinearColor& Fill, const FLinearColor& Ring)
+{
+	const FString Key = FString::Printf(TEXT("Coin|%s|%s|%.3f"), *Fill.ToString(), *Ring.ToString(), Size);
+	FMade* Found = Made().Find(Key);
+	const float Across = FMath::Max(Size, 1.0f);
+	if (!Found)
+	{
+		const int32 Texels = FMath::CeilToInt32(Across * TexelsPerUnit);
+		const float Radius = Texels / 2.0f;
+		// The ring sits between these shares of the radius: a struck coin's inner rim.
+		constexpr float RingInner = 0.52f;
+		constexpr float RingOuter = 0.66f;
+		TArray<FColor> Pixels;
+		Pixels.SetNumUninitialized(Texels * Texels);
+		for (int32 Row = 0; Row < Texels; ++Row)
+		{
+			for (int32 Column = 0; Column < Texels; ++Column)
+			{
+				FLinearColor Sum(0.0f, 0.0f, 0.0f, 0.0f);
+				for (int32 SampleY = 0; SampleY < Samples; ++SampleY)
+				{
+					for (int32 SampleX = 0; SampleX < Samples; ++SampleX)
+					{
+						const float X = (Column + (SampleX + 0.5f) / Samples - Radius) / Radius;
+						const float Y = (Row + (SampleY + 0.5f) / Samples - Radius) / Radius;
+						const float Distance = FMath::Sqrt(X * X + Y * Y);
+						if (Distance <= 1.0f)
+						{
+							Sum += Premultiplied(Distance >= RingInner && Distance <= RingOuter ? Ring : Fill);
+						}
+					}
+				}
+				Sum /= static_cast<float>(Samples * Samples);
+				const FLinearColor Straight = Sum.A > 0.0f ? FLinearColor(Sum.R / Sum.A, Sum.G / Sum.A, Sum.B / Sum.A, Sum.A) : FLinearColor::Transparent;
+				Pixels[Row * Texels + Column] = Straight.ToFColor(/*bSRGB*/ true);
+			}
+		}
+		FMade Fresh;
+		Fresh.Texture = MakeTexture(Texels, Texels, Pixels);
+		Found = &Made().Add(Key, MoveTemp(Fresh));
+	}
+	if (!Found->Texture)
+	{
+		return None();
+	}
+	FSlateBrush Brush;
+	Brush.SetResourceObject(Found->Texture);
+	Brush.ImageSize = FVector2D(Across);
+	Brush.DrawAs = ESlateBrushDrawType::Image;
+	return Brush;
+}
+
 FSlateBrush Glow(float Size)
 {
 	UTexture2D* Texture = GlowTexture();

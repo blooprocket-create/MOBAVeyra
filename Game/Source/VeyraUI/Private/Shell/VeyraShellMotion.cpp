@@ -23,7 +23,7 @@ namespace
 		return *GetDefault<UVeyraGreyboxSettings>();
 	}
 
-	double Eased(const FVeyraEaseCurve& Curve, double After, double Seconds)
+	double ShellEased(const FVeyraEaseCurve& Curve, double After, double Seconds)
 	{
 		return VeyraHudEase::Evaluate(Curve, VeyraHudEase::Progress(After, Seconds));
 	}
@@ -65,13 +65,13 @@ void FVeyraShellReveal::Pose(EVeyraReveal Kind, int32 Index, double After, float
 	OutTransform = FWidgetTransform();
 	if (Kind == EVeyraReveal::Slide)
 	{
-		const float Left = 1.0f - static_cast<float>(Eased(HudMotionLook().MotionSnap, Own, Settings.RevealSeconds));
+		const float Left = 1.0f - static_cast<float>(ShellEased(HudMotionLook().MotionSnap, Own, Settings.RevealSeconds));
 		OutTransform.Translation = FVector2D(-Settings.RevealSlide * Left, 0.0f);
 		OutTransform.Shear = FVector2D(-Settings.RevealShear * Left, 0.0f);
 	}
 	else
 	{
-		const float Left = 1.0f - static_cast<float>(Eased(HudMotionLook().MotionSettle, Own, Settings.RevealSeconds));
+		const float Left = 1.0f - static_cast<float>(ShellEased(HudMotionLook().MotionSettle, Own, Settings.RevealSeconds));
 		OutTransform.Translation = FVector2D(0.0f, Settings.RevealRise * Left);
 	}
 }
@@ -246,7 +246,7 @@ int32 SVeyraShellButton::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 		// A white-hot band crossing it from the left, slow then rushing.
 		static const FSlateBrush Streak = LightBrush(VeyraShellBrushes::StreakTexture());
 		const float Band = static_cast<float>(Size.X) * 0.55f;
-		const float Across = static_cast<float>(Eased(Moves.MotionSmear, Sheen, Settings.SheenSeconds));
+		const float Across = static_cast<float>(ShellEased(Moves.MotionSmear, Sheen, Settings.SheenSeconds));
 		const float Left = -Band + (static_cast<float>(Size.X) + Band) * Across;
 		FSlateDrawElement::MakeBox(OutDrawElements, Layer, AllottedGeometry.ToPaintGeometry(FVector2f(Band, Size.Y), FSlateLayoutTransform(FVector2f(Left, 0.0f))), &Streak, Effect,
 			Light(Moves.MotionHotColor, Settings.SheenOpacity));
@@ -256,7 +256,7 @@ int32 SVeyraShellButton::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 		// The website's press burst: a ring growing and thinning, a white-hot core shrinking, and four slashes flung out.
 		static const FSlateBrush Ring = LightBrush(VeyraShellBrushes::RingTexture(0.12f));
 		static const FSlateBrush Core = LightBrush(VeyraShellBrushes::GlowTexture());
-		const double Out = Eased(Moves.MotionSnap, Burst, Moves.MotionBurstSeconds);
+		const double Out = ShellEased(Moves.MotionSnap, Burst, Moves.MotionBurstSeconds);
 		const float Linear = static_cast<float>(Burst / Moves.MotionBurstSeconds);
 		const float Reach = Settings.PressBurstRadius;
 		const FVector2f At(BurstPoint);

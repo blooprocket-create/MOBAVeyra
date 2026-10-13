@@ -42,8 +42,9 @@ bool UVeyraScoreboard::Initialize()
 		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		Size->SetWidthOverride(Style.ScoreboardWidth);
 		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(Style.Spacing * 2.0f));
-		Columns = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		Panel->SetContent(Columns);
+		// Both teams stacked, the viewer's first, their columns lined up (ADR-082 §8).
+		Board = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Panel->SetContent(Board);
 		Size->AddChild(Panel);
 		if (UOverlaySlot* Centred = Screen->AddChildToOverlay(Size))
 		{
@@ -106,63 +107,148 @@ void UVeyraScoreboard::Refresh()
 void UVeyraScoreboard::Rebuild()
 {
 	bBuilt = true;
-	if (!Columns)
+	ItemTiles = 0;
+	if (!Board)
 	{
 		return;
 	}
-	Columns->ClearChildren();
+	Board->ClearChildren();
 	const FVeyraScopedShellLook Hud{ FVeyraShellLook() };
 	BuiltLook = VeyraShellLook::Current();
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
-	for (const FVeyraScoreboardSide& Side : View.Sides)
+	const FBox2f Whole(FVector2f::ZeroVector, FVector2f::UnitVector);
+	// A fixed-width cell of Child in Row, centred on the row's line.
+	const auto AddCell = [this](UHorizontalBox& Row, UWidget& Child, float Width) {
+		USizeBox* Cell = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Cell->SetWidthOverride(Width);
+		Cell->AddChild(&Child);
+		Row.AddChildToHorizontalBox(Cell)->SetVerticalAlignment(VAlign_Center);
+	};
+	const auto AddGap = [this](UHorizontalBox& Row, float Width) {
+		USizeBox* Gap = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Gap->SetWidthOverride(Width);
+		Row.AddChildToHorizontalBox(Gap);
+	};
+	const auto Text = [this](const FText& Words, VeyraShellStyle::EVeyraShellText Role, const FLinearColor* Color = nullptr) {
+		UTextBlock* Made = VeyraShellStyle::MakeText(*WidgetTree, Words, Role);
+		Made->SetAutoWrapText(false);
+		if (Color)
+		{
+			Made->SetColorAndOpacity(FSlateColor(*Color));
+		}
+		return Made;
+	};
+	// The columns, as the results' scoreboard sets them (ADR-078 §5): the Vanguard and its player beside the portrait, the
+	// figures, then the build as art (ADR-082 §8).
+	const float SideBar = 3.0f;
+	const float Portrait = Style.ReportPortraitSize;
+	const float NameWidth = Style.ReportLabelWidth;
+	const float FigureWidth = Style.ReportColumnWidth * 0.75f;
+	const float RowInset = FMath::Max(Style.Spacing / 2.0f, Style.PanelChamfer * 0.75f);
+	for (int32 SideIndex = 0; SideIndex < View.Sides.Num(); ++SideIndex)
 	{
-		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		UTextBlock* Heading = VeyraShellStyle::MakeText(*WidgetTree, SideHeading(Side), VeyraShellStyle::EVeyraShellText::Heading);
-		Heading->SetColorAndOpacity(Side.bAllies ? Sides.Ally : Sides.Enemy);
-		VeyraShellStyle::AddSpaced(*Column, *Heading);
+		const FVeyraScoreboardSide& Side = View.Sides[SideIndex];
+		const FLinearColor SideColor = Side.bAllies ? Sides.Ally : Sides.Enemy;
+		// The team's heading in its side's colour, its kills in it; the column heads over the first team only.
+		UHorizontalBox* Head = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		AddGap(*Head, RowInset);
+		UTextBlock* Heading = Text(SideHeading(Side), VeyraShellStyle::EVeyraShellText::Heading, &SideColor);
+		AddCell(*Head, *Heading, SideBar + Style.Spacing + Portrait + Style.Spacing + NameWidth);
+		if (SideIndex == 0)
+		{
+			for (const TPair<FText, float>& Column : { TPair<FText, float>(LOCTEXT("ColKda", "K / D / A"), FigureWidth), TPair<FText, float>(LOCTEXT("ColCs", "CS"), FigureWidth),
+					 TPair<FText, float>(LOCTEXT("ColBounty", "Bounty"), FigureWidth), TPair<FText, float>(LOCTEXT("ColBuild", "Build"), Style.ReportIconSize * 6.0f) })
+			{
+				AddCell(*Head, *Text(Column.Key, VeyraShellStyle::EVeyraShellText::Column), Column.Value);
+			}
+		}
+		VeyraShellStyle::AddSpaced(*Board, *Head);
+		Board->AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
 		for (const FVeyraScoreboardRow& Row : Side.Rows)
 		{
-			// A card for each player: the Vanguard's face, its line and its build; the viewer's own outlined.
-			UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, Row.bLocal ? VeyraShellStyle::EVeyraShellSurface::Raised : VeyraShellStyle::EVeyraShellSurface::Panel,
-				FMargin(Style.Spacing / 2.0f));
+			// The player's own row stands out on a raised surface edged in the accent; every row is inset alike, so the
+			// columns line up.
+			UBorder* Surface = Row.bLocal ? VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(RowInset))
+										  : VeyraShellStyle::MakeBorder(*WidgetTree, FLinearColor::Transparent, RowInset);
 			if (Row.bLocal)
 			{
-				VeyraShellStyle::StyleSurface(*Card, Style.SurfaceRaisedColor, Style.AccentColor.CopyWithNewOpacity(0.6f));
+				VeyraShellStyle::StyleSurface(*Surface, Style.SurfaceRaisedColor, Style.AccentColor.CopyWithNewOpacity(0.6f));
 			}
-			UHorizontalBox* Inside = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-			Card->SetContent(Inside);
+			UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+			Surface->SetContent(Line);
+			// Its side's bar, then the Vanguard's face with its level on a plate at its corner.
+			USizeBox* Bar = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			Bar->SetWidthOverride(SideBar);
+			Bar->SetHeightOverride(Portrait);
+			Bar->AddChild(VeyraShellStyle::MakeBorder(*WidgetTree, SideColor.CopyWithNewOpacity(Row.bAway ? 0.3f : 0.9f), 0.0f));
+			Line->AddChildToHorizontalBox(Bar)->SetVerticalAlignment(VAlign_Center);
+			AddGap(*Line, Style.Spacing);
 			const FString VanguardId = Row.Vanguard.ToString();
 			UTexture2D* Hero = VeyraShellArt::HeroOf(VanguardId);
-			const FVector2D FaceSize(Style.PortraitSize, Style.PortraitSize);
+			const FBox2f Crop = Hero ? VeyraShellArt::Crop(VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, true) : Whole;
+			UOverlay* FaceStack = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+			USizeBox* FaceBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			FaceBox->SetWidthOverride(Portrait);
+			FaceBox->SetHeightOverride(Portrait);
 			UImage* Face = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-			const FBox2f Crop = Hero ? VeyraShellArt::Crop(VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, true) : FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector);
-			Face->SetBrush(VeyraShellArt::Brush(Hero, Crop, FaceSize, Style.ButtonCornerRadius, Style.SurfaceColor, Side.bAllies ? Sides.Ally : Sides.Enemy, 1.0f));
+			Face->SetBrush(VeyraShellArt::Brush(Hero, Crop, FVector2D(Portrait), Style.ButtonCornerRadius, Style.SurfaceColor, SideColor, 1.0f));
 			if (Row.bAway)
 			{
 				Face->SetColorAndOpacity(Style.MutedTextColor);
 			}
-			Inside->AddChildToHorizontalBox(Face)->SetVerticalAlignment(VAlign_Center);
-			UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-			UTextBlock* Line = VeyraShellStyle::MakeText(*WidgetTree, RowLine(Row), VeyraShellStyle::EVeyraShellText::Body);
-			if (Row.bLocal)
+			FaceBox->AddChild(Face);
+			FaceStack->AddChildToOverlay(FaceBox);
+			UBorder* Badge = VeyraShellStyle::MakeBorder(*WidgetTree, Style.SurfaceColor, 1.0f);
+			VeyraShellStyle::StyleSurface(*Badge, Style.SurfaceColor.CopyWithNewOpacity(1.0f), Style.PrimaryColor);
+			Badge->SetPadding(FMargin(4.0f, 0.0f));
+			Badge->SetContent(Text(FText::AsNumber(Row.Level), VeyraShellStyle::EVeyraShellText::Small));
+			if (UOverlaySlot* Corner = FaceStack->AddChildToOverlay(Badge))
 			{
-				Line->SetColorAndOpacity(Style.AccentColor);
+				Corner->SetHorizontalAlignment(HAlign_Right);
+				Corner->SetVerticalAlignment(VAlign_Bottom);
 			}
-			Texts->AddChild(Line);
-			UTextBlock* Build = VeyraShellStyle::MakeText(*WidgetTree, ItemsLine(Row), VeyraShellStyle::EVeyraShellText::Small);
-			Build->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
-			Texts->AddChild(Build);
-			UHorizontalBoxSlot* TextSlot = Inside->AddChildToHorizontalBox(Texts);
-			TextSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-			TextSlot->SetVerticalAlignment(VAlign_Center);
-			TextSlot->SetPadding(FMargin(Style.Spacing, 0.0f, 0.0f, 0.0f));
-			VeyraShellStyle::AddSpaced(*Column, *Card);
+			Line->AddChildToHorizontalBox(FaceStack)->SetVerticalAlignment(VAlign_Center);
+			AddGap(*Line, Style.Spacing);
+			// The Vanguard over its player; the player's own name in the accent.
+			UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			Who->AddChild(Text(VanguardLine(Row), VeyraShellStyle::EVeyraShellText::Heading));
+			const FLinearColor NameColor = Row.bLocal ? Style.AccentColor : Style.MutedTextColor;
+			Who->AddChild(Text(RowLine(Row), VeyraShellStyle::EVeyraShellText::Small, &NameColor));
+			AddCell(*Line, *Who, NameWidth);
+			// Its figures: K / D / A, creep score, and its bounty in brass while it has one.
+			AddCell(*Line, *Text(VeyraScoreboardModel::KdaText(Row), VeyraShellStyle::EVeyraShellText::Body), FigureWidth);
+			AddCell(*Line, *Text(FText::AsNumber(Row.CreepScore), VeyraShellStyle::EVeyraShellText::Body), FigureWidth);
+			const FLinearColor BountyColor = Style.PrimaryColor;
+			AddCell(*Line, *Text(Row.Bounty > 0 ? FText::AsNumber(Row.Bounty) : FText::FromString(TEXT("-")), VeyraShellStyle::EVeyraShellText::Body,
+				Row.Bounty > 0 ? &BountyColor : &Style.MutedTextColor), FigureWidth);
+			// The build as art, each slot's item in its tooltip and the whole build in the row's.
+			for (const FVeyraContentId& Item : Row.Items)
+			{
+				USizeBox* Tile = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+				Tile->SetWidthOverride(Style.ReportIconSize);
+				Tile->SetHeightOverride(Style.ReportIconSize);
+				UImage* Art = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+				const FString ItemId = Item.IsValid() ? Item.ToString() : FString();
+				Art->SetBrush(VeyraShellArt::Brush(ItemId.IsEmpty() ? nullptr : VeyraShellArt::ItemIconOf(ItemId), Whole, FVector2D(Style.ReportIconSize), Style.ButtonCornerRadius,
+					Style.SurfaceColor, Style.HairlineColor, 1.0f));
+				if (Item.IsValid())
+				{
+					Art->SetToolTipText(VeyraContentText::ItemName(Item));
+				}
+				Tile->AddChild(Art);
+				UHorizontalBoxSlot* TileSlot = Line->AddChildToHorizontalBox(Tile);
+				TileSlot->SetVerticalAlignment(VAlign_Center);
+				TileSlot->SetPadding(FMargin(0.0f, 0.0f, 4.0f, 0.0f));
+				++ItemTiles;
+			}
+			Line->SetToolTipText(ItemsLine(Row));
+			Board->AddChild(Surface);
 		}
-		if (UHorizontalBoxSlot* ColumnSlot = Columns->AddChildToHorizontalBox(Column))
+		if (SideIndex + 1 < View.Sides.Num())
 		{
-			// The two teams share the width evenly.
-			ColumnSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-			ColumnSlot->SetPadding(FMargin(Style.Spacing, 0.0f));
+			USizeBox* Between = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			Between->SetHeightOverride(Style.Spacing * 1.5f);
+			Board->AddChild(Between);
 		}
 	}
 }
@@ -187,13 +273,15 @@ FText UVeyraScoreboard::SideHeading(const FVeyraScoreboardSide& Side)
 	return FText::Format(Side.bAllies ? LOCTEXT("Allies", "Your team   {0} kills") : LOCTEXT("Enemies", "Enemy team   {0} kills"), FText::AsNumber(Side.Kills));
 }
 
+FText UVeyraScoreboard::VanguardLine(const FVeyraScoreboardRow& Row)
+{
+	return Row.Vanguard.IsValid() ? VeyraContentText::VanguardName(Row.Vanguard) : LOCTEXT("NoVanguard", "No Vanguard");
+}
+
 FText UVeyraScoreboard::RowLine(const FVeyraScoreboardRow& Row)
 {
-	const FText Vanguard = Row.Vanguard.IsValid() ? VeyraContentText::VanguardName(Row.Vanguard) : LOCTEXT("NoVanguard", "No Vanguard");
-	const FText Line = FText::Format(LOCTEXT("Row", "{0}  {1}   Lv {2}   {3}   CS {4}"), Vanguard, FText::FromString(Row.Name), FText::AsNumber(Row.Level),
-		VeyraScoreboardModel::KdaText(Row), FText::AsNumber(Row.CreepScore));
-	const FText WithBounty = Row.Bounty > 0 ? FText::Format(LOCTEXT("RowBounty", "{0}   Bounty {1}"), Line, FText::AsNumber(Row.Bounty)) : Line;
-	return Row.bAway ? FText::Format(LOCTEXT("RowAway", "{0}   (disconnected)"), WithBounty) : WithBounty;
+	const FText Name = FText::FromString(Row.Name);
+	return Row.bAway ? FText::Format(LOCTEXT("RowAway", "{0}   (disconnected)"), Name) : Name;
 }
 
 FText UVeyraScoreboard::ItemsLine(const FVeyraScoreboardRow& Row)
