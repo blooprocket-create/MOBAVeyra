@@ -5,7 +5,8 @@
 bool FVeyraMotion::operator==(const FVeyraMotion& Other) const
 {
 	return StartTime == Other.StartTime && Start == Other.Start && Corners == Other.Corners && Speed == Other.Speed && Yaw == Other.Yaw
-		&& Kind == Other.Kind && SetDownSerial == Other.SetDownSerial && OrderNumber == Other.OrderNumber && Host == Other.Host;
+		&& Kind == Other.Kind && bHeld == Other.bHeld && SetDownSerial == Other.SetDownSerial && OrderNumber == Other.OrderNumber
+		&& Host == Other.Host;
 }
 
 namespace VeyraMotion
@@ -18,11 +19,12 @@ namespace VeyraMotion
 
 	double Length(const FVeyraMotion& Motion)
 	{
+		// Across the ground, as the server walks and forces a body: a slope's rise adds nothing to it.
 		double Total = 0.0;
 		FVector From = Motion.Start;
 		for (const FVector& Corner : Motion.Corners)
 		{
-			Total += FVector::Dist(From, Corner);
+			Total += FVector::Dist2D(From, Corner);
 			From = Corner;
 		}
 		return Total;
@@ -41,18 +43,19 @@ namespace VeyraMotion
 		{
 			return Result;
 		}
-		// Before it began, it stands where it began; the distance walked runs on at its speed from then.
+		// Before it began, it stands where it began; the distance across the ground runs on at its speed from then, as the
+		// server's body covers it, and its height follows each leg.
 		double Left = FMath::Max(0.0, Time - Motion.StartTime) * Motion.Speed;
 		FVector From = Motion.Start;
 		for (const FVector& Corner : Motion.Corners)
 		{
 			const FVector Leg = Corner - From;
-			const double LegLength = Leg.Size();
+			const double LegLength = Leg.Size2D();
 			if (Left < LegLength)
 			{
-				const FVector Direction = Leg / LegLength;
-				Result.Location = From + Direction * Left;
-				Result.Velocity = Direction * Motion.Speed;
+				const FVector PerUnit = Leg / LegLength;
+				Result.Location = From + PerUnit * Left;
+				Result.Velocity = PerUnit * Motion.Speed;
 				Result.bEnded = false;
 				return Result;
 			}
@@ -65,7 +68,7 @@ namespace VeyraMotion
 
 	TArray<FVector_NetQuantize> CornersWithin(const FVector& Start, TConstArrayView<FVector> Path, double MaxLength)
 	{
-		// A corner closer than this to the one before adds nothing a body would show.
+		// A corner closer than this to the one before, across the ground, adds nothing a body would show.
 		constexpr double SameCornerDistance = 1.0;
 		TArray<FVector_NetQuantize> Corners;
 		if (!(MaxLength > 0.0))
@@ -76,7 +79,7 @@ namespace VeyraMotion
 		FVector From = Start;
 		for (const FVector& Corner : Path)
 		{
-			const double LegLength = FVector::Dist(From, Corner);
+			const double LegLength = FVector::Dist2D(From, Corner);
 			if (LegLength < SameCornerDistance)
 			{
 				continue;

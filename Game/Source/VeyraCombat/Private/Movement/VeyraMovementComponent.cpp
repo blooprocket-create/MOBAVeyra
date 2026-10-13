@@ -118,6 +118,8 @@ FVeyraMotion UVeyraMovementComponent::DescribeMotion(double Now) const
 	Described.Yaw = static_cast<float>(UpdatedComponent->GetComponentRotation().Yaw);
 	Described.OrderNumber = MotionOrderNumber;
 	Described.SetDownSerial = Motion.SetDownSerial;
+	// Held by a stun, a cast in place or a forced move, its orders wait, and its player's machine predicts no walk (§5).
+	Described.bHeld = IsMovementLocked();
 	if (ForcedMove.IsSet())
 	{
 		if (ForcedMove->Mode == EVeyraCustomMovementMode::Attached)
@@ -176,7 +178,8 @@ void UVeyraMovementComponent::PublishMotion()
 	const void* Path = GetFollowedPath();
 
 	bool bSetDown = bSetDownPending;
-	bool bTell = !bHasMotion || Want.Kind != Motion.Kind || Want.Host != Motion.Host || Want.OrderNumber != Motion.OrderNumber || Path != ToldPath
+	bool bTell = !bHasMotion || Want.Kind != Motion.Kind || Want.bHeld != Motion.bHeld || Want.Host != Motion.Host || Want.OrderNumber != Motion.OrderNumber
+		|| Path != ToldPath
 		|| FMath::Abs(Want.Speed - Motion.Speed) > Motion.Speed * Tuning.SpeedChangeShare;
 	if (bHasMotion && Want.Kind != EVeyraMotionKind::Attached && Motion.Kind != EVeyraMotionKind::Attached)
 	{

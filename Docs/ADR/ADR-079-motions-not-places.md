@@ -32,15 +32,16 @@ The server tells every machine that sees a unit its **motion** (`FVeyraMotion`, 
 - the corners it walks through after that (`Corners`), at its speed (`Speed`);
 - its facing as it began (`Yaw`);
 - what it is doing (`Kind`): Stand, Walk (its orders: a path, a pursuit, a ride), Forced (a dash, displacement or Fear), or Attached (to a `Host`);
+- whether its orders may not move it now (`bHeld`): it is stunned, casting in place, or moved by something else;
 - a set-down serial that changes whenever the body is set down elsewhere at once: a blink, a respawn, a Recall;
 - the number of the player's order it answers (`OrderNumber`, §5).
 
-`VeyraMotion::Sample` gives where a motion has its body at any moment. Before its start it stands where it began; after its last corner it stands there, with no velocity, and never slides on. The engine's own place updates are off for these units (`SetReplicatingMovement(false)`): the motion is the only thing that moves them on other machines.
+`VeyraMotion::Sample` gives where a motion has its body at any moment. It covers its distance across the ground at its speed, as the server walks and forces a body, its height following each leg, so a slope never slows it. Before its start it stands where it began; after its last corner it stands there, with no velocity, and never slides on. The engine's own place updates are off for these units (`SetReplicatingMovement(false)`): the motion is the only thing that moves them on other machines.
 
 ### 2. What the server tells, and when
 
 After each frame's movement, the server compares what the body does with what it last told (`UVeyraMovementComponent::PublishMotion`). It tells afresh, at once (`ForceNetUpdate`), when:
-- what the body does changes kind, host or order;
+- what the body does changes kind, host, order, or whether it is held;
 - its path changes;
 - its speed changes by more than `SpeedChangeShare`;
 - it strays more than `DriftDistance` from where its told motion has it now (pushed by others, a ride's arc, a steer);
@@ -67,7 +68,7 @@ Each client times exchanges with the server's clock every `ClockExchangeSeconds`
 ### 5. The player's own body
 
 On the player's own machine only, and in presentation only:
-- **The moment an order is given**, the body it commands is drawn carrying it out (`VeyraOrderPrediction::Predict`, `UVeyraMovementComponent::PredictMotion`). It walks straight toward the order's goal at the speed its last motion told, stopping short as the server will: the orders' arrival tolerance for a move or an Attack Move, the attack's reach to its target for an attack. An attack already within reach turns the body to its target. Nothing is predicted for a body that may not walk: dead, held by its statuses, or moved by something else.
+- **The moment an order is given**, the body it commands is drawn carrying it out (`VeyraOrderPrediction::Predict`, `UVeyraMovementComponent::PredictMotion`). It walks straight toward the order's goal at the speed its last motion told, stopping short as the server will: the orders' arrival tolerance for a move or an Attack Move, the attack's reach to its target for an attack. An attack already within reach turns the body to its target. Nothing is predicted for a body that may not walk: dead, held by its statuses or by anything its motion says holds it (a cast in place), or moved by something else.
 - **When the server answers**, its motion takes over: a motion with that order's number, or a later one. A walk that answers it is drawn ahead of its server motion by what the order waited to begin on the server, at most `OwnLeadMaxSeconds`. Its path is the server's own, so the body never steps back from where its prediction had it. Any other answer, such as a stun that came first, is drawn as it is, closing as §3 closes any new motion.
 - **A refused order** ends its prediction: the reliable refusal names its number. So does an order the server has not answered within `OwnPredictionSeconds`.
 - **Which body.** Whichever body the player commands: its Vanguard, or an Echo it commands in its stead. An order is predicted only for the body it was given to.
@@ -101,7 +102,7 @@ A blink stops the path its body walked, since that path began where the body sto
 - **Tests:**
   - `Veyra.Combat.Motion.*`: sampling, horizons and the clock estimate.
   - `Veyra.Match.OrderPrediction.*`.
-  - `Veyra.Net.VanguardMoveOrders.EveryMachineLearnsTheWalkButNotWhereItEnds`, `.ItsMotionCarriesTheSpeedTheServerWalksItAt`, `.AnotherMachineDrawsAWalkingVanguardOnItsMotion` and `.ItsOwnMachineWalksAnOrderTheMomentItIsGiven`.
+  - `Veyra.Net.VanguardMoveOrders.EveryMachineLearnsTheWalkButNotWhereItEnds`, `.ItsMotionCarriesTheSpeedTheServerWalksItAt`, `.AnotherMachineDrawsAWalkingVanguardOnItsMotion`, `.ItsOwnMachineWalksAnOrderTheMomentItIsGiven`, `.ItsOwnMachineWalksNoOrderWhileACastHoldsItInPlace` and `.BodiesWalkSmoothlyThroughLagAndJitter`.
   - `Veyra.Net.ForcedMovement.AnOrderWalksOnAfterABlink`.
   - `Veyra.Net.Vanguards.Oriel.ACastGivenAsARecoveryEndsIsHeldThenCast`.
   - The Echo tests in `Veyra.Net.SecondSelf`.

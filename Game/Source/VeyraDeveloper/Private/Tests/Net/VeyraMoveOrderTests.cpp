@@ -256,6 +256,36 @@ namespace VeyraNetTests
 				});
 		}
 
+		TEST_METHOD(ItsOwnMachineWalksNoOrderWhileACastHoldsItInPlace)
+		{
+			// A cast that holds its caster in place makes its orders wait on the server; its player's machine, told the body is
+			// held, draws no walk for an order given meanwhile (ADR-079 §5).
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("A cast holds the mover in place"), [this](FState& State) {
+					APawn* Mover = ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>()->GetPawn();
+					MoverId = ServerControllerOf(State, 0)->PlayerState->GetPlayerId();
+					Mover->FindComponentByClass<UVeyraMovementComponent>()->SetCastLocksMovement(true);
+				})
+				.UntilClient(TEXT("Its machine is told it is held"), 0, [](FState& State) {
+					const APawn* Own = LocalControllerOf(State.World)->GetCommandedBody();
+					const UVeyraMovementComponent* Movement = Own ? Own->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+					return Movement && Movement->GetMotion().bHeld;
+				})
+				.ThenClient(TEXT("Order a move meanwhile"), 0, [this](FState& State) {
+					AVeyraPlayerController* Local = LocalControllerOf(State.World);
+					Local->IssueMoveOrder(FVector::ZeroVector);
+					const UVeyraMovementComponent* Movement = Local->GetCommandedBody()->FindComponentByClass<UVeyraMovementComponent>();
+					ASSERT_THAT(IsTrue(&Movement->GetDrawnMotion() == &Movement->GetMotion(), TEXT("no walk is drawn while it is held")));
+				})
+				.ThenServer(TEXT("The cast lets it go"), [](FState& State) {
+					APawn* Mover = ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>()->GetPawn();
+					Mover->FindComponentByClass<UVeyraMovementComponent>()->SetCastLocksMovement(false);
+				})
+				.UntilServer(TEXT("The order it held is walked"), [this](FState& State) {
+					return IsNear2D(FindVanguard(State.World, MoverId), FVector::ZeroVector);
+				});
+		}
+
 		TEST_METHOD(ItsOwnMachineWalksAnOrderTheMomentItIsGiven)
 		{
 			// The player's own machine draws its body carrying out the order at once, and the server's answer to that very order

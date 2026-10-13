@@ -59,6 +59,18 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(Turned.Velocity.Equals(FVector(0.0, Speed, 0.0), Tolerance)));
 		}
 
+		TEST_METHOD(ASlopeNeverSlowsItAcrossTheGround)
+		{
+			// The server walks and forces a body by its distance across the ground; a leg that climbs is covered as fast.
+			FVeyraMotion Motion = Walk();
+			Motion.Corners = { FVector(Leg, 0.0, Leg) };
+			ASSERT_THAT(IsNear(VeyraMotion::Length(Motion), Leg, Tolerance));
+			const FVeyraMotionSample Sample = VeyraMotion::Sample(Motion, StartTime + 1.0);
+			ASSERT_THAT(IsTrue(Sample.Location.Equals(FVector(Speed, 0.0, Speed), Tolerance), TEXT("its height follows the leg")));
+			ASSERT_THAT(IsNear(Sample.Velocity.Size2D(), Speed, Tolerance));
+			ASSERT_THAT(IsNear(VeyraMotion::EndTime(Motion), StartTime + Leg / Speed, Tolerance));
+		}
+
 		TEST_METHOD(ItStopsAtItsLastCorner)
 		{
 			const FVeyraMotion Motion = Walk();

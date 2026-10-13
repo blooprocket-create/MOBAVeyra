@@ -53,6 +53,13 @@ struct VEYRACOMBAT_API FVeyraMotion
 	UPROPERTY()
 	EVeyraMotionKind Kind = EVeyraMotionKind::Stand;
 
+	/**
+	 * Whether its orders may not move it now: it is stunned, casting in place, or moved by something else. Its player's
+	 * machine predicts no walk for it meanwhile (§5).
+	 */
+	UPROPERTY()
+	bool bHeld = false;
+
 	/** Changes each time the body is set down somewhere else at once (a blink, a respawn): it is drawn there at once, never glided. */
 	UPROPERTY()
 	uint8 SetDownSerial = 0;
@@ -82,10 +89,14 @@ struct FVeyraMotionSample
 /** Pure rules of a motion (ADR-079 §1). */
 namespace VeyraMotion
 {
-	/** Where Motion has its body at Time (server seconds): at Start before it began, at its last corner once it ends. */
+	/**
+	 * Where Motion has its body at Time (server seconds): at Start before it began, at its last corner once it ends. It
+	 * covers its distance across the ground at its speed, as the server walks and forces a body, its height following each
+	 * leg, so a slope never slows it.
+	 */
 	VEYRACOMBAT_API FVeyraMotionSample Sample(const FVeyraMotion& Motion, double Time);
 
-	/** The length of its corners from Start. */
+	/** The length of its corners from Start, across the ground. */
 	VEYRACOMBAT_API double Length(const FVeyraMotion& Motion);
 
 	/** When it ends, in server seconds: its StartTime for one with nothing to walk. */
@@ -95,8 +106,9 @@ namespace VeyraMotion
 	VEYRACOMBAT_API bool Walks(const FVeyraMotion& Motion);
 
 	/**
-	 * The corners from Start along Path (each a corner, in order) cut off after MaxLength, so a motion tells no more of a
-	 * path than its body walks in the next while (§2). Corners on top of Start or of each other are left out.
+	 * The corners from Start along Path (each a corner, in order) cut off after MaxLength across the ground, so a motion
+	 * tells no more of a path than its body walks in the next while (§2). Corners on top of Start or of each other are left
+	 * out.
 	 */
 	VEYRACOMBAT_API TArray<FVector_NetQuantize> CornersWithin(const FVector& Start, TConstArrayView<FVector> Path, double MaxLength);
 }

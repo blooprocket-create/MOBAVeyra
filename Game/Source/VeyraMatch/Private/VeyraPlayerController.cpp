@@ -116,9 +116,10 @@ void AVeyraPlayerController::PredictOrder(EVeyraOrderMarkKind Kind, const FVecto
 	In.Speed = Movement->GetMotion().Speed;
 	In.ServerNow = Clock->Now();
 	In.OrderNumber = OrderNumber;
-	// As its machine knows it: alive, not held by its statuses, and moved by nothing but its orders.
+	// As its machine knows it: alive, not held by its statuses, by a cast in place or by anything the server says holds it,
+	// and moved by nothing but its orders.
 	In.bMayWalk = VeyraTargeting::IsAlive(Body) && !(Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Move))
-		&& Moved != EVeyraMotionKind::Forced && Moved != EVeyraMotionKind::Attached;
+		&& !Movement->GetMotion().bHeld && Moved != EVeyraMotionKind::Forced && Moved != EVeyraMotionKind::Attached;
 	In.Goal = Location;
 	In.StopShort = UVeyraMatchTuningSubsystem::Get().Orders.ArrivalTolerance;
 	if (Kind == EVeyraOrderMarkKind::Attack)
