@@ -124,6 +124,11 @@ double VeyraOwnLead::ArcWithin(const TArray<FVector2D>& Path, const FVector2D& C
 FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadInputs& In, const FVeyraOwnLeadShape& Shape)
 {
 	const double Delta = FMath::Max(0.0, In.DeltaSeconds);
+	// What is left of the step between paths: it closes evenly, and is gone once SwitchSeconds have passed.
+	const auto StepNow = [&State, &Shape]() {
+		const double Left = Shape.SwitchSeconds > 0.0 ? FMath::Clamp(1.0 - State.StepAge / Shape.SwitchSeconds, 0.0, 1.0) : 0.0;
+		return State.StepFrom * Left;
+	};
 	const FVector2D WasShown = State.Shown.Get(In.Drawn);
 
 	// A new order: a straight line from where the body is shown now to its goal, until the server's path comes. The body
@@ -135,7 +140,8 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 		State.Path = { WasShown, In.Goal };
 		State.Arc = 0.0;
 		State.Ideal = 0.0;
-		State.Step = FVector2D::ZeroVector;
+		State.StepFrom = FVector2D::ZeroVector;
+		State.StepAge = 0.0;
 		State.StandingFor = 0.0;
 		State.Weight = In.bMayLead ? 1.0 : State.Weight;
 	}
@@ -147,13 +153,14 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 	// The server's path, once it comes, taken up where the body is shown: the step between the two closes gently.
 	if (In.ServerPath.Num() >= 2 && In.ServerPathSerial != State.Serial)
 	{
-		const FVector2D Shown = PointAt(State.Path, State.Arc) + State.Step;
+		const FVector2D Shown = PointAt(State.Path, State.Arc) + StepNow();
 		const double IdealGap = State.Ideal - State.Arc;
 		State.Path = In.ServerPath;
 		State.Serial = In.ServerPathSerial;
 		State.Arc = ArcNearest(State.Path, Shown);
 		State.Ideal = State.Arc + IdealGap;
-		State.Step = Shown - PointAt(State.Path, State.Arc);
+		State.StepFrom = Shown - PointAt(State.Path, State.Arc);
+		State.StepAge = 0.0;
 	}
 
 	// How fast the body truly walks: as the server moves it, slows and all, once it walks.
@@ -196,12 +203,12 @@ FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadI
 	State.Arc = FMath::Min3(State.Arc, ServerArc + Shape.MaxDistance, FMath::Max(End, ServerArc));
 
 	// The step between paths closes, and the lead comes or goes, over their times.
-	State.Step = Shape.SwitchSeconds > 0.0 ? State.Step * FMath::Max(0.0, 1.0 - Delta / Shape.SwitchSeconds) : FVector2D::ZeroVector;
+	State.StepAge += Delta;
 	const double Toward = bLeads ? 1.0 : 0.0;
 	State.Weight = Shape.BlendSeconds > 0.0 ? FMath::FInterpConstantTo(State.Weight, Toward, Delta, 1.0 / Shape.BlendSeconds) : Toward;
 
 	FVeyraOwnLead Lead;
-	const FVector2D Shown = PointAt(State.Path, State.Arc) + State.Step;
+	const FVector2D Shown = PointAt(State.Path, State.Arc) + StepNow();
 	Lead.Offset = (Shown - In.Drawn) * State.Weight;
 	if (Lead.Offset.Size() > Shape.MaxDistance)
 	{

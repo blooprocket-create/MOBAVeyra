@@ -11,6 +11,7 @@
 
 #include "VeyraVanguardController.generated.h"
 
+class AVeyraPlayerState;
 class UVeyraBasicAttackComponent;
 class UVeyraMovementComponent;
 
@@ -61,6 +62,12 @@ public:
 	 * cancelled. Recall begins this way (ADR-012 §8).
 	 */
 	void StopOrders();
+
+	/**
+	 * Server: Participant's orders now come to this controller, its Vanguard's or a body's it commands in its stead, so it
+	 * is the one that sends Participant its path (ADR-077 §3). The GameMode calls it as it passes each order on.
+	 */
+	void TakeOrdersFrom(AVeyraPlayerState& Participant);
 
 	/** The unit an attack or attack-move order is attacking now, if any. */
 	AActor* GetAttackTarget() const { return AttackTarget.Get(); }
@@ -132,6 +139,9 @@ private:
 
 	/** The point the latest move or Attack Move order named, as its player's machine sent it, before projection. */
 	FVector OrderedPoint = FVector::ZeroVector;
+
+	/** The participant whose orders it takes, once it has taken one; until then its Vanguard's own. */
+	TWeakObjectPtr<class AVeyraPlayerState> Commander;
 
 	/** The path last sent to the player's machine: which it was, how many points it had, and where it ended. */
 	TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> PublishedPath;

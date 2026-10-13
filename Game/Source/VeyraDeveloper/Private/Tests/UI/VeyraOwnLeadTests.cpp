@@ -173,6 +173,13 @@ namespace VeyraOwnLeadTests
 			Run(Server, FVector2D(400.0, 400.0), 3.0, {}, true, [&](double Now, const FVector2D& Drawn, const FVector2D& Shown) {
 				ASSERT_THAT(IsTrue(FVector2D::Distance(Shown, Last) <= MostAFrame, *FString::Printf(TEXT("jumped %.1f at %.3f s"), FVector2D::Distance(Shown, Last), Now)));
 				Last = Shown;
+				// Once its switch time has passed, the body is drawn on the server's path, not pulled off it by the first guess.
+				if (Now >= *Server.PathAt + Shape().SwitchSeconds + Frame)
+				{
+					double Off = 0.0;
+					VeyraOwnLead::ArcNearest(Server.Path, Shown, &Off);
+					ASSERT_THAT(IsTrue(Off <= 1e-3, *FString::Printf(TEXT("%.2f off the server's path at %.3f s"), Off, Now)));
+				}
 			});
 			ASSERT_THAT(IsTrue(Last.Equals(VeyraOwnLead::PointAt(Server.Path, Server.Rest()), 1e-3), TEXT("it rests where the server does")));
 		}

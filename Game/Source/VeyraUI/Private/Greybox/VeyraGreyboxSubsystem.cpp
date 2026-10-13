@@ -376,7 +376,8 @@ FVeyraBodyLead UVeyraGreyboxSubsystem::LeadOwnBody(const APawn& Unit, double Rad
 	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	const AActor* Target = Mark->Target.Get();
-	const TOptional<double> Reach = VeyraHud::AttackReachOf(Unit);
+	// An attack stops where the server stops it to attack: its reach to this target, edge to edge.
+	const TOptional<double> Reach = Target ? VeyraHud::AttackReachTo(Unit, *Target) : TOptional<double>();
 	const double Speed = Abilities->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
 	// It may be drawn ahead while it lives, may move, and moves under its own orders: never while displaced, dashing,
 	// fleeing or held on, which its movement's custom modes show.

@@ -91,8 +91,9 @@ struct FVeyraOwnLeadState
 	 */
 	double Ideal = 0.0;
 
-	/** What is left of the step between two paths, closing over SwitchSeconds. */
-	FVector2D Step = FVector2D::ZeroVector;
+	/** The step between two paths as the server's replaced the first guess, and how long ago: it closes evenly over SwitchSeconds. */
+	FVector2D StepFrom = FVector2D::ZeroVector;
+	double StepAge = 0.0;
 
 	/** How much of the lead shows, from 0 to 1. */
 	double Weight = 0.0;

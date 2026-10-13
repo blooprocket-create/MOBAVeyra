@@ -153,6 +153,26 @@ namespace VeyraNetTests
 				});
 		}
 
+		TEST_METHOD(ItsPlayersMachineLearnsTheEchosPath)
+		{
+			// The body a player commands in its Vanguard's stead is drawn ahead along the server's path for it, as its Vanguard
+			// is (ADR-077 §3): the Echo's controller sends it, though the Echo carries no player state of its own.
+			ProjectAndCommand()
+				.UntilClient(TEXT("Its camera follows the Echo"), 0, [](FState& State) {
+					const APawn* Body = LocalControllerOf(State.World)->GetCommandedBody();
+					return Body && Body->IsA<AVeyraEcho>();
+				})
+				.ThenClient(TEXT("Order a move"), 0, [](FState& State) {
+					AVeyraPlayerController* Player = LocalControllerOf(State.World);
+					Player->IssueMoveOrder(Player->GetCommandedBody()->GetActorLocation() + FVector(0.0, Walk, 0.0));
+				})
+				.UntilClient(TEXT("Its machine learns the Echo's path"), 0, [](FState& State) {
+					const AVeyraPlayerController* Player = LocalControllerOf(State.World);
+					const AVeyraPlayerState* Own = Player->GetPlayerState<AVeyraPlayerState>();
+					return Own && Own->GetOwnPath().Body == Player->GetCommandedBody() && Own->GetOwnPath().Points.Num() >= 2;
+				});
+		}
+
 		TEST_METHOD(ItsPlayerLeavingEndsItSoTheAutopilotTakesTheVanguard)
 		{
 			ProjectAndCommand()

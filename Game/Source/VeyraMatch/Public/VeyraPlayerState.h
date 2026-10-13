@@ -149,6 +149,13 @@ public:
 	/** Server only: sends Path to the participant's own machine at once, numbered after the last. */
 	void SetOwnPath(FVeyraOwnPath Path);
 
+	/**
+	 * Server only: the controller this participant's orders went to last, its Vanguard's or a body's it commands in its
+	 * stead; only it sends the participant its path (ADR-077 §3). None before its first order.
+	 */
+	AVeyraVanguardController* GetOrdersGoTo() const;
+	void SetOrdersGoTo(AVeyraVanguardController* Controller);
+
 protected:
 	/**
 	 * The engine destroys a departing player's PlayerState. Veyra keeps it: the Vanguard stays in the
@@ -285,6 +292,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AVeyraVanguardController> VanguardController;
+
+	/** Server only. */
+	TWeakObjectPtr<AVeyraVanguardController> OrdersGoTo;
 
 	bool bStatsInitialized = false;
 

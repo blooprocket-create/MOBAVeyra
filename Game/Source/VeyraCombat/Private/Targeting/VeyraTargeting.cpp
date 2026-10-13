@@ -87,6 +87,11 @@ double EdgeToEdgeDistance(const AActor& A, const AActor& B)
 	return FMath::Max(0.0, Centres - A.GetSimpleCollisionRadius() - B.GetSimpleCollisionRadius());
 }
 
+double CentreReach(const AActor& A, const AActor& B, double EdgeRange)
+{
+	return EdgeRange + A.GetSimpleCollisionRadius() + B.GetSimpleCollisionRadius();
+}
+
 bool IsWithinCastRange(const AActor& Caster, const AActor& Target, double CastRange)
 {
 	return EdgeToEdgeDistance(Caster, Target) <= CastRange + UVeyraCombatTuningSubsystem::Get().Targeting.ServerRangeTolerance;

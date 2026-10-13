@@ -1088,6 +1088,31 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsFalse(VeyraHud::AttackReachOf(Spawner.SpawnActor<AActor>()).IsSet(), TEXT("nothing for a unit with no basic attack")));
 		}
 
+		// ADR-077 §2: the player's own body walks to where the server stops it to attack: its reach to that target, edge to
+		// edge, as the server checks it, which the ring's reach falls short of by the target's own body.
+		TEST_METHOD(AnAttackReachesItsTargetsEdgeAsTheServerChecksIt)
+		{
+			constexpr double Reach = 525.0;
+			UVeyraBasicAttackComponent* Attacks = Caster->GetPlayerState()->FindComponentByClass<UVeyraBasicAttackComponent>();
+			ASSERT_THAT(IsNotNull(Attacks));
+			FVeyraBasicAttackProfile Profile;
+			Profile.Range = Reach;
+			Profile.DamageType = EVeyraDamageType::Physical;
+			Profile.PhysicalPowerRatio = 1.0;
+			Profile.WindupFraction = 0.25;
+			Profile.AcquisitionRadius = Reach;
+			ASSERT_THAT(IsTrue(Attacks->SetProfile(Profile)));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Reach * 3.0, 0.0, 0.0));
+			const TOptional<double> To = VeyraHud::AttackReachTo(*Caster, Enemy);
+			ASSERT_THAT(IsTrue(To.IsSet()));
+			// Standing that far apart, the server's own measure finds the target just within the attack's range.
+			Enemy.SetActorLocation(Caster->GetActorLocation() + FVector(*To, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraTargeting::EdgeToEdgeDistance(*Caster, Enemy), Attacks->GetRange(&Enemy), Tolerance)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(*To, *VeyraHud::AttackReachOf(*Caster) + Enemy.GetSimpleCollisionRadius(), Tolerance),
+				TEXT("past the ring by the target's own body")));
+		}
+
 		TEST_METHOD(OutlinesTraceTheirShapes)
 		{
 			const FVector Origin(100.0, -50.0, 20.0);

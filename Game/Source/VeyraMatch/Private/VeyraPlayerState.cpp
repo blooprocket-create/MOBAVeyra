@@ -35,6 +35,7 @@
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
 #include "VeyraVanguardCharacter.h"
+#include "VeyraVanguardController.h"
 
 AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -111,6 +112,16 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	OwnerOnly.bIsPushBased = true;
 	OwnerOnly.Condition = COND_OwnerOnly;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, OwnPath, OwnerOnly);
+}
+
+AVeyraVanguardController* AVeyraPlayerState::GetOrdersGoTo() const
+{
+	return OrdersGoTo.Get();
+}
+
+void AVeyraPlayerState::SetOrdersGoTo(AVeyraVanguardController* Controller)
+{
+	OrdersGoTo = Controller;
 }
 
 void AVeyraPlayerState::SetOwnPath(FVeyraOwnPath Path)

@@ -191,13 +191,22 @@ void AVeyraVanguardController::Tick(float DeltaSeconds)
 	}
 }
 
+void AVeyraVanguardController::TakeOrdersFrom(AVeyraPlayerState& Participant)
+{
+	Commander = &Participant;
+	Participant.SetOrdersGoTo(this);
+}
+
 void AVeyraVanguardController::PublishOwnPath()
 {
-	// Only a player's machine draws its body ahead: a bot's Vanguard has no one to send it to.
+	// To the player whose orders it takes: its Vanguard's, or the one that commands its body in its Vanguard's stead. Only
+	// the controller that player's orders go to now sends it, so a Vanguard and a body it commands never send over each
+	// other; and only a player's machine draws its body ahead, so a bot's Vanguard sends nothing.
 	APawn* Body = GetPawn();
-	AVeyraPlayerState* Participant = Body ? Body->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	AVeyraPlayerState* Participant = Commander.IsValid() ? Commander.Get() : (Body ? Body->GetPlayerState<AVeyraPlayerState>() : nullptr);
 	const UPathFollowingComponent* Following = GetPathFollowingComponent();
-	if (!Participant || !Cast<APlayerController>(Participant->GetOwner()) || !Following || Following->GetStatus() != EPathFollowingStatus::Moving)
+	if (!Body || !Participant || (Participant->GetOrdersGoTo() && Participant->GetOrdersGoTo() != this) || !Cast<APlayerController>(Participant->GetOwner())
+		|| !Following || Following->GetStatus() != EPathFollowingStatus::Moving)
 	{
 		return;
 	}

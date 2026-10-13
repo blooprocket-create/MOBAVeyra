@@ -33,11 +33,11 @@ On the player's own machine only, and in presentation only:
 - **How far ahead it is drawn.** Ahead of where its smoothing has it by what the order will have done by now. That is the smoothing's delay, plus `OwnLeadPingShare` of the round trip, plus `OwnLeadServerWaitSeconds` for the server's next tick, at most `OwnLeadMaxSeconds`.
 - **Its limits.** It is never drawn:
   - past what it could have walked since the click;
-  - past where it stops (a move where the server's path following accepts it as arrived; an attack within its reach of the target);
+  - past where it stops (a move where the server's path following accepts it as arrived; an attack where the server stops it to attack, its range to that target edge to edge, with what the target's statuses from it add: `VeyraHud::AttackReachTo`, by `VeyraTargeting::CentreReach`);
   - more than `OwnLeadMaxDistance` from its smoothed place;
   - backward while it leads.
 - **Catching up.** It may move at up to `OwnLeadCatchUpScale` times its speed to regain its lead.
-- **The path it follows.** A straight line to the goal first. Then the server's own path, once it arrives (§3); the step between the two closes over `OwnLeadSwitchSeconds`. It faces the way its path runs, turning at `OwnLeadTurnDegreesPerSecond`.
+- **The path it follows.** A straight line to the goal first. Then the server's own path, once it arrives (§3); the step between the two closes evenly and is gone once `OwnLeadSwitchSeconds` have passed. It faces the way its path runs, turning at `OwnLeadTurnDegreesPerSecond`.
 - **When the lead goes.** Over `OwnLeadBlendSeconds`, when:
   - the server's body stands, below `OwnLeadStandingSpeedShare` of its speed, for `OwnLeadStallSeconds` while its path runs on (a stun, a root, a stop to attack);
   - or the server's body strays more than `OwnLeadOffPathDistance` from the path (other bodies push it);
@@ -49,7 +49,7 @@ On the player's own machine only, and in presentation only:
 
 ### 3. The server sends the player's own body's path to that player alone
 
-- The Vanguard's server controller sends the path it now follows to its player's `AVeyraPlayerState` (`FVeyraOwnPath`, replicated `COND_OwnerOnly` and sent at once). It sends it as an order plans it, and again as a chased unit moves.
+- The controller the player's orders go to now sends the path it follows to that player's `AVeyraPlayerState` (`FVeyraOwnPath`, replicated `COND_OwnerOnly` and sent at once). That is the Vanguard's own, or the controller of a body the player commands in its stead, such as an Echo. The GameMode tells each controller whose orders it takes as it passes an order on, so a Vanguard and a commanded body never send over each other. It sends the path as an order plans it, and again as a chased unit moves.
 - The path carries the body it moves and the order it answers: the point a move or Attack Move named, or the unit an attack chases. The player's machine uses only a path that answers its latest order, within `OwnLeadOrderMatchDistance`.
 - No other machine receives it, so a Vanguard's destination stays private. A bot's Vanguard sends nothing.
 - The player's machine does no pathfinding of its own and builds no navigation data.
