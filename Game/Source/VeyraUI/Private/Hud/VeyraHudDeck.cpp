@@ -16,6 +16,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraChatLogModel.h"
+#include "Hud/VeyraHudCapture.h"
 #include "Hud/VeyraHudLayout.h"
 #include "Hud/VeyraHudModel.h"
 #include "Hud/VeyraHudMotion.h"
@@ -1481,7 +1482,7 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	FVeyraHudStats Stats;
 	DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own,
 		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, bInDenseFog,
-		Presentation ? Presentation->GetPinnedHover() : FString(), Hover, Stats);
+		VeyraHudCapture::PinnedHover(), Hover, Stats);
 	// The stats panel beside the portrait, which a click on it opens or closes (ADR-080 §3).
 	if (Presentation)
 	{
@@ -1489,7 +1490,8 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 		{
 			Presentation->ToggleStatsPanel();
 		}
-		const bool bStatsOpen = Presentation->IsStatsPanelOpen();
+		// Or held open for a capture (Veyra.Dev.StatsPanelOpen).
+		const bool bStatsOpen = Presentation->IsStatsPanelOpen() || VeyraHudCapture::IsStatsPanelHeldOpen();
 		// Its more stats cut in as they open (ADR-082 §2).
 		const double MoreOpened = Motion ? Motion->Held(TEXT("StatsMore"), bStatsOpen) : (bStatsOpen ? FVeyraHudMotion::LongAgo : -1.0);
 		DrawStatsPanel(Paint.At(Layout.Stats), Stats, Layout.StatsCore, Layout.StatsMore, MoreOpened);

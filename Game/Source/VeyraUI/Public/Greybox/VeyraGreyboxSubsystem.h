@@ -225,14 +225,6 @@ public:
 	/** Whether the stats panel beside the portrait shows its more stats; a click on the panel turns it (ADR-080 §3). */
 	bool IsStatsPanelOpen() const { return bStatsPanelOpen; }
 	void ToggleStatsPanel() { bStatsPanelOpen = !bStatsPanelOpen; }
-	void SetStatsPanelOpen(bool bOpen) { bStatsPanelOpen = bOpen; }
-
-	/**
-	 * A deck tile shown as if the cursor rested on it, for captures (Veyra.Dev.HudHover; ADR-080 §6): Passive, Q, W, E, R or
-	 * Item1 to Item6; empty for the cursor's own.
-	 */
-	const FString& GetPinnedHover() const { return PinnedHover; }
-	void PinHover(const FString& Tile) { PinnedHover = Tile; }
 
 	/** What the HUD remembers between frames to move (ADR-082 §2): presentation only, its draw's to change. */
 	FVeyraHudMotion& GetHudMotion() const { return HudMotion; }
@@ -655,7 +647,6 @@ private:
 	TObjectPtr<UFont> HudFont;
 
 	bool bStatsPanelOpen = false;
-	FString PinnedHover;
 
 	mutable FVeyraHudMotion HudMotion;
 
