@@ -1948,7 +1948,11 @@ void UVeyraGreyboxSubsystem::AddCastTelegraph(const FVeyraPlacedShape& Placed, E
 	const FVeyraContentId& Ability)
 {
 	const bool bSkillOutlines = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).bSkillOutlines;
-	const FVeyraAbilityEffects* Effects = Ability.IsValid() ? GetDefault<UVeyraKitPresentationSettings>()->EffectsOf(FName(*Ability.ToString())) : nullptr;
+	// Only an ability whose effects can show leaves its telegraph to them: with the skill effects not ready (an effect that
+	// failed to load, settings that did not hold), every telegraph shows whole.
+	const UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
+	const FVeyraAbilityEffects* Effects = Ability.IsValid() && Skills && Skills->IsReady()
+		? GetDefault<UVeyraKitPresentationSettings>()->EffectsOf(FName(*Ability.ToString())) : nullptr;
 	const EVeyraTelegraphShow Show = VeyraTelegraphFill::ShowOf(Effects, Source, bSkillOutlines);
 	if (Show == EVeyraTelegraphShow::None)
 	{
