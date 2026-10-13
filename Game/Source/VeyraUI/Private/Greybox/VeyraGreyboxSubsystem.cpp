@@ -1880,7 +1880,7 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 		const double Remaining = FMath::Max(0.0, State.PhaseEndsAt - Now);
 		for (const FVeyraPlacedShape& Placed : VeyraCastTelegraphs::ForCast(Tuning, State, Caster.GetActorLocation(), Radius))
 		{
-			Telegraphs.Add(FVeyraTelegraph{ Placed, Source, Team, Remaining });
+			AddCastTelegraph(Placed, Source, Team, Remaining, State.Ability);
 		}
 	}
 	for (TActorIterator<AVeyraDelayedArea> It(GetWorld()); It; ++It)
@@ -1889,15 +1889,15 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 		const double Remaining = FMath::Max(0.0, Area.GetResolvesAt() - Now);
 		for (const FVeyraShape& Shape : Area.GetShapes())
 		{
-			Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Shape, Area.GetActorLocation(), Area.GetDirection() }, EVeyraTelegraphSource::DelayedArea,
-				Area.GetVeyraTeam(), Remaining });
+			AddCastTelegraph(FVeyraPlacedShape{ Shape, Area.GetActorLocation(), Area.GetDirection() }, EVeyraTelegraphSource::DelayedArea,
+				Area.GetVeyraTeam(), Remaining, Area.GetAbility());
 		}
 	}
 	for (TActorIterator<AVeyraLingeringArea> It(GetWorld()); It; ++It)
 	{
 		const AVeyraLingeringArea& Area = **It;
-		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), Area.IsEndNear(Now) ? EVeyraTelegraphSource::LingeringAreaEnding : EVeyraTelegraphSource::LingeringArea,
-			Area.GetVeyraTeam(), FMath::Max(0.0, Area.GetEndsAt() - Now) });
+		AddCastTelegraph(Area.GetPlacedShape(), Area.IsEndNear(Now) ? EVeyraTelegraphSource::LingeringAreaEnding : EVeyraTelegraphSource::LingeringArea,
+			Area.GetVeyraTeam(), FMath::Max(0.0, Area.GetEndsAt() - Now), Area.GetAbility());
 	}
 	if (const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
 	{
@@ -1924,9 +1924,23 @@ void UVeyraGreyboxSubsystem::AddProjectileLanes(double Now)
 		Lane.Kind = EVeyraShapeKind::Rectangle;
 		Lane.Length = Left;
 		Lane.Width = Projectile.GetRadius() * 2.0;
-		Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Lane, Projectile.GetLineLocationAt(Now), Projectile.GetDirection() }, EVeyraTelegraphSource::ProjectileLane,
-			Projectile.GetVeyraTeam(), 0.0 });
+		AddCastTelegraph(FVeyraPlacedShape{ Lane, Projectile.GetLineLocationAt(Now), Projectile.GetDirection() }, EVeyraTelegraphSource::ProjectileLane,
+			Projectile.GetVeyraTeam(), 0.0, Projectile.GetAbility());
 	}
+}
+
+void UVeyraGreyboxSubsystem::AddCastTelegraph(const FVeyraPlacedShape& Placed, EVeyraTelegraphSource Source, EVeyraTeam Team, double Remaining,
+	const FVeyraContentId& Ability)
+{
+	const bool bSkillOutlines = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).bSkillOutlines;
+	const FVeyraAbilityEffects* Effects = Ability.IsValid() ? GetDefault<UVeyraKitPresentationSettings>()->EffectsOf(FName(*Ability.ToString())) : nullptr;
+	const EVeyraTelegraphShow Show = VeyraTelegraphFill::ShowOf(Effects, Source, bSkillOutlines);
+	if (Show == EVeyraTelegraphShow::None)
+	{
+		return;
+	}
+	FVeyraTelegraph& Telegraph = Telegraphs.Add_GetRef(FVeyraTelegraph{ Placed, Source, Team, Remaining });
+	Telegraph.bFilled = Show == EVeyraTelegraphShow::Full;
 }
 
 void UVeyraGreyboxSubsystem::AddIndicator(const AVeyraPlayerController& Local, const FVeyraAbilitiesTuning& Tuning)
@@ -2170,7 +2184,7 @@ void UVeyraGreyboxSubsystem::DrawTelegraphFills()
 	int32 Used = 0;
 	for (const FVeyraTelegraph& Telegraph : Telegraphs)
 	{
-		if (!VeyraTelegraphFill::IsFilled(Telegraph.Source))
+		if (!Telegraph.bFilled || !VeyraTelegraphFill::IsFilled(Telegraph.Source))
 		{
 			continue;
 		}

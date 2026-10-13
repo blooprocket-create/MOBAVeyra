@@ -347,6 +347,12 @@ const FVeyraContentId& LastHitCue()
 	return Id;
 }
 
+const FVeyraContentId& SkillOutlines()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("accessibility_skill_outlines"));
+	return Id;
+}
+
 const FVeyraContentId& CombatTextCrits()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("interface_combat_text_crits"));
@@ -570,6 +576,7 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.EnemyFluxbornBars = ParseBars(Store->Get(EnemyFluxbornBars()));
 	Preferences.JungleBars = ParseBars(Store->Get(JungleBars()));
 	Preferences.bLastHitCue = Store->IsOn(LastHitCue());
+	Preferences.bSkillOutlines = Store->IsOn(SkillOutlines());
 	Preferences.CombatText.bDamageDealt = Store->IsOn(CombatTextDamageDealt());
 	Preferences.CombatText.bDamageReceived = Store->IsOn(CombatTextDamageReceived());
 	Preferences.CombatText.bHealing = Store->IsOn(CombatTextHealing());

@@ -126,6 +126,8 @@ struct FVeyraInterfacePreferences
 	bool bPerformanceWarning = true;
 	/** The last-hit cue on enemy Fluxborn's and creatures' bars (ADR-065 §6). */
 	bool bLastHitCue = true;
+	/** Every cast's telegraph drawn whole, whatever its ability's effects show (ADR-075 §2). */
+	bool bSkillOutlines = false;
 	/** The HUD deck's size, as a multiple of its designed size. */
 	float HudScale = 1.0f;
 	/** Each component's scale on top of HUD Scale (ADR-059 §1). */
@@ -234,6 +236,7 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& CombatTextShielding();
 	VEYRAUI_API const FVeyraContentId& CombatTextGold();
 	VEYRAUI_API const FVeyraContentId& LastHitCue();
+	VEYRAUI_API const FVeyraContentId& SkillOutlines();
 	VEYRAUI_API const FVeyraContentId& CombatTextCrits();
 	VEYRAUI_API const FVeyraContentId& CombatTextDensity();
 	VEYRAUI_API const FVeyraContentId& DamageNumberColors();

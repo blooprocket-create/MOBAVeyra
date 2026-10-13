@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Casting/VeyraCastStateComponent.h"
+#include "Casting/VeyraCastTelegraphs.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
@@ -15,6 +16,7 @@
 #include "Greybox/VeyraVanguardAnimInstance.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
+#include "Greybox/VeyraTelegraphFill.h"
 #include "Kit/VeyraKitPresentationSettings.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -168,7 +170,7 @@ void UVeyraSkillEffectsSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 			// for the other; Niagara's own looping flag does not tell a continuous emitter apart, so it is not checked).
 			const TPair<const FVeyraSkillEffectStage*, const TCHAR*> Stages[] = { { &Effects.Windup, TEXT("Windup") }, { &Effects.Channel, TEXT("Channel") },
 				{ &Effects.Commit, TEXT("Commit") }, { &Effects.Travel, TEXT("Travel") }, { &Effects.Impact, TEXT("Impact") }, { &Effects.Tether, TEXT("Tether") },
-				{ &Effects.Mark, TEXT("Mark") }, { &Effects.Arc, TEXT("Arc") }, { &Effects.Linger, TEXT("Linger") } };
+				{ &Effects.Mark, TEXT("Mark") }, { &Effects.Arc, TEXT("Arc") }, { &Effects.Linger, TEXT("Linger") }, { &Effects.Area, TEXT("Area") } };
 			for (const TPair<const FVeyraSkillEffectStage*, const TCHAR*>& Stage : Stages)
 			{
 				if (!Stage.Key->IsSet())
@@ -660,6 +662,14 @@ void UVeyraSkillEffectsSubsystem::RefreshLingering(double Now)
 		{
 			Poured->SetVariableFloat(Settings.LengthParameter, static_cast<float>(bRectangle ? Placed.Shape.Length : Placed.Shape.Radius * 2.0));
 			Poured->SetVariableFloat(Settings.WidthParameter, static_cast<float>(bRectangle ? Placed.Shape.Width : Placed.Shape.Radius * 2.0));
+			// And its true shape whole, so an Area effect can pour over it too (ADR-075 §3).
+			const FVeyraAreaParameters Drawn = VeyraSkillEffects::AreaParametersOf(Placed.Shape, 0.0);
+			if (!Settings.ShapeParameter.IsNone() && !Settings.RadiusParameter.IsNone() && !Settings.HalfArcParameter.IsNone())
+			{
+				Poured->SetVariableFloat(Settings.ShapeParameter, static_cast<float>(Drawn.Shape));
+				Poured->SetVariableFloat(Settings.RadiusParameter, static_cast<float>(Drawn.Radius));
+				Poured->SetVariableFloat(Settings.HalfArcParameter, static_cast<float>(Drawn.HalfArc));
+			}
 		}
 		Lingering.Add(&Area, Poured);
 	}
@@ -719,6 +729,132 @@ void UVeyraSkillEffectsSubsystem::Refresh()
 	RefreshLandings(Now);
 	RefreshTethers(Now);
 	RefreshLingering(Now);
+	RefreshAreas(Now);
+}
+
+void UVeyraSkillEffectsSubsystem::RefreshAreas(double Now)
+{
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	if (!Greybox)
+	{
+		return;
+	}
+	for (TPair<TPair<TWeakObjectPtr<const AActor>, int32>, FAreaShown>& Shown : Areas)
+	{
+		Shown.Value.bWanted = false;
+	}
+	// Each cast winding up or channelling: the areas it lands in, as its telegraph would show them (one view, from
+	// Abilities.json), from where its caster stands now.
+	const FVeyraAbilitiesTuning& Tuning = UVeyraAbilitiesTuningSubsystem::Get();
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const APawn& Caster = **It;
+		const UVeyraCastStateComponent* Casts = SkillCasterState(Caster);
+		const FVeyraCastState* State = Casts ? &Casts->GetState() : nullptr;
+		const FVeyraAbilityEffects* Effects = State && SkillCastHolds(State->Phase) && !Caster.IsHidden() ? EffectsOf(State->Ability) : nullptr;
+		if (!Effects || !Effects->Area.IsSet())
+		{
+			continue;
+		}
+		float Radius = 0.0f;
+		float HalfHeight = 0.0f;
+		Caster.GetSimpleCollisionCylinder(Radius, HalfHeight);
+		const TArray<FVeyraPlacedShape> Placed = VeyraCastTelegraphs::ForCast(Tuning, *State, Caster.GetActorLocation(), Radius);
+		const EVeyraTelegraphSource Source = State->Phase == EVeyraCastPhase::Channel ? EVeyraTelegraphSource::Channel : EVeyraTelegraphSource::Windup;
+		for (int32 Index = 0; Index < Placed.Num(); ++Index)
+		{
+			ShowArea(Caster, Index, *Effects, Placed[Index], FMath::Max(0.0, State->PhaseEndsAt - Now), Source, Greybox->SideColorOf(Caster));
+		}
+	}
+	// Each delayed area, until it lands.
+	for (TActorIterator<AVeyraDelayedArea> It(GetWorld()); It; ++It)
+	{
+		const AVeyraDelayedArea& Area = **It;
+		const FVeyraAbilityEffects* Effects = !Area.IsHidden() && Now < Area.GetResolvesAt() ? EffectsOf(Area.GetAbility()) : nullptr;
+		if (!Effects || !Effects->Area.IsSet())
+		{
+			continue;
+		}
+		const TArray<FVeyraShape>& Shapes = Area.GetShapes();
+		for (int32 Index = 0; Index < Shapes.Num(); ++Index)
+		{
+			ShowArea(Area, Index, *Effects, FVeyraPlacedShape{ Shapes[Index], Area.GetActorLocation(), Area.GetDirection() }, Area.GetResolvesAt() - Now,
+				EVeyraTelegraphSource::DelayedArea, Greybox->ColorOfSide(Area.GetVeyraTeam()));
+		}
+	}
+	// What no longer lands there fades.
+	for (auto It = Areas.CreateIterator(); It; ++It)
+	{
+		if (!It.Value().bWanted)
+		{
+			FadeSkillEffect(It.Value().Effect);
+			It.RemoveCurrent();
+		}
+	}
+}
+
+void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, const FVeyraAbilityEffects& Effects, const FVeyraPlacedShape& Placed,
+	double Remaining, EVeyraTelegraphSource Source, const FLinearColor& Color)
+{
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	FAreaShown& Shown = Areas.FindOrAdd({ &Owner, Index });
+	Shown.bWanted = true;
+	Shown.Parameters = VeyraSkillEffects::AreaParametersOf(Placed.Shape,
+		VeyraTelegraphFill::LandingOf(Source, Remaining, GetDefault<UVeyraGreyboxSettings>()->TelegraphLandingSeconds));
+	UNiagaraComponent* Effect = Shown.Effect.Get();
+	const FVector Ground = Greybox ? Greybox->GroundUnder(Placed.Origin) : Placed.Origin;
+	const FRotator Facing = Placed.Direction.GetSafeNormal2D().IsNearlyZero() ? FRotator::ZeroRotator : Placed.Direction.GetSafeNormal2D().Rotation();
+	if (!Effect)
+	{
+		UNiagaraSystem* System = Loaded(Effects, TEXT("Area"));
+		Effect = System ? PlayAt(*System, Ground, Facing, Effects.Area.Scale, Color) : nullptr;
+		Shown.Effect = Effect;
+		if (!Effect)
+		{
+			return;
+		}
+	}
+	// It follows a caster who turns or steps while it winds up, at the area's true shape.
+	Effect->SetWorldLocationAndRotation(Ground, Facing);
+	const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+	const FVeyraAreaParameters& Drawn = Shown.Parameters;
+	Effect->SetVariableFloat(Settings.ShapeParameter, static_cast<float>(Drawn.Shape));
+	Effect->SetVariableFloat(Settings.RadiusParameter, static_cast<float>(Drawn.Radius));
+	Effect->SetVariableFloat(Settings.HalfArcParameter, static_cast<float>(Drawn.HalfArc));
+	Effect->SetVariableFloat(Settings.LengthParameter, static_cast<float>(Drawn.Length));
+	Effect->SetVariableFloat(Settings.WidthParameter, static_cast<float>(Drawn.Width));
+	Effect->SetVariableFloat(Settings.LandingParameter, static_cast<float>(Drawn.Landing));
+}
+
+FVeyraAreaParameters VeyraSkillEffects::AreaParametersOf(const FVeyraShape& Shape, double Landing)
+{
+	FVeyraAreaParameters Parameters;
+	Parameters.Shape = Shape.Kind == EVeyraShapeKind::Sector ? 1 : Shape.Kind == EVeyraShapeKind::Rectangle ? 2 : 0;
+	Parameters.Radius = Shape.Radius;
+	Parameters.HalfArc = Parameters.Shape == 1 ? Shape.ArcDegrees / 2.0 : 180.0;
+	Parameters.Length = Parameters.Shape == 2 ? Shape.Length : Shape.Radius * 2.0;
+	Parameters.Width = Parameters.Shape == 2 ? Shape.Width : Shape.Radius * 2.0;
+	Parameters.Landing = Landing;
+	return Parameters;
+}
+
+TArray<FVeyraAreaParameters> UVeyraSkillEffectsSubsystem::FindAreas(const AActor& Owner) const
+{
+	TArray<TPair<int32, FVeyraAreaParameters>> Found;
+	for (const TPair<TPair<TWeakObjectPtr<const AActor>, int32>, FAreaShown>& Shown : Areas)
+	{
+		if (Shown.Key.Key.Get() == &Owner)
+		{
+			Found.Emplace(Shown.Key.Value, Shown.Value.Parameters);
+		}
+	}
+	Found.Sort([](const TPair<int32, FVeyraAreaParameters>& A, const TPair<int32, FVeyraAreaParameters>& B) { return A.Key < B.Key; });
+	TArray<FVeyraAreaParameters> Drawn;
+	for (const TPair<int32, FVeyraAreaParameters>& Each : Found)
+	{
+		Drawn.Add(Each.Value);
+	}
+	return Drawn;
 }
 
 UNiagaraSystem* UVeyraSkillEffectsSubsystem::CommitEffectOf(const FVeyraContentId& Ability, float& OutScale, bool& bOutAtTarget) const

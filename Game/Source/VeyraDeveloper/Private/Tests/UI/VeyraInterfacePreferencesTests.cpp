@@ -293,16 +293,19 @@ namespace VeyraInterfacePreferencesTests
 			ASSERT_THAT(IsTrue(Defaults.bConnectionWarning && Defaults.bPerformanceWarning, TEXT("both warnings On by default (SET-21, SET-110)")));
 			ASSERT_THAT(IsTrue(!Defaults.bEnhancedFocus && !Defaults.bReduceTransparency && !Defaults.bReduceUiAnimation && !Defaults.bReduceFlashing
 				&& Defaults.TextSize == TEXT("Standard")));
+			ASSERT_THAT(IsFalse(Defaults.bSkillOutlines, TEXT("skills' own effects show their areas by default (ADR-075 §2)")));
 			Store.Set(ConnectionWarning(), VeyraSettings::Off());
 			Store.Set(PerformanceWarning(), VeyraSettings::Off());
 			Store.Set(FocusIndicator(), TEXT("Enhanced"));
 			Store.Set(ReduceTransparency(), VeyraSettings::On());
 			Store.Set(ReduceUiAnimation(), VeyraSettings::On());
 			Store.Set(ReduceFlashing(), VeyraSettings::On());
+			Store.Set(SkillOutlines(), VeyraSettings::On());
 			Store.Set(TextSize(), TEXT("ExtraLarge"));
 			const FVeyraInterfacePreferences Changed = Resolve(HudSettings(), &Store);
 			ASSERT_THAT(IsTrue(!Changed.bConnectionWarning && !Changed.bPerformanceWarning && Changed.bEnhancedFocus && Changed.bReduceTransparency
 				&& Changed.bReduceUiAnimation && Changed.bReduceFlashing && Changed.TextSize == TEXT("ExtraLarge")));
+			ASSERT_THAT(IsTrue(Changed.bSkillOutlines, TEXT("Show Skill Outlines brings every telegraph back")));
 		}
 
 		TEST_METHOD(ScreenShakeKicksFullyAtFullLessAtReducedAndNotAtAllOff)

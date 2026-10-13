@@ -6,6 +6,9 @@
 #include "Math/Vector.h"
 #include "Math/Vector2D.h"
 
+struct FVeyraAbilityEffects;
+enum class EVeyraTelegraphShow : uint8;
+
 /** Where a telegraph's shaded fill lies (ADR-068 §4): a flat quad, and the shape the fill material draws in it. */
 struct FVeyraTelegraphFill
 {
@@ -38,4 +41,12 @@ namespace VeyraTelegraphFill
 	 * to go) for one that lands, as a windup, a channel's tick, a delayed area or a lingering area's end; 0 for the rest.
 	 */
 	VEYRAUI_API double LandingOf(EVeyraTelegraphSource Source, double RemainingSeconds, double LandingSeconds);
+
+	/**
+	 * How much of a telegraph of Source shows (ADR-075 §1): what its ability's Effects chose, but only where an effect of
+	 * theirs shows that area at its true shape; all of it for an ability without one, for a source that is no cast's (the
+	 * player's own indicator, the attack range, the selection), or when the player turned Show Skill Outlines on. An
+	 * opponent is never shown less than an effect shows them.
+	 */
+	VEYRAUI_API EVeyraTelegraphShow ShowOf(const FVeyraAbilityEffects* Effects, EVeyraTelegraphSource Source, bool bSkillOutlines);
 }

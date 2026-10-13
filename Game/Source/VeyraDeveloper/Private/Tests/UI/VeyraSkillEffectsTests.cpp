@@ -29,6 +29,7 @@ namespace VeyraSkillEffectsTests
 		static constexpr double InnerRadius = 100.0;
 		static constexpr double LanceRange = 1000.0;
 		static constexpr double FallDelay = 0.9;
+		static constexpr double SectorArc = 90.0;
 		static constexpr double Slack = 1e-6;
 
 		static FVeyraContentId Id(const TCHAR* Name)
@@ -209,6 +210,27 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsFalse(ProblemsWith({ Anchored }).IsEmpty(), TEXT("only a channel pours from a channel bone")));
 		}
 
+		TEST_METHOD(AnAreaIsDrawnAtItsTrueShape)
+		{
+			// One source for every size: the shape Abilities.json gives (ADR-075 §3).
+			FVeyraShape Sector;
+			Sector.Kind = EVeyraShapeKind::Sector;
+			Sector.Radius = SlamRadius;
+			Sector.ArcDegrees = SectorArc;
+			const FVeyraAreaParameters Fan = VeyraSkillEffects::AreaParametersOf(Sector, 0.0);
+			ASSERT_THAT(IsTrue(Fan.Shape == 1 && Fan.Radius == SlamRadius && FMath::IsNearlyEqual(Fan.HalfArc, SectorArc / 2.0, Slack)));
+			FVeyraShape Lane;
+			Lane.Kind = EVeyraShapeKind::Rectangle;
+			Lane.Length = LanceRange;
+			Lane.Width = InnerRadius;
+			const FVeyraAreaParameters Strip = VeyraSkillEffects::AreaParametersOf(Lane, 1.0);
+			ASSERT_THAT(IsTrue(Strip.Shape == 2 && Strip.Length == LanceRange && Strip.Width == InnerRadius && Strip.Landing == 1.0));
+			FVeyraShape Circle;
+			Circle.Radius = InnerRadius;
+			const FVeyraAreaParameters Ring = VeyraSkillEffects::AreaParametersOf(Circle, 0.0);
+			ASSERT_THAT(IsTrue(Ring.Shape == 0 && Ring.HalfArc == 180.0 && Ring.Length == InnerRadius * 2.0 && Ring.Width == InnerRadius * 2.0));
+		}
+
 		TEST_METHOD(EveryShippedRecipeNamesAnAbility)
 		{
 			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
@@ -277,6 +299,9 @@ namespace VeyraSkillEffectsTests
 			Landing.Ability = TEXT("test_fall");
 			Landing.Impact.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraImpact.NS_VeyraImpact")));
 			Landing.Impact.Scale = 1.0f;
+			// Drawn over where it will land until then (ADR-075 §3).
+			Landing.Area.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraLightMark.NS_VeyraLightMark")));
+			Landing.Area.Scale = 1.0f;
 			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Landing);
 			// A Vanguard whose basic attacks fly a look of their own, in place of the shared one (ADR-072 §9).
 			FVeyraVanguardAttack Own;
@@ -421,6 +446,26 @@ namespace VeyraSkillEffectsTests
 			const TArray<double> Times = Skills->GetLandingTimes();
 			ASSERT_THAT(AreEqual(Times.Num(), 1));
 			ASSERT_THAT(IsNear(Times[0], Area->GetResolvesAt(), Slack, TEXT("it lands when the server's area resolves")));
+		}
+
+		TEST_METHOD(ADelayedAreaIsDrawnOverWhereItWillLand)
+		{
+			UVeyraSkillEffectsSubsystem* Skills = Spawner.GetWorld().GetSubsystem<UVeyraSkillEffectsSubsystem>();
+			ASSERT_THAT(IsNotNull(Skills));
+			const FVeyraContentId Fall = VeyraAbilitiesTests::ArchetypeTestId(TEXT("test_fall"));
+			const FVector Where(Range, 0.0, 0.0);
+			AVeyraDelayedArea* Area = Spawner.GetWorld().SpawnActor<AVeyraDelayedArea>(AVeyraDelayedArea::StaticClass(), FTransform(Where));
+			ASSERT_THAT(IsNotNull(Area));
+			FVeyraEffectFrame Placement;
+			Placement.Origin = Where;
+			FVeyraPreparedZone Zone;
+			Zone.Shape = Tuning.Area[Fall].Zones[0].Shape;
+			Area->Arm(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Caster), Placement, { Zone }, LongSeconds, Fall, FallCast);
+			Skills->Refresh();
+			const TArray<FVeyraAreaParameters> Drawn = Skills->FindAreas(*Area);
+			ASSERT_THAT(AreEqual(Drawn.Num(), 1, TEXT("one effect over its one zone")));
+			ASSERT_THAT(IsTrue(Drawn[0].Shape == 0 && FMath::IsNearlyEqual(Drawn[0].Radius, Range / 4.0, Slack), TEXT("its circle, as Abilities.json shapes it")));
+			ASSERT_THAT(IsTrue(Drawn[0].Landing == 0.0, TEXT("long before it lands")));
 		}
 	};
 }

@@ -83,6 +83,9 @@ struct FVeyraTelegraph
 
 	/** Seconds until it hits or its phase ends, in server gameplay time. */
 	double RemainingSeconds = 0.0;
+
+	/** Whether its shaded fill shows under its outline: not for an outline its ability's effects keep alone (ADR-075 §1). */
+	bool bFilled = true;
 };
 
 /**
@@ -182,6 +185,9 @@ public:
 
 	/** The effects a unit's generated body is made of where no mesh shows it (as Nix's smoke), one per bone; empty for most. */
 	TArray<class UNiagaraComponent*> FindBodyEffects(const AActor& Unit) const;
+
+	/** The ground under Location, lifted for drawing; Location itself where there is none. */
+	FVector GroundUnder(const FVector& Location) const;
 
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
@@ -481,6 +487,9 @@ private:
 
 	/** Adds each line projectile's lane, the rest of its flight at server time Now (ADR-067 §3). */
 	void AddProjectileLanes(double Now);
+
+	/** Adds a cast's telegraph of Ability, as much of it as its effects and the player's Show Skill Outlines leave (ADR-075 §1). */
+	void AddCastTelegraph(const FVeyraPlacedShape& Placed, EVeyraTelegraphSource Source, EVeyraTeam Team, double Remaining, const FVeyraContentId& Ability);
 	void DrawTelegraphs();
 
 	/** The viewer's side's presence pings and outlines, drawn on the ground with the telegraphs (ADR-016 §8). */
@@ -516,8 +525,6 @@ private:
 	/** Whether Unit is the local player's own Vanguard. */
 	bool IsViewersVanguard(const AActor* Unit) const;
 
-	/** The ground under Location, lifted for drawing; Location itself where there is none. */
-	FVector GroundUnder(const FVector& Location) const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMesh> BodyMesh;

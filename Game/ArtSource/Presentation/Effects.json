@@ -1107,6 +1107,712 @@
           ]
         }
       ]
+    },
+    {
+      "name": "NS_VeyraQazharrSprayArea",
+      "purpose": "ADR-072 §4, ADR-075 §4: Qazharr's sweep about to land, drawn as the sea: spray thrown up and falling all along the edge of the true area, and foam washing over its inside, thicker as it lands.",
+      "userFloats": [{"name": "Shape", "default": 0}, {"name": "Radius", "default": 300}, {"name": "HalfArc", "default": 180}, {"name": "Length", "default": 600}, {"name": "Width", "default": 300}, {"name": "Landing", "default": 0}],
+      "emitters": [
+        { "name": "Edge", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Edge", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? (2.0 * User.Length + User.Width) : (User.Radius * User.HalfArc * 2.0 * 0.0174533 + (User.HalfArc < 179.0 ? 2.0 * User.Radius : 0.0))) * 0.22" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.35] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.55] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [260] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -900] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [0.5] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Mode", "enum": "Random Non-Uniform" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(10.0, 40.0) * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(16.0, 70.0) * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [25] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) - 0.5) * User.Width, 0.0) : float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * sqrt(frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)))" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Fill", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? User.Length * User.Width : User.Radius * User.Radius * User.HalfArc * 0.0174533) * 0.00035 * (0.5 + 2.0 * User.Landing)" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "40 * User.Scale" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "80 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraBrynFluxArea",
+      "purpose": "ADR-072 §4, ADR-075 §4: Bryn's shell's target, drawn as blue Flux charging the ground: hard star sparks rising off the true edge of where it lands, and Flux glows pulsing up from inside it, brighter and quicker as it lands.",
+      "userFloats": [{"name": "Shape", "default": 0}, {"name": "Radius", "default": 300}, {"name": "HalfArc", "default": 180}, {"name": "Length", "default": 600}, {"name": "Width", "default": 300}, {"name": "Landing", "default": 0}],
+      "emitters": [
+        { "name": "Edge", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Edge", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? (2.0 * User.Length + User.Width) : (User.Radius * User.HalfArc * 2.0 * 0.0174533 + (User.HalfArc < 179.0 ? 2.0 * User.Radius : 0.0))) * 0.12" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 260] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "18 * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "30 * User.Scale" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) - 0.5) * User.Width, 0.0) : float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * sqrt(frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)))" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Fill", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? User.Length * User.Width : User.Radius * User.Radius * User.HalfArc * 0.0174533) * 0.0002 * (0.5 + 3.0 * User.Landing)" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 60] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "50 * User.Scale * (1.0 + User.Landing)" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "90 * User.Scale * (1.0 + User.Landing)" }
+      ]
+    },
+    {
+      "name": "NS_VeyraKadeSightArea",
+      "purpose": "ADR-072 §4, ADR-075 §4: Kade's sightline: hard thin lines of light running down the true edges of where his shot or corridor will go, and fine glints drawn along its inside.",
+      "userFloats": [{"name": "Shape", "default": 0}, {"name": "Radius", "default": 300}, {"name": "HalfArc", "default": 180}, {"name": "Length", "default": 600}, {"name": "Width", "default": 300}, {"name": "Landing", "default": 0}],
+      "emitters": [
+        { "name": "Edge", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Edge", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? (2.0 * User.Length + User.Width) : (User.Radius * User.HalfArc * 2.0 * 0.0174533 + (User.HalfArc < 179.0 ? 2.0 * User.Radius : 0.0))) * 0.1" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [900] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Mode", "enum": "Random Non-Uniform" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(6.0, 70.0) * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(9.0, 120.0) * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [1] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) - 0.5) * User.Width, 0.0) : float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * sqrt(frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)))" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Fill", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? User.Length * User.Width : User.Radius * User.Radius * User.HalfArc * 0.0174533) * 0.00008 * (1.0 + 2.0 * User.Landing)" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.2] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.35] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "10 * User.Scale" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "18 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraVeraRankArea",
+      "purpose": "ADR-072 §4, ADR-075 §4: Vera's volley about to fire, drawn as her spectral ranks: pale spears of light standing up all round the true edge of where it lands, and ghost motes rising off its inside as it is about to fire.",
+      "userFloats": [{"name": "Shape", "default": 0}, {"name": "Radius", "default": 300}, {"name": "HalfArc", "default": 180}, {"name": "Length", "default": 600}, {"name": "Width", "default": 300}, {"name": "Landing", "default": 0}],
+      "emitters": [
+        { "name": "Edge", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Edge", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? (2.0 * User.Length + User.Width) : (User.Radius * User.HalfArc * 2.0 * 0.0174533 + (User.HalfArc < 179.0 ? 2.0 * User.Radius : 0.0))) * 0.12" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.45] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [320] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [0.5] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Mode", "enum": "Random Non-Uniform" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(10.0, 60.0) * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(14.0, 100.0) * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [4] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) - 0.5) * User.Width, 0.0) : float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * sqrt(frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)))" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Fill", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? User.Length * User.Width : User.Radius * User.Radius * User.HalfArc * 0.0174533) * 0.00015 * (0.5 + 2.0 * User.Landing)" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.6] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 140] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "24 * User.Scale" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "44 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraMimziStarArea",
+      "purpose": "ADR-072 §4, ADR-075 §4: Mimzi's trick about to go off: little stars twinkling all round the true edge of where it lands, and star-sparks popping over its inside, faster as it lands.",
+      "userFloats": [{"name": "Shape", "default": 0}, {"name": "Radius", "default": 300}, {"name": "HalfArc", "default": 180}, {"name": "Length", "default": 600}, {"name": "Width", "default": 300}, {"name": "Landing", "default": 0}],
+      "emitters": [
+        { "name": "Edge", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Edge", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? (2.0 * User.Length + User.Width) : (User.Radius * User.HalfArc * 2.0 * 0.0174533 + (User.HalfArc < 179.0 ? 2.0 * User.Radius : 0.0))) * 0.16" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.45] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 40] },
+        { "emitter": "Edge", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "16 * User.Scale" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "30 * User.Scale" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) - 0.5) * User.Width, 0.0) : float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * sqrt(frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)))" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset Coordinate Space", "enum": "Local" },
+        { "emitter": "Fill", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "(User.Shape > 1.5 ? User.Length * User.Width : User.Radius * User.Radius * User.HalfArc * 0.0174533) * 0.0002 * (0.5 + 3.0 * User.Landing)" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.2] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.35] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 90] },
+        { "emitter": "Fill", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "10 * User.Scale" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "22 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraQazharrWaveArc",
+      "purpose": "ADR-072 §4, ADR-075 §4: Qazharr's blade sweeping through, drawn as a breaking wave: a wide fan of spray streaks thrown ahead over a white flash, with foam bursting along the swing.",
+      "emitters": [
+        { "name": "Spray", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Foam", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Flash", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Spray", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "26" },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(16.0, 60.0) * User.Scale" },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(26.0, 120.0) * User.Scale" },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [70] },
+        { "emitter": "Spray", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -600] },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0.15] },
+        { "emitter": "Foam", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "14" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.6] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(40.0, 40.0) * User.Scale" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(70.0, 70.0) * User.Scale" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [75] },
+        { "emitter": "Foam", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -300] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0.3] },
+        { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.18] },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "220 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraQazharrBladeSurge",
+      "purpose": "ADR-072 §4, ADR-075 §4: Qazharr's next swing made heavy: sea water surging up round him in a ring of spray, falling back.",
+      "emitters": [
+        { "name": "Surge", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Surge", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "18" },
+        { "emitter": "Surge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.35] },
+        { "emitter": "Surge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.5] },
+        { "emitter": "Surge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14.0, 50.0) * User.Scale" },
+        { "emitter": "Surge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(22.0, 90.0) * User.Scale" },
+        { "emitter": "Surge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [30] },
+        { "emitter": "Surge", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -1100] },
+        { "emitter": "Surge", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] },
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.35] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "260 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraQazharrSpout",
+      "purpose": "ADR-072 §4, ADR-075 §4: Qazharr weathering it: a column of spray bursting up round him and foam settling at his feet as the shield sets.",
+      "emitters": [
+        { "name": "Column", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Foam", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Column", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "30" },
+        { "emitter": "Column", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "emitter": "Column", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.6] },
+        { "emitter": "Column", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14.0, 60.0) * User.Scale" },
+        { "emitter": "Column", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(22.0, 110.0) * User.Scale" },
+        { "emitter": "Column", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [15] },
+        { "emitter": "Column", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -900] },
+        { "emitter": "Column", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] },
+        { "emitter": "Foam", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "6" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.6] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "120 * User.Scale" },
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.4] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "300 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraQazharrWake",
+      "purpose": "ADR-072 §4, ADR-075 §4: Qazharr's charge setting off: a wake of foam and spray thrown out behind and to the sides of him.",
+      "emitters": [
+        { "name": "Wake", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Foam", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Wake", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "20" },
+        { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.45] },
+        { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(12.0, 50.0) * User.Scale" },
+        { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(20.0, 90.0) * User.Scale" },
+        { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [60] },
+        { "emitter": "Wake", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -700] },
+        { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [-1, 0, 0.3] },
+        { "emitter": "Foam", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.6] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(40.0, 40.0) * User.Scale" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(60.0, 60.0) * User.Scale" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [70] },
+        { "emitter": "Foam", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -200] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [-1, 0, 0.2] }
+      ]
+    },
+    {
+      "name": "NS_VeyraBrynMuzzleBlast",
+      "purpose": "ADR-072 §4, ADR-075 §4: Bryn's cannon firing: a hard flash at the muzzle, a cone of Flux streaks blown ahead, and a puff of gun smoke rolling out.",
+      "emitters": [
+        { "name": "Flash", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Blast", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Smoke", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.15] },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "200 * User.Scale" },
+        { "emitter": "Blast", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "18" },
+        { "emitter": "Blast", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.15] },
+        { "emitter": "Blast", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.25] },
+        { "emitter": "Blast", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14.0, 60.0) * User.Scale" },
+        { "emitter": "Blast", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(22.0, 110.0) * User.Scale" },
+        { "emitter": "Blast", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [20] },
+        { "emitter": "Blast", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Blast", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0] },
+        { "emitter": "Smoke", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "8" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.6] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.9] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(60.0, 60.0) * User.Scale" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(100.0, 100.0) * User.Scale" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [35] },
+        { "emitter": "Smoke", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 60] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0.2] }
+      ]
+    },
+    {
+      "name": "NS_VeyraBrynFluxShell",
+      "purpose": "ADR-072 §4, ADR-075 §4: A Flux shell in flight, looping: a hard blue-white core with a star at its point and sparks and a thin smoke trail shed behind.",
+      "emitters": [
+        { "name": "Core", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Sparks", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Smoke", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Core", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "30" },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.06] },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.1] },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Core", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Core", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "70 * User.Scale" },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "90 * User.Scale" },
+        { "emitter": "Sparks", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "40" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.2] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.35] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [60] },
+        { "emitter": "Sparks", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -200] },
+        { "emitter": "Sparks", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "10 * User.Scale" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "20 * User.Scale" },
+        { "emitter": "Smoke", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "22" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.35] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.55] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Smoke", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 40] },
+        { "emitter": "Smoke", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "30 * User.Scale" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "50 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraBrynArtilleryBlast",
+      "purpose": "ADR-072 §4, ADR-075 §4: Bryn's shell landing: a white-hot flash, a hard shockwave ring, Flux shrapnel flung up and out and a column of artillery smoke.",
+      "emitters": [
+        { "name": "Flash", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Shrapnel", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Smoke", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.22] },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "320 * User.Scale" },
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.45] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "620 * User.Scale" },
+        { "emitter": "Shrapnel", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "24" },
+        { "emitter": "Shrapnel", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.35] },
+        { "emitter": "Shrapnel", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.6] },
+        { "emitter": "Shrapnel", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(16.0, 60.0) * User.Scale" },
+        { "emitter": "Shrapnel", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(26.0, 120.0) * User.Scale" },
+        { "emitter": "Shrapnel", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [70] },
+        { "emitter": "Shrapnel", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -900] },
+        { "emitter": "Shrapnel", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] },
+        { "emitter": "Smoke", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "12" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.9] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.3] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(90.0, 90.0) * User.Scale" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(150.0, 150.0) * User.Scale" },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [40] },
+        { "emitter": "Smoke", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 120] },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] }
+      ]
+    },
+    {
+      "name": "NS_VeyraBrynIllumination",
+      "purpose": "ADR-072 §4, ADR-075 §4: Bryn's sounding flare bursting over its area: a wide flash, a ring, and bright flare sparks drifting down slowly to light it.",
+      "emitters": [
+        { "name": "Flash", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Sparks", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.3] },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "380 * User.Scale" },
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.5] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "560 * User.Scale" },
+        { "emitter": "Sparks", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "28" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.9] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.4] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14.0, 14.0) * User.Scale" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(26.0, 26.0) * User.Scale" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [80] },
+        { "emitter": "Sparks", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -120] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] }
+      ]
+    },
+    {
+      "name": "NS_VeyraKadeMuzzleFlash",
+      "purpose": "ADR-072 §4, ADR-075 §4: Kade's rifle firing: a tight star flash at the muzzle and a narrow needle of light streaks straight down the line.",
+      "emitters": [
+        { "name": "Flash", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Needle", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} }
+      ],
+      "inputs": [
+        { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.14] },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "150 * User.Scale" },
+        { "emitter": "Needle", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.12] },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.2] },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(6.0, 90.0) * User.Scale" },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(9.0, 160.0) * User.Scale" },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [3] },
+        { "emitter": "Needle", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0] }
+      ]
+    },
+    {
+      "name": "NS_VeyraKadeTracer",
+      "purpose": "ADR-072 §4, ADR-075 §4: Kade's shot in flight, looping: a long hard needle of light pointing the way it flies with fine glints shed in a straight line behind.",
+      "emitters": [
+        { "name": "Needle", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Glints", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Needle", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "40" },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.05] },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.08] },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [40] },
+        { "emitter": "Needle", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Needle", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Mode", "enum": "Random Non-Uniform" },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(10.0, 220.0) * User.Scale" },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(12.0, 260.0) * User.Scale" },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [0] },
+        { "emitter": "Needle", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0] },
+        { "emitter": "Glints", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "45" },
+        { "emitter": "Glints", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.15] },
+        { "emitter": "Glints", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.25] },
+        { "emitter": "Glints", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Glints", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Glints", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [4] },
+        { "emitter": "Glints", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "8 * User.Scale" },
+        { "emitter": "Glints", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "14 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraVeraSpectralBolt",
+      "purpose": "ADR-072 §4, ADR-075 §4: Vera's shot in flight, looping: a pale spectral bolt with a hot core and ghost motes shed behind it.",
+      "emitters": [
+        { "name": "Bolt", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Core", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Ghosts", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Bolt", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "36" },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.06] },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.1] },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [40] },
+        { "emitter": "Bolt", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Bolt", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Mode", "enum": "Random Non-Uniform" },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(18.0, 160.0) * User.Scale" },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(22.0, 200.0) * User.Scale" },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [0] },
+        { "emitter": "Bolt", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0] },
+        { "emitter": "Core", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "24" },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.05] },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.08] },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Core", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Core", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "50 * User.Scale" },
+        { "emitter": "Core", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "60 * User.Scale" },
+        { "emitter": "Ghosts", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "30" },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.5] },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Ghosts", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 80] },
+        { "emitter": "Ghosts", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [2] },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "16 * User.Scale" },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "28 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraVeraVolley",
+      "purpose": "ADR-072 §4, ADR-075 §4: Vera's ranks firing together: a fan of spectral shots streaking ahead from flashes along a line, with ghost motes left hanging.",
+      "emitters": [
+        { "name": "Shots", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Flashes", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Ghosts", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Shots", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "16" },
+        { "emitter": "Shots", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.2] },
+        { "emitter": "Shots", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.3] },
+        { "emitter": "Shots", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14.0, 110.0) * User.Scale" },
+        { "emitter": "Shots", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(20.0, 180.0) * User.Scale" },
+        { "emitter": "Shots", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [32] },
+        { "emitter": "Shots", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Shots", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0] },
+        { "emitter": "Flashes", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "6" },
+        { "emitter": "Flashes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.12] },
+        { "emitter": "Flashes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.18] },
+        { "emitter": "Flashes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(80.0, 80.0) * User.Scale" },
+        { "emitter": "Flashes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(110.0, 110.0) * User.Scale" },
+        { "emitter": "Flashes", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [40] },
+        { "emitter": "Flashes", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Flashes", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0] },
+        { "emitter": "Ghosts", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "14" },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(18.0, 18.0) * User.Scale" },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(30.0, 30.0) * User.Scale" },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [50] },
+        { "emitter": "Ghosts", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 100] },
+        { "emitter": "Ghosts", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [1, 0, 0.4] }
+      ]
+    },
+    {
+      "name": "NS_VeyraVeraDigIn",
+      "purpose": "ADR-072 §4, ADR-075 §4: Vera digging in: the ground cracking in a hard ring round her and pale spears of her ranks standing up behind her.",
+      "emitters": [
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Spears", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Dust", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.4] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "340 * User.Scale" },
+        { "emitter": "Spears", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "12" },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.35] },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.5] },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(12.0, 90.0) * User.Scale" },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(18.0, 150.0) * User.Scale" },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [25] },
+        { "emitter": "Spears", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [-0.4, 0, 1] },
+        { "emitter": "Dust", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(50.0, 50.0) * User.Scale" },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(80.0, 80.0) * User.Scale" },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [85] },
+        { "emitter": "Dust", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 40] },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] }
+      ]
+    },
+    {
+      "name": "NS_VeyraVeraRanks",
+      "purpose": "ADR-072 §4, ADR-075 §4: Vera's last volley called: a line of spectral ranks rising behind her in pale flashes, spears raised, a hot red spark at each.",
+      "emitters": [
+        { "name": "Ranks", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Spears", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} },
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Ranks", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
+        { "emitter": "Ranks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.6] },
+        { "emitter": "Ranks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.9] },
+        { "emitter": "Ranks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(60.0, 60.0) * User.Scale" },
+        { "emitter": "Ranks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(90.0, 90.0) * User.Scale" },
+        { "emitter": "Ranks", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [70] },
+        { "emitter": "Ranks", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 60] },
+        { "emitter": "Ranks", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [-1, 0, 0.4] },
+        { "emitter": "Spears", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "16" },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(12.0, 90.0) * User.Scale" },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(18.0, 150.0) * User.Scale" },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [40] },
+        { "emitter": "Spears", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Spears", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [-0.5, 0, 1] },
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.5] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "420 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraMimziStarBolt",
+      "purpose": "ADR-072 §4, ADR-075 §4: Mimzi's star-bolt in flight, looping: a spinning bright star with a trail of little star-sparks twinkling behind it.",
+      "emitters": [
+        { "name": "Star", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Sparks", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Star", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "26" },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.06] },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.1] },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Star", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Star", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "70 * User.Scale" },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "90 * User.Scale" },
+        { "emitter": "Sparks", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "50" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [50] },
+        { "emitter": "Sparks", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -120] },
+        { "emitter": "Sparks", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "10 * User.Scale" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "20 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraMimziTrinket",
+      "purpose": "ADR-072 §4, ADR-075 §4: Mimzi's tossed trinket tumbling through the air, looping: a ring glinting round a bright star, shedding star-sparks.",
+      "emitters": [
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Star", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Sparks", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "18" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.08] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.12] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Ring", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Ring", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "70 * User.Scale" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "90 * User.Scale" },
+        { "emitter": "Star", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "18" },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.08] },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.12] },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [0] },
+        { "emitter": "Star", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Star", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "40 * User.Scale" },
+        { "emitter": "Star", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "50 * User.Scale" },
+        { "emitter": "Sparks", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "40" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.45] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [80] },
+        { "emitter": "Sparks", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -200] },
+        { "emitter": "Sparks", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1] },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "10 * User.Scale" },
+        { "emitter": "Sparks", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "18 * User.Scale" }
+      ]
+    },
+    {
+      "name": "NS_VeyraMimziStarBurst",
+      "purpose": "ADR-072 §4, ADR-075 §4: Mimzi's magic going off: a pop of stars bursting out over a bright flash and a ring, twinkling as they fall.",
+      "emitters": [
+        { "name": "Flash", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Stars", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.2] },
+        { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "260 * User.Scale" },
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.4] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "460 * User.Scale" },
+        { "emitter": "Stars", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "30" },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.45] },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.75] },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(18.0, 18.0) * User.Scale" },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(36.0, 36.0) * User.Scale" },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [85] },
+        { "emitter": "Stars", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -400] },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] }
+      ]
+    },
+    {
+      "name": "NS_VeyraMimziPoof",
+      "purpose": "ADR-072 §4, ADR-075 §4: Mimzi vanishing: a soft puff of smoke with stars winking out of it.",
+      "emitters": [
+        { "name": "Puff", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Stars", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Puff", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(70.0, 70.0) * User.Scale" },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(110.0, 110.0) * User.Scale" },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [80] },
+        { "emitter": "Puff", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 60] },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] },
+        { "emitter": "Stars", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "16" },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.35] },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.6] },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(14.0, 14.0) * User.Scale" },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(26.0, 26.0) * User.Scale" },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [80] },
+        { "emitter": "Stars", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 80] },
+        { "emitter": "Stars", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Axis", "value": [0, 0, 1] }
+      ]
     }
+
   ]
 }

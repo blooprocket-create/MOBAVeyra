@@ -44,6 +44,11 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 		[](const FVeyraAbilityEffects& Effects) { return Effects.Channel.IsSet() || Effects.Tether.IsSet() || Effects.Linger.IsSet(); });
 	Require(!bRuns || (!LengthParameter.IsNone() && !WidthParameter.IsNone() && LengthParameter != WidthParameter), TEXT("LengthParameter"),
 		TEXT("an effect that runs along a channel, a tether or a lingering area needs the two parameters its length and width are set by."));
+	const bool bAreas = AbilityEffects.ContainsByPredicate([](const FVeyraAbilityEffects& Effects) { return Effects.Area.IsSet(); });
+	const TSet<FName> AreaParameters = { ShapeParameter, RadiusParameter, HalfArcParameter, LandingParameter, LengthParameter, WidthParameter };
+	Require(!bAreas || (!ShapeParameter.IsNone() && !RadiusParameter.IsNone() && !HalfArcParameter.IsNone() && !LandingParameter.IsNone()
+		&& !LengthParameter.IsNone() && !WidthParameter.IsNone() && AreaParameters.Num() == 6), TEXT("ShapeParameter"),
+		TEXT("an effect drawn over an area at its true shape needs six distinct parameters: its shape, radius, half-arc, length, width and landing."));
 	Require(!AttackTravel.IsSet() || AttackTravel.Scale > 0.0f, TEXT("AttackTravel"),
 		TEXT("a basic attack's effect in flight needs a scale above 0."));
 	TSet<FName> AttackingVanguards;
@@ -58,7 +63,7 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 	{
 		const FString Name = Effects.Ability.ToString();
 		const FVeyraSkillEffectStage* Stages[] = { &Effects.Windup, &Effects.Channel, &Effects.Commit, &Effects.Travel, &Effects.Impact, &Effects.Tether,
-			&Effects.Mark, &Effects.Arc, &Effects.Linger };
+			&Effects.Mark, &Effects.Arc, &Effects.Linger, &Effects.Area };
 		bool bAny = false;
 		bool bScaled = true;
 		for (const FVeyraSkillEffectStage* Stage : Stages)
@@ -68,6 +73,9 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 		}
 		Require(!Effects.Ability.IsNone() && bAny, TEXT("AbilityEffects"), FString::Printf(TEXT("%s needs an ability and at least one stage."), *Name));
 		Require(bScaled, TEXT("AbilityEffects"), FString::Printf(TEXT("%s: every stage with an effect needs a scale above 0."), *Name));
+		// A telegraph is hidden or thinned only beside an effect that shows its area (ADR-075 §1).
+		Require(Effects.Telegraph == EVeyraTelegraphShow::Full || Effects.ShowsArea(true, true, true, true), TEXT("AbilityEffects"),
+			FString::Printf(TEXT("%s: a telegraph is hidden or thinned only beside an effect that shows its area (Area, Mark, Linger or Travel)."), *Name));
 		Require(Effects.Windup.IsSet() == !Effects.WindupBones.IsEmpty(), TEXT("AbilityEffects"),
 			FString::Printf(TEXT("%s: a windup effect pours from the bones it names, and only it names bones."), *Name));
 		Require(Effects.Commit.IsSet() || !Effects.bCommitAtTarget, TEXT("AbilityEffects"),

@@ -7,6 +7,9 @@
 
 #include "VeyraSkillEffectsSubsystem.generated.h"
 
+struct FVeyraPlacedShape;
+enum class EVeyraTelegraphSource : uint8;
+
 class AVeyraLingeringArea;
 class AVeyraProjectile;
 class UNiagaraComponent;
@@ -14,6 +17,22 @@ class UNiagaraSystem;
 struct FVeyraAbilitiesTuning;
 struct FVeyraAbilityEffects;
 struct FVeyraCombatCue;
+struct FVeyraShape;
+
+/**
+ * What an Area effect is drawn by (ADR-075 §3): which shape (0 a circle, 1 a sector, 2 a rectangle from its origin along
+ * its direction), its radius, its half-arc in degrees (180 for a circle), its length and width in units (a circle's or a
+ * sector's breadth both ways), and how far it has landed, from 0 to 1.
+ */
+struct FVeyraAreaParameters
+{
+	int32 Shape = 0;
+	double Radius = 0.0;
+	double HalfArc = 180.0;
+	double Length = 0.0;
+	double Width = 0.0;
+	double Landing = 0.0;
+};
 
 /** What an ability's effects read from Abilities.json (ADR-072 §4), so no reach or time is written twice. */
 namespace VeyraSkillEffects
@@ -38,6 +57,9 @@ namespace VeyraSkillEffects
 
 	/** Where a thrown thing is Share of its way from From to To, rising Height over its middle. */
 	VEYRAUI_API FVector ArcPoint(const FVector& From, const FVector& To, double Share, double Height);
+
+	/** An Area effect's parameters over Shape, as Abilities.json shapes it, Landing of the way to landing (ADR-075 §3). */
+	VEYRAUI_API FVeyraAreaParameters AreaParametersOf(const FVeyraShape& Shape, double Landing);
 
 	/** Where a tether coming back from From to To at Speed is after Seconds, and whether it is home. */
 	VEYRAUI_API FVector RetractPoint(const FVector& From, const FVector& To, double Seconds, double Speed, bool& bOutHome);
@@ -123,6 +145,9 @@ public:
 	/** How many delayed areas are still to land. */
 	int32 GetPendingLandings() const { return Landings.Num(); }
 
+	/** What the Area effects over the areas Owner's cast or delayed area lands in are drawn by now, innermost first (ADR-075 §3). */
+	TArray<FVeyraAreaParameters> FindAreas(const AActor& Owner) const;
+
 	/** When each delayed area still to land lands, in the server's time. */
 	TArray<double> GetLandingTimes() const;
 
@@ -148,6 +173,13 @@ private:
 
 	/** Pours each lingering area's own effect over it while it lasts. */
 	void RefreshLingering(double Now);
+
+	/** Draws each cast's and each delayed area's Area effect over the areas it lands in, at their true shape, until they land. */
+	void RefreshAreas(double Now);
+
+	/** Shows Area of Effects over Placed (the Index-th area Owner lands in), Remaining seconds before it lands, in Color. */
+	void ShowArea(const AActor& Owner, int32 Index, const FVeyraAbilityEffects& Effects, const FVeyraPlacedShape& Placed, double Remaining,
+		EVeyraTelegraphSource Source, const FLinearColor& Color);
 
 	/** The pawn that launched Projectile: the one whose cast it is, or else its side's nearest to where it set off. */
 	const AActor* CasterOf(const AVeyraProjectile& Projectile) const;
@@ -213,6 +245,15 @@ private:
 
 	/** Each lingering area's own effect, by area. */
 	TMap<TWeakObjectPtr<const AVeyraLingeringArea>, TWeakObjectPtr<UNiagaraComponent>> Lingering;
+
+	/** Each Area effect drawn now, by what lands there (a caster, or a delayed area) and which of its areas; and whether this refresh still wants it. */
+	struct FAreaShown
+	{
+		TWeakObjectPtr<UNiagaraComponent> Effect;
+		FVeyraAreaParameters Parameters;
+		bool bWanted = false;
+	};
+	TMap<TPair<TWeakObjectPtr<const AActor>, int32>, FAreaShown> Areas;
 
 	/** The cast projectiles drawn lately, by ability and cast, until their end comes or their window passes. */
 	TMap<TPair<FName, int32>, FVeyraSeenProjectile> Seen;

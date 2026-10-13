@@ -2,6 +2,8 @@
 
 #include "Greybox/VeyraTelegraphFill.h"
 
+#include "Kit/VeyraKitPresentationSettings.h"
+
 FVeyraTelegraphFill VeyraTelegraphFill::Of(const FVeyraPlacedShape& Placed, const FVector& Origin)
 {
 	FVeyraTelegraphFill Fill;
@@ -27,6 +29,19 @@ FVeyraTelegraphFill VeyraTelegraphFill::Of(const FVeyraPlacedShape& Placed, cons
 		break;
 	}
 	return Fill;
+}
+
+EVeyraTelegraphShow VeyraTelegraphFill::ShowOf(const FVeyraAbilityEffects* Effects, EVeyraTelegraphSource Source, bool bSkillOutlines)
+{
+	if (bSkillOutlines || !Effects)
+	{
+		return EVeyraTelegraphShow::Full;
+	}
+	const bool bCast = Source == EVeyraTelegraphSource::Windup || Source == EVeyraTelegraphSource::Channel;
+	const bool bDelayed = Source == EVeyraTelegraphSource::DelayedArea;
+	const bool bLingering = Source == EVeyraTelegraphSource::LingeringArea || Source == EVeyraTelegraphSource::LingeringAreaEnding;
+	const bool bLane = Source == EVeyraTelegraphSource::ProjectileLane;
+	return Effects->ShowsArea(bCast, bDelayed, bLingering, bLane) ? Effects->Telegraph : EVeyraTelegraphShow::Full;
 }
 
 bool VeyraTelegraphFill::IsFilled(EVeyraTelegraphSource Source)

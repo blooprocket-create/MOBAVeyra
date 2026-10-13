@@ -32,6 +32,8 @@
 #include "Fluxborn/VeyraFluxborn.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Greybox/VeyraTelegraphFill.h"
+#include "Kit/VeyraKitPresentationSettings.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Greybox/VeyraUnitArtSet.h"
@@ -138,7 +140,21 @@ namespace VeyraAbilitiesTests
 
 		AFTER_EACH()
 		{
+			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.RemoveAll(
+				[](const FVeyraAbilityEffects& Effects) { return Effects.Ability == TEXT("test_slam"); });
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		/** Gives the slam effects of its own (ADR-075 §1): Area drawn over its zones when bArea, and Show of its telegraph. */
+		static void GiveSlamEffects(bool bArea, EVeyraTelegraphShow Show)
+		{
+			FVeyraAbilityEffects Effects;
+			Effects.Ability = TEXT("test_slam");
+			FVeyraSkillEffectStage& Stage = bArea ? Effects.Area : Effects.Commit;
+			Stage.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraLightMark.NS_VeyraLightMark")));
+			Stage.Scale = 1.0f;
+			Effects.Telegraph = Show;
+			GetMutableDefault<UVeyraKitPresentationSettings>()->AbilityEffects.Add(Effects);
 		}
 
 		/** The structure kit's art set, as the settings name it. */
@@ -614,6 +630,57 @@ namespace VeyraAbilitiesTests
 				&& Color.Equals(Presentation.ColorOfSide(EVeyraTeam::A).CopyWithNewOpacity(1.0f)), TEXT("in the caster's side colour")));
 			ASSERT_THAT(IsTrue(Material->GetScalarParameterValue(FHashedMaterialParameterInfo(Settings.TelegraphLandingParameter), Landing) && Landing == 0.0f,
 				TEXT("a long windup has not begun to land")));
+		}
+
+		TEST_METHOD(AnAreaEffectThatShowsTheZonesHidesTheirTelegraph)
+		{
+			GiveSlamEffects(/*bArea*/ true, EVeyraTelegraphShow::None);
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_slam")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector(0.0, CastRange / 2.0, 0.0)) == EVeyraCastRejection::None));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			ASSERT_THAT(IsTrue(Presentation.GetTelegraphs().IsEmpty(), TEXT("its own effect shows where it lands")));
+			ASSERT_THAT(IsTrue(Presentation.GetTelegraphFills().IsEmpty()));
+		}
+
+		TEST_METHOD(AnOutlinedThreatKeepsItsOutlineWithoutItsFill)
+		{
+			GiveSlamEffects(/*bArea*/ true, EVeyraTelegraphShow::Outline);
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_slam")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector(0.0, CastRange / 2.0, 0.0)) == EVeyraCastRejection::None));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			ASSERT_THAT(AreEqual(Presentation.GetTelegraphs().Num(), Tuning.Area[ArchetypeTestId(TEXT("test_slam"))].Zones.Num(), TEXT("each zone's outline")));
+			ASSERT_THAT(IsTrue(Presentation.GetTelegraphFills().IsEmpty(), TEXT("and no shading under it")));
+		}
+
+		TEST_METHOD(ATelegraphNoEffectShowsIsKeptWhole)
+		{
+			// Asked to hide it, but with nothing that shows its zones: an opponent still sees where it lands (ADR-075 §1).
+			GiveSlamEffects(/*bArea*/ false, EVeyraTelegraphShow::None);
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_slam")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector(0.0, CastRange / 2.0, 0.0)) == EVeyraCastRejection::None));
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const int32 Zones = Tuning.Area[ArchetypeTestId(TEXT("test_slam"))].Zones.Num();
+			ASSERT_THAT(AreEqual(Presentation.GetTelegraphs().Num(), Zones));
+			ASSERT_THAT(AreEqual(Presentation.GetTelegraphFills().Num(), Zones, TEXT("outlined and shaded")));
+		}
+
+		TEST_METHOD(OnlyAnEffectThatShowsTheAreaCanThinItsTelegraph)
+		{
+			FVeyraAbilityEffects Effects;
+			Effects.Telegraph = EVeyraTelegraphShow::None;
+			Effects.Mark.Effect = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Veyra/UI/Presentation/Effects/NS_VeyraLightMark.NS_VeyraLightMark")));
+			Effects.Mark.Scale = 1.0f;
+			using VeyraTelegraphFill::ShowOf;
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::DelayedArea, false) == EVeyraTelegraphShow::None, TEXT("a mark shows a delayed area")));
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::Windup, false) == EVeyraTelegraphShow::Full, TEXT("but not a windup's zones")));
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::LingeringArea, false) == EVeyraTelegraphShow::Full));
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::ProjectileLane, false) == EVeyraTelegraphShow::Full));
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::Indicator, false) == EVeyraTelegraphShow::Full, TEXT("the player's own indicator always shows")));
+			ASSERT_THAT(IsTrue(ShowOf(&Effects, EVeyraTelegraphSource::DelayedArea, true) == EVeyraTelegraphShow::Full, TEXT("Show Skill Outlines brings it back")));
+			ASSERT_THAT(IsTrue(ShowOf(nullptr, EVeyraTelegraphSource::DelayedArea, false) == EVeyraTelegraphShow::Full, TEXT("an ability without effects keeps it")));
 		}
 
 		TEST_METHOD(ASkillshotTelegraphsItsPath)

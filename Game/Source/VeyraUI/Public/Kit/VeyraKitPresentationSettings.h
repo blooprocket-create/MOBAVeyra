@@ -76,6 +76,18 @@ struct FVeyraVanguardAttack
  * How an ability's cast shows beyond its body's clip (ADR-072 §4), stage by stage; a stage left unset shows what the
  * shared presentation does. Every stage is tinted by its caster's side.
  */
+/** How much of a cast's telegraph shows beside its own effects (ADR-075 §1). */
+UENUM()
+enum class EVeyraTelegraphShow : uint8
+{
+	/** The outline and its shaded fill. */
+	Full,
+	/** The outline alone, under an effect that shows the area: a big threat's safety net. */
+	Outline,
+	/** None: the ability's own effects show its area at its true shape. */
+	None,
+};
+
 USTRUCT()
 struct FVeyraAbilityEffects
 {
@@ -84,6 +96,15 @@ struct FVeyraAbilityEffects
 	/** An ability ID from Abilities.json, compared ignoring case. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	FName Ability;
+
+	/**
+	 * How much of its telegraph shows to every player beside its own effects (ADR-075 §1). It is kept whole wherever no
+	 * effect of its shows that area at its true shape, whatever this says: a windup's, a channel's or a delayed area's
+	 * needs Area (or a delayed area's Mark), a lingering area's needs Linger, a projectile's lane needs Travel. The local
+	 * player's own indicator always shows, and Show Skill Outlines brings every telegraph back.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	EVeyraTelegraphShow Telegraph = EVeyraTelegraphShow::Full;
 
 	/** Looping, on WindupBones of its caster's body, from its windup until nothing holds the cast. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
@@ -152,6 +173,21 @@ struct FVeyraAbilityEffects
 	/** Looping, over each lingering area of it while it lasts, its length and width the area's shape. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
 	FVeyraSkillEffectStage Linger;
+
+	/**
+	 * Looping on the ground over each area its cast lands in, at its true shape (ADR-075 §3): from its windup through its
+	 * channel, and over each delayed area of it until it lands. Its shape (circle, sector or rectangle), radius, half-arc,
+	 * length and width come from Abilities.json through the cast's own telegraph view, it is turned the cast's way, and its
+	 * landing runs from 0 to 1 as the telegraph's fill would.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Kit")
+	FVeyraSkillEffectStage Area;
+
+	/** Whether an effect of it shows the area a telegraph of Source would (ADR-075 §1). */
+	bool ShowsArea(bool bCast, bool bDelayed, bool bLingering, bool bLane) const
+	{
+		return (bCast && Area.IsSet()) || (bDelayed && (Area.IsSet() || Mark.IsSet())) || (bLingering && Linger.IsSet()) || (bLane && Travel.IsSet());
+	}
 
 	/** One-shot, where a projectile of it ends, or where a delayed area of it lands. */
 	UPROPERTY(Config, EditAnywhere, Category = "Kit")
@@ -254,6 +290,23 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Casts")
 	FName WidthParameter;
+
+	/**
+	 * The user parameters an Area effect takes its shape by (ADR-075 §3), beside LengthParameter and WidthParameter: which
+	 * shape (0 a circle, 1 a sector, 2 a rectangle from its origin along its direction), its radius in units, its half-arc
+	 * in degrees (180 for a circle), and how far it has landed, from 0 to 1.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName ShapeParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName RadiusParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName HalfArcParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName LandingParameter;
 
 	/** The effects for Ability, if it has its own; null for the shared presentation's. */
 	const FVeyraAbilityEffects* EffectsOf(FName Ability) const;
