@@ -56,12 +56,15 @@ were used for this pass.
 - `manifest.json`: the generated bodies' hashes, triangles, heights, Run strides
   and animation lengths. It reports art output and does not own gameplay values.
 - `Game/Scripts/ImportVanguardBodies.py`: the validated editor-only importer. It
-  rebuilds `M_VeyraVanguardBody` (checking every connection) and imports `SK_<Id>`, `SK_<Id>_Skeleton` and
-  `AS_<Id>_Armature_<Clip>`. Its report is `Game/Saved/VanguardKit/unreal-validation.json`.
+  builds `M_VeyraVanguardBody` (its graph is `Game/Scripts/vanguard_body_material.py`, every connection checked)
+  and imports `SK_<Id>`, `SK_<Id>_Skeleton` and `AS_<Id>_Armature_<Clip>`. Its report is `Game/Saved/VanguardKit/unreal-validation.json`.
 - `bodyMaterial` in `VanguardKit.json`: the material's values, which only the importer reads, so changing them
   regenerates no body. Its glow ignores the scene's exposure, so it reads the same under the Crucible's physical sun
   as anywhere: `glowGain` is in multiples of what the exposure maps to white. `Game/Scripts/KitMaterials/spec.py`
   checks it, in CI too.
+  The material is rebuilt only when `bodyMaterial`, its graph's code or the toon light's parameters change: the hash of
+  those (`Game/Scripts/KitMaterials/inputs.py`) is recorded in the asset's metadata, and an import whose hash matches
+  leaves the asset as it was.
 
 ## Review a body in the game's light
 

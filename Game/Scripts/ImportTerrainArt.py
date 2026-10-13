@@ -8,6 +8,7 @@ style profile may override. Does not edit a map.
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import sys
@@ -27,8 +28,21 @@ LOOK = PROFILE["material"]
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
 assert MANIFEST["profileSha256"] == hashlib.sha256(PROFILE_PATH.read_bytes()).hexdigest(), "Regenerate the textures after profile changes."
 
+# The ripples' shader takes this many sources: UVeyraWaterSettings::SourceSlots, which the C++ checks its settings against.
+STIR_SOURCE_SLOTS = 16
+
+
+def water_settings():
+    """The water's presentation settings (ADR-076; UVeyraWaterSettings in DefaultGame.ini): the material parameters the
+    river's ripples are set by are named there, once, and read here."""
+    text = (GAME / "Config" / "DefaultGame.ini").read_text(encoding="utf-8")
+    section = re.search(r"^\[/Script/VeyraUI\.VeyraWaterSettings\]\s*$(.*?)(?=^\[|\Z)", text, re.M | re.S)
+    assert section, "DefaultGame.ini needs [/Script/VeyraUI.VeyraWaterSettings]"
+    return dict(re.findall(r"^(\w+)=(.*?)\s*$", section.group(1), re.M))
+
+
 # Which generated layer paints each Landscape layer the World authoring pass weights (VeyraLandscapeBuild.cpp).
-LANDSCAPE_LAYERS = [("Jungle", "Moss"), ("Lane", "Causeway"), ("Bank", "Shore"), ("Cliff", "Slate")]
+LANDSCAPE_LAYERS = [("Jungle", "Moss"), ("Lane", "Causeway"), ("Bank", "Shore"), ("Cliff", "Slate"), ("Earth", "Earth")]
 
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 EDIT = unreal.MaterialEditingLibrary
@@ -308,10 +322,39 @@ def build_water(textures):
     unpacked = g.op(unreal.MaterialExpressionSubtract, 10, g.op(unreal.MaterialExpressionMultiply, 9, tangent, two), one)
     flat = g.node(unreal.MaterialExpressionConstant3Vector, 9, constant=unreal.LinearColor(0.0, 0.0, 1.0, 0.0))
     strength = g.scalar(9, "RippleNormalStrength", water["normalStrength"], "Water")
-    normal = g.node(unreal.MaterialExpressionLinearInterpolate, 11)
-    g.link(flat, "", normal, "A")
-    g.link(unpacked, "", normal, "B")
-    g.link(strength, "", normal, "Alpha")
+    flowing = g.node(unreal.MaterialExpressionLinearInterpolate, 11)
+    g.link(flat, "", flowing, "A")
+    g.link(unpacked, "", flowing, "B")
+    g.link(strength, "", flowing, "Alpha")
+
+    # The rings the units wading it stir (ADR-076): the water's presentation simulates their heights over a window of
+    # the river and sets them here; still water reads none. They bend the surface and froth on their crests.
+    stir = water_settings()
+    still = textures["T_Crucible_StillWater"]
+    heights = g.node(unreal.MaterialExpressionTextureObjectParameter, 9, parameter_name=stir["HeightParameter"], group="Stir",
+                     texture=still, sampler_type=unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+    window = g.node(unreal.MaterialExpressionVectorParameter, 9, parameter_name=stir["WindowParameter"], group="Stir",
+                    default_value=unreal.LinearColor(0.0, 0.0, 1.0, 0.0))
+    bend = g.scalar(9, stir["NormalStrengthParameter"], 0.0, "Stir")
+    rings = g.node(unreal.MaterialExpressionCustom, 10)
+    rings.set_editor_property("description", "Stirred rings")
+    rings.set_editor_property("output_type", unreal.CustomMaterialOutputType.CMOT_FLOAT3)
+    rings.set_editor_property("code", STIR_SURFACE_HLSL)
+    rings.set_editor_property("inputs", [custom_input(name) for name in ("Heights", "Place", "Window", "Bend")])
+    g.link(heights, "", rings, "Heights")
+    g.link(plan, "", rings, "Place")
+    g.link(window, "RGBA", rings, "Window")
+    g.link(bend, "", rings, "Bend")
+    tilt = g.node(unreal.MaterialExpressionComponentMask, 11, r=True, g=True, b=False, a=False)
+    g.link(rings, "", tilt, "")
+    zero2 = g.node(unreal.MaterialExpressionConstant, 10, r=0.0)
+    tilt3 = g.node(unreal.MaterialExpressionAppendVector, 11)
+    g.link(tilt, "", tilt3, "A")
+    g.link(zero2, "", tilt3, "B")
+    normal = g.node(unreal.MaterialExpressionNormalize, 12)
+    g.link(g.op(unreal.MaterialExpressionAdd, 12, flowing, tilt3), "", normal, "VectorInput")
+    crest = g.node(unreal.MaterialExpressionComponentMask, 11, r=False, g=False, b=True, a=False)
+    g.link(rings, "", crest, "")
 
     # Foam where the water meets the shore: the vertices' blue is 0 at the edge, 1 in the deep.
     depth = g.node(unreal.MaterialExpressionComponentMask, 1, r=False, g=False, b=True, a=False)
@@ -326,13 +369,20 @@ def build_water(textures):
     g.link(deep, "", shore, "")
     foam_pattern = g.node(unreal.MaterialExpressionComponentMask, 9, r=False, g=False, b=False, a=True)
     g.link(ripple, "", foam_pattern, "")
-    foam = g.op(unreal.MaterialExpressionMultiply, 11, shore, foam_pattern)
+    shore_foam = g.op(unreal.MaterialExpressionMultiply, 11, shore, foam_pattern)
+    # Only a ring's strongest crests froth: above stirFoamFrom, rising by stirFoam.
+    stir_foam = g.scalar(10, "StirFoam", water["stirFoam"], "Water")
+    stir_foam_from = g.scalar(10, "StirFoamFrom", water["stirFoamFrom"], "Water")
+    crest_foam = g.node(unreal.MaterialExpressionSaturate, 11)
+    g.link(g.op(unreal.MaterialExpressionMultiply, 11, g.op(unreal.MaterialExpressionSubtract, 11, crest, stir_foam_from), stir_foam), "", crest_foam, "")
+    foam = g.node(unreal.MaterialExpressionSaturate, 12)
+    g.link(g.op(unreal.MaterialExpressionAdd, 12, shore_foam, crest_foam), "", foam, "")
     foam_color = g.node(unreal.MaterialExpressionVectorParameter, 10, parameter_name="FoamColor", group="Water",
                         default_value=unreal.LinearColor(*water["foamColor"], 1.0))
     base = g.op(unreal.MaterialExpressionMultiply, 12, foam_color, foam, a_out="RGB")
     still = g.scalar(10, "WaterRoughness", water["roughness"], "Water")
     specular = g.scalar(10, "WaterSpecular", water["specular"], "Water")
-    frothy = g.node(unreal.MaterialExpressionConstant, 10, r=0.6)
+    frothy = g.scalar(10, "FrothRoughness", water["frothRoughness"], "Water")
     roughness = g.node(unreal.MaterialExpressionLinearInterpolate, 12)
     g.link(still, "", roughness, "A")
     g.link(frothy, "", roughness, "B")
@@ -355,6 +405,88 @@ def build_water(textures):
     ASSETS.save_loaded_asset(material)
     return material
 
+STIR_SURFACE_HLSL = """
+float2 uv = (Place - Window.xy) / max(Window.z, 1.0);
+float t = Window.w;
+float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+float l = Texture2DSample(Heights, HeightsSampler, uv - float2(t, 0)).r;
+float r = Texture2DSample(Heights, HeightsSampler, uv + float2(t, 0)).r;
+float d = Texture2DSample(Heights, HeightsSampler, uv - float2(0, t)).r;
+float u = Texture2DSample(Heights, HeightsSampler, uv + float2(0, t)).r;
+float h = Texture2DSample(Heights, HeightsSampler, uv).r;
+return float3((l - r) * Bend * inside, (d - u) * Bend * inside, abs(h) * inside);
+"""
+
+# One step of the ripples: each texel's height from its neighbours' (a wave), kept by the damping, faded toward the
+# window's edge so nothing reflects off it, each unit's stir added as rings; the state carried with the window as it
+# moves, so the ripples stay where they are on the water. Red is the height now, green the height a step ago.
+STIR_STEP_HLSL = """
+float2 from = UV + Shift.xy * Texel;
+float inside = step(0.0, from.x) * step(from.x, 1.0) * step(0.0, from.y) * step(from.y, 1.0);
+float4 here = Texture2DSample(State, StateSampler, from);
+float n = Texture2DSample(State, StateSampler, from + float2(0, -Texel)).r;
+float s = Texture2DSample(State, StateSampler, from + float2(0, Texel)).r;
+float e = Texture2DSample(State, StateSampler, from + float2(Texel, 0)).r;
+float w = Texture2DSample(State, StateSampler, from + float2(-Texel, 0)).r;
+float next = ((n + s + e + w) * 0.5 - here.g) * Damping * inside;
+float4 sources[16] = { S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15 };
+for (int i = 0; i < 16; i++)
+{
+    float reach = length(UV - sources[i].xy) / max(sources[i].z, 1e-5);
+    next += sources[i].w * sin(Phase + i * 2.39996) * saturate(1.0 - reach * reach) * 0.25;
+}
+float2 edge = min(UV, 1.0 - UV);
+next *= saturate(min(edge.x, edge.y) / max(EdgeFade, 1e-5));
+return float3(next, here.r * inside, 0);
+"""
+
+
+def custom_input(name):
+    entry = unreal.CustomInput()
+    entry.set_editor_property("input_name", name)
+    return entry
+
+
+def build_stir(textures):
+    """M_CrucibleWaterStir (ADR-076): one step of the river's ripples, drawn into a render target by the water's
+    presentation; its parameters are named by the water's settings."""
+    stir = water_settings()
+    path = f"{DEST}/M_CrucibleWaterStir"
+    material = unreal.load_asset(path) if ASSETS.does_asset_exist(path) else None
+    if not material:
+        material = TOOLS.create_asset("M_CrucibleWaterStir", DEST, unreal.Material, unreal.MaterialFactoryNew())
+    EDIT.delete_all_material_expressions(material)
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    material.set_editor_property("allow_negative_emissive_color", True)
+    g = Graph(material)
+    step = g.node(unreal.MaterialExpressionCustom, 3)
+    step.set_editor_property("description", "Ripple step")
+    step.set_editor_property("output_type", unreal.CustomMaterialOutputType.CMOT_FLOAT3)
+    step.set_editor_property("code", STIR_STEP_HLSL)
+    names = ["State", "UV", "Texel", "Shift", "Damping", "EdgeFade", "Phase"] + [f"S{slot}" for slot in range(STIR_SOURCE_SLOTS)]
+    step.set_editor_property("inputs", [custom_input(name) for name in names])
+    state = g.node(unreal.MaterialExpressionTextureObjectParameter, 0, parameter_name=stir["StateParameter"], group="Stir",
+                   texture=textures["T_Crucible_StillWater"], sampler_type=unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+    g.link(state, "", step, "State")
+    g.link(g.node(unreal.MaterialExpressionTextureCoordinate, 0), "", step, "UV")
+    g.link(g.scalar(1, stir["TexelParameter"], 1.0 / float(stir["Resolution"]), "Stir"), "", step, "Texel")
+    shift = g.node(unreal.MaterialExpressionVectorParameter, 1, parameter_name=stir["ShiftParameter"], group="Stir",
+                   default_value=unreal.LinearColor(0.0, 0.0, 0.0, 0.0))
+    g.link(shift, "RGBA", step, "Shift")
+    g.link(g.scalar(1, stir["DampingParameter"], float(stir["Damping"]), "Stir"), "", step, "Damping")
+    g.link(g.scalar(1, stir["EdgeFadeParameter"], float(stir["EdgeFade"]), "Stir"), "", step, "EdgeFade")
+    g.link(g.scalar(1, stir["PhaseParameter"], 0.0, "Stir"), "", step, "Phase")
+    for slot in range(STIR_SOURCE_SLOTS):
+        source = g.node(unreal.MaterialExpressionVectorParameter, 2, parameter_name=f"{stir['SourceParameterPrefix']}{slot}", group="Stir",
+                        default_value=unreal.LinearColor(0.0, 0.0, 0.0, 0.0))
+        g.link(source, "RGBA", step, f"S{slot}")
+    assert EDIT.connect_material_property(step, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR), "emissive"
+    errors = EDIT.recompile_material(material)
+    assert not errors, f"{material.get_name()} does not compile: {errors}"
+    ASSETS.save_loaded_asset(material)
+    return material
+
+
 def main():
     SAVED.mkdir(parents=True, exist_ok=True)
     water_only = "-veyrawateronly" in unreal.SystemLibrary.get_command_line().lower().split()
@@ -366,8 +498,9 @@ def main():
         textures[Path(entry["name"]).stem] = texture
     material = None if water_only else build_material(textures)
     water = build_water(textures)
+    stir = build_stir(textures)
     report = {"material": material.get_path_name() if material else None, "textures": sorted(t.get_path_name() for t in textures.values()),
-              "water": water.get_path_name(), "layers": [] if water_only else [name for name, _ in LANDSCAPE_LAYERS]}
+              "water": water.get_path_name(), "stir": stir.get_path_name(), "layers": [] if water_only else [name for name, _ in LANDSCAPE_LAYERS]}
     (SAVED / "import.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     unreal.log(f"Imported {len(textures)} textures and built {'water only' if water_only else 'terrain and water'}.")
 

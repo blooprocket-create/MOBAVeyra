@@ -1,5 +1,5 @@
 {
-  "description": "The Crucible's navigation, collision and fairness checks (ADR-040; World Validation Standard gates 6, 7 and 8), run by Game/Scripts/ValidateBattleground.ps1 on the generated map with the server's own walls (structures stand in their own navigation holes; the layout check places them). It also draws the navigation map. Routes are named by Team A's anchors; Team B walks each one's half-turn rotation, with the same navigation agent. Anchors: Fountain, PrimeWell, BaseTower.<index>, Spire.<lane>.<order> (0 outermost), Inhibitor.<lane>, Camp.<species>, FluxWell.<site>, Crossing.<lane> (where the lane runs deepest into the river). Tolerances are provisional review values (Battleground Bible §2 terrain fairness): a failure is a finding to fix in the layout or the generator, not a number to widen.",
+  "description": "The Crucible's navigation, collision and fairness checks (ADR-040; World Validation Standard gates 6, 7 and 8), run by Game/Scripts/ValidateBattleground.ps1 on the generated map with the server's own terrain (structures stand in their own navigation holes; the layout check places them). It also draws the navigation map. Routes are named by Team A's anchors; Team B walks each one's half-turn rotation, with the same navigation agent. Anchors: Fountain, PrimeWell, BaseTower.<index>, Spire.<lane>.<order> (0 outermost), Inhibitor.<lane>, Camp.<camp id>, Clearing.<clearing id>, Gate.<lane> (where the lane leaves the keep), FluxWell.<site>, Crossing.<lane> (where the lane runs deepest into the river) (ADR-073 §4). Tolerances are provisional review values (Battleground Bible §2 terrain fairness): a failure is a finding to fix in the layout or the generator, not a number to widen.",
   "provenance": "Provisional",
   "map": "/Game/Veyra/World/Maps/L_Battleground",
   "report": "Saved/WorldGeneration/Validation.json",
@@ -37,6 +37,23 @@
     { "from": "Crossing.Top", "to": "FluxWell.0" },
     { "from": "Crossing.Bottom", "to": "FluxWell.1" },
     { "from": "Camp.ashfang", "to": "FluxWell.0" },
-    { "from": "Camp.skittermaw", "to": "FluxWell.1" }
+    { "from": "Camp.skittermaw", "to": "FluxWell.1" },
+    { "from": "Camp.stonehorn", "to": "Camp.ashfang" },
+    { "from": "Camp.miremother", "to": "Camp.skittermaw" },
+    { "from": "Camp.razorback", "to": "Camp.ashfang" },
+    { "from": "Camp.gloomwing", "to": "Camp.skittermaw" },
+    { "from": "Camp.stonehorn", "to": "Spire.Mid.0" },
+    { "from": "Camp.miremother", "to": "Spire.Mid.0" },
+    { "from": "Camp.ashfang", "to": "Spire.Top.0" },
+    { "from": "Camp.skittermaw", "to": "Spire.Bottom.0" },
+    { "from": "Fountain", "to": "Camp.corner_camp" },
+    { "from": "Fountain", "to": "Camp.strip_camp" },
+    { "from": "Camp.corner_camp", "to": "Spire.Top.0" },
+    { "from": "Camp.strip_camp", "to": "Spire.Bottom.0" },
+    { "from": "Gate.Top", "to": "Crossing.Top" },
+    { "from": "Gate.Mid", "to": "Clearing.mid_ford" },
+    { "from": "Gate.Bottom", "to": "Crossing.Bottom" },
+    { "from": "Gate.Mid", "to": "FluxWell.0" },
+    { "from": "Clearing.well_island", "to": "Camp.ashfang" }
   ]
 }

@@ -35,6 +35,15 @@ public:
 
 	const TArray<FVeyraRiverChannel>& GetChannels() const { return Channels; }
 
+	/**
+	 * The main channel's samples within the river's walkableEnd of the centre along it, both ways (ADR-073 §1): its water
+	 * that is ground. Beyond them it falls through its gorge, closed off by the masses.
+	 */
+	TConstArrayView<FVeyraRiverSample> GetWalkableMain() const { return WalkableMain; }
+
+	/** Whether the main channel runs on past its walkable stretch at both ends, as a gorge leaves it. */
+	bool HasGorges() const { return bHasGorges; }
+
 	/** How far Point lies from the nearest water's edge: negative in the water. */
 	double SignedDistance(const FVector2D& Point) const;
 
@@ -51,6 +60,8 @@ public:
 
 private:
 	TArray<FVeyraRiverChannel> Channels;
+	TArray<FVeyraRiverSample> WalkableMain;
+	bool bHasGorges = false;
 };
 
 namespace VeyraRiver

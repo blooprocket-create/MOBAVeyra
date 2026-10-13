@@ -55,7 +55,7 @@ namespace
 	/** Whether two rivers have the same shape: the same channels, sampled alike. */
 	bool SameShape(const FVeyraRiverLayout& A, const FVeyraRiverLayout& B)
 	{
-		if (A.SamplesPerSegment != B.SamplesPerSegment || !SamePoints(A.Main, B.Main) || A.Islands.Num() != B.Islands.Num())
+		if (A.SamplesPerSegment != B.SamplesPerSegment || A.WalkableEnd != B.WalkableEnd || !SamePoints(A.Main, B.Main) || A.Islands.Num() != B.Islands.Num())
 		{
 			return false;
 		}
@@ -80,6 +80,33 @@ FVeyraRiverShape::FVeyraRiverShape(const FVeyraRiverLayout& River)
 	}
 	Main.Append(River.Main);
 	Channels.Add({ TEXT("Main"), INDEX_NONE, Sample(Main, River.SamplesPerSegment) });
+
+	// Its walkable stretch: from the centre's sample, each way, every sample reached within walkableEnd along the curve.
+	const TArray<FVeyraRiverSample>& Samples = Channels[0].Samples;
+	const int32 Centre = (River.Main.Num() - 1) * River.SamplesPerSegment;
+	if (Samples.IsValidIndex(Centre))
+	{
+		int32 First = Centre;
+		for (double Travelled = 0.0; First > 0; --First)
+		{
+			Travelled += FVector2D::Distance(Samples[First].Point, Samples[First - 1].Point);
+			if (Travelled > River.WalkableEnd)
+			{
+				break;
+			}
+		}
+		int32 Last = Centre;
+		for (double Travelled = 0.0; Last + 1 < Samples.Num(); ++Last)
+		{
+			Travelled += FVector2D::Distance(Samples[Last].Point, Samples[Last + 1].Point);
+			if (Travelled > River.WalkableEnd)
+			{
+				break;
+			}
+		}
+		WalkableMain = TArray<FVeyraRiverSample>(Samples.GetData() + First, Last - First + 1);
+		bHasGorges = First > 0 && Last + 1 < Samples.Num();
+	}
 	for (const FVeyraRiverIsland& Island : River.Islands)
 	{
 		Channels.Add({ TEXT("Island"), Island.Site, Sample(Island.Channel, River.SamplesPerSegment) });

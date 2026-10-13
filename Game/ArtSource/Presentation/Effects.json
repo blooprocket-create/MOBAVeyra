@@ -153,6 +153,60 @@
       ]
     },
     {
+      "name": "NS_VeyraWaterWake",
+      "purpose": "ADR-076: the wake at a wading unit's feet, looping while it wades, turned to its heading: flecks of spray kicked up and falling back, and soft foam spreading on the water about it, more of both the faster it moves (User.Strength, 0 standing to 1 at full speed), in the foam's colour.",
+      "userFloats": [{ "name": "Strength", "default": 1 }],
+      "emitters": [
+        { "name": "Spray", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Foam", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Spray", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "4.0 + 30.0 * User.Strength" },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.55] },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "7.0 * User.Scale" },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "15.0 * User.Scale" },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "expression": "24.0 * User.Scale" },
+        { "emitter": "Spray", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [150] },
+        { "emitter": "Spray", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -900] },
+        { "emitter": "Spray", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [1.2] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Shape Primitive", "enum": "Ring / Disc" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Ring Radius", "expression": "34.0 * User.Scale" },
+        { "emitter": "Foam", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "3.0 + 12.0 * User.Strength" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.9] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.5] },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Min", "expression": "26.0 * User.Scale" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size Max", "expression": "46.0 * User.Scale" },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Velocity Speed", "value": [18] },
+        { "emitter": "Foam", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, 0] },
+        { "emitter": "Foam", "script": "ParticleUpdateScript", "module": "Drag", "input": "Drag", "value": [3] }
+      ]
+    },
+    {
+      "name": "NS_VeyraWaterSplash",
+      "purpose": "ADR-076: a unit running into the river: a crown of spray thrown up and falling back, a ring of foam opening on the water and a few soft puffs, in the foam's colour.",
+      "emitters": [
+        { "name": "Crown", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} },
+        { "name": "Puffs", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
+      ],
+      "inputs": [
+        { "emitter": "Crown", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "24" },
+        { "emitter": "Crown", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.4] },
+        { "emitter": "Crown", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.7] },
+        { "emitter": "Crown", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Min", "expression": "float2(10.0, 10.0) * User.Scale" },
+        { "emitter": "Crown", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Sprite Size Max", "expression": "float2(22.0, 22.0) * User.Scale" },
+        { "emitter": "Crown", "script": "ParticleSpawnScript", "module": "AddVelocity", "input": "Cone Angle", "value": [38] },
+        { "emitter": "Crown", "script": "ParticleUpdateScript", "module": "GravityForce", "input": "Gravity", "value": [0, 0, -980] },
+        { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.6] },
+        { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "190.0 * User.Scale" },
+        { "emitter": "Puffs", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "5" },
+        { "emitter": "Puffs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.8] },
+        { "emitter": "Puffs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "60.0 * User.Scale" }
+      ]
+    },
+    {
       "name": "NS_VeyraDrip",
       "purpose": "ADR-064 §1: water sheeting off a body just come up out of a river (Cairn), running off its ledges and seams; small flecks of the lit stylized cloud material that drop, fall and break up, in the colour the body gives.",
       "emitter": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain",

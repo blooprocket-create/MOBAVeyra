@@ -6,21 +6,21 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
-#include "Components/PrimitiveComponent.h"
+#include "Components/BoxComponent.h"
 #include "EngineUtils.h"
 #include "Layout/VeyraLayout.h"
 #include "NavigationPath.h"
 #include "NavigationSystem.h"
-#include "Terrain/VeyraTerrainWall.h"
+#include "Terrain/VeyraTerrainMass.h"
 #include "Tests/Net/VeyraBattlegroundNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 
 namespace VeyraNetTests
 {
-	// Veyra.Net.BattlegroundWalls.*: the committed battleground's walls stand solid on every machine, and
-	// the server's paths go round them to every lane, camp and Flux Well (ADR-043 §2).
-	NETWORK_TEST_CLASS(BattlegroundWalls, "Veyra.Net")
+	// Veyra.Net.BattlegroundTerrain.*: the committed battleground's terrain stands solid on every machine, each building its
+	// own, and the server's paths go round it to every lane, camp and Flux Well, never into a mass (ADR-073 §3).
+	NETWORK_TEST_CLASS(BattlegroundTerrain, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState
 		{
@@ -31,10 +31,12 @@ namespace VeyraNetTests
 		FVeyraGreyboxLayout Greybox;
 
 		// Fixture values: how long the server may take to build the whole battleground's navigation, how
-		// far a probed point may be moved onto it, and how far beyond a wall's faces its sides are probed.
+		// far a probed point may be moved onto it, how far beyond a wall's faces its sides are probed, and
+		// how far from every mass a probed side must lie to count as open ground.
 		static constexpr double NavigationBuildSeconds = 120.0;
 		static constexpr double ProjectionReach = 300.0;
 		static constexpr double BesideWall = 200.0;
+		static constexpr double BodyClearance = 60.0;
 
 		BEFORE_EACH()
 		{
@@ -73,34 +75,49 @@ namespace VeyraNetTests
 			return Path->GetPathLength();
 		}
 
-		TEST_METHOD(TheWallsStandForEveryoneAndPathsGoRoundThem)
+		/** How many of the world's terrain boxes block. */
+		static int32 SolidBoxes(UWorld* World)
 		{
-			// Each wall stands as a chain of boxes along its curve (ADR-043 §1).
-			const int32 WallCount = VeyraLayout::Walls(Layout()).Num();
-			ASSERT_THAT(IsTrue(WallCount > 0));
+			int32 Solid = 0;
+			for (TActorIterator<AVeyraTerrainMass> It(World); It; ++It)
+			{
+				for (const UBoxComponent* Box : It->GetBoxes())
+				{
+					Solid += Box && Box->GetCollisionEnabled() != ECollisionEnabled::NoCollision ? 1 : 0;
+				}
+			}
+			return Solid;
+		}
+
+		TEST_METHOD(TheTerrainStandsForEveryoneAndPathsGoRoundIt)
+		{
+			const int32 BoxCount = VeyraLayout::Walls(Layout()).Num();
+			ASSERT_THAT(IsTrue(BoxCount > 0));
 			Network
 				.ThenServer(TEXT("Build the committed battleground on the server"), [this](FState& State) {
 					VeyraBattlegroundBuilder::SpawnRuntimeBattleground(*State.World, Layout(), Greybox, /*bServer*/ true);
 					State.World->GetSubsystem<UVeyraBattlegroundSubsystem>()->SpawnStructures(Layout());
 				})
-				.ThenClients(TEXT("Build the floor on each client"), [this](FState& State) {
+				.ThenClients(TEXT("Build the floor on each client, which raises its own terrain as the map's marker would"), [this](FState& State) {
 					VeyraBattlegroundBuilder::SpawnRuntimeBattleground(*State.World, Layout(), Greybox, /*bServer*/ false);
+					State.World->GetSubsystem<UVeyraBattlegroundSubsystem>()->RaiseTerrain(Layout());
 				})
-				.UntilClients(TEXT("Every client has every wall, solid"), [WallCount](FState& State) {
-					int32 Solid = 0;
-					for (TActorIterator<AVeyraTerrainWall> It(State.World); It; ++It)
+				.ThenServer(TEXT("The server has every box, solid"), [this, BoxCount](FState& State) {
+					ASSERT_THAT(AreEqual(BoxCount, SolidBoxes(State.World)));
+				})
+				.ThenClients(TEXT("Every client has every box, solid, none of it replicated"), [this, BoxCount](FState& State) {
+					ASSERT_THAT(AreEqual(BoxCount, SolidBoxes(State.World)));
+					for (TActorIterator<AVeyraTerrainMass> It(State.World); It; ++It)
 					{
-						const UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(It->GetRootComponent());
-						Solid += Body && Body->GetCollisionEnabled() != ECollisionEnabled::NoCollision ? 1 : 0;
+						ASSERT_THAT(IsFalse(It->GetIsReplicated()));
 					}
-					return Solid == WallCount;
 				})
-				.UntilServer(TEXT("The server's navigation is built round the walls"), [](FState& State) {
+				.UntilServer(TEXT("The server's navigation is built round the terrain"), [](FState& State) {
 					UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(State.World);
 					return Navigation && Navigation->GetDefaultNavDataInstance() && !Navigation->IsNavigationBuildInProgress()
 						&& PathLength(State.World, VeyraLayout::Fountain(Layout(), EVeyraTeam::A), VeyraLayout::Fountain(Layout(), EVeyraTeam::B)).IsSet();
 				}, FTimespan::FromSeconds(NavigationBuildSeconds))
-				.ThenServer(TEXT("Paths reach every lane's ends, camp and Flux Well from Team A's fountain, and go round a wall"), [this](FState& State) {
+				.ThenServer(TEXT("Paths reach every lane's ends, camp and Flux Well from Team A's fountain, never into a mass, and go round a keep wall"), [this](FState& State) {
 					const FVector2D Fountain = VeyraLayout::Fountain(Layout(), EVeyraTeam::A);
 					TArray<TPair<FString, FVector2D>> Targets;
 					for (const FVeyraLaneLayout& Lane : Layout().Lanes)
@@ -112,7 +129,7 @@ namespace VeyraNetTests
 					{
 						for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
 						{
-							Targets.Add({ Camp.Species.ToString(), VeyraLayout::ForTeam(VeyraLayout::ToVector(Camp.Center), Team) });
+							Targets.Add({ Camp.Id.ToString(), VeyraLayout::ForTeam(VeyraLayout::ToVector(Camp.Center), Team) });
 						}
 					}
 					for (const FVeyraMapPoint& Site : UVeyraWorldTuningSubsystem::Get().FluxWells.Sites)
@@ -124,26 +141,54 @@ namespace VeyraNetTests
 						ASSERT_THAT(IsTrue(PathLength(State.World, Fountain, Target.Value).IsSet(), *FString::Printf(TEXT("a path to %s"), *Target.Key)));
 					}
 
-					// From one face of a wall to the other is farther by path than in a straight line: across its thickest box
-					// whose two sides stand clear of every wall.
-					const TArray<FVeyraWallShape> Shapes = VeyraLayout::WallShapes(Layout());
-					const auto Clear = [&Shapes](const FVector2D& Point) { return Algo::NoneOf(Shapes, [&Point](const FVeyraWallShape& Shape) { return Shape.DepthInside(Point) > 0.0; }); };
+					// Deep inside each mass, the ground its edge ring closes off: no path reaches its deepest probed point.
+					const TArray<FVeyraMassShape> Masses = VeyraLayout::Masses(Layout());
+					const double Deep = Layout().MassRules.EdgeThickness + ProjectionReach;
+					for (const FVeyraMassShape& Mass : Masses)
+					{
+						const FBox2D Bounds(Mass.Outline);
+						constexpr int32 Steps = 16;
+						FVector2D Deepest = Bounds.GetCenter();
+						for (int32 X = 1; X < Steps; ++X)
+						{
+							for (int32 Y = 1; Y < Steps; ++Y)
+							{
+								const FVector2D Inside = Bounds.Min + (Bounds.Max - Bounds.Min) * FVector2D(X, Y) / Steps;
+								Deepest = Mass.DepthInside(Inside) > Mass.DepthInside(Deepest) ? Inside : Deepest;
+							}
+						}
+						if (Mass.DepthInside(Deepest) > Deep)
+						{
+							ASSERT_THAT(IsFalse(PathLength(State.World, Fountain, Deepest).IsSet(), *FString::Printf(TEXT("no path into a mass at %s"), *Deepest.ToString())));
+						}
+					}
+
+					// From outside a keep's wall to inside it is farther by path than in a straight line: round through a gate. Masses
+					// press against the keep's walls, so the wall chosen is one with open ground a body's width clear on both sides.
+					const auto Open = [&Masses](const FVector2D& Point) { return Algo::NoneOf(Masses, [&Point](const FVeyraMassShape& Mass) { return Mass.DepthInside(Point) > -BodyClearance; }); };
 					TOptional<FVeyraTerrainBox> Across;
-					for (const FVeyraTerrainBox& Box : VeyraLayout::Walls(Layout()))
+					for (const FVeyraTerrainBox& Box : VeyraLayout::KeepWalls(Layout()))
 					{
 						const double Out = Box.Thickness / 2.0 + BesideWall;
-						if ((!Across.IsSet() || Box.Thickness > Across->Thickness) && Clear(Box.Centre + Box.Facing * Out) && Clear(Box.Centre - Box.Facing * Out))
+						if ((!Across.IsSet() || Box.Length > Across->Length) && Open(Box.Centre + Box.Facing * Out) && Open(Box.Centre - Box.Facing * Out))
 						{
 							Across = Box;
 						}
 					}
-					ASSERT_THAT(IsTrue(Across.IsSet()));
+					ASSERT_THAT(IsTrue(Across.IsSet(), TEXT("a keep wall with open ground on both sides")));
 					const FVeyraTerrainBox Wall = Across.GetValue();
 					const FVector2D Front = Wall.Centre + Wall.Facing * (Wall.Thickness / 2.0 + BesideWall);
 					const FVector2D Back = Wall.Centre - Wall.Facing * (Wall.Thickness / 2.0 + BesideWall);
+					// The straight way across it is cut, and a path still joins its two sides, round it.
+					UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(State.World);
+					FNavLocation From;
+					FNavLocation To;
+					ASSERT_THAT(IsTrue(Navigation->ProjectPointToNavigation(FVector(Front, 0.0), From, FVector(ProjectionReach))
+						&& Navigation->ProjectPointToNavigation(FVector(Back, 0.0), To, FVector(ProjectionReach))));
+					FVector Hit;
+					ASSERT_THAT(IsTrue(UNavigationSystemV1::NavigationRaycast(State.World, From.Location, To.Location, Hit), TEXT("no straight way through the wall")));
 					const TOptional<double> Round = PathLength(State.World, Front, Back);
-					ASSERT_THAT(IsTrue(Round.IsSet() && Round.GetValue() > FVector2D::Distance(Front, Back) + BesideWall,
-						*FString::Printf(TEXT("round the wall: %g"), Round.Get(0.0))));
+					ASSERT_THAT(IsTrue(Round.IsSet() && Round.GetValue() > FVector2D::Distance(Front, Back), *FString::Printf(TEXT("round the wall: %g"), Round.Get(0.0))));
 				});
 		}
 	};

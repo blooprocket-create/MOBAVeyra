@@ -55,6 +55,14 @@ namespace VeyraShowcase
 	 */
 	bool MayStartAttackClip(EVeyraAttackPhase Phase);
 
+	/** What follows the basic attack's clip (ADR-074 §3): the recording, after the rehearsal's; the encoding, after the recording's. */
+	enum class EAfterAttack : uint8
+	{
+		Record,
+		Flush,
+	};
+	EAfterAttack AfterAttack(bool bRehearsing);
+
 	/**
 	 * Server: frees Unit's body of what would keep it from its mark, through Combat: a ride it is on ends as if its time
 	 * ran out, and a body it holds on to is let go.
