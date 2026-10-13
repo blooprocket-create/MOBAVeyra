@@ -63,7 +63,7 @@ Every field is required, and an unknown field is an error. `game` has exactly on
 | `game.install.releasesUrl` | `http://127.0.0.1:8090` | The release store: a scheme, a host, an optional port and an optional path. |
 | `game.install.channel` | `local` | The channel whose release is installed. |
 | `game.install.defaultFolder` | `Game` | Where the game goes unless the player chooses, relative to the configuration file. |
-| `game.install.stateFile` | `LauncherState.json` | Where the launcher remembers the folder the player chose, relative to the configuration file. |
+| `game.install.stateFile` | `LauncherState.json` | Where the launcher remembers the folder the player chose, relative to the configuration file. The install log (`LauncherInstalls.log`, and `LauncherInstalls.old.log` once it is moved aside) lies beside it, so it may take neither name. |
 | `game.install.parallelDownloads` | 4 | Chunks downloaded at once, 1 to 64. |
 | `game.install.downloadAttempts` | 3 | Times a chunk is downloaded before the install fails. |
 | `game.install.downloadTimeoutSeconds` | 60 | How long one request to the release store may take. |

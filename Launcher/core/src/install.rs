@@ -607,29 +607,17 @@ pub fn install_counting(
         part.set_len(planned.file.size).map_err(io_error(&planned.part))?;
         jobs.extend((0..planned.file.chunks.len()).map(|chunk| Job { file, chunk }));
     }
-    // A part an interrupted run left behind already holds some chunks; the rest come from files on disk,
-    // or from the store.
-    let held: HashSet<(usize, usize)> = jobs
-        .iter()
-        .filter(|job| {
-            resumable[job.file]
-                && holds(
-                    &planned[job.file].part,
-                    planned[job.file].offsets[job.chunk],
-                    &planned[job.file].file.chunks[job.chunk],
-                )
-                .is_some()
-        })
-        .map(|job| (job.file, job.chunk))
-        .collect();
+    // A part an interrupted run left behind may already hold some chunks; the rest come from files on disk, or from the
+    // store.
     let chunk_of = |job: &Job| &planned[job.file].file.chunks[job.chunk];
     let (local_jobs, mut download_jobs): (Vec<Job>, Vec<Job>) = jobs
         .iter()
         .copied()
-        .partition(|job| held.contains(&(job.file, job.chunk)) || locations.contains_key(&chunk_of(job).hash));
+        .partition(|job| resumable[job.file] || locations.contains_key(&chunk_of(job).hash));
 
-    // First what is on disk, each chunk checked as it is read. One that proves unusable there, as a corrupt one of the
-    // right size, joins the download, which so is known in full before any of it starts and never reads as done early.
+    // First what is on disk, the part's own chunks and then the files', each checked as it is read, as a stage that
+    // shows its progress and stops when cancelled. A chunk that proves unusable there, as a corrupt one of the right
+    // size, joins the download, which so is known in full before any of it starts and never reads as done early.
     let mut status = Progress {
         stage: Stage::Reusing,
         done_bytes: 0,
@@ -642,10 +630,10 @@ pub fn install_counting(
     }
     let copy = |job: Job| -> Result<bool, InstallError> {
         let planned = &planned[job.file];
-        if held.contains(&(job.file, job.chunk)) {
+        let chunk = &planned.file.chunks[job.chunk];
+        if resumable[job.file] && holds(&planned.part, planned.offsets[job.chunk], chunk).is_some() {
             return Ok(true);
         }
-        let chunk = &planned.file.chunks[job.chunk];
         let found = locations
             .get(&chunk.hash)
             .into_iter()
@@ -1128,6 +1116,41 @@ mod tests {
         assert!(result.is_err());
         assert!(outcome.downloaded_bytes > 0, "{outcome:?}");
         assert!(outcome.rebuilt_files >= 1 && outcome.changed, "{outcome:?}");
+    }
+
+    #[test]
+    fn a_kept_part_is_checked_within_the_reuse_stage() {
+        // A part an interrupted run left holds half its file. Checking what it kept is the reuse stage's work, shown
+        // and cancellable as it goes, not done unseen before it: the stage counts every chunk of the part.
+        let mut store = MemoryStore::default();
+        let target = release(&mut store, "1", &[("Content/a.pak", b"1111222233334444")]);
+        let root = folder("kept-part");
+        fs::create_dir_all(root.join("Content")).unwrap();
+        write_record(
+            &root,
+            &InstallRecord {
+                schema_version: RECORD_SCHEMA_VERSION,
+                installed: None,
+                target: Some(target.clone()),
+                leftovers: Vec::new(),
+            },
+        )
+        .unwrap();
+        fs::write(root.join("Content/a.pak.veyra-part"), b"11112222\0\0\0\0\0\0\0\0").unwrap();
+        let mut reusing: Vec<Progress> = Vec::new();
+        install(&root, &target, &store, SETTINGS, Mode::Update, &AtomicBool::new(false), &mut |progress| {
+            if progress.stage == Stage::Reusing {
+                reusing.push(*progress);
+            }
+        })
+        .unwrap();
+        assert_eq!(read(&root, "Content/a.pak"), b"1111222233334444");
+        let last = reusing.last().expect("a reuse stage");
+        assert_eq!(
+            (last.done_bytes, last.total_bytes),
+            (16, 16),
+            "every chunk of the part, checked as the stage goes: {reusing:?}"
+        );
     }
 
     #[test]

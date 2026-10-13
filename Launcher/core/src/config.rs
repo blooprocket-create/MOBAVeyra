@@ -5,6 +5,7 @@
 //! launcher with only the development sign-in; an unknown field is an error (ADR-010 §12), and the
 //! values are validated before anything uses them.
 
+use crate::install_log;
 use crate::release;
 use serde::Deserialize;
 use std::fmt;
@@ -279,6 +280,21 @@ fn validate_install(install: &InstallConfig) -> Vec<String> {
             problems.push(format!("{name} must name a path"));
         }
     }
+    // The install log lies beside the state file under names of its own, and would write over a state file of either.
+    let state_name = Path::new(install.state_file.trim())
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    if [install_log::LOG_FILE_NAME, install_log::OLD_LOG_FILE_NAME]
+        .iter()
+        .any(|reserved| state_name.eq_ignore_ascii_case(reserved))
+    {
+        problems.push(format!(
+            "game.install.stateFile must not be named {} or {}: the install log keeps those names beside it",
+            install_log::LOG_FILE_NAME,
+            install_log::OLD_LOG_FILE_NAME
+        ));
+    }
     if !(1..=MAX_PARALLEL_DOWNLOADS).contains(&install.parallel_downloads) {
         problems.push(format!("game.install.parallelDownloads must be 1 to {MAX_PARALLEL_DOWNLOADS}"));
     }
@@ -435,6 +451,17 @@ mod tests {
             .replace(r#""stateFile": "LauncherState.json""#, r#""stateFile": " ""#);
         let problems = parse(&bad).expect_err("six problems");
         assert_eq!(problems.len(), 6, "{problems:?}");
+    }
+
+    #[test]
+    fn the_state_file_never_takes_the_install_logs_names() {
+        // The install log lies beside the state file: a state file of the log's name, or of its older copy's, would
+        // be written over by it.
+        for name in ["Logs/LauncherInstalls.log", "launcherinstalls.OLD.log"] {
+            let named = installed().replace(r#""stateFile": "LauncherState.json""#, &format!(r#""stateFile": "{name}""#));
+            let problems = parse(&named).expect_err(name);
+            assert!(problems.iter().any(|problem| problem.contains("install log")), "{name}: {problems:?}");
+        }
     }
 
     #[test]

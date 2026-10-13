@@ -15,6 +15,9 @@ use crate::install::{Outcome, Progress};
 /// The log, beside the launcher's state file.
 pub const LOG_FILE_NAME: &str = "LauncherInstalls.log";
 
+/// The older log, kept once the log is moved aside. The configuration keeps the state file off both names.
+pub const OLD_LOG_FILE_NAME: &str = "LauncherInstalls.old.log";
+
 /// Past this size the log is moved aside before its next line, so it never grows without end.
 pub const LOG_KEEP_BYTES: u64 = 256 * 1024;
 
@@ -74,7 +77,7 @@ pub fn now_unix_seconds() -> u64 {
 /// Adds `entry` to the log at `path` as one line, moving a log past `LOG_KEEP_BYTES` aside first.
 pub fn append(path: &Path, entry: &Entry) -> io::Result<()> {
     if fs::metadata(path).is_ok_and(|metadata| metadata.len() > LOG_KEEP_BYTES) {
-        let older = path.with_extension("old.log");
+        let older = path.with_file_name(OLD_LOG_FILE_NAME);
         let _ = fs::remove_file(&older);
         fs::rename(path, &older)?;
     }
