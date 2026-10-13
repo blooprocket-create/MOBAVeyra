@@ -296,6 +296,24 @@ namespace VeyraOwnLeadTests
 			ASSERT_THAT(IsTrue(Most > Close, *FString::Printf(TEXT("led at most %.1f"), Most)));
 		}
 
+		TEST_METHOD(AnOrderToNoPointIsNeverLed)
+		{
+			// The server refuses an order to a point that is no point at all; the drawn body never heads for it.
+			FVeyraOwnLeadState State;
+			FVeyraOwnLeadInputs In;
+			In.Now = Frame;
+			In.DeltaSeconds = Frame;
+			In.Goal = FVector2D(NAN, 0.0);
+			In.Speed = Speed;
+			In.LeadSeconds = Answer + Trail;
+			In.bMayLead = true;
+			for (int32 Frames = 0; Frames < 10; ++Frames, In.Now += Frame)
+			{
+				const FVeyraOwnLead Lead = VeyraOwnLead::Step(State, In, Shape());
+				ASSERT_THAT(IsTrue(Lead.Offset.IsZero() && !Lead.Yaw.IsSet(), *FString::Printf(TEXT("drawn %s ahead"), *Lead.Offset.ToString())));
+			}
+		}
+
 		TEST_METHOD(PathsAreMeasuredAlongTheirSegments)
 		{
 			const TArray<FVector2D> Path = { FVector2D(0.0, 0.0), FVector2D(100.0, 0.0), FVector2D(100.0, 50.0) };

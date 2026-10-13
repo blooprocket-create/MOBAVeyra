@@ -40,8 +40,9 @@ UVeyraMovementComponent::UVeyraMovementComponent(const FObjectInitializer& Objec
 
 void UVeyraMovementComponent::SetDrawnLead(const FVector2D& Lead)
 {
-	// Only a machine that only shows the body draws one; the server's body is the truth.
-	DrawnLead = CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy ? Lead : FVector2D::ZeroVector;
+	// Only a machine that only shows the body draws one; the server's body is the truth. A lead that is no offset at all is
+	// none, so the drawn mesh never leaves the world.
+	DrawnLead = CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy && !Lead.ContainsNaN() ? Lead : FVector2D::ZeroVector;
 }
 
 FVector UVeyraMovementComponent::GetSmoothedLocation() const

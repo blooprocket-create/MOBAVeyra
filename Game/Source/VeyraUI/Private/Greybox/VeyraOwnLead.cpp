@@ -123,6 +123,12 @@ double VeyraOwnLead::ArcWithin(const TArray<FVector2D>& Path, const FVector2D& C
 
 FVeyraOwnLead VeyraOwnLead::Step(FVeyraOwnLeadState& State, const FVeyraOwnLeadInputs& In, const FVeyraOwnLeadShape& Shape)
 {
+	// An order to no point at all, which the server refuses: there is nothing to lead toward, and the body is drawn where it is.
+	if (In.Goal.ContainsNaN() || In.Drawn.ContainsNaN())
+	{
+		State = FVeyraOwnLeadState();
+		return FVeyraOwnLead();
+	}
 	const double Delta = FMath::Max(0.0, In.DeltaSeconds);
 	// What is left of the step between paths: it closes evenly, and is gone once SwitchSeconds have passed.
 	const auto StepNow = [&State, &Shape]() {
