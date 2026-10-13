@@ -49,6 +49,21 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(IsFalse(VeyraShowcase::MayStartAttackClip(EVeyraAttackPhase::Backswing)));
 		}
 
+		TEST_METHOD(WhatASkillOpenedIsRecordedSlotBySlotWhileItIsHeld)
+		{
+			// A ride's mounted actions, in slot order, each once; the ride's own slot and any other ability are not followed.
+			const auto Id = [](const TCHAR* Name) { return FVeyraContentId::FromText(Name).GetValue(); };
+			const TArray<FVeyraContentId> Held = { Id(TEXT("test_swipe")), Id(TEXT("test_slide")), Id(TEXT("test_jump")), Id(TEXT("test_ride")) };
+			const TArray<FVeyraContentId> Opened = { Id(TEXT("test_swipe")), Id(TEXT("test_slide")), Id(TEXT("test_jump")), Id(TEXT("test_vehicle")) };
+			ASSERT_THAT(AreEqual(VeyraShowcase::NextOpenedSlot(Held, Opened, { Id(TEXT("test_ride")) }).Get(INDEX_NONE), 0));
+			ASSERT_THAT(AreEqual(VeyraShowcase::NextOpenedSlot(Held, Opened, { Id(TEXT("test_ride")), Id(TEXT("test_swipe")) }).Get(INDEX_NONE), 1));
+			ASSERT_THAT(IsFalse(VeyraShowcase::NextOpenedSlot(Held, Opened,
+				{ Id(TEXT("test_ride")), Id(TEXT("test_swipe")), Id(TEXT("test_slide")), Id(TEXT("test_jump")) }).IsSet(), TEXT("all recorded")));
+			// Once the ride ends, its slots hold their own abilities again, and nothing is left to follow.
+			const TArray<FVeyraContentId> Ended = { Id(TEXT("test_q")), Id(TEXT("test_w")), Id(TEXT("test_e")), Id(TEXT("test_ride")) };
+			ASSERT_THAT(IsFalse(VeyraShowcase::NextOpenedSlot(Ended, Opened, { Id(TEXT("test_ride")) }).IsSet()));
+		}
+
 		TEST_METHOD(TheBasicAttackIsRehearsedBeforeItIsRecorded)
 		{
 			// Its effect in flight compiles in the rehearsal, which then gives way to the recording (ADR-074 §3).

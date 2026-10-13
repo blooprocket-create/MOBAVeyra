@@ -28,6 +28,8 @@
 #include "Showcase/VeyraShowcaseRules.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Showcase/VeyraShowcaseSettings.h"
+#include "Tuning/VeyraAbilitiesTuning.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
@@ -256,7 +258,7 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 			else if (Now - ResetSince > Settings.CastPatienceSeconds)
 			{
 				const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
-				const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(VeyraAbilitySlots::All[SlotIndex]) : nullptr;
+				const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(CurrentSlot()) : nullptr;
 				SkipAbility(Entry ? Entry->Ability : FVeyraContentId(), FString::Printf(TEXT("the stage could not be reset: %s"), *Controller->GetLastDeveloperCommandReply()));
 			}
 			else if (Answer == VeyraShowcase::EResetAnswer::NotSet && Now - StepSince >= RetryRealSeconds)
@@ -296,7 +298,7 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		{
 			// Within the ability's reach of the dummy before the clip starts, so it shows the cast, not a walk.
 			const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
-			const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(VeyraAbilitySlots::All[SlotIndex]) : nullptr;
+			const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(CurrentSlot()) : nullptr;
 			if (!Entry)
 			{
 				Finish(false, FString::Printf(TEXT("slot %d holds no ability"), SlotIndex));
@@ -332,7 +334,7 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 			break;
 		}
 		const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
-		const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(VeyraAbilitySlots::All[SlotIndex]) : nullptr;
+		const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(CurrentSlot()) : nullptr;
 		if (Entry && Dummy && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) <= VeyraKitOrders::ReachOf(Entry->Ability))
 		{
 			OrderCast(*Controller, *Vanguard);
@@ -424,6 +426,28 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		break;
 	}
 
+	case EStep::FollowUp:
+	{
+		// What the last skill opened is cast from where it left its caster, within the ability's reach of the dummy.
+		const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+		const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(CurrentSlot()) : nullptr;
+		if (!Entry || !Dummy)
+		{
+			SkipAbility(Entry ? Entry->Ability : FVeyraContentId(), TEXT("the ability it was opened by no longer holds its slot"));
+			break;
+		}
+		const double Reach = VeyraKitOrders::ReachOf(Entry->Ability);
+		if (!VeyraKitOrders::IsForAlly(Entry->Ability) && Reach > 0.0 && FVector::Dist2D(Vanguard->GetActorLocation(), Dummy->GetActorLocation()) > Reach)
+		{
+			const FVector Toward = (Vanguard->GetActorLocation() - Dummy->GetActorLocation()).GetSafeNormal2D();
+			Controller->IssueMoveOrder(Dummy->GetActorLocation() + Toward * Reach * Settings.ApproachShareOfReach);
+			Advance(EStep::Approach, *FString::Printf(TEXT("stepping within %s's reach"), *Entry->Ability.ToString()));
+			break;
+		}
+		OrderCast(*Controller, *Vanguard);
+		break;
+	}
+
 	case EStep::Flush:
 	{
 #if WITH_VEYRA_UI
@@ -492,7 +516,7 @@ void UVeyraShowcaseRecorderSubsystem::OrderCast(AVeyraPlayerController& Controll
 	const AVeyraGameState* GameState = GetGameState();
 	const AVeyraPlayerState* Own = Controller.GetPlayerState<AVeyraPlayerState>();
 	const UVeyraAbilityLoadoutComponent* Loadout = Own ? Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
-	const EVeyraAbilitySlot Slot = VeyraAbilitySlots::All[SlotIndex];
+	const EVeyraAbilitySlot Slot = CurrentSlot();
 	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr;
 	AActor* Aim = Entry && VeyraKitOrders::IsForAlly(Entry->Ability) ? Controller.GetVanguard()
 		: (GameState ? VeyraKitOrders::FindNearestEnemyBody(Controller, *GameState, Vanguard.GetActorLocation()) : nullptr);
@@ -629,17 +653,51 @@ void UVeyraShowcaseRecorderSubsystem::SkipAbility(const FVeyraContentId& Ability
 	{
 		FClip& Clip = Clips.AddDefaulted_GetRef();
 		Clip.Ability = Ability;
-		Clip.Slot = StaticEnum<EVeyraAbilitySlot>()->GetNameStringByValue(static_cast<int64>(VeyraAbilitySlots::All[SlotIndex]));
+		Clip.Slot = StaticEnum<EVeyraAbilitySlot>()->GetNameStringByValue(static_cast<int64>(CurrentSlot()));
 	}
 	Clips.Last().Failure = Reason;
 	UE_LOG(LogVeyraShowcaseRecorder, Warning, TEXT("VeyraShowcase: left %s out: %s"), *Clips.Last().Ability.ToString(), *Reason);
 	NextSlot(FString::Printf(TEXT("left %s out"), *Clips.Last().Ability.ToString()));
 }
 
+EVeyraAbilitySlot UVeyraShowcaseRecorderSubsystem::CurrentSlot() const
+{
+	return VeyraAbilitySlots::All[OpenedSlot.Get(SlotIndex)];
+}
+
 void UVeyraShowcaseRecorderSubsystem::NextSlot(const FString& Description)
 {
 	bClipForSlot = false;
 	bPrimed = false;
+	// What the skill just recorded opened, as a ride's mounted actions, is recorded while its slots still hold it; each
+	// ability once a pass, whichever skill opened it first.
+	if (!OpenedSlot.IsSet())
+	{
+		OpenedBy = Clips.IsEmpty() ? FVeyraContentId() : Clips.Last().Ability;
+	}
+	TArray<FVeyraContentId> Recorded;
+	for (const FClip& Clip : Clips)
+	{
+		Recorded.Add(Clip.Ability);
+	}
+	const AVeyraPlayerController* Controller = GetController();
+	const AVeyraPlayerState* Own = Controller ? Controller->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	const UVeyraAbilityLoadoutComponent* Loadout = Own ? Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	TArray<FVeyraContentId> Held;
+	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+	{
+		const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr;
+		Held.Add(Entry ? Entry->Ability : FVeyraContentId());
+	}
+	const TArray<FVeyraContentId> Opened = OpenedBy.IsValid() ? VeyraAbilityRules::AbilitiesOpenedBy(UVeyraAbilitiesTuningSubsystem::Get(), OpenedBy)
+		: TArray<FVeyraContentId>();
+	OpenedSlot = VeyraShowcase::NextOpenedSlot(Held, Opened, Recorded);
+	if (OpenedSlot.IsSet())
+	{
+		Advance(EStep::FollowUp, *FString::Printf(TEXT("%s; on to %s, which %s opened"), *Description, *Held[OpenedSlot.GetValue()].ToString(),
+			*OpenedBy.ToString()));
+		return;
+	}
 	const bool bLast = ++SlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All);
 	// After the kit, its basic attack, from a stage set again: rehearsed too, so its effect in flight has compiled before
 	// it is captured.

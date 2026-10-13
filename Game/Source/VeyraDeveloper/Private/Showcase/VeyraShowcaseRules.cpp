@@ -77,4 +77,17 @@ namespace VeyraShowcase
 	{
 		return !bStatusesHeld || SecondsSinceSet >= SettleSeconds + StatusPatienceSeconds;
 	}
+
+	TOptional<int32> NextOpenedSlot(TConstArrayView<FVeyraContentId> Held, TConstArrayView<FVeyraContentId> Opened,
+		TConstArrayView<FVeyraContentId> Recorded)
+	{
+		for (int32 Index = 0; Index < Held.Num(); ++Index)
+		{
+			if (Held[Index].IsValid() && Opened.Contains(Held[Index]) && !Recorded.Contains(Held[Index]))
+			{
+				return Index;
+			}
+		}
+		return {};
+	}
 }

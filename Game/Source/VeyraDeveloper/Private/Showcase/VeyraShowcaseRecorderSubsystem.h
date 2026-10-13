@@ -49,6 +49,8 @@ private:
 		Prime,
 		Attack,
 		Record,
+		/** On to an ability the last skill opened, without setting the stage again (ADR-074 §3). */
+		FollowUp,
 		Flush,
 		Finished,
 	};
@@ -85,8 +87,14 @@ private:
 	/** Leaves the current slot's ability out of the recording, for Reason, and goes on to the next. */
 	void SkipAbility(const FVeyraContentId& Ability, const FString& Reason);
 
-	/** Goes on to the next slot, or ends the rehearsal, or goes on to the basic attack after the last. */
+	/**
+	 * Goes on to an ability the slot's skill opened that a slot still holds, unrecorded (VeyraShowcase::NextOpenedSlot),
+	 * or to the next slot, or to the basic attack after the last.
+	 */
 	void NextSlot(const FString& Description);
+
+	/** The slot being recorded: one an opened ability is in, or the kit's own at SlotIndex. */
+	EVeyraAbilitySlot CurrentSlot() const;
 
 	/** Orders a basic attack at Dummy and starts its clip (ADR-074 §3). */
 	void OrderAttack(AVeyraPlayerController& Controller, AActor& Dummy);
@@ -116,6 +124,9 @@ private:
 	double StepSince = 0.0;
 	int32 KitLevel = 0;
 	int32 SlotIndex = 0;
+	/** While abilities a skill opened are recorded: the slot holding the one now, and the skill. */
+	TOptional<int32> OpenedSlot;
+	FVeyraContentId OpenedBy;
 	/** Whether the kit is being cast once unrecorded, so every effect is ready before it is recorded. */
 	bool bRehearsing = false;
 	/** The number of the latest reset asked for, which its reply carries; when this slot's first was asked for; and when the stage was set. */
