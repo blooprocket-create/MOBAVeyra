@@ -1,0 +1,162 @@
+{
+  "halfExtent": 10000,
+  "playableSide": 18400,
+  "areas_m2": {
+    "playable": 33856,
+    "lanes": 7183,
+    "river_and_arenas": 3907,
+    "keeps": 4249,
+    "jungle_region": 19697,
+    "jungle_open": 10840,
+    "blocked_masses": 8858
+  },
+  "jungle_open_share": 0.55,
+  "blocked_mass_count": 42,
+  "smallest_mass_m2": 31.3,
+  "largest_mass_m2": 1937.0,
+  "slivers_opened": 6,
+  "blocked_edge_rim_share": 0.197,
+  "blocked_interior_share": 0.253,
+  "thinnest_rule": 300,
+  "fog_lane_overlap_m2": 0.0,
+  "fog_min_clearance_to_lane_envelope": 13,
+  "fog_bank_count_per_team": 21,
+  "fog_min_clearance_to_structures": 610,
+  "fog_lobes_per_team": 48,
+  "camps": {
+    "stonehorn": {
+      "clear_of_lane_envelope": 438,
+      "clear_of_river_band": 3047,
+      "entrances": 3
+    },
+    "ashfang": {
+      "clear_of_lane_envelope": 1100,
+      "clear_of_river_band": 485,
+      "entrances": 4
+    },
+    "miremother": {
+      "clear_of_lane_envelope": 300,
+      "clear_of_river_band": 2583,
+      "entrances": 4
+    },
+    "skittermaw": {
+      "clear_of_lane_envelope": 300,
+      "clear_of_river_band": 338,
+      "entrances": 5
+    },
+    "razorback": {
+      "clear_of_lane_envelope": 250,
+      "clear_of_river_band": 3005,
+      "entrances": 4
+    },
+    "gloomwing": {
+      "clear_of_lane_envelope": 300,
+      "clear_of_river_band": 3973,
+      "entrances": 3
+    },
+    "bot-outer glade": {
+      "clear_of_lane_envelope": 509,
+      "clear_of_river_band": 2138,
+      "entrances": 3
+    },
+    "top elbow pocket": {
+      "clear_of_lane_envelope": 748,
+      "clear_of_river_band": 397,
+      "entrances": 3
+    }
+  },
+  "fountain_routes": {
+    "stonehorn": {
+      "units": 8609,
+      "seconds": 26.1
+    },
+    "ashfang": {
+      "units": 12705,
+      "seconds": 38.5
+    },
+    "miremother": {
+      "units": 8050,
+      "seconds": 24.4
+    },
+    "skittermaw": {
+      "units": 11086,
+      "seconds": 33.6
+    },
+    "razorback": {
+      "units": 11028,
+      "seconds": 33.4
+    },
+    "gloomwing": {
+      "units": 9841,
+      "seconds": 29.8
+    },
+    "top elbow pocket": {
+      "units": 14533,
+      "seconds": 44.0
+    },
+    "bot-outer glade": {
+      "units": 13844,
+      "seconds": 42.0
+    },
+    "north Well": {
+      "units": 14790,
+      "seconds": 44.8
+    },
+    "south Well": {
+      "units": 13635,
+      "seconds": 41.3
+    },
+    "top crossroads": {
+      "units": 10402,
+      "seconds": 31.5
+    },
+    "bot crossroads": {
+      "units": 10173,
+      "seconds": 30.8
+    },
+    "top outer ford": {
+      "units": 17599,
+      "seconds": 53.3
+    },
+    "bottom outer ford": {
+      "units": 17999,
+      "seconds": 54.5
+    }
+  },
+  "lanes": {
+    "Top": {
+      "length": 20967,
+      "walk_seconds": 63.5
+    },
+    "Mid": {
+      "length": 15556,
+      "walk_seconds": 47.1
+    },
+    "Bottom": {
+      "length": 20967,
+      "walk_seconds": 63.5
+    }
+  },
+  "outer_jungle_depth": 2300,
+  "keep": {
+    "depth_from_corner": 4700,
+    "gate_width": 900,
+    "inhibitor_to_prime_well": {
+      "Top": 2119,
+      "Mid": 2121,
+      "Bottom": 2119
+    }
+  },
+  "current": {
+    "halfExtent": 9000,
+    "lane_lengths": {
+      "Top": 20400,
+      "Mid": 12784,
+      "Bottom": 20400
+    },
+    "outer_jungle_depth": 1100,
+    "base_pad_radius": 3100,
+    "walls": 18,
+    "fog_lobes": 33
+  }
+}

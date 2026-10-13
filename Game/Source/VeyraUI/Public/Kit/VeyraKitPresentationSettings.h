@@ -308,6 +308,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Casts")
 	FName LandingParameter;
 
+	/**
+	 * The ground's slope under an Area effect, along its facing and across it (rise over run), which its particles take
+	 * their height from, so it lies on the ground's best plane while its footprint seen from above stays its true shape
+	 * (ADR-075 §3).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName SlopeAlongParameter;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Casts")
+	FName SlopeAcrossParameter;
+
 	/** The effects for Ability, if it has its own; null for the shared presentation's. */
 	const FVeyraAbilityEffects* EffectsOf(FName Ability) const;
 

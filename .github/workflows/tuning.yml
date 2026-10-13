@@ -9,6 +9,14 @@ on:
       - 'scripts/check_tuning.py'
       - 'scripts/requirements-tuning.txt'
       - 'tests/test_tuning.py'
+      - 'Game/Scripts/Crucible/**'
+      - 'tests/test_crucible_layout.py'
+      - 'tests/test_crucible_art.py'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleMassArt.json'
+      - 'Game/Scripts/GenerateTerrainTextures.py'
+      - 'Game/ArtSource/Environment/Terrain/TerrainTextures.json'
+      - 'tests/test_terrain_paving_recipe.py'
       - '.github/workflows/tuning.yml'
   pull_request:
     paths:
@@ -18,6 +26,14 @@ on:
       - 'scripts/check_tuning.py'
       - 'scripts/requirements-tuning.txt'
       - 'tests/test_tuning.py'
+      - 'Game/Scripts/Crucible/**'
+      - 'tests/test_crucible_layout.py'
+      - 'tests/test_crucible_art.py'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json'
+      - 'Game/Plugins/VeyraWorldTools/Config/CrucibleMassArt.json'
+      - 'Game/Scripts/GenerateTerrainTextures.py'
+      - 'Game/ArtSource/Environment/Terrain/TerrainTextures.json'
+      - 'tests/test_terrain_paving_recipe.py'
       - '.github/workflows/tuning.yml'
 
 jobs:
@@ -36,3 +52,13 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_tuning.py'
       - name: Validate Game/Tuning against its schemas
         run: python3 scripts/check_tuning.py
+      - name: Install the Crucible mass generator's pinned geometry
+        run: python3 -m pip install -r Game/Scripts/Crucible/requirements.txt
+      - name: The Crucible's generated masses are current and its ids line up (ADR-073 §2)
+        run: python3 -m unittest discover -s tests -p 'test_crucible_layout.py'
+      - name: The Crucible's mass art is current and stays within each gameplay edge (ADR-073 §5)
+        run: python3 -m unittest discover -s tests -p 'test_crucible_art.py'
+      - name: Install the terrain texture generator's image writer
+        run: python3 -m pip install Pillow==12.3.0
+      - name: The causeway's paving is deterministic and lays its setts and gaps as asked (ADR-073 §5)
+        run: python3 -m unittest discover -s tests -p 'test_terrain_paving_recipe.py'

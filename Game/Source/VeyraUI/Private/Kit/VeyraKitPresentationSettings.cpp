@@ -45,10 +45,12 @@ TArray<FString> UVeyraKitPresentationSettings::Validate() const
 	Require(!bRuns || (!LengthParameter.IsNone() && !WidthParameter.IsNone() && LengthParameter != WidthParameter), TEXT("LengthParameter"),
 		TEXT("an effect that runs along a channel, a tether or a lingering area needs the two parameters its length and width are set by."));
 	const bool bAreas = AbilityEffects.ContainsByPredicate([](const FVeyraAbilityEffects& Effects) { return Effects.Area.IsSet(); });
-	const TSet<FName> AreaParameters = { ShapeParameter, RadiusParameter, HalfArcParameter, LandingParameter, LengthParameter, WidthParameter };
+	const TSet<FName> AreaParameters = { ShapeParameter, RadiusParameter, HalfArcParameter, LandingParameter, LengthParameter, WidthParameter,
+		SlopeAlongParameter, SlopeAcrossParameter };
 	Require(!bAreas || (!ShapeParameter.IsNone() && !RadiusParameter.IsNone() && !HalfArcParameter.IsNone() && !LandingParameter.IsNone()
-		&& !LengthParameter.IsNone() && !WidthParameter.IsNone() && AreaParameters.Num() == 6), TEXT("ShapeParameter"),
-		TEXT("an effect drawn over an area at its true shape needs six distinct parameters: its shape, radius, half-arc, length, width and landing."));
+		&& !LengthParameter.IsNone() && !WidthParameter.IsNone() && !SlopeAlongParameter.IsNone() && !SlopeAcrossParameter.IsNone()
+		&& AreaParameters.Num() == 8), TEXT("ShapeParameter"),
+		TEXT("an effect drawn over an area at its true shape needs eight distinct parameters: its shape, radius, half-arc, length, width, landing and the ground's slope along and across it."));
 	Require(!AttackTravel.IsSet() || AttackTravel.Scale > 0.0f, TEXT("AttackTravel"),
 		TEXT("a basic attack's effect in flight needs a scale above 0."));
 	TSet<FName> AttackingVanguards;
