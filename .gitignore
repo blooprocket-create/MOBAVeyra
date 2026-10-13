@@ -27,6 +27,8 @@ Game/Build/*/FileOpenOrder/
 Launcher/target/
 Launcher/app/icons/
 Launcher/app/gen/
+# What the launcher's build.rs writes for its window: the list of its art, and the website's server hours (ADR-081).
+Launcher/ui/generated/
 
 # The config Smoke.ps1 and Play.ps1 -Opponent write for a scripted match's backend.
 Backend/config/scripted.json

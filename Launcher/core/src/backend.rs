@@ -35,6 +35,13 @@ impl fmt::Display for BackendError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unreachable(reason) => write!(f, "Veyra's services did not answer ({})", secret::redact(reason)),
+            // What the public address answers while its host is down (ADR-057), and a gateway that cannot reach it.
+            Self::Refused { status, .. } if is_offline_status(*status) => {
+                write!(
+                    f,
+                    "Veyra's servers are offline right now (HTTP {status}); they run during the daily server hours"
+                )
+            }
             Self::Refused { status, code } if code.is_empty() => write!(f, "Veyra's services refused (HTTP {status})"),
             Self::Refused { status, code } => write!(f, "Veyra's services refused (HTTP {status}, {code})"),
             Self::BadAnswer(problem) => write!(f, "Veyra's services gave an answer the launcher does not understand: {problem}"),
@@ -43,6 +50,23 @@ impl fmt::Display for BackendError {
 }
 
 impl std::error::Error for BackendError {}
+
+/// The statuses that mean the servers are down rather than refusing: the public address answers 503
+/// while its host is offline (ADR-057), and a gateway that cannot reach it 502 or 504.
+pub fn is_offline_status(status: u16) -> bool {
+    matches!(status, 502..=504)
+}
+
+/// Whether the servers can play: what the backend's readiness check says (ADR-081).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Readiness {
+    /// The backend and its database answer.
+    Online,
+    /// The backend answered that it is not ready, or the public address that its host is down.
+    Offline,
+    /// No answer at all: this computer may be offline itself.
+    Unknown,
+}
 
 /// The backend at one base URL.
 pub struct Backend {
@@ -145,6 +169,15 @@ impl Backend {
         Ok(Secret::new(answer.token))
     }
 
+    /// Whether the servers can play now: the backend's readiness check, through the public address.
+    pub fn readiness(&self) -> Readiness {
+        match self.agent.get(format!("{}/readyz", self.base_url)).call() {
+            Ok(response) if response.status().is_success() => Readiness::Online,
+            Ok(_) => Readiness::Offline,
+            Err(_) => Readiness::Unknown,
+        }
+    }
+
     fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, BackendError> {
         let request = self.agent.get(format!("{}{path}", self.base_url)).header("Accept", "application/json");
         Self::read(request.call())
@@ -181,4 +214,37 @@ impl Backend {
 
 fn is_display_name(name: &str) -> bool {
     !name.trim().is_empty() && name.chars().count() <= MAX_DISPLAY_NAME_LENGTH
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_server::serve_once;
+
+    #[test]
+    fn readiness_reads_the_backends_check() {
+        let backend = |status: &str| Backend::new(&serve_once(status, "{}"), Duration::from_secs(5));
+        assert_eq!(backend("200 OK").readiness(), Readiness::Online);
+        assert_eq!(backend("503 Service Unavailable").readiness(), Readiness::Offline);
+        // Nothing listening: no answer at all.
+        let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap();
+        assert_eq!(
+            Backend::new(&format!("http://{closed}"), Duration::from_secs(5)).readiness(),
+            Readiness::Unknown
+        );
+    }
+
+    #[test]
+    fn an_offline_server_is_named_plainly() {
+        for status in [502, 503, 504] {
+            let said = BackendError::Refused { status, code: String::new() }.to_string();
+            assert!(said.contains("offline right now"), "{said}");
+        }
+        let refused = BackendError::Refused {
+            status: 401,
+            code: "unauthorized".into(),
+        }
+        .to_string();
+        assert!(!refused.contains("offline"), "{refused}");
+    }
 }

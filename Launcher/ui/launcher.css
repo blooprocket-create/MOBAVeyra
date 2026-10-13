@@ -62,7 +62,7 @@ body {
  * darkened toward the card, the foot and the title bar. It moves the window, as a title bar would.
  */
 .art {
-  --art: url("art/cairn.webp");
+  --art: none;
   position: fixed;
   inset: 0;
   background:
@@ -72,16 +72,6 @@ body {
     var(--art) left center / cover no-repeat;
 }
 
-.art[data-vanguard="bryn"] { --art: url("art/bryn.webp"); }
-.art[data-vanguard="cairn"] { --art: url("art/cairn.webp"); }
-.art[data-vanguard="gorraveth"] { --art: url("art/gorraveth.webp"); }
-.art[data-vanguard="kade"] { --art: url("art/kade.webp"); }
-.art[data-vanguard="mimzi"] { --art: url("art/mimzi.webp"); }
-.art[data-vanguard="oriel"] { --art: url("art/oriel.webp"); }
-.art[data-vanguard="patch"] { --art: url("art/patch.webp"); }
-.art[data-vanguard="qazharr"] { --art: url("art/qazharr.webp"); }
-.art[data-vanguard="raska"] { --art: url("art/raska.webp"); }
-.art[data-vanguard="vera"] { --art: url("art/vera.webp"); }
 
 main {
   position: relative;
@@ -131,6 +121,7 @@ h2 {
  * is a ring of the same shape one pixel wide: --edge-color along the sides, a brighter tick over each cut.
  */
 section,
+.surface,
 button {
   --cut: var(--button-cut);
   --edge-color: var(--button-edge);
@@ -141,6 +132,7 @@ button {
 }
 
 section::before,
+.surface::before,
 button::before {
   content: "";
   position: absolute;
@@ -161,7 +153,8 @@ button::before {
   );
 }
 
-section {
+section,
+.surface {
   --cut: var(--panel-cut);
   --edge-color: var(--edge);
   display: flex;
@@ -170,6 +163,83 @@ section {
   padding: 22px;
   background: linear-gradient(to bottom in srgb-linear, var(--surface), var(--surface-foot));
   backdrop-filter: blur(14px);
+}
+
+/*
+ * Beside the art, at its foot: what this build changed, and whether the servers are up (ADR-081). Smaller
+ * surfaces than the card's, so the Vanguard still leads.
+ */
+.side {
+  position: fixed;
+  left: 28px;
+  bottom: 24px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 360px;
+}
+
+.side .surface {
+  gap: 6px;
+  padding: 12px 16px;
+}
+
+.whats-new .eyebrow {
+  margin: 0;
+}
+
+.whats-new h2 {
+  font-size: 15px;
+}
+
+.whats-new ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 92px;
+  margin: 2px 0 0;
+  padding: 0 4px 0 16px;
+  overflow-y: auto;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  scrollbar-width: thin;
+  scrollbar-color: var(--edge) transparent;
+}
+
+.whats-new li::marker {
+  color: var(--primary);
+}
+
+/* The servers: a dot of live teal when they play, muted when they don't, and the hours beneath. */
+.servers-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.servers .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.servers[data-state="online"] .dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(69, 214, 196, 0.2);
+}
+
+.servers[data-state="offline"] .dot {
+  background: var(--problem);
+}
+
+.servers .note {
+  font-size: 12px;
 }
 
 section[hidden] {

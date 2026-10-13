@@ -68,6 +68,7 @@ Every field is required, and an unknown field is an error. `game` has exactly on
 | `game.install.downloadAttempts` | 3 | Times a chunk is downloaded before the install fails. |
 | `game.install.downloadTimeoutSeconds` | 60 | How long one request to the release store may take. |
 | `game.arguments` | none | More arguments for the game. The launcher adds `-VeyraLaunchCode=stdin` itself; configuration may not set it. |
+| `website.feedUrl` | none (optional) | The `launcher.json` the website publishes (ADR-081): the servers' hours and each build's patch notes, shown beside the art. Absent, the launcher shows neither. `config/public.json` names the production website's. |
 
 The launcher reads `--config <file>`, then `VEYRA_LAUNCHER_CONFIG`, then `VeyraLauncher.json` beside itself (where Setup puts it), then `config/local.json` two folders up from its build folder.
 
