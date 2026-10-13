@@ -14,6 +14,9 @@ on:
       - 'tests/test_crucible_art.py'
       - 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json'
       - 'Game/Plugins/VeyraWorldTools/Config/CrucibleMassArt.json'
+      - 'Game/Scripts/GenerateTerrainTextures.py'
+      - 'Game/ArtSource/Environment/Terrain/TerrainTextures.json'
+      - 'tests/test_terrain_paving_recipe.py'
       - '.github/workflows/tuning.yml'
   pull_request:
     paths:
@@ -28,6 +31,9 @@ on:
       - 'tests/test_crucible_art.py'
       - 'Game/Plugins/VeyraWorldTools/Config/CrucibleStyle.json'
       - 'Game/Plugins/VeyraWorldTools/Config/CrucibleMassArt.json'
+      - 'Game/Scripts/GenerateTerrainTextures.py'
+      - 'Game/ArtSource/Environment/Terrain/TerrainTextures.json'
+      - 'tests/test_terrain_paving_recipe.py'
       - '.github/workflows/tuning.yml'
 
 jobs:
@@ -52,3 +58,7 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_crucible_layout.py'
       - name: The Crucible's mass art is current and stays within each gameplay edge (ADR-073 §5)
         run: python3 -m unittest discover -s tests -p 'test_crucible_art.py'
+      - name: Install the terrain texture generator's image writer
+        run: python3 -m pip install Pillow==12.3.0
+      - name: The causeway's paving is deterministic and lays its setts and gaps as asked (ADR-073 §5)
+        run: python3 -m unittest discover -s tests -p 'test_terrain_paving_recipe.py'
