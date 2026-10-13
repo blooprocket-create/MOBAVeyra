@@ -218,8 +218,7 @@ FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyr
 	FVeyraShieldGrant Grant;
 	Grant.Id = Shield.Id;
 	Grant.Category = Shield.Category;
-	Grant.Amount = VeyraAbilityRules::ValueAtRank(Shield.AmountByRank, Rank) + MaxHealth * Shield.MaxHealthRatio
-		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Shield.MagicPowerRatio;
+	Grant.Amount = VeyraAbilityRules::ShieldAmount(Shield, Rank, MaxHealth, Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()));
 	Grant.DurationSeconds = Shield.DurationSeconds;
 	Grant.Reapply = Shield.Reapply;
 	Grant.MaxAmount = FMath::Max(Grant.Amount, MaxHealth * Shield.MaxAmountMaxHealthRatio);

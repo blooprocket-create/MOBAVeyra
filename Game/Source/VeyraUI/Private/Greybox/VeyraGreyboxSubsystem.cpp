@@ -3,6 +3,8 @@
 #include "Greybox/VeyraGreyboxSubsystem.h"
 
 #include "Engine/Font.h"
+#include "Fonts/CompositeFont.h"
+#include "Shell/VeyraShellFonts.h"
 #include "Styling/CoreStyle.h"
 
 #include "AbilitySystemComponent.h"
@@ -134,10 +136,18 @@ void UVeyraGreyboxSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	// The shell's type, from the engine's own font files; they load as the HUD first draws with them.
+	// The client's functional type (ADR-078 §2), read from the files the game ships as the HUD first draws with it. The HUD
+	// asks for a Black weight the family does not have, which is its Bold.
 	HudFont = NewObject<UFont>(this);
 	HudFont->FontCacheType = EFontCacheType::Runtime;
-	HudFont->GetMutableInternalCompositeFont() = *FCoreStyle::GetDefaultFont();
+	FCompositeFont& Composite = HudFont->GetMutableInternalCompositeFont();
+	Composite = *VeyraShellFonts::FamilyFont(EVeyraFontFamily::Interface);
+	if (const FTypefaceEntry* Bold = Composite.DefaultTypeface.Fonts.FindByPredicate([](const FTypefaceEntry& Entry) { return Entry.Name == TEXT("Bold"); }))
+	{
+		FTypefaceEntry Black(TEXT("Black"));
+		Black.Font = Bold->Font;
+		Composite.DefaultTypeface.Fonts.Add(MoveTemp(Black));
+	}
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	TArray<FString> Problems = Settings.Validate();
 	if (Problems.IsEmpty())

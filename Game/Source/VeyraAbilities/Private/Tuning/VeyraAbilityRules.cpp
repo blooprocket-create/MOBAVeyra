@@ -16,6 +16,12 @@ namespace
 		/** Hears every damage list the checker reads, with its JSON pointer: how an ability's damage parts are found. */
 		TFunction<void(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)> OnDamage;
 
+		/** Hears every list of statuses an effect bundle puts on what it reaches, with its JSON pointer: an ability's status parts. */
+		TFunction<void(const FString& Pointer, TConstArrayView<FVeyraContentId> Statuses)> OnStatuses;
+
+		/** Hears every shield the checker reads, with its JSON pointer: an ability's shield parts. */
+		TFunction<void(const FString& Pointer, const FVeyraShieldTuning& Shield)> OnShield;
+
 		void Problem(const FString& Pointer, const FString& Message)
 		{
 			Problems.Add(FString::Printf(TEXT("%s: %s"), *Pointer, *Message));
@@ -159,6 +165,10 @@ namespace
 		void CheckEffects(const FString& Pointer, const FVeyraEffectBundleTuning& Effects)
 		{
 			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
+			if (OnStatuses && !Effects.Statuses.IsEmpty())
+			{
+				OnStatuses(Pointer + TEXT("/statuses"), Effects.Statuses);
+			}
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
 			CheckStatusIds(Pointer + TEXT("/displacementUnlessStatuses"), Effects.DisplacementUnlessStatuses);
 			for (int32 Index = 0; Index < Effects.Displacement.Num(); ++Index)
@@ -791,6 +801,10 @@ namespace
 
 		void CheckShield(const FString& Pointer, const FVeyraShieldTuning& Shield)
 		{
+			if (OnShield)
+			{
+				OnShield(Pointer, Shield);
+			}
 			CheckByRank(Pointer + TEXT("/amountByRank"), Shield.AmountByRank);
 			if (Shield.AbsorbedReward.Num() > 1)
 			{
@@ -1662,7 +1676,8 @@ namespace
 		for (int32 Index = Segments.Num() - 1; Index >= 2; --Index)
 		{
 			const FString& Segment = Segments[Index];
-			if (!Segment.IsNumeric() && Segment != TEXT("damage") && Segment != TEXT("effects"))
+			// A damage list's or a status list's own field names no role.
+			if (!Segment.IsNumeric() && Segment != TEXT("damage") && Segment != TEXT("effects") && Segment != TEXT("statuses"))
 			{
 				return Segment;
 			}
@@ -1682,6 +1697,33 @@ TArray<FVeyraAbilityDamagePart> DamageParts(const FVeyraAbilitiesTuning& Tuning,
 	FAbilityTuningChecker Checker{ Tuning, {} };
 	Checker.OnDamage = [&Parts](const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList) {
 		Parts.Add(FVeyraAbilityDamagePart{ DamageRoleOf(Pointer), TArray<FVeyraDamageTuning>(DamageList) });
+	};
+	CheckAbility(Checker, Tuning, Ability);
+	return Parts;
+}
+
+TArray<FVeyraAbilityStatusPart> StatusParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
+	TArray<FVeyraAbilityStatusPart> Parts;
+	FAbilityTuningChecker Checker{ Tuning, {} };
+	Checker.OnStatuses = [&Parts](const FString& Pointer, TConstArrayView<FVeyraContentId> Statuses) {
+		Parts.Add(FVeyraAbilityStatusPart{ DamageRoleOf(Pointer), TArray<FVeyraContentId>(Statuses) });
+	};
+	CheckAbility(Checker, Tuning, Ability);
+	return Parts;
+}
+
+double ShieldAmount(const FVeyraShieldTuning& Shield, int32 Rank, double MaxHealth, double MagicPower)
+{
+	return ValueAtRank(Shield.AmountByRank, Rank) + MaxHealth * Shield.MaxHealthRatio + MagicPower * Shield.MagicPowerRatio;
+}
+
+TArray<FVeyraAbilityShieldPart> ShieldParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
+	TArray<FVeyraAbilityShieldPart> Parts;
+	FAbilityTuningChecker Checker{ Tuning, {} };
+	Checker.OnShield = [&Parts](const FString& Pointer, const FVeyraShieldTuning& Shield) {
+		Parts.Add(FVeyraAbilityShieldPart{ DamageRoleOf(Pointer), Shield });
 	};
 	CheckAbility(Checker, Tuning, Ability);
 	return Parts;

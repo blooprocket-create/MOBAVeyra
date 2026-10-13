@@ -148,7 +148,7 @@ FVeyraShopView Describe(const AActor& Participant)
 	return View;
 }
 
-FText DescribeStats(const FVeyraItemStatsTuning& Stats)
+TArray<FText> StatLines(const FVeyraItemStatsTuning& Stats)
 {
 	// Attack Speed is a fraction of base, shown as a whole percentage.
 	constexpr double Percent = 100.0;
@@ -172,7 +172,12 @@ FText DescribeStats(const FVeyraItemStatsTuning& Stats)
 	Add(Stats.PhysicalPenetrationFlat, LOCTEXT("PhysicalPenetrationFlat", "+{0} Physical Penetration"));
 	Add(Stats.CritChance * Percent, LOCTEXT("CritChance", "+{0}% Crit Chance"));
 	Add(Stats.MagicPowerFraction * Percent, LOCTEXT("MagicPowerFraction", "+{0}% Magic Power"));
-	return FText::Join(LOCTEXT("StatSeparator", ", "), Lines);
+	return Lines;
+}
+
+FText DescribeStats(const FVeyraItemStatsTuning& Stats)
+{
+	return FText::Join(LOCTEXT("StatSeparator", ", "), StatLines(Stats));
 }
 
 bool MatchesSearch(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item, const FString& Search)

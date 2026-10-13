@@ -9,6 +9,8 @@
 #include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
+#include "Attributes/VeyraDefenceSet.h"
+#include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
@@ -31,6 +33,7 @@
 #include "Structures/VeyraStructure.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Text/VeyraAbilityNumbers.h"
+#include "Text/VeyraContentText.h"
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Wildlife/VeyraWildlife.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -170,9 +173,11 @@ FString VeyraHud::StatusMark(EVeyraStatusGroup Group)
 
 FString VeyraHud::StatusChipText(const FVeyraHudStatus& Status, bool bDuration)
 {
-	// A mark with no effect of its own is known by its ID, as a Hex is; every other status by its kind.
-	const FString Raw = Status.Kind == EVeyraStatusKind::Counter ? Status.Id.ToString() : StaticEnum<EVeyraStatusKind>()->GetNameStringByValue(static_cast<int64>(Status.Kind));
-	FString Text = StatusMark(Status.Group) + TEXT(" ") + FName::NameToDisplayString(Raw, false);
+	// A mark with no effect of its own is known by its ID, as a Hex is; every other status by its kind's words, as its
+	// ability's tooltip says them (ADR-080 §2).
+	const FString Name = Status.Kind == EVeyraStatusKind::Counter ? FName::NameToDisplayString(Status.Id.ToString(), false)
+																   : VeyraContentText::StatusKindName(Status.Kind).ToString();
+	FString Text = StatusMark(Status.Group) + TEXT(" ") + Name;
 	if (Status.Stacks > 1)
 	{
 		Text += FString::Printf(TEXT(" x%d"), Status.Stacks);
@@ -292,6 +297,59 @@ TOptional<FVeyraHudMasteryEmote> VeyraHud::MasteryEmoteOf(const AActor& Unit, do
 	return FVeyraHudMasteryEmote{ Participant->GetMasteryLevel(), Participant->GetEmoteTier() };
 }
 
+namespace
+{
+	/** A stat's value: whole, or to Decimals places. */
+	FString StatNumber(double Value, int32 Decimals = 0)
+	{
+		return Decimals > 0 ? FString::Printf(TEXT("%.*f"), Decimals, Value) : FString::Printf(TEXT("%.0f"), FMath::RoundToDouble(Value));
+	}
+
+	/**
+	 * The Vanguard's stats from its abilities' attributes, which only its owner receives (ADR-080 §3): each raised above its
+	 * base value by items and effects marked, the base being what its level gives it. Attack range is its basic attack's.
+	 */
+	FVeyraHudStats StatsOf(const UAbilitySystemComponent& Abilities, const FVeyraVanguardDefinition* Kit, const FString& ResourceName)
+	{
+		constexpr double Percent = 100.0;
+		const auto Stat = [&Abilities](const TCHAR* Name, const FGameplayAttribute& Attribute, TFunctionRef<FString(double)> Format, bool bLowerIsMore = false) {
+			const double Now = Abilities.GetNumericAttribute(Attribute);
+			const double Base = Abilities.GetNumericAttributeBase(Attribute);
+			constexpr double Tolerance = 0.001;
+			const bool bRaised = bLowerIsMore ? Now < Base - Tolerance : Now > Base + Tolerance;
+			return FVeyraHudStat{ VeyraContentText::StatName(Name), Format(Now), bRaised };
+		};
+		const auto Whole = [](double Value) { return StatNumber(Value); };
+		const auto Share = [](double Value) { return StatNumber(Value * Percent) + TEXT("%"); };
+		const auto PerSecond = [](double Value) { return StatNumber(Value, 1) + TEXT("/s"); };
+		FVeyraHudStats Stats;
+		Stats.Core = {
+			Stat(TEXT("physical_power"), UVeyraOffenceSet::GetPhysicalPowerAttribute(), Whole),
+			Stat(TEXT("magic_power"), UVeyraOffenceSet::GetMagicPowerAttribute(), Whole),
+			Stat(TEXT("armor"), UVeyraDefenceSet::GetArmorAttribute(), Whole),
+			Stat(TEXT("magic_resist"), UVeyraDefenceSet::GetMagicResistAttribute(), Whole),
+			Stat(TEXT("attack_speed"), UVeyraOffenceSet::GetAttackSpeedAttribute(), [](double Value) { return StatNumber(Value, 2); }),
+			Stat(TEXT("ability_haste"), UVeyraOffenceSet::GetAbilityHasteAttribute(), Whole),
+			Stat(TEXT("crit_chance"), UVeyraOffenceSet::GetCritChanceAttribute(), Share),
+			Stat(TEXT("move_speed"), UVeyraMobilitySet::GetMoveSpeedAttribute(), Whole),
+		};
+		FVeyraHudStat ResourceRegen = Stat(TEXT("resource_regen"), UVeyraResourceSet::GetResourceRegenAttribute(), PerSecond);
+		ResourceRegen.Name = FText::Format(ResourceRegen.Name, FText::FromString(ResourceName));
+		// Tenacity is the share of crowd control it no longer keeps.
+		FVeyraHudStat Tenacity = Stat(TEXT("tenacity"), UVeyraDefenceSet::GetTenacityRetainedAttribute(), [&Share](double Retained) { return Share(1.0 - Retained); },
+			/*bLowerIsMore*/ true);
+		Stats.More = {
+			Stat(TEXT("health_regen"), UVeyraVitalsSet::GetHealthRegenAttribute(), PerSecond),
+			ResourceRegen,
+			Stat(TEXT("physical_penetration"), UVeyraOffenceSet::GetPhysicalPenetrationFlatAttribute(), Whole),
+			Stat(TEXT("magic_penetration"), UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(), Whole),
+			Tenacity,
+			FVeyraHudStat{ VeyraContentText::StatName(TEXT("attack_range")), StatNumber(Kit ? Kit->BasicAttack.Range : 0.0), false },
+		};
+		return Stats;
+	}
+}
+
 FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, double ServerNow)
 {
 	FVeyraHudPlayer Player;
@@ -361,8 +419,14 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	const UAbilitySystemComponent* Offence = Participant.GetAbilitySystemComponent();
 	const double PhysicalPower = Offence ? Offence->GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()) : 0.0;
 	const double MagicPower = Offence ? Offence->GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) : 0.0;
+	const double AbilityHaste = Offence ? Offence->GetNumericAttribute(UVeyraOffenceSet::GetAbilityHasteAttribute()) : 0.0;
+	const double MaxHealth = Offence ? Offence->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) : 0.0;
 	const FVeyraVanguardDefinition* Kit = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard);
 	const FString ResourceName = Kit ? UEnum::GetDisplayValueAsText(Kit->Resource).ToString() : FString();
+	if (Offence)
+	{
+		Player.Stats = StatsOf(*Offence, Kit, ResourceName);
+	}
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 	{
 		FVeyraHudSlot& Shown = Player.Slots.AddDefaulted_GetRef();
@@ -391,6 +455,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		if (Shown.Ability.IsValid())
 		{
 			Shown.Numbers = VeyraAbilityNumbers::AtRank(Shown.Ability, FMath::Max(1, Shown.Rank), PhysicalPower, MagicPower, ResourceName);
+			Shown.Summary = VeyraAbilityNumbers::Summarise(Shown.Ability, Shown.Rank, Shown.MaxRank, PhysicalPower, MagicPower, MaxHealth, AbilityHaste, ResourceName);
 			// Whether it can be paid for now, by the cast validator's own test, and what it would cost (ADR-066 §1).
 			if (Offence)
 			{

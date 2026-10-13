@@ -1086,6 +1086,28 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	float TooltipWidth = 0.0f;
 
+	/** The tooltip's icon in its header, and the column its facts' labels take (ADR-080 §2), at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float TooltipIconSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float TooltipLabelWidth = 0.0f;
+
+	/** A tooltip's crowd control and other harm, beside damage in Combat Text's colours. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor TooltipHarmColor = FLinearColor::Transparent;
+
+	/** The stats panel beside the portrait (ADR-080 §3): its width and a row's height, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float StatsPanelWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float StatsRowHeight = 0.0f;
+
+	/** A tick across the health bar at each this much Health, so its length reads as an amount (ADR-080 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float HealthTickAmount = 0.0f;
+
 	// The chat log and its composer at the bottom left (VeyraChatLogModel; ADR-029 §5).
 
 	/** The log's and the composer's width, the composer's height, and how far the composer sits above the screen's bottom, at the reference height. */

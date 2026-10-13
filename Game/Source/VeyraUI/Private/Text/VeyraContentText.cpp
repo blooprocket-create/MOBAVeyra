@@ -146,6 +146,19 @@ bool HasDamageRole(const FString& Role)
 	return HasKey(TEXT("damage_role.") + Role);
 }
 
+FText StatusKindName(EVeyraStatusKind Kind)
+{
+	const FString Name = StaticEnum<EVeyraStatusKind>()->GetNameStringByValue(static_cast<int64>(Kind));
+	const FString Key = TEXT("status_kind.") + Name;
+	return HasKey(Key) ? FText::FromStringTable(TableName, FTextKey(Key)) : FText::FromString(Name);
+}
+
+FText StatName(const FString& Stat)
+{
+	const FString Key = TEXT("stat.") + Stat;
+	return HasKey(Key) ? FText::FromStringTable(TableName, FTextKey(Key)) : FText::FromString(Stat);
+}
+
 FText PassiveDescription(const FVeyraContentId& Passive)
 {
 	return TextOr(PassiveKind, Passive, DescriptionField, FString());

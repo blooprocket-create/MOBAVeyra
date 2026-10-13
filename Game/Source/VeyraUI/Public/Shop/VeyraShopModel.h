@@ -132,6 +132,9 @@ namespace VeyraShopModel
 	/** An item's stats as the shop lists them, such as "+20 Physical Power, +150 Health". Empty for none. */
 	VEYRAUI_API FText DescribeStats(const FVeyraItemStatsTuning& Stats);
 
+	/** Each stat the item gives, a line each in DescribeStats's words: "+20 Armor" (the HUD's item tooltip, ADR-080 §2). */
+	VEYRAUI_API TArray<FText> StatLines(const FVeyraItemStatsTuning& Stats);
+
 	/**
 	 * Whether Item answers the shop's search (SET-58; ADR-058 §1): its name or one of its stats, as the shop lists them,
 	 * contains Search, ignoring case and the space around it. An empty search finds every item.

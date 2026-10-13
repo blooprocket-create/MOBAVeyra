@@ -342,7 +342,7 @@ namespace
 	/** The HUD on a Viewport-sized screen as the player set it: the deck, the minimap and the chat inside the safe area (ADR-059 §1-§2). */
 	FVeyraHudArrangement Arrangement(const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const FVector2D& Viewport)
 	{
-		return VeyraHudLayout::Arrange(Viewport, Settings, Preferences, UE_ARRAY_COUNT(VeyraAbilitySlots::All), UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent);
+		return VeyraHudLayout::ArrangeFor(Viewport, Settings, Preferences);
 	}
 
 	/** A minimap side's colour, as the player's colour vision gives it (ADR-055 §1). */
@@ -524,7 +524,10 @@ namespace
 			const FVeyraHudArrangement Layout = Arrangement(Settings, VeyraInterfacePreferences::Resolve(Settings, VeyraInterfacePreferences::StoreOf(Owner)), Size);
 			const FBox2D Deck(Layout.DeckTopLeft, Layout.DeckTopLeft + Layout.Deck.Size);
 			const FBox2D Minimap(Layout.Minimap.Origin, Layout.Minimap.Origin + FVector2D(Layout.Minimap.Size));
-			return Deck.IsInsideOrOn(Screen) || Minimap.IsInsideOrOn(Screen) || (Owner->GetSelectedUnit() && Layout.TargetFrame.IsInsideOrOn(Screen));
+			// The stats panel too, its more stats while they show (ADR-080 §3).
+			const UVeyraGreyboxSubsystem* Presentation = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>() : nullptr;
+			const bool bOnStats = Layout.StatsCore.IsInsideOrOn(Screen) || (Presentation && Presentation->IsStatsPanelOpen() && Layout.StatsMore.IsInsideOrOn(Screen));
+			return Deck.IsInsideOrOn(Screen) || Minimap.IsInsideOrOn(Screen) || bOnStats || (Owner->GetSelectedUnit() && Layout.TargetFrame.IsInsideOrOn(Screen));
 		});
 	}
 

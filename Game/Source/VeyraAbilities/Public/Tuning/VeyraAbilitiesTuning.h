@@ -2652,4 +2652,30 @@ namespace VeyraAbilityRules
 
 	/** Every damage list Ability's tuning holds, in the order its validation reads them; empty for one that deals none. */
 	VEYRAABILITIES_API TArray<FVeyraAbilityDamagePart> DamageParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/** One list of statuses an ability's effects put on what they reach, with its role as a damage part's (ADR-080 §2). */
+	struct FVeyraAbilityStatusPart
+	{
+		FString Role;
+		TArray<FVeyraContentId> Statuses;
+	};
+
+	/** Every status list Ability's effects hold, in the order its validation reads them; what its tooltip says they do. */
+	VEYRAABILITIES_API TArray<FVeyraAbilityStatusPart> StatusParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/**
+	 * A shield's amount at Rank for a caster with this Max Health and Magic Power: the rank's amount plus each times its
+	 * ratio. The one formula a grant is made with and an ability's tooltip shows (ADR-080 §2).
+	 */
+	VEYRAABILITIES_API double ShieldAmount(const FVeyraShieldTuning& Shield, int32 Rank, double MaxHealth, double MagicPower);
+
+	/** One shield an ability's tuning grants, with its role as a damage part's (ADR-080 §2). */
+	struct FVeyraAbilityShieldPart
+	{
+		FString Role;
+		FVeyraShieldTuning Shield;
+	};
+
+	/** Every shield Ability's tuning grants, in the order its validation reads them. */
+	VEYRAABILITIES_API TArray<FVeyraAbilityShieldPart> ShieldParts(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 }

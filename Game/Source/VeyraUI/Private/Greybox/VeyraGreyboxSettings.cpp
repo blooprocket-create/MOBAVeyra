@@ -133,6 +133,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("DenseFogColor"), DenseFogColor },
 		{ TEXT("FogOfWarColor"), FogOfWarColor },
 		{ TEXT("WarningColor"), WarningColor },
+		{ TEXT("TooltipHarmColor"), TooltipHarmColor },
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
@@ -292,6 +293,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("the kill feed needs rows, a time to show and a face size, and the announcement a time and a size."));
 	Require(RankUpPulseSeconds > 0.0f && RankUpPulseFloor >= 0.0f && RankUpPulseFloor < 1.0f, TEXT("RankUpPulseSeconds"),
 		TEXT("a pulse needs a period above 0 and a floor below whole."));
+	// The tooltip's header and facts, the stats panel and the health bar's ticks (ADR-080 §2-§4).
+	Require(TooltipIconSize >= 1.0f && TooltipLabelWidth >= 1.0f, TEXT("TooltipIconSize"), TEXT("the tooltip's icon and label column must be at least 1."));
+	Require(StatsPanelWidth >= 1.0f && StatsRowHeight >= 1.0f, TEXT("StatsPanelWidth"), TEXT("the stats panel needs a width and a row height of at least 1."));
+	Require(HealthTickAmount >= 1.0f, TEXT("HealthTickAmount"), TEXT("must be at least 1."));
 	Require(CombatTextScale > 0.0f, TEXT("CombatTextScale"), TEXT("must be above 0."));
 	Require(CombatTextCritScale >= 1.0f, TEXT("CombatTextCritScale"), TEXT("must be at least 1."));
 	Require(TelegraphLift >= 0.0f, TEXT("TelegraphLift"), TEXT("must not be negative."));

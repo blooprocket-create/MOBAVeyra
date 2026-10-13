@@ -222,6 +222,10 @@ public:
 	 */
 	UFont* GetHudFont() const { return HudFont; }
 
+	/** Whether the stats panel beside the portrait shows its more stats; a click on the panel turns it (ADR-080 §3). */
+	bool IsStatsPanelOpen() const { return bStatsPanelOpen; }
+	void ToggleStatsPanel() { bStatsPanelOpen = !bStatsPanelOpen; }
+
 	/** The side of this machine's player; None for a spectator or a world without one. */
 	EVeyraTeam GetViewerTeam() const;
 
@@ -655,6 +659,8 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFont> HudFont;
+
+	bool bStatsPanelOpen = false;
 
 	TMap<TWeakObjectPtr<const AActor>, FBody> Bodies;
 	TMap<TWeakObjectPtr<const AVeyraProjectile>, FProjectileVisual> Projectiles;

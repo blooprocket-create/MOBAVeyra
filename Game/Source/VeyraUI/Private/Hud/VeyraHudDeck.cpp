@@ -3,6 +3,7 @@
 #include "Hud/VeyraHudDeck.h"
 
 #include "CanvasItem.h"
+#include "HAL/IConsoleManager.h"
 #include "Client/VeyraClientFlowSubsystem.h"
 #include "Client/VeyraClientIntents.h"
 #include "Engine/Canvas.h"
@@ -26,10 +27,14 @@
 #include "Match/VeyraMatchMenuSubsystem.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellArt.h"
+#include "Shell/VeyraShellBrushes.h"
+#include "Shell/VeyraShellStyleSettings.h"
+#include "Shop/VeyraShopModel.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Statistics/VeyraScoreComponent.h"
 #include "Styling/CoreStyle.h"
 #include "Text/VeyraContentText.h"
+#include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
@@ -38,6 +43,14 @@
 
 // The engine keeps a smoothed frame rate, declared only where it is defined.
 extern ENGINE_API float GAverageFPS;
+
+#if !UE_BUILD_SHIPPING
+// For captures of the HUD (Smoke.ps1 -ScreenshotCommands): a deck tile's tooltip shown as if the cursor rested on it, and
+// the stats panel held open. Not in a shipping build.
+static TAutoConsoleVariable<FString> CVarDevHudHover(TEXT("Veyra.Dev.HudHover"), TEXT(""),
+	TEXT("Shows the tooltip of a deck tile as if hovered: Passive, Q, W, E, R or Item1 to Item6; empty for the cursor's own."));
+static TAutoConsoleVariable<bool> CVarDevStatsPanelOpen(TEXT("Veyra.Dev.StatsPanelOpen"), false, TEXT("Holds the HUD's stats panel open."));
+#endif
 
 namespace
 {
@@ -51,12 +64,56 @@ namespace
 		const UFont* FontAsset = nullptr;
 		float Scale = 1.0f;
 
+		/** The Smoked Crucible's surface (ADR-078 §3): its chamfered fill, tinted the surface's colour, and its brass edge. */
+		FSlateBrush SurfaceFill;
+		FSlateBrush SurfaceEdge;
+
 		FPainter(UCanvas& InCanvas, const UVeyraGreyboxSettings& InSettings, const UFont* InFont, float HudScale = 1.0f)
 			: Canvas(InCanvas)
 			, Settings(InSettings)
 			, FontAsset(InFont)
 			, Scale((InSettings.HudReferenceHeight > 0.0f ? InCanvas.ClipY / InSettings.HudReferenceHeight : 1.0f) * HudScale)
 		{
+			const UVeyraShellStyleSettings& Look = *GetDefault<UVeyraShellStyleSettings>();
+			SurfaceFill = VeyraShellBrushes::Mask(Look.PanelChamfer, Look.SurfaceShade);
+			SurfaceEdge = VeyraShellBrushes::Outline(Look.PanelChamfer, Look.EdgeColor, Look.EdgeTickColor);
+		}
+
+		/**
+		 * Brush drawn as a nine-sliced box over Size at TopLeft in Tint: its corners keep their designed size at the HUD's scale,
+		 * never more than half the box, and its edges and middle stretch.
+		 */
+		void Box(const FSlateBrush& Brush, const FVector2D& TopLeft, const FVector2D& Size, const FLinearColor& Tint) const
+		{
+			const UTexture* Texture = Cast<UTexture>(Brush.GetResourceObject());
+			if (!Texture || !Texture->GetResource() || Size.X <= 0.0 || Size.Y <= 0.0)
+			{
+				return;
+			}
+			const FMargin& Margin = Brush.Margin;
+			const double Left = FMath::Min(static_cast<double>(S(Margin.Left * Brush.ImageSize.X)), Size.X / 2.0);
+			const double Right = FMath::Min(static_cast<double>(S(Margin.Right * Brush.ImageSize.X)), Size.X / 2.0);
+			const double Top = FMath::Min(static_cast<double>(S(Margin.Top * Brush.ImageSize.Y)), Size.Y / 2.0);
+			const double Bottom = FMath::Min(static_cast<double>(S(Margin.Bottom * Brush.ImageSize.Y)), Size.Y / 2.0);
+			const double Xs[] = { 0.0, Left, Size.X - Right, Size.X };
+			const double Us[] = { 0.0, Margin.Left, 1.0 - Margin.Right, 1.0 };
+			const double Ys[] = { 0.0, Top, Size.Y - Bottom, Size.Y };
+			const double Vs[] = { 0.0, Margin.Top, 1.0 - Margin.Bottom, 1.0 };
+			for (int32 Row = 0; Row < 3; ++Row)
+			{
+				for (int32 Column = 0; Column < 3; ++Column)
+				{
+					const FVector2D Piece(Xs[Column + 1] - Xs[Column], Ys[Row + 1] - Ys[Row]);
+					if (Piece.X <= 0.0 || Piece.Y <= 0.0)
+					{
+						continue;
+					}
+					FCanvasTileItem Tile(TopLeft + FVector2D(Xs[Column], Ys[Row]), Texture->GetResource(), Piece, FVector2D(Us[Column], Vs[Row]),
+						FVector2D(Us[Column + 1], Vs[Row + 1]), Tint);
+					Tile.BlendMode = SE_BLEND_Translucent;
+					Canvas.DrawItem(Tile);
+				}
+			}
 		}
 
 		float S(float Units) const
@@ -87,11 +144,11 @@ namespace
 			Canvas.DrawItem(Box);
 		}
 
-		/** A smoked surface with its thin outline. */
+		/** A smoked, chamfered surface with its brass edge (ADR-078 §3). */
 		void Surface(const FVector2D& TopLeft, const FVector2D& Size) const
 		{
-			Rect(TopLeft, Size, Settings.HudSurfaceColor);
-			Outline(TopLeft, Size, Settings.HudHairlineColor);
+			Box(SurfaceFill, TopLeft, Size, Settings.HudSurfaceColor);
+			Box(SurfaceEdge, TopLeft, Size, FLinearColor::White);
 		}
 
 		FVector2D Measure(const FString& Text, const FSlateFontInfo& Font) const
@@ -161,14 +218,26 @@ namespace
 		}
 	};
 
-	/** What the cursor rests on, for its tooltip. */
+	/** What the cursor rests on, for its tooltip (ADR-080 §2). */
 	struct FHover
 	{
 		FString Title;
 		FString Detail;
 		FString Description;
-		/** An ability's numbers, a line each, between its detail and its description (ADR-065 §7). */
-		TArray<FString> Numbers;
+		/** The header's icon, and the key it is cast with, in a chip beside the title. */
+		UTexture2D* Icon = nullptr;
+		FString Key;
+		/** The header's right side: the cooldown the caster would wait, and the cost or the price. */
+		FString Cooldown;
+		FString Cost;
+		/** An ability's facts, each labelled, coloured by kind and with how it is made beside it. */
+		TArray<FVeyraAbilityFact> Facts;
+		/** An item's stats, a line each. */
+		TArray<FString> Stats;
+		/** The footer: each damage part's amount at the next rank. */
+		FString NextRank;
+		/** The hovered tile's top edge: its centre across, and its top. The tooltip stands over it. */
+		FVector2D Anchor = FVector2D::ZeroVector;
 	};
 
 	FString KeyName(const FKey& Key)
@@ -521,59 +590,180 @@ namespace
 		}
 	}
 
-	/** The hovered slot's tooltip, centred over the deck at DeckCentre. */
-	void DrawTooltip(const FPainter& Paint, const FHover& Hover, float DeckTop, float DeckCentre)
+	/**
+	 * The hovered tile's tooltip over it (ADR-080 §2): a header with the icon, the title and its key, the detail, and the cooldown
+	 * and cost; then the description; each fact labelled, coloured by kind, with how it is made beside it; an item's stats; and
+	 * the next rank. Painted at the player's Interface Text Size.
+	 */
+	void DrawTooltip(const FPainter& Paint, const FHover& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const float Pad = Paint.S(Settings.DeckPadding);
 		const float Width = Paint.S(Settings.TooltipWidth);
+		const float Inner = Width - Pad * 2.0f;
+		const float Gap = Paint.S(6.0f);
+		const float Icon = Hover.Icon ? Paint.S(Settings.TooltipIconSize) : 0.0f;
+		const float LabelWidth = Paint.S(Settings.TooltipLabelWidth);
 		const FSlateFontInfo TitleFont = Paint.Font(TEXT("Bold"), Settings.HudHeadingFontSize);
-		const FSlateFontInfo DetailFont = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
+		const FSlateFontInfo SmallFont = Paint.Font(TEXT("Regular"), Settings.HudSmallFontSize);
+		const FSlateFontInfo LabelFont = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
 		const FSlateFontInfo BodyFont = Paint.Font(TEXT("Regular"), Settings.HudBodyFontSize);
-		const TArray<FString> Lines = Paint.Wrap(Hover.Description, BodyFont, Width - Pad * 2.0f);
-		TArray<FString> NumberLines;
-		for (const FString& Number : Hover.Numbers)
+		const FSlateFontInfo ValueFont = Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize);
+		const float SmallHeight = Paint.Measure(TEXT("Ag"), SmallFont).Y;
+		const float BodyHeight = Paint.Measure(TEXT("Ag"), BodyFont).Y;
+		const FLinearColor Muted = Settings.DescriptionColor;
+		const auto ToneColor = [&Settings](EVeyraFactTone Tone) {
+			switch (Tone)
+			{
+			case EVeyraFactTone::Physical:
+				return Settings.CombatTextPhysicalColor;
+			case EVeyraFactTone::Magic:
+				return Settings.CombatTextMagicColor;
+			case EVeyraFactTone::TrueDamage:
+				return Settings.CombatTextTrueColor;
+			case EVeyraFactTone::Harm:
+				return Settings.TooltipHarmColor;
+			case EVeyraFactTone::Help:
+				return Settings.CombatTextHealingColor;
+			default:
+				return Settings.TextColor;
+			}
+		};
+
+		// The header: the icon, the title with its key in a chip and the detail under it, and on the right the cooldown and cost.
+		TArray<FString> Right;
+		if (!Hover.Cooldown.IsEmpty())
 		{
-			NumberLines.Append(Paint.Wrap(Number, DetailFont, Width - Pad * 2.0f));
+			Right.Add(Hover.Cooldown);
 		}
-		const float LineHeight = Paint.Measure(TEXT("Ag"), BodyFont).Y;
-		const float NumberHeight = Paint.Measure(TEXT("Ag"), DetailFont).Y;
-		const float TitleHeight = Paint.Measure(Hover.Title, TitleFont).Y;
-		const float DetailHeight = Hover.Detail.IsEmpty() ? 0.0f : Paint.Measure(Hover.Detail, DetailFont).Y;
-		const float NumbersHeight = NumberLines.IsEmpty() ? 0.0f : Paint.S(6.0f) + NumberHeight * NumberLines.Num();
-		const float Height = Pad * 2.0f + TitleHeight + DetailHeight + NumbersHeight + (Lines.IsEmpty() ? 0.0f : Paint.S(6.0f) + LineHeight * Lines.Num());
-		const float Left = FMath::Clamp(DeckCentre - Width / 2.0f, 0.0f, FMath::Max(0.0f, Paint.Canvas.ClipX - Width));
-		const FVector2D TopLeft(Left, DeckTop - Height - Paint.S(Settings.DeckGap));
+		if (!Hover.Cost.IsEmpty())
+		{
+			Right.Add(Hover.Cost);
+		}
+		float RightWidth = 0.0f;
+		for (const FString& Line : Right)
+		{
+			RightWidth = FMath::Max(RightWidth, static_cast<float>(Paint.Measure(Line, ValueFont).X));
+		}
+		const float TitleHeight = Paint.Measure(TEXT("Ag"), TitleFont).Y;
+		const float HeaderText = TitleHeight + (Hover.Detail.IsEmpty() ? 0.0f : SmallHeight);
+		const float HeaderHeight = FMath::Max3(Icon, HeaderText, Right.Num() * BodyHeight);
+
+		// The description, then each fact: its label in a column, its value, and how it is made after it, wrapping under the value.
+		const TArray<FString> Lines = Paint.Wrap(Hover.Description, BodyFont, Inner);
+		struct FFactRows
+		{
+			FString Value;
+			TArray<FString> Note;
+		};
+		TArray<FFactRows> FactRows;
+		float FactsHeight = 0.0f;
+		const float ValueRoom = Inner - LabelWidth;
+		for (const FVeyraAbilityFact& Fact : Hover.Facts)
+		{
+			FFactRows& Rows = FactRows.AddDefaulted_GetRef();
+			Rows.Value = Fact.Value;
+			const float ValueWidth = Paint.Measure(Fact.Value + TEXT("  "), ValueFont).X;
+			if (!Fact.Note.IsEmpty())
+			{
+				Rows.Note = WrapAfter(Paint, Fact.Note, SmallFont, ValueRoom - ValueWidth, ValueRoom);
+			}
+			FactsHeight += BodyHeight + FMath::Max(0, Rows.Note.Num() - 1) * SmallHeight;
+		}
+		// An item's stats in two columns. The header and the facts carry every number an ability's cast has, so none repeats.
+		const int32 StatRows = (Hover.Stats.Num() + 1) / 2;
+		const float RuleSpace = Gap * 2.0f;
+		float Height = Pad * 2.0f + HeaderHeight + RuleSpace;
+		Height += Lines.IsEmpty() ? 0.0f : BodyHeight * Lines.Num() + Gap;
+		Height += FactsHeight > 0.0f ? FactsHeight + Gap : 0.0f;
+		Height += StatRows > 0 ? BodyHeight * StatRows + Gap : 0.0f;
+		Height += Hover.NextRank.IsEmpty() ? 0.0f : SmallHeight + Gap;
+		Height -= Gap;
+
+		// Over the hovered tile, kept on the screen.
+		const float Left = FMath::Clamp(static_cast<float>(Hover.Anchor.X) - Width / 2.0f, 0.0f, FMath::Max(0.0f, Paint.Canvas.ClipX - Width));
+		const float Top = FMath::Max(0.0f, static_cast<float>(Hover.Anchor.Y) - Height - Paint.S(Settings.DeckGap));
+		const FVector2D TopLeft(Left, Top);
 		Paint.Surface(TopLeft, FVector2D(Width, Height));
-		Paint.Rect(TopLeft, FVector2D(Width, Paint.S(2.0f)), Settings.HudAccentColor);
-		float Y = TopLeft.Y + Pad;
-		Paint.Text(FVector2D(TopLeft.X + Pad, Y), Hover.Title, TitleFont, Settings.TextColor);
-		Y += TitleHeight;
+
+		const float X = Left + Pad;
+		float Y = Top + Pad;
+		if (Hover.Icon && Hover.Icon->GetResource())
+		{
+			FCanvasTileItem Tile(FVector2D(X, Y), Hover.Icon->GetResource(), FVector2D(Icon), FLinearColor::White);
+			Paint.Canvas.DrawItem(Tile);
+			Paint.Outline(FVector2D(X, Y), FVector2D(Icon), Settings.HudHairlineColor);
+		}
+		const float TextX = X + (Icon > 0.0f ? Icon + Gap * 2.0f : 0.0f);
+		const float TextTop = Y + (HeaderHeight - HeaderText) / 2.0f;
+		Paint.Text(FVector2D(TextX, TextTop), Hover.Title, TitleFont, Settings.TextColor);
+		if (!Hover.Key.IsEmpty())
+		{
+			// The key in a chip beside the title, edged in the accent.
+			const FVector2D KeySize = Paint.Measure(Hover.Key, LabelFont) + FVector2D(Paint.S(8.0f), Paint.S(2.0f));
+			const FVector2D KeyAt(TextX + Paint.Measure(Hover.Title, TitleFont).X + Gap, TextTop + (TitleHeight - KeySize.Y) / 2.0f);
+			Paint.Outline(KeyAt, KeySize, Settings.HudAccentColor);
+			Paint.Text(KeyAt + FVector2D(Paint.S(4.0f), Paint.S(1.0f)), Hover.Key, LabelFont, Settings.HudAccentColor);
+		}
 		if (!Hover.Detail.IsEmpty())
 		{
-			Paint.Text(FVector2D(TopLeft.X + Pad, Y), Hover.Detail.ToUpper(), DetailFont, Settings.HudAccentColor);
-			Y += DetailHeight;
+			Paint.Text(FVector2D(TextX, TextTop + TitleHeight), Hover.Detail, SmallFont, Muted);
 		}
-		if (!NumberLines.IsEmpty())
+		float RightY = Y + (HeaderHeight - Right.Num() * BodyHeight) / 2.0f;
+		for (const FString& Line : Right)
 		{
-			Y += Paint.S(6.0f);
-			for (const FString& Line : NumberLines)
-			{
-				Paint.Text(FVector2D(TopLeft.X + Pad, Y), Line, DetailFont, Settings.TextColor);
-				Y += NumberHeight;
-			}
+			Paint.Text(FVector2D(Left + Width - Pad - Paint.Measure(Line, ValueFont).X, RightY), Line, ValueFont, Settings.TextColor);
+			RightY += BodyHeight;
 		}
-		Y += Paint.S(6.0f);
+		Y += HeaderHeight + Gap;
+		Paint.Rect(FVector2D(X, Y), FVector2D(Inner, FMath::Max(1.0f, Paint.S(1.0f))), Settings.HudHairlineColor);
+		Y += Gap;
+
 		for (const FString& Line : Lines)
 		{
-			Paint.Text(FVector2D(TopLeft.X + Pad, Y), Line, BodyFont, Settings.DescriptionColor);
-			Y += LineHeight;
+			Paint.Text(FVector2D(X, Y), Line, BodyFont, Settings.TextColor.CopyWithNewOpacity(0.85f));
+			Y += BodyHeight;
+		}
+		if (!Lines.IsEmpty())
+		{
+			Y += Gap;
+		}
+		for (int32 Index = 0; Index < Hover.Facts.Num(); ++Index)
+		{
+			const FVeyraAbilityFact& Fact = Hover.Facts[Index];
+			const FFactRows& Rows = FactRows[Index];
+			Paint.Text(FVector2D(X, Y + (BodyHeight - SmallHeight) / 2.0f), Fact.Label.ToString().ToUpper(), LabelFont, Muted);
+			const float ValueX = X + LabelWidth;
+			Paint.Text(FVector2D(ValueX, Y), Rows.Value, ValueFont, ToneColor(Fact.Tone));
+			const float NoteX = ValueX + Paint.Measure(Rows.Value + TEXT("  "), ValueFont).X;
+			for (int32 Row = 0; Row < Rows.Note.Num(); ++Row)
+			{
+				const float RowY = Row == 0 ? Y + (BodyHeight - SmallHeight) / 2.0f : Y + BodyHeight + (Row - 1) * SmallHeight;
+				Paint.Text(FVector2D(Row == 0 ? NoteX : ValueX, RowY), Rows.Note[Row], SmallFont, Muted);
+			}
+			Y += BodyHeight + FMath::Max(0, Rows.Note.Num() - 1) * SmallHeight;
+		}
+		if (FactsHeight > 0.0f)
+		{
+			Y += Gap;
+		}
+		for (int32 Index = 0; Index < Hover.Stats.Num(); ++Index)
+		{
+			Paint.Text(FVector2D(X + (Index % 2) * Inner / 2.0f, Y + (Index / 2) * BodyHeight), Hover.Stats[Index], ValueFont, Settings.TextColor);
+		}
+		if (StatRows > 0)
+		{
+			Y += BodyHeight * StatRows + Gap;
+		}
+		if (!Hover.NextRank.IsEmpty())
+		{
+			Paint.Text(FVector2D(X, Y), Hover.NextRank, SmallFont, Muted);
 		}
 	}
 
 	/** A bar filled Fill of the way in Color, with Label centred over it. */
 	void DrawBar(const FPainter& Paint, const FVector2D& TopLeft, const FVector2D& Size, double Fill, const FLinearColor& Color, const FString& Label,
-		double ShieldFill = 0.0)
+		double ShieldFill = 0.0, double TickEvery = 0.0)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		Paint.Rect(TopLeft, Size, Settings.BarBackgroundColor);
@@ -585,6 +775,16 @@ namespace
 		}
 		// A light edge along the top gives the bar depth.
 		Paint.Rect(TopLeft, FVector2D(Filled, FMath::Max(1.0f, Size.Y * 0.18f)), FLinearColor(1.0f, 1.0f, 1.0f, 0.18f));
+		// A tick at each TickEvery of the bar's length, so its length reads as an amount (ADR-080 §4); none when they would crowd.
+		constexpr float LeastTickSpacing = 3.0f;
+		if (TickEvery > 0.0 && Size.X * TickEvery >= LeastTickSpacing)
+		{
+			const FVector2D TickSize(FMath::Max(1.0f, Paint.S(1.0f)), Size.Y * 0.6f);
+			for (double At = TickEvery; At < 1.0; At += TickEvery)
+			{
+				Paint.Rect(TopLeft + FVector2D(Size.X * At, 0.0f), TickSize, FLinearColor(0.0f, 0.0f, 0.0f, 0.55f));
+			}
+		}
 		Paint.Outline(TopLeft, Size, FLinearColor(0.0f, 0.0f, 0.0f, 0.6f));
 		if (!Label.IsEmpty())
 		{
@@ -674,6 +874,49 @@ namespace
 		}
 	}
 
+	/**
+	 * The stats panel beside the portrait (ADR-080 §3): the core stats in two columns in Core, and with bOpen the rest in More
+	 * above it, under a label. A stat raised above the Vanguard's own value reads in brass; a mark in the corner says the panel
+	 * opens or closes on a click.
+	 */
+	void DrawStatsPanel(const FPainter& Paint, const FVeyraHudStats& Stats, const FBox2D& Core, const FBox2D& More, bool bOpen)
+	{
+		const UVeyraGreyboxSettings& Settings = Paint.Settings;
+		const float Pad = Paint.S(Settings.DeckPadding);
+		const float Row = Paint.S(Settings.StatsRowHeight);
+		const FSlateFontInfo NameFont = Paint.Font(TEXT("Regular"), Settings.HudSmallFontSize);
+		const FSlateFontInfo ValueFont = Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize);
+		const float NameHeight = Paint.Measure(TEXT("Ag"), NameFont).Y;
+		const float ValueHeight = Paint.Measure(TEXT("Ag"), ValueFont).Y;
+		const auto Grid = [&](const FBox2D& Box, TConstArrayView<FVeyraHudStat> Shown, float Top) {
+			const float ColumnWidth = (static_cast<float>(Box.GetSize().X) - Pad * 3.0f) / 2.0f;
+			for (int32 Index = 0; Index < Shown.Num(); ++Index)
+			{
+				const FVeyraHudStat& Stat = Shown[Index];
+				const float X = static_cast<float>(Box.Min.X) + Pad + (Index % 2) * (ColumnWidth + Pad);
+				const float Y = Top + (Index / 2) * Row;
+				Paint.Text(FVector2D(X, Y + (Row - NameHeight) / 2.0f), Stat.Name.ToString(), NameFont, Settings.DescriptionColor);
+				const float ValueWidth = Paint.Measure(Stat.Value, ValueFont).X;
+				Paint.Text(FVector2D(X + ColumnWidth - ValueWidth, Y + (Row - ValueHeight) / 2.0f), Stat.Value, ValueFont, Stat.bRaised ? Settings.GoldColor : Settings.TextColor);
+			}
+		};
+		Paint.Surface(Core.Min, Core.GetSize());
+		Grid(Core, Stats.Core, static_cast<float>(Core.Min.Y) + Pad);
+		const FSlateFontInfo MarkFont = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
+		const FString Mark = bOpen ? TEXT("-") : TEXT("+");
+		Paint.Text(FVector2D(static_cast<float>(Core.Max.X) - Pad - Paint.Measure(Mark, MarkFont).X, static_cast<float>(Core.Min.Y) + Paint.S(2.0f)), Mark, MarkFont,
+			Settings.HudAccentColor);
+		if (!bOpen)
+		{
+			return;
+		}
+		Paint.Surface(More.Min, More.GetSize());
+		const FSlateFontInfo LabelFont = Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize);
+		Paint.Text(FVector2D(static_cast<float>(More.Min.X) + Pad, static_cast<float>(More.Min.Y) + Pad + (Row - Paint.Measure(TEXT("Ag"), LabelFont).Y) / 2.0f),
+			TEXT("MORE"), LabelFont, Settings.DescriptionColor);
+		Grid(More, Stats.More, static_cast<float>(More.Min.Y) + Pad + Row);
+	}
+
 	/** A painter like Like at Scale pixels per designed unit: one of the deck's sections, or the team panels (ADR-059 §1). */
 	FPainter PainterAt(const FPainter& Like, float Scale)
 	{
@@ -688,17 +931,43 @@ namespace
 	 */
 	float DrawDeck(const FPainter& Paint, const FVeyraDeckGeometry& Deck, const FVector2D& TopLeft, const FVeyraCooldownDisplay& Cooldowns,
 		const FVeyraStatusDisplay& Statuses, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey,
-		const TOptional<FVector2D>& Mouse, double Now, float RankMarkOpacity, bool bInDenseFog, TOptional<FHover>& Hover)
+		const TOptional<FVector2D>& Cursor, double Now, float RankMarkOpacity, bool bInDenseFog, TOptional<FHover>& Hover, FVeyraHudStats& OutStats)
 	{
+		TOptional<FVector2D> Mouse = Cursor;
+#if !UE_BUILD_SHIPPING
+		// A tile pinned for a capture is hovered at its centre.
+		if (const FString Pinned = CVarDevHudHover.GetValueOnGameThread(); !Pinned.IsEmpty())
+		{
+			const FVector2D Row = TopLeft + Deck.AbilitiesAt;
+			const TCHAR* Keys[] = { TEXT("Q"), TEXT("W"), TEXT("E"), TEXT("R") };
+			for (int32 Index = 0; Index < UE_ARRAY_COUNT(Keys); ++Index)
+			{
+				if (Pinned.Equals(Keys[Index], ESearchCase::IgnoreCase))
+				{
+					Mouse = Row + FVector2D(Deck.Passive + Deck.AbilityGap + Index * (Deck.Ability + Deck.AbilityGap) + Deck.Ability / 2.0f, Deck.Ability / 2.0f);
+				}
+			}
+			if (Pinned.Equals(TEXT("Passive"), ESearchCase::IgnoreCase))
+			{
+				Mouse = Row + FVector2D(Deck.Passive / 2.0f, Deck.Ability / 2.0f);
+			}
+			int32 ItemNumber = 0;
+			if (Pinned.StartsWith(TEXT("Item"), ESearchCase::IgnoreCase) && LexTryParseString(ItemNumber, *Pinned.RightChop(4)) && ItemNumber >= 1)
+			{
+				const int32 Index = ItemNumber - 1;
+				Mouse = TopLeft + Deck.ItemsAt + FVector2D((Index % 3) * (Deck.Item + Deck.ItemGap) + Deck.Item / 2.0f, (Index / 3) * (Deck.Item + Deck.ItemGap) + Deck.Item / 2.0f);
+			}
+		}
+#endif
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
+		OutStats = Player.Stats;
 		const FPainter Frame = PainterAt(Paint, Deck.Scales.Base);
 		const FPainter Bar = PainterAt(Paint, Deck.Scales.AbilityBar);
 		const FPainter Vitals = PainterAt(Paint, Deck.Scales.Vitals);
 		const FPainter Spells = PainterAt(Paint, Deck.Scales.Spells);
 		const FPainter Items = PainterAt(Paint, Deck.Scales.Items);
 		Frame.Surface(TopLeft, Deck.Size);
-		Frame.Rect(TopLeft, FVector2D(Deck.Size.X, Frame.S(2.0f)), Settings.HudAccentColor.CopyWithNewOpacity(0.5f));
 
 		// The portrait, with the level on it and XP along its foot.
 		const float Portrait = Deck.Portrait;
@@ -721,6 +990,7 @@ namespace
 			FString Title = VeyraContentText::VanguardName(Player.Vanguard).ToString();
 			Hover = FHover{ Title, FString::Printf(TEXT("Level %d   XP %d / %d"), Player.Level, Player.Experience, Player.ExperienceToNextLevel),
 				VeyraContentText::VanguardTitle(Player.Vanguard).ToString() };
+			Hover->Anchor = FVector2D(PortraitAt.X + Portrait / 2.0f, PortraitAt.Y);
 		}
 
 		// The passive, then Q W E R.
@@ -741,6 +1011,8 @@ namespace
 		if (Player.Passive.IsValid() && Contains(PassiveAt, FVector2D(Small), Mouse))
 		{
 			Hover = FHover{ PassiveName, TEXT("Passive"), VeyraContentText::PassiveDescription(Player.Passive).ToString() };
+			Hover->Icon = VeyraShellArt::AbilityIconOf(Player.Passive.ToString());
+			Hover->Anchor = FVector2D(PassiveAt.X + Small / 2.0f, PassiveAt.Y);
 		}
 		X += Small + Gap;
 		const FSlateFontInfo NameFont = Bar.Font(TEXT("Bold"), Settings.HudSmallFontSize);
@@ -801,7 +1073,8 @@ namespace
 			}
 			if (Slot.Ability.IsValid() && Contains(At, FVector2D(Ability), Mouse))
 			{
-				FString Detail = FString::Printf(TEXT("Rank %d / %d"), Slot.Rank, Slot.MaxRank);
+				// An unlearned ability shows its first rank's numbers, so its detail says it is not yet learned.
+				FString Detail = Slot.Rank > 0 ? FString::Printf(TEXT("Rank %d of %d"), Slot.Rank, Slot.MaxRank) : FString(TEXT("Not learned"));
 				if (Slot.bCanRankUp)
 				{
 					Detail += FString::Printf(TEXT("   %s+%s to rank up"), *KeyName(Input.RankUpModifierKey), *KeyName(Input.GetAbilityKey(Slot.Slot)));
@@ -810,7 +1083,15 @@ namespace
 				{
 					Detail += FString::Printf(TEXT("   next attack empowered %.1f s"), Slot.EmpoweredSeconds);
 				}
-				Hover = FHover{ Name, Detail, VeyraContentText::AbilityDescription(Slot.Ability).ToString(), Slot.Numbers };
+				Hover = FHover{ Name, Detail, VeyraContentText::AbilityDescription(Slot.Ability).ToString() };
+				// Its facts at its rank with the player's power now, and its wait after Ability Haste (ADR-080 §2).
+				Hover->Icon = VeyraShellArt::SlotIconOf(Slot.Ability.ToString(), Slot.OwnAbility.ToString());
+				Hover->Key = KeyName(Input.GetAbilityKey(Slot.Slot));
+				Hover->Cooldown = Slot.Summary.Cooldown.IsEmpty() ? FString() : Slot.Summary.Cooldown + TEXT(" cooldown");
+				Hover->Cost = Slot.Summary.Cost;
+				Hover->Facts = Slot.Summary.Facts;
+				Hover->NextRank = Slot.Summary.NextRank.IsEmpty() ? FString() : FString::Printf(TEXT("Next rank: %s"), *Slot.Summary.NextRank);
+				Hover->Anchor = FVector2D(At.X + Ability / 2.0f, At.Y);
 			}
 			X += Ability + Gap;
 		}
@@ -823,7 +1104,7 @@ namespace
 			? FString::Printf(TEXT("%.0f / %.0f  +%.0f"), Player.Vitals.Health, Player.Vitals.MaxHealth, Player.Vitals.Shield)
 			: FString::Printf(TEXT("%.0f / %.0f"), Player.Vitals.Health, Player.Vitals.MaxHealth);
 		DrawBar(Vitals, BarsAt, FVector2D(BarsWidth, Deck.Health), Total > 0.0 ? Player.Vitals.Health / Total : 0.0, Settings.HealthColor, HealthLabel,
-			Total > 0.0 ? Player.Vitals.Shield / Total : 0.0);
+			Total > 0.0 ? Player.Vitals.Shield / Total : 0.0, Total > 0.0 ? Settings.HealthTickAmount / Total : 0.0);
 		if (Player.Vitals.MaxResource > 0.0)
 		{
 			DrawBar(Vitals, BarsAt + FVector2D(0.0f, Deck.Health + Deck.BarSpacing), FVector2D(BarsWidth, Deck.Resource), Player.Vitals.Resource / Player.Vitals.MaxResource,
@@ -853,6 +1134,9 @@ namespace
 			{
 				const FString Detail = Spell.bLocked ? FString::Printf(TEXT("Flux Spell   locked until %.0f permanent Team Flux"), Spell.UnlockFlux) : FString(TEXT("Flux Spell"));
 				Hover = FHover{ Name, Detail, VeyraContentText::AbilityDescription(Spell.Spell).ToString() };
+				Hover->Icon = VeyraShellArt::AbilityIconOf(Spell.Spell.ToString());
+				Hover->Key = KeyName(Input.GetAbilityKey(Spell.Slot));
+				Hover->Anchor = FVector2D(At.X + Deck.Spell / 2.0f, At.Y);
 			}
 			X += Deck.Spell + Deck.SpellGap;
 		}
@@ -911,7 +1195,18 @@ namespace
 				DrawCooldown(Items, Cooldowns, At, Item, Held.CooldownSeconds, Held.CooldownTotal);
 				if (Contains(At, FVector2D(Item), Mouse))
 				{
-					Hover = FHover{ Name, FString::Printf(TEXT("Item   %s"), *KeyName(Input.GetAbilityKey(Held.Slot))), VeyraContentText::ItemDescription(Held.Item).ToString() };
+					Hover = FHover{ Name, TEXT("Item"), VeyraContentText::ItemDescription(Held.Item).ToString() };
+					// Its stats as the shop words them, then what it does (ADR-080 §2; Settings Bible 97: stats before effects).
+					Hover->Icon = VeyraShellArt::ItemIconOf(Held.Item.ToString());
+					Hover->Key = KeyName(Input.GetAbilityKey(Held.Slot));
+					if (const FVeyraItemDefinition* Definition = UVeyraItemsTuningSubsystem::Get().Items.Find(Held.Item))
+					{
+						for (const FText& Line : VeyraShopModel::StatLines(Definition->Stats))
+						{
+							Hover->Stats.Add(Line.ToString());
+						}
+					}
+					Hover->Anchor = FVector2D(At.X + Item / 2.0f, At.Y);
 				}
 			}
 			// An item whose Active is ready shows ready, as an ability does.
@@ -1011,15 +1306,31 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const UVeyraGreyboxSubsystem* Presentation = World.GetSubsystem<UVeyraGreyboxSubsystem>();
 	const APawn* Vanguard = Player ? Player->GetVanguard() : nullptr;
 	const bool bInDenseFog = Presentation && Vanguard && Presentation->HiddenKindOf(*Vanguard) == EVeyraHiddenKind::DenseFog;
-	const float DeckTop = DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own,
-		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, bInDenseFog, Hover);
+	FVeyraHudStats Stats;
+	DrawDeck(Paint, Layout.Deck, Layout.DeckTopLeft, Preferences.Cooldowns, Preferences.Statuses, *Own,
+		Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, RankMarkOpacity, bInDenseFog, Hover, Stats);
+	// The stats panel beside the portrait, which a click on it opens or closes (ADR-080 §3).
+	if (UVeyraGreyboxSubsystem* StatsState = World.GetSubsystem<UVeyraGreyboxSubsystem>())
+	{
+		if (Player && Mouse.IsSet() && Layout.StatsCore.IsInsideOrOn(Mouse.GetValue()) && Player->WasInputKeyJustPressed(Player->GetKeys().SelectKey))
+		{
+			StatsState->ToggleStatsPanel();
+		}
+		bool bStatsOpen = StatsState->IsStatsPanelOpen();
+#if !UE_BUILD_SHIPPING
+		bStatsOpen |= CVarDevStatsPanelOpen.GetValueOnGameThread();
+#endif
+		DrawStatsPanel(PainterAt(Paint, Layout.Stats), Stats, Layout.StatsCore, Layout.StatsMore, bStatsOpen);
+	}
 	if (Player)
 	{
 		DrawChat(Paint, Preferences, Layout.Chat, *Player, GameState, Side, Screens && Screens->IsChatOpen());
 	}
 	if (Hover.IsSet())
 	{
-		DrawTooltip(Paint, Hover.GetValue(), DeckTop, Layout.DeckTopLeft.X + Layout.Deck.Size.X / 2.0f);
+		// At the player's Interface Text Size, as every informational tooltip (SET-62).
+		const float* TextScale = GetDefault<UVeyraShellStyleSettings>()->TextSizeScales.Find(Preferences.TextSize);
+		DrawTooltip(PainterAt(Paint, Paint.Scale * (TextScale ? *TextScale : 1.0f)), Hover.GetValue());
 	}
 }
 
