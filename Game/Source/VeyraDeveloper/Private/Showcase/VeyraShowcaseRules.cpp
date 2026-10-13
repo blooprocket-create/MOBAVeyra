@@ -78,6 +78,15 @@ namespace VeyraShowcase
 		return !bStatusesHeld || SecondsSinceSet >= SettleSeconds + StatusPatienceSeconds;
 	}
 
+	EOpenedHold OpenedHoldOf(const FVeyraContentId& Held, const FVeyraContentId& Opened, bool bClipOpen)
+	{
+		if (Held.IsValid() && Held == Opened)
+		{
+			return EOpenedHold::Cast;
+		}
+		return bClipOpen ? EOpenedHold::Skip : EOpenedHold::MoveOn;
+	}
+
 	TOptional<int32> NextOpenedSlot(TConstArrayView<FVeyraContentId> Held, TConstArrayView<FVeyraContentId> Opened,
 		TConstArrayView<FVeyraContentId> Recorded)
 	{

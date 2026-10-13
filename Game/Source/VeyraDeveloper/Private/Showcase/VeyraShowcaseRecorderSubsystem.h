@@ -97,6 +97,12 @@ private:
 	/** The slot being recorded: one an opened ability is in, or the kit's own at SlotIndex. */
 	EVeyraAbilitySlot CurrentSlot() const;
 
+	/**
+	 * Whether Entry, the current slot's, is the opened ability chosen for it (VeyraShowcase::OpenedHoldOf), or no opened
+	 * ability is being recorded; if not, it goes on without it or leaves its clip out, and returns false.
+	 */
+	bool KeepsOpened(const struct FVeyraLoadoutEntry* Entry);
+
 	/** Orders a basic attack at Dummy and starts its clip (ADR-074 §3). */
 	void OrderAttack(AVeyraPlayerController& Controller, AActor& Dummy);
 
@@ -128,6 +134,8 @@ private:
 	/** While abilities a skill opened are recorded: the slot holding the one now, and the skill. */
 	TOptional<int32> OpenedSlot;
 	FVeyraContentId OpenedBy;
+	/** The opened ability chosen for OpenedSlot, which the slot must still hold when it is cast. */
+	FVeyraContentId OpenedAbility;
 	/** Whether the kit is being cast once unrecorded, so every effect is ready before it is recorded. */
 	bool bRehearsing = false;
 	/** The number of the latest reset asked for, which its reply carries; when this slot's first was asked for; and when the stage was set. */

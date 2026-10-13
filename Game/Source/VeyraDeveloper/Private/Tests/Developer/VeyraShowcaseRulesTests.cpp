@@ -64,6 +64,17 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(IsFalse(VeyraShowcase::NextOpenedSlot(Ended, Opened, { Id(TEXT("test_ride")) }).IsSet()));
 		}
 
+		TEST_METHOD(AnOpenedAbilityIsCastOnlyWhileItsSlotHoldsIt)
+		{
+			// A ride that runs out puts the slot's own ability back: it is never cast or recorded in the opened one's place.
+			const auto Id = [](const TCHAR* Name) { return FVeyraContentId::FromText(Name).GetValue(); };
+			ASSERT_THAT(IsTrue(VeyraShowcase::OpenedHoldOf(Id(TEXT("test_jump")), Id(TEXT("test_jump")), false) == VeyraShowcase::EOpenedHold::Cast));
+			ASSERT_THAT(IsTrue(VeyraShowcase::OpenedHoldOf(Id(TEXT("test_jump")), Id(TEXT("test_jump")), true) == VeyraShowcase::EOpenedHold::Cast));
+			ASSERT_THAT(IsTrue(VeyraShowcase::OpenedHoldOf(Id(TEXT("test_e")), Id(TEXT("test_jump")), false) == VeyraShowcase::EOpenedHold::MoveOn, TEXT("before its clip, on without it")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::OpenedHoldOf(Id(TEXT("test_e")), Id(TEXT("test_jump")), true) == VeyraShowcase::EOpenedHold::Skip, TEXT("once its clip began, left out")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::OpenedHoldOf(FVeyraContentId(), Id(TEXT("test_jump")), false) == VeyraShowcase::EOpenedHold::MoveOn, TEXT("an empty slot holds nothing opened")));
+		}
+
 		TEST_METHOD(TheBasicAttackIsRehearsedBeforeItIsRecorded)
 		{
 			// Its effect in flight compiles in the rehearsal, which then gives way to the recording (ADR-074 §3).

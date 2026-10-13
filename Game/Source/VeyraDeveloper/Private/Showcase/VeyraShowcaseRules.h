@@ -84,4 +84,16 @@ namespace VeyraShowcase
 	 */
 	TOptional<int32> NextOpenedSlot(TConstArrayView<FVeyraContentId> Held, TConstArrayView<FVeyraContentId> Opened,
 		TConstArrayView<FVeyraContentId> Recorded);
+
+	/** What the recorder does with an opened ability it chose (ADR-074 §3), given what its slot Held now. */
+	enum class EOpenedHold : uint8
+	{
+		/** The slot still holds it: cast it. */
+		Cast,
+		/** Its slot went back to another ability before its clip began, as a ride that ran out: go on without it. */
+		MoveOn,
+		/** Its slot went back once its clip had begun: the clip is left out, never recorded as the slot's other ability. */
+		Skip,
+	};
+	EOpenedHold OpenedHoldOf(const FVeyraContentId& Held, const FVeyraContentId& Opened, bool bClipOpen);
 }
