@@ -325,6 +325,41 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsTrue(Missing.IsEmpty(), *FString::Printf(TEXT("no recipe for %s"), *FString::Join(Missing, TEXT(", ")))));
 		}
 
+		TEST_METHOD(EveryEffectThatStandsForAnAreaTakesItsSize)
+		{
+			// An Area or Linger effect hides its telegraph (ADR-075 §1), so it must draw the area's true size: it takes the
+			// shape, or a radius, or a length and a width, never only a point's motes.
+			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+			const auto Takes = [](const TSet<FName>& Names, FName Parameter) { return Names.Contains(Parameter); };
+			for (const FVeyraAbilityEffects& Effects : Settings.AbilityEffects)
+			{
+				for (const TPair<const FVeyraSkillEffectStage*, const TCHAR*>& Stage :
+					{ TPair<const FVeyraSkillEffectStage*, const TCHAR*>{ &Effects.Area, TEXT("Area") }, TPair<const FVeyraSkillEffectStage*, const TCHAR*>{ &Effects.Linger, TEXT("Linger") } })
+				{
+					if (!Stage.Key->IsSet())
+					{
+						continue;
+					}
+					const UNiagaraSystem* System = Stage.Key->Effect.LoadSynchronous();
+					ASSERT_THAT(IsNotNull(System, *FString::Printf(TEXT("%s's %s effect loads"), *Effects.Ability.ToString(), Stage.Value)));
+					TArray<FNiagaraVariable> Exposed;
+					System->GetExposedParameters().GetUserParameters(Exposed);
+					TSet<FName> Names;
+					for (const FNiagaraVariable& Variable : Exposed)
+					{
+						// User parameters are named "User.<name>".
+						FString Name = Variable.GetName().ToString();
+						Name.RemoveFromStart(TEXT("User."));
+						Names.Add(FName(*Name));
+					}
+					const bool bSized = Takes(Names, Settings.ShapeParameter) || Takes(Names, Settings.RadiusParameter)
+						|| (Takes(Names, Settings.LengthParameter) && Takes(Names, Settings.WidthParameter));
+					ASSERT_THAT(IsTrue(bSized, *FString::Printf(TEXT("%s's %s effect %s takes its area's size"), *Effects.Ability.ToString(), Stage.Value,
+						*System->GetName())));
+				}
+			}
+		}
+
 		TEST_METHOD(EveryShippedRecipeNamesAnAbility)
 		{
 			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
