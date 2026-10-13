@@ -231,6 +231,26 @@ namespace VeyraSkillEffectsTests
 			ASSERT_THAT(IsTrue(Ring.Shape == 0 && Ring.HalfArc == 180.0 && Ring.Length == InnerRadius * 2.0 && Ring.Width == InnerRadius * 2.0));
 		}
 
+		TEST_METHOD(AnAreaOrALingerLiesOnTheSlopeItCovers)
+		{
+			// One placement for both stages (ADR-075 §3): on the ground's best plane, turned only by its yaw, its particles
+			// rising by the slope along its facing.
+			FVeyraShape Lane;
+			Lane.Kind = EVeyraShapeKind::Rectangle;
+			Lane.Length = LanceRange;
+			Lane.Width = InnerRadius;
+			const double Slope = 0.2;
+			const double Base = SlamRadius;
+			const FVeyraPlacedShape Placed{ Lane, FVector(0.0, 0.0, Base), FVector::ForwardVector };
+			const VeyraSkillEffects::FVeyraGroundPlacement Ground =
+				VeyraSkillEffects::GroundPlacementOf(Placed, [Slope, Base](const FVector2D& Point) { return Base + Slope * Point.X; });
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ground.Origin.Z, Base, 1e-3), TEXT("on the ground at its origin")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ground.Facing.Pitch, 0.0, 1e-3) && FMath::IsNearlyEqual(Ground.Facing.Roll, 0.0, 1e-3),
+				TEXT("turned only by its yaw")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ground.SlopeAlong, Slope, 1e-3) && FMath::IsNearlyEqual(Ground.SlopeAcross, 0.0, 1e-3),
+				TEXT("rising up the slope along its length")));
+		}
+
 		TEST_METHOD(EveryShippedRecipeNamesAnAbility)
 		{
 			const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();

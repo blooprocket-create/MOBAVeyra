@@ -71,6 +71,22 @@ namespace VeyraSkillEffects
 	/** Where a thrown thing is Share of its way from From to To, rising Height over its middle. */
 	VEYRAUI_API FVector ArcPoint(const FVector& From, const FVector& To, double Share, double Height);
 
+	/**
+	 * Where an effect drawn over Placed lies on the ground (ADR-075 §3), HeightAt giving the ground's height at a point:
+	 * at the origin on the plane that best fits the ground under its footprint, turned only by its facing's yaw (so its
+	 * footprint from above is its true shape), and the slope along and across that facing its particles rise by. An Area
+	 * and a Linger are placed alike.
+	 */
+	struct FVeyraGroundPlacement
+	{
+		FVector Origin = FVector::ZeroVector;
+		FRotator Facing = FRotator::ZeroRotator;
+		double SlopeAlong = 0.0;
+		double SlopeAcross = 0.0;
+		FVector Normal = FVector::UpVector;
+	};
+	VEYRAUI_API FVeyraGroundPlacement GroundPlacementOf(const FVeyraPlacedShape& Placed, TFunctionRef<double(const FVector2D&)> HeightAt);
+
 	/** An Area effect's parameters over Shape, as Abilities.json shapes it, Landing of the way to landing (ADR-075 §3). */
 	VEYRAUI_API FVeyraAreaParameters AreaParametersOf(const FVeyraShape& Shape, double Landing);
 
@@ -269,6 +285,9 @@ private:
 
 	/** Each lingering area's own effect, by area. */
 	TMap<TWeakObjectPtr<const AVeyraLingeringArea>, TWeakObjectPtr<UNiagaraComponent>> Lingering;
+
+	/** Lays Effect over Placed on the ground (VeyraSkillEffects::GroundPlacementOf) and gives it its slope; returns the placement. */
+	VeyraSkillEffects::FVeyraGroundPlacement PlaceOnGround(UNiagaraComponent* Effect, const FVeyraPlacedShape& Placed) const;
 
 	/** Each Area effect drawn now, by what lands there (a caster, or a delayed area) and which of its areas; and whether this refresh still wants it. */
 	struct FAreaShown

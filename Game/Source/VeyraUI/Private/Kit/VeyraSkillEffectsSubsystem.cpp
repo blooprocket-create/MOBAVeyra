@@ -663,6 +663,8 @@ void UVeyraSkillEffectsSubsystem::RefreshLingering(double Now)
 		UNiagaraComponent* Poured = PlayAt(*System, Placed.Origin, Placed.Direction.Rotation(), Effects->Linger.Scale, Greybox->ColorOfSide(Area.GetVeyraTeam()));
 		if (Poured)
 		{
+			// Laid on the ground's best plane under it, as an Area is (ADR-075 §3).
+			PlaceOnGround(Poured, Placed);
 			Poured->SetVariableFloat(Settings.LengthParameter, static_cast<float>(bRectangle ? Placed.Shape.Length : Placed.Shape.Radius * 2.0));
 			Poured->SetVariableFloat(Settings.WidthParameter, static_cast<float>(bRectangle ? Placed.Shape.Width : Placed.Shape.Radius * 2.0));
 			// And its true shape whole, so an Area effect can pour over it too (ADR-075 §3).
@@ -816,7 +818,6 @@ void UVeyraSkillEffectsSubsystem::RefreshAreas(double Now)
 void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, const FVeyraAbilityEffects& Effects, const FVeyraPlacedShape& Placed,
 	double Remaining, EVeyraTelegraphSource Source, const FLinearColor& Color)
 {
-	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
 	FAreaShown& Shown = Areas.FindOrAdd({ &Owner, Index });
 	Shown.bWanted = true;
 	// A different recipe landing where another was drawn (a second cast seen without the idle between) starts its own.
@@ -830,23 +831,16 @@ void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, con
 	Shown.Parameters.Recipe = Effects.Ability;
 	Shown.Parameters.Scale = Effects.Area.Scale;
 	// Drawn on the plane that best fits the ground under the whole footprint, not level at its origin's height.
-	const FVeyraGroundFit Fit = VeyraTelegraphFill::FitGround(Placed, [Greybox, &Placed](const FVector2D& Point) {
-		return Greybox ? Greybox->GroundUnder(FVector(Point, Placed.Origin.Z)).Z : Placed.Origin.Z;
-	});
-	Shown.Parameters.Origin = Fit.Origin;
-	Shown.Parameters.Normal = Fit.Normal;
-	const FVector2D Slopes = VeyraTelegraphFill::SlopesOf(Fit, Placed.Direction);
-	Shown.Parameters.SlopeAlong = Slopes.X;
-	Shown.Parameters.SlopeAcross = Slopes.Y;
+	const VeyraSkillEffects::FVeyraGroundPlacement Ground = PlaceOnGround(nullptr, Placed);
+	Shown.Parameters.Origin = Ground.Origin;
+	Shown.Parameters.Normal = Ground.Normal;
+	Shown.Parameters.SlopeAlong = Ground.SlopeAlong;
+	Shown.Parameters.SlopeAcross = Ground.SlopeAcross;
 	UNiagaraComponent* Effect = Shown.Effect.Get();
-	const FVector Ground = Fit.Origin;
-	// Turned only by its yaw, so its footprint from above is its true shape; its particles take the slope.
-	const FVector Along = Placed.Direction.GetSafeNormal2D().IsNearlyZero() ? FVector::ForwardVector : Placed.Direction.GetSafeNormal2D();
-	const FRotator Facing = Along.Rotation();
 	if (!Effect)
 	{
 		UNiagaraSystem* System = Loaded(Effects, TEXT("Area"));
-		Effect = System ? PlayAt(*System, Ground, Facing, Effects.Area.Scale, Color) : nullptr;
+		Effect = System ? PlayAt(*System, Ground.Origin, Ground.Facing, Effects.Area.Scale, Color) : nullptr;
 		Shown.Effect = Effect;
 		if (!Effect)
 		{
@@ -854,7 +848,7 @@ void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, con
 		}
 	}
 	// It follows a caster who turns or steps while it winds up, at the area's true shape.
-	Effect->SetWorldLocationAndRotation(Ground, Facing);
+	PlaceOnGround(Effect, Placed);
 	const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
 	const FVeyraAreaParameters& Drawn = Shown.Parameters;
 	Effect->SetVariableFloat(Settings.ShapeParameter, static_cast<float>(Drawn.Shape));
@@ -862,9 +856,38 @@ void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, con
 	Effect->SetVariableFloat(Settings.HalfArcParameter, static_cast<float>(Drawn.HalfArc));
 	Effect->SetVariableFloat(Settings.LengthParameter, static_cast<float>(Drawn.Length));
 	Effect->SetVariableFloat(Settings.WidthParameter, static_cast<float>(Drawn.Width));
-	Effect->SetVariableFloat(Settings.SlopeAlongParameter, static_cast<float>(Drawn.SlopeAlong));
-	Effect->SetVariableFloat(Settings.SlopeAcrossParameter, static_cast<float>(Drawn.SlopeAcross));
+
 	Effect->SetVariableFloat(Settings.LandingParameter, static_cast<float>(Drawn.Landing));
+}
+
+VeyraSkillEffects::FVeyraGroundPlacement VeyraSkillEffects::GroundPlacementOf(const FVeyraPlacedShape& Placed, TFunctionRef<double(const FVector2D&)> HeightAt)
+{
+	const FVeyraGroundFit Fit = VeyraTelegraphFill::FitGround(Placed, HeightAt);
+	const FVector2D Slopes = VeyraTelegraphFill::SlopesOf(Fit, Placed.Direction);
+	const FVector Along = Placed.Direction.GetSafeNormal2D().IsNearlyZero() ? FVector::ForwardVector : Placed.Direction.GetSafeNormal2D();
+	FVeyraGroundPlacement Placement;
+	Placement.Origin = Fit.Origin;
+	Placement.Facing = Along.Rotation();
+	Placement.SlopeAlong = Slopes.X;
+	Placement.SlopeAcross = Slopes.Y;
+	Placement.Normal = Fit.Normal;
+	return Placement;
+}
+
+VeyraSkillEffects::FVeyraGroundPlacement UVeyraSkillEffectsSubsystem::PlaceOnGround(UNiagaraComponent* Effect, const FVeyraPlacedShape& Placed) const
+{
+	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
+	const VeyraSkillEffects::FVeyraGroundPlacement Ground = VeyraSkillEffects::GroundPlacementOf(Placed, [Greybox, &Placed](const FVector2D& Point) {
+		return Greybox ? Greybox->GroundUnder(FVector(Point, Placed.Origin.Z)).Z : Placed.Origin.Z;
+	});
+	if (Effect)
+	{
+		const UVeyraKitPresentationSettings& Settings = *GetDefault<UVeyraKitPresentationSettings>();
+		Effect->SetWorldLocationAndRotation(Ground.Origin, Ground.Facing);
+		Effect->SetVariableFloat(Settings.SlopeAlongParameter, static_cast<float>(Ground.SlopeAlong));
+		Effect->SetVariableFloat(Settings.SlopeAcrossParameter, static_cast<float>(Ground.SlopeAcross));
+	}
+	return Ground;
 }
 
 FVeyraAreaParameters VeyraSkillEffects::AreaParametersOf(const FVeyraShape& Shape, double Landing)
