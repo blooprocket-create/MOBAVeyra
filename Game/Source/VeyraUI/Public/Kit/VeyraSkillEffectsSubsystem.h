@@ -168,6 +168,9 @@ public:
 	/** Whether Ability's projectiles draw no grey-box body (ADR-072 §4). */
 	bool HidesProjectileBody(const AVeyraProjectile& Projectile) const;
 
+	/** The body Projectile throws as drawn here (ADR-072 §4); null for none, or once it is gone with its projectile. */
+	const USkeletalMeshComponent* FindThrownBody(const AVeyraProjectile& Projectile) const;
+
 	/** Where Caster's tethered bone is drawn now, if one is flung away from its body. */
 	TOptional<FVector> FindTether(const AActor& Caster) const;
 

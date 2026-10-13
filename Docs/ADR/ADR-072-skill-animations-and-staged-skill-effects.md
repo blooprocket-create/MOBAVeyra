@@ -129,7 +129,6 @@ The author played the pilot and found its skills still read as indicators. Cairn
   - **Fields:** `TetherBone` (Cairn's `prop_r`, the hook skinned to it), `TetherFromBone` (`hand_r`) and a looping `Tether` effect (the chain). The caster's own bone is drawn where its projectile is drawn, through the animation instance's bone targets (`SetBoneTarget`: presentation only; the bone keeps its clips' rotation).
   - **Retract:** when the server ends the flight (§4's projectile end) the bone comes home from that point to the hand. It travels at the ability's pull speed (its first toward-origin displacement in `Abilities.json`), or at its flight speed if it pulls nothing.
   - **Fog and gameplay:** a flight that leaves sight with no end comes home from where it was last drawn. Nothing changes the pull, the hit or their timing.
-- **Thrown bodies:** a projectile that was part of its caster's body and is sent off whole, as Raska's Hound when she jumps clear of it, flies as that body. A recipe names `ThrownVanguard`, `ThrownBody` (the status or stance body it is drawn from, `raska_ride_body`), `ThrownHiddenBone` (`pelvis`: the rider's whole chain stays behind, hidden) and `ThrownAnimation` (`Run`, so its wheels turn). The body is drawn on the ground under the projectile, facing its flight, at the Vanguard body scale, in place of the grey-box sphere; it goes with the projectile. Nothing about the flight, its hit or its timing changes. `Veyra.UI.SkillEffects` checks that every shipped thrown body is in the art and that its hidden bone is in its skeleton.
 - **Mark:** a looping effect where a delayed area was aimed, from its commit until it lands, sized to the area (`Abilities.json`). Shattered Sky marks its area, then light strikes it: a pillar of light, jagged streaks down it, a flash, a shockwave and glass shards (`NS_VeyraLightStrike`). The in-game text and the Bible's falling glass are both kept.
 - **Arc:** a looping effect thrown from `ArcBone` of the caster to where a delayed area lands, over its delay, rising `ArcHeight` (Slagshot's molten glob).
 - **Linger:** a looping effect over each lingering area of the ability while it lasts. Its length and width come from the area's replicated shape (Molten Ground's burning strip).
@@ -149,6 +148,14 @@ The author asked for ranged basic attacks to lose the grey-box ball and its trai
 - **A Vanguard's own:** `VanguardAttacks` gives a Vanguard its own look in flight, in place of the shared one. The roster rollout adds these where a Vanguard's attack reads as its own.
 - **How the client chooses:** it finds the attacker through the projectile's replicated instigator, and from it the Vanguard's ID. A unit that is not a Vanguard, or a caster this machine does not see, flies the shared look.
 - **Presentation only:** the server still owns the projectile's flight and hit. Nothing here changes timing, speed or what it hits.
+
+### 10. Thrown bodies (author review, 2026-10-13)
+An amendment at the author's request: when Raska jumps clear of her bike, the bike itself should be the projectile. A projectile that was part of its caster's body and is sent off whole now flies as that body.
+- **Fields:** a recipe names `ThrownVanguard`, `ThrownBody` (the status or stance body it is drawn from, `raska_ride_body`), `ThrownHiddenBone` (`pelvis`: the rider's whole chain stays behind, hidden) and `ThrownAnimation` (`Run`, so its wheels turn). Hound and its NO BRAKES throw use them in place of a Travel effect.
+- **Placement:** the body stands on the playable surface under the projectile (the greybox's ground sampling, as §4's areas use), never at a fixed height. It faces its flight and is drawn at the Vanguard body scale, in place of the grey-box sphere.
+- **Lifetime:** it is a client component owned by its projectile, so it goes when the projectile does, however its flight ends.
+- **Presentation only:** nothing about the flight, its hit or their timing reads from it.
+- **Checks:** `Veyra.UI.SkillEffects` checks that every shipped thrown body is in the art and that its hidden bone is in its skeleton. `Veyra.UI.SkillEffectsWorld` checks that it stands on raised ground under its flight, faces it, and goes with its projectile.
 
 ## Configuration
 - **Skill clips:** the kit's `skills` per Vanguard, and the motion primitives in the generator. Art values.

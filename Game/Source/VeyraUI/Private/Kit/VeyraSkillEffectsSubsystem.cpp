@@ -508,6 +508,11 @@ bool UVeyraSkillEffectsSubsystem::HidesProjectileBody(const AVeyraProjectile& Pr
 	return Effects && (Effects->bHideProjectileBody || Effects->ThrowsBody()) && (Effects->TetherBone.IsNone() || CasterOf(Projectile));
 }
 
+const USkeletalMeshComponent* UVeyraSkillEffectsSubsystem::FindThrownBody(const AVeyraProjectile& Projectile) const
+{
+	return Thrown.FindRef(&Projectile).Get();
+}
+
 void UVeyraSkillEffectsSubsystem::ShowThrownBody(const AVeyraProjectile& Projectile, const FVeyraAbilityEffects& Effects, const FVector& At)
 {
 	USkeletalMeshComponent* Body = Thrown.FindRef(&Projectile).Get();
