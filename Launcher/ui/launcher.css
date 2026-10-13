@@ -1,25 +1,42 @@
 /*
- * The launcher in the client's design language (Art Bible v0.1 §4; the game's UVeyraShellStyleSettings):
- * the world behind, a smoked translucent card with a thin outline, a brass primary action, a Flux-teal
- * accent, and Roboto, as in the game, with heavy tracked capitals for the display tier.
+ * The launcher in the client's design language, the Smoked Crucible (Art Bible v0.1 §4; the game's
+ * UVeyraShellStyleSettings in Game/Config/DefaultGame.ini, its linear colours written here in sRGB): the
+ * world behind, smoked surfaces cut across two opposite corners and edged in a brass hairline whose
+ * ticks over the cuts are the only ornament, one brass primary action lit from its head, a Flux-teal
+ * accent for live state and focus, Sora for identity and Inter for function.
  */
-@font-face { font-family: "Roboto"; font-weight: 400; src: url("fonts/Roboto-Regular.ttf") format("truetype"); }
-@font-face { font-family: "Roboto"; font-weight: 500; src: url("fonts/Roboto-Medium.ttf") format("truetype"); }
-@font-face { font-family: "Roboto"; font-weight: 700; src: url("fonts/Roboto-Bold.ttf") format("truetype"); }
-@font-face { font-family: "Roboto"; font-weight: 900; src: url("fonts/Roboto-Black.ttf") format("truetype"); }
+@font-face { font-family: "Sora"; font-weight: 600; src: url("fonts/Sora-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 400; src: url("fonts/Inter-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 500; src: url("fonts/Inter-Medium.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url("fonts/Inter-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 700; src: url("fonts/Inter-Bold.ttf") format("truetype"); }
 
 :root {
-  --ink: #07090e;
-  --surface: rgba(12, 16, 23, 0.78);
+  --ink: #06080d;
+  /* A surface shades towards its foot (SurfaceShade). */
+  --surface: rgba(24, 29, 41, 0.84);
+  --surface-foot: rgba(12, 15, 24, 0.84);
   --field: rgba(5, 7, 11, 0.7);
+  --button: rgba(22, 28, 41, 0.78);
+  --button-foot: rgba(13, 17, 25, 0.78);
+  --button-hover: rgba(31, 39, 56, 0.9);
   --hairline: rgba(255, 255, 255, 0.09);
+  --edge: rgba(217, 180, 119, 0.22);
+  --edge-tick: rgba(217, 180, 119, 0.9);
+  --button-edge: rgba(217, 180, 119, 0.38);
   --text: #eceef2;
-  --muted: #8e97a6;
-  --accent: #4fd8cf;
-  --primary: #d6b56e;
-  --primary-hover: #e8cb8a;
-  --primary-text: #15110a;
+  --muted: #8e97a8;
+  --accent: #45d6c4;
+  --primary: #cfa05a;
+  --primary-hover: #ddb16a;
+  --primary-head: #f0d7a0;
+  --primary-foot: #a87834;
+  --primary-shine: rgba(255, 255, 255, 0.45);
+  --primary-text: #1a1206;
   --problem: #e5484d;
+  --panel-cut: 10px;
+  --button-cut: 6px;
+  --titlebar: 36px;
 }
 
 * {
@@ -36,34 +53,25 @@ body {
   overflow: hidden;
   background: var(--ink);
   color: var(--text);
-  font: 14px/1.5 "Roboto", "Segoe UI", sans-serif;
+  font: 14px/1.5 "Inter", "Segoe UI", sans-serif;
   user-select: none;
 }
 
 /*
  * The world behind the card: a Vanguard, a different one each time the launcher opens (launcher.js),
- * darkened toward the card and the foot.
+ * darkened toward the card, the foot and the title bar. It moves the window, as a title bar would.
  */
 .art {
-  --art: url("art/cairn.webp");
+  --art: none;
   position: fixed;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(7, 9, 14, 0) 25%, rgba(7, 9, 14, 0.72) 58%, var(--ink) 80%),
-    linear-gradient(0deg, rgba(7, 9, 14, 0.85) 0%, rgba(7, 9, 14, 0) 35%),
+    linear-gradient(180deg, rgba(6, 8, 13, 0.55) 0, rgba(6, 8, 13, 0) 72px),
+    linear-gradient(90deg, rgba(6, 8, 13, 0) 25%, rgba(6, 8, 13, 0.72) 58%, var(--ink) 80%),
+    linear-gradient(0deg, rgba(6, 8, 13, 0.85) 0%, rgba(6, 8, 13, 0) 35%),
     var(--art) left center / cover no-repeat;
 }
 
-.art[data-vanguard="bryn"] { --art: url("art/bryn.webp"); }
-.art[data-vanguard="cairn"] { --art: url("art/cairn.webp"); }
-.art[data-vanguard="gorraveth"] { --art: url("art/gorraveth.webp"); }
-.art[data-vanguard="kade"] { --art: url("art/kade.webp"); }
-.art[data-vanguard="mimzi"] { --art: url("art/mimzi.webp"); }
-.art[data-vanguard="oriel"] { --art: url("art/oriel.webp"); }
-.art[data-vanguard="patch"] { --art: url("art/patch.webp"); }
-.art[data-vanguard="qazharr"] { --art: url("art/qazharr.webp"); }
-.art[data-vanguard="raska"] { --art: url("art/raska.webp"); }
-.art[data-vanguard="vera"] { --art: url("art/vera.webp"); }
 
 main {
   position: relative;
@@ -75,48 +83,163 @@ main {
   height: 100%;
   margin-left: auto;
   margin-right: 24px;
-  padding: 40px 40px 56px;
+  padding: calc(var(--titlebar) + 24px) 40px 56px;
 }
 
 header {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
+/* An eyebrow: Inter in tracked capitals, in the accent. */
 .eyebrow {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   color: var(--accent);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.26em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
+/* The display tier: Sora, as written. */
 h1 {
   margin: 0;
-  font-size: 44px;
-  font-weight: 900;
+  font-family: "Sora", "Inter", sans-serif;
+  font-size: 52px;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 h2 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 17px;
+  font-weight: 600;
 }
 
-section {
+/*
+ * A surface or a button is cut across its top-left and bottom-right corners by --cut. Its edge (::before)
+ * is a ring of the same shape one pixel wide: --edge-color along the sides, a brighter tick over each cut.
+ */
+section,
+.surface,
+button {
+  --cut: var(--button-cut);
+  --edge-color: var(--button-edge);
+  position: relative;
+  clip-path: polygon(
+    var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)
+  );
+}
+
+section::before,
+.surface::before,
+button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, var(--edge-tick) calc(var(--cut) * 0.7071 + 1px), transparent 0),
+    linear-gradient(315deg, var(--edge-tick) calc(var(--cut) * 0.7071 + 1px), transparent 0),
+    var(--edge-color);
+  /* The outer shape, then the inner one a pixel in: even-odd fills only the ring between. */
+  clip-path: polygon(
+    evenodd,
+    var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut),
+    var(--cut) 0,
+    calc(var(--cut) + 0.414px) 1px, 1px calc(var(--cut) + 0.414px), 1px calc(100% - 1px),
+    calc(100% - var(--cut) - 0.414px) calc(100% - 1px), calc(100% - 1px) calc(100% - var(--cut) - 0.414px),
+    calc(100% - 1px) 1px, calc(var(--cut) + 0.414px) 1px
+  );
+}
+
+section,
+.surface {
+  --cut: var(--panel-cut);
+  --edge-color: var(--edge);
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 22px;
-  border: 1px solid var(--hairline);
-  border-radius: 6px;
-  background: var(--surface);
+  background: linear-gradient(to bottom in srgb-linear, var(--surface), var(--surface-foot));
   backdrop-filter: blur(14px);
+}
+
+/*
+ * Beside the art, at its foot: what this build changed, and whether the servers are up (ADR-081). Smaller
+ * surfaces than the card's, so the Vanguard still leads.
+ */
+.side {
+  position: fixed;
+  left: 28px;
+  bottom: 24px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 360px;
+}
+
+.side .surface {
+  gap: 6px;
+  padding: 12px 16px;
+}
+
+.whats-new .eyebrow {
+  margin: 0;
+}
+
+.whats-new h2 {
+  font-size: 15px;
+}
+
+.whats-new ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 92px;
+  margin: 2px 0 0;
+  padding: 0 4px 0 16px;
+  overflow-y: auto;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  scrollbar-width: thin;
+  scrollbar-color: var(--edge) transparent;
+}
+
+.whats-new li::marker {
+  color: var(--primary);
+}
+
+/* The servers: a dot of live teal when they play, muted when they don't, and the hours beneath. */
+.servers-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.servers .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.servers[data-state="online"] .dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(69, 214, 196, 0.2);
+}
+
+.servers[data-state="offline"] .dot {
+  background: var(--problem);
+}
+
+.servers .note {
+  font-size: 12px;
 }
 
 section[hidden] {
@@ -124,11 +247,18 @@ section[hidden] {
 }
 
 #problem {
-  border-color: rgba(229, 72, 77, 0.55);
+  --edge-color: rgba(229, 72, 77, 0.55);
+  --edge-tick: var(--problem);
 }
 
 #problem h2 {
   color: var(--problem);
+}
+
+/* A problem may name a long path: it breaks anywhere rather than running past the card. */
+#problem-text {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .note {
@@ -147,8 +277,8 @@ label {
   margin-bottom: -6px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
@@ -157,57 +287,82 @@ input,
 button {
   height: 44px;
   padding: 0 14px;
-  border: 1px solid var(--hairline);
-  border-radius: 3px;
+  border: none;
   color: var(--text);
   font: inherit;
   outline: none;
 }
 
-select {
+/* A field: sunk into its surface, edged by a hairline that focus turns teal. */
+select,
+input {
+  border-radius: 0;
   background: var(--field);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+select {
   cursor: pointer;
 }
 
 input {
-  background: var(--field);
   user-select: text;
 }
 
 input:focus,
-select:focus-visible,
-button:focus-visible,
-.link:focus-visible {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(79, 216, 207, 0.25);
+select:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px rgba(69, 214, 196, 0.2);
 }
 
 button {
-  background: rgba(22, 28, 38, 0.9);
-  font-weight: 500;
-  letter-spacing: 0.14em;
+  background: linear-gradient(to bottom in srgb-linear, var(--button), var(--button-foot));
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition: filter 120ms ease;
 }
 
 button:hover {
-  border-color: rgba(79, 216, 207, 0.35);
-  background: rgba(33, 42, 55, 0.95);
+  background: var(--button-hover);
 }
 
-/* The one action a card asks for: Play, Install, Repair. */
+/* Focus turns the edge itself teal, so the cut shape stays whole. */
+button:focus-visible::before {
+  --edge-color: var(--accent);
+  --edge-tick: var(--accent);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* The one action a card asks for: Play, Install, Repair. Brass from a lit head, a shine along its top. */
 .primary {
   height: 48px;
   margin-top: 6px;
-  border-color: transparent;
-  background: var(--primary);
+  background:
+    linear-gradient(180deg, var(--primary-shine) 0 1px, transparent 1px),
+    linear-gradient(to bottom in srgb-linear, var(--primary-head), var(--primary-foot));
   color: var(--primary-text);
   font-weight: 700;
 }
 
+.primary::before {
+  --edge-color: transparent;
+  --edge-tick: transparent;
+}
+
 .primary:hover {
-  background: var(--primary-hover);
+  background:
+    linear-gradient(180deg, var(--primary-shine) 0 1px, transparent 1px),
+    linear-gradient(to bottom in srgb-linear, var(--primary-head), var(--primary-hover));
+}
+
+.primary:active {
+  background: linear-gradient(to bottom in srgb-linear, var(--primary), var(--primary-foot));
 }
 
 /* A smaller action beside what it changes. */
@@ -231,12 +386,11 @@ button:hover {
   height: 36px;
   padding: 0 10px;
   overflow: hidden;
-  border: 1px solid var(--hairline);
-  border-radius: 3px;
   background: var(--field);
+  box-shadow: inset 0 0 0 1px var(--hairline);
   color: var(--text);
   font-size: 12px;
-  line-height: 34px;
+  line-height: 36px;
   white-space: nowrap;
   text-overflow: ellipsis;
   direction: rtl;
@@ -248,14 +402,12 @@ button:hover {
 .bar {
   height: 6px;
   overflow: hidden;
-  border-radius: 3px;
   background: var(--hairline);
 }
 
 .bar .fill {
   width: 0;
   height: 100%;
-  border-radius: 3px;
   background: linear-gradient(90deg, var(--accent), var(--primary));
   transition: width 200ms linear;
 }
@@ -271,7 +423,7 @@ button:hover {
 
 .figures span:first-child {
   color: var(--text);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .warning {
@@ -296,7 +448,7 @@ button:hover {
 }
 
 input::placeholder {
-  color: rgba(142, 151, 166, 0.6);
+  color: rgba(142, 151, 168, 0.6);
 }
 
 /* Quieter ways on from a form: create an account, forgot password, sign out. */
@@ -327,8 +479,8 @@ details {
 summary {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -376,24 +528,85 @@ footer {
   text-align: right;
 }
 
-/* Repair, and the links beneath a form: there when they may be needed, never in the way. */
+/*
+ * Plain controls with no surface of their own: Repair and the links beneath a form, there when they may
+ * be needed and never in the way, and the title bar's window controls.
+ */
+.link,
+.window-control {
+  clip-path: none;
+  background: none;
+}
+
+.link::before,
+.window-control::before {
+  content: none;
+}
+
 .link {
   height: auto;
   padding: 0;
-  border: none;
-  background: none;
   color: var(--muted);
   font-size: 11px;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: none;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .link:hover {
-  border: none;
   background: none;
   color: var(--text);
+}
+
+.link:focus-visible {
+  color: var(--text);
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The window's own title bar: it moves the window, and holds Minimize and Close at its right. */
+.titlebar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  height: var(--titlebar);
+}
+
+.window-control {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  color: var(--muted);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.window-control svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.window-control:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.window-control.close:hover {
+  background: var(--problem);
+  color: #fff;
+}
+
+.window-control:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 [hidden] {

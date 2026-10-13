@@ -3,7 +3,8 @@
 //! repairing and uninstalling the game from a release store. The Tauri app and the headless
 //! `veyra-launch-cli` and `veyra-install` are thin shells over it, so they all behave the same. An
 //! installed launcher also updates itself from the same release store (`update`, ADR-022 §11); signing
-//! those updates waits for the code-signing certificate (ADR-022 §10).
+//! those updates waits for the code-signing certificate (ADR-022 §10). It reads the servers' hours
+//! and the patch notes from Veyra's website (`website`, ADR-081).
 
 pub mod backend;
 pub mod config;
@@ -19,6 +20,10 @@ pub mod release;
 pub mod releases;
 pub mod secret;
 pub mod update;
+pub mod website;
+
+#[cfg(test)]
+mod test_server;
 
 use std::path::{Path, PathBuf};
 

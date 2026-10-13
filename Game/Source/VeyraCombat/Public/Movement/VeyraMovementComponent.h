@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Misc/Optional.h"
 #include "Movement/VeyraForcedMovementTypes.h"
+#include "Movement/VeyraMotion.h"
 #include "UObject/WeakObjectPtr.h"
 
 #include "VeyraMovementComponent.generated.h"
@@ -33,9 +34,13 @@ enum class EVeyraCustomMovementMode : uint8
  * of the combatant it follows (VeyraMovementRules::EffectiveSpeed), and runs displacements and
  * dashes: each path is planned once, stopped by terrain and ended on walkable ground, and followed at
  * its own speed through other units. It reports when something other than the unit's own orders
- * owns its movement, so its controller can hold them. Clients only show the replicated result
- * (ADR-006 §7): a machine that only shows the body draws it between the server's last two updates,
- * never past the latest, and may draw the player's own body ahead along its path (ADR-077).
+ * owns its movement, so its controller can hold them. Its units start and stop at once: they walk at their
+ * speed from the moment they have somewhere to go (ADR-079 §6).
+ *
+ * The server tells every machine the body's motion rather than its place (ADR-079): where it began, when, and the corners
+ * it walks at its speed. A machine that only shows the body draws it from that motion on the server's clock every frame,
+ * so it moves smoothly however rarely the server speaks, and lands, stops and turns where the server's own does. The
+ * player's own machine draws an order it has just given at once, and its body ahead by what the order waited.
  */
 UCLASS(ClassGroup = Combat)
 class VEYRACOMBAT_API UVeyraMovementComponent : public UCharacterMovementComponent
@@ -48,26 +53,36 @@ public:
 	/** Server only: follows Combatant's speed and statuses; nullptr lets go. */
 	void BindCombatant(UAbilitySystemComponent* Combatant);
 
-	/**
-	 * A machine that only shows the body: how far ahead of its smoothed place it is drawn, across the ground, as the
-	 * player's own Vanguard is drawn ahead along its path (ADR-077 §2). Presentation only: the capsule, and all the
-	 * server decides, stay where its updates put them. Zero draws the body where its smoothing has it.
-	 */
-	void SetDrawnLead(const FVector2D& Lead);
-	const FVector2D& GetDrawnLead() const { return DrawnLead; }
+	/** The body's motion as the server last told it (ADR-079 §1). */
+	const FVeyraMotion& GetMotion() const { return Motion; }
 
-	/** A machine that only shows the body: where its smoothing draws it between the server's updates, without any lead. */
-	FVector GetSmoothedLocation() const;
+	/** Whether this machine has been told the body's motion; the server always has. */
+	bool HasMotion() const { return bHasMotion; }
 
 	/**
-	 * A machine that only shows the body: how many of the server's seconds the drawn body trails the server's latest
-	 * update, as it eases from the update before (ADR-077 §1). Zero once it has caught up, and before any update.
+	 * Server: the player's order the body follows now, 0 for none. It is told with the body's motion, so the player's own
+	 * machine knows which order a motion answers (ADR-079 §5).
 	 */
-	double GetDrawnDelaySeconds() const;
+	void SetMotionOrderNumber(uint16 OrderNumber);
+
+	/**
+	 * The player's own machine, for a body it commands: draws Predicted, an order the player has just given (its
+	 * OrderNumber, begun now on the server's clock), until the server's motion answers that order or a later one, the
+	 * order is refused, or the tuning's prediction time runs out (ADR-079 §5). Presentation only: nothing reaches the server.
+	 */
+	void PredictMotion(const FVeyraMotion& Predicted);
+
+	/** The player's own machine: the server refused OrderNumber, so a prediction of it ends. */
+	void ForgetPrediction(uint16 OrderNumber);
+
+	/** A machine that only shows the body: the motion it is drawn by now, a prediction while one stands. */
+	const FVeyraMotion& GetDrawnMotion() const;
+
+	/** A machine that only shows the body: how many seconds ahead of its server motion it is drawn (ADR-079 §5). */
+	double GetDrawnLeadSeconds() const { return LeadSeconds; }
 
 	virtual void SimulatedTick(float DeltaSeconds) override;
-	virtual void SimulateMovement(float DeltaTime) override;
-	virtual void SmoothClientPosition(float DeltaSeconds) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual float GetMaxSpeed() const override;
 
@@ -173,6 +188,9 @@ public:
 	/** Where the displacement or dash under way ends. */
 	TOptional<FVector> GetForcedMoveDestination() const;
 
+	/** Server: how many seconds the displacement, dash or Fear under way has left to run; 0 for none, or a hold. */
+	double GetForcedMoveSecondsLeft() const;
+
 	/**
 	 * Server only: whether the unit's own cast holds it in place, as a windup or channel that locks
 	 * movement does (Combat Bible §48). The body stops, and its orders wait, while it does.
@@ -191,6 +209,15 @@ public:
 	/** Server only: raised when IsMovementLocked changes, with its new value. */
 	TMulticastDelegate<void(bool)> OnMovementLockChanged;
 
+	/**
+	 * Server only: raised when the body is set down somewhere else at once (a blink). Its controller keeps the order
+	 * it was following and finds a new path to it from here.
+	 */
+	FSimpleMulticastDelegate OnRelocated;
+
+	/** Server only: whether the body is being set down somewhere else now, so a path stopped for it keeps its order. */
+	bool IsRelocating() const { return bRelocating; }
+
 	/** Server only: raised when a dash ends, and why. */
 	TMulticastDelegate<void(const FVeyraDashEnd&)> OnDashEnded;
 
@@ -201,6 +228,7 @@ public:
 	TMulticastDelegate<void(const FVeyraRideEnd&)> OnRideEnded;
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 
@@ -221,6 +249,57 @@ private:
 		TArray<FVeyraStatusSpec> CollisionStatuses;
 		bool bMeetsTerrain = false;
 	};
+
+	/** Set while a blink stops its controller's path, so the controller keeps the order it was following. */
+	bool bRelocating = false;
+
+	/** The body's motion, as the server last told it (ADR-079 §1). */
+	UPROPERTY(ReplicatedUsing = OnRep_Motion)
+	FVeyraMotion Motion;
+
+	UFUNCTION()
+	void OnRep_Motion();
+
+	/** Server: what the body is doing now, as a motion begun at Now. */
+	FVeyraMotion DescribeMotion(double Now) const;
+
+	/** Server: the path its controller follows now, to know it by; nullptr while it follows none. */
+	const void* GetFollowedPath() const;
+
+	/** Server: the corners its controller's path still walks from From; false while it follows none. */
+	bool GetPathCornersAhead(const FVector& From, TArray<FVector>& OutCorners) const;
+
+	/** Server: tells every machine the body's motion afresh when what it does strays from what was told (ADR-079 §2). */
+	void PublishMotion();
+
+	/** Server: the order told with each motion, and whether the body was set down elsewhere since the last. */
+	uint16 MotionOrderNumber = 0;
+	bool bSetDownPending = false;
+	bool bHasMotion = false;
+	/** Server: the path the told motion walked, so a new path is told at once. */
+	const void* ToldPath = nullptr;
+
+	/** A machine that only shows the body: draws it from its motion this frame (ADR-079 §3). */
+	void DrawMotion(float DeltaSeconds);
+
+	/** Where the drawn motion has the body at the server's Now, before any correction, and its velocity there. */
+	FVector DrawnTargetAt(double Now, FVector& OutVelocity) const;
+
+	/** The motion it is drawn by changed: the drawn body eases from where it was, Before, onto the new one. */
+	void Rebase(const FVector& Before, bool bSetDown);
+
+	/** The player's own machine: the order it predicts, and when the prediction lapses (server seconds). */
+	TOptional<FVeyraMotion> Predicted;
+	double PredictedUntil = 0.0;
+
+	/** The order whose answer the body is drawn ahead of, and by how many seconds. */
+	uint16 LeadOrder = 0;
+	double LeadSeconds = 0.0;
+
+	/** The drawn body's ease onto its latest motion: the offset it began from, and how long it has eased. */
+	FVector2D CorrectionFrom = FVector2D::ZeroVector;
+	double CorrectionAge = 0.0;
+	uint8 DrawnSetDownSerial = 0;
 
 	void BeginForcedMove(const FForcedMove& Move);
 
@@ -280,10 +359,6 @@ private:
 
 	/** How far it has moved itself since TakeTravelled last read it. */
 	double Travelled = 0.0;
-
-	/** A machine that only shows the body: its drawn lead, and whether the mesh carried one when last placed. */
-	FVector2D DrawnLead = FVector2D::ZeroVector;
-	bool bLeadDrawn = false;
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedCombatant;
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;

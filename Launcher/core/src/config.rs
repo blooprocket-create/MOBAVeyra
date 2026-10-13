@@ -1,9 +1,10 @@
 //! The launcher's configuration (Launcher/config/local.json, and `VeyraLauncher.json` beside an
 //! installed launcher): where the backend is, how long to wait, where the game comes from: a
-//! packaged build or a release store (ADR-022 §6), and how players sign in (ADR-038). Parsed
-//! strictly: every field is required, except `playerLogin`, whose absence means a development
-//! launcher with only the development sign-in; an unknown field is an error (ADR-010 §12), and the
-//! values are validated before anything uses them.
+//! packaged build or a release store (ADR-022 §6), how players sign in (ADR-038), and where the
+//! website publishes the servers' hours and the patch notes (ADR-081). Parsed strictly: every field
+//! is required, except `playerLogin`, whose absence means a development launcher with only the
+//! development sign-in, and `website`, whose absence means a launcher that shows neither; an unknown
+//! field is an error (ADR-010 §12), and the values are validated before anything uses them.
 
 use crate::install_log;
 use crate::release;
@@ -34,6 +35,16 @@ pub struct LauncherConfig {
     /// Player registration and sign-in (ADR-038). Absent: only the development sign-in.
     #[serde(default)]
     pub player_login: Option<PlayerLoginConfig>,
+    /// Veyra's website (ADR-081). Absent: no server hours and no patch notes.
+    #[serde(default)]
+    pub website: Option<WebsiteConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct WebsiteConfig {
+    /// The launcher feed the website's build publishes, such as https://example.com/launcher.json.
+    pub feed_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -251,6 +262,11 @@ pub fn validate(config: &LauncherConfig) -> Vec<String> {
             problems.push("playerLogin.firebase.apiKey must be a Firebase web API key (AIza and 35 more letters, digits, '-' or '_')".to_string());
         }
     }
+    if let Some(website) = &config.website {
+        if !is_releases_url(&website.feed_url) || !website.feed_url.ends_with(".json") {
+            problems.push("website.feedUrl must be an http or https URL of a .json file, such as https://example.com/launcher.json".to_string());
+        }
+    }
     match (&config.game.build_manifest, &config.game.install) {
         (Some(_), Some(_)) | (None, None) => {
             problems.push("game must have exactly one of buildManifest (a packaged build) and install (a release store)".to_string())
@@ -397,6 +413,22 @@ mod tests {
         let problems = parse(&with("http://identitytoolkit.googleapis.com", "nope")).expect_err("invalid");
         assert_eq!(problems.len(), 2, "{problems:?}");
         assert!(problems[0].contains("authUrl") && problems[1].contains("apiKey"), "{problems:?}");
+    }
+
+    #[test]
+    fn the_website_is_optional_and_validated() {
+        assert!(parse(VALID).expect("valid").website.is_none());
+        let with = |feed_url: &str| VALID.replace(r#""http": {"#, &format!(r#""website": {{ "feedUrl": "{feed_url}" }}, "http": {{"#));
+        let config = parse(&with("https://veyra.example/launcher.json")).expect("valid website");
+        assert_eq!(config.website.expect("present").feed_url, "https://veyra.example/launcher.json");
+        for bad in [
+            "https://veyra.example/",
+            "ftp://veyra.example/launcher.json",
+            "https://veyra.example/launcher.json?x=1",
+        ] {
+            let problems = parse(&with(bad)).expect_err(bad);
+            assert!(problems.iter().any(|problem| problem.contains("website.feedUrl")), "{bad}: {problems:?}");
+        }
     }
 
     #[test]
@@ -554,6 +586,8 @@ mod tests {
         // The players' Setup: the public address over https, its release store on the public channel (ADR-057 §6).
         let public = load(&folder.join("public.json")).expect("config/public.json, which players' Setup installs");
         assert!(public.config.backend.base_url.starts_with("https://") && public.config.player_login.is_some());
+        // Players see the servers' hours and the patch notes, from the website over https (ADR-081).
+        assert!(public.config.website.as_ref().is_some_and(|website| website.feed_url.starts_with("https://")));
         match &public.game {
             GameSource::Install(install) => {
                 assert!(install.releases_url.starts_with(&public.config.backend.base_url) && install.channel == "public")

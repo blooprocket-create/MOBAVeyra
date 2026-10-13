@@ -63,12 +63,6 @@ public:
 	 */
 	void StopOrders();
 
-	/**
-	 * Server: Participant's orders now come to this controller, its Vanguard's or a body's it commands in its stead, so it
-	 * is the one that sends Participant its path (ADR-077 §3). The GameMode calls it as it passes each order on.
-	 */
-	void TakeOrdersFrom(AVeyraPlayerState& Participant);
-
 	/** The unit an attack or attack-move order is attacking now, if any. */
 	AActor* GetAttackTarget() const { return AttackTarget.Get(); }
 
@@ -92,6 +86,8 @@ protected:
 private:
 	void WatchMovement(UVeyraMovementComponent* Movement);
 	void OnMovementLockChanged(bool bLocked);
+	/** The body was set down somewhere else at once (a blink): it walks on to its order from there. */
+	void OnRelocated();
 	bool IsMovementLocked() const;
 
 	/** Starts walking to the current move order, finishing it if it is already reached or has no path. */
@@ -131,33 +127,6 @@ private:
 	/** The nearest living enemy unit within the attack's acquisition radius of the Vanguard's edge. */
 	AActor* FindAttackMoveTarget(const UVeyraBasicAttackComponent& Attacks) const;
 
-	/**
-	 * The player whose orders this controller takes now and whose machine draws its body ahead (ADR-077 §3): its Vanguard's,
-	 * or the one commanding its body in its Vanguard's stead. None for a bot's, or while that player's orders go elsewhere.
-	 */
-	class AVeyraPlayerState* OwnPlayer() const;
-
-	/**
-	 * Sends the path the body now follows to Participant's machine alone, which draws the body ahead along it, unless it is
-	 * the path last sent (ADR-077 §3). Standing to attack a unit it has just taken on, it sends the way to that unit.
-	 */
-	void PublishOwnPath(class AVeyraPlayerState& Participant);
-
-	/** Forgets what was last sent, so a new order's path is always sent, even one like the last. */
-	void ForgetPublishedPath();
-
-	/** The point the latest move or Attack Move order named, as its player's machine sent it, before projection. */
-	FVector OrderedPoint = FVector::ZeroVector;
-
-	/** The participant whose orders it takes, once it has taken one; until then its Vanguard's own. */
-	TWeakObjectPtr<class AVeyraPlayerState> Commander;
-
-	/** The path last sent to the player's machine: which it was, how many points it had, where it ended, and the unit it chased. */
-	TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> PublishedPath;
-	int32 PublishedPoints = 0;
-	FVector PublishedEnd = FVector::ZeroVector;
-	TWeakObjectPtr<AActor> PublishedTarget;
-
 	/** The walkable destination of the latest move order, until the Vanguard reaches it or it fails. */
 	TOptional<FVector> MoveOrder;
 
@@ -171,6 +140,7 @@ private:
 
 	TWeakObjectPtr<UVeyraMovementComponent> WatchedMovement;
 	FDelegateHandle MovementLockHandle;
+	FDelegateHandle RelocatedHandle;
 
 	/** Set while the controller itself stops the path for a lock, so the order is kept. */
 	bool bStoppingForLock = false;

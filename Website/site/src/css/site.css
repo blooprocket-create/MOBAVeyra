@@ -1,14 +1,14 @@
 /*
  * Veyra's website in the client's design language (Art Direction; the launcher's launcher.css): the world behind,
- * smoked translucent panels with a thin outline, a brass primary action, a Flux-teal accent, and Roboto with heavy
- * tracked capitals for display. Motion takes the match's graphic effect language (ADR-068 §1): hard-edged bursts,
+ * smoked translucent panels with a thin outline, a brass primary action, a Flux-teal accent, and Inter, the client's
+ * interface type, with heavy tracked capitals for display (a heavier weight reads as its Bold). Motion takes the match's graphic effect language (ADR-068 §1): hard-edged bursts,
  * rings, slashes and streaks with white-hot cores, timed like anime: a held pose, a fast smear, a settle.
  * Everything that moves stops for prefers-reduced-motion.
  */
-@font-face { font-family: "Roboto"; font-weight: 400; font-display: swap; src: url("/fonts/Roboto-Regular.ttf") format("truetype"); }
-@font-face { font-family: "Roboto"; font-weight: 500; font-display: swap; src: url("/fonts/Roboto-Medium.ttf") format("truetype"); }
-@font-face { font-family: "Roboto"; font-weight: 700; font-display: swap; src: url("/fonts/Roboto-Bold.ttf") format("truetype"); }
-@font-face { font-family: "Roboto"; font-weight: 900; font-display: swap; src: url("/fonts/Roboto-Black.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("/fonts/Inter-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 500; font-display: swap; src: url("/fonts/Inter-Medium.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("/fonts/Inter-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Inter"; font-weight: 700; font-display: swap; src: url("/fonts/Inter-Bold.ttf") format("truetype"); }
 
 :root {
   color-scheme: dark;
@@ -55,7 +55,7 @@ body {
   overflow-x: hidden;
   background: var(--ink);
   color: var(--text);
-  font: 16px/1.6 "Roboto", "Segoe UI", system-ui, sans-serif;
+  font: 16px/1.6 "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
 img {

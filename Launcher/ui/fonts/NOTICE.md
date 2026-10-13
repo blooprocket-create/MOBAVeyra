@@ -1,5 +1,9 @@
 # Fonts
 
-Roboto Regular, Medium, Bold and Black, font data copyright Google 2012, under the Apache License 2.0
-(https://www.apache.org/licenses/LICENSE-2.0). Copied from the engine's Slate fonts
-(`Engine/Content/Slate/Fonts`), so the launcher's type matches the game's.
+The client's type, so the launcher reads as the game does: Sora for identity (the display tier) and
+Inter for function and its numerals. Copied from the game's fonts (`Game/Content/Veyra/Fonts`).
+
+- Sora SemiBold, copyright 2019 The Sora Project Authors, under the SIL Open Font License 1.1
+  (`Sora-OFL.txt`).
+- Inter Regular, Medium, SemiBold and Bold, copyright 2016 The Inter Project Authors, under the SIL
+  Open Font License 1.1 (`Inter-OFL.txt`).

@@ -370,6 +370,13 @@ struct FVeyraOrdersTuning
 
 	UPROPERTY()
 	double AvoidanceWeight = 0.0;
+
+	/**
+	 * A cast refused only because the caster's last lockout has at most this many seconds left is held, and cast the moment
+	 * it may be (Combat Bible §26 input buffering; ADR-079 §7).
+	 */
+	UPROPERTY()
+	double CastBufferSeconds = 0.0;
 };
 
 /** The slot a developer match ranks up for each participant at level 1. */

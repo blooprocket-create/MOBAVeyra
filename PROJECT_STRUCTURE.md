@@ -67,6 +67,7 @@ Owns reusable combat truth.
 - status effects and crowd-control primitives;
 - displacement primitives;
 - movement modes, including ride states (Combat Bible §56: a ride state is a movement mode on an ordinary pathing agent, not a separate system);
+- unit motions: what the server tells every machine of each unit's movement, how every machine draws bodies from it, and the server's clock every machine reads it by ([ADR-079](Docs/ADR/ADR-079-motions-not-places.md));
 - combat event data;
 - death-trigger inputs (not full match respawn policy).
 

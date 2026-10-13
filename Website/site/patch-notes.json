@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    {
+      "version": "0.2.7",
+      "date": "2026-10-13",
+      "title": "Smoother movement",
+      "changes": [
+        "Vanguards glide between the server's updates instead of stepping, so movement no longer rubber-bands.",
+        "Your own Vanguard answers your move orders at once, ahead of the server's word.",
+        "Each move order's marker stays with the Vanguard it was given to.",
+        "The launcher shows an update's true download size, and keeps an install log for troubleshooting."
+      ]
+    },
+    {
+      "version": "0.2.6",
+      "date": "2026-10-13",
+      "title": "The Crucible rebuilt",
+      "changes": [
+        "The Crucible is rebuilt, and its river ripples where Vanguards wade through it.",
+        "Every Vanguard's abilities have new animation and effects.",
+        "Raska's thrown bike flies as the bike itself."
+      ]
+    }
+  ]
+}

@@ -14,9 +14,10 @@
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "Wildlife/VeyraWildlife.h"
+#include "Movement/VeyraPathFollowingComponent.h"
 
 AVeyraWildlifeController::AVeyraWildlifeController(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UVeyraPathFollowingComponent>(UVeyraPathFollowingComponent::DefaultName()))
 {
 	// The server moves every creature; clients never see their controllers.
 	bReplicates = false;

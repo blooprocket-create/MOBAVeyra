@@ -22,6 +22,25 @@
     "provenance": "Provisional",
     "navigationExtent": 100
   },
+  "motion": {
+    "provenance": "Provisional",
+    "horizonSeconds": 0.6,
+    "refreshSeconds": 0.25,
+    "driftDistance": 16,
+    "speedChangeShare": 0.02,
+    "standingSpeedShare": 0.1,
+    "facingDegrees": 10,
+    "setDownDistance": 300,
+    "correctionSeconds": 0.12,
+    "correctionSnapDistance": 250,
+    "remoteDelaySeconds": 0,
+    "ownLeadMaxSeconds": 0.25,
+    "ownPredictionSeconds": 0.5,
+    "clockExchangeSeconds": 0.5,
+    "clockExchangesKept": 8,
+    "clockSlewRate": 0.05,
+    "clockSnapSeconds": 0.25
+  },
   "ground": {
     "provenance": "Provisional",
     "searchHeight": 3000
