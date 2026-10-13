@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Grey-box test map layout",
-  "description": "The developer test map (ADR-006 M3): one straight lane with a start for each side at either end. The network tests build it at runtime and the map commandlet saves it as a map. Map geometry, not gameplay tuning; units are Unreal units.",
+  "description": "A grey-box layout: the developer test map (ADR-006 M3, Greybox.json), one straight lane with a start for each side at either end; or the skill showcase stage (ADR-074 §1, Showcase.json), a square floor with the two starts facing each other close by. The network tests build it at runtime and the map commandlet saves it as a map. Map geometry, not gameplay tuning; units are Unreal units.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "floor", "teamStarts", "navigation", "sun"],

@@ -48,6 +48,7 @@ namespace VeyraDevCommands
 			AddVanguardCommands(All);
 			AddEconomyCommands(All);
 			AddMatchCommands(All);
+			AddShowcaseCommands(All);
 			AddHelpCommands(All);
 			// Help lists by category, so each category's commands sit together, in the order they were added.
 			TArray<const TCHAR*> Categories;
