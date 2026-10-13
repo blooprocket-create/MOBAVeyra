@@ -7,6 +7,7 @@
 use crate::install::{ChunkStore, Target};
 use crate::release::{self, Channel, LauncherChannel, ReleaseChunk};
 use std::fmt;
+use std::io::Read as _;
 use std::time::Duration;
 use ureq::Agent;
 
@@ -114,6 +115,19 @@ impl ReleaseServer {
 
     /// The bytes at `object`, refused if longer than `limit`.
     fn get(&self, object: &str, what: &str, limit: u64) -> Result<Vec<u8>, ReleaseError> {
+        let bytes = self.get_up_to(object, what, limit)?;
+        if bytes.len() as u64 > limit {
+            return Err(ReleaseError::Invalid {
+                what: what.to_string(),
+                problem: format!("it is longer than {limit} bytes"),
+            });
+        }
+        Ok(bytes)
+    }
+
+    /// The bytes at `object`, reading no more than one byte past `limit`: a body that long is longer than allowed,
+    /// and the caller, which checks its size, says so.
+    fn get_up_to(&self, object: &str, what: &str, limit: u64) -> Result<Vec<u8>, ReleaseError> {
         let url = format!("{}/{object}", self.base_url);
         let mut response = self.agent.get(&url).call().map_err(|error| ReleaseError::Unreachable(error.to_string()))?;
         match response.status().as_u16() {
@@ -126,33 +140,22 @@ impl ReleaseServer {
                 })
             }
         }
-        let too_long = || ReleaseError::Invalid {
-            what: what.to_string(),
-            problem: format!("it is longer than {limit} bytes"),
-        };
-        // ureq's limit refuses any read past it, even the one that finds the end, so it is one byte
-        // more; a body of exactly one byte more is then refused here.
-        let bytes = response
+        let mut bytes = Vec::new();
+        response
             .body_mut()
-            .with_config()
-            .limit(limit.saturating_add(1))
-            .read_to_vec()
-            .map_err(|error| match error {
-                ureq::Error::BodyExceedsLimit(_) => too_long(),
-                other => ReleaseError::Unreachable(other.to_string()),
-            })?;
-        if bytes.len() as u64 > limit {
-            return Err(too_long());
-        }
+            .as_reader()
+            .take(limit.saturating_add(1))
+            .read_to_end(&mut bytes)
+            .map_err(|error| ReleaseError::Unreachable(error.to_string()))?;
         Ok(bytes)
     }
 }
 
 impl ChunkStore for ReleaseServer {
     fn fetch(&self, chunk: &ReleaseChunk) -> Result<Vec<u8>, String> {
-        let stored = self
-            .get(&release::chunk_object(&chunk.hash), "chunk", chunk.stored_size)
-            .map_err(|error| error.to_string())?;
-        Ok(stored)
+        // A body longer than its stored size comes back too, cut one byte past it: the engine refuses it as the wrong
+        // size and counts what it fetched, as for any chunk that fails its check.
+        self.get_up_to(&release::chunk_object(&chunk.hash), "chunk", chunk.stored_size)
+            .map_err(|error| error.to_string())
     }
 }

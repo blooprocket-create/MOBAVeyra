@@ -5,6 +5,7 @@
 //! launcher with only the development sign-in; an unknown field is an error (ADR-010 §12), and the
 //! values are validated before anything uses them.
 
+use crate::install_log;
 use crate::release;
 use serde::Deserialize;
 use std::fmt;
@@ -191,7 +192,26 @@ pub fn load(path: &Path) -> Result<LoadedConfig, ConfigError> {
         }),
         (None, None) => unreachable!("validate requires a source"),
     };
+    // The install log lies beside the state file under names of its own: a configuration there under either would be
+    // written over by it.
+    if let GameSource::Install(install) = &game {
+        let itself = directory.join(path.file_name().unwrap_or_default());
+        let names = [install_log::LOG_FILE_NAME, install_log::OLD_LOG_FILE_NAME];
+        if names.iter().any(|name| same_file_path(&install.state_file.with_file_name(name), &itself)) {
+            return Err(fail(vec![format!(
+                "it must not be named {} or {} beside its stateFile: the install log keeps those names there",
+                install_log::LOG_FILE_NAME,
+                install_log::OLD_LOG_FILE_NAME
+            )]));
+        }
+    }
     Ok(LoadedConfig { config, game })
+}
+
+/// Whether `a` and `b` name the same file, as Windows compares names: ignoring case.
+fn same_file_path(a: &Path, b: &Path) -> bool {
+    let parts = |path: &Path| -> Vec<String> { path.components().map(|part| part.as_os_str().to_string_lossy().to_lowercase()).collect() };
+    parts(a) == parts(b)
 }
 
 /// Parses and validates a configuration's text. Every problem is reported, not just the first.
@@ -278,6 +298,21 @@ fn validate_install(install: &InstallConfig) -> Vec<String> {
         if value.trim().is_empty() {
             problems.push(format!("{name} must name a path"));
         }
+    }
+    // The install log lies beside the state file under names of its own, and would write over a state file of either.
+    let state_name = Path::new(install.state_file.trim())
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    if [install_log::LOG_FILE_NAME, install_log::OLD_LOG_FILE_NAME]
+        .iter()
+        .any(|reserved| state_name.eq_ignore_ascii_case(reserved))
+    {
+        problems.push(format!(
+            "game.install.stateFile must not be named {} or {}: the install log keeps those names beside it",
+            install_log::LOG_FILE_NAME,
+            install_log::OLD_LOG_FILE_NAME
+        ));
     }
     if !(1..=MAX_PARALLEL_DOWNLOADS).contains(&install.parallel_downloads) {
         problems.push(format!("game.install.parallelDownloads must be 1 to {MAX_PARALLEL_DOWNLOADS}"));
@@ -435,6 +470,39 @@ mod tests {
             .replace(r#""stateFile": "LauncherState.json""#, r#""stateFile": " ""#);
         let problems = parse(&bad).expect_err("six problems");
         assert_eq!(problems.len(), 6, "{problems:?}");
+    }
+
+    #[test]
+    fn the_state_file_never_takes_the_install_logs_names() {
+        // The install log lies beside the state file: a state file of the log's name, or of its older copy's, would
+        // be written over by it.
+        for name in ["Logs/LauncherInstalls.log", "launcherinstalls.OLD.log"] {
+            let named = installed().replace(r#""stateFile": "LauncherState.json""#, &format!(r#""stateFile": "{name}""#));
+            let problems = parse(&named).expect_err(name);
+            assert!(problems.iter().any(|problem| problem.contains("install log")), "{name}: {problems:?}");
+        }
+    }
+
+    #[test]
+    fn a_configuration_never_lies_where_the_install_log_goes() {
+        // Named like the log, beside its state file, the configuration would be written over by the first install's log.
+        let folder = std::env::temp_dir().join(format!("veyra-config-log-name-{}", std::process::id()));
+        fs::create_dir_all(&folder).unwrap();
+        for name in ["LauncherInstalls.log", "launcherinstalls.old.LOG"] {
+            let path = folder.join(name);
+            fs::write(&path, installed()).unwrap();
+            let problem = load(&path).expect_err(name).to_string();
+            assert!(problem.contains("install log"), "{name}: {problem}");
+        }
+        // With its state file in a folder of its own, the log goes there: the name is free.
+        let apart = folder.join("LauncherInstalls.log");
+        fs::write(
+            &apart,
+            installed().replace(r#""stateFile": "LauncherState.json""#, r#""stateFile": "State/LauncherState.json""#),
+        )
+        .unwrap();
+        assert!(load(&apart).is_ok());
+        fs::remove_dir_all(&folder).unwrap();
     }
 
     #[test]

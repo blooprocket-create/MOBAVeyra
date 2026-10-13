@@ -143,20 +143,24 @@ async function install(folder, repair) {
 }
 
 function renderInstall(status) {
-  const percent = status.totalBytes > 0 ? Math.floor((status.doneBytes * 100) / status.totalBytes) : 100;
+  // A run that downloads shows the download itself: what the player waits for. Files it only rebuilds
+  // from chunks already on disk come second, and lead only when nothing is to download.
+  const downloads = status.downloadTotalBytes > 0;
+  const [done, total] = downloads ? [status.downloadedBytes, status.downloadTotalBytes] : [status.doneBytes, status.totalBytes];
+  const percent = total > 0 ? Math.min(100, Math.floor((done * 100) / total)) : 100;
   element("install-stage").textContent = status.stage;
   element("install-fill").style.width = `${percent}%`;
   document.querySelector("#installing .bar").setAttribute("aria-valuenow", String(percent));
   element("install-percent").textContent = `${percent}%`;
   element("install-bytes").textContent =
-    status.totalBytes > 0 ? `${formatBytes(status.doneBytes)} of ${formatBytes(status.totalBytes)}` : "";
+    total > 0 ? `${formatBytes(done)} of ${formatBytes(total)}${downloads ? " downloaded" : ""}` : "";
   const now = performance.now();
   samples.push([now, status.downloadedBytes]);
   samples = samples.filter(([at]) => now - at <= SPEED_WINDOW_MS);
   const [firstAt, firstBytes] = samples[0];
   const speed = now > firstAt ? ((status.downloadedBytes - firstBytes) * 1000) / (now - firstAt) : 0;
   element("install-speed").textContent =
-    status.downloadedBytes > 0 ? `${formatBytes(status.downloadedBytes)} downloaded · ${formatBytes(speed)}/s` : "";
+    downloads && status.totalBytes > 0 ? `${formatBytes(speed)}/s · updating ${formatBytes(status.totalBytes)} of game files` : "";
 }
 
 async function followInstall() {

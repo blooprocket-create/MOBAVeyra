@@ -11,6 +11,7 @@ pub mod firebase;
 pub mod game;
 pub mod handshake;
 pub mod install;
+pub mod install_log;
 pub mod launch;
 pub mod manifest;
 pub mod player;

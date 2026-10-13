@@ -22,7 +22,7 @@ use std::fmt;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Read as _, Seek as _, SeekFrom, Write as _};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::thread;
 
@@ -93,6 +93,8 @@ pub enum Mode {
 #[serde(rename_all = "camelCase")]
 pub enum Stage {
     Checking,
+    /// Building the new files from chunks already on disk, before any download.
+    Reusing,
     Downloading,
     Finishing,
 }
@@ -102,19 +104,26 @@ impl Stage {
     pub fn describe(self) -> &'static str {
         match self {
             Self::Checking => "Checking Veyra's files",
+            Self::Reusing => "Reusing Veyra's installed files",
             Self::Downloading => "Downloading Veyra",
             Self::Finishing => "Finishing",
         }
     }
 }
 
-/// How far a run has got. `done_bytes` of `total_bytes` of the stage's files are ready.
+/// How far a run has got. `done_bytes` of `total_bytes` of the stage's files are ready: while it reuses,
+/// the chunks it takes from disk; while it downloads, the files it rebuilds, most of whose chunks may
+/// already be in place. `downloaded_bytes` of `download_total_bytes` are what it fetches from the release
+/// store, as stored: the download itself, known in full before any of it starts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Progress {
     pub stage: Stage,
     pub done_bytes: u64,
     pub total_bytes: u64,
     pub downloaded_bytes: u64,
+    /// While it downloads: every fetch the run must make, as stored. Otherwise what it has fetched, or
+    /// 0 before it downloads.
+    pub download_total_bytes: u64,
 }
 
 /// How a run works, from the launcher's configuration.
@@ -134,7 +143,10 @@ pub struct Outcome {
     pub changed: bool,
     pub rebuilt_files: usize,
     pub removed_files: usize,
+    /// Fetched from the release store and used, as stored.
     pub downloaded_bytes: u64,
+    /// Fetched from the release store but failing its check, as stored: fetched again, or the run failed.
+    pub rejected_bytes: u64,
     pub reused_bytes: u64,
 }
 
@@ -420,13 +432,6 @@ fn run_jobs<R: Send>(
     failure.map_or(Ok(()), Err)
 }
 
-/// Where a built chunk came from.
-enum Source {
-    Resumed,
-    Local,
-    Downloaded(u64),
-}
-
 /// Brings `folder` to `target` (ADR-022 §5). `progress` is called on this thread as work finishes;
 /// setting `cancel` stops the run, keeping what it wrote for the next.
 pub fn install(
@@ -438,6 +443,24 @@ pub fn install(
     cancel: &AtomicBool,
     progress: &mut dyn FnMut(&Progress),
 ) -> Result<Outcome, InstallError> {
+    let mut outcome = Outcome::default();
+    install_counting(folder, target, store, settings, mode, cancel, progress, &mut outcome).map(|()| outcome)
+}
+
+/// As `install`, counting what it does in `outcome` as it goes, so a run that fails part-way still tells
+/// what it downloaded, reused, rebuilt and removed (the launcher's install log).
+// One more than clippy's limit: the counters stand beside the run's own inputs, as `install` passes them on.
+#[allow(clippy::too_many_arguments)]
+pub fn install_counting(
+    folder: &Path,
+    target: &Target,
+    store: &dyn ChunkStore,
+    settings: Settings,
+    mode: Mode,
+    cancel: &AtomicBool,
+    progress: &mut dyn FnMut(&Progress),
+    outcome: &mut Outcome,
+) -> Result<(), InstallError> {
     let kind = inspect_folder(folder).map_err(io_error(folder))?;
     if kind == FolderKind::Occupied {
         return Err(InstallError::Folder {
@@ -461,15 +484,12 @@ pub fn install(
     let interrupted = previous.as_ref().and_then(|record| record.target.clone());
     let trust = mode == Mode::Update && interrupted.is_none() && installed.is_some();
     let planned: Vec<Planned> = target.manifest.files.iter().map(|file| Planned::new(folder, file)).collect();
-    let mut outcome = Outcome {
-        build_version: target.manifest.build_version.clone(),
-        ..Outcome::default()
-    };
+    outcome.build_version = target.manifest.build_version.clone();
 
     // Up to date: the same release, and every file still there at its size.
     let size_matches = |planned: &Planned| fs::metadata(&planned.path).is_ok_and(|metadata| metadata.is_file() && metadata.len() == planned.file.size);
     if trust && installed.as_ref().is_some_and(|release| release.manifest_hash == target.manifest_hash) && planned.iter().all(size_matches) {
-        return Ok(outcome);
+        return Ok(());
     }
 
     // The record says a run is under way before anything is written.
@@ -485,21 +505,34 @@ pub fn install(
     };
     write_record(folder, &record)?;
 
-    // Which files must be built, and where their chunks may already be.
-    let mut locations: HashMap<String, Location> = HashMap::new();
+    // Which files must be built, and where on disk their chunks may already be, each place tried in turn.
+    let mut locations: HashMap<String, Vec<Location>> = HashMap::new();
     let mut build = vec![false; planned.len()];
     if trust {
         let old = &installed.as_ref().expect("trust needs an installed release").manifest;
         for (index, planned) in planned.iter().enumerate() {
             build[index] = old.file(&planned.file.path).is_none_or(|file| file.chunks != planned.file.chunks) || !size_matches(planned);
         }
-        for file in &old.files {
-            let old_planned = Planned::new(folder, file);
-            for (chunk, &offset) in file.chunks.iter().zip(&old_planned.offsets) {
-                locations.entry(chunk.hash.clone()).or_insert(Location {
-                    path: old_planned.path.clone(),
-                    offset,
-                });
+        // The installed files at the offsets the record gives: those still of their size first, then one that has grown or
+        // shrunk, which may still hold most of its chunks. None past a file's end, and none in a file that is gone.
+        let mut on_disk: Vec<(Planned, u64)> = old
+            .files
+            .iter()
+            .filter_map(|file| {
+                let old_planned = Planned::new(folder, file);
+                let length = fs::metadata(&old_planned.path).ok().filter(|metadata| metadata.is_file())?.len();
+                Some((old_planned, length))
+            })
+            .collect();
+        on_disk.sort_by_key(|(old_planned, length)| *length != old_planned.file.size);
+        for (old_planned, length) in &on_disk {
+            for (chunk, &offset) in old_planned.file.chunks.iter().zip(&old_planned.offsets) {
+                if offset + chunk.size <= *length {
+                    locations.entry(chunk.hash.clone()).or_default().push(Location {
+                        path: old_planned.path.clone(),
+                        offset,
+                    });
+                }
             }
         }
     } else {
@@ -534,6 +567,7 @@ pub fn install(
             done_bytes: 0,
             total_bytes: jobs.iter().map(|job| planned[job.file].file.chunks[job.chunk].size).sum(),
             downloaded_bytes: 0,
+            download_total_bytes: 0,
         };
         progress(&status);
         let check = |job: Job| -> Result<bool, InstallError> {
@@ -544,7 +578,7 @@ pub fn install(
             let planned = &planned[job.file];
             let chunk = &planned.file.chunks[job.chunk];
             if verified {
-                locations.entry(chunk.hash.clone()).or_insert(Location {
+                locations.entry(chunk.hash.clone()).or_default().push(Location {
                     path: planned.path.clone(),
                     offset: planned.offsets[job.chunk],
                 });
@@ -573,33 +607,84 @@ pub fn install(
         part.set_len(planned.file.size).map_err(io_error(&planned.part))?;
         jobs.extend((0..planned.file.chunks.len()).map(|chunk| Job { file, chunk }));
     }
+    // A part an interrupted run left behind may already hold some chunks; the rest come from files on disk, or from the
+    // store.
+    let chunk_of = |job: &Job| &planned[job.file].file.chunks[job.chunk];
+    let (local_jobs, mut download_jobs): (Vec<Job>, Vec<Job>) = jobs
+        .iter()
+        .copied()
+        .partition(|job| resumable[job.file] || locations.contains_key(&chunk_of(job).hash));
+
+    // First what is on disk, the part's own chunks and then the files', each checked as it is read, as a stage that
+    // shows its progress and stops when cancelled. A chunk that proves unusable there, as a corrupt one of the right
+    // size, joins the download, which so is known in full before any of it starts and never reads as done early.
     let mut status = Progress {
-        stage: Stage::Downloading,
+        stage: Stage::Reusing,
         done_bytes: 0,
-        total_bytes: jobs.iter().map(|job| planned[job.file].file.chunks[job.chunk].size).sum(),
+        total_bytes: local_jobs.iter().map(|job| chunk_of(job).size).sum(),
         downloaded_bytes: 0,
+        download_total_bytes: 0,
     };
-    progress(&status);
-    let fetch = |job: Job| -> Result<Source, InstallError> {
+    if !local_jobs.is_empty() {
+        progress(&status);
+    }
+    let copy = |job: Job| -> Result<bool, InstallError> {
         let planned = &planned[job.file];
         let chunk = &planned.file.chunks[job.chunk];
-        let offset = planned.offsets[job.chunk];
-        if resumable[job.file] && holds(&planned.part, offset, chunk).is_some() {
-            return Ok(Source::Resumed);
+        if resumable[job.file] && holds(&planned.part, planned.offsets[job.chunk], chunk).is_some() {
+            return Ok(true);
         }
-        if let Some(bytes) = locations.get(&chunk.hash).and_then(|found| holds(&found.path, found.offset, chunk)) {
-            write_range(&planned.part, offset, &bytes)?;
-            return Ok(Source::Local);
+        let found = locations
+            .get(&chunk.hash)
+            .into_iter()
+            .flatten()
+            .find_map(|found| holds(&found.path, found.offset, chunk));
+        match found {
+            Some(bytes) => write_range(&planned.part, planned.offsets[job.chunk], &bytes).map(|()| true),
+            None => Ok(false),
         }
+    };
+    run_jobs(&local_jobs, settings.workers, cancel, &copy, &mut |job, copied| {
+        let chunk = chunk_of(&job);
+        if copied {
+            outcome.reused_bytes += chunk.size;
+        } else {
+            download_jobs.push(job);
+        }
+        status.done_bytes += chunk.size;
+        progress(&status);
+    })?;
+
+    // Then the store: every fetch the run makes, a chunk two files share fetched for each, as fetching does not coalesce
+    // them yet (ADR-022 §10), so the download shown is the download made. What the store sends that fails its check is
+    // fetched again; the log counts it too, as the run fetched it.
+    let total_bytes: u64 = jobs.iter().map(|job| chunk_of(job).size).sum();
+    let mut status = Progress {
+        stage: Stage::Downloading,
+        done_bytes: total_bytes - download_jobs.iter().map(|job| chunk_of(job).size).sum::<u64>(),
+        total_bytes,
+        downloaded_bytes: 0,
+        download_total_bytes: download_jobs.iter().map(|job| chunk_of(job).stored_size).sum(),
+    };
+    progress(&status);
+    let rejected = AtomicU64::new(0);
+    let fetch = |job: Job| -> Result<u64, InstallError> {
+        let planned = &planned[job.file];
+        let chunk = &planned.file.chunks[job.chunk];
         let mut problem = String::new();
         for _ in 0..settings.attempts.max(1) {
             if cancel.load(Ordering::Relaxed) {
                 return Err(InstallError::Cancelled);
             }
-            match store.fetch(chunk).and_then(|stored| release::decode_chunk(&stored, chunk)) {
+            let fetched = store.fetch(chunk).and_then(|stored| {
+                release::decode_chunk(&stored, chunk).inspect_err(|_| {
+                    rejected.fetch_add(stored.len() as u64, Ordering::Relaxed);
+                })
+            });
+            match fetched {
                 Ok(bytes) => {
-                    write_range(&planned.part, offset, &bytes)?;
-                    return Ok(Source::Downloaded(chunk.stored_size));
+                    write_range(&planned.part, planned.offsets[job.chunk], &bytes)?;
+                    return Ok(chunk.stored_size);
                 }
                 Err(failed) => problem = failed,
             }
@@ -609,18 +694,14 @@ pub fn install(
             problem,
         })
     };
-    run_jobs(&jobs, settings.workers, cancel, &fetch, &mut |job, source| {
-        let size = planned[job.file].file.chunks[job.chunk].size;
-        match source {
-            Source::Resumed | Source::Local => outcome.reused_bytes += size,
-            Source::Downloaded(stored) => {
-                outcome.downloaded_bytes += stored;
-                status.downloaded_bytes += stored;
-            }
-        }
-        status.done_bytes += size;
+    let downloaded = run_jobs(&download_jobs, settings.workers, cancel, &fetch, &mut |job, stored| {
+        outcome.downloaded_bytes += stored;
+        status.downloaded_bytes += stored;
+        status.done_bytes += chunk_of(&job).size;
         progress(&status);
-    })?;
+    });
+    outcome.rejected_bytes = rejected.load(Ordering::Relaxed);
+    downloaded?;
     if cancel.load(Ordering::Relaxed) {
         return Err(InstallError::Cancelled);
     }
@@ -631,18 +712,21 @@ pub fn install(
         done_bytes: 0,
         total_bytes: 0,
         downloaded_bytes: outcome.downloaded_bytes,
+        download_total_bytes: outcome.downloaded_bytes,
     });
     let kept: HashSet<String> = target.manifest.files.iter().map(|file| file.path.to_lowercase()).collect();
     let stale: Vec<String> = record.owned_paths().into_iter().filter(|path| !kept.contains(&path.to_lowercase())).collect();
     for path in &stale {
         if remove_file(&join(folder, path))? {
             outcome.removed_files += 1;
+            outcome.changed = true;
         }
     }
     prune_folders(folder, &stale);
     for planned in planned.iter().enumerate().filter(|(file, _)| build[*file]).map(|(_, planned)| planned) {
         fs::rename(&planned.part, &planned.path).map_err(io_error(&planned.path))?;
         outcome.rebuilt_files += 1;
+        outcome.changed = true;
     }
     remove_parts(folder)?;
     write_record(
@@ -655,7 +739,7 @@ pub fn install(
         },
     )?;
     outcome.changed = outcome.rebuilt_files > 0 || outcome.removed_files > 0;
-    Ok(outcome)
+    Ok(())
 }
 
 /// What an uninstall removed.
@@ -832,12 +916,34 @@ mod tests {
 
     fn run(folder: &Path, target: &Target, store: &MemoryStore, mode: Mode) -> Result<Outcome, InstallError> {
         let mut last = None;
+        let mut planned = None;
+        let mut begun: Option<u64> = None;
         let result = install(folder, target, store, SETTINGS, mode, &AtomicBool::new(false), &mut |progress| {
             assert!(progress.done_bytes <= progress.total_bytes, "{progress:?}");
+            assert!(
+                progress.downloaded_bytes <= progress.download_total_bytes,
+                "never more than it planned: {progress:?}"
+            );
+            if progress.stage == Stage::Reusing {
+                assert!(planned.is_none(), "it reuses what is on disk before it downloads: {progress:?}");
+            }
+            if progress.stage == Stage::Downloading {
+                planned = Some(progress.download_total_bytes);
+                // Once anything has downloaded, the download shown is the whole of it: it never grows after, so it never
+                // reads as done while more is still to come.
+                if progress.downloaded_bytes > 0 {
+                    let total = *begun.get_or_insert(progress.download_total_bytes);
+                    assert_eq!(progress.download_total_bytes, total, "the download grew once it had begun: {progress:?}");
+                }
+            }
             last = Some(progress.stage);
         });
-        if result.as_ref().is_ok_and(|outcome| outcome.changed) {
-            assert_eq!(last, Some(Stage::Finishing));
+        if let Ok(outcome) = result.as_ref() {
+            if outcome.changed {
+                assert_eq!(last, Some(Stage::Finishing));
+                // What it said it would download is what it downloaded: the download the player is shown.
+                assert_eq!(planned, Some(outcome.downloaded_bytes));
+            }
         }
         result
     }
@@ -917,6 +1023,137 @@ mod tests {
     }
 
     #[test]
+    fn a_new_chunk_two_files_share_is_counted_for_each_fetch() {
+        // Both files need ZZZZ, which no file on disk holds: the run fetches it for each, and says so.
+        let mut store = MemoryStore::default();
+        let target = release(&mut store, "1", &[("Content/a.pak", b"ZZZZ1111"), ("Content/b.pak", b"2222ZZZZ")]);
+        let root = folder("shared");
+        let outcome = run(&root, &target, &store, Mode::Update).unwrap();
+        assert_eq!(served_of(&store, b"ZZZZ"), 2);
+        assert_eq!(read(&root, "Content/b.pak"), b"2222ZZZZ");
+        assert!(outcome.downloaded_bytes > download_size(&target.manifest, None), "more than each chunk once");
+    }
+
+    #[test]
+    fn a_local_chunk_found_corrupt_is_added_to_the_download() {
+        // An update trusts a.pak, unchanged and of its size, though its 2222 has gone bad. new.pak needs 2222: the
+        // chunk on disk proves unusable, so it is downloaded, and the download shown grows to count it.
+        let mut store = MemoryStore::default();
+        let first = release(&mut store, "1", &[("Content/a.pak", b"11112222")]);
+        let root = folder("corrupt-local");
+        run(&root, &first, &store, Mode::Update).unwrap();
+        fs::write(root.join("Content/a.pak"), b"1111zzzz").unwrap();
+        let second = release(&mut store, "2", &[("Content/a.pak", b"11112222"), ("Content/new.pak", b"2222")]);
+        let served = served_of(&store, b"2222");
+        run(&root, &second, &store, Mode::Update).unwrap();
+        assert_eq!(served_of(&store, b"2222"), served + 1);
+        assert_eq!(read(&root, "Content/new.pak"), b"2222");
+    }
+
+    #[test]
+    fn local_chunks_found_corrupt_join_the_download_before_it_starts() {
+        // Two chunks an update trusts on disk have gone bad, and the new build manifest needs a chunk of its own: the
+        // download shown counts all three before the first finishes, so it never reads as done early.
+        let mut store = MemoryStore::default();
+        let first = release(&mut store, "1", &[("Content/a.pak", b"11112222")]);
+        let root = folder("corrupt-locals");
+        run(&root, &first, &store, Mode::Update).unwrap();
+        fs::write(root.join("Content/a.pak"), b"zzzzyyyy").unwrap();
+        let second = release(&mut store, "2", &[("Content/a.pak", b"11112222"), ("Content/new.pak", b"11112222")]);
+        let outcome = run(&root, &second, &store, Mode::Update).unwrap();
+        assert_eq!(read(&root, "Content/new.pak"), b"11112222");
+        let stored = |bytes: &[u8]| store.chunks[&release::sha256_hex(bytes)].len() as u64;
+        assert_eq!(outcome.downloaded_bytes, stored(b"1111") + stored(b"2222") + stored(b"d 2"));
+    }
+
+    #[test]
+    fn a_file_of_the_wrong_size_still_lends_the_chunks_it_kept() {
+        // One installed file gained a byte and another lost its tail. An update rebuilds both, reusing every chunk still
+        // whole where the record puts it, and downloads only the one cut off.
+        let mut store = MemoryStore::default();
+        let first = release(&mut store, "1", &[("Content/a.pak", b"11112222"), ("Content/b.pak", b"33334444")]);
+        let root = folder("wrong-size");
+        run(&root, &first, &store, Mode::Update).unwrap();
+        fs::write(root.join("Content/a.pak"), b"11112222!").unwrap();
+        fs::write(root.join("Content/b.pak"), b"333344").unwrap();
+        let served = |store: &MemoryStore| [&b"1111"[..], &b"2222"[..], &b"3333"[..], &b"4444"[..]].map(|bytes| served_of(store, bytes));
+        let before = served(&store);
+        let second = release(&mut store, "2", &[("Content/a.pak", b"11112222"), ("Content/b.pak", b"33334444")]);
+        let outcome = run(&root, &second, &store, Mode::Update).unwrap();
+        assert_eq!(read(&root, "Content/a.pak"), b"11112222");
+        assert_eq!(read(&root, "Content/b.pak"), b"33334444");
+        let after = served(&store);
+        assert_eq!(
+            [after[0] - before[0], after[1] - before[1], after[2] - before[2], after[3] - before[3]],
+            [0, 0, 0, 1],
+            "only 4444, which the shortened file lost"
+        );
+        assert_eq!(outcome.reused_bytes, 12 + 4, "1111, 2222 and 3333, and the build manifest's \"buil\"");
+    }
+
+    #[test]
+    fn a_run_that_fails_while_committing_keeps_its_counts() {
+        // As it starts to finish, something takes z.pak's place: a.pak's part is renamed into place, z.pak's cannot be.
+        let mut store = MemoryStore::default();
+        let target = release(&mut store, "1", &[("Content/a.pak", b"1111"), ("Content/z.pak", b"2222")]);
+        let root = folder("commit-fails");
+        let blocker = root.join("Content/z.pak/blocked");
+        let mut outcome = Outcome::default();
+        let result = install_counting(
+            &root,
+            &target,
+            &store,
+            SETTINGS,
+            Mode::Update,
+            &AtomicBool::new(false),
+            &mut |progress| {
+                if progress.stage == Stage::Finishing {
+                    fs::create_dir_all(&blocker).unwrap();
+                }
+            },
+            &mut outcome,
+        );
+        assert!(result.is_err());
+        assert!(outcome.downloaded_bytes > 0, "{outcome:?}");
+        assert!(outcome.rebuilt_files >= 1 && outcome.changed, "{outcome:?}");
+    }
+
+    #[test]
+    fn a_kept_part_is_checked_within_the_reuse_stage() {
+        // A part an interrupted run left holds half its file. Checking what it kept is the reuse stage's work, shown
+        // and cancellable as it goes, not done unseen before it: the stage counts every chunk of the part.
+        let mut store = MemoryStore::default();
+        let target = release(&mut store, "1", &[("Content/a.pak", b"1111222233334444")]);
+        let root = folder("kept-part");
+        fs::create_dir_all(root.join("Content")).unwrap();
+        write_record(
+            &root,
+            &InstallRecord {
+                schema_version: RECORD_SCHEMA_VERSION,
+                installed: None,
+                target: Some(target.clone()),
+                leftovers: Vec::new(),
+            },
+        )
+        .unwrap();
+        fs::write(root.join("Content/a.pak.veyra-part"), b"11112222\0\0\0\0\0\0\0\0").unwrap();
+        let mut reusing: Vec<Progress> = Vec::new();
+        install(&root, &target, &store, SETTINGS, Mode::Update, &AtomicBool::new(false), &mut |progress| {
+            if progress.stage == Stage::Reusing {
+                reusing.push(*progress);
+            }
+        })
+        .unwrap();
+        assert_eq!(read(&root, "Content/a.pak"), b"1111222233334444");
+        let last = reusing.last().expect("a reuse stage");
+        assert_eq!(
+            (last.done_bytes, last.total_bytes),
+            (16, 16),
+            "every chunk of the part, checked as the stage goes: {reusing:?}"
+        );
+    }
+
+    #[test]
     fn repair_rebuilds_only_what_fails() {
         let mut store = MemoryStore::default();
         let target = release(&mut store, "1", &[("Content/a.pak", b"1111222233334444"), ("Bin/Game.exe", b"exe!")]);
@@ -981,6 +1218,38 @@ mod tests {
         let record = load_record(&root).unwrap().unwrap();
         assert_eq!(record.installed.unwrap().manifest_hash, first.manifest_hash);
         assert_eq!(record.target.unwrap().manifest_hash, second.manifest_hash);
+    }
+
+    #[test]
+    fn a_failed_download_counts_what_the_store_sent() {
+        // The store sends a frame that fails its check on every attempt: the run fails, and its counts say all it fetched,
+        // for the install log.
+        let mut store = MemoryStore::default();
+        let target = release(&mut store, "1", &[("Content/a.pak", b"BAD!")]);
+        let bad = release::sha256_hex(b"BAD!");
+        store.corrupt.insert(bad.clone());
+        let root = folder("rejected");
+        let mut outcome = Outcome::default();
+        let result = install_counting(
+            &root,
+            &target,
+            &store,
+            SETTINGS,
+            Mode::Update,
+            &AtomicBool::new(false),
+            &mut |_| {},
+            &mut outcome,
+        );
+        assert!(matches!(result, Err(InstallError::Download { .. })), "{result:?}");
+        let chunk = target
+            .manifest
+            .files
+            .iter()
+            .flat_map(|file| &file.chunks)
+            .find(|chunk| chunk.hash == bad)
+            .unwrap();
+        let sent = store.fetch(chunk).unwrap().len() as u64;
+        assert_eq!(outcome.rejected_bytes, u64::from(SETTINGS.attempts) * sent);
     }
 
     #[test]

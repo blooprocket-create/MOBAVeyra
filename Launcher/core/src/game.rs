@@ -4,6 +4,7 @@
 
 use crate::config::{GameSource, InstallSource, LoadedConfig};
 use crate::install::{self, FolderKind, InstallRecord, Mode, Outcome, Progress, Settings, Target, Uninstalled};
+use crate::install_log;
 use crate::manifest::{self, GameBuild};
 use crate::release::BUILD_MANIFEST_FILE_NAME;
 use crate::releases::ReleaseServer;
@@ -99,7 +100,35 @@ pub fn install_into(
         workers: source.parallel_downloads,
         attempts: source.download_attempts,
     };
-    let outcome = install::install(&folder, target, &release_server(source), settings, mode, cancel, progress).map_err(|error| error.to_string())?;
+    // The run's last progress, so a run that fails after doing work still logs what it did.
+    let mut last: Option<Progress> = None;
+    let mut outcome = Outcome::default();
+    let result = install::install_counting(
+        &folder,
+        target,
+        &release_server(source),
+        settings,
+        mode,
+        cancel,
+        &mut |seen: &Progress| {
+            last = Some(*seen);
+            progress(seen);
+        },
+        &mut outcome,
+    );
+    // What the run did goes in the launcher's install log, all of it even when it failed part-way; a run never
+    // fails for want of the log.
+    let entry = install_log::entry_of(
+        install_log::now_unix_seconds(),
+        &format!("{mode:?}").to_lowercase(),
+        &target.manifest.build_version,
+        &folder,
+        &outcome,
+        result.as_ref().err().map(|error| error.to_string()),
+        last.as_ref(),
+    );
+    let _ = install_log::append(&install_log::log_path(&source.state_file), &entry);
+    result.map_err(|error| error.to_string())?;
     Ok((folder, outcome))
 }
 
