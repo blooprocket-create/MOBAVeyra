@@ -98,6 +98,26 @@ namespace VeyraNetTests
 				.ThenServer(TEXT("One stack of Gathering Light"), [this](FState& State) { ASSERT_THAT(AreEqual(1, GatheringLightOf(State)->GetStacks())); });
 		}
 
+		TEST_METHOD(ACastGivenAsARecoveryEndsIsHeldThenCast)
+		{
+			// Given in the last of the lance's Recovery, the shards are held rather than refused, and called down the moment the
+			// Recovery ends (Combat Bible §26 input buffering; ADR-079 §7).
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Prepare the duel"), [this](FState& State) { PrepareDuel(State); })
+				.ThenClient(TEXT("Throw the lance"), 0, [this](FState& State) { Duel.CastAtTheTarget(State.World, EVeyraAbilitySlot::Q); })
+				.UntilClient(TEXT("Its machine sees the lance's Recovery"), 0, [](FState& State) {
+					const APlayerState* Own = LocalControllerOf(State.World)->PlayerState;
+					const UVeyraCastStateComponent* CastState = Own ? Own->FindComponentByClass<UVeyraCastStateComponent>() : nullptr;
+					return CastState && CastState->GetState().Phase == EVeyraCastPhase::Recovery;
+				})
+				.ThenClient(TEXT("Call the shards down at once"), 0, [this](FState& State) { Duel.CastAtTheTarget(State.World, EVeyraAbilitySlot::W); })
+				.UntilServer(TEXT("The shards are called down after all"), [](FState& State) {
+					const UVeyraCastStateComponent* CastState = ParticipantOf(State, 0)->FindComponentByClass<UVeyraCastStateComponent>();
+					return CastState && CastState->GetState().Ability == FVeyraContentId::FromText(TEXT("oriel_shattered_sky")).GetValue();
+				})
+				.ThenClient(TEXT("Never refused"), 0, [this](FState& State) { ASSERT_THAT(AreEqual(LocalControllerOf(State.World)->GetCastRejectionCount(), 0)); });
+		}
+
 		TEST_METHOD(ShatteredSkyFallsAfterItsDelayAndSlows)
 		{
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)

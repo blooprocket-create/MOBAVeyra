@@ -287,8 +287,6 @@ private:
 	/** The controller Participant's move and attack orders reach: its commanded Echo's, else its Vanguard's. */
 	AVeyraVanguardController* OrderedControllerOf(const AVeyraPlayerState* Participant) const;
 
-	/** OrderedControllerOf, as an order from Participant is passed on to it: it takes that participant's orders now. */
-	AVeyraVanguardController* OrderedFrom(AVeyraPlayerState* Participant) const;
 
 	/** Set when this server hosts an assigned match. */
 	TUniquePtr<FVeyraMatchRoster> Roster;

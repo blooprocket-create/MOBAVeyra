@@ -5,7 +5,6 @@
 #include "Algo/AnyOf.h"
 #include "GameFramework/Actor.h"
 
-#include "Greybox/VeyraOwnLead.h"
 #include "Greybox/VeyraUnitArtSet.h"
 #include "Units/VeyraUnit.h"
 
@@ -47,36 +46,6 @@ float UVeyraGreyboxSettings::VisualTopOf(const AActor& Unit) const
 	float HalfHeight = 0.0f;
 	Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
 	return HalfHeight * (2.0f * VisualScaleOf(Unit) - 1.0f);
-}
-
-TOptional<FVector2f> UVeyraGreyboxSettings::EaseOf(const AActor& Unit) const
-{
-	switch (VeyraUnits::KindOf(&Unit).Get(EVeyraUnitKind::Marker))
-	{
-	case EVeyraUnitKind::Vanguard:
-	case EVeyraUnitKind::Companion:
-	case EVeyraUnitKind::Echo:
-		return FVector2f(VanguardEaseLocationSeconds, VanguardEaseRotationSeconds);
-	case EVeyraUnitKind::Fluxborn:
-	case EVeyraUnitKind::Wildlife:
-		return FVector2f(CreatureEaseLocationSeconds, CreatureEaseRotationSeconds);
-	default:
-		return {};
-	}
-}
-
-FVeyraOwnLeadShape UVeyraGreyboxSettings::OwnLeadShape(double ArrivalTolerance) const
-{
-	FVeyraOwnLeadShape Shape;
-	Shape.CatchUpScale = OwnLeadCatchUpScale;
-	Shape.StallSeconds = OwnLeadStallSeconds;
-	Shape.OffPathDistance = OwnLeadOffPathDistance;
-	Shape.BlendSeconds = OwnLeadBlendSeconds;
-	Shape.SwitchSeconds = OwnLeadSwitchSeconds;
-	Shape.MaxDistance = OwnLeadMaxDistance;
-	Shape.ArrivalTolerance = ArrivalTolerance;
-	Shape.StandingSpeedShare = OwnLeadStandingSpeedShare;
-	return Shape;
 }
 
 TArray<FString> UVeyraGreyboxSettings::Validate() const
@@ -279,15 +248,6 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("the selected unit's frame needs a size and a place, and its ring a margin of 0 or more."));
 	Require(UnaffordableTintOpacity > 0.0f && UnaffordableTintOpacity <= 1.0f, TEXT("UnaffordableTintOpacity"),
 		TEXT("an ability its owner cannot afford needs a tint above 0 and at most whole."));
-	Require(VanguardEaseLocationSeconds > 0.0f && VanguardEaseRotationSeconds > 0.0f && CreatureEaseLocationSeconds > 0.0f && CreatureEaseRotationSeconds > 0.0f,
-		TEXT("VanguardEaseLocationSeconds"), TEXT("a drawn body needs some time to ease to each update, or it steps with its capsule."));
-	Require(OwnLeadSeconds >= 0.0f && OwnLeadTurnDegreesPerSecond > 0.0f && OwnLeadAlignDegrees > 0.0f && OwnLeadAlignDegrees <= 180.0f, TEXT("OwnLeadSeconds"),
-		TEXT("the player's own body's lead needs a time of 0 or more, a turn rate above 0 and an angle within half a turn."));
-	Require(OwnLeadPingShare >= 0.0f && OwnLeadServerWaitSeconds >= 0.0f && OwnLeadMaxSeconds >= 0.0f && OwnLeadCatchUpScale >= 1.0f && OwnLeadMaxDistance >= 0.0f,
-		TEXT("OwnLeadMaxSeconds"), TEXT("the lead along the path needs a share of the round trip, a wait, a longest lead and a farthest of 0 or more, and may catch up no slower than the body walks."));
-	Require(OwnLeadBlendSeconds > 0.0f && OwnLeadStandingSpeedShare > 0.0f && OwnLeadStandingSpeedShare < 1.0f && OwnLeadStallSeconds >= 0.0f
-		&& OwnLeadOffPathDistance > 0.0f && OwnLeadSwitchSeconds > 0.0f && OwnLeadOrderMatchDistance >= 0.0f, TEXT("OwnLeadBlendSeconds"),
-		TEXT("the lead along the path needs a time to go and to switch paths, a standing share between 0 and whole, a stall of 0 or more, a distance off the path above 0 and a match distance of 0 or more."));
 	Require(KillFeedRows >= 1 && KillFeedSeconds > 0.0f && KillFeedFaceSize >= 1.0f && AnnouncementSeconds > 0.0f && AnnouncementFontSize >= 1, TEXT("KillFeedSeconds"),
 		TEXT("the kill feed needs rows, a time to show and a face size, and the announcement a time and a size."));
 	Require(RankUpPulseSeconds > 0.0f && RankUpPulseFloor >= 0.0f && RankUpPulseFloor < 1.0f, TEXT("RankUpPulseSeconds"),

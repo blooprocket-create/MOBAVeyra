@@ -17,6 +17,7 @@
 #include "TimerManager.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
+#include "Movement/VeyraPathFollowingComponent.h"
 
 namespace
 {
@@ -33,7 +34,7 @@ namespace
 }
 
 AVeyraCompanionController::AVeyraCompanionController(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UVeyraPathFollowingComponent>(UVeyraPathFollowingComponent::DefaultName()))
 {
 	// The server moves every companion; clients never see their controllers.
 	bReplicates = false;

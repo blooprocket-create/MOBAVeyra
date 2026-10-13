@@ -15,9 +15,10 @@
 #include "TimerManager.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
+#include "Movement/VeyraPathFollowingComponent.h"
 
 AVeyraFluxbornController::AVeyraFluxbornController(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UVeyraPathFollowingComponent>(UVeyraPathFollowingComponent::DefaultName()))
 {
 	// The server moves every Fluxborn; clients never see their controllers.
 	bReplicates = false;

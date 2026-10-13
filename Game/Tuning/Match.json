@@ -79,7 +79,8 @@
     "destinationProjectionExtent": 200,
     "arrivalTolerance": 10,
     "avoidanceConsiderationRadius": 150,
-    "avoidanceWeight": 0.5
+    "avoidanceWeight": 0.5,
+    "castBufferSeconds": 0.25
   },
   "developerMatch": {
     "vanguards": ["cairn"],

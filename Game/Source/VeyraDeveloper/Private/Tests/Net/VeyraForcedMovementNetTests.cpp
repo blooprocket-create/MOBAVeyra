@@ -147,6 +147,25 @@ namespace VeyraNetTests
 				});
 		}
 
+		TEST_METHOD(AnOrderWalksOnAfterABlink)
+		{
+			const FVector Destination = FVector::ZeroVector;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Send the first Vanguard to the centre"), [this, Destination](FState& State) {
+					ASSERT_THAT(IsTrue(ParticipantOf(State, 0)->GetVanguardController()->MoveToDestination(Destination) == EVeyraOrderRejection::None));
+				})
+				.UntilServer(TEXT("It is moving"), [](FState& State) { return !ParticipantOf(State, 0)->GetPawn()->GetVelocity().IsNearlyZero(); })
+				.ThenServer(TEXT("Blink it sideways"), [this](FState& State) {
+					AVeyraPlayerState* Mover = ParticipantOf(State, 0);
+					const FVector Aside = Mover->GetPawn()->GetActorLocation() + FVector(0.0, KnockbackDistance, 0.0);
+					ASSERT_THAT(IsTrue(VeyraCombat::Blink(*Mover->GetAbilitySystemComponent(), Aside)));
+					ASSERT_THAT(IsTrue(Mover->GetVanguardController()->GetMoveOrder().IsSet(), TEXT("the blink dropped the order")));
+				})
+				.UntilServer(TEXT("It arrives after the blink"), [this, Destination](FState& State) {
+					return IsNear2D(ParticipantOf(State, 0)->GetPawn(), Destination, Tuning->Tuning.Orders.ArrivalTolerance + PositionSlack);
+				});
+		}
+
 		TEST_METHOD(AHeldVanguardGoesWhereItsHostGoesForEveryone)
 		{
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)

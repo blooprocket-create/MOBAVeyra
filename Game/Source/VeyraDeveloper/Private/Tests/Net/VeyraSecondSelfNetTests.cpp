@@ -177,23 +177,26 @@ namespace VeyraNetTests
 				});
 		}
 
-		TEST_METHOD(ItsPlayersMachineLearnsTheEchosPath)
+		TEST_METHOD(ItsPlayersMachineWalksTheEchosOrderAtOnce)
 		{
-			// The body a player commands in its Vanguard's stead is drawn ahead along the server's path for it, as its Vanguard
-			// is (ADR-077 §3): the Echo's controller sends it, though the Echo carries no player state of its own.
+			// The body a player commands in its Vanguard's stead walks an order the moment it is given, as its Vanguard would, and
+			// the server's answer to that order takes over (ADR-079 §5).
 			ProjectAndCommand()
 				.UntilClient(TEXT("Its camera follows the Echo"), 0, [](FState& State) {
 					const APawn* Body = LocalControllerOf(State.World)->GetCommandedBody();
 					return Body && Body->IsA<AVeyraEcho>();
 				})
-				.ThenClient(TEXT("Order a move"), 0, [](FState& State) {
+				.ThenClient(TEXT("Order a move"), 0, [this](FState& State) {
 					AVeyraPlayerController* Player = LocalControllerOf(State.World);
 					Player->IssueMoveOrder(Player->GetCommandedBody()->GetActorLocation() + FVector(0.0, Walk, 0.0));
+					const UVeyraMovementComponent* Movement = Player->GetCommandedBody()->FindComponentByClass<UVeyraMovementComponent>();
+					ASSERT_THAT(IsTrue(Movement && Movement->GetDrawnMotion().Kind == EVeyraMotionKind::Walk, TEXT("the Echo walks at once")));
 				})
-				.UntilClient(TEXT("Its machine learns the Echo's path"), 0, [](FState& State) {
+				.UntilClient(TEXT("The server's answer takes over"), 0, [](FState& State) {
 					const AVeyraPlayerController* Player = LocalControllerOf(State.World);
-					const AVeyraPlayerState* Own = Player->GetPlayerState<AVeyraPlayerState>();
-					return Own && Own->GetOwnPath().Body == Player->GetCommandedBody() && Own->GetOwnPath().Points.Num() >= 2;
+					const UVeyraMovementComponent* Movement = Player->GetCommandedBody()->FindComponentByClass<UVeyraMovementComponent>();
+					return Movement && Player->GetOrderMark().IsSet() && Movement->GetMotion().OrderNumber == Player->GetOrderMark()->Number
+						&& Movement->GetMotion().Kind == EVeyraMotionKind::Walk;
 				});
 		}
 
@@ -209,16 +212,16 @@ namespace VeyraNetTests
 					{
 						return false;
 					}
-					bEchoLed |= !Movement->GetDrawnLead().IsNearlyZero();
+					bEchoLed |= Movement->GetDrawnMotion().Kind == EVeyraMotionKind::Walk;
 					return ++FramesWatched >= WatchFrames;
 				})
-				.ThenClient(TEXT("It was never drawn ahead"), 0, [this](FState&) { ASSERT_THAT(IsFalse(bEchoLed, TEXT("drawn toward its Vanguard's order"))); });
+				.ThenClient(TEXT("It was never drawn walking"), 0, [this](FState&) { ASSERT_THAT(IsFalse(bEchoLed, TEXT("drawn toward its Vanguard's order"))); });
 		}
 
-		TEST_METHOD(ItsPlayersMachineDrawsTheEchoAhead)
+		TEST_METHOD(ItsPlayersMachineDrawsTheEchoAheadAndItsVanguardWhereItStands)
 		{
-			// Its machine draws the Echo ahead along its order's path as it would its Vanguard, and its Vanguard, which its orders
-			// no longer move, where it stands (ADR-077 §2).
+			// Its machine draws the Echo ahead by what its order waited, as it would its Vanguard, and its Vanguard, which its
+			// orders no longer move, by its server motion alone (ADR-079 §5).
 			ProjectAndCommand()
 				.UntilClient(TEXT("Its camera follows the Echo"), 0, [](FState& State) {
 					const APawn* Body = LocalControllerOf(State.World)->GetCommandedBody();
@@ -228,13 +231,14 @@ namespace VeyraNetTests
 					AVeyraPlayerController* Player = LocalControllerOf(State.World);
 					Player->IssueMoveOrder(Player->GetCommandedBody()->GetActorLocation() + FVector(0.0, Walk, 0.0));
 				})
-				.UntilClient(TEXT("Its machine draws the Echo ahead"), 0, [](FState& State) {
+				.UntilClient(TEXT("Its machine draws the Echo by its answered order"), 0, [](FState& State) {
 					const AVeyraPlayerController* Player = LocalControllerOf(State.World);
 					const APawn* Echo = Player->GetCommandedBody();
 					const APawn* Vanguard = Player->GetVanguard();
 					const UVeyraMovementComponent* Ahead = Echo ? Echo->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
 					const UVeyraMovementComponent* Waits = Vanguard ? Vanguard->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
-					return Ahead && Waits && !Ahead->GetDrawnLead().IsNearlyZero() && Waits->GetDrawnLead().IsZero();
+					return Ahead && Waits && Player->GetOrderMark().IsSet() && Ahead->GetMotion().OrderNumber == Player->GetOrderMark()->Number
+						&& &Ahead->GetDrawnMotion() == &Ahead->GetMotion() && Waits->GetDrawnLeadSeconds() == 0.0 && &Waits->GetDrawnMotion() == &Waits->GetMotion();
 				});
 		}
 

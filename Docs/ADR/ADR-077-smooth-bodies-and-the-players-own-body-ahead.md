@@ -1,6 +1,8 @@
 # ADR-077: Smooth bodies everywhere, and the player's own body drawn ahead along its path
 
-**Status:** Proposed. On 2026-10-13, after playing 0.2.6 hosted on their own PC, the author reported "rubberbanding jitter" and asked for the next step to "make it feel as if im playing it client authoritive when its really server authoritive. like flawless movement", then: "please fix that problem. its the biggest problem and keeping the game from being playable." This record amends ADR-006 §7 (its M3 author ruling, no client prediction) and ADR-067 §2, for the player's own body's drawing only. It becomes Accepted when the author merges the pull request that adds it.
+**Status:** Superseded by [ADR-079](ADR-079-motions-not-places.md) (2026-10-13): bodies are drawn from the server's motions rather than eased between its places, and the player's own body by a prediction of its order reconciled to the server's answer. Kept for its history; what follows no longer describes the game.
+
+**Original status:** Proposed. On 2026-10-13, after playing 0.2.6 hosted on their own PC, the author reported "rubberbanding jitter" and asked for the next step to "make it feel as if im playing it client authoritive when its really server authoritive. like flawless movement", then: "please fix that problem. its the biggest problem and keeping the game from being playable." This record amends ADR-006 §7 (its M3 author ruling, no client prediction) and ADR-067 §2, for the player's own body's drawing only. It becomes Accepted when the author merges the pull request that adds it.
 **Date:** 2026-10-13
 **Related:**
 - [ADR-006](ADR-006-unreal-project-scaffold.md) §7: the server moves every unit, from orders, through its own controller. That stays.

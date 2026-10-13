@@ -6,7 +6,6 @@
 #include "Greybox/VeyraBodyFeedback.h"
 #include "Greybox/VeyraHiddenBody.h"
 #include "Greybox/VeyraOrderMarks.h"
-#include "Greybox/VeyraOwnLead.h"
 #include "Rules/VeyraVisionRules.h"
 #include "Hud/VeyraCombatTextModel.h"
 #include "Hud/VeyraKillFeedModel.h"
@@ -299,9 +298,6 @@ private:
 		TWeakObjectPtr<UMaterialInstanceDynamic> Flash;
 		TWeakObjectPtr<class UMeshComponent> Flashing;
 
-		/** How far its skin is turned from its mesh's facing toward the player's order, in degrees (ADR-067 §2); 0 for any other body. */
-		double LeadYaw = 0.0;
-
 		/** Until when its generated body holds its pose after a hit, by this machine's clock (ADR-068 §4). */
 		double HitStopUntil = 0.0;
 
@@ -350,17 +346,6 @@ private:
 	/** The Dense Fog this machine knows: the map's own, once the battleground shows, and what abilities lay (ADR-036 §1). */
 	TArray<FVeyraFogCircle> DenseFog;
 	TArray<FVeyraFogCircle> MapFog;
-
-	/**
-	 * If Unit is the body the player commands, its Vanguard or a body it commands in its stead: draws it ahead along its latest
-	 * order's path (ADR-077 §2), and returns how it faces and runs meanwhile, or how it turns to an attack's target within its
-	 * reach (ADR-067 §2). None for another body; one the player has just stopped commanding is drawn where it is again.
-	 */
-	struct FVeyraBodyLead LeadOwnBody(const APawn& Unit, double Radius);
-
-	/** The player's own body's lead along its path, from frame to frame, and the body it leads. */
-	FVeyraOwnLeadState OwnLead;
-	TWeakObjectPtr<const APawn> OwnLeadBody;
 
 	/** Notes a cue in its unit's body, and plays its effect. */
 	void OnCombatCue(const struct FVeyraCombatCue& Cue);
@@ -456,7 +441,7 @@ private:
 	 * and has art, and tells its animation what it is doing, as Lead draws it ahead. Its body becomes a disc under its feet,
 	 * keeping its side's colour and its status tint.
 	 */
-	void RefreshVanguardArt(const APawn& Unit, FBody& Body, const struct FVeyraBodyLead& Lead);
+	void RefreshVanguardArt(const APawn& Unit, FBody& Body);
 
 	/** Pours Worn's effect off its bones on Skin, replacing what an earlier body poured; nothing for a body that is all mesh. */
 	void RefreshBodyEffects(FBody& Body, class USkeletalMeshComponent& Skin, const struct FVeyraVanguardBody& Worn);
@@ -529,9 +514,6 @@ private:
 
 	/** A shape of Mesh attached where Owner's body is drawn, with its own material instance, or null. */
 	UStaticMeshComponent* AddShape(AActor& Owner, UStaticMesh& Mesh, UMaterialInstanceDynamic*& OutMaterial) const;
-
-	/** Unit's drawn body eases after each update from the server, as its kind's settings say (ADR-065 §12). */
-	static void EaseBody(APawn& Unit);
 
 	/** Whether Unit is the local player's own Vanguard. */
 	bool IsViewersVanguard(const AActor* Unit) const;
