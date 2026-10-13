@@ -527,6 +527,8 @@
         { "name": "Flare", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Blobs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Blobs", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(64.0, 64.0) * User.Scale).y)" },
         { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (512.0 * User.Scale))" },
         { "emitter": "Flare", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
@@ -891,6 +893,10 @@
         { "name": "Rim", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Stones", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Stones", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (40 * User.Scale))" },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (80 * User.Scale))" },
         { "emitter": "Rim", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
         { "emitter": "Rim", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (320 * User.Scale))" },
         { "emitter": "Stones", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Shape Primitive", "enum": "Ring / Disc" },
@@ -1139,6 +1145,8 @@
         { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (80 * User.Scale))" },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
@@ -1327,6 +1335,8 @@
         { "name": "Flash", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(70.0, 70.0) * User.Scale).y)" },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (220 * User.Scale))" },
         { "emitter": "Spray", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "26" },
@@ -1382,6 +1392,8 @@
         { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (120 * User.Scale))" },
         { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (300 * User.Scale))" },
         { "emitter": "Column", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "30" },
@@ -1408,6 +1420,8 @@
         { "name": "Foam", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(60.0, 60.0) * User.Scale).y)" },
         { "emitter": "Wake", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "20" },
         { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
         { "emitter": "Wake", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.45] },
@@ -1435,6 +1449,8 @@
         { "name": "Smoke", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(100.0, 100.0) * User.Scale).y)" },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (200 * User.Scale))" },
         { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
@@ -1503,6 +1519,8 @@
         { "name": "Smoke", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Smoke", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(150.0, 150.0) * User.Scale).y)" },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (320 * User.Scale))" },
         { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
@@ -1696,6 +1714,8 @@
         { "name": "Dust", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(80.0, 80.0) * User.Scale).y)" },
         { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Ring", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (340 * User.Scale))" },
         { "emitter": "Ring", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
@@ -1851,6 +1871,8 @@
         { "name": "Stars", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(110.0, 110.0) * User.Scale).y)" },
         { "emitter": "Puff", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
         { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
         { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
@@ -1916,6 +1938,10 @@
         { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraFoam.M_VeyraFoam", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (70 * User.Scale))" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (60 * User.Scale))" },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
@@ -1992,6 +2018,10 @@
         { "name": "Fill", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (100 * User.Scale))" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Fill", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (140 * User.Scale))" },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Sphere Radius", "value": [0] },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
         { "emitter": "Edge", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "(User.Shape > 1.5 ? ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.35 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, -0.5 * User.Width, 0.0) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.7 ? float3((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * User.Length, 0.5 * User.Width, 0.0) : float3(User.Length, ((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) - 0.5) * User.Width, 0.0))) : ((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) < 0.6 ? float3(cos(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453)) * 2.0 - 1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius : float3(cos(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), sin(((frac(sin(float(Particles.UniqueID) * 78.233 + 1.7) * 24634.6345)) > 0.8 ? 1.0 : -1.0) * User.HalfArc * 0.0174533), 0.0) * User.Radius * (frac(sin(float(Particles.UniqueID) * 12.9898) * 43758.5453))))" },
@@ -2156,6 +2186,8 @@
         { "name": "Fumes", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Fumes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Fumes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(80.0, 80.0) * User.Scale).y)" },
         { "emitter": "Jet", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "22" },
         { "emitter": "Jet", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.2] },
         { "emitter": "Jet", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.35] },
@@ -2245,6 +2277,8 @@
         { "name": "Shards", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} }
       ],
       "inputs": [
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(100.0, 100.0) * User.Scale).y)" },
         { "emitter": "Foam", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "14" },
         { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
         { "emitter": "Foam", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
@@ -2277,6 +2311,8 @@
         { "name": "Drops", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} }
       ],
       "inputs": [
+        { "emitter": "Vapour", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Vapour", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(120.0, 120.0) * User.Scale).y)" },
         { "emitter": "Flash", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "1" },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.2] },
         { "emitter": "Flash", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "260 * User.Scale" },
@@ -2351,6 +2387,8 @@
         { "name": "Dust", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(90.0, 90.0) * User.Scale).y)" },
         { "emitter": "Thorns", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "30" },
         { "emitter": "Thorns", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.3] },
         { "emitter": "Thorns", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.5] },
@@ -2377,6 +2415,8 @@
         { "name": "Grit", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStreak.M_VeyraFxStreak", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled", "Alignment": "VelocityAligned"} }
       ],
       "inputs": [
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(90.0, 90.0) * User.Scale).y)" },
         { "emitter": "Dust", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
         { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
         { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
@@ -2403,6 +2443,8 @@
         { "name": "Dust", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraEffectPuff.M_VeyraEffectPuff", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Dust", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(90.0, 90.0) * User.Scale).y)" },
         { "emitter": "Wind", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "24" },
         { "emitter": "Wind", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.25] },
         { "emitter": "Wind", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.4] },
@@ -2455,6 +2497,8 @@
         { "name": "Mist", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(80.0, 80.0) * User.Scale).y)" },
         { "emitter": "Rings", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "3" },
         { "emitter": "Rings", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime", "value": [0.45] },
         { "emitter": "Rings", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Uniform Sprite Size", "expression": "360 * User.Scale" },
@@ -2478,6 +2522,8 @@
         { "name": "Glint", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxFlare.M_VeyraFxFlare", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(170.0, 170.0) * User.Scale).y)" },
         { "emitter": "Mist", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "18" },
         { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [1.0] },
         { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.5] },
@@ -2501,6 +2547,8 @@
         { "name": "Mist", "template": "/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain", "material": "/Game/Veyra/UI/Presentation/M_VeyraSmoke.M_VeyraSmoke", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset Mode", "enum": "Default" },
+        { "emitter": "Mist", "script": "ParticleSpawnScript", "module": "ShapeLocation", "input": "Offset", "expression": "float3(0.0, 0.0, 0.3 * (90 * User.Scale))" },
         { "emitter": "Motes", "script": "EmitterUpdateScript", "module": "SpawnRate", "input": "SpawnRate", "expression": "30" },
         { "emitter": "Motes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.8] },
         { "emitter": "Motes", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.2] },
@@ -2528,6 +2576,8 @@
         { "name": "Ring", "template": "/Niagara/DefaultAssets/Templates/Emitters/SimpleSpriteBurst.SimpleSpriteBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxRing.M_VeyraFxRing", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Bank", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Bank", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(220.0, 220.0) * User.Scale).y)" },
         { "emitter": "Bank", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "30" },
         { "emitter": "Bank", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [1.2] },
         { "emitter": "Bank", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [1.8] },
@@ -2637,6 +2687,8 @@
         { "name": "Stars", "template": "/Niagara/DefaultAssets/Templates/Emitters/DirectionalBurst.DirectionalBurst", "material": "/Game/Veyra/UI/Presentation/M_VeyraFxStar.M_VeyraFxStar", "sprite": {"bCastShadows": false, "PixelCoverageMode": "Disabled"} }
       ],
       "inputs": [
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "UsePositionOffset", "bool": true },
+        { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Position Offset", "expression": "float3(0.0, 0.0, 0.3 * (float2(110.0, 110.0) * User.Scale).y)" },
         { "emitter": "Puff", "script": "EmitterUpdateScript", "module": "SpawnBurst_Instantaneous", "input": "Spawn Count", "expression": "10" },
         { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Min", "value": [0.5] },
         { "emitter": "Puff", "script": "ParticleSpawnScript", "module": "InitializeParticle", "input": "Lifetime Max", "value": [0.8] },
