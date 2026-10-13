@@ -41,7 +41,8 @@ On the player's own machine only, and in presentation only:
 - **When the lead goes.** Over `OwnLeadBlendSeconds`, when:
   - the server's body stands, below `OwnLeadStandingSpeedShare` of its speed, for `OwnLeadStallSeconds` while its path runs on (a stun, a root, a stop to attack);
   - or the server's body strays more than `OwnLeadOffPathDistance` from the path (other bodies push it);
-  - or the body is dead, may not move, or something other than its orders moves it (a displacement, dash, Fear or attach shows as a custom movement mode).
+  - or the body is dead, may not move, or something other than its orders moves it (a displacement, dash, Fear or attach shows as a custom movement mode);
+  - or the server refused the order. Each order the player marks carries a number, and the refusal names it back, so only the refused order's lead goes.
 
   At the end of its path it waits for the server's body to stand there, then lets go with nothing left to pull back. A finished order stays finished until the next is given or the server sends a new path for it, so a later push never wakes it, while a chase that walks on after its target leads again.
 - **Which body.** Whichever body the player commands: its Vanguard, or a body it commands in its stead, such as an Echo, whatever draws it. A body the player stops commanding is drawn where it is at once.
@@ -51,7 +52,7 @@ On the player's own machine only, and in presentation only:
 ### 3. The server sends the player's own body's path to that player alone
 
 - The controller the player's orders go to now sends the path it follows to that player's `AVeyraPlayerState` (`FVeyraOwnPath`, replicated `COND_OwnerOnly` and sent at once). That is the Vanguard's own, or the controller of a body the player commands in its stead, such as an Echo. The GameMode tells each controller whose orders it takes as it passes an order on, so a Vanguard and a commanded body never send over each other. It sends the path as an order plans it, and again as a chased unit moves.
-- The path carries the body it moves and the order it answers: the point a move or Attack Move named, or the unit an attack names. It also names the unit it chases, an attack's or the enemy an Attack Move took on its way, and is sent again when that unit alone changes. The player's machine uses only a path that answers its latest order, within `OwnLeadOrderMatchDistance`.
+- The path carries the body it moves and the order it answers: the point a move or Attack Move named, or the unit an attack names. It also names the unit it chases, an attack's or the enemy an Attack Move took on its way, and is sent again when that unit alone changes. A body that stands to attack a unit it has just taken on, as an Attack Move that finds an enemy already within reach, sends the way from where it stands to that unit. A new order is always sent, even one like the last. The player's machine uses only a path that answers its latest order, within `OwnLeadOrderMatchDistance`.
 - With it, the same controller sends that player the speed it walks the body at now (`OwnBodySpeed`, owner only, sent as it changes).
 - No other machine receives either, so a Vanguard's destination stays private. A bot's Vanguard sends nothing.
 - The player's machine does no pathfinding of its own and builds no navigation data.

@@ -139,9 +139,12 @@ private:
 
 	/**
 	 * Sends the path the body now follows to Participant's machine alone, which draws the body ahead along it, unless it is
-	 * the path last sent (ADR-077 §3).
+	 * the path last sent (ADR-077 §3). Standing to attack a unit it has just taken on, it sends the way to that unit.
 	 */
 	void PublishOwnPath(class AVeyraPlayerState& Participant);
+
+	/** Forgets what was last sent, so a new order's path is always sent, even one like the last. */
+	void ForgetPublishedPath();
 
 	/** The point the latest move or Attack Move order named, as its player's machine sent it, before projection. */
 	FVector OrderedPoint = FVector::ZeroVector;

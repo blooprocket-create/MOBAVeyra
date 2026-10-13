@@ -215,17 +215,27 @@ namespace VeyraNetTests
 				});
 		}
 
+		/** Whether the local player's latest order mark is one the server refused. */
+		static bool LatestOrderRefused(FState& State)
+		{
+			const TOptional<FVeyraOrderMark>& Mark = LocalControllerOf(State.World)->GetOrderMark();
+			return Mark.IsSet() && Mark->bRefused;
+		}
+
 		TEST_METHOD(UnusableDestinationsAreRefused)
 		{
+			// The refusal names the order it answers, so the player's machine stops drawing its body that way (ADR-077 §2); a
+			// later order is not refused for it.
 			const FVector OffTheMap(Layout.Floor.LengthX * 10.0, 0.0, 0.0);
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
 				.ThenClient(0, [](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(FVector(NAN, 0.0, 0.0)); })
 				.UntilClient(0, [](FState& State) {
-					return LocalControllerOf(State.World)->GetLastOrderRejection() == EVeyraOrderRejection::InvalidOrder;
+					return LocalControllerOf(State.World)->GetLastOrderRejection() == EVeyraOrderRejection::InvalidOrder && LatestOrderRefused(State);
 				})
 				.ThenClient(0, [OffTheMap](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(OffTheMap); })
+				.ThenClient(0, [this](FState& State) { ASSERT_THAT(IsFalse(LatestOrderRefused(State), TEXT("a new order is not refused for the last"))); })
 				.UntilClient(0, [](FState& State) {
-					return LocalControllerOf(State.World)->GetLastOrderRejection() == EVeyraOrderRejection::Unreachable;
+					return LocalControllerOf(State.World)->GetLastOrderRejection() == EVeyraOrderRejection::Unreachable && LatestOrderRefused(State);
 				});
 		}
 
@@ -244,7 +254,11 @@ namespace VeyraNetTests
 				.UntilClient(0, [](FState& State) {
 					return LocalControllerOf(State.World)->GetLastOrderRejection() == EVeyraOrderRejection::TooFrequent;
 				})
-				.ThenClient(0, [this](FState& State) { ASSERT_THAT(AreEqual(LocalControllerOf(State.World)->GetOrderRejectionCount(), 1)); });
+				.ThenClient(0, [this](FState& State) {
+					ASSERT_THAT(AreEqual(LocalControllerOf(State.World)->GetOrderRejectionCount(), 1));
+					// The order over the rate is the latest: it is the one refused.
+					ASSERT_THAT(IsTrue(LatestOrderRefused(State)));
+				});
 		}
 	};
 }

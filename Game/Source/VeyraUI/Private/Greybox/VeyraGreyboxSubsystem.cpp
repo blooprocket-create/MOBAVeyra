@@ -401,9 +401,9 @@ FVeyraBodyLead UVeyraGreyboxSubsystem::LeadOwnBody(const APawn& Unit, double Rad
 	const double ServerSpeed = OwnState ? OwnState->GetOwnBodySpeed() : 0.0;
 	const double Speed = ServerSpeed > 0.0 ? ServerSpeed : Abilities->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
 	// It may be drawn ahead while it lives, may move, and moves under its own orders: never while displaced, dashing,
-	// fleeing or held on, which its movement's custom modes show.
+	// fleeing or held on, which its movement's custom modes show; nor for an order the server refused.
 	const bool bFree = VeyraTargeting::IsAlive(&Unit) && !EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Abilities), EVeyraActionBlocks::Move)
-		&& Movement->MovementMode != MOVE_Custom;
+		&& Movement->MovementMode != MOVE_Custom && !Mark->bRefused;
 
 	FVeyraOwnLeadInputs In;
 	In.Now = GetWorld()->GetRealTimeSeconds();

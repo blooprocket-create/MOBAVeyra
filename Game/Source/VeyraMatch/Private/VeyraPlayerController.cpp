@@ -54,37 +54,36 @@ AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectI
 void AVeyraPlayerController::IssueMoveOrder(const FVector& Destination)
 {
 	OrderedAttackTarget.Reset();
-	MarkOrder(EVeyraOrderMarkKind::Move, Destination, nullptr);
-	ServerIssueMoveOrder(Destination);
+	ServerIssueMoveOrder(Destination, MarkOrder(EVeyraOrderMarkKind::Move, Destination, nullptr));
 }
 
 void AVeyraPlayerController::SteerMoveOrder(const FVector& Destination)
 {
-	MarkOrder(EVeyraOrderMarkKind::Move, Destination, nullptr);
-	ServerSteerMoveOrder(Destination);
+	ServerSteerMoveOrder(Destination, MarkOrder(EVeyraOrderMarkKind::Move, Destination, nullptr));
 }
 
 void AVeyraPlayerController::IssueAttackOrder(AActor* Target)
 {
 	OrderedAttackTarget = Target;
-	MarkOrder(EVeyraOrderMarkKind::Attack, FVector::ZeroVector, Target);
-	ServerIssueAttackOrder(Target);
+	ServerIssueAttackOrder(Target, MarkOrder(EVeyraOrderMarkKind::Attack, FVector::ZeroVector, Target));
 }
 
 void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
 {
 	OrderedAttackTarget.Reset();
-	MarkOrder(EVeyraOrderMarkKind::AttackMove, Destination, nullptr);
-	ServerIssueAttackMoveOrder(Destination, ControlPreferences().AttackMoveTarget);
+	ServerIssueAttackMoveOrder(Destination, ControlPreferences().AttackMoveTarget, MarkOrder(EVeyraOrderMarkKind::AttackMove, Destination, nullptr));
 }
 
-void AVeyraPlayerController::MarkOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target)
+uint16 AVeyraPlayerController::MarkOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target)
 {
+	// Numbered, so a refusal names the order it answers; 0 is none.
+	LastOrderNumber = LastOrderNumber == MAX_uint16 ? 1 : LastOrderNumber + 1;
 	// The click shows where it went at once, a round trip before the server answers (ADR-062 §6).
 	if (IsLocalController())
 	{
-		OrderMark = FVeyraOrderMark{ Kind, Location, Target, GetWorld()->GetRealTimeSeconds() };
+		OrderMark = FVeyraOrderMark{ Kind, Location, Target, GetWorld()->GetRealTimeSeconds(), LastOrderNumber };
 	}
+	return LastOrderNumber;
 }
 
 bool AVeyraPlayerController::CancelPendingCast()
@@ -1400,38 +1399,38 @@ bool AVeyraPlayerController::IsShowingAttackRange() const
 	return IsLocalController() && Key.IsValid() && IsInputKeyDown(Key);
 }
 
-void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination)
+void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination, uint16 OrderNumber)
 {
-	ApplyMoveOrder(Destination);
+	ApplyMoveOrder(Destination, OrderNumber);
 }
 
-void AVeyraPlayerController::ServerIssueAttackOrder_Implementation(AActor* Target)
+void AVeyraPlayerController::ServerIssueAttackOrder_Implementation(AActor* Target, uint16 OrderNumber)
 {
 	if (!TakeOrderAllowance())
 	{
-		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		RejectOrder(EVeyraOrderRejection::TooFrequent, OrderNumber);
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
 	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackOrder(GetPlayerState<AVeyraPlayerState>(), Target) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
-		RejectOrder(Rejection);
+		RejectOrder(Rejection, OrderNumber);
 	}
 }
 
-void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination, EVeyraAttackMoveTarget Preference)
+void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination, EVeyraAttackMoveTarget Preference, uint16 OrderNumber)
 {
 	if (!TakeOrderAllowance())
 	{
-		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		RejectOrder(EVeyraOrderRejection::TooFrequent, OrderNumber);
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
 	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination, Preference) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
-		RejectOrder(Rejection);
+		RejectOrder(Rejection, OrderNumber);
 	}
 }
 
@@ -1450,16 +1449,16 @@ void AVeyraPlayerController::ServerRecall_Implementation()
 	}
 }
 
-void AVeyraPlayerController::ServerSteerMoveOrder_Implementation(FVector Destination)
+void AVeyraPlayerController::ServerSteerMoveOrder_Implementation(FVector Destination, uint16 OrderNumber)
 {
-	ApplyMoveOrder(Destination);
+	ApplyMoveOrder(Destination, OrderNumber);
 }
 
-void AVeyraPlayerController::ApplyMoveOrder(const FVector& Destination)
+void AVeyraPlayerController::ApplyMoveOrder(const FVector& Destination, uint16 OrderNumber)
 {
 	if (!TakeOrderAllowance())
 	{
-		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		RejectOrder(EVeyraOrderRejection::TooFrequent, OrderNumber);
 		return;
 	}
 
@@ -1467,21 +1466,26 @@ void AVeyraPlayerController::ApplyMoveOrder(const FVector& Destination)
 	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
-		RejectOrder(Rejection);
+		RejectOrder(Rejection, OrderNumber);
 	}
 }
 
-void AVeyraPlayerController::ClientOrderRejected_Implementation(EVeyraOrderRejection Rejection)
+void AVeyraPlayerController::ClientOrderRejected_Implementation(EVeyraOrderRejection Rejection, uint16 OrderNumber)
 {
 	LastOrderRejection = Rejection;
 	++OrderRejectionCount;
+	// The order it answers, if it is still the latest, is refused: its body is no longer drawn heading its way.
+	if (OrderNumber != 0 && OrderMark && OrderMark->Number == OrderNumber)
+	{
+		OrderMark->bRefused = true;
+	}
 	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused an order: %s."), LexToString(Rejection));
 }
 
-void AVeyraPlayerController::RejectOrder(EVeyraOrderRejection Rejection)
+void AVeyraPlayerController::RejectOrder(EVeyraOrderRejection Rejection, uint16 OrderNumber)
 {
 	UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused an order from %s: %s."), *GetNameSafe(PlayerState), LexToString(Rejection));
-	ClientOrderRejected(Rejection);
+	ClientOrderRejected(Rejection, OrderNumber);
 }
 
 bool AVeyraPlayerController::TakeOrderAllowance()

@@ -32,4 +32,10 @@ struct FVeyraOrderMark
 
 	/** When it was given, in this machine's real seconds. */
 	double GivenAt = 0.0;
+
+	/** Which of the player's orders it is: the server names it when it refuses the order. Never 0. */
+	uint16 Number = 0;
+
+	/** Whether the server refused it: its body is no longer drawn heading its way (ADR-077 §2). */
+	bool bRefused = false;
 };

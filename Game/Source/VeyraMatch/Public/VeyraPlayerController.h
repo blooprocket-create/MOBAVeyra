@@ -341,23 +341,25 @@ protected:
 	virtual void OnRep_PlayerState() override;
 
 private:
+	// Each order the player marks carries its number, which a refusal names back (ADR-077 §2).
 	UFUNCTION(Server, Reliable)
-	void ServerIssueMoveOrder(FVector Destination);
+	void ServerIssueMoveOrder(FVector Destination, uint16 OrderNumber);
 
 	UFUNCTION(Server, Unreliable)
-	void ServerSteerMoveOrder(FVector Destination);
+	void ServerSteerMoveOrder(FVector Destination, uint16 OrderNumber);
 
 	/** Server: checks a move order from either path and hands it to the game mode. */
-	void ApplyMoveOrder(const FVector& Destination);
+	void ApplyMoveOrder(const FVector& Destination, uint16 OrderNumber);
 
 	UFUNCTION(Server, Reliable)
-	void ServerIssueAttackOrder(AActor* Target);
+	void ServerIssueAttackOrder(AActor* Target, uint16 OrderNumber);
 
 	UFUNCTION(Server, Reliable)
-	void ServerIssueAttackMoveOrder(FVector Destination, EVeyraAttackMoveTarget Preference);
+	void ServerIssueAttackMoveOrder(FVector Destination, EVeyraAttackMoveTarget Preference, uint16 OrderNumber);
 
+	/** Owning client: the server refused an order; OrderNumber names a marked one, 0 any other. */
 	UFUNCTION(Client, Unreliable)
-	void ClientOrderRejected(EVeyraOrderRejection Rejection);
+	void ClientOrderRejected(EVeyraOrderRejection Rejection, uint16 OrderNumber);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRecall();
@@ -473,10 +475,13 @@ private:
 	/** Owning client: the unit the latest attack order named, until a move order replaces it. */
 	TWeakObjectPtr<AActor> OrderedAttackTarget;
 
-	/** Owning client: records the order just given for its mark. */
-	void MarkOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target);
+	/** Owning client: records the order just given for its mark, and returns the number it sends the order with. */
+	uint16 MarkOrder(EVeyraOrderMarkKind Kind, const FVector& Location, const AActor* Target);
 
 	TOptional<FVeyraOrderMark> OrderMark;
+
+	/** The number of the last order marked; the next is one more, past 0 again after the largest. */
+	uint16 LastOrderNumber = 0;
 
 	/** Owning client: the zoom keys' presses this frame move the player's zoom level, which persists (ADR-052 §3). */
 	void TickZoom();
@@ -549,7 +554,8 @@ private:
 	/** The minimap's ground point under the cursor for Purpose, if the cursor is on it. */
 	TOptional<FVector> MinimapPointUnderCursor(EMinimapClick Purpose) const;
 
-	void RejectOrder(EVeyraOrderRejection Rejection);
+	/** Server: tells the owning client its order was refused; OrderNumber names a marked order, 0 any other. */
+	void RejectOrder(EVeyraOrderRejection Rejection, uint16 OrderNumber = 0);
 
 	// Local input (Settings Bible §1): right-click to move or attack, attack-move, and each ability
 	// slot cast in the player's casting mode.
