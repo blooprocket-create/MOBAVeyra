@@ -379,7 +379,8 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 			{
 				Clip.Failure = TEXT("the basic attack never committed");
 			}
-			Advance(EStep::Flush, *FString::Printf(TEXT("recorded the basic attack in %d frame(s) over %.2f s"), Clip.Frames.Num(), Since));
+			AfterAttack(FString::Printf(TEXT("%s the basic attack in %d frame(s) over %.2f s"), bRehearsing ? TEXT("rehearsed") : TEXT("recorded"),
+				Clip.Frames.Num(), Since));
 		}
 		break;
 	}
@@ -640,16 +641,8 @@ void UVeyraShowcaseRecorderSubsystem::NextSlot(const FString& Description)
 	bClipForSlot = false;
 	bPrimed = false;
 	const bool bLast = ++SlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All);
-	if (bLast && bRehearsing)
-	{
-		// The rehearsal leaves nothing behind: the recording starts again from the first slot.
-		bRehearsing = false;
-		SlotIndex = 0;
-		Clips.Reset();
-		Advance(EStep::Reset, *Description);
-		return;
-	}
-	// After the kit, its basic attack, from a stage set again.
+	// After the kit, its basic attack, from a stage set again: rehearsed too, so its effect in flight has compiled before
+	// it is captured.
 	if (bLast)
 	{
 		bRecordingAttack = true;
@@ -667,7 +660,10 @@ void UVeyraShowcaseRecorderSubsystem::OrderAttack(AVeyraPlayerController& Contro
 	LastBusyAt = Clip.OrderedAt;
 	bAttackCommitted = false;
 	bFirstSwingDone = false;
-	StartCapture();
+	if (!bRehearsing)
+	{
+		StartCapture();
+	}
 	Controller.IssueAttackOrder(&Dummy);
 	Advance(EStep::Attack, TEXT("attacking the dummy"));
 }
@@ -680,7 +676,22 @@ void UVeyraShowcaseRecorderSubsystem::FailAttack(const FString& Reason)
 	Clip.Slot = TEXT("Attack");
 	Clip.Failure = Reason;
 	UE_LOG(LogVeyraShowcaseRecorder, Warning, TEXT("VeyraShowcase: left the basic attack out: %s"), *Reason);
-	Advance(EStep::Flush, TEXT("left the basic attack out"));
+	AfterAttack(TEXT("left the basic attack out"));
+}
+
+void UVeyraShowcaseRecorderSubsystem::AfterAttack(const FString& Description)
+{
+	if (VeyraShowcase::AfterAttack(bRehearsing) == VeyraShowcase::EAfterAttack::Flush)
+	{
+		Advance(EStep::Flush, *Description);
+		return;
+	}
+	// The rehearsal leaves nothing behind: the recording starts again from the first slot.
+	bRehearsing = false;
+	bRecordingAttack = false;
+	SlotIndex = 0;
+	Clips.Reset();
+	Advance(EStep::Reset, *Description);
 }
 
 double UVeyraShowcaseRecorderSubsystem::AttackReach(const AVeyraPlayerController& Controller) const

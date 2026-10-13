@@ -42,11 +42,19 @@ namespace VeyraWorldTests
 			TArray<FBox> NavigationBounds;
 			int32 Landscapes = 0;
 			int32 Markers = 0;
+			int32 MassBodies = 0;
 			for (const AActor* Actor : Map->PersistentLevel->Actors)
 			{
 				if (const AVeyraTeamStart* Start = Cast<AVeyraTeamStart>(Actor))
 				{
 					Starts.Add(Start->GetVeyraTeam(), Start->GetActorLocation());
+				}
+				else if (const AStaticMeshActor* Mass = Cast<AStaticMeshActor>(Actor); Mass && Mass->ActorHasTag(TEXT("Veyra.GeneratedMass")))
+				{
+					// Presentation only: World raises what blocks (ADR-073 §3, §5).
+					const UStaticMeshComponent* Body = Mass->GetStaticMeshComponent();
+					ASSERT_THAT(IsTrue(Body->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Body->CanEverAffectNavigation(), TEXT("a mass's mesh never blocks")));
+					MassBodies += Body->GetStaticMesh() && Body->GetStaticMesh()->GetName().StartsWith(TEXT("SM_CrucibleMass_")) ? 1 : 0;
 				}
 				else if (const ANavMeshBoundsVolume* Bounds = Cast<ANavMeshBoundsVolume>(Actor))
 				{
@@ -76,6 +84,7 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(NavigationBounds[0].GetSize().Equals(FVector(Layout.HalfExtent * 2.0, Layout.HalfExtent * 2.0, Layout.Surface.MaxZ - Layout.Surface.MinZ), Tolerance)));
 
 			ASSERT_THAT(AreEqual(1, Landscapes));
+			ASSERT_THAT(AreEqual(Layout.Masses.Items.Num(), MassBodies, TEXT("every mass of both teams stands in the map, built from the current masses")));
 		}
 	};
 }

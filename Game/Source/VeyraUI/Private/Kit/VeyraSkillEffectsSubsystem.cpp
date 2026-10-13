@@ -835,10 +835,14 @@ void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, con
 	});
 	Shown.Parameters.Origin = Fit.Origin;
 	Shown.Parameters.Normal = Fit.Normal;
+	const FVector2D Slopes = VeyraTelegraphFill::SlopesOf(Fit, Placed.Direction);
+	Shown.Parameters.SlopeAlong = Slopes.X;
+	Shown.Parameters.SlopeAcross = Slopes.Y;
 	UNiagaraComponent* Effect = Shown.Effect.Get();
 	const FVector Ground = Fit.Origin;
+	// Turned only by its yaw, so its footprint from above is its true shape; its particles take the slope.
 	const FVector Along = Placed.Direction.GetSafeNormal2D().IsNearlyZero() ? FVector::ForwardVector : Placed.Direction.GetSafeNormal2D();
-	const FRotator Facing = FRotationMatrix::MakeFromXZ(Along, Fit.Normal).Rotator();
+	const FRotator Facing = Along.Rotation();
 	if (!Effect)
 	{
 		UNiagaraSystem* System = Loaded(Effects, TEXT("Area"));
@@ -858,6 +862,8 @@ void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, con
 	Effect->SetVariableFloat(Settings.HalfArcParameter, static_cast<float>(Drawn.HalfArc));
 	Effect->SetVariableFloat(Settings.LengthParameter, static_cast<float>(Drawn.Length));
 	Effect->SetVariableFloat(Settings.WidthParameter, static_cast<float>(Drawn.Width));
+	Effect->SetVariableFloat(Settings.SlopeAlongParameter, static_cast<float>(Drawn.SlopeAlong));
+	Effect->SetVariableFloat(Settings.SlopeAcrossParameter, static_cast<float>(Drawn.SlopeAcross));
 	Effect->SetVariableFloat(Settings.LandingParameter, static_cast<float>(Drawn.Landing));
 }
 

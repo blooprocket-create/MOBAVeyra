@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundMarker.h"
+#include "Engine/Level.h"
 #include "Engine/World.h"
 #include "Fluxborn/VeyraFluxborn.h"
 #include "Fluxborn/VeyraFluxbornController.h"
@@ -19,7 +20,7 @@
 #include "Targeting/VeyraTargeting.h"
 #include "Terrain/VeyraGround.h"
 #include "Terrain/VeyraRuntimeTerrain.h"
-#include "Terrain/VeyraTerrainSubsystem.h"
+#include "Terrain/VeyraTerrainMass.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
@@ -79,9 +80,18 @@ void UVeyraBattlegroundSubsystem::Deinitialize()
 void UVeyraBattlegroundSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
-	if (IsServer() && AVeyraBattlegroundMarker::IsBattleground(InWorld))
+	if (!AVeyraBattlegroundMarker::IsBattleground(InWorld))
+	{
+		return;
+	}
+	if (IsServer())
 	{
 		SpawnStructures(UVeyraWorldTuningSubsystem::Get().Layout);
+	}
+	else
+	{
+		// Each client raises its own terrain from the layout every machine shares (ADR-073 §3).
+		RaiseTerrain(UVeyraWorldTuningSubsystem::Get().Layout);
 	}
 }
 
@@ -115,7 +125,7 @@ void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout
 		}
 	}
 	RefreshInvulnerability();
-	RaiseWalls(InLayout);
+	RaiseTerrain(InLayout);
 	const float Tick = static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds);
 	World->GetTimerManager().SetTimer(RegenerationTimer, FTimerDelegate::CreateUObject(this, &UVeyraBattlegroundSubsystem::OnRegenerationTimer), Tick, /*bLoop*/ true);
 	const float Backdoor = static_cast<float>(UVeyraWorldTuningSubsystem::Get().Backdoor.UpdateSeconds);
@@ -123,16 +133,16 @@ void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout
 	UE_LOG(LogVeyraWorld, Log, TEXT("Spawned the battleground's %d structures."), Structures.Num());
 }
 
-void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InLayout)
+void UVeyraBattlegroundSubsystem::RaiseTerrain(const FVeyraBattlegroundLayout& InLayout)
 {
-	// The layout's walls (ADR-043 §2), raised as the same terrain as an ability's wall: the server's
-	// paths go round them, every machine's movement meets them, and they stand for the whole match.
-	UVeyraTerrainSubsystem* Terrain = GetWorld()->GetSubsystem<UVeyraTerrainSubsystem>();
-	int32 Raised = 0;
-	for (const FVeyraTerrainBox& Box : VeyraLayout::Walls(InLayout))
+	UWorld* World = GetWorld();
+	if (!World || !Terrain.IsEmpty())
 	{
-		// It stands on uneven ground, a ridge's cliff within it (ADR-040 §3): it reaches from below the lowest ground
-		// under it, so nothing passes beneath at its foot, to its height above the highest, so nothing stands on it.
+		return;
+	}
+	// Each box stands on uneven ground: it reaches from below the lowest ground under it, so nothing passes beneath at its
+	// foot, to the terrain's height above the highest, so nothing stands on it.
+	const auto Volume = [&](const FVeyraTerrainBox& Box) -> TOptional<FVeyraWallRequest> {
 		const FVector2D Across(-Box.Facing.Y, Box.Facing.X);
 		TOptional<FVector2D> Heights;
 		for (int32 Along = -1; Along <= 1; ++Along)
@@ -141,7 +151,7 @@ void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InL
 			{
 				const FVector2D Point = Box.Centre + Across * (Along * Box.Length / 2.0) + Box.Facing * (Deep * Box.Thickness / 2.0);
 				FHitResult Ground;
-				if (VeyraGround::Find(*GetWorld(), Point, InLayout.Surface.MaxZ, InLayout.Surface.MinZ, Ground))
+				if (VeyraGround::Find(*World, Point, InLayout.Surface.MaxZ, InLayout.Surface.MinZ, Ground))
 				{
 					const double Z = Ground.ImpactPoint.Z;
 					Heights = Heights.IsSet() ? FVector2D(FMath::Min(Heights->X, Z), FMath::Max(Heights->Y, Z)) : FVector2D(Z, Z);
@@ -150,8 +160,8 @@ void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InL
 		}
 		if (!Heights.IsSet())
 		{
-			UE_LOG(LogVeyraWorld, Error, TEXT("Map wall has no playable surface at %s."), *Box.Centre.ToString());
-			continue;
+			UE_LOG(LogVeyraWorld, Error, TEXT("Map terrain has no playable surface at %s."), *Box.Centre.ToString());
+			return {};
 		}
 		const double Bottom = Heights->X - InLayout.Terrain.WallFootingClearance;
 		const double Top = Heights->Y + InLayout.WallHalfHeight * 2.0;
@@ -161,12 +171,44 @@ void UVeyraBattlegroundSubsystem::RaiseWalls(const FVeyraBattlegroundLayout& InL
 		Request.Length = Box.Length;
 		Request.Thickness = Box.Thickness;
 		Request.HalfHeight = (Top - Bottom) / 2.0;
-		Raised += Terrain && Terrain->RaiseMapWall(Request) != 0 ? 1 : 0;
-	}
-	if (Raised > 0)
+		return Request;
+	};
+	const auto Raise = [&](const FString& Name, TConstArrayView<FVeyraTerrainBox> Boxes) {
+		TArray<FVeyraWallRequest> Volumes;
+		for (const FVeyraTerrainBox& Box : Boxes)
+		{
+			if (const TOptional<FVeyraWallRequest> Request = Volume(Box))
+			{
+				Volumes.Add(Request.GetValue());
+			}
+		}
+		if (Volumes.IsEmpty())
+		{
+			return;
+		}
+		FActorSpawnParameters Parameters;
+		Parameters.Name = MakeUniqueObjectName(World->PersistentLevel, AVeyraTerrainMass::StaticClass(), FName(TEXT("VeyraTerrain_") + Name));
+		Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Parameters.ObjectFlags |= RF_Transient;
+		if (AVeyraTerrainMass* Piece = World->SpawnActor<AVeyraTerrainMass>(AVeyraTerrainMass::StaticClass(), FTransform::Identity, Parameters))
+		{
+			Piece->Build(Volumes);
+			Terrain.Add(Piece);
+		}
+	};
+	int32 Boxes = 0;
+	for (const FVeyraMassShape& Mass : VeyraLayout::Masses(InLayout))
 	{
-		UE_LOG(LogVeyraWorld, Log, TEXT("Raised the battleground's %d walls."), Raised);
+		const TArray<FVeyraTerrainBox> Edge = Mass.EdgeBoxes(InLayout.MassRules.EdgeThickness, InLayout.MassRules.EdgeMaxLength);
+		Raise(InLayout.Masses.Items[Mass.Index].Id, Edge);
+		Boxes += Edge.Num();
 	}
+	const TArray<FVeyraTerrainBox> Keeps = VeyraLayout::KeepWalls(InLayout);
+	Raise(TEXT("Keeps"), Keeps);
+	const TArray<FVeyraTerrainBox> Rim = VeyraLayout::Rim(InLayout);
+	Raise(TEXT("Rim"), Rim);
+	Boxes += Keeps.Num() + Rim.Num();
+	UE_LOG(LogVeyraWorld, Log, TEXT("Raised the battleground's terrain: %d pieces, %d boxes."), Terrain.Num(), Boxes);
 }
 
 AVeyraStructure* UVeyraBattlegroundSubsystem::FindStructure(EVeyraTeam Team, EVeyraStructureKind Kind, TOptional<EVeyraLane> Lane, int32 Order) const

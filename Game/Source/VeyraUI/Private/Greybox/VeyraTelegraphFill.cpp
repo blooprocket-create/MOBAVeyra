@@ -81,6 +81,20 @@ FVeyraGroundFit VeyraTelegraphFill::FitGround(const FVeyraPlacedShape& Placed, T
 	return Fit;
 }
 
+FVector2D VeyraTelegraphFill::SlopesOf(const FVeyraGroundFit& Fit, const FVector& Direction)
+{
+	const FVector Along = Direction.GetSafeNormal2D().IsNearlyZero() ? FVector::ForwardVector : Direction.GetSafeNormal2D();
+	const FVector Across(-Along.Y, Along.X, 0.0);
+	if (FMath::Abs(Fit.Normal.Z) < UE_KINDA_SMALL_NUMBER)
+	{
+		return FVector2D::ZeroVector;
+	}
+	// The plane z = A x + B y has the normal (-A, -B, 1).
+	const double A = -Fit.Normal.X / Fit.Normal.Z;
+	const double B = -Fit.Normal.Y / Fit.Normal.Z;
+	return FVector2D(A * Along.X + B * Along.Y, A * Across.X + B * Across.Y);
+}
+
 EVeyraTelegraphShow VeyraTelegraphFill::ShowOverGround(EVeyraTelegraphShow Show, const FVeyraGroundFit& Fit, double Tolerance)
 {
 	return Show == EVeyraTelegraphShow::None && Fit.MaxStray > Tolerance ? EVeyraTelegraphShow::Outline : Show;

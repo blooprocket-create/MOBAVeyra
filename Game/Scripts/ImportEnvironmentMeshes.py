@@ -63,12 +63,14 @@ def material(name, build):
     return asset
 
 
-def mossy_stone(base_texture, tint, look):
-    """Stone, world-aligned so it needs no UVs, with moss on whatever faces up."""
+def mossy_stone(stone_set, tint, look):
+    """Stone, world-aligned so it needs no UVs, with moss on whatever faces up within the world's broad moss patches
+    (MossPatchFrom/To over the terrain's macro variation; whole by default), darkened by the occlusion its mesh bakes into
+    its vertex colour's red (the sculpted masses' feet and fissures; white, so none, on the kit's own stone)."""
 
     def build(asset, g):
-        stone, stone_out = world_aligned(g, 2, "WorldAlignedTexture", texture(base_texture), look["stoneTileCm"], "XYZ Texture")
-        normal, normal_out = world_aligned(g, 2, "WorldAlignedNormal", texture("Slate_Normal"), look["stoneTileCm"], "XYZ Texture")
+        stone, stone_out = world_aligned(g, 2, "WorldAlignedTexture", texture(f"{stone_set}_BaseColor"), look["stoneTileCm"], "XYZ Texture")
+        normal, normal_out = world_aligned(g, 2, "WorldAlignedNormal", texture(f"{stone_set}_Normal"), look["stoneTileCm"], "XYZ Texture")
         moss, moss_out = world_aligned(g, 2, "WorldAlignedTexture", texture("Moss_BaseColor"), look["mossTileCm"], "XYZ Texture")
         moss_normal, moss_normal_out = world_aligned(g, 2, "WorldAlignedNormal", texture("Moss_Normal"), look["mossTileCm"], "XYZ Texture")
         grey = g.node(unreal.MaterialExpressionDesaturation, 3)
@@ -83,16 +85,34 @@ def mossy_stone(base_texture, tint, look):
         g.link(up, "", facing, "")
         start = g.scalar(4, "MossFrom", look["mossFrom"], "Moss")
         end = g.scalar(4, "MossTo", look["mossTo"], "Moss")
-        mask = g.node(unreal.MaterialExpressionSmoothStep, 5)
-        g.link(start, "", mask, "Min")
-        g.link(end, "", mask, "Max")
-        g.link(facing, "", mask, "Value")
+        facing_mask = g.node(unreal.MaterialExpressionSmoothStep, 5)
+        g.link(start, "", facing_mask, "Min")
+        g.link(end, "", facing_mask, "Max")
+        g.link(facing, "", facing_mask, "Value")
+        world = g.node(unreal.MaterialExpressionWorldPosition, 3)
+        plan = g.node(unreal.MaterialExpressionComponentMask, 4, r=True, g=True, b=False, a=False)
+        g.link(world, "", plan, "")
+        patch_tile = g.scalar(4, "MossPatchTile", look["mossPatchTileCm"], "Moss")
+        patch_uv = g.op(unreal.MaterialExpressionDivide, 4, plan, patch_tile)
+        macro = g.node(unreal.MaterialExpressionTextureSample, 5, texture=texture("Macro"),
+                       sampler_type=unreal.MaterialSamplerType.SAMPLERTYPE_LINEAR_COLOR)
+        g.link(patch_uv, "", macro, "UVs")
+        patch_from = g.scalar(5, "MossPatchFrom", look["mossPatchFrom"], "Moss")
+        patch_to = g.scalar(5, "MossPatchTo", look["mossPatchTo"], "Moss")
+        patches = g.node(unreal.MaterialExpressionSmoothStep, 5)
+        g.link(patch_from, "", patches, "Min")
+        g.link(patch_to, "", patches, "Max")
+        g.link(macro, "B", patches, "Value")
+        mask = g.op(unreal.MaterialExpressionMultiply, 5, facing_mask, patches)
         base = g.node(unreal.MaterialExpressionLinearInterpolate, 6)
         g.link(tinted, "", base, "A")
         g.link(moss, moss_out, base, "B")
         g.link(mask, "", base, "Alpha")
         roughness = g.scalar(6, "Roughness", look["stoneRoughness"], "Stone")
-        EDIT.connect_material_property(base, "", unreal.MaterialProperty.MP_BASE_COLOR)
+        vertex = g.node(unreal.MaterialExpressionVertexColor, 6)
+        shaded = g.op(unreal.MaterialExpressionMultiply, 7, base, vertex, b_out="R")
+        EDIT.connect_material_property(shaded, "", unreal.MaterialProperty.MP_BASE_COLOR)
+        EDIT.connect_material_property(vertex, "R", unreal.MaterialProperty.MP_AMBIENT_OCCLUSION)
         surface_normal = g.node(unreal.MaterialExpressionLinearInterpolate, 6)
         g.link(normal, normal_out, surface_normal, "A")
         g.link(moss_normal, moss_normal_out, surface_normal, "B")
@@ -175,17 +195,21 @@ def foliage(colour_key, two_sided, root_key=None):
         if root_key:
             assert EDIT.connect_material_property(base, "", unreal.MaterialProperty.MP_SUBSURFACE_COLOR)
         EDIT.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS)
-        sway = swaying(g, g.op(unreal.MaterialExpressionMultiply, 5, vertex, vertex, a_out="A", b_out="A"))
-        EDIT.connect_material_property(sway, "", unreal.MaterialProperty.MP_WORLD_POSITION_OFFSET)
+        # No wind, no offset: a moving vertex costs the foliage its cached shadows, and still foliage reads calmer.
+        if LOOK["windAmplitude"] > 0.0:
+            sway = swaying(g, g.op(unreal.MaterialExpressionMultiply, 5, vertex, vertex, a_out="A", b_out="A"))
+            EDIT.connect_material_property(sway, "", unreal.MaterialProperty.MP_WORLD_POSITION_OFFSET)
 
     return build
 
 
 # Each mesh slot's material, by name, and how it is built.
 BUILDS = {
-    "Rock": ("M_CrucibleRock", mossy_stone("Slate_BaseColor", LOOK["rockTint"], LOOK)),
-    "Ruin": ("M_CrucibleRuin", mossy_stone("Slate_BaseColor", LOOK["ruinTint"], LOOK)),
-    "Bark": ("M_CrucibleBark", mossy_stone("Slate_BaseColor", LOOK["barkTint"], dict(LOOK, mossFrom=0.95, mossTo=1.0))),
+    "Rock": ("M_CrucibleRock", mossy_stone("Slate", LOOK["rockTint"], dict(LOOK, stoneTileCm=LOOK["rockTileCm"]))),
+    # Cut stone: the keeps' walls and the kit's pillars, blocks and steles, so what was built reads apart from rock.
+    # Its moss in patches, so cut stone seen from above reads as stone and not as a green tile.
+    "Ruin": ("M_CrucibleRuin", mossy_stone("Masonry", LOOK["ruinTint"], dict(LOOK, mossPatchFrom=LOOK["ruinMossPatch"][0], mossPatchTo=LOOK["ruinMossPatch"][1]))),
+    "Bark": ("M_CrucibleBark", mossy_stone("Slate", LOOK["barkTint"], dict(LOOK, mossFrom=0.95, mossTo=1.0))),
     "Glyph": ("M_CrucibleGlyph", glyph),
     "Leaves": ("M_CrucibleLeaves", foliage("leafColour", two_sided=True)),
     "Grass": ("M_CrucibleGrass", foliage("grassTipColour", two_sided=True, root_key="grassRootColour")),

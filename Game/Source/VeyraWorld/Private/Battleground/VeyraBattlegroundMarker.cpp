@@ -6,8 +6,9 @@
 
 AVeyraBattlegroundMarker::AVeyraBattlegroundMarker()
 {
+	// Every machine finds it: the server spawns the structures, and each machine raises its own terrain (ADR-073 §3).
 	bReplicates = false;
-	bNetLoadOnClient = false;
+	bNetLoadOnClient = true;
 }
 
 bool AVeyraBattlegroundMarker::IsBattleground(const UWorld& World)

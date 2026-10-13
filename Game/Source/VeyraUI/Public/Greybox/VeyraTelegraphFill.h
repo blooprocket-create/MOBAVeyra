@@ -68,6 +68,12 @@ namespace VeyraTelegraphFill
 	VEYRAUI_API FVeyraGroundFit FitGround(const FVeyraPlacedShape& Placed, TFunctionRef<double(const FVector2D&)> HeightAt);
 
 	/**
+	 * The fitted ground's slope (rise over run) along Direction on the ground and across it to its left, which an effect
+	 * turned only by Direction's yaw lifts its particles by: so it lies on that plane, its footprint from above unchanged.
+	 */
+	VEYRAUI_API FVector2D SlopesOf(const FVeyraGroundFit& Fit, const FVector& Direction);
+
+	/**
 	 * What a telegraph shows over ground that strays from its best plane (ADR-075 §3): an effect drawn on one plane cannot
 	 * follow ground that strays beyond Tolerance, so a hidden telegraph keeps its outline there, which follows the ground.
 	 */

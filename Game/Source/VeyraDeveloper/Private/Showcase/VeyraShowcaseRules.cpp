@@ -50,6 +50,11 @@ namespace VeyraShowcase
 		return Phase == EVeyraAttackPhase::None;
 	}
 
+	EAfterAttack AfterAttack(bool bRehearsing)
+	{
+		return bRehearsing ? EAfterAttack::Record : EAfterAttack::Flush;
+	}
+
 	FVector MarkOf(const FVector& Centre, const FVector& OwnStart, double Stand, double YawDegrees)
 	{
 		const FVector Outward = FRotator(0.0, YawDegrees, 0.0).RotateVector((OwnStart - Centre).GetSafeNormal2D());

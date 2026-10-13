@@ -57,6 +57,13 @@ struct FVeyraLaneLayout
 	UPROPERTY()
 	TArray<double> SpireDistances;
 
+	/**
+	 * Which side of the road each Spire stands, in SpireDistances' order (author ruling 2026-10-12): +1 the lane's left
+	 * seen walking from Team A's end in world X/Y, -1 its right. Each stands the layout's SpireOffset from the centre line.
+	 */
+	UPROPERTY()
+	TArray<int32> SpireSides;
+
 	/** Where Team A's Fluxborn of this lane spawn: their distance along the lane from Team A's end, clear of the inhibitor. */
 	UPROPERTY()
 	double FluxbornSpawnDistance = 0.0;
@@ -78,10 +85,6 @@ struct FVeyraBaseLayout
 	/** Where the team's Vanguards start and respawn. */
 	UPROPERTY()
 	FVeyraMapPoint Fountain;
-
-	/** The base's pad, drawn around the Prime Well, in units. */
-	UPROPERTY()
-	double PadRadius = 0.0;
 
 	/** How far from the fountain point a Vanguard counts as at its fountain (§12), in units. */
 	UPROPERTY()
@@ -121,41 +124,192 @@ struct FVeyraSurfaceTuning
 	double MaxSlopeDegrees = 0.0;
 };
 
-/** One control point of a wall's spine: where it passes, and how thick the wall is there. */
+/** One run of Team A's keep wall (ADR-073 §1): architecture along the keep's edge, broken where a gate stands. */
 USTRUCT()
-struct FVeyraWallPoint
+struct FVeyraKeepWallLayout
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
-	double X = 0.0;
+	TArray<FVeyraMapPoint> Points;
+
+	/** Its full thickness, in units. */
+	UPROPERTY()
+	double Thickness = 0.0;
+
+	/** How tall it is drawn, in units. */
+	UPROPERTY()
+	double Height = 0.0;
+};
+
+/** Where a lane leaves Team A's keep through its wall (ADR-073 §1). */
+USTRUCT()
+struct FVeyraKeepGateLayout
+{
+	GENERATED_BODY()
 
 	UPROPERTY()
-	double Y = 0.0;
+	EVeyraLane Lane = EVeyraLane::Mid;
 
-	/** The wall's full thickness here, in units; above 0. */
+	UPROPERTY()
+	FVeyraMapPoint Center;
+
+	/** The opening's width, in units. */
 	UPROPERTY()
 	double Width = 0.0;
 };
 
-/**
- * One wall of Team A's half (ADR-043 §1, as amended 2026-10-05): a ridge of impassable terrain along a smooth curve
- * through its points, as thick at each as its width, the thickness changing steadily between them and its ends rounded.
- * Walls may overlap, so one massif can bend, branch and swell. Team B's is its rotation. The terrain field raises a
- * ridge on it.
- */
+/** Team A's walled keep (ADR-073 §1): its floor, its wall runs and its gates. Team B's is its rotation. */
 USTRUCT()
-struct FVeyraWallLayout
+struct FVeyraKeepLayout
+{
+	GENERATED_BODY()
+
+	/** The keep's floor, a simple polygon, its corners in order. */
+	UPROPERTY()
+	TArray<FVeyraMapPoint> Floor;
+
+	UPROPERTY()
+	TArray<FVeyraKeepWallLayout> Walls;
+
+	UPROPERTY()
+	TArray<FVeyraKeepGateLayout> Gates;
+};
+
+/** What a clearing is for (ADR-073 §1). */
+UENUM()
+enum class EVeyraClearingKind : uint8
+{
+	/** A wildlife camp's ground: the camp of the same id stands on it. */
+	Camp,
+	/** A junction, river mouth, pocket or ford. */
+	Glade,
+};
+
+/** One of Team A's clearings (ADR-073 §1): open ground kept at its full size. Team B's is its rotation. */
+USTRUCT()
+struct FVeyraClearingLayout
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Id;
+
+	UPROPERTY()
+	FVeyraMapPoint Center;
+
+	/** In units; above 0. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	EVeyraClearingKind Kind = EVeyraClearingKind::Glade;
+};
+
+/** One of Team A's jungle routes (ADR-073 §1): open ground along a path as wide as its width. Team B's is its rotation. */
+USTRUCT()
+struct FVeyraRouteLayout
 {
 	GENERATED_BODY()
 
 	/** What designers call it; play never reads it. */
 	UPROPERTY()
-	FString Name;
+	FString Id;
 
-	/** Its spine's control points, at least two, in order. */
+	/** Its full width, in units. */
 	UPROPERTY()
-	TArray<FVeyraWallPoint> Points;
+	double Width = 0.0;
+
+	UPROPERTY()
+	TArray<FVeyraMapPoint> Points;
+};
+
+/** How the rock and forest masses are derived and turned into terrain (ADR-073 §2, §3, §5). */
+USTRUCT()
+struct FVeyraMassRules
+{
+	GENERATED_BODY()
+
+	/** No mass is thinner than this, in units: the generator opens thinner leftovers. */
+	UPROPERTY()
+	double MinThickness = 0.0;
+
+	/** Leftovers smaller than this, in square units, become open ground. */
+	UPROPERTY()
+	double MinArea = 0.0;
+
+	/** How far a mass's outline may move when simplified, in units. */
+	UPROPERTY()
+	double SimplifyTolerance = 0.0;
+
+	/** Walkable bank beside the river's water, each side, in units. */
+	UPROPERTY()
+	double RiverMargin = 0.0;
+
+	/** Inner masses at least this large, in square units, are forest; smaller ones rock. */
+	UPROPERTY()
+	double ForestMinArea = 0.0;
+
+	/** How deep each terrain box along a mass's edge reaches inside it, in units. */
+	UPROPERTY()
+	double EdgeThickness = 0.0;
+
+	/** The longest one edge box may be, in units: longer edges are split. */
+	UPROPERTY()
+	double EdgeMaxLength = 0.0;
+
+	/**
+	 * The radius the generator rounds each convex corner of a mass to, cutting back spikes narrower than twice it, in
+	 * units: an edge box lies flush along its span, so at a corner sharper than a right angle it would stand out of the mass.
+	 */
+	UPROPERTY()
+	double CornerRadius = 0.0;
+
+	/** How far a mass mesh's footprint may lie from its gameplay edge, in units. Presentation's bound. */
+	UPROPERTY()
+	double VisualTolerance = 0.0;
+};
+
+/** What a mass is made of (ADR-073 §2, §5): its look, never its gameplay. */
+UENUM()
+enum class EVeyraMassKind : uint8
+{
+	Rock,
+	Forest,
+	/** A mass against the floor's rim. */
+	Cliff,
+};
+
+/** One rock or forest mass, as generated (ADR-073 §2): blocked ground everything else leaves. */
+USTRUCT()
+struct FVeyraMassLayout
+{
+	GENERATED_BODY()
+
+	/** a00, a01, ... for Team A's; b00, b01, ... their half turns. */
+	UPROPERTY()
+	FString Id;
+
+	UPROPERTY()
+	EVeyraMassKind Kind = EVeyraMassKind::Rock;
+
+	/** Its outline, counter-clockwise in world X/Y. */
+	UPROPERTY()
+	TArray<FVeyraMapPoint> Points;
+};
+
+/** GENERATED by Game/Scripts/Crucible/BuildCrucibleMasses.py, never by hand (ADR-073 §2): both teams' masses. */
+USTRUCT()
+struct FVeyraMassesLayout
+{
+	GENERATED_BODY()
+
+	/** The hash of the inputs the masses were derived from; CI refuses a stale set. */
+	UPROPERTY()
+	FString InputSha256;
+
+	UPROPERTY()
+	TArray<FVeyraMassLayout> Items;
 };
 
 /**
@@ -195,28 +349,30 @@ struct FVeyraBattlegroundLayout
 	UPROPERTY()
 	TArray<FVeyraFogLayout> DenseFog;
 
-	/** Team A's walls (ADR-043 §1); Team B's are their rotation. */
+	/** How far each Spire stands from its lane's centre line, on its side (author ruling 2026-10-12), in units. */
 	UPROPERTY()
-	TArray<FVeyraWallLayout> Walls;
+	double SpireOffset = 0.0;
 
-	/**
-	 * How finely each wall's curve is sampled between two of its points. What blocks and hides is one box to each
-	 * sample's span, so finer follows a curve closer with more boxes.
-	 */
 	UPROPERTY()
-	int32 WallSamplesPerSegment = 0;
+	FVeyraKeepLayout Keep;
 
-	/** Half of every wall's height, in units: taller than any body it blocks. */
+	/** Team A's clearings (ADR-073 §1); Team B's are their rotation. */
+	UPROPERTY()
+	TArray<FVeyraClearingLayout> Clearings;
+
+	/** Team A's jungle routes (ADR-073 §1); Team B's are their rotation. */
+	UPROPERTY()
+	TArray<FVeyraRouteLayout> Routes;
+
+	/** Half the height of the terrain raised along masses and keep walls, in units: taller than any body it blocks. */
 	UPROPERTY()
 	double WallHalfHeight = 0.0;
 
-	/**
-	 * How far every wall keeps from a lane's road, a camp's creatures, a Flux Well's radius, a structure's
-	 * body, the fountain and Dense Fog (ADR-043 §1), in units: so nothing placed in a straight line
-	 * stands in a wall.
-	 */
 	UPROPERTY()
-	double WallClearance = 0.0;
+	FVeyraMassRules MassRules;
+
+	UPROPERTY()
+	FVeyraMassesLayout Masses;
 };
 
 /** One kind of structure's stats and body (Combat Bible §33: structures have their own Armor and MR). */
@@ -592,6 +748,10 @@ struct FVeyraCampTuning
 {
 	GENERATED_BODY()
 
+	/** The camp's own name (ADR-073 §1): its ground is the layout's clearing of the same id. Camps may share a species. */
+	UPROPERTY()
+	FVeyraContentId Id;
+
 	UPROPERTY()
 	FVeyraContentId Species;
 
@@ -765,7 +925,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 7;
+	static constexpr int32 SchemaVersion = 8;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;
