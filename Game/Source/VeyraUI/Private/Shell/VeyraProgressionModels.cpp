@@ -122,6 +122,9 @@ FVeyraProgressionBarModel DescribeBar(const TOptional<VeyraBackendProtocol::FPro
 	Model.XP = FText::Format(LOCTEXT("XP", "{0} / {1} XP"), FText::AsNumber(Progression->LevelXP), FText::AsNumber(Progression->LevelNeed));
 	Model.Fraction = Progression->LevelNeed > 0 ? FMath::Clamp(static_cast<float>(Progression->LevelXP) / Progression->LevelNeed, 0.0f, 1.0f) : 0.0f;
 	Model.Currencies = FText::Format(LOCTEXT("Currencies", "{0}  ·  {1}"), Amount(ECurrency::Flux, Progression->Flux), Amount(ECurrency::RefinedFlux, Progression->RefinedFlux));
+	Model.LevelNumber = FText::AsNumber(Progression->Level);
+	Model.Flux = FText::AsNumber(Progression->Flux);
+	Model.RefinedFlux = FText::AsNumber(Progression->RefinedFlux);
 	return Model;
 }
 

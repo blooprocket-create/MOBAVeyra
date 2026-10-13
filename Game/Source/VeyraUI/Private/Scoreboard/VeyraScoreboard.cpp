@@ -127,7 +127,7 @@ void UVeyraScoreboard::Rebuild()
 				FMargin(Style.Spacing / 2.0f));
 			if (Row.bLocal)
 			{
-				Card->SetBrush(FSlateRoundedBoxBrush(Style.SurfaceRaisedColor, Style.PanelCornerRadius, Style.AccentColor.CopyWithNewOpacity(0.6f), 1.0f));
+				VeyraShellStyle::StyleSurface(*Card, Style.SurfaceRaisedColor, Style.AccentColor.CopyWithNewOpacity(0.6f));
 			}
 			UHorizontalBox* Inside = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 			Card->SetContent(Inside);

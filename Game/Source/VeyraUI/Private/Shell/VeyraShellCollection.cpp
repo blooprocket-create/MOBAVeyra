@@ -11,12 +11,15 @@
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
+#include "Components/Spacer.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Shell/VeyraProgressionModels.h"
+#include "Shell/VeyraShellBrushes.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -39,6 +42,14 @@ namespace
 		return static_cast<uint8>(Role);
 	}
 
+	/** A fixed gap of Size slate units in a row. */
+	void AddCollectionGap(UWidgetTree& Tree, UPanelWidget& Parent, float Size)
+	{
+		USpacer* Gap = Tree.ConstructWidget<USpacer>(USpacer::StaticClass());
+		Gap->SetSize(FVector2D(Size, Size));
+		Parent.AddChild(Gap);
+	}
+
 	/** Adds Child to a vertical box so that it takes the room left. */
 	void AddCollectionFilling(UPanelWidget& Parent, UWidget& Child)
 	{
@@ -59,20 +70,63 @@ namespace
 	}
 }
 
-void UVeyraShellScreen::AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar)
+bool UVeyraShellScreen::AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar)
 {
 	const FVeyraProgressionBarModel Model = VeyraProgressionModels::DescribeBar(Snapshot.Progression);
 	if (!Model.bShown)
 	{
-		return;
+		return false;
 	}
-	UVerticalBox* Readout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	UHorizontalBox* Level = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	AddText(*Level, Model.Level, CollectionRole(EVeyraShellText::Heading))->SetAutoWrapText(false);
-	AddText(*Level, Model.XP, CollectionRole(EVeyraShellText::Muted))->SetAutoWrapText(false);
-	Readout->AddChildToVerticalBox(Level);
-	AddText(*Readout, Model.Currencies, CollectionRole(EVeyraShellText::Muted))->SetAutoWrapText(false);
-	VeyraShellStyle::AddSpaced(Bar, *Readout);
+	const UVeyraShellStyleSettings& Style = CollectionStyle();
+	UHorizontalBox* Account = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	// The level's number on its badge; the badge's tooltip says it in words.
+	USizeBox* Badge = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Badge->SetWidthOverride(Style.LevelBadgeSize);
+	Badge->SetHeightOverride(Style.LevelBadgeSize);
+	UBorder* BadgeFace = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	BadgeFace->SetBrush(VeyraShellStyle::EdgedFace(VeyraShellLook::Panel(Style.SurfaceRaisedColor), Style.FrameColor));
+	BadgeFace->SetHorizontalAlignment(HAlign_Center);
+	BadgeFace->SetVerticalAlignment(VAlign_Center);
+	BadgeFace->SetPadding(FMargin(0.0f));
+	UTextBlock* Number = VeyraShellStyle::MakeText(*WidgetTree, Model.LevelNumber, EVeyraShellText::Heading);
+	Number->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Countdown));
+	FSlateFontInfo NumberFont = Number->GetFont();
+	NumberFont.Size = VeyraShellLook::ScaledFontSize(Style.HeadingFontSize);
+	Number->SetFont(NumberFont);
+	Number->SetAutoWrapText(false);
+	BadgeFace->SetContent(Number);
+	BadgeFace->SetToolTipText(Model.Level);
+	Badge->AddChild(BadgeFace);
+	Account->AddChildToHorizontalBox(Badge)->SetVerticalAlignment(VAlign_Center);
+	AddCollectionGap(*WidgetTree, *Account, Style.Spacing);
+	// The player's name over the level's progress, and the XP under it.
+	UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	UTextBlock* Name = AddText(*Who, FText::FromString(Snapshot.DisplayName), CollectionRole(EVeyraShellText::Heading));
+	Name->SetAutoWrapText(false);
+	Name->SetToolTipText(Model.Level);
+	Who->AddChildToVerticalBox(VeyraShellStyle::MakeMeter(*WidgetTree, Model.Fraction, Style.AccentColor, Style.HairlineColor, Style.ProgressionBarWidth,
+		Style.ProgressionBarHeight))->SetPadding(FMargin(0.0f, Style.ProgressionBarHeight, 0.0f, Style.ProgressionBarHeight));
+	UTextBlock* Xp = AddText(*Who, FText::Format(LOCTEXT("TopBarLevelXp", "{0}  ·  {1}"), Model.Level, Model.XP), CollectionRole(EVeyraShellText::Small));
+	Xp->SetAutoWrapText(false);
+	Xp->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
+	Account->AddChildToHorizontalBox(Who)->SetVerticalAlignment(VAlign_Center);
+	AddCollectionGap(*WidgetTree, *Account, Style.ScreenPadding / 2.0f);
+	// Each balance beside its mark: Flux filled in the accent, Refined Flux outlined in brass. Never Team Flux.
+	const TPair<FText, FSlateBrush> Balances[] = {
+		{ Model.Flux, VeyraShellBrushes::Diamond(Style.CurrencyGlyphSize, Style.AccentColor, FLinearColor::Transparent) },
+		{ Model.RefinedFlux, VeyraShellBrushes::Diamond(Style.CurrencyGlyphSize, FLinearColor::Transparent, Style.FrameColor) },
+	};
+	for (const TPair<FText, FSlateBrush>& Balance : Balances)
+	{
+		Account->AddChildToHorizontalBox(VeyraShellStyle::MakeGlyph(*WidgetTree, Balance.Value))->SetVerticalAlignment(VAlign_Center);
+		AddCollectionGap(*WidgetTree, *Account, Style.Spacing / 2.0f);
+		UTextBlock* Amount = AddText(*Account, Balance.Key, CollectionRole(EVeyraShellText::Heading));
+		Amount->SetAutoWrapText(false);
+		Amount->SetToolTipText(Model.Currencies);
+		AddCollectionGap(*WidgetTree, *Account, Style.Spacing);
+	}
+	VeyraShellStyle::AddSpaced(Bar, *Account);
+	return true;
 }
 
 void UVeyraShellScreen::BuildCollection(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)

@@ -4,6 +4,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/TextBlock.h"
+#include "Shell/VeyraShellBrushes.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 
@@ -103,9 +104,23 @@ void UVeyraShellButton::ShowEnhancedFocus(bool bShow)
 	FButtonStyle Focused = OwnStyle;
 	for (FSlateBrush* Brush : { &Focused.Normal, &Focused.Hovered, &Focused.Pressed })
 	{
-		Brush->DrawAs = ESlateBrushDrawType::RoundedBox;
-		Brush->OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
-		Brush->OutlineSettings.CornerRadii = FVector4(Style.ButtonCornerRadius);
+		// The same chamfered face, its edge the focus outline's (ADR-078 §3); a state with no face of its own, such as a
+		// tab's, takes a clear one, so the outline still stands around it.
+		FVeyraFaceLook Look;
+		if (const FVeyraFaceLook* Own = VeyraShellBrushes::LookOf(*Brush))
+		{
+			Look = *Own;
+		}
+		else
+		{
+			Look.Chamfer = Style.ButtonChamfer;
+		}
+		Look.Edge = Style.FocusOutlineColor;
+		Look.Tick = Style.FocusOutlineColor;
+		Look.EdgeWidth = Style.FocusOutlineWidth;
+		const FSlateColor Tint = Brush->TintColor;
+		*Brush = VeyraShellBrushes::Face(Look);
+		Brush->TintColor = Tint;
 		Brush->OutlineSettings.Color = Style.FocusOutlineColor;
 		Brush->OutlineSettings.Width = Style.FocusOutlineWidth;
 	}

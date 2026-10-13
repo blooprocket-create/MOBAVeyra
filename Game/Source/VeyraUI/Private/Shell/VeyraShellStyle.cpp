@@ -2,6 +2,9 @@
 
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellLook.h"
+#include "Shell/VeyraShellBrushes.h"
+#include "Shell/VeyraShellFonts.h"
+#include "Shell/VeyraShellSurface.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateColorBrush.h"
@@ -33,10 +36,41 @@ namespace
 		return *GetDefault<UVeyraShellStyleSettings>();
 	}
 
-	/** A rounded box of Fill, outlined by Outline, the style's button corners. */
-	FSlateRoundedBoxBrush ButtonBrush(const FLinearColor& Fill, const FLinearColor& Outline)
+	/** Fill darkened towards its foot by the style's SurfaceShade: a surface's depth (ADR-078 §3). */
+	FLinearColor Shaded(const FLinearColor& Fill)
 	{
-		return FSlateRoundedBoxBrush(Fill, Settings().ButtonCornerRadius, Outline, Outline.A > 0.0f ? 1.0f : 0.0f);
+		const float Foot = 1.0f - Settings().SurfaceShade;
+		return FLinearColor(Fill.R * Foot, Fill.G * Foot, Fill.B * Foot, Fill.A);
+	}
+
+	/**
+	 * A chamfered button face of Fill, edged in Edge (none when clear). Its outline settings describe the edge baked into
+	 * it, which the enhanced focus outline replaces (ADR-055 §3).
+	 */
+	FSlateBrush ButtonBrush(const FLinearColor& Fill, const FLinearColor& Edge)
+	{
+		const UVeyraShellStyleSettings& Style = Settings();
+		FVeyraFaceLook Look;
+		Look.Top = Fill;
+		Look.Bottom = Shaded(Fill);
+		Look.Edge = Edge;
+		Look.Chamfer = Style.ButtonChamfer;
+		FSlateBrush Brush = VeyraShellBrushes::Face(Look);
+		Brush.OutlineSettings.Color = FSlateColor(Edge);
+		Brush.OutlineSettings.Width = Edge.A > 0.0f ? Look.EdgeWidth : 0.0f;
+		return Brush;
+	}
+
+	/** The primary action's brass, from Head to Foot, with the shine along its top. */
+	FSlateBrush PrimaryBrush(const FLinearColor& Head, const FLinearColor& Foot, bool bShine)
+	{
+		const UVeyraShellStyleSettings& Style = Settings();
+		FVeyraFaceLook Look;
+		Look.Top = Head;
+		Look.Bottom = Foot;
+		Look.Shine = bShine ? Style.PrimaryShineColor : FLinearColor::Transparent;
+		Look.Chamfer = Style.ButtonChamfer;
+		return VeyraShellBrushes::Face(Look);
 	}
 
 	// A texture's side along its gradient, in texels: enough for a smooth ramp once filtered.
@@ -47,54 +81,56 @@ namespace
 FSlateFontInfo FontIn(EVeyraShellText Role, bool bChat)
 {
 	const UVeyraShellStyleSettings& Style = Settings();
-	const TCHAR* Typeface = TEXT("Regular");
+	// Each role's family and typeface are the style's (ADR-078 §2); its size and tracking as before.
+	const FVeyraTextFace* Face = &Style.BodyFace;
 	int32 Size = Style.BodyFontSize;
 	int32 Tracking = 0;
 	switch (Role)
 	{
 	case EVeyraShellText::Title:
-		Typeface = TEXT("Bold");
+		Face = &Style.TitleFace;
 		Size = Style.TitleFontSize;
 		break;
 	case EVeyraShellText::Heading:
-		Typeface = TEXT("Bold");
+		Face = &Style.HeadingFace;
 		Size = Style.HeadingFontSize;
 		break;
 	case EVeyraShellText::Body:
 	case EVeyraShellText::Muted:
 		break;
 	case EVeyraShellText::Countdown:
-		Typeface = TEXT("Light");
+		Face = &Style.CountdownFace;
 		Size = Style.CountdownFontSize;
 		break;
 	case EVeyraShellText::Small:
+		Face = &Style.SmallFace;
 		Size = Style.SmallFontSize;
 		break;
 	case EVeyraShellText::Display:
-		Typeface = TEXT("Black");
+		Face = &Style.DisplayFace;
 		Size = Style.DisplayFontSize;
 		Tracking = Style.DisplayLetterSpacing;
 		break;
 	case EVeyraShellText::Eyebrow:
 	case EVeyraShellText::Column:
-		Typeface = TEXT("Bold");
+		Face = &Style.EyebrowFace;
 		Size = Style.EyebrowFontSize;
 		Tracking = Style.EyebrowLetterSpacing;
 		break;
 	case EVeyraShellText::Button:
-		Typeface = TEXT("Medium");
+		Face = &Style.ButtonFace;
 		Size = Style.ButtonFontSize;
 		Tracking = Style.ButtonLetterSpacing;
 		break;
 	case EVeyraShellText::PrimaryButton:
-		Typeface = TEXT("Bold");
+		Face = &Style.PrimaryButtonFace;
 		Size = Style.ButtonFontSize;
 		Tracking = Style.ButtonLetterSpacing;
 		break;
 	}
 	// The player's Interface Text Size; layouts reflow around it (SET-62).
 	Size = bChat ? VeyraShellLook::ScaledChatFontSize(Size) : VeyraShellLook::ScaledFontSize(Size);
-	FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle(Typeface, Size);
+	FSlateFontInfo Font = VeyraShellFonts::FontOf(*Face, Size);
 	Font.LetterSpacing = Tracking;
 	return Font;
 }
@@ -127,6 +163,9 @@ UTextBlock* MakeText(UWidgetTree& Tree, const FText& Text, EVeyraShellText Role)
 		bCapitals = Role == EVeyraShellText::Eyebrow;
 		break;
 	case EVeyraShellText::Display:
+		// Headlines read as written unless the style says otherwise (ADR-078 §2).
+		bCapitals = Style.bDisplayInCapitals;
+		break;
 	case EVeyraShellText::Button:
 		bCapitals = true;
 		break;
@@ -162,13 +201,41 @@ UBorder* MakeBorder(UWidgetTree& Tree, const FLinearColor& Color, float Padding)
 
 UBorder* MakeSurface(UWidgetTree& Tree, EVeyraShellSurface Surface, const FMargin& Padding)
 {
-	const UVeyraShellStyleSettings& Style = Settings();
-	UBorder* Border = Tree.ConstructWidget<UBorder>(UBorder::StaticClass());
-	// Opaque under Reduce Interface Transparency (SET-75).
-	const FLinearColor Fill = VeyraShellLook::Panel(Surface == EVeyraShellSurface::Raised ? Style.SurfaceRaisedColor : Style.SurfaceColor);
-	Border->SetBrush(FSlateRoundedBoxBrush(Fill, Style.PanelCornerRadius, Style.HairlineColor, 1.0f));
+	UVeyraShellSurface* Border = Tree.ConstructWidget<UVeyraShellSurface>(UVeyraShellSurface::StaticClass());
+	StyleSurface(*Border, Surface);
 	Border->SetPadding(Padding);
 	return Border;
+}
+
+void StyleSurface(UBorder& Border, EVeyraShellSurface Surface)
+{
+	const UVeyraShellStyleSettings& Style = Settings();
+	// The fill is tinted its colour, opaque under Reduce Interface Transparency (SET-75); the edge is the brass hairline
+	// with its corner ticks (ADR-078 §3).
+	FSlateBrush Fill = VeyraShellBrushes::Mask(Style.PanelChamfer, Style.SurfaceShade);
+	Fill.TintColor = FSlateColor(VeyraShellLook::Panel(Surface == EVeyraShellSurface::Raised ? Style.SurfaceRaisedColor : Style.SurfaceColor));
+	Border.SetBrush(Fill);
+	if (UVeyraShellSurface* Edged = Cast<UVeyraShellSurface>(&Border))
+	{
+		Edged->SetOutline(VeyraShellBrushes::Outline(Style.PanelChamfer, Style.EdgeColor, Style.EdgeTickColor));
+	}
+}
+
+void StyleSurface(UBorder& Border, const FLinearColor& Fill, const FLinearColor& Edge)
+{
+	const UVeyraShellStyleSettings& Style = Settings();
+	FSlateBrush Brush = VeyraShellBrushes::Mask(Style.PanelChamfer, Style.SurfaceShade);
+	Brush.TintColor = FSlateColor(Fill);
+	Border.SetBrush(Brush);
+	if (UVeyraShellSurface* Edged = Cast<UVeyraShellSurface>(&Border))
+	{
+		Edged->SetOutline(VeyraShellBrushes::Outline(Style.PanelChamfer, Edge, Edge));
+	}
+}
+
+FSlateBrush EdgedFace(const FLinearColor& Fill, const FLinearColor& Edge)
+{
+	return ButtonBrush(Fill, Edge);
 }
 
 void StyleTextField(UEditableTextBox& Box, float Padding)
@@ -177,8 +244,15 @@ void StyleTextField(UEditableTextBox& Box, float Padding)
 	FEditableTextBoxStyle FieldStyle = Box.GetWidgetStyle();
 	const FLinearColor Fill = VeyraShellLook::Panel(Style.SurfaceRaisedColor);
 	const FVeyraFocusEdge Edge = VeyraShellLook::FieldFocusEdge();
-	const FSlateRoundedBoxBrush Plain(Fill, Style.ButtonCornerRadius, Style.HairlineColor, 1.0f);
-	const FSlateRoundedBoxBrush Focused(Fill, Style.ButtonCornerRadius, Edge.Color, Edge.Width);
+	FVeyraFaceLook Look;
+	Look.Top = Fill;
+	Look.Bottom = Shaded(Fill);
+	Look.Edge = Style.HairlineColor;
+	Look.Chamfer = Style.ButtonChamfer;
+	const FSlateBrush Plain = VeyraShellBrushes::Face(Look);
+	Look.Edge = Edge.Color;
+	Look.EdgeWidth = Edge.Width;
+	const FSlateBrush Focused = VeyraShellBrushes::Face(Look);
 	FieldStyle.SetBackgroundImageNormal(Plain);
 	FieldStyle.SetBackgroundImageHovered(Plain);
 	FieldStyle.SetBackgroundImageFocused(Focused);
@@ -206,9 +280,69 @@ UWidget* MakeRule(UWidgetTree& Tree)
 	return Height;
 }
 
+UWidget* MakeGlyph(UWidgetTree& Tree, const FSlateBrush& Brush)
+{
+	UImage* Glyph = Tree.ConstructWidget<UImage>(UImage::StaticClass());
+	Glyph->SetBrush(Brush);
+	Glyph->SetVisibility(ESlateVisibility::HitTestInvisible);
+	return Glyph;
+}
+
+UWidget* MakeInitialTile(UWidgetTree& Tree, const FText& Name, float Size)
+{
+	const UVeyraShellStyleSettings& Style = Settings();
+	USizeBox* Box = Tree.ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Box->SetWidthOverride(Size);
+	Box->SetHeightOverride(Size);
+	UBorder* Tile = Tree.ConstructWidget<UBorder>(UBorder::StaticClass());
+	Tile->SetBrush(EdgedFace(VeyraShellLook::Panel(Style.SurfaceRaisedColor), Style.ButtonEdgeColor));
+	Tile->SetHorizontalAlignment(HAlign_Center);
+	Tile->SetVerticalAlignment(VAlign_Center);
+	Tile->SetPadding(FMargin(0.0f));
+	const FString Letter = Name.ToString().Left(1).ToUpper();
+	UTextBlock* Initial = MakeText(Tree, FText::FromString(Letter), EVeyraShellText::Heading);
+	// The display face, at about half the tile, whatever the player's text size: it is a mark, not a word.
+	Initial->SetFont(VeyraShellFonts::FontOf(Style.DisplayFace, FMath::RoundToFloat(Size * 0.45f)));
+	Initial->SetAutoWrapText(false);
+	Tile->SetContent(Initial);
+	Box->AddChild(Tile);
+	return Box;
+}
+
+UWidget* MakeDot(UWidgetTree& Tree, const FLinearColor& Color, float Size)
+{
+	USizeBox* Box = Tree.ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Box->SetWidthOverride(Size);
+	Box->SetHeightOverride(Size);
+	UBorder* Dot = Tree.ConstructWidget<UBorder>(UBorder::StaticClass());
+	Dot->SetBrush(FSlateRoundedBoxBrush(Color, Size / 2.0f));
+	Box->AddChild(Dot);
+	return Box;
+}
+
+UWidget* MakeMeter(UWidgetTree& Tree, float Fraction, const FLinearColor& Fill, const FLinearColor& Track, float Width, float Height)
+{
+	const float Filled = FMath::Clamp(Fraction, 0.0f, 1.0f);
+	USizeBox* Box = Tree.ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Box->SetWidthOverride(Width);
+	Box->SetHeightOverride(Height);
+	UHorizontalBox* Line = Tree.ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Box->AddChild(Line);
+	// Two parts sharing the width by their fractions; an empty part takes no room.
+	for (const TPair<FLinearColor, float>& Part : { TPair<FLinearColor, float>(Fill, Filled), TPair<FLinearColor, float>(Track, 1.0f - Filled) })
+	{
+		UHorizontalBoxSlot* Slot = Line->AddChildToHorizontalBox(MakeBorder(Tree, Part.Key, 0.0f));
+		FSlateChildSize Size(ESlateSizeRule::Fill);
+		Size.Value = Part.Value;
+		Slot->SetSize(Size);
+		Slot->SetVerticalAlignment(VAlign_Fill);
+	}
+	return Box;
+}
+
 UTexture2D* CreateGradient(EVeyraShellGradient Gradient)
 {
-	const bool bAcross = Gradient == EVeyraShellGradient::FromLeft;
+	const bool bAcross = Gradient == EVeyraShellGradient::FromLeft || Gradient == EVeyraShellGradient::FromRight;
 	const int32 Width = bAcross ? GradientTexels : 1;
 	const int32 Height = bAcross ? 1 : GradientTexels;
 	UTexture2D* Texture = UTexture2D::CreateTransient(Width, Height, PF_B8G8R8A8, NAME_None);
@@ -226,7 +360,7 @@ UTexture2D* CreateGradient(EVeyraShellGradient Gradient)
 	{
 		// 0 at the dark edge, 1 where the scrim has faded out.
 		const float Along = static_cast<float>(Index) / (GradientTexels - 1);
-		const float FromEdge = Gradient == EVeyraShellGradient::FromBottom ? 1.0f - Along : Along;
+		const float FromEdge = Gradient == EVeyraShellGradient::FromBottom || Gradient == EVeyraShellGradient::FromRight ? 1.0f - Along : Along;
 		// Solid near its edge, where text sits, then fading: the side one across most of the screen, the
 		// bottom one by the middle, the top one behind the bar alone.
 		float Hold = 0.12f;
@@ -240,6 +374,11 @@ UTexture2D* CreateGradient(EVeyraShellGradient Gradient)
 		{
 			Hold = 0.04f;
 			Reach = 0.24f;
+		}
+		else if (Gradient == EVeyraShellGradient::FromRight)
+		{
+			Hold = 0.06f;
+			Reach = 0.36f;
 		}
 		const float Opacity = 1.0f - FMath::SmoothStep(Hold, Reach, FromEdge);
 		Texels[Index] = FColor(255, 255, 255, static_cast<uint8>(FMath::RoundToInt(Opacity * 255.0f)));
@@ -297,9 +436,10 @@ FButtonStyle ButtonStyle(const FLinearColor& Base, float Padding)
 {
 	const UVeyraShellStyleSettings& Style = Settings();
 	FButtonStyle Button;
-	Button.SetNormal(ButtonBrush(Base, Style.HairlineColor));
-	Button.SetHovered(ButtonBrush(Style.ButtonHoveredColor, Style.AccentColor.CopyWithNewOpacity(Style.HairlineColor.A * 3.0f)));
-	Button.SetPressed(ButtonBrush(Style.ButtonPressedColor, Style.HairlineColor));
+	// A brass hairline at rest, the accent under the pointer, none while unavailable (ADR-078 §3).
+	Button.SetNormal(ButtonBrush(Base, Style.ButtonEdgeColor));
+	Button.SetHovered(ButtonBrush(Style.ButtonHoveredColor, Style.AccentColor));
+	Button.SetPressed(ButtonBrush(Style.ButtonPressedColor, Style.ButtonEdgeColor));
 	Button.SetDisabled(ButtonBrush(Style.ButtonDisabledColor, FLinearColor::Transparent));
 	Button.SetNormalPadding(FMargin(Padding));
 	Button.SetPressedPadding(FMargin(Padding));
@@ -314,21 +454,26 @@ FButtonStyle ButtonStyleFor(EVeyraShellButton Kind, bool bSelected)
 	switch (Kind)
 	{
 	case EVeyraShellButton::Primary:
-		Button.SetNormal(ButtonBrush(Style.PrimaryColor, FLinearColor::Transparent));
-		Button.SetHovered(ButtonBrush(Style.PrimaryHoveredColor, FLinearColor::Transparent));
-		Button.SetPressed(ButtonBrush(Style.PrimaryColor * 0.8f, FLinearColor::Transparent));
-		Button.SetDisabled(ButtonBrush(Style.PrimaryColor.CopyWithNewOpacity(0.25f), FLinearColor::Transparent));
+		// Brass from a lit head to a shaded foot; brighter under the pointer, sunk when pressed.
+		Button.SetNormal(PrimaryBrush(Style.PrimaryHighlightColor, Style.PrimaryShadeColor, /*bShine*/ true));
+		Button.SetHovered(PrimaryBrush(Style.PrimaryHighlightColor, Style.PrimaryHoveredColor, /*bShine*/ true));
+		Button.SetPressed(PrimaryBrush(Style.PrimaryColor, Style.PrimaryShadeColor, /*bShine*/ false));
+		Button.SetDisabled(PrimaryBrush(Style.PrimaryColor.CopyWithNewOpacity(0.25f), Style.PrimaryShadeColor.CopyWithNewOpacity(0.25f), /*bShine*/ false));
 		break;
 	case EVeyraShellButton::Tab:
+		// The shown tab is underlined in the accent; another shows a hairline under the pointer.
+		Button.SetNormal(bSelected ? VeyraShellBrushes::Underline(Style.TabUnderlineHeight, Style.AccentColor) : VeyraShellBrushes::None());
+		Button.SetHovered(VeyraShellBrushes::Underline(Style.TabUnderlineHeight, bSelected ? Style.AccentColor : Style.ButtonEdgeColor));
+		Button.SetPressed(VeyraShellBrushes::Underline(Style.TabUnderlineHeight, Style.AccentColor));
+		Button.SetDisabled(VeyraShellBrushes::None());
+		break;
 	case EVeyraShellButton::Quiet:
-	{
-		const FLinearColor Lit = bSelected ? Style.SelectedColor : FLinearColor::Transparent;
-		Button.SetNormal(ButtonBrush(Lit, FLinearColor::Transparent));
+		// Text until the pointer finds it; lit while it is the one shown.
+		Button.SetNormal(bSelected ? ButtonBrush(Style.SelectedColor, FLinearColor::Transparent) : VeyraShellBrushes::None());
 		Button.SetHovered(ButtonBrush(bSelected ? Style.SelectedColor : Style.ButtonHoveredColor, FLinearColor::Transparent));
 		Button.SetPressed(ButtonBrush(Style.ButtonPressedColor, FLinearColor::Transparent));
-		Button.SetDisabled(ButtonBrush(FLinearColor::Transparent, FLinearColor::Transparent));
+		Button.SetDisabled(VeyraShellBrushes::None());
 		break;
-	}
 	case EVeyraShellButton::Secondary:
 		return ButtonStyle(bSelected ? Style.SelectedColor : Style.ButtonColor, Style.ButtonPadding)
 			.SetNormalPadding(Padding)

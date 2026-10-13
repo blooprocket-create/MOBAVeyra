@@ -794,7 +794,7 @@ UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, co
 		return *Square;
 	}
 	UBorder* Mark = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-	Mark->SetBrush(FSlateRoundedBoxBrush(VeyraShellLook::Panel(Settings.SurfaceRaisedColor), Settings.ButtonCornerRadius, Edge, 1.0f));
+	Mark->SetBrush(VeyraShellStyle::EdgedFace(VeyraShellLook::Panel(Settings.SurfaceRaisedColor), Edge));
 	Mark->SetPadding(FMargin(0.0f));
 	Mark->SetHorizontalAlignment(HAlign_Center);
 	Mark->SetVerticalAlignment(VAlign_Center);

@@ -249,8 +249,11 @@ private:
 	void BuildCollection(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/** The opened card's detail and its Buy actions, or the purchase's question in their place. */
 	void BuildCollectionDetail(const FVeyraClientSnapshot& Snapshot, const FVeyraCollectionCard& Card, UPanelWidget& Parent);
-	/** The top bar's account readout: the Account Level, its XP and the account currencies. */
-	void AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar);
+	/**
+	 * The top bar's account cluster (ADR-078 §5): the level's badge, the player's name over the level's progress and its XP,
+	 * and each account currency beside its mark. False, adding nothing, before the progression is first read.
+	 */
+	bool AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar);
 	/** What the match gave the player, on the results screen, apart from its own Gold and XP. */
 	void BuildRewards(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/**
@@ -347,6 +350,8 @@ private:
 
 	/** Shows VanguardId's illustration behind the screen as a showcase, with the scrims that let text read over it. */
 	void ShowShowcase(const FString& VanguardId);
+	/** Champion select's art (ADR-078 §5): the shown Vanguard large behind everything, darkened only where the columns, bench and loadout sit. */
+	void ShowSelectArt(UTexture2D* Hero);
 
 	/** A Vanguard with art, chosen at random once each time the game runs; HomeVanguard when none has art. */
 	static FString PickFeaturedVanguard();
@@ -453,6 +458,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UImage> ScrimTop;
+
+	/** From the right edge: champion select's enemy column over the shown Vanguard's art (ADR-078 §5). */
+	UPROPERTY(Transient)
+	TObjectPtr<UImage> ScrimRight;
 
 	/** The Vanguard whose art the showcases show this time the game runs, chosen at random. */
 	FString FeaturedVanguard;

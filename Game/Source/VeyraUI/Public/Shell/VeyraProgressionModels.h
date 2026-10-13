@@ -17,6 +17,10 @@ struct FVeyraProgressionBarModel
 	float Fraction = 0.0f;
 	/** Flux and Refined Flux, the persistent account currencies, never Team Flux. */
 	FText Currencies;
+	/** The level's number alone, for its badge, and each balance's amount alone, beside its mark (ADR-078 §5). */
+	FText LevelNumber;
+	FText Flux;
+	FText RefinedFlux;
 };
 
 /** One released Vanguard on the Collection page (Account, Collection & Mastery Bible §4). */

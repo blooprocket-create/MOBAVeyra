@@ -83,7 +83,7 @@ namespace VeyraSettingsLayout
 		for (const FLinearColor& Color : Colors)
 		{
 			UBorder* Swatch = Tree.ConstructWidget<UBorder>(UBorder::StaticClass());
-			Swatch->SetBrush(FSlateRoundedBoxBrush(Color, Style().ButtonCornerRadius, Style().HairlineColor, 1.0f));
+			Swatch->SetBrush(VeyraShellStyle::EdgedFace(Color, Style().HairlineColor));
 			USizeBox* Square = Tree.ConstructWidget<USizeBox>(USizeBox::StaticClass());
 			Square->SetWidthOverride(Style().SettingsSwatchSize);
 			Square->SetHeightOverride(Style().SettingsSwatchSize);
@@ -152,7 +152,7 @@ void UVeyraSettingsScreen::StyleFrame()
 {
 	FrameLook = VeyraShellLook::Current();
 	const UVeyraShellStyleSettings& Style = VeyraSettingsLayout::Style();
-	WindowPanel->SetBrush(FSlateRoundedBoxBrush(VeyraShellLook::Panel(Style.SurfaceRaisedColor), Style.PanelCornerRadius, Style.HairlineColor, 1.0f));
+	VeyraShellStyle::StyleSurface(*WindowPanel, VeyraShellStyle::EVeyraShellSurface::Raised);
 	Title->SetFont(VeyraShellStyle::FontFor(VeyraShellStyle::EVeyraShellText::Heading));
 	VeyraShellStyle::StyleTextField(*SearchBox, Style.ButtonPadding);
 }

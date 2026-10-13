@@ -88,7 +88,9 @@ namespace VeyraCollectionScreenTests
 			ASSERT_THAT(IsTrue(ShowShell(ProgressionOf(1200, 250))));
 			const FVeyraProgressionBarModel Bar = VeyraProgressionModels::DescribeBar(Rig.Flow->GetSnapshot().Progression);
 			const FString Text = Screen->DescribeText();
-			ASSERT_THAT(IsTrue(Text.Contains(Bar.Level.ToString()) && Text.Contains(Bar.XP.ToString()) && Text.Contains(Bar.Currencies.ToString()), Text));
+			ASSERT_THAT(IsTrue(Text.Contains(Bar.Level.ToString()) && Text.Contains(Bar.XP.ToString()), Text));
+			// Each balance beside its mark, its amount alone; the level's number on its badge (ADR-078 §5).
+			ASSERT_THAT(IsTrue(Text.Contains(Bar.Flux.ToString()) && Text.Contains(Bar.RefinedFlux.ToString()) && Text.Contains(Bar.LevelNumber.ToString()), Text));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Bar.Fraction, 40.0f / 170.0f)));
 			ASSERT_THAT(IsFalse(VeyraProgressionModels::DescribeBar({}).bShown, TEXT("nothing before the first read")));
 		}
