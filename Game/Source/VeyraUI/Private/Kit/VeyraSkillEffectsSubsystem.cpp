@@ -819,11 +819,26 @@ void UVeyraSkillEffectsSubsystem::ShowArea(const AActor& Owner, int32 Index, con
 	const UVeyraGreyboxSubsystem* Greybox = GetWorld()->GetSubsystem<UVeyraGreyboxSubsystem>();
 	FAreaShown& Shown = Areas.FindOrAdd({ &Owner, Index });
 	Shown.bWanted = true;
+	// A different recipe landing where another was drawn (a second cast seen without the idle between) starts its own.
+	if (Shown.Parameters.Recipe != Effects.Ability || Shown.Parameters.Scale != Effects.Area.Scale)
+	{
+		FadeSkillEffect(Shown.Effect);
+		Shown.Effect.Reset();
+	}
 	Shown.Parameters = VeyraSkillEffects::AreaParametersOf(Placed.Shape,
 		VeyraTelegraphFill::LandingOf(Source, Remaining, GetDefault<UVeyraGreyboxSettings>()->TelegraphLandingSeconds));
+	Shown.Parameters.Recipe = Effects.Ability;
+	Shown.Parameters.Scale = Effects.Area.Scale;
+	// Drawn on the plane that best fits the ground under the whole footprint, not level at its origin's height.
+	const FVeyraGroundFit Fit = VeyraTelegraphFill::FitGround(Placed, [Greybox, &Placed](const FVector2D& Point) {
+		return Greybox ? Greybox->GroundUnder(FVector(Point, Placed.Origin.Z)).Z : Placed.Origin.Z;
+	});
+	Shown.Parameters.Origin = Fit.Origin;
+	Shown.Parameters.Normal = Fit.Normal;
 	UNiagaraComponent* Effect = Shown.Effect.Get();
-	const FVector Ground = Greybox ? Greybox->GroundUnder(Placed.Origin) : Placed.Origin;
-	const FRotator Facing = Placed.Direction.GetSafeNormal2D().IsNearlyZero() ? FRotator::ZeroRotator : Placed.Direction.GetSafeNormal2D().Rotation();
+	const FVector Ground = Fit.Origin;
+	const FVector Along = Placed.Direction.GetSafeNormal2D().IsNearlyZero() ? FVector::ForwardVector : Placed.Direction.GetSafeNormal2D();
+	const FRotator Facing = FRotationMatrix::MakeFromXZ(Along, Fit.Normal).Rotator();
 	if (!Effect)
 	{
 		UNiagaraSystem* System = Loaded(Effects, TEXT("Area"));

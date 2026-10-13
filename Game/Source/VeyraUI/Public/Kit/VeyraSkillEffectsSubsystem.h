@@ -32,6 +32,14 @@ struct FVeyraAreaParameters
 	double Length = 0.0;
 	double Width = 0.0;
 	double Landing = 0.0;
+
+	/** Which recipe it is drawn for (its ability) and at what scale: a different one landing there restarts it. */
+	FName Recipe;
+	float Scale = 0.0f;
+
+	/** The plane it is drawn on: the best fit to the ground under its footprint (ADR-075 §3). */
+	FVector Origin = FVector::ZeroVector;
+	FVector Normal = FVector::UpVector;
 };
 
 /** What an ability's effects read from Abilities.json (ADR-072 §4), so no reach or time is written twice. */

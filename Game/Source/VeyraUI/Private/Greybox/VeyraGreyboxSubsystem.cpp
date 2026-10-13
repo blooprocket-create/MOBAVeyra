@@ -1953,7 +1953,16 @@ void UVeyraGreyboxSubsystem::AddCastTelegraph(const FVeyraPlacedShape& Placed, E
 	const UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
 	const FVeyraAbilityEffects* Effects = Ability.IsValid() && Skills && Skills->IsReady()
 		? GetDefault<UVeyraKitPresentationSettings>()->EffectsOf(FName(*Ability.ToString())) : nullptr;
-	const EVeyraTelegraphShow Show = VeyraTelegraphFill::ShowOf(Effects, Source, bSkillOutlines);
+	EVeyraTelegraphShow Show = VeyraTelegraphFill::ShowOf(Effects, Source, bSkillOutlines);
+	if (Show == EVeyraTelegraphShow::None)
+	{
+		// An effect drawn on one plane shows the area true only where the ground keeps near it; elsewhere the outline,
+		// which follows the ground, stays.
+		const FVeyraGroundFit Fit = VeyraTelegraphFill::FitGround(Placed, [this, &Placed](const FVector2D& Point) {
+			return GroundUnder(FVector(Point, Placed.Origin.Z)).Z;
+		});
+		Show = VeyraTelegraphFill::ShowOverGround(Show, Fit, GetDefault<UVeyraGreyboxSettings>()->AreaGroundTolerance);
+	}
 	if (Show == EVeyraTelegraphShow::None)
 	{
 		return;
