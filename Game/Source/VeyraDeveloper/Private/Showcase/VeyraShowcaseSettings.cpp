@@ -13,6 +13,7 @@ TArray<FString> UVeyraShowcaseSettings::Validate() const
 	};
 	Require(FrameStride >= 1, TEXT("FrameStride"), TEXT("one frame in at least every one is captured."));
 	Require(FrameRateLimit > 0, TEXT("FrameRateLimit"), TEXT("the recording client runs at a frame rate above 0."));
+	Require(MarkYawDegrees >= -180.0 && MarkYawDegrees <= 180.0, TEXT("MarkYawDegrees"), TEXT("the marks' line turns between -180 and 180 degrees."));
 	Require(StandDistanceFromCenter > 0.0, TEXT("StandDistanceFromCenter"), TEXT("each body stands a distance above 0 from the centre."));
 	Require(CaptureSize.X > 0 && CaptureSize.Y > 0, TEXT("CaptureSize"), TEXT("frames need a width and a height above 0."));
 	Require(SettleSeconds >= 0.0 && TailSeconds >= 0.0, TEXT("SettleSeconds"), TEXT("the settle and tail times are 0 or more."));

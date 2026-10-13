@@ -121,10 +121,9 @@ FString UVeyraShowcaseSubsystem::Reset(AVeyraPlayerController& Requester, int32 
 	{
 		return VeyraShowcase::ResetReply(Token, false, TEXT("The stage has no start for each side."));
 	}
-	// Each body stands on the line between the starts, its settings' distance from the centre on its own side, facing
-	// the other.
+	// Each body stands at its mark on its own side of the centre, facing the other (VeyraShowcase::MarkOf).
 	const FVector Centre = (StartA->GetActorLocation() + StartB->GetActorLocation()) / 2.0;
-	const double Stand = GetDefault<UVeyraShowcaseSettings>()->StandDistanceFromCenter;
+	const UVeyraShowcaseSettings& Settings = *GetDefault<UVeyraShowcaseSettings>();
 	TArray<FString> Done;
 	bool bSet = true;
 	for (AVeyraPlayerState* Participant : { Caster, Seated })
@@ -140,12 +139,12 @@ FString UVeyraShowcaseSubsystem::Reset(AVeyraPlayerController& Requester, int32 
 		}
 		Done.Add(VeyraDevCommands::HealParticipant(*Participant));
 		const AVeyraTeamStart* Own = Participant->GetVeyraTeam() == EVeyraTeam::A ? StartA : StartB;
-		const FVector Outward = (Own->GetActorLocation() - Centre).GetSafeNormal2D();
-		const FRotator Facing = (-Outward).Rotation();
+		const FVector Mark = VeyraShowcase::MarkOf(Centre, Own->GetActorLocation(), Settings.StandDistanceFromCenter, Settings.MarkYawDegrees);
+		const FRotator Facing = (Centre - Mark).GetSafeNormal2D().Rotation();
 		FString Moved;
 		// A body that cannot be stood at its mark yet, as one held on to another, leaves the stage unset: the recorder asks
 		// again.
-		bSet &= VeyraDevCommands::TeleportParticipant(*Participant, Centre + Outward * Stand, &Facing, Moved);
+		bSet &= VeyraDevCommands::TeleportParticipant(*Participant, Mark, &Facing, Moved);
 		Done.Add(Moved);
 	}
 	Done.Add(VeyraDevCommands::ResetCooldownsOf(*Caster));
