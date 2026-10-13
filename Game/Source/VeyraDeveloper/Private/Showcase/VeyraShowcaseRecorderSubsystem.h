@@ -94,8 +94,11 @@ private:
 	/** How far the Vanguard's basic attack reaches, from Vanguards.json; 0 when unknown. */
 	double AttackReach(const AVeyraPlayerController& Controller) const;
 
-	/** Lists the basic attack's clip as failed for Reason and ends the recording (ADR-074 §3). */
+	/** Lists the basic attack's clip as failed for Reason and ends the recording, or after a rehearsal starts it (ADR-074 §3). */
 	void FailAttack(const FString& Reason);
+
+	/** After the basic attack's clip: the recording from the first slot, after the rehearsal; the encoding, after the recording. */
+	void AfterAttack(const FString& Description);
 
 	void StartCapture();
 	void CaptureFrame();

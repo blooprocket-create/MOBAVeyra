@@ -48,6 +48,13 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(IsFalse(VeyraShowcase::MayStartAttackClip(EVeyraAttackPhase::Backswing)));
 		}
 
+		TEST_METHOD(TheBasicAttackIsRehearsedBeforeItIsRecorded)
+		{
+			// Its effect in flight compiles in the rehearsal, which then gives way to the recording (ADR-074 §3).
+			ASSERT_THAT(AreEqual(VeyraShowcase::AfterAttack(true), VeyraShowcase::EAfterAttack::Record));
+			ASSERT_THAT(AreEqual(VeyraShowcase::AfterAttack(false), VeyraShowcase::EAfterAttack::Flush));
+		}
+
 		TEST_METHOD(TheMarksTurnAboutTheCentre)
 		{
 			// Fixture values: starts on the X axis, and a body's distance from the centre.
