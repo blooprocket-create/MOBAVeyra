@@ -68,4 +68,11 @@ namespace VeyraShowcase
 	 * ran out, and a body it holds on to is let go.
 	 */
 	void ReleaseHolds(UAbilitySystemComponent& Unit);
+
+	/**
+	 * Whether the stage is clean for the next clip (ADR-074 §3): its caster holds no status, or it has waited
+	 * StatusPatienceSeconds past the settle for them to end. A status ends through the system that owns it (a stance's
+	 * mode, a lane, a slot it swapped), never by the reset, so the recorder waits for it.
+	 */
+	bool IsStageClean(bool bStatusesHeld, double SecondsSinceSet, double SettleSeconds, double StatusPatienceSeconds);
 }

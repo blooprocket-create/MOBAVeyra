@@ -42,6 +42,12 @@ def _beats(t, release, strike=STRIKE_SHARE, settle_start=SETTLE_START):
     return rise, hit, settle
 
 
+def beats(skill, t):
+    """The beats of a kit entry's motion at t (rise, strike, settle; each 0 to 1), for an archetype that carries
+    something through them of its own, as a weapon raised to its sight through the rise and lowered by the settle."""
+    return _beats(t, skill["releaseShare"])
+
+
 def _side(options):
     """The arm a one-armed motion uses (options "side": "l" or "r", right by default) and its sign for roll_side."""
     side = options.get("side", "r")
@@ -191,6 +197,20 @@ def heave(t, release, options):
     return pose, {"crouch": (0.75 * rise * (1 - hit) + 0.1 * hit) * (1 - settle), "rise": (-0.4 * rise + 0.9 * hit) * (1 - settle)}
 
 
+def lunge(t, release, options):
+    """A dash or leap: gathered low with the arms swept back, then driven forward through the release, the chest thrown
+    over the lead foot and the arms flung ahead, held while the body travels, then risen out of it."""
+    rise, hit, settle = _beats(t, release, strike=0.14, settle_start=0.75)
+    pose = {}
+    for side, sign in (("l", 1), ("r", -1)):
+        _arm(pose, side, combine(forward_swing((-45 * rise + 115 * hit) * (1 - settle)), roll_side(12 * rise * (1 - hit), sign)),
+             forward_swing((25 * rise + 15 * hit) * (1 - settle)))
+    pose["spine_02"] = lean((20 * rise + 18 * hit) * (1 - settle))
+    pose["head"] = lean((-14 * rise - 6 * hit) * (1 - settle))
+    return pose, {"crouch": (0.6 * rise * (1 - hit) + 0.35 * hit) * (1 - settle), "spread": 0.8 * hit * (1 - settle),
+                  "rise": 0.3 * hit * (1 - settle)}
+
+
 def clench(t, release, options):
     """A fist raised high and crushed shut, then the arm snapped down: the signal for what it set to break."""
     side, sign = _side(options)
@@ -263,7 +283,7 @@ def beam(t, release, options):
 
 
 MOTIONS = {"Hurl": hurl, "Slam": slam, "Brace": brace, "Anchor": anchor, "Lob": lob, "Harden": harden, "Sweep": sweep,
-           "Heave": heave, "Clench": clench, "Thrust": thrust, "Summon": summon, "Veil": veil, "Beam": beam}
+           "Heave": heave, "Lunge": lunge, "Clench": clench, "Thrust": thrust, "Summon": summon, "Veil": veil, "Beam": beam}
 
 
 def skill_clip(name):

@@ -72,4 +72,9 @@ namespace VeyraShowcase
 			VeyraCombat::Detach(Unit);
 		}
 	}
+
+	bool IsStageClean(bool bStatusesHeld, double SecondsSinceSet, double SettleSeconds, double StatusPatienceSeconds)
+	{
+		return !bStatusesHeld || SecondsSinceSet >= SettleSeconds + StatusPatienceSeconds;
+	}
 }

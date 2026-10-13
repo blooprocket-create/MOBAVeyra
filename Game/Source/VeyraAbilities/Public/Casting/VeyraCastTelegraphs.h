@@ -7,6 +7,7 @@
 
 struct FVeyraAbilitiesTuning;
 struct FVeyraCastState;
+struct FVeyraVolleyLaneState;
 struct FVeyraContentId;
 
 /**
@@ -27,6 +28,13 @@ namespace VeyraCastTelegraphs
 	 */
 	VEYRAABILITIES_API TArray<FVeyraPlacedShape> ForCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraCastState& State, const FVector& CasterLocation,
 		double CasterRadius);
+
+	/**
+	 * Where the shots of a volley lane its caster holds open can go (ADR-075 §5): from the caster now, as far as a shot
+	 * reaches, the lane's half angle either side of its direction, as ForCast shows the volley's windup. Empty while no
+	 * lane is open or for a volley the tuning does not have.
+	 */
+	VEYRAABILITIES_API TArray<FVeyraPlacedShape> ForLane(const FVeyraAbilitiesTuning& Tuning, const FVeyraVolleyLaneState& Lane, const FVector& CasterLocation);
 
 	/**
 	 * Where Ability would land if cast now toward AimPoint, for the indicator its caster sees before

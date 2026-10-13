@@ -108,11 +108,12 @@ def schedule(name, t, melee):
     return 0.0, 0.0, True
 
 
-def pose_arms(pose, name, t, melee, d, bones, lift_bone, lift):
+def pose_arms(pose, name, t, melee, d, bones, lift_bone, lift, held=None):
     """Both arms into pose for clip name at t: reaching the weapon where its hold is, or letting it go as the body dies.
-    The weapon's own bone (prop_r) turns it to lie flat as it falls. The head bows to the sight as the weapon rises."""
+    The weapon's own bone (prop_r) turns it to lie flat as it falls. The head bows to the sight as the weapon rises.
+    held, when given, is the schedule's (raised, recoil, holding) in place of the clip's own, as a skill's motion sets it."""
     holds = d["holds"]
-    raised, recoil, holding = schedule(name, t, melee)
+    raised, recoil, holding = held if held is not None else schedule(name, t, melee)
     for bone in [bone for bone in pose if bone.startswith(("upperarm_", "lowerarm_", "hand_", "prop_"))]:
         del pose[bone]
     pitch, roll = holds["head"]

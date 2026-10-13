@@ -111,6 +111,14 @@
   },  "vanguards": [
     { "id": "raska", "archetype": "humanoid", "seed": 101, "heightShare": 0.94, "build": "lean", "headShare": 0.16,
       "model": { "script": "raska", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "raska_breakneck", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "raska_breakneck_through", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "raska_countersteer", "motion": "Brace", "seconds": 0.7, "releaseShare": 0.2},
+        {"ability": "raska_kickstart", "motion": "Heave", "seconds": 0.9, "releaseShare": 0.44},
+        {"ability": "raska_no_brakes", "motion": "Clench", "seconds": 0.8, "releaseShare": 0.2, "options": {"side": "l"}},
+        {"ability": "raska_last_exit", "motion": "Lunge", "seconds": 0.7, "releaseShare": 0.15}
+      ],
       "springs": { "hair": { "stiffness": 300.0, "drag": 2.0, "damping": 12.0, "maxAngle": 40.0 } },
       "skin": [0.80, 0.60, 0.48], "primary": [0.55, 0.08, 0.08], "secondary": [0.10, 0.09, 0.09], "hair": [0.35, 0.10, 0.05], "accent": [1.00, 0.45, 0.08],
       "jacket": [0.50, 0.07, 0.07],
@@ -130,11 +138,24 @@
         "rightElbow": [-0.2, -0.9, -0.3], "leftElbow": [0.1, 0.35, -0.93], "headPitch": 24, "headRoll": 16,
         "carry": { "forwardShare": 0.09, "rightShare": 0.08, "heightShare": 0.53, "pitch": 22, "yaw": 35 } },
       "model": { "script": "kade", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "kade_throughline", "motion": "Thrust", "seconds": 1.0, "releaseShare": 0.4, "options": {"side": "r"}},
+        {"ability": "kade_sightline", "motion": "Sweep", "seconds": 0.9, "releaseShare": 0.28, "options": {"side": "r"}},
+        {"ability": "kade_reposition", "motion": "Heave", "seconds": 0.8, "releaseShare": 0.19},
+        {"ability": "kade_kill_corridor", "motion": "Brace", "seconds": 1.2, "releaseShare": 0.42}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "hairStyle": "short", "features": ["longCloak"], "props": [{ "kind": "rifle", "hand": "right" }] },
     { "id": "patch", "archetype": "humanoid", "seed": 105, "heightShare": 0.80, "build": "round", "headShare": 0.37,
       "legShare": 0.24, "shoulderShare": 0.15,
       "model": { "script": "patch", "triangleBudget": 5000, "voxelCm": 0.5 },
+      "skills": [
+        {"ability": "patch_bear_hug", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "patch_bear_hug_throw", "motion": "Heave", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "patch_play_dead", "motion": "Veil", "seconds": 0.7, "releaseShare": 0.2},
+        {"ability": "patch_dont_leave_me", "motion": "Hurl", "seconds": 0.8, "releaseShare": 0.2, "options": {"side": "r", "holdUntil": 0.6}},
+        {"ability": "patch_the_thing_inside", "motion": "Summon", "seconds": 1.0, "releaseShare": 0.25, "options": {"side": "r"}}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "lantern": { "stiffness": 120.0, "drag": 1.5, "damping": 3.0, "maxAngle": 40.0 } },
       "skin": [0.72, 0.55, 0.36], "primary": [0.72, 0.55, 0.36], "secondary": [0.62, 0.46, 0.30], "hair": [0.72, 0.55, 0.36], "accent": [1.00, 0.70, 0.25],
       "scarf": [0.60, 0.08, 0.08], "armShare": 0.33, "limbScale": 1.7,
@@ -147,6 +168,14 @@
       ] },
     { "id": "tavi", "archetype": "humanoid", "seed": 106, "heightShare": 0.86, "build": "lean", "headShare": 0.2,
       "model": { "script": "tavi", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "tavi_catch", "motion": "Thrust", "seconds": 0.7, "releaseShare": 0.29, "options": {"side": "r"}},
+        {"ability": "tavi_hide", "motion": "Veil", "seconds": 0.7, "releaseShare": 0.2},
+        {"ability": "tavi_tag", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "tavi_tag_again", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "tavi_ready_or_not", "motion": "Slam", "seconds": 0.9, "releaseShare": 0.3},
+        {"ability": "tavi_ready_or_not_again", "motion": "Slam", "seconds": 0.9, "releaseShare": 0.3}
+      ],
       "springs": { "hair": { "stiffness": 300.0, "drag": 2.0, "damping": 10.0, "maxAngle": 45.0 } },
       "skin": [0.90, 0.75, 0.66], "primary": [0.08, 0.07, 0.08], "secondary": [0.95, 0.45, 0.70], "hair": [0.95, 0.88, 0.70], "accent": [1.00, 0.40, 0.75],
       "hairStyle": "bigTwinTails", "hairStreak": [0.95, 0.50, 0.70], "boots": [0.10, 0.08, 0.09], "idle": "bouncy",
@@ -154,6 +183,12 @@
     { "id": "vera", "archetype": "humanoid", "seed": 107, "heightShare": 0.92, "build": "lean", "headShare": 0.14,
       "legShare": 0.46,
       "model": { "script": "vera", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "vera_range_found", "motion": "Thrust", "seconds": 1.0, "releaseShare": 0.35, "options": {"side": "r"}},
+        {"ability": "vera_dig_in", "motion": "Anchor", "seconds": 0.8, "releaseShare": 0.2},
+        {"ability": "vera_break_the_line", "motion": "Sweep", "seconds": 0.8, "releaseShare": 0.25, "options": {"side": "r"}},
+        {"ability": "vera_the_last_volley", "motion": "Summon", "seconds": 1.0, "releaseShare": 0.2, "options": {"side": "r"}}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.92, 0.84, 0.80], "primary": [0.07, 0.07, 0.08], "secondary": [0.18, 0.17, 0.18], "hair": [0.92, 0.92, 0.95], "accent": [1.00, 0.18, 0.10],
       "lining": [0.60, 0.06, 0.06], "ribbon": [0.65, 0.06, 0.06], "boots": [0.16, 0.15, 0.16], "stance": "aim",
@@ -166,6 +201,13 @@
     { "id": "marek", "archetype": "humanoid", "seed": 110, "heightShare": 0.95, "build": "lean", "headShare": 0.14,
       "legShare": 0.5, "hipShare": 0.066, "shoulderShare": 0.12, "armShare": 0.36,
       "model": { "script": "marek", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "marek_witchfire", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "marek_hunt", "motion": "Clench", "seconds": 0.7, "releaseShare": 0.21, "options": {"side": "r"}},
+        {"ability": "marek_hunt_recall", "motion": "Summon", "seconds": 0.6, "releaseShare": 0.2, "options": {"side": "l"}},
+        {"ability": "marek_cross_the_chain", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "marek_hell_on_a_leash", "motion": "Heave", "seconds": 1.0, "releaseShare": 0.25}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.82, 0.68, 0.58], "primary": [0.10, 0.07, 0.12], "secondary": [0.35, 0.15, 0.45], "hair": [0.10, 0.08, 0.07], "accent": [0.65, 0.25, 1.00],
       "cloak": [0.10, 0.07, 0.12], "lining": [0.40, 0.12, 0.55],
@@ -173,6 +215,13 @@
     { "id": "neris", "archetype": "humanoid", "seed": 111, "heightShare": 0.92, "build": "lean", "headShare": 0.15,
       "legShare": 0.46, "hipShare": 0.066, "shoulderShare": 0.12,
       "model": { "script": "neris", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "neris_breaking_wave", "motion": "Sweep", "seconds": 0.8, "releaseShare": 0.2, "options": {"side": "r"}},
+        {"ability": "neris_little_current", "motion": "Thrust", "seconds": 0.7, "releaseShare": 0.2, "options": {"side": "r"}},
+        {"ability": "neris_little_current_redirect", "motion": "Thrust", "seconds": 0.6, "releaseShare": 0.2, "options": {"side": "l"}},
+        {"ability": "neris_change_the_weather", "motion": "Summon", "seconds": 0.9, "releaseShare": 0.25, "options": {"side": "r"}},
+        {"ability": "neris_tidebreaker", "motion": "Heave", "seconds": 1.0, "releaseShare": 0.25}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.86, 0.76, 0.70], "primary": [0.12, 0.16, 0.20], "secondary": [0.30, 0.25, 0.20], "hair": [0.80, 0.88, 0.95], "accent": [0.35, 0.75, 0.95],
       "hairStyle": "windblown", "features": ["wideHat", "coatSkirt", "tornCoat", "harness", "rescueGear", "waveBase"], "props": [],
@@ -190,6 +239,12 @@
     { "id": "qazharr", "archetype": "humanoid", "seed": 113, "heightShare": 0.98, "build": "heavy", "headShare": 0.135,
       "legShare": 0.46, "hipShare": 0.07, "shoulderShare": 0.115, "armShare": 0.38,
       "model": { "script": "qazharr", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "qazharr_heavy_hand", "motion": "Clench", "seconds": 0.7, "releaseShare": 0.25, "options": {"side": "r"}},
+        {"ability": "qazharr_weather_it", "motion": "Brace", "seconds": 0.9, "releaseShare": 0.3},
+        {"ability": "qazharr_boarding_rush", "motion": "Thrust", "seconds": 0.6, "releaseShare": 0.15, "options": {"side": "l"}},
+        {"ability": "qazharr_no_quarter", "motion": "Sweep", "seconds": 1.3, "releaseShare": 0.46, "options": {"side": "r"}}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.62, 0.42, 0.30], "primary": [0.16, 0.19, 0.24], "secondary": [0.13, 0.12, 0.13], "hair": [0.09, 0.07, 0.06], "accent": [0.30, 0.55, 0.85],
       "tattoo": [0.08, 0.11, 0.20], "jacketUnder": "skin",
@@ -201,6 +256,13 @@
     { "id": "angeru", "archetype": "humanoid", "seed": 115, "heightShare": 0.94, "build": "lean", "headShare": 0.15,
       "legShare": 0.47, "hipShare": 0.07, "shoulderShare": 0.125, "armShare": 0.37,
       "model": { "script": "angeru", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "angeru_shadow_needle", "motion": "Thrust", "seconds": 0.7, "releaseShare": 0.36, "options": {"side": "l"}},
+        {"ability": "angeru_false_body", "motion": "Veil", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "angeru_false_body_swap", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "angeru_black_step", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "angeru_forsake_the_schools", "motion": "Clench", "seconds": 0.8, "releaseShare": 0.125, "options": {"side": "r"}}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.80, 0.66, 0.55], "primary": [0.06, 0.06, 0.07], "secondary": [0.09, 0.09, 0.10], "hair": [0.06, 0.06, 0.07], "accent": [0.85, 0.85, 0.90],
       "hood": [0.07, 0.07, 0.08], "cloak": [0.62, 0.06, 0.06], "cloakWidth": 0.4, "sash": [0.62, 0.06, 0.06],
@@ -213,6 +275,12 @@
     { "id": "sylra", "archetype": "humanoid", "seed": 116, "heightShare": 0.93, "build": "lean", "headShare": 0.09,
       "legShare": 0.56, "hipShare": 0.055, "shoulderShare": 0.092, "armShare": 0.34,
       "model": { "script": "sylra", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "sylra_harbor_bell", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "l"}},
+        {"ability": "sylra_lay_the_mist", "motion": "Veil", "seconds": 0.9, "releaseShare": 0.28},
+        {"ability": "sylra_waymark", "motion": "Summon", "seconds": 0.8, "releaseShare": 0.25, "options": {"side": "l"}},
+        {"ability": "sylra_through_the_white", "motion": "Heave", "seconds": 1.1, "releaseShare": 0.27}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "skirt": { "stiffness": 60.0, "drag": 6.0, "damping": 3.0, "maxAngle": 60.0 },
                    "sleeves": { "stiffness": 50.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "lantern": { "stiffness": 120.0, "drag": 1.5, "damping": 3.0, "maxAngle": 40.0 } },
       "skin": [0.80, 0.70, 0.64], "primary": [0.35, 0.42, 0.50], "secondary": [0.20, 0.24, 0.30], "hair": [0.20, 0.24, 0.30], "accent": [0.80, 0.92, 1.00],
@@ -224,6 +292,12 @@
     { "id": "mavra", "archetype": "humanoid", "seed": 117, "heightShare": 0.93, "build": "lean", "headShare": 0.125,
       "legShare": 0.5, "hipShare": 0.062, "shoulderShare": 0.104, "armShare": 0.36,
       "model": { "script": "mavra", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "mavra_caustic_line", "motion": "Sweep", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "mavra_flash_cure", "motion": "Lob", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "l"}},
+        {"ability": "mavra_pressure_leak", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "mavra_code_black", "motion": "Slam", "seconds": 1.2, "releaseShare": 0.29}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.84, 0.66, 0.54], "primary": [0.22, 0.18, 0.16], "secondary": [0.17, 0.15, 0.14], "hair": [0.35, 0.12, 0.08], "accent": [1.00, 0.55, 0.10],
       "band": [0.70, 0.10, 0.08], "lining": [0.70, 0.10, 0.08], "gloves": [0.20, 0.16, 0.12],
@@ -232,6 +306,12 @@
     { "id": "bryn", "archetype": "humanoid", "seed": 119, "heightShare": 0.90, "build": "normal", "headShare": 0.125,
       "legShare": 0.46, "hipShare": 0.06, "shoulderShare": 0.11, "armShare": 0.36,
       "model": { "script": "bryn", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "bryn_breach_round", "motion": "Harden", "seconds": 0.7, "releaseShare": 0.2},
+        {"ability": "bryn_sounding_flare", "motion": "Lob", "seconds": 0.9, "releaseShare": 0.22, "options": {"side": "r"}},
+        {"ability": "bryn_kickback", "motion": "Thrust", "seconds": 0.6, "releaseShare": 0.15, "options": {"side": "r"}},
+        {"ability": "bryn_last_broadside", "motion": "Anchor", "seconds": 2.0, "releaseShare": 0.62}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.76, 0.60, 0.50], "primary": [0.10, 0.28, 0.30], "secondary": [0.18, 0.15, 0.12], "hair": [0.72, 0.72, 0.70], "accent": [0.35, 0.65, 1.00],
       "sash": [0.62, 0.08, 0.08], "gloves": [0.20, 0.14, 0.10],
@@ -240,6 +320,12 @@
     { "id": "mimzi", "archetype": "humanoid", "seed": 121, "heightShare": 0.78, "build": "normal", "headShare": 0.24, "shoulderShare": 0.115,
       "hipShare": 0.085,
       "model": { "script": "mimzi", "triangleBudget": 5000, "voxelCm": 0.5 },
+      "skills": [
+        {"ability": "mimzi_twinklebolt", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "mimzi_winkbomb", "motion": "Lob", "seconds": 0.9, "releaseShare": 0.22, "options": {"side": "r"}},
+        {"ability": "mimzi_now_you_see_me", "motion": "Veil", "seconds": 0.9, "releaseShare": 0.25},
+        {"ability": "mimzi_grand_prank", "motion": "Heave", "seconds": 1.0, "releaseShare": 0.3}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "skirt": { "stiffness": 60.0, "drag": 6.0, "damping": 3.0, "maxAngle": 60.0 } },
       "skin": [0.88, 0.75, 0.58], "fur": [0.98, 0.94, 0.86], "earInner": [0.93, 0.60, 0.56], "eyes": [0.92, 0.55, 0.12],
       "primary": [0.10, 0.45, 0.48], "secondary": [0.22, 0.16, 0.12], "hair": [0.88, 0.75, 0.58], "accent": [0.35, 0.70, 1.00],
@@ -250,6 +336,12 @@
     { "id": "celandrine", "archetype": "humanoid", "seed": 122, "heightShare": 0.9, "build": "lean", "headShare": 0.2, "shoulderShare": 0.14,
       "legShare": 0.46,
       "model": { "script": "celandrine", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "celandrine_doubletime", "motion": "Harden", "seconds": 0.6, "releaseShare": 0.2},
+        {"ability": "celandrine_briar_scatter", "motion": "Lob", "seconds": 0.8, "releaseShare": 0.25, "options": {"side": "l"}},
+        {"ability": "celandrine_sidebound", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "celandrine_open_road", "motion": "Summon", "seconds": 0.9, "releaseShare": 0.25, "options": {"side": "r"}}
+      ],
       "springs": { "cloak": { "stiffness": 40, "drag": 8, "damping": 2, "maxAngle": 70 }, "skirt": { "stiffness": 60, "drag": 6, "damping": 3, "maxAngle": 60 } },
       "skin": [0.72, 0.56, 0.40], "fur": [0.96, 0.92, 0.84], "earInner": [0.90, 0.55, 0.52], "earTips": [0.28, 0.20, 0.15], "eyes": [0.90, 0.52, 0.12],
       "primary": [0.33, 0.40, 0.20], "secondary": [0.26, 0.18, 0.12], "hair": [0.72, 0.56, 0.40], "accent": [0.55, 0.85, 0.35],
@@ -259,6 +351,12 @@
       "props": [{ "kind": "springbow", "hand": "right" }, { "kind": "springbow", "hand": "left" }] },
     { "id": "gorraveth", "archetype": "humanoid", "seed": 123, "heightShare": 0.96, "build": "heavy", "headShare": 0.15, "hunch": 35,
       "model": { "script": "gorraveth", "triangleBudget": 5500, "voxelCm": 0.7 },
+      "skills": [
+        {"ability": "gorraveth_rip_through", "motion": "Lunge", "seconds": 0.7, "releaseShare": 0.15},
+        {"ability": "gorraveth_furnace_rake", "motion": "Sweep", "seconds": 1.0, "releaseShare": 0.2, "options": {"side": "r"}},
+        {"ability": "gorraveth_ravine_bound", "motion": "Lunge", "seconds": 0.9, "releaseShare": 0.15},
+        {"ability": "gorraveth_tear_them_apart", "motion": "Clench", "seconds": 0.8, "releaseShare": 0.3, "options": {"side": "r"}}
+      ],
       "skin": [0.52, 0.17, 0.12], "belly": [0.84, 0.76, 0.64], "primary": [0.52, 0.17, 0.12], "secondary": [0.52, 0.17, 0.12], "hair": [0.52, 0.17, 0.12],
       "accent": [1.00, 0.45, 0.10], "armor": [0.30, 0.28, 0.26], "leather": [0.30, 0.19, 0.11], "tabard": [0.45, 0.08, 0.06], "slag": [0.03, 0.03, 0.03],
       "hairStyle": "none", "features": ["heavyTail", "digitigrade", "reptile", "miningArmor"],
@@ -266,17 +364,35 @@
       "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraDrip.NS_VeyraDrip", "color": [1.00, 0.45, 0.10, 1.0], "bones": ["prop_r", "prop_l", "head"] } },
     { "id": "eudora", "archetype": "humanoid", "seed": 125, "heightShare": 0.92, "build": "normal", "headShare": 0.16,
       "model": { "script": "eudora", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "eudora_drive_rivet", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "eudora_set_the_picket", "motion": "Anchor", "seconds": 1.2, "releaseShare": 0.5},
+        {"ability": "eudora_raise_the_bulwark", "motion": "Brace", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "eudora_move_the_line", "motion": "Hurl", "seconds": 0.9, "releaseShare": 0.28, "options": {"side": "r"}}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.80, 0.64, 0.54], "primary": [0.55, 0.12, 0.08], "secondary": [0.16, 0.15, 0.15], "hair": [0.60, 0.60, 0.61], "accent": [1.00, 0.75, 0.30],
       "lining": [0.38, 0.07, 0.05],
       "hairStyle": "short", "features": ["workGoggles", "burnScar", "openJacket", "coatSkirt", "tornCoat", "harness", "toolBelt", "prostheticArms", "prostheticLegs"],
       "props": [{ "kind": "drawings", "hand": "left" }] },
     { "id": "silt", "archetype": "colossus", "seed": 301, "heightShare": 0.98, "build": "normal", "headShare": 0.0, "legShare": 0.34, "armShare": 0.6, "model": { "script": "silt", "triangleBudget": 6000, "voxelCm": 0.9 },
+    "skills": [
+      {"ability": "silt_scattershot", "motion": "Lob", "seconds": 0.8, "releaseShare": 0.25, "options": {"side": "r"}},
+      {"ability": "silt_sink", "motion": "Slam", "seconds": 0.9, "releaseShare": 0.28},
+      {"ability": "silt_sandstorm", "motion": "Summon", "seconds": 0.9, "releaseShare": 0.28, "options": {"side": "r"}},
+      {"ability": "silt_buried_alive", "motion": "Anchor", "seconds": 1.2, "releaseShare": 0.25}
+    ],
       "springs": { "ribbons": { "stiffness": 30.0, "drag": 6.0, "damping": 2.0, "maxAngle": 60.0 } }, "lean": 0.45,
       "style": "sediment", "primary": [0.60, 0.42, 0.17], "secondary": [0.24, 0.15, 0.07], "accent": [0.75, 0.58, 0.30], "detail": [0.75, 0.72, 0.62],
       "features": ["faceless", "knuckleWalk", "claws", "flakes", "ribbons", "drips"] },
     { "id": "relay", "archetype": "colossus", "seed": 302, "heightShare": 0.97, "build": "heavy", "headShare": 0.11, "legShare": 0.30, "armShare": 0.56, "lean": 0.25,
       "model": { "script": "relay", "triangleBudget": 6000, "voxelCm": 0.8 },
+      "skills": [
+        {"ability": "relay_rapid_discharge", "motion": "Thrust", "seconds": 0.7, "releaseShare": 0.2, "options": {"side": "r"}},
+        {"ability": "relay_overcharge", "motion": "Harden", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "relay_magnetic_field", "motion": "Summon", "seconds": 0.8, "releaseShare": 0.25, "options": {"side": "l"}},
+        {"ability": "relay_full_grid", "motion": "Anchor", "seconds": 1.2, "releaseShare": 0.25}
+      ],
       "springs": { "banner": { "stiffness": 60.0, "drag": 6.0, "damping": 3.0, "maxAngle": 50.0 } },
       "style": "slab", "primary": [0.74, 0.70, 0.62], "secondary": [0.12, 0.12, 0.13], "accent": [1.00, 0.62, 0.12], "detail": [0.55, 0.08, 0.08],
       "forearmScale": 1.3,
@@ -317,10 +433,22 @@
       ] },
     { "id": "korruk", "archetype": "beast", "seed": 401, "lengthShare": 1.45, "heightShare": 0.5, "trunkShare": 0.34, "hipShare": 0.92, "headShare": 0.24, "tailShare": 0.35, "build": "heavy",
       "model": { "script": "korruk", "triangleBudget": 6000, "voxelCm": 0.75 },
+      "skills": [
+        {"ability": "korruk_spineburst", "motion": "Heave", "seconds": 0.8, "releaseShare": 0.31},
+        {"ability": "korruk_pressure_mine", "motion": "Lob", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "korruk_rupture", "motion": "Slam", "seconds": 0.6, "releaseShare": 0.25},
+        {"ability": "korruk_shatterfield", "motion": "Slam", "seconds": 1.0, "releaseShare": 0.3}
+      ],
       "primary": [0.80, 0.76, 0.66], "secondary": [0.30, 0.26, 0.23], "accent": [0.85, 0.08, 0.10], "detail": [0.86, 0.82, 0.72], "horn": [0.86, 0.82, 0.72],
       "features": ["sixLegs", "plates", "crest", "wedgeSkull", "lowHead", "broadBody", "claws", "limbCrystals", "chestCrystals"] },
     { "id": "moro", "archetype": "beast", "seed": 402, "lengthShare": 1.8, "heightShare": 0.58, "trunkShare": 0.34, "hipShare": 0.95, "headShare": 0.25, "tailShare": 0.25, "build": "heavy",
       "model": { "script": "moro", "triangleBudget": 6000, "voxelCm": 0.8 },
+      "skills": [
+        {"ability": "moro_arc_bolt", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "moro_bursting_ground", "motion": "Slam", "seconds": 0.8, "releaseShare": 0.31},
+        {"ability": "moro_pounce", "motion": "Lunge", "seconds": 0.7, "releaseShare": 0.15},
+        {"ability": "moro_wildstorm", "motion": "Summon", "seconds": 1.0, "releaseShare": 0.25, "options": {"side": "r"}}
+      ],
       "legScale": 1.15,
       "primary": [0.40, 0.39, 0.37], "secondary": [0.16, 0.13, 0.11], "accent": [0.38, 0.42, 1.00], "detail": [0.90, 0.87, 0.78], "horn": [0.38, 0.29, 0.18],
       "features": ["barkBody", "antlers", "ruff", "wildlight", "glowEyes", "moss"],
@@ -334,6 +462,13 @@
       ] },
     { "id": "torr", "archetype": "construct", "seed": 501, "heightShare": 0.95, "build": "heavy", "headShare": 0.12, "hoverShare": 0.04, "coreShare": 0.45,
       "model": { "script": "torr", "triangleBudget": 6000, "voxelCm": 0.8 },
+      "skills": [
+        {"ability": "torr_battering_mass", "motion": "Slam", "seconds": 0.9, "releaseShare": 0.28},
+        {"ability": "torr_fortify", "motion": "Brace", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "torr_anchor", "motion": "Anchor", "seconds": 0.9, "releaseShare": 0.22},
+        {"ability": "torr_anchor_rip", "motion": "Heave", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "torr_overcapacity", "motion": "Summon", "seconds": 1.0, "releaseShare": 0.3, "options": {"side": "r"}}
+      ],
       "orbitShare": 1.35, "haloBehind": false, "style": "runePlates",
       "primary": [0.66, 0.58, 0.46], "secondary": [0.30, 0.40, 0.14], "accent": [0.42, 0.38, 1.00], "detail": [0.50, 0.50, 0.50], "features": [],
       "statusBodies": [
@@ -353,6 +488,12 @@
       "jewels": [[0.98, 0.72, 0.28], [0.90, 0.90, 1.00], [0.38, 0.45, 0.95], [0.70, 0.48, 0.98], [0.95, 0.50, 0.70], [0.45, 0.85, 0.95]], "features": [] },
     { "id": "aurelisse", "archetype": "construct", "seed": 503, "heightShare": 0.97, "build": "lean", "headShare": 0.13, "hoverShare": 0.08, "coreShare": 0.5,
       "model": { "script": "aurelisse", "triangleBudget": 6000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "aurelisse_crosswind", "motion": "Sweep", "seconds": 0.8, "releaseShare": 0.25, "options": {"side": "r"}},
+        {"ability": "aurelisse_rising_current", "motion": "Summon", "seconds": 0.9, "releaseShare": 0.28, "options": {"side": "l"}},
+        {"ability": "aurelisse_windward", "motion": "Veil", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "aurelisse_room_to_breathe", "motion": "Heave", "seconds": 1.0, "releaseShare": 0.3}
+      ],
       "springs": { "streamers": { "stiffness": 30.0, "drag": 6.0, "damping": 2.0, "maxAngle": 60.0 }, "sash": { "stiffness": 60.0, "drag": 6.0, "damping": 3.0, "maxAngle": 60.0 } },
       "orbitShare": 1.5, "haloBehind": true, "style": "air",
       "primary": [0.16, 0.21, 0.67], "secondary": [0.20, 0.55, 0.58], "accent": [0.45, 0.55, 1.00], "detail": [0.80, 0.62, 0.30], "cloth": [0.95, 0.95, 0.92],

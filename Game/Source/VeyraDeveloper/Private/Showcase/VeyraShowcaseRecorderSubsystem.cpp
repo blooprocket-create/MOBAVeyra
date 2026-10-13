@@ -269,7 +269,8 @@ bool UVeyraShowcaseRecorderSubsystem::Tick(float /*DeltaSeconds*/)
 		// The caster starts clean: a state the last clip left on it, as a mode its ultimate turns on, changes what its
 		// abilities are. One that never ends, as a passive's, is waited out no longer than the patience.
 		const UVeyraStatusComponent* Statuses = Own->FindComponentByClass<UVeyraStatusComponent>();
-		const bool bClean = !Statuses || Statuses->GetLedger().Entries.IsEmpty() || Now - SetAt.GetValue() >= Settings.SettleSeconds + Settings.CastPatienceSeconds;
+		const bool bClean = VeyraShowcase::IsStageClean(Statuses && !Statuses->GetLedger().Entries.IsEmpty(), Now - SetAt.GetValue(), Settings.SettleSeconds,
+			Settings.StatusPatienceSeconds);
 		if (bRecordingAttack && Now - SetAt.GetValue() >= Settings.SettleSeconds && bClean && Dummy)
 		{
 			// An attack order left from priming the dummy gives way to standing still, and the clip waits for its swing to end.

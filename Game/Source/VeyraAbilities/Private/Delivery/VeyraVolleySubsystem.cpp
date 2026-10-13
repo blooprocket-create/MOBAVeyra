@@ -3,6 +3,7 @@
 #include "Delivery/VeyraVolleySubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -63,6 +64,11 @@ void UVeyraVolleySubsystem::Open(UAbilitySystemComponent& Caster, EVeyraAbilityS
 			Close(*Owner);
 		}
 	}), static_cast<float>(Tuning.DurationSeconds), /*bLoop*/ false);
+	// Every machine that sees the caster is shown where its shots can go (ADR-075 §5).
+	if (UVeyraCastStateComponent* CastState = Caster.GetOwner() ? Caster.GetOwner()->FindComponentByClass<UVeyraCastStateComponent>() : nullptr)
+	{
+		CastState->SetLane(Ability, Lane.Direction, World->GetTimeSeconds() + Tuning.DurationSeconds);
+	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s opened %s's lane: %d shot(s) for %g s."), *GetNameSafe(Caster.GetOwner()), *Ability.ToString(),
 		Lane.ShotsLeft, Tuning.DurationSeconds);
 }
@@ -109,6 +115,10 @@ void UVeyraVolleySubsystem::Close(UAbilitySystemComponent& Caster)
 	}
 	FLane Lane = MoveTemp(Lanes[Index]);
 	Lanes.RemoveAt(Index);
+	if (UVeyraCastStateComponent* CastState = Caster.GetOwner() ? Caster.GetOwner()->FindComponentByClass<UVeyraCastStateComponent>() : nullptr)
+	{
+		CastState->ClearLane();
+	}
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(Lane.Timer);

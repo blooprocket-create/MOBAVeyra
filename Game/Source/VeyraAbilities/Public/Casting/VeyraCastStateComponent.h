@@ -88,6 +88,27 @@ struct FVeyraProjectileEnd
 };
 
 /**
+ * The volley lane its caster holds open, as every machine that sees the caster knows it (ADR-075 §5): which volley
+ * opened it, the way it faces on the ground, and when it closes at the latest, in the server's world time. Its angle
+ * and reach are the volley's tuning. Presentation reads it; the server's own lane (UVeyraVolleySubsystem) decides.
+ */
+USTRUCT()
+struct FVeyraVolleyLaneState
+{
+	GENERATED_BODY()
+
+	/** None while no lane is open. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	UPROPERTY()
+	FVector Direction = FVector::ForwardVector;
+
+	UPROPERTY()
+	double ClosesAt = 0.0;
+};
+
+/**
  * The cast that holds a combatant, if any: its windup, channel or recovery (ADR-008 §4). It lives
  * beside the Ability System Component; a participant's replicates behind the fog, to those who see
  * it (ADR-016 §3).
@@ -125,6 +146,13 @@ public:
 	/** Where the caster's latest cast projectile ended; its Serial is 0 before the first. */
 	const FVeyraProjectileEnd& GetLastProjectileEnd() const { return LastProjectileEnd; }
 
+	/** Server only: the caster holds a volley lane of Ability open along Direction until ClosesAt, or none (ADR-075 §5). */
+	void SetLane(const FVeyraContentId& Ability, const FVector& Direction, double ClosesAt);
+	void ClearLane();
+
+	/** The lane the caster holds open; its Ability is None while none is. */
+	const FVeyraVolleyLaneState& GetLane() const { return Lane; }
+
 	/** Whether a cast holds the caster, so another cast is refused. */
 	bool IsBusy() const { return State.Phase != EVeyraCastPhase::None; }
 
@@ -143,4 +171,7 @@ private:
 
 	UPROPERTY(Replicated)
 	FVeyraProjectileEnd LastProjectileEnd;
+
+	UPROPERTY(Replicated)
+	FVeyraVolleyLaneState Lane;
 };

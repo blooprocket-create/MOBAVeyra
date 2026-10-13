@@ -35,6 +35,7 @@ void UVeyraCastStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCastStateComponent, State, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCastStateComponent, LastCommit, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCastStateComponent, LastProjectileEnd, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCastStateComponent, Lane, Params);
 }
 
 void UVeyraCastStateComponent::SetState(const FVeyraCastState& NewState)
@@ -53,6 +54,21 @@ void UVeyraCastStateComponent::NoteCommitted(const FVeyraContentId& Ability, con
 {
 	LastCommit = FVeyraCastCommit{ LastCommit.Serial + 1, Ability, Location, Direction };
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCastStateComponent, LastCommit, this);
+}
+
+void UVeyraCastStateComponent::SetLane(const FVeyraContentId& Ability, const FVector& Direction, double ClosesAt)
+{
+	Lane = FVeyraVolleyLaneState{ Ability, Direction, ClosesAt };
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCastStateComponent, Lane, this);
+}
+
+void UVeyraCastStateComponent::ClearLane()
+{
+	if (Lane.Ability.IsValid())
+	{
+		Lane = FVeyraVolleyLaneState();
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCastStateComponent, Lane, this);
+	}
 }
 
 void UVeyraCastStateComponent::NoteProjectileEnded(const FVeyraContentId& Ability, int32 CastId, const FVector& Location)

@@ -7,6 +7,9 @@
 
 #include "VeyraSkillEffectsSubsystem.generated.h"
 
+struct FVeyraPlacedShape;
+enum class EVeyraTelegraphSource : uint8;
+
 class AVeyraLingeringArea;
 class AVeyraProjectile;
 class UNiagaraComponent;
@@ -14,6 +17,35 @@ class UNiagaraSystem;
 struct FVeyraAbilitiesTuning;
 struct FVeyraAbilityEffects;
 struct FVeyraCombatCue;
+struct FVeyraShape;
+
+/**
+ * What an Area effect is drawn by (ADR-075 §3): which shape (0 a circle, 1 a sector, 2 a rectangle from its origin along
+ * its direction), its radius, its half-arc in degrees (180 for a circle), its length and width in units (a circle's or a
+ * sector's breadth both ways), and how far it has landed, from 0 to 1.
+ */
+struct FVeyraAreaParameters
+{
+	int32 Shape = 0;
+	double Radius = 0.0;
+	double HalfArc = 180.0;
+	double Length = 0.0;
+	double Width = 0.0;
+	double Landing = 0.0;
+
+	/** Which recipe it is drawn for (its ability) and at what scale: a different one landing there restarts it. */
+	FName Recipe;
+	float Scale = 0.0f;
+
+	/**
+	 * The plane it is drawn on: the best fit to the ground under its footprint, its particles lifted by its slope along
+	 * and across its facing while the effect turns only by its yaw (ADR-075 §3).
+	 */
+	FVector Origin = FVector::ZeroVector;
+	FVector Normal = FVector::UpVector;
+	double SlopeAlong = 0.0;
+	double SlopeAcross = 0.0;
+};
 
 /** What an ability's effects read from Abilities.json (ADR-072 §4), so no reach or time is written twice. */
 namespace VeyraSkillEffects
@@ -38,6 +70,25 @@ namespace VeyraSkillEffects
 
 	/** Where a thrown thing is Share of its way from From to To, rising Height over its middle. */
 	VEYRAUI_API FVector ArcPoint(const FVector& From, const FVector& To, double Share, double Height);
+
+	/**
+	 * Where an effect drawn over Placed lies on the ground (ADR-075 §3), HeightAt giving the ground's height at a point:
+	 * at the origin on the plane that best fits the ground under its footprint, turned only by its facing's yaw (so its
+	 * footprint from above is its true shape), and the slope along and across that facing its particles rise by. An Area
+	 * and a Linger are placed alike.
+	 */
+	struct FVeyraGroundPlacement
+	{
+		FVector Origin = FVector::ZeroVector;
+		FRotator Facing = FRotator::ZeroRotator;
+		double SlopeAlong = 0.0;
+		double SlopeAcross = 0.0;
+		FVector Normal = FVector::UpVector;
+	};
+	VEYRAUI_API FVeyraGroundPlacement GroundPlacementOf(const FVeyraPlacedShape& Placed, TFunctionRef<double(const FVector2D&)> HeightAt);
+
+	/** An Area effect's parameters over Shape, as Abilities.json shapes it, Landing of the way to landing (ADR-075 §3). */
+	VEYRAUI_API FVeyraAreaParameters AreaParametersOf(const FVeyraShape& Shape, double Landing);
 
 	/** Where a tether coming back from From to To at Speed is after Seconds, and whether it is home. */
 	VEYRAUI_API FVector RetractPoint(const FVector& From, const FVector& To, double Seconds, double Speed, bool& bOutHome);
@@ -114,6 +165,17 @@ public:
 	/** Whether Caster's windup or channel stages show now (begun by a cue, or by seeing it already held). */
 	bool IsShowing(const AActor& Caster) const { return Showing.Contains(&Caster); }
 
+	/**
+	 * Whether its settings held and every stage's effect loaded at start. Not ready, it shows nothing of its own, so no
+	 * telegraph may be thinned on its account (ADR-075 §1).
+	 */
+	bool IsReady() const { return bReady; }
+
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Tests only: as though its effects had failed to load. */
+	void SetReadyForTests(bool bInReady) { bReady = bInReady; }
+#endif
+
 	/** The windup effects pouring off Caster now, one per bone; empty while none does. */
 	TArray<UNiagaraComponent*> FindWindupEffects(const AActor& Caster) const;
 
@@ -122,6 +184,9 @@ public:
 
 	/** How many delayed areas are still to land. */
 	int32 GetPendingLandings() const { return Landings.Num(); }
+
+	/** What the Area effects over the areas Owner's cast or delayed area lands in are drawn by now, innermost first (ADR-075 §3). */
+	TArray<FVeyraAreaParameters> FindAreas(const AActor& Owner) const;
 
 	/** When each delayed area still to land lands, in the server's time. */
 	TArray<double> GetLandingTimes() const;
@@ -148,6 +213,13 @@ private:
 
 	/** Pours each lingering area's own effect over it while it lasts. */
 	void RefreshLingering(double Now);
+
+	/** Draws each cast's and each delayed area's Area effect over the areas it lands in, at their true shape, until they land. */
+	void RefreshAreas(double Now);
+
+	/** Shows Area of Effects over Placed (the Index-th area Owner lands in), Remaining seconds before it lands, in Color. */
+	void ShowArea(const AActor& Owner, int32 Index, const FVeyraAbilityEffects& Effects, const FVeyraPlacedShape& Placed, double Remaining,
+		EVeyraTelegraphSource Source, const FLinearColor& Color);
 
 	/** The pawn that launched Projectile: the one whose cast it is, or else its side's nearest to where it set off. */
 	const AActor* CasterOf(const AVeyraProjectile& Projectile) const;
@@ -213,6 +285,18 @@ private:
 
 	/** Each lingering area's own effect, by area. */
 	TMap<TWeakObjectPtr<const AVeyraLingeringArea>, TWeakObjectPtr<UNiagaraComponent>> Lingering;
+
+	/** Lays Effect over Placed on the ground (VeyraSkillEffects::GroundPlacementOf) and gives it its slope; returns the placement. */
+	VeyraSkillEffects::FVeyraGroundPlacement PlaceOnGround(UNiagaraComponent* Effect, const FVeyraPlacedShape& Placed) const;
+
+	/** Each Area effect drawn now, by what lands there (a caster, or a delayed area) and which of its areas; and whether this refresh still wants it. */
+	struct FAreaShown
+	{
+		TWeakObjectPtr<UNiagaraComponent> Effect;
+		FVeyraAreaParameters Parameters;
+		bool bWanted = false;
+	};
+	TMap<TPair<TWeakObjectPtr<const AActor>, int32>, FAreaShown> Areas;
 
 	/** The cast projectiles drawn lately, by ability and cast, until their end comes or their window passes. */
 	TMap<TPair<FName, int32>, FVeyraSeenProjectile> Seen;

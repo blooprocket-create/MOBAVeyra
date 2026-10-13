@@ -1909,7 +1909,22 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 		const double Remaining = FMath::Max(0.0, State.PhaseEndsAt - Now);
 		for (const FVeyraPlacedShape& Placed : VeyraCastTelegraphs::ForCast(Tuning, State, Caster.GetActorLocation(), Radius))
 		{
-			Telegraphs.Add(FVeyraTelegraph{ Placed, Source, Team, Remaining });
+			AddCastTelegraph(Placed, Source, Team, Remaining, State.Ability);
+		}
+	}
+	// Each volley lane held open: where its shots can go, until it closes (ADR-075 §5).
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		const APawn& Caster = **It;
+		const UVeyraCastStateComponent* CastState = FindGreyboxCastState(Caster);
+		const FVeyraVolleyLaneState* Lane = CastState ? &CastState->GetLane() : nullptr;
+		if (!Lane || !Lane->Ability.IsValid() || Now >= Lane->ClosesAt || Caster.IsHidden())
+		{
+			continue;
+		}
+		for (const FVeyraPlacedShape& Placed : VeyraCastTelegraphs::ForLane(Tuning, *Lane, Caster.GetActorLocation()))
+		{
+			AddCastTelegraph(Placed, EVeyraTelegraphSource::VolleyLane, VeyraTeams::TeamOf(&Caster), Lane->ClosesAt - Now, Lane->Ability);
 		}
 	}
 	for (TActorIterator<AVeyraDelayedArea> It(GetWorld()); It; ++It)
@@ -1918,15 +1933,15 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 		const double Remaining = FMath::Max(0.0, Area.GetResolvesAt() - Now);
 		for (const FVeyraShape& Shape : Area.GetShapes())
 		{
-			Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Shape, Area.GetActorLocation(), Area.GetDirection() }, EVeyraTelegraphSource::DelayedArea,
-				Area.GetVeyraTeam(), Remaining });
+			AddCastTelegraph(FVeyraPlacedShape{ Shape, Area.GetActorLocation(), Area.GetDirection() }, EVeyraTelegraphSource::DelayedArea,
+				Area.GetVeyraTeam(), Remaining, Area.GetAbility());
 		}
 	}
 	for (TActorIterator<AVeyraLingeringArea> It(GetWorld()); It; ++It)
 	{
 		const AVeyraLingeringArea& Area = **It;
-		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), Area.IsEndNear(Now) ? EVeyraTelegraphSource::LingeringAreaEnding : EVeyraTelegraphSource::LingeringArea,
-			Area.GetVeyraTeam(), FMath::Max(0.0, Area.GetEndsAt() - Now) });
+		AddCastTelegraph(Area.GetPlacedShape(), Area.IsEndNear(Now) ? EVeyraTelegraphSource::LingeringAreaEnding : EVeyraTelegraphSource::LingeringArea,
+			Area.GetVeyraTeam(), FMath::Max(0.0, Area.GetEndsAt() - Now), Area.GetAbility());
 	}
 	if (const AVeyraPlayerController* Local = Cast<AVeyraPlayerController>(GetWorld()->GetFirstPlayerController()))
 	{
@@ -1953,9 +1968,36 @@ void UVeyraGreyboxSubsystem::AddProjectileLanes(double Now)
 		Lane.Kind = EVeyraShapeKind::Rectangle;
 		Lane.Length = Left;
 		Lane.Width = Projectile.GetRadius() * 2.0;
-		Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Lane, Projectile.GetLineLocationAt(Now), Projectile.GetDirection() }, EVeyraTelegraphSource::ProjectileLane,
-			Projectile.GetVeyraTeam(), 0.0 });
+		AddCastTelegraph(FVeyraPlacedShape{ Lane, Projectile.GetLineLocationAt(Now), Projectile.GetDirection() }, EVeyraTelegraphSource::ProjectileLane,
+			Projectile.GetVeyraTeam(), 0.0, Projectile.GetAbility());
 	}
+}
+
+void UVeyraGreyboxSubsystem::AddCastTelegraph(const FVeyraPlacedShape& Placed, EVeyraTelegraphSource Source, EVeyraTeam Team, double Remaining,
+	const FVeyraContentId& Ability)
+{
+	const bool bSkillOutlines = VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), VeyraInterfacePreferences::StoreOf(this)).bSkillOutlines;
+	// Only an ability whose effects can show leaves its telegraph to them: with the skill effects not ready (an effect that
+	// failed to load, settings that did not hold), every telegraph shows whole.
+	const UVeyraSkillEffectsSubsystem* Skills = GetWorld()->GetSubsystem<UVeyraSkillEffectsSubsystem>();
+	const FVeyraAbilityEffects* Effects = Ability.IsValid() && Skills && Skills->IsReady()
+		? GetDefault<UVeyraKitPresentationSettings>()->EffectsOf(FName(*Ability.ToString())) : nullptr;
+	EVeyraTelegraphShow Show = VeyraTelegraphFill::ShowOf(Effects, Source, bSkillOutlines);
+	if (Show == EVeyraTelegraphShow::None)
+	{
+		// An effect drawn on one plane shows the area true only where the ground keeps near it; elsewhere the outline,
+		// which follows the ground, stays.
+		const FVeyraGroundFit Fit = VeyraTelegraphFill::FitGround(Placed, [this, &Placed](const FVector2D& Point) {
+			return GroundUnder(FVector(Point, Placed.Origin.Z)).Z;
+		});
+		Show = VeyraTelegraphFill::ShowOverGround(Show, Fit, GetDefault<UVeyraGreyboxSettings>()->AreaGroundTolerance);
+	}
+	if (Show == EVeyraTelegraphShow::None)
+	{
+		return;
+	}
+	FVeyraTelegraph& Telegraph = Telegraphs.Add_GetRef(FVeyraTelegraph{ Placed, Source, Team, Remaining });
+	Telegraph.bFilled = Show == EVeyraTelegraphShow::Full;
 }
 
 void UVeyraGreyboxSubsystem::AddIndicator(const AVeyraPlayerController& Local, const FVeyraAbilitiesTuning& Tuning)
@@ -2199,7 +2241,7 @@ void UVeyraGreyboxSubsystem::DrawTelegraphFills()
 	int32 Used = 0;
 	for (const FVeyraTelegraph& Telegraph : Telegraphs)
 	{
-		if (!VeyraTelegraphFill::IsFilled(Telegraph.Source))
+		if (!Telegraph.bFilled || !VeyraTelegraphFill::IsFilled(Telegraph.Source))
 		{
 			continue;
 		}

@@ -275,6 +275,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(CombatTextScale > 0.0f, TEXT("CombatTextScale"), TEXT("must be above 0."));
 	Require(CombatTextCritScale >= 1.0f, TEXT("CombatTextCritScale"), TEXT("must be at least 1."));
 	Require(TelegraphLift >= 0.0f, TEXT("TelegraphLift"), TEXT("must not be negative."));
+	Require(AreaGroundTolerance > 0.0f, TEXT("AreaGroundTolerance"), TEXT("must be above 0."));
 	Require(GroundProbeDistance >= 1.0f, TEXT("GroundProbeDistance"), TEXT("must be at least 1 unit."));
 	Require(GroundMarkingThickness > 0.0f, TEXT("GroundMarkingThickness"), TEXT("must be above 0."));
 	Require(GroundMarkingLift > 0.0f, TEXT("GroundMarkingLift"), TEXT("must be above 0."));

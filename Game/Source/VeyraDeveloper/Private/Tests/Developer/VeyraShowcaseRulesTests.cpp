@@ -8,6 +8,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Showcase/VeyraShowcaseRules.h"
 #include "Showcase/VeyraShowcaseSettings.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "VeyraCombatVerbs.h"
 
@@ -86,6 +87,7 @@ namespace VeyraShowcaseRulesTests
 		static constexpr double RideSpeed = 800.0;
 		static constexpr double TurnRate = 90.0;
 		static constexpr double HoldSeconds = 10.0;
+		static constexpr double SettleSeconds = 3.0;
 
 		FActorTestSpawner Spawner;
 
@@ -106,6 +108,26 @@ namespace VeyraShowcaseRulesTests
 			ASSERT_THAT(IsTrue(VeyraCombat::Attach(Holder, Host, HoldSeconds)));
 			VeyraShowcase::ReleaseHolds(Holder);
 			ASSERT_THAT(IsNull(VeyraCombat::GetAttachHost(Holder), TEXT("it lets go, so it can be stood at its mark")));
+		}
+
+		TEST_METHOD(AStatusTheLastClipLeftIsWaitedOutNotRemoved)
+		{
+			// A stance that plants its caster belongs to the mode that set it (a lane, a swapped slot): the reset leaves it to
+			// end there, and the recorder waits for it, up to its patience (ADR-074 §3).
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			UAbilitySystemComponent& Planted = *World.Spawn(EVeyraTeam::A, FVector::ZeroVector).GetAbilitySystemComponent();
+			UVeyraStatusComponent* Statuses = Planted.GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
+			ASSERT_THAT(IsNotNull(Statuses));
+			FVeyraStatusSpec Stance;
+			Stance.Id = FVeyraContentId::FromText(TEXT("test_planted_stance")).GetValue();
+			Stance.Kind = EVeyraStatusKind::Planted;
+			Stance.DurationSeconds = HoldSeconds;
+			ASSERT_THAT(IsTrue(Statuses->Apply(Planted, Stance)));
+			VeyraShowcase::ReleaseHolds(Planted);
+			ASSERT_THAT(IsFalse(Statuses->GetLedger().Entries.IsEmpty(), TEXT("the reset never ends a status behind its owner's back")));
+			ASSERT_THAT(IsFalse(VeyraShowcase::IsStageClean(true, SettleSeconds, SettleSeconds, HoldSeconds), TEXT("held: the recorder waits")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::IsStageClean(true, SettleSeconds + HoldSeconds, SettleSeconds, HoldSeconds), TEXT("until its patience runs out")));
+			ASSERT_THAT(IsTrue(VeyraShowcase::IsStageClean(false, SettleSeconds, SettleSeconds, HoldSeconds), TEXT("or the status ends")));
 		}
 
 		TEST_METHOD(AFreeBodyIsLeftAsItIs)
