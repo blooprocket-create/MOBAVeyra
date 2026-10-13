@@ -37,9 +37,14 @@ struct FVeyraAreaParameters
 	FName Recipe;
 	float Scale = 0.0f;
 
-	/** The plane it is drawn on: the best fit to the ground under its footprint (ADR-075 §3). */
+	/**
+	 * The plane it is drawn on: the best fit to the ground under its footprint, its particles lifted by its slope along
+	 * and across its facing while the effect turns only by its yaw (ADR-075 §3).
+	 */
 	FVector Origin = FVector::ZeroVector;
 	FVector Normal = FVector::UpVector;
+	double SlopeAlong = 0.0;
+	double SlopeAcross = 0.0;
 };
 
 /** What an ability's effects read from Abilities.json (ADR-072 §4), so no reach or time is written twice. */

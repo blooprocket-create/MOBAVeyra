@@ -698,7 +698,13 @@ namespace VeyraAbilitiesTests
 			const double Slope = 0.25;
 			const FVeyraGroundFit Sloped = VeyraTelegraphFill::FitGround(Placed, [Slope](const FVector2D& Point) { return Slope * Point.X; });
 			ASSERT_THAT(IsTrue(Sloped.MaxStray < Tolerance, TEXT("a slope is one plane")));
-			ASSERT_THAT(IsTrue(Sloped.Normal.Equals(FVector(-Slope, 0.0, 1.0).GetSafeNormal(), 1e-3), TEXT("and the effect tilts to it")));
+			ASSERT_THAT(IsTrue(Sloped.Normal.Equals(FVector(-Slope, 0.0, 1.0).GetSafeNormal(), 1e-3), TEXT("its plane is the slope's")));
+			// Facing up the slope it rises along its length; facing across it, it rises across its breadth (to its right, here),
+			// its footprint from above unchanged either way.
+			const FVector2D Up = VeyraTelegraphFill::SlopesOf(Sloped, FVector::ForwardVector);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Up.X, Slope, 1e-3) && FMath::IsNearlyEqual(Up.Y, 0.0, 1e-3), TEXT("an uphill lane rises along it")));
+			const FVector2D Aside = VeyraTelegraphFill::SlopesOf(Sloped, FVector::RightVector);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Aside.X, 0.0, 1e-3) && FMath::IsNearlyEqual(Aside.Y, -Slope, 1e-3), TEXT("a lane across it rises across it")));
 			const double Ridge = OuterRadius;
 			const FVeyraGroundFit Ridged = VeyraTelegraphFill::FitGround(Placed, [Ridge](const FVector2D& Point) { return Point.Y > 0.0 ? Ridge : 0.0; });
 			const double Tolerated = GetDefault<UVeyraGreyboxSettings>()->AreaGroundTolerance;
