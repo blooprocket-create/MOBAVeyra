@@ -1,12 +1,12 @@
 {
-  "profileSha256": "58d214eb736a67d7085afb1400257dd3a0fc6f83b6e7ba539ee3ec0b44785b48",
+  "profileSha256": "3519cf508d2f8ea2e36565484b37c28cd5c03a74d9e646f2098b428a569cba55",
   "size": 2048,
   "files": [
     {
       "name": "T_Crucible_Causeway_BaseColor.png",
       "layer": "Causeway",
       "tileMetres": 4.0,
-      "sha256": "dc05920a16ea61c7743eff17ada1b1cbdc1a760073d8705c09042f0fc1c50142"
+      "sha256": "023f3b015e0eb8655fff9a481672f61fadceba72d5d1bb87ce0dcbf054fe069b"
     },
     {
       "name": "T_Crucible_Causeway_Normal.png",
@@ -18,25 +18,25 @@
       "name": "T_Crucible_Causeway_ORMH.png",
       "layer": "Causeway",
       "tileMetres": 4.0,
-      "sha256": "ee2cb66c4542713ef357719ee15031413b22a2212455270c25d2cfbec5073330"
+      "sha256": "70d3a66c27d8137b775b7c7e4b26b832474b31d3107ef180a37a200d31ce4025"
     },
     {
       "name": "T_Crucible_Moss_BaseColor.png",
       "layer": "Moss",
       "tileMetres": 5.0,
-      "sha256": "86e4e4f8c5611cf2679f84e45ec7404279abdf0d348c4eb83db05ceb8c6bd4bd"
+      "sha256": "dfcfc901b2b7f1088258d3408f8cded6979f73b6e6be164a11498fa153b9267b"
     },
     {
       "name": "T_Crucible_Moss_Normal.png",
       "layer": "Moss",
       "tileMetres": 5.0,
-      "sha256": "e10c41ea4ee74087cf236dbeadef7158d5e35decf7ebe2352c85dcca117539bd"
+      "sha256": "da134eecd1a044082da0ead4002e129b3a1e4f143bae031d40fbedeb7e5e2950"
     },
     {
       "name": "T_Crucible_Moss_ORMH.png",
       "layer": "Moss",
       "tileMetres": 5.0,
-      "sha256": "eb540995c9a01bbe5e181d87bc8a8d8138d90aea4327e563e044963bda94c3f9"
+      "sha256": "976cf5f1d2130680055747111c381c420fccfa0c4b30606e4d5fc78913c943d3"
     },
     {
       "name": "T_Crucible_Shore_BaseColor.png",
@@ -60,31 +60,67 @@
       "name": "T_Crucible_Slate_BaseColor.png",
       "layer": "Slate",
       "tileMetres": 6.0,
-      "sha256": "6711c46a6f1a7c21486b52c7aaf29341a2ac66873ffe5161779aced41d43f384"
+      "sha256": "6a1ef3135ebca76870e419554f2f31d6cdd7c77b722ebcf61b6871581e97fccd"
     },
     {
       "name": "T_Crucible_Slate_Normal.png",
       "layer": "Slate",
       "tileMetres": 6.0,
-      "sha256": "e0883a5b016bccf98a3fdcf85630c1d3bdefbd91cdbe554c4a3c024b6cf683bc"
+      "sha256": "23966ec5565320c0ceb948d6f8c18b6785e82670710b344265955467716b15c1"
     },
     {
       "name": "T_Crucible_Slate_ORMH.png",
       "layer": "Slate",
       "tileMetres": 6.0,
-      "sha256": "d4ba9f50a1cc90d30348db99b3ec1f9e1a8ece85db958763344535da14be8ae3"
+      "sha256": "843fedcb7c3034a6c778f1acbe6211b4dd67963e2bc8b715b4e3667862ad9513"
+    },
+    {
+      "name": "T_Crucible_Earth_BaseColor.png",
+      "layer": "Earth",
+      "tileMetres": 7.0,
+      "sha256": "dd07b1da6cd2bee3ebe79af4b241b879a1831043eb7ed6470bc703a163929494"
+    },
+    {
+      "name": "T_Crucible_Earth_Normal.png",
+      "layer": "Earth",
+      "tileMetres": 7.0,
+      "sha256": "3d471557865f3348a2ead0a117cd6568e09b719cf22fed776865e0d835da8aa3"
+    },
+    {
+      "name": "T_Crucible_Earth_ORMH.png",
+      "layer": "Earth",
+      "tileMetres": 7.0,
+      "sha256": "d03e7671ba3fd587c9a671081b4aaade1097cf367f701a110c2363ea58c52d86"
+    },
+    {
+      "name": "T_Crucible_Masonry_BaseColor.png",
+      "layer": "Masonry",
+      "tileMetres": 4.0,
+      "sha256": "20d2219945ebba61bb29c7c7b1b4f0931d9b0f83f95f341e9d5b925f12c9a517"
+    },
+    {
+      "name": "T_Crucible_Masonry_Normal.png",
+      "layer": "Masonry",
+      "tileMetres": 4.0,
+      "sha256": "c39fb7f11d4e1e0a81e3d2c78a72443ff1a1dc62d12c64cb1058e23a7aa66839"
+    },
+    {
+      "name": "T_Crucible_Masonry_ORMH.png",
+      "layer": "Masonry",
+      "tileMetres": 4.0,
+      "sha256": "2c60f34aa5f34ab27e67d318f9cbfb1bac2afef2b1ddc85ea90643acc50b5063"
     },
     {
       "name": "T_Crucible_Macro.png",
       "layer": "Macro",
       "tileMetres": 60.0,
-      "sha256": "de65d2b485dfcfd12c0d56028b1cc9cca812a2412c5bfae6799c39ddbc6a6cfb"
+      "sha256": "10f706656b619f3659707533af9cf12b0708c13fbf263987ee14ee3ae6ceaed2"
     },
     {
       "name": "T_Crucible_WaterNormal.png",
       "layer": "Water",
       "tileMetres": 6.0,
-      "sha256": "16fdf9532bbe499cf0a9dd6fd026bf14eccf982f440e23078939e8cd06c872ed"
+      "sha256": "ba7422c163b8f7b09cc6167b41c94290b6a353baeb308bc20924776b3447f7a7"
     }
   ]
 }

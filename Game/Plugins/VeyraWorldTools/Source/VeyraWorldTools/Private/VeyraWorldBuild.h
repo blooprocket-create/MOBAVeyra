@@ -10,7 +10,7 @@ class FVeyraTerrainField;
 struct FVeyraTerrainRelief;
 struct FVeyraWorldTuning;
 
-/** The floor under a mass's outline: its lowest, which its first stratum reaches below, and its highest, its base. */
+/** The floor under an outline: its lowest, which a wall's foot reaches below, and its highest, its base. */
 struct FMassGround
 {
 	double Low = 0.0;
@@ -23,7 +23,7 @@ namespace VeyraWorldBuild
 	/** The style profile's relief for the terrain field: presentation, never spatial authority. */
 	FVeyraTerrainRelief ReliefOf(const FJsonObject& Style);
 
-	/** The masses' look (Config/CrucibleMassArt.json, ADR-073 §5), refused when it was built from other masses than Tuning's. */
+	/** The forests' canopy (Config/CrucibleMassArt.json, ADR-073 §5), refused when it was built from other masses than Tuning's. */
 	TSharedPtr<FJsonObject> LoadMassArt(const FVeyraWorldTuning& Tuning, FString& Error);
 
 	/** The floor along Outline, as Field gives it. */
@@ -33,8 +33,8 @@ namespace VeyraWorldBuild
 	bool River(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObject& Style, FString& Error);
 
 	/**
-	 * The rock and forest masses (ADR-073 §5): Team A's each a mesh of its strata over its gameplay outline, with its ink
-	 * lines, and Team B's the same meshes turned half a turn. Presentation: none of it blocks.
+	 * The rock and forest masses (ADR-073 §5): Team A's each sculpted over its gameplay outline as its kind's massForms
+	 * shape it, and Team B's the same meshes turned half a turn. Presentation: none of it blocks.
 	 */
 	bool Masses(UWorld& World, const FVeyraWorldTuning& Tuning, const FJsonObject& Style, FString& Error);
 

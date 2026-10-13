@@ -18,6 +18,9 @@
   "vistaRise": 1500,
   "wetBand": 25,
   "bankBand": 350,
+  "edgeBreakup": 0.8,
+  "edgeBreakupWavelength": 600,
+  "clearingEarthShare": 0.75,
   "lighting": {
     "description": "The sun, sky, haze and grade (World Production Bible §12; the provisional look of 2026-10-05): a warm late-afternoon sun from the gameplay camera's upper left, so forms read and shadows fall toward the viewer.",
     "sunPitch": -58,
@@ -39,47 +42,69 @@
     "bloom": 0.35,
     "vignette": 0.3,
     "ambientOcclusion": 0.6
-  },  "massArt": {
-    "description": "The rock and forest masses' shape (ADR-073 §5), read by Game/Scripts/Crucible/BuildCrucibleMassArt.py: each kind's height and strata, the first the gameplay outline itself and each later one inset from it and broken inward only, up to its share of the height; the forest canopy; the ink lines at each foot and lip. Presentation only; the prototype slice's values (2026-10-12).",
+  },
+  "massArt": {
+    "description": "What stands on each mass's top (ADR-073 §5), read by Game/Scripts/Crucible/BuildCrucibleMassArt.py: per kind, pieces on a jittered grid inset from the gameplay edge past where its face steps back, each a Tree, Shrub or Boulder by its share (the rest left bare), and on a forest shrubs round its rim. Nothing tall stands on rock, so nothing reaches the gameplay camera. Presentation only; the visual pass's values (2026-10-12).",
+    "seed": 7303,
+    "canopy": {
+      "Forest": { "inset": 150, "spacing": 200, "jitter": 90, "share": { "Tree": 0.72, "Shrub": 0.28 }, "scale": [0.8, 1.25], "rimInset": 135, "rimSpacing": 150, "rimScale": [0.75, 1.05] },
+      "Cliff": { "inset": 260, "spacing": 260, "jitter": 120, "share": { "Shrub": 0.5, "Boulder": 0.25 }, "scale": [0.7, 1.25], "rimInset": 0, "rimSpacing": 0, "rimScale": [1, 1] },
+      "Rock": { "inset": 200, "spacing": 240, "jitter": 110, "share": { "Shrub": 0.45, "Boulder": 0.28 }, "scale": [0.6, 1.1], "rimInset": 0, "rimSpacing": 0, "rimScale": [1, 1] }
+    }
+  },
+  "massForms": {
+    "description": "How each kind of mass rises from its gameplay outline (ADR-073 §5), read by VeyraWorldTools' mass sculpt: its height above the highest floor along its edge, each mass its own within heightVariation, or above the floor beneath it where it drapes, as a low bank beside a sunken road must; its profile, pairs of [height share, share of insetMax] its face steps back by as it climbs, so cliffs keep ledges; broad bulges and vertical fissures breaking the face above walking height, only ever inward; the occlusion baked into its foot and fissures. The footprint at walking height is the gameplay edge. Presentation only; the visual pass's values (2026-10-12).",
     "seed": 7303,
     "sink": 160,
-    "outlineTolerance": 12,
-    "minStepArea": 60000,
-    "jitterReach": 55,
-    "jitterShare": 0.8,
-    "profiles": {
-      "Cliff": { "height": 900, "strata": [{ "inset": 0, "top": 0.56 }, { "inset": 70, "top": 0.8 }, { "inset": 150, "top": 1.0 }] },
-      "Rock": { "height": 650, "strata": [{ "inset": 0, "top": 0.62 }, { "inset": 80, "top": 1.0 }] },
-      "Forest": { "height": 320, "strata": [{ "inset": 0, "top": 0.72 }, { "inset": 50, "top": 1.0 }] }
-    },
-    "canopy": { "inset": 140, "spacing": 200, "jitter": 90, "treeShare": 0.72, "scale": [0.8, 1.25], "rimInset": 75, "rimSpacing": 150, "rimScale": [0.75, 1.05] },
-    "inks": { "footOffset": 10, "footSize": 24, "lipSize": 16, "tolerance": 14 }
+    "sampleSpacing": 70,
+    "kinds": {
+      "Cliff": {
+        "height": 900, "heightVariation": 0.12, "insetMax": 180,
+        "profile": [[0, 0], [0.08, 0.02], [0.3, 0.1], [0.36, 0.32], [0.62, 0.42], [0.68, 0.6], [0.9, 0.68], [1, 0.95]],
+        "bulge": 40, "bulgeScale": 420, "fissure": 30, "fissureScale": 140, "footShade": 0.5, "fissureShade": 0.65
+      },
+      "Rock": {
+        "height": 620, "heightVariation": 0.15, "insetMax": 140,
+        "profile": [[0, 0], [0.1, 0.03], [0.45, 0.15], [0.52, 0.4], [0.85, 0.5], [1, 0.9]],
+        "bulge": 34, "bulgeScale": 360, "fissure": 22, "fissureScale": 120, "footShade": 0.55, "fissureShade": 0.7
+      },
+      "Forest": {
+        "height": 90, "heightVariation": 0.2, "insetMax": 110, "drape": true,
+        "profile": [[0, 0], [0.4, 0.25], [1, 1]],
+        "bulge": 18, "bulgeScale": 300, "fissure": 0, "fissureScale": 100, "footShade": 0.8, "fissureShade": 1
+      }
+    }
   },
   "massLooks": {
-    "description": "Each mass kind's surface over the kit's mossy stone (M_CrucibleRock): blocked ground never shares the walkable floor's moss. Rock and cliff tops are bare slate, forest tops keep moss under their canopy. Presentation only.",
+    "description": "Each mass kind's surface over the kit's mossy stone (M_CrucibleRock): bedded rock on its faces, moss on whatever faces up but only in broad patches (mossPatchFrom/To over the terrain's macro variation), so a cliff's top reads as rock with moss on it and never as the walkable floor; a forest's low bank is moss over earth, its face too. Presentation only.",
     "material": "/Game/Veyra/World/Environment/Materials/M_CrucibleRock.M_CrucibleRock",
-    "inkMaterial": "/Game/Veyra/World/Environment/Materials/M_CrucibleInk.M_CrucibleInk",
-    "inkRise": 4,
-    "lipRise": 2,
     "treeHeight": 620,
     "shrubHeight": 230,
+    "boulderHeight": 150,
     "kinds": {
-      "Cliff": { "mossFrom": 1.1, "mossTo": 1.2, "stoneTint": [1.55, 1.62, 1.75] },
-      "Rock": { "mossFrom": 1.1, "mossTo": 1.2, "stoneTint": [1.85, 1.9, 2.0] },
-      "Forest": { "mossFrom": 0.55, "mossTo": 0.82, "stoneTint": [1.4, 1.45, 1.5] }
+      "Cliff": { "mossFrom": 0.62, "mossTo": 0.86, "mossPatchFrom": 0.42, "mossPatchTo": 0.6, "stoneTint": [1.1, 1.15, 1.22] },
+      "Rock": { "mossFrom": 0.66, "mossTo": 0.88, "mossPatchFrom": 0.48, "mossPatchTo": 0.66, "stoneTint": [1.3, 1.32, 1.36] },
+      "Forest": { "mossFrom": 0.25, "mossTo": 0.55, "mossPatchFrom": -1.0, "mossPatchTo": 0.0, "stoneTint": [1.05, 0.92, 0.75] }
     }
   },
   "keepLook": {
-    "description": "Each keep's architecture (ADR-073 §5): its walls stand over exactly the terrain that blocks there, crenellated along their tops, with a pillar flush with each wall's end beside a gate, in the kit's weathered masonry. Presentation only; the wall heights are World.json's.",
+    "description": "Each keep's architecture (ADR-073 §5): its walls stand over exactly the terrain that blocks there, a base course their full thickness, the wall above stepping in by the batter, a coping course standing out at the top above anyone's head, crenellated along it, with a capped pier at each bend closing the wedge its runs leave and a taller capped pillar flush with each wall's end beside a gate, in the kit's cut masonry. Presentation only; the wall heights are World.json's.",
     "material": "/Game/Veyra/World/Environment/Materials/M_CrucibleRuin.M_CrucibleRuin",
     "sink": 60,
-    "mossFrom": 1.1,
-    "mossTo": 1.2,
+    "mossFrom": 0.85,
+    "mossTo": 0.97,
+    "mossPatchFrom": 0.55,
+    "mossPatchTo": 0.72,
     "merlonWidth": 110,
     "merlonGap": 120,
     "merlonHeight": 90,
     "pillarSize": 300,
-    "pillarRise": 140
+    "pillarRise": 140,
+    "plinthHeight": 110,
+    "batter": 16,
+    "copingHeight": 45,
+    "copingOverhang": 18,
+    "pierRise": 60
   },
   "reviewPitch": -55,
   "reviewYaw": -45,

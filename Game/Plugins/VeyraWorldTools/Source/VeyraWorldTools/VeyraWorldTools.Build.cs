@@ -7,7 +7,7 @@ public class VeyraWorldTools : ModuleRules
         PrivateDependencyModuleNames.AddRange(new string[] {
             "Core", "CoreUObject", "Engine", "UnrealEd", "Landscape", "LandscapeEditor",
             "Json", "Projects", "AssetRegistry", "MeshDescription", "StaticMeshDescription", "PCG", "NavigationSystem", "ImageCore",
-            // The masses' strata, their tops filled as triangles (ADR-073 §5).
+            // The sculpted masses' and keeps' tops filled as triangles (ADR-073 §5).
             "GeometryCore",
             "VeyraCore", "VeyraCombat", "VeyraWorld", "VeyraMatch"
         });

@@ -11,16 +11,20 @@
     "Grass": "Grass and reeds; vertex colour carries the blade's tint and its height for the wind"
   },
   "look": {
-    "description": "The kit's materials (ImportEnvironmentMeshes.py): stone tints over the terrain's slate, moss on what faces up, glowing glyphs, foliage tints and a gentle wind. Read only by the importer, so a change rebuilds materials without regenerating a mesh. The glyphs' glow ignores the scene's exposure: glyphStrength is in multiples of what the exposure maps to white.",
+    "description": "The kit's materials (ImportEnvironmentMeshes.py): stone tints over the terrain's bedded rock and cut masonry, moss on what faces up, glowing glyphs, foliage tints and a gentle wind. Read only by the importer, so a change rebuilds materials without regenerating a mesh. The glyphs' glow ignores the scene's exposure: glyphStrength is in multiples of what the exposure maps to white.",
     "stoneTileCm": 400,
+    "rockTileCm": 600,
     "mossTileCm": 500,
     "desaturate": 0.6,
-    "rockTint": [2.6, 2.75, 2.95],
-    "ruinTint": [10.5, 9.9, 8.9],
-    "barkTint": [3.2, 2.5, 1.8],
+    "rockTint": [1.05, 1.08, 1.12],
+    "ruinTint": [0.78, 0.77, 0.74],
+    "barkTint": [0.91, 0.77, 0.62],
     "stoneRoughness": 0.86,
     "mossFrom": 0.55,
     "mossTo": 0.82,
+    "mossPatchTileCm": 1200,
+    "mossPatchFrom": -1.0,
+    "mossPatchTo": 0.0,
     "glyphColor": [0.25, 0.65, 1.0],
     "glyphStrength": 1.0,
     "glyphPulseRate": 0.9,
@@ -32,8 +36,7 @@
     "leafDetailTileCm": 160,
     "windSpeed": 1.3,
     "windSpread": 0.004,
-    "windAmplitude": 6.0,
-    "inkColour": [0.018, 0.026, 0.024]
+    "windAmplitude": 6.0
   },
   "preview": { "rock": [0.22, 0.24, 0.26], "ruin": [0.66, 0.63, 0.57], "glyph": [0.25, 0.65, 1.0], "bark": [0.20, 0.14, 0.09], "leaves": [0.20, 0.36, 0.12], "grass": [0.30, 0.45, 0.16] },
   "families": [

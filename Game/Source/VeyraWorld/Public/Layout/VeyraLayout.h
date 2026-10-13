@@ -154,6 +154,9 @@ namespace VeyraLayout
 	/** Whether Point lies in Polygon (its corners in order, either way round). */
 	VEYRAWORLD_API bool IsInPolygon(TConstArrayView<FVector2D> Polygon, const FVector2D& Point);
 
+	/** Whether Polygon is simple: three corners or more, none repeated or folding back, its spans meeting only at shared corners. */
+	VEYRAWORLD_API bool IsSimplePolygon(TConstArrayView<FVector2D> Polygon);
+
 	/** How deep inside Polygon Point lies, from its nearest edge: negative outside. */
 	VEYRAWORLD_API double DepthInPolygon(TConstArrayView<FVector2D> Polygon, const FVector2D& Point);
 

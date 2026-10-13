@@ -28,7 +28,7 @@ MANIFEST = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
 assert MANIFEST["profileSha256"] == hashlib.sha256(PROFILE_PATH.read_bytes()).hexdigest(), "Regenerate the textures after profile changes."
 
 # Which generated layer paints each Landscape layer the World authoring pass weights (VeyraLandscapeBuild.cpp).
-LANDSCAPE_LAYERS = [("Jungle", "Moss"), ("Lane", "Causeway"), ("Bank", "Shore"), ("Cliff", "Slate")]
+LANDSCAPE_LAYERS = [("Jungle", "Moss"), ("Lane", "Causeway"), ("Bank", "Shore"), ("Cliff", "Slate"), ("Earth", "Earth")]
 
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 EDIT = unreal.MaterialEditingLibrary

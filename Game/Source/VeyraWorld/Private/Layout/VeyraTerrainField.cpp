@@ -70,6 +70,7 @@ double FVeyraTerrainField::Ground(const FVector2D& Point, FVeyraTerrainSample& O
 		const double Beyond = FVector2D::Distance(Point, Clearing.Key) - Clearing.Value * Terrain.ClearingCoreShare;
 		Swell = FMath::Min(Swell, Smooth(Beyond / (Clearing.Value * Terrain.ClearingFadeShare)));
 	}
+	Out.Clearing = 1.0 - Swell;
 	const double Jungle = Terrain.JungleZ + Swell * ReliefAt(Point, Relief.Wavelength, Relief.Amplitude);
 
 	// Each lane's road, level to its shoulder, the ground climbing from it to the jungle.

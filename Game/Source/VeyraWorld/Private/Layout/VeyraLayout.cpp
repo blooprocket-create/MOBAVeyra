@@ -3,6 +3,7 @@
 #include "Layout/VeyraLayout.h"
 #include "Layout/VeyraRiver.h"
 
+#include "Algo/AllOf.h"
 #include "Algo/Reverse.h"
 #include "CompGeom/PolygonTriangulation.h"
 #include "IndexTypes.h"
@@ -20,6 +21,67 @@ namespace
 	constexpr int32 NeckPasses = 8;
 	constexpr double NeckSlack = 0.01;
 	constexpr double MinEdgeDepth = 1.0;
+
+	/** Which side of the line from A through B C lies: 1 left, -1 right, 0 on it. */
+	int32 Turn(const FVector2D& A, const FVector2D& B, const FVector2D& C)
+	{
+		const double Cross = FVector2D::CrossProduct(B - A, C - A);
+		return Cross > 0.0 ? 1 : (Cross < 0.0 ? -1 : 0);
+	}
+
+	/** Whether the spans AB and CD touch or cross. */
+	bool SpansMeet(const FVector2D& A, const FVector2D& B, const FVector2D& C, const FVector2D& D)
+	{
+		const int32 ABC = Turn(A, B, C);
+		const int32 ABD = Turn(A, B, D);
+		const int32 CDA = Turn(C, D, A);
+		const int32 CDB = Turn(C, D, B);
+		if (ABC != ABD && CDA != CDB)
+		{
+			return true;
+		}
+		// In line: they meet where an end of one lies on the other.
+		const auto Spans = [](const FVector2D& From, const FVector2D& To, const FVector2D& Point) {
+			return FMath::Min(From.X, To.X) <= Point.X && Point.X <= FMath::Max(From.X, To.X) && FMath::Min(From.Y, To.Y) <= Point.Y
+				&& Point.Y <= FMath::Max(From.Y, To.Y);
+		};
+		return (ABC == 0 && Spans(A, B, C)) || (ABD == 0 && Spans(A, B, D)) || (CDA == 0 && Spans(C, D, A)) || (CDB == 0 && Spans(C, D, B));
+	}
+
+	/** Whether Polygon is simple: three corners or more, no span of no length, none folding back, and spans meeting only at shared corners. */
+	bool IsSimpleImpl(TConstArrayView<FVector2D> Polygon)
+	{
+		const int32 Count = Polygon.Num();
+		if (Count < 3 || !Algo::AllOf(Polygon, [](const FVector2D& Corner) { return FMath::IsFinite(Corner.X) && FMath::IsFinite(Corner.Y); }))
+		{
+			return false;
+		}
+		for (int32 Index = 0; Index < Count; ++Index)
+		{
+			const FVector2D& Before = Polygon[(Index + Count - 1) % Count];
+			const FVector2D& Here = Polygon[Index];
+			const FVector2D& After = Polygon[(Index + 1) % Count];
+			if (Here == After || (Turn(Before, Here, After) == 0 && FVector2D::DotProduct(Here - Before, After - Here) < 0.0))
+			{
+				return false;
+			}
+		}
+		for (int32 First = 0; First < Count; ++First)
+		{
+			for (int32 Second = First + 2; Second < Count; ++Second)
+			{
+				if (First == 0 && Second == Count - 1)
+				{
+					continue;
+				}
+				if (SpansMeet(Polygon[First], Polygon[First + 1], Polygon[Second], Polygon[(Second + 1) % Count]))
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 }
 
 double FVeyraMassShape::DepthInside(const FVector2D& Point) const
@@ -207,6 +269,11 @@ bool IsInPolygon(TConstArrayView<FVector2D> Polygon, const FVector2D& Point)
 		}
 	}
 	return bInside;
+}
+
+bool IsSimplePolygon(TConstArrayView<FVector2D> Polygon)
+{
+	return IsSimpleImpl(Polygon);
 }
 
 double DepthInPolygon(TConstArrayView<FVector2D> Polygon, const FVector2D& Point)

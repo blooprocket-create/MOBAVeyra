@@ -1,4 +1,4 @@
-"""Writes the masses' look (ADR-073 §5) for VeyraWorldTools from World.json's masses and CrucibleStyle.json's massArt.
+"""Writes the forest masses' canopy (ADR-073 §5) for VeyraWorldTools from World.json's masses and CrucibleStyle.json's massArt.
 
     python Game/Scripts/Crucible/BuildCrucibleMassArt.py           # rewrite Config/CrucibleMassArt.json
     python Game/Scripts/Crucible/BuildCrucibleMassArt.py --check   # exit 1 if it is stale or differs
@@ -29,9 +29,8 @@ def main(argv: list[str]) -> int:
         return 0
     art = derive_art(world, style)
     ART_JSON.write_text(format_tuning(art) + "\n", encoding="utf-8", newline="\n")
-    strata = sum(len(m["strata"]) for m in art["masses"])
     canopy = sum(len(m["canopy"]) for m in art["masses"])
-    print(f"Wrote the look of {len(art['masses'])} masses: {strata} strata, {canopy} canopy pieces.")
+    print(f"Wrote the canopy of {len(art['masses'])} masses: {canopy} pieces.")
     return 0
 
 

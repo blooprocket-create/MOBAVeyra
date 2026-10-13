@@ -45,6 +45,19 @@ namespace
 		return Total / Norm;
 	}
 
+	/** Noise in [-1, 1] over Wavelength, averaged with its rotation, so both teams' ground breaks the same way. */
+	double Breakup(const FVector2D& Point, double Wavelength, int32 Seed)
+	{
+		const FVector2D Offset(Seed * 5.3, Seed * -11.9);
+		return 0.5 * (FMath::PerlinNoise2D(Point / Wavelength + Offset) + FMath::PerlinNoise2D(VeyraLayout::Rotate(Point) / Wavelength + Offset));
+	}
+
+	/** Weight, its edge pushed in and out by Noise: its full and empty ground untouched, its blend broken. */
+	double Broken(double Weight, double Noise, double Amount)
+	{
+		return FMath::Clamp(Weight + Amount * Noise * 4.0 * Weight * (1.0 - Weight), 0.0, 1.0);
+	}
+
 	/** The asset at Path, loaded, or made and saved: generated output the map refers to, never hand edited. */
 	ULandscapeLayerInfoObject* LayerInfo(const FString& Folder, const FName& Layer)
 	{
@@ -90,13 +103,17 @@ namespace VeyraWorldBuild
 		const double VistaRise = Style.GetNumberField(TEXT("vistaRise"));
 		const double WetBand = Style.GetNumberField(TEXT("wetBand"));
 		const double BankBand = Style.GetNumberField(TEXT("bankBand"));
+		const double EdgeBreakup = Style.GetNumberField(TEXT("edgeBreakup"));
+		const double BreakupWavelength = Style.GetNumberField(TEXT("edgeBreakupWavelength"));
+		const double EarthShare = Style.GetNumberField(TEXT("clearingEarthShare"));
 		FString MaterialPath;
 		FString LayerFolder;
 		if (Components < 1 || Components > 32 || Quads != 63 || ZScale <= 0.0 || VistaWidth < 0.0 || VistaAmplitude < 0.0 || VistaWavelength <= 0.0
-			|| VistaRise <= 0.0 || WetBand < 0.0 || BankBand <= 0.0 || !Style.TryGetStringField(TEXT("landscapeMaterial"), MaterialPath)
+			|| VistaRise <= 0.0 || WetBand < 0.0 || BankBand <= 0.0 || EdgeBreakup < 0.0 || EdgeBreakup > 1.0 || !(BreakupWavelength > 0.0)
+			|| EarthShare < 0.0 || EarthShare > 1.0 || !Style.TryGetStringField(TEXT("landscapeMaterial"), MaterialPath)
 			|| !Style.TryGetStringField(TEXT("landscapeLayerFolder"), LayerFolder))
 		{
-			Error = TEXT("Invalid Landscape profile: sampling, vista, wet band, material and layer folder.");
+			Error = TEXT("Invalid Landscape profile: sampling, vista, wet band, edge breakup and clearing earth (0 to 1), material and layer folder.");
 			return false;
 		}
 		UMaterialInterface* Material = LoadObject<UMaterialInterface>(nullptr, *MaterialPath);
@@ -126,7 +143,7 @@ namespace VeyraWorldBuild
 		Ground->LandscapeMaterial = Instance;
 
 		// The painted layers. Cliff is never painted: the material lays rock on whatever is steep.
-		const TArray<FName> Names = { TEXT("Jungle"), TEXT("Lane"), TEXT("Bank"), TEXT("Cliff") };
+		const TArray<FName> Names = { TEXT("Jungle"), TEXT("Lane"), TEXT("Bank"), TEXT("Cliff"), TEXT("Earth") };
 		TArray<FLandscapeImportLayerInfo> Layers;
 		for (const FName& Name : Names)
 		{
@@ -155,16 +172,21 @@ namespace VeyraWorldBuild
 				const double Beyond = FMath::Max(FMath::Abs(Point.X), FMath::Abs(Point.Y)) - Rim;
 				const double Vista = Beyond > 0.0 ? Sample.Rim * Smooth(Beyond / VistaRise) * VistaAmplitude * Ridged(Point, VistaWavelength, Relief.Seed) : 0.0;
 				Heights[Index] = LandscapeDataAccess::GetTexHeight((Sample.Height + Vista) / ZScale);
-				// Weights in order of precedence: the water's shore, then roads and keeps, the jungle the rest. The floor under
-				// the masses, the rim and the vista stay jungle, overgrown; the material lays rock on whatever is steep.
+				// Weights in order of precedence: the water's shore, then roads and keeps, then the clearings' trampled earth,
+				// the jungle the rest, each edge broken. The floor under the masses, the rim and the vista stay jungle,
+				// overgrown; the material lays rock on whatever is steep.
+				const double Noise = Breakup(Point, BreakupWavelength, Relief.Seed);
 				const double Bank = 1.0 - Smooth(Sample.WaterDistance / BankBand);
-				const double Road = (1.0 - Bank) * FMath::Max(Sample.Road, Sample.Keep);
+				const double Road = (1.0 - Bank) * Broken(FMath::Max(Sample.Road, Sample.Keep), Noise, EdgeBreakup);
+				const double Earth = (1.0 - Bank) * (1.0 - Road) * EarthShare * Broken(Sample.Clearing, -Noise, EdgeBreakup);
 				const int32 B = FMath::Clamp(FMath::RoundToInt(Bank * 255.0), 0, 255);
 				const int32 R = FMath::Clamp(FMath::RoundToInt(Road * 255.0), 0, 255 - B);
-				Layers[0].LayerData[Index] = static_cast<uint8>(255 - B - R);
+				const int32 E = FMath::Clamp(FMath::RoundToInt(Earth * 255.0), 0, 255 - B - R);
+				Layers[0].LayerData[Index] = static_cast<uint8>(255 - B - R - E);
 				Layers[1].LayerData[Index] = static_cast<uint8>(R);
 				Layers[2].LayerData[Index] = static_cast<uint8>(B);
 				Layers[3].LayerData[Index] = 0;
+				Layers[4].LayerData[Index] = static_cast<uint8>(E);
 			}
 		}
 		TMap<FGuid, TArray<uint16>> HeightData;

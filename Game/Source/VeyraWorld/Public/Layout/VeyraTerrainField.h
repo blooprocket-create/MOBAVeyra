@@ -33,6 +33,9 @@ struct FVeyraTerrainSample
 	double Road = 0.0;
 	double Keep = 0.0;
 
+	/** From 0 to 1: how much of a jungle clearing the ground is here, full across its level core. */
+	double Clearing = 0.0;
+
 	/** From 0 to 1: how far inside a rock or forest mass the point lies, full one edge box in. Its mesh stands here. */
 	double Mass = 0.0;
 

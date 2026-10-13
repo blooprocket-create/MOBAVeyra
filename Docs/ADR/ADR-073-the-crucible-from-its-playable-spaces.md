@@ -121,26 +121,26 @@ It writes the result to `layout.masses`: `items`, the polygons of both teams, an
 
 Deferred: each clearing having at least two route entrances wide enough for its class. The existing navigation, sight and fairness gates keep their tolerances.
 
-### 5. The look: a Landscape floor and masses extruded from the exact polygons (amends ADR-040 §3)
+### 5. The look: a Landscape floor and masses sculpted from the exact polygons (amends ADR-040 §3)
 
 - **The Landscape stays the walkable floor:**
-  - painted layers, grass, causeways, river banks and gentle relief;
+  - painted layers: meadow, causeways, river banks, and trampled earth across each camp clearing, every painted edge broken by a noise the same at its rotation, so the causeway frays into the meadow and no edge looks drawn;
   - the `VeyraGround` channel and everything that stands on it, unchanged;
-  - no ridges or cliffs from it any more.
-- **Each mass is a generated static mesh**, built in `VeyraWorldTools` from the same polygon the runtime uses, as a stepped cliff profile:
-  - its strata: the gameplay outline itself up to its first step, then steps inset from it and broken inward only, each up to its share of the kind's height;
-  - capped tops, flat-shaded faces and box-projected UVs, over the kit's world-aligned stone with each kind's moss held to its top;
-  - an ink line round its foot and round the lip of each top step (`M_CrucibleInk`), as the toon ink draws characters.
+  - gentle relief, and no ridges or cliffs from it any more.
+- **Each mass is a generated static mesh**, sculpted in `VeyraWorldTools` from the same polygon the runtime uses, as the style profile's `massForms` shape its kind:
+  - rings lofted up the kind's profile, each corner stepping back only inward as the face climbs, so a cliff keeps its ledges, broken by broad bulges and vertical fissures above walking height, to a top at the mass's own seeded height: level for rock, draped over the floor for a low forest bank, so no bank shows a tall face beside a sunken road;
+  - smooth faces creased at the lip, box-projected UVs over the kit's world-aligned bedded rock, moss on whatever faces up, and occlusion baked into the foot and the fissures through the vertex colour.
 
-  The strata are derived by the mass generator's own geometry: `Game/Scripts/Crucible/BuildCrucibleMassArt.py` writes them, the forest canopy and the ink paths to `Config/CrucibleMassArt.json` from the masses and the style profile's `massArt`, and CI refuses it stale or changed by hand. Its footprint at walking height is the gameplay edge, and nothing reaches past it (`visualTolerance`, 10). Its base sinks below the Landscape. It carries **no collision**, since §3's terrain is the only collision.
-  - **Cliff and rock masses** stand tall and sheer.
-  - **Forest masses** are lower, with a canopy standing on top, dressed from the kit by PCG, which only dresses (ADR-040 §7).
+  The world is painterly, not inked: only characters carry the toon ink (ADR-068). The sculpt is seeded, so the same inputs build the same mesh. Its footprint at walking height is the gameplay edge, and nothing reaches past it (`visualTolerance`, 10). Its base sinks below the Landscape. It carries **no collision**, since §3's terrain is the only collision.
+  - **Cliff and rock masses** stand tall, terraced and broken, with sparse shrubs and boulders on their tops and nothing tall that would reach the gameplay camera.
+  - **Forest masses** are low banks with a canopy standing on top, dressed from the kit by PCG, which only dresses (ADR-040 §7).
+  - What stands on each top is derived by `Game/Scripts/Crucible/BuildCrucibleMassArt.py` into `Config/CrucibleMassArt.json` from the masses and the style profile's `massArt`, inset past where the face steps back. CI refuses it stale or changed by hand.
   - Which kind a mass is follows a data rule from its size and whether it meets the rim.
-- **Keep walls** are built from the architectural kit along their runs, with arches at the gates. Deferred to the next pass, with the gorge.
+- **Keep walls** are generated over exactly the terrain that blocks there, built as masonry is: a base course their full thickness, the wall above stepping in by a batter, a coping course standing out above anyone's head, crenellated, with a capped pier closing each bend and a capped pillar beside each gate, in cut masonry laid in courses that reads apart from the rock. Arches at the gates are deferred to the next pass, with the gorge.
 - **The gorge** at each river end is a generated mesh, and the falls are presentation.
 - **Engine dependencies stay production modules.** The world build extrudes with `GeometryCore`'s triangulation and the mesh description static meshes are built from, so no Geometry Script plugin is enabled. The meshes live in the map's package. The client and the Linux server ship only plain static meshes, and the server cook carries no render data.
 - **Nanite is optional,** chosen by measurement.
-- **Builds are reproducible.** Team B's actors reuse Team A's meshes, turned half a turn about the centre. The strata are seeded data, so the same inputs build the same meshes.
+- **Builds are reproducible.** Team B's actors reuse Team A's meshes, turned half a turn about the centre. The sculpt and the tops' dressing are seeded, so the same inputs build the same meshes.
 - **Mesh Terrain is not adopted.** It would bring two policy decisions with it (World Partition, and an Experimental shipping dependency under ADR-001), approximate edges, and a single collision mesh for ground and cliff. It's reconsidered only if the §6 prototype fails the art bar, as a spike on a throwaway World Partition map, after an ADR-001 review.
 
 ### 6. A prototype gate before the whole map

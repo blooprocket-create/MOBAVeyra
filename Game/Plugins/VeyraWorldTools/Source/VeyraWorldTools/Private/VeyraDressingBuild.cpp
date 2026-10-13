@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "VeyraWorldBuild.h"
+#include "VeyraMassSculpt.h"
 #include "Vision/VeyraDenseFogVisuals.h"
 
 #include "Components/BoxComponent.h"
@@ -318,31 +319,44 @@ namespace VeyraWorldBuild
 			Kit.Add(Family, MoveTemp(Meshes));
 		}
 		const auto Size = [&Kit](const TCHAR* Family) { return Kit[Family][0]->GetBoundingBox().GetSize(); };
-		TArray<FRegion> Regions;
+		// Each region its own allocation, so a reference to one holds however many are added after it.
+		TIndirectArray<FRegion> Regions;
 		const auto Region = [&Regions](const TCHAR* Name, const TCHAR* Family) -> FRegion& {
-			FRegion& Made = Regions.AddDefaulted_GetRef();
+			FRegion& Made = Regions[Regions.Add(new FRegion())];
 			Made.Name = Name;
 			Made.Family = Family;
 			return Made;
 		};
-		// Each of Team A's masses (ADR-073 §5): a forest's canopy standing on its top, from the masses' look, and along every
-		// mass's foot, clumps of grass and fern where rock meets the floor. Its cliffs are its own mesh (Masses). Team B's
+		// Each of Team A's masses (ADR-073 §5): what stands on its top, from the masses' art (a forest's canopy, a cliff's
+		// shrubs and boulders), and along every mass's foot, clumps of grass and fern where rock meets the floor. Its cliffs are its own mesh (Masses). Team B's
 		// are the rotation (Place).
 		{
 			const TSharedPtr<FJsonObject> Art = LoadMassArt(Tuning, Error);
 			const TSharedPtr<FJsonObject>* Looks = nullptr;
-			if (!Art || !Style.TryGetObjectField(TEXT("massLooks"), Looks))
+			FVeyraMassForms Forms;
+			if (!Art || !Style.TryGetObjectField(TEXT("massLooks"), Looks) || !FVeyraMassForms::Read(Style, Forms, Error))
 			{
 				Error = Error.IsEmpty() ? TEXT("Dressing the masses requires the style profile's massLooks.") : Error;
 				return false;
 			}
+			const TArray<FVeyraMassShape> Shapes = VeyraLayout::Masses(Layout);
 			FRandomStream Random(Seed + 1);
-			FRegion& Trees = Region(TEXT("Mass_Trees"), TEXT("Tree"));
-			FRegion& Shrubs = Region(TEXT("Mass_Shrubs"), TEXT("Shrub"));
+			// Each piece the art names: its region, the kit family it draws from, and the scale that stands it at its height.
+			struct FTopPiece
+			{
+				FRegion* Region;
+				const TCHAR* Family;
+				double Scale;
+			};
+			TMap<FString, FTopPiece> TopPieces;
+			for (const TPair<const TCHAR*, const TCHAR*>& Kind : { TPair<const TCHAR*, const TCHAR*>(TEXT("Tree"), TEXT("treeHeight")),
+					 TPair<const TCHAR*, const TCHAR*>(TEXT("Shrub"), TEXT("shrubHeight")), TPair<const TCHAR*, const TCHAR*>(TEXT("Boulder"), TEXT("boulderHeight")) })
+			{
+				FRegion& Made = Region(*(FString(TEXT("Mass_")) + Kind.Key + TEXT("s")), Kind.Key);
+				TopPieces.Add(Kind.Key, FTopPiece{ &Made, Kind.Key, (*Looks)->GetNumberField(Kind.Value) / FMath::Max(Size(Kind.Key).Z, 1.0) });
+			}
 			FRegion& Grass = Region(TEXT("Mass_FootGrass"), TEXT("Grass"));
 			FRegion& Ferns = Region(TEXT("Mass_FootFerns"), TEXT("Fern"));
-			const double TreeScale = (*Looks)->GetNumberField(TEXT("treeHeight")) / FMath::Max(Size(TEXT("Tree")).Z, 1.0);
-			const double ShrubScale = (*Looks)->GetNumberField(TEXT("shrubHeight")) / FMath::Max(Size(TEXT("Shrub")).Z, 1.0);
 			const FVector2D Reach = Dress.Range(TEXT("massFootReach"));
 			const FVector2D Spacing = Dress.Range(TEXT("massFootSpacing"));
 			const FVector2D FootScale = Dress.Range(TEXT("massFootScale"));
@@ -351,27 +365,29 @@ namespace VeyraWorldBuild
 			{
 				const FJsonObject& Mass = *Value->AsObject();
 				const FString Id = Mass.GetStringField(TEXT("id"));
-				const FVeyraMassLayout* Entry = Layout.Masses.Items.FindByPredicate([&Id](const FVeyraMassLayout& Each) { return Each.Id == Id; });
-				if (!Entry)
+				const int32 EntryIndex = Layout.Masses.Items.IndexOfByPredicate([&Id](const FVeyraMassLayout& Each) { return Each.Id == Id; });
+				const FVeyraMassShape* Shape = Shapes.FindByPredicate([EntryIndex](const FVeyraMassShape& Each) { return Each.Index == EntryIndex; });
+				const FVeyraMassForm* Form = Shape ? Forms.Find(*Shape) : nullptr;
+				if (!Form)
 				{
-					Error = TEXT("CrucibleMassArt.json names a mass the layout lacks: ") + Id;
+					Error = TEXT("CrucibleMassArt.json names a mass the layout lacks, or one whose kind has no form: ") + Id;
 					return false;
 				}
-				TArray<FVector2D> Outline;
-				for (const FVeyraMapPoint& Point : Entry->Points)
-				{
-					Outline.Add(VeyraLayout::ToVector(Point));
-				}
-				const TArray<TSharedPtr<FJsonValue>>& Levels = Mass.GetArrayField(TEXT("levels"));
-				const double Top = MassGround(Dress.Field, Outline).Base + Levels.Last()->AsNumber();
+				const TArray<FVector2D>& Outline = Shape->Outline;
 				for (const TSharedPtr<FJsonValue>& PieceValue : Mass.GetArrayField(TEXT("canopy")))
 				{
 					const FJsonObject& Piece = *PieceValue->AsObject();
 					const TArray<TSharedPtr<FJsonValue>>& At = Piece.GetArrayField(TEXT("at"));
-					const bool bTree = Piece.GetStringField(TEXT("kind")) == TEXT("Tree");
-					const double Scale = (bTree ? TreeScale : ShrubScale) * Piece.GetNumberField(TEXT("scale"));
-					Dress.Place(bTree ? Trees : Shrubs, Random, Kit[bTree ? TEXT("Tree") : TEXT("Shrub")].Num(), FVector2D(At[0]->AsNumber(), At[1]->AsNumber()),
-						Piece.GetNumberField(TEXT("yaw")), FVector(Scale), Dress.Number(TEXT("treeSink")), Top);
+					const FTopPiece* Kind = TopPieces.Find(Piece.GetStringField(TEXT("kind")));
+					if (!Kind)
+					{
+						Error = TEXT("CrucibleMassArt.json names a piece the dressing cannot place: ") + Piece.GetStringField(TEXT("kind"));
+						return false;
+					}
+					const FVector2D Spot(At[0]->AsNumber(), At[1]->AsNumber());
+					Dress.Place(*Kind->Region, Random, Kit[Kind->Family].Num(), Spot, Piece.GetNumberField(TEXT("yaw")),
+						FVector(Kind->Scale * Piece.GetNumberField(TEXT("scale"))), Dress.Number(TEXT("treeSink")),
+						VeyraMassSculpt::TopAt(*Shape, *Form, Dress.Field, Forms.SeedOf(*Shape), Spot));
 				}
 				// The foot's clumps, a little way out from its edge on open ground, never in play's way.
 				const double Out = Random.FRandRange(Reach.X, Reach.Y);
