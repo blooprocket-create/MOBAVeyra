@@ -8,7 +8,7 @@ Authority: [ADR-040](../../../Docs/ADR/ADR-040-crucible-world-authoring-toolchai
 - `Config/CrucibleStyle.json`: non-spatial sampling, lighting, cameras and dressing parameters. It contains no duplicate map coordinates.
 - `Config/CrucibleValidation.json`: the validation profile. It holds the routes both teams must walk alike, named by Team A's anchors, and the provisional tolerances (Battleground Bible §2 terrain fairness).
 - `Game/ArtSource/Environment/CrucibleKit.json`: deterministic mesh-family source; no map layout.
-- `Game/ArtSource/Environment/Terrain/TerrainTextures.json`: the terrain's and the river's look (seeded tileable textures, the water's colour); `BuildTerrainArt.ps1` generates the textures and builds `M_CrucibleTerrain` and `M_CrucibleWater` from it.
+- `Game/ArtSource/Environment/Terrain/TerrainTextures.json`: the terrain's and the river's look (seeded tileable textures, the water's colour); `BuildTerrainArt.ps1` generates the textures and builds `M_CrucibleTerrain` and `M_CrucibleWater` from it. It keeps a texture asset whose PNG is unchanged since its import, unwritten: the importer records the PNG's SHA-256 on the asset (`Game/Scripts/TerrainArt/inputs.py`).
 - `Game/Content/Veyra/World/Maps/L_Battleground.umap`: generated Landscape (on the playable-ground channel), layer weights, the river's surface, baked PCG instances, lights, review cameras, starts, navigation bounds and runtime marker. Never hand-patch the generated map.
 - `Game/Saved/WorldGeneration/manifest.json`: successful generation record with source and output hashes; generation is not acceptance.
 - `Game/Saved/WorldGeneration/Regions`: generated per-pass seed, mesh, count and normalized placement digest. These are evidence, not authoring inputs.

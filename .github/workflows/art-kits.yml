@@ -10,9 +10,12 @@ on:
       - 'Game/ArtSource/Vanguards/VanguardKit.json'
       - 'Game/Scripts/KitMaterials/spec.py'
       - 'Game/Scripts/KitMaterials/inputs.py'
+      - 'Game/Scripts/TerrainArt/inputs.py'
+      - 'Game/ArtSource/Environment/Terrain/manifest.json'
       - 'Game/Scripts/EnvironmentKit/inputs.py'
       - 'tests/test_kit_materials_spec.py'
       - 'tests/test_kit_materials_inputs.py'
+      - 'tests/test_terrain_art_inputs.py'
       - 'tests/test_environment_kit_inputs.py'
       - 'Game/Scripts/fbx_content.py'
       - 'tests/test_fbx_content.py'
@@ -27,9 +30,12 @@ on:
       - 'Game/ArtSource/Vanguards/VanguardKit.json'
       - 'Game/Scripts/KitMaterials/spec.py'
       - 'Game/Scripts/KitMaterials/inputs.py'
+      - 'Game/Scripts/TerrainArt/inputs.py'
+      - 'Game/ArtSource/Environment/Terrain/manifest.json'
       - 'Game/Scripts/EnvironmentKit/inputs.py'
       - 'tests/test_kit_materials_spec.py'
       - 'tests/test_kit_materials_inputs.py'
+      - 'tests/test_terrain_art_inputs.py'
       - 'tests/test_environment_kit_inputs.py'
       - 'Game/Scripts/fbx_content.py'
       - 'tests/test_fbx_content.py'
@@ -50,6 +56,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_kit_materials_spec.py'
       - name: Check that an importer keeps a generated material whose inputs are unchanged
         run: python3 -m unittest discover -s tests -p 'test_kit_materials_inputs.py'
+      - name: Check that the terrain importer keeps a texture whose source is unchanged
+        run: python3 -m unittest discover -s tests -p 'test_terrain_art_inputs.py'
       - name: Check the environment meshes were generated from the committed kit
         run: python3 -m unittest discover -s tests -p 'test_environment_kit_inputs.py'
       - name: Check that a generator keeps an FBX whose content is unchanged

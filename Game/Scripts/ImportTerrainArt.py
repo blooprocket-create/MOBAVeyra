@@ -15,6 +15,7 @@ import sys
 import unreal
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from TerrainArt.inputs import SOURCE_TAG, kept, texture_settings  # noqa: E402
 from veyra_material_graph import Graph, link_named, sample, world_aligned  # noqa: E402
 
 GAME = Path(__file__).resolve().parents[1]
@@ -33,12 +34,25 @@ LANDSCAPE_LAYERS = [("Jungle", "Moss"), ("Lane", "Causeway"), ("Bank", "Shore"),
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 EDIT = unreal.MaterialEditingLibrary
 ASSETS = unreal.EditorAssetLibrary
+# The enum each texture setting names its value in (TerrainArt/inputs.py texture_settings); srgb is a plain bool.
+SETTING_ENUMS = {"compression_settings": unreal.TextureCompressionSettings, "lod_group": unreal.TextureGroup}
 
 
 def import_texture(entry):
+    """The texture entry names, imported from its PNG and given its settings, unless the asset already is that import:
+    the source hash it records is the PNG's and it has those settings (TerrainArt/inputs.py). Then it is kept as it is,
+    neither imported nor saved, since a reimport of the same PNG would rewrite the asset for no change. Returns the
+    texture, and whether this run imported it."""
     filename = SOURCE / entry["name"]
     assert hashlib.sha256(filename.read_bytes()).hexdigest() == entry["sha256"], f"{entry['name']} differs from the manifest"
     name = filename.stem
+    path = f"{DEST}/Textures/{name}"
+    wanted = {key: getattr(SETTING_ENUMS[key], value) if key in SETTING_ENUMS else value for key, value in texture_settings(name).items()}
+    texture = unreal.load_asset(path) if ASSETS.does_asset_exist(path) else None
+    if texture and kept(ASSETS.get_metadata_tag(texture, SOURCE_TAG), entry["sha256"],
+                        {key: texture.get_editor_property(key) for key in wanted}, wanted):
+        unreal.log("VEYRA_TERRAIN_TEXTURE_UNCHANGED: " + path)
+        return texture, False
     task = unreal.AssetImportTask()
     task.set_editor_property("filename", str(filename))
     task.set_editor_property("destination_path", DEST + "/Textures")
@@ -47,28 +61,14 @@ def import_texture(entry):
     task.set_editor_property("replace_existing", True)
     task.set_editor_property("save", False)
     TOOLS.import_asset_tasks([task])
-    texture = unreal.load_asset(f"{DEST}/Textures/{name}")
+    texture = unreal.load_asset(path)
     assert texture, f"{name} did not import"
-    if name.endswith("_WaterNormal"):
-        # Ripple normals with the shore's foam in alpha: kept whole, so not compressed as a normal map.
-        texture.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_BC7)
-        texture.set_editor_property("srgb", False)
-        texture.set_editor_property("lod_group", unreal.TextureGroup.TEXTUREGROUP_WORLD)
-    elif name.endswith("_Normal"):
-        texture.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
-        texture.set_editor_property("srgb", False)
-        texture.set_editor_property("lod_group", unreal.TextureGroup.TEXTUREGROUP_WORLD_NORMAL_MAP)
-    elif name.endswith("_BaseColor"):
-        texture.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_DEFAULT)
-        texture.set_editor_property("srgb", True)
-        texture.set_editor_property("lod_group", unreal.TextureGroup.TEXTUREGROUP_WORLD)
-    else:
-        # Packed data with alpha (ambient occlusion, roughness, metallic, height), or the macro variation: linear.
-        texture.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_BC7)
-        texture.set_editor_property("srgb", False)
-        texture.set_editor_property("lod_group", unreal.TextureGroup.TEXTUREGROUP_WORLD)
-    ASSETS.save_loaded_asset(texture)
-    return texture
+    for key, value in wanted.items():
+        texture.set_editor_property(key, value)
+    ASSETS.set_metadata_tag(texture, SOURCE_TAG, entry["sha256"])
+    assert ASSETS.save_loaded_asset(texture, only_if_is_dirty=False), f"Save failed (does it need its Git LFS lock?): {path}"
+    unreal.log("VEYRA_TERRAIN_TEXTURE_IMPORTED: " + path)
+    return texture, True
 
 
 def build_material(textures):
@@ -359,17 +359,21 @@ def main():
     SAVED.mkdir(parents=True, exist_ok=True)
     water_only = "-veyrawateronly" in unreal.SystemLibrary.get_command_line().lower().split()
     textures = {}
+    imported = []
     for entry in MANIFEST["files"]:
         if water_only and entry["layer"] != "Water":
             continue
-        texture = import_texture(entry)
+        texture, fresh = import_texture(entry)
         textures[Path(entry["name"]).stem] = texture
+        if fresh:
+            imported.append(texture.get_path_name())
     material = None if water_only else build_material(textures)
     water = build_water(textures)
     report = {"material": material.get_path_name() if material else None, "textures": sorted(t.get_path_name() for t in textures.values()),
-              "water": water.get_path_name(), "layers": [] if water_only else [name for name, _ in LANDSCAPE_LAYERS]}
+              "importedTextures": sorted(imported), "water": water.get_path_name(),
+              "layers": [] if water_only else [name for name, _ in LANDSCAPE_LAYERS]}
     (SAVED / "import.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-    unreal.log(f"Imported {len(textures)} textures and built {'water only' if water_only else 'terrain and water'}.")
+    unreal.log(f"Imported {len(imported)} of {len(textures)} textures (the rest unchanged) and built {'water only' if water_only else 'terrain and water'}.")
 
 
 main()
