@@ -149,6 +149,13 @@
     { "id": "patch", "archetype": "humanoid", "seed": 105, "heightShare": 0.80, "build": "round", "headShare": 0.37,
       "legShare": 0.24, "shoulderShare": 0.15,
       "model": { "script": "patch", "triangleBudget": 5000, "voxelCm": 0.5 },
+      "skills": [
+        {"ability": "patch_bear_hug", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "patch_bear_hug_throw", "motion": "Heave", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "patch_play_dead", "motion": "Veil", "seconds": 0.7, "releaseShare": 0.2},
+        {"ability": "patch_dont_leave_me", "motion": "Hurl", "seconds": 0.8, "releaseShare": 0.2, "options": {"side": "r", "holdUntil": 0.6}},
+        {"ability": "patch_the_thing_inside", "motion": "Summon", "seconds": 1.0, "releaseShare": 0.25, "options": {"side": "r"}}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "lantern": { "stiffness": 120.0, "drag": 1.5, "damping": 3.0, "maxAngle": 40.0 } },
       "skin": [0.72, 0.55, 0.36], "primary": [0.72, 0.55, 0.36], "secondary": [0.62, 0.46, 0.30], "hair": [0.72, 0.55, 0.36], "accent": [1.00, 0.70, 0.25],
       "scarf": [0.60, 0.08, 0.08], "armShare": 0.33, "limbScale": 1.7,
@@ -194,6 +201,13 @@
     { "id": "marek", "archetype": "humanoid", "seed": 110, "heightShare": 0.95, "build": "lean", "headShare": 0.14,
       "legShare": 0.5, "hipShare": 0.066, "shoulderShare": 0.12, "armShare": 0.36,
       "model": { "script": "marek", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "marek_witchfire", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "marek_hunt", "motion": "Clench", "seconds": 0.7, "releaseShare": 0.21, "options": {"side": "r"}},
+        {"ability": "marek_hunt_recall", "motion": "Summon", "seconds": 0.6, "releaseShare": 0.2, "options": {"side": "l"}},
+        {"ability": "marek_cross_the_chain", "motion": "Lunge", "seconds": 0.6, "releaseShare": 0.15},
+        {"ability": "marek_hell_on_a_leash", "motion": "Heave", "seconds": 1.0, "releaseShare": 0.25}
+      ],
       "springs": { "cloak": { "stiffness": 40.0, "drag": 8.0, "damping": 2.0, "maxAngle": 70.0 }, "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.82, 0.68, 0.58], "primary": [0.10, 0.07, 0.12], "secondary": [0.35, 0.15, 0.45], "hair": [0.10, 0.08, 0.07], "accent": [0.65, 0.25, 1.00],
       "cloak": [0.10, 0.07, 0.12], "lining": [0.40, 0.12, 0.55],
@@ -201,6 +215,13 @@
     { "id": "neris", "archetype": "humanoid", "seed": 111, "heightShare": 0.92, "build": "lean", "headShare": 0.15,
       "legShare": 0.46, "hipShare": 0.066, "shoulderShare": 0.12,
       "model": { "script": "neris", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "neris_breaking_wave", "motion": "Sweep", "seconds": 0.8, "releaseShare": 0.2, "options": {"side": "r"}},
+        {"ability": "neris_little_current", "motion": "Thrust", "seconds": 0.7, "releaseShare": 0.2, "options": {"side": "r"}},
+        {"ability": "neris_little_current_redirect", "motion": "Thrust", "seconds": 0.6, "releaseShare": 0.2, "options": {"side": "l"}},
+        {"ability": "neris_change_the_weather", "motion": "Summon", "seconds": 0.9, "releaseShare": 0.25, "options": {"side": "r"}},
+        {"ability": "neris_tidebreaker", "motion": "Heave", "seconds": 1.0, "releaseShare": 0.25}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.86, 0.76, 0.70], "primary": [0.12, 0.16, 0.20], "secondary": [0.30, 0.25, 0.20], "hair": [0.80, 0.88, 0.95], "accent": [0.35, 0.75, 0.95],
       "hairStyle": "windblown", "features": ["wideHat", "coatSkirt", "tornCoat", "harness", "rescueGear", "waveBase"], "props": [],
@@ -343,6 +364,12 @@
       "effect": { "system": "/Game/Veyra/UI/Presentation/Effects/NS_VeyraDrip.NS_VeyraDrip", "color": [1.00, 0.45, 0.10, 1.0], "bones": ["prop_r", "prop_l", "head"] } },
     { "id": "eudora", "archetype": "humanoid", "seed": 125, "heightShare": 0.92, "build": "normal", "headShare": 0.16,
       "model": { "script": "eudora", "triangleBudget": 5000, "voxelCm": 0.6 },
+      "skills": [
+        {"ability": "eudora_drive_rivet", "motion": "Thrust", "seconds": 0.8, "releaseShare": 0.31, "options": {"side": "r"}},
+        {"ability": "eudora_set_the_picket", "motion": "Anchor", "seconds": 1.2, "releaseShare": 0.5},
+        {"ability": "eudora_raise_the_bulwark", "motion": "Brace", "seconds": 0.8, "releaseShare": 0.25},
+        {"ability": "eudora_move_the_line", "motion": "Hurl", "seconds": 0.9, "releaseShare": 0.28, "options": {"side": "r"}}
+      ],
       "springs": { "coatTails": { "stiffness": 80.0, "drag": 6.0, "damping": 4.0, "maxAngle": 60.0 }, "hair": { "stiffness": 400.0, "drag": 2.0, "damping": 14.0, "maxAngle": 35.0 } },
       "skin": [0.80, 0.64, 0.54], "primary": [0.55, 0.12, 0.08], "secondary": [0.16, 0.15, 0.15], "hair": [0.60, 0.60, 0.61], "accent": [1.00, 0.75, 0.30],
       "lining": [0.38, 0.07, 0.05],

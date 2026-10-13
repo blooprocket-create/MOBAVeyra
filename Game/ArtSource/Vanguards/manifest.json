@@ -2,7 +2,7 @@
   "generatorVersion": 1,
   "blender": "5.2.1 LTS",
   "destination": "/Game/Veyra/Vanguards",
-  "kitSha256": "183f0ad3ce1ca474f9c48a31fab52b3a9831b297eba162e1760235408dc127ab",
+  "kitSha256": "91ae3f6bce56de9afc936ed880949970cbdf2622103099525ab20ba168dfdd6e",
   "assets": [
     {
       "id": "angeru",
@@ -1499,7 +1499,7 @@
       "name": "SK_Eudora",
       "archetype": "humanoid",
       "file": "FBX/SK_Eudora.fbx",
-      "sha256": "58aa9eb4ae691a96ec512ebfd77c3d207bcf624e72432c2fe4d2fe74773ce6d0",
+      "sha256": "bc44d1d674a4c0dfbaa425e8e70ccaa4565ef04a4f54f320feb79583cef99a39",
       "triangles": 4845,
       "triangleBudget": 5000,
       "bones": 47,
@@ -1549,13 +1549,54 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_eudora_drive_rivet",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_eudora_set_the_picket",
+          "frames": 37,
+          "loop": false
+        },
+        {
+          "name": "Skill_eudora_raise_the_bulwark",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_eudora_move_the_line",
+          "frames": 28,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "4db6f3cdc17fa1b1162c0567b8ab4038f5d2b80a698bad21a1c357c521822c0b",
+      "abilityCasts": [
+        {
+          "ability": "eudora_drive_rivet",
+          "clip": "Skill_eudora_drive_rivet",
+          "releaseShare": 0.31
+        },
+        {
+          "ability": "eudora_set_the_picket",
+          "clip": "Skill_eudora_set_the_picket",
+          "releaseShare": 0.5
+        },
+        {
+          "ability": "eudora_raise_the_bulwark",
+          "clip": "Skill_eudora_raise_the_bulwark",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "eudora_move_the_line",
+          "clip": "Skill_eudora_move_the_line",
+          "releaseShare": 0.28
+        }
+      ],
+      "inputSha256": "1178642ff91cdb671c5df1932353a22fe5d0b4ae0cb401d3ef8543aa57aa6588",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "6f9263ced632bd15ca071e5e0e217a350585f1b88a6d7651e698696e5574151c",
+      "contentSha256": "d2e0db4dc1af88164b307a30492d1d1855a857005f5ea602cca99cbd2ca67917",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -2304,7 +2345,7 @@
       "name": "SK_Marek",
       "archetype": "humanoid",
       "file": "FBX/SK_Marek.fbx",
-      "sha256": "a3b0eaf0cde9b00c2b40222b6e98b99f793f37da8317e9364331946adb6900bb",
+      "sha256": "c6236ca8e44b580d36f73920d89fa701ce25bf1eb574f045478e59164d141639",
       "triangles": 4900,
       "triangleBudget": 5000,
       "bones": 56,
@@ -2354,13 +2395,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_marek_witchfire",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_marek_hunt",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_marek_hunt_recall",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_marek_cross_the_chain",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_marek_hell_on_a_leash",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "34556393502eef8305d2e4d8d6544e1337e936626c113373572800184ca66e0b",
+      "abilityCasts": [
+        {
+          "ability": "marek_witchfire",
+          "clip": "Skill_marek_witchfire",
+          "releaseShare": 0.31
+        },
+        {
+          "ability": "marek_hunt",
+          "clip": "Skill_marek_hunt",
+          "releaseShare": 0.21
+        },
+        {
+          "ability": "marek_hunt_recall",
+          "clip": "Skill_marek_hunt_recall",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "marek_cross_the_chain",
+          "clip": "Skill_marek_cross_the_chain",
+          "releaseShare": 0.15
+        },
+        {
+          "ability": "marek_hell_on_a_leash",
+          "clip": "Skill_marek_hell_on_a_leash",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "630916e9ed1e349ae7c455b9447d4c752c0a4f21a1581e494272512c20330328",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "1ca7822afc8c7248910ae9804e8769f7bf6535f51d4d11fbb023b7580b938a03",
+      "contentSha256": "0a1e2b351531ca4d6e3c1901ab4948163076f5a425c0b27635596e275a812216",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3484,7 +3576,7 @@
       "name": "SK_Neris",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris.fbx",
-      "sha256": "17436e5646259b8545348215c954a5c4f3b7bb3234ac888c1e0a3d54436f87e6",
+      "sha256": "7deadde6c93059b19547a84375a23acb9c001092ea50e18c8af72a50f9e954bc",
       "triangles": 4915,
       "triangleBudget": 5000,
       "bones": 47,
@@ -3534,13 +3626,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_neris_breaking_wave",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current_redirect",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_change_the_weather",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_tidebreaker",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "10b1be36c416101952e8e5ce3eae52ffda473819ce4b6018e9b99b565e0a82e9",
+      "abilityCasts": [
+        {
+          "ability": "neris_breaking_wave",
+          "clip": "Skill_neris_breaking_wave",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current",
+          "clip": "Skill_neris_little_current",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current_redirect",
+          "clip": "Skill_neris_little_current_redirect",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_change_the_weather",
+          "clip": "Skill_neris_change_the_weather",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "neris_tidebreaker",
+          "clip": "Skill_neris_tidebreaker",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "143824c078c129ffa206ae404ddf20d95842a7729f3e1f849b67cd25957ab99f",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "bc10b5b1baec7af35cbb6dc0cb7c97fdffdebf9658a37f4cd9621c287f80c29e",
+      "contentSha256": "b62c87f8eefa65ceb1efc18272b776de5059556cf778fef065d4e599e58d63da",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3672,7 +3815,7 @@
       "name": "SK_Neris_Storm",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Storm.fbx",
-      "sha256": "3a709967df4e4dcfee69a0aa4a354942cd6e86aceab8d15b3d632ec576f5d642",
+      "sha256": "1036667b6a57d56ea8a6856aa5131f8b238b6f94de2fd1b66cfb454f05c82869",
       "triangles": 4915,
       "triangleBudget": 5000,
       "bones": 47,
@@ -3722,13 +3865,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_neris_breaking_wave",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current_redirect",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_change_the_weather",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_tidebreaker",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "94b67bcbf67e783df608f75c79ae790cea5683ac3e58efb26f89bf93302a3020",
+      "abilityCasts": [
+        {
+          "ability": "neris_breaking_wave",
+          "clip": "Skill_neris_breaking_wave",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current",
+          "clip": "Skill_neris_little_current",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current_redirect",
+          "clip": "Skill_neris_little_current_redirect",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_change_the_weather",
+          "clip": "Skill_neris_change_the_weather",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "neris_tidebreaker",
+          "clip": "Skill_neris_tidebreaker",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "5c9120f6eea2dfebced3d8226701f174a735c44b4d518f7e46650a8a096ac69b",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "bc10b5b1baec7af35cbb6dc0cb7c97fdffdebf9658a37f4cd9621c287f80c29e",
+      "contentSha256": "b62c87f8eefa65ceb1efc18272b776de5059556cf778fef065d4e599e58d63da",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -3861,7 +4055,7 @@
       "name": "SK_Neris_Tidebreaker",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Tidebreaker.fbx",
-      "sha256": "131561f896d597223a835bf5fe114e40f33b59b0245e87119d7053b0c5001ff8",
+      "sha256": "dc7201dbce7313986d02aaa049f30947f6e98a6352d58026f6d8ca39aced1cd0",
       "triangles": 4921,
       "triangleBudget": 5000,
       "bones": 47,
@@ -3911,13 +4105,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_neris_breaking_wave",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current_redirect",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_change_the_weather",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_tidebreaker",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "9093984b1d8bc8dc953b29b064dfdeaa83c2ef18834eb29a2a32e7a59392819e",
+      "abilityCasts": [
+        {
+          "ability": "neris_breaking_wave",
+          "clip": "Skill_neris_breaking_wave",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current",
+          "clip": "Skill_neris_little_current",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current_redirect",
+          "clip": "Skill_neris_little_current_redirect",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_change_the_weather",
+          "clip": "Skill_neris_change_the_weather",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "neris_tidebreaker",
+          "clip": "Skill_neris_tidebreaker",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "9ee39fbaef145830c5a3160ead0fa8c3f599079c738dac843ec4f6cdea3f54f0",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "1aa3a9a2b70a2b64b22666a23ca2e922c78a5aec05b4a06cc886b2deff936dc1",
+      "contentSha256": "d14764366b80b0c88c4693976d7b682b7d43e2522c7d2d180efac5952b42c45b",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -4051,7 +4296,7 @@
       "name": "SK_Neris_Wave",
       "archetype": "humanoid",
       "file": "FBX/SK_Neris_Wave.fbx",
-      "sha256": "dc3247e7189f178b9ffbac4bfbbb96fd4a14a7048320f43b1fdf90c03f8be36f",
+      "sha256": "ad11ca5a26c54fd622660c0bd33ef23ff204245dd89d515efc95192940498c3e",
       "triangles": 4914,
       "triangleBudget": 5000,
       "bones": 47,
@@ -4101,13 +4346,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_neris_breaking_wave",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_little_current_redirect",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_change_the_weather",
+          "frames": 28,
+          "loop": false
+        },
+        {
+          "name": "Skill_neris_tidebreaker",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "7109fde3010cfa5ed1da5742dfb3ab6c94c184b40daf2b43608ef93ea7af0eb9",
+      "abilityCasts": [
+        {
+          "ability": "neris_breaking_wave",
+          "clip": "Skill_neris_breaking_wave",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current",
+          "clip": "Skill_neris_little_current",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_little_current_redirect",
+          "clip": "Skill_neris_little_current_redirect",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "neris_change_the_weather",
+          "clip": "Skill_neris_change_the_weather",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "neris_tidebreaker",
+          "clip": "Skill_neris_tidebreaker",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "3f7e1319619386179a0aa77e16bcc2a76cc8acc0660484eb7742551183c14c2a",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "748ab4a5416ee20340f08deb6f0d121ad462a2855e37caf85d41330ed6f1e5b6",
+      "contentSha256": "32159f209e1ec4ea6e0c2d7cb8dd37b22f329a8ac988aa1c2f9110c7eee1a391",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -4425,7 +4721,7 @@
       "name": "SK_Patch",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch.fbx",
-      "sha256": "02c1b6b981c1246d003f4a08898095bc5775c6a75ecfa0ca18fe8bb5ff265763",
+      "sha256": "25767c6fa962a35b953388619b58234eabc40401e974845a6e944b20618226e5",
       "triangles": 4957,
       "triangleBudget": 5000,
       "bones": 40,
@@ -4475,13 +4771,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_patch_bear_hug",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_bear_hug_throw",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_play_dead",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_dont_leave_me",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_the_thing_inside",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "febafe811111966cda7c685189c70d38e0114fae1653e259bb3897ef619da268",
+      "abilityCasts": [
+        {
+          "ability": "patch_bear_hug",
+          "clip": "Skill_patch_bear_hug",
+          "releaseShare": 0.15
+        },
+        {
+          "ability": "patch_bear_hug_throw",
+          "clip": "Skill_patch_bear_hug_throw",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "patch_play_dead",
+          "clip": "Skill_patch_play_dead",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "patch_dont_leave_me",
+          "clip": "Skill_patch_dont_leave_me",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "patch_the_thing_inside",
+          "clip": "Skill_patch_the_thing_inside",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "f095ddff0b8a565b773759b144fb18819531de3295c178c0a0df3214379e9daf",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "b71019934e741c7c16a42fd0aa0963b305668936747431d2e48c829335f229f9",
+      "contentSha256": "22729bad18813ccfabb485e1880c0c3e00728c3f71834b679df16ffe196b24d9",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -4580,7 +4927,7 @@
       "name": "SK_Patch_Dormant",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch_Dormant.fbx",
-      "sha256": "45eba478c4472fb5023f841cd21aaca90138f4f9d9eb88181dedd3aa1685f8c2",
+      "sha256": "19f750d91a7995c4dc7577befc9d24dc9bbd40e5b6b006983a61475272240341",
       "triangles": 4957,
       "triangleBudget": 5000,
       "bones": 40,
@@ -4630,13 +4977,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_patch_bear_hug",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_bear_hug_throw",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_play_dead",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_dont_leave_me",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_the_thing_inside",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "679305153df7845bb06ab620c99b5d24d5632c3f7d010c967ed3c0429f9b6c6d",
+      "abilityCasts": [
+        {
+          "ability": "patch_bear_hug",
+          "clip": "Skill_patch_bear_hug",
+          "releaseShare": 0.15
+        },
+        {
+          "ability": "patch_bear_hug_throw",
+          "clip": "Skill_patch_bear_hug_throw",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "patch_play_dead",
+          "clip": "Skill_patch_play_dead",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "patch_dont_leave_me",
+          "clip": "Skill_patch_dont_leave_me",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "patch_the_thing_inside",
+          "clip": "Skill_patch_the_thing_inside",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "567e870942de8a4482b9debda0baa05a9ba4473dd3a945a5fcfb88dc16558798",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "8c5d0132e8f8712f2e2e721b61e505b6c99b67817936b63c7384ab5a9b66b114",
+      "contentSha256": "0cd7ecc611e31c712353abf5afe415ba09e2e5e016baacd45399915838e9e7a2",
       "contentVersion": 3,
       "ik": {
         "feet": [
@@ -4736,7 +5134,7 @@
       "name": "SK_Patch_Inside",
       "archetype": "humanoid",
       "file": "FBX/SK_Patch_Inside.fbx",
-      "sha256": "3c0c386596aa6e9b5bb3d21c72cb8170e53cd52cfb329fbf38def111475fcc84",
+      "sha256": "8442df59b29e9dff0304a75849317d102c7d19c811e1d6ee43c459bfd1fbbc3a",
       "triangles": 5955,
       "triangleBudget": 6000,
       "bones": 40,
@@ -4786,13 +5184,64 @@
           "name": "Recall",
           "frames": 61,
           "loop": true
+        },
+        {
+          "name": "Skill_patch_bear_hug",
+          "frames": 19,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_bear_hug_throw",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_play_dead",
+          "frames": 22,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_dont_leave_me",
+          "frames": 25,
+          "loop": false
+        },
+        {
+          "name": "Skill_patch_the_thing_inside",
+          "frames": 31,
+          "loop": false
         }
       ],
-      "abilityCasts": [],
-      "inputSha256": "ebb1063502c5e43ca730a89d82c82e76acfcd9e6a42bf2229ddafd0493a4c064",
+      "abilityCasts": [
+        {
+          "ability": "patch_bear_hug",
+          "clip": "Skill_patch_bear_hug",
+          "releaseShare": 0.15
+        },
+        {
+          "ability": "patch_bear_hug_throw",
+          "clip": "Skill_patch_bear_hug_throw",
+          "releaseShare": 0.25
+        },
+        {
+          "ability": "patch_play_dead",
+          "clip": "Skill_patch_play_dead",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "patch_dont_leave_me",
+          "clip": "Skill_patch_dont_leave_me",
+          "releaseShare": 0.2
+        },
+        {
+          "ability": "patch_the_thing_inside",
+          "clip": "Skill_patch_the_thing_inside",
+          "releaseShare": 0.25
+        }
+      ],
+      "inputSha256": "25ba094901fcd024d2cef143e66e98fc9f2841059a658157a3929b66e2cd9f5c",
       "generatorSha256": "9234d0718f5a6c9344d6c0e8d6e405e532e1515a1a8205eec485130b98d52e32",
       "blender": "5.2.1 LTS",
-      "contentSha256": "521f5130c9476642b18363be74069a7809d5a148d6de524aa05dfc5a070f2312",
+      "contentSha256": "a4fe51b8da3b394fc9857e20eca94351bc2ae640068acda1b9b0506024a7ecd4",
       "contentVersion": 3,
       "ik": {
         "feet": [
