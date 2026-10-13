@@ -5,10 +5,11 @@
 .DESCRIPTION
     Runs Game/Scripts/GenerateTerrainTextures.py (plain Python with numpy and Pillow) to write the tileable textures
     of Game/ArtSource/Environment/Terrain from TerrainTextures.json, then an editor commandlet that imports them and
-    builds M_CrucibleTerrain (ImportTerrainArt.py). Does not modify maps or gameplay code. A texture whose PNG is
-    unchanged since its last import is kept as it is, neither imported nor saved: the importer records each PNG's
-    SHA-256 on its asset (Game/Scripts/TerrainArt/inputs.py). So only the changed textures, and the materials, which
-    every run rebuilds, need their Git LFS locks (ADR-006 §9). The editor must already be built.
+    builds M_CrucibleTerrain and M_CrucibleWater (ImportTerrainArt.py). Does not modify maps or gameplay code. A
+    texture whose PNG is unchanged since its last import, and a material whose values, graph code and textures are
+    unchanged since it was built, are kept as they are, unwritten: the importer records what each was made from on its
+    asset (Game/Scripts/TerrainArt/inputs.py). So only the assets that change need their Git LFS locks (ADR-006 §9).
+    The editor must already be built.
 .PARAMETER ImportOnly
     Reuse the textures already generated.
 .PARAMETER WaterOnly

@@ -1,7 +1,10 @@
-"""Tests for when the terrain importer keeps a texture asset (ADR-040 §3): it is kept, neither imported nor saved, while
-the source hash it records is that of its PNG now and it has the settings an import would give it."""
+"""Tests for when the terrain importer keeps an asset (ADR-040 §3). A texture is kept, neither imported nor saved, while
+the source hash it records is that of its PNG now and it has the settings an import would give it; a material while the
+hash of its values, its graph's code and the textures it samples is the one it records."""
 from __future__ import annotations
 
+import ast
+import copy
 import importlib.util
 import json
 import sys
@@ -10,14 +13,26 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "Game" / "Scripts" / "TerrainArt" / "inputs.py"
-spec = importlib.util.spec_from_file_location("terrain_art_inputs", SCRIPT)
-assert spec and spec.loader
-inputs = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = inputs
-spec.loader.exec_module(inputs)
+SCRIPTS = ROOT / "Game" / "Scripts"
 
-MANIFEST = json.loads((ROOT / "Game" / "ArtSource" / "Environment" / "Terrain" / "manifest.json").read_text(encoding="utf-8"))
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+inputs = load("terrain_art_inputs", SCRIPTS / "TerrainArt" / "inputs.py")
+material_inputs = load("terrain_art_kit_material_inputs", SCRIPTS / "KitMaterials" / "inputs.py")
+
+TERRAIN = ROOT / "Game" / "ArtSource" / "Environment" / "Terrain"
+MANIFEST = json.loads((TERRAIN / "manifest.json").read_text(encoding="utf-8"))
+PROFILE = json.loads((TERRAIN / "TerrainTextures.json").read_text(encoding="utf-8"))
+# The graphs the importer builds each material with, as it hashes them.
+GRAPHS = {"terrain": SCRIPTS / "crucible_terrain_material.py", "water": SCRIPTS / "crucible_water_material.py"}
 SOURCE = "a" * 64
 OTHER = "b" * 64
 
@@ -69,6 +84,86 @@ class KeptTests(unittest.TestCase):
         self.assertTrue(MANIFEST["files"])
         for entry in MANIFEST["files"]:
             self.assertRegex(entry["sha256"], r"^[0-9a-f]{64}$", entry["name"])
+
+
+class MaterialValuesTests(unittest.TestCase):
+    def changed(self, change):
+        profile = copy.deepcopy(PROFILE)
+        change(profile)
+        return profile
+
+    @staticmethod
+    def layer(profile, layer_id):
+        return next(layer for layer in profile["layers"] if layer["id"] == layer_id)
+
+    def test_a_layers_recipe_is_no_input_of_the_terrain_material(self):
+        # It makes only the layer's textures, which a reimport replaces at the paths the material samples.
+        profile = self.changed(lambda p: self.layer(p, "Moss").update(cushionContrast=self.layer(p, "Moss")["cushionContrast"] + 0.1))
+        self.assertEqual(inputs.terrain_material_values(PROFILE), inputs.terrain_material_values(profile))
+
+    def test_tile_sizes_look_and_overgrowth_are_inputs_of_the_terrain_material(self):
+        for label, change in (("layer tile", lambda p: self.layer(p, "Slate").update(tileMetres=self.layer(p, "Slate")["tileMetres"] + 1.0)),
+                              ("macro tile", lambda p: p.update(macroTileMetres=p["macroTileMetres"] + 1.0)),
+                              ("look", lambda p: p["material"].update(wetDarkening=p["material"]["wetDarkening"] + 0.1)),
+                              ("overgrowth", lambda p: p["overgrowth"].update(strength=p["overgrowth"]["strength"] + 0.1))):
+            self.assertNotEqual(inputs.terrain_material_values(PROFILE), inputs.terrain_material_values(self.changed(change)), label)
+
+    def test_what_only_the_water_texture_is_made_from_is_no_input_of_the_water_material(self):
+        ripples = self.changed(lambda p: p["water"].update(rippleStrength=p["water"]["rippleStrength"] + 0.1))
+        self.assertEqual(inputs.water_material_values(PROFILE), inputs.water_material_values(ripples))
+        rougher = self.changed(lambda p: p["water"].update(roughness=p["water"]["roughness"] / 2.0))
+        self.assertNotEqual(inputs.water_material_values(PROFILE), inputs.water_material_values(rougher))
+
+    def test_the_water_material_refuses_roughness_or_specular_outside_zero_to_one(self):
+        for control, value in (("roughness", 1.5), ("specular", -0.1), ("roughness", "0.5")):
+            with self.assertRaises(AssertionError, msg=control):
+                inputs.water_material_values(self.changed(lambda p: p["water"].update({control: value})))
+
+    def test_the_committed_profile_gives_each_material_its_values(self):
+        self.assertTrue(inputs.water_material_values(PROFILE))
+        self.assertTrue({"Moss", "Causeway", "Shore", "Slate"} <= set(inputs.terrain_material_values(PROFILE)["tileMetres"]))
+
+
+class MaterialHashTests(unittest.TestCase):
+    """The hash the importer records on each material: KitMaterials/inputs.py over its values, its graph's code and the
+    shared graph helpers, and its textures' bindings."""
+
+    TEXTURES = sorted(Path(entry["name"]).stem for entry in MANIFEST["files"] if entry["layer"] != "Water")
+
+    def paths(self, folder="/Game/Veyra/World/Environment/Terrain/Textures"):
+        return {name: f"{folder}/{name}.{name}" for name in self.TEXTURES}
+
+    def hash(self, profile=PROFILE, paths=None):
+        sources = [GRAPHS["terrain"], SCRIPTS / "veyra_material_graph.py"]
+        return material_inputs.material_inputs_hash(inputs.terrain_material_values(profile), sources,
+                                                    inputs.material_bindings(paths or self.paths()))
+
+    def test_it_holds_while_nothing_the_material_is_built_from_changes(self):
+        self.assertEqual(self.hash(), self.hash())
+        moss = copy.deepcopy(PROFILE)
+        next(layer for layer in moss["layers"] if layer["id"] == "Moss")["cushionRelief"] += 0.1
+        self.assertEqual(self.hash(), self.hash(profile=moss))
+        self.assertTrue(material_inputs.kept(self.hash(), self.hash()))
+
+    def test_a_value_or_a_texture_moved_elsewhere_changes_it(self):
+        tiles = copy.deepcopy(PROFILE)
+        tiles["macroTileMetres"] += 1.0
+        self.assertNotEqual(self.hash(), self.hash(profile=tiles))
+        self.assertNotEqual(self.hash(), self.hash(paths=self.paths("/Game/Veyra/Elsewhere")))
+
+    def test_a_binding_carries_the_settings_its_sampler_relies_on(self):
+        bindings = inputs.material_bindings({"T_Crucible_Slate_Normal": "/Game/T.T", "T_Crucible_Slate_BaseColor": "/Game/B.B"})
+        self.assertEqual(bindings["T_Crucible_Slate_Normal"], dict(inputs.texture_settings("T_Crucible_Slate_Normal"), path="/Game/T.T"))
+        self.assertEqual(bindings["T_Crucible_Slate_BaseColor"]["compression_settings"], "TC_DEFAULT")
+
+    def test_the_graphs_reach_nothing_but_their_values_the_engine_and_the_hashed_helpers(self):
+        # Whatever else a graph read would be no input of its material's hash, and a change to it would leave the
+        # material stale.
+        for name, graph in GRAPHS.items():
+            tree = ast.parse(graph.read_text(encoding="utf-8"))
+            imported = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
+            imported |= {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
+            self.assertEqual(imported, {"unreal", "veyra_material_graph"}, name)
 
 
 if __name__ == "__main__":
