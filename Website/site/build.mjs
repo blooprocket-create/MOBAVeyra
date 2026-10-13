@@ -6,7 +6,7 @@
 // - Docs/Design/Vanguards/<nn>-<id>.yaml: each featured Vanguard's name, title, region and roles;
 // - Docs/Design/Vanguards/render_sheet.py: their signature colours (Art Direction, "Signature colours");
 // - ConceptArt/Vanguards/<id>/hero.webp: their approved hero art, for them and for any page that shows one;
-// - Launcher/ui/fonts: Roboto, the game's and the launcher's type.
+// - Launcher/ui/fonts: the game's and the launcher's type, with its licences.
 // Website/site/site.json holds only what is the website's own. No dependencies: Node's standard library only.
 
 import { createHash } from "node:crypto";
@@ -349,7 +349,7 @@ export function build(root = REPO_ROOT, outDir = join(root, "Website", "site", "
   }
   const fonts = join(root, "Launcher", "ui", "fonts");
   mkdirSync(join(outDir, "fonts"), { recursive: true });
-  for (const name of readdirSync(fonts).filter((file) => /\.(ttf|md)$/.test(file))) {
+  for (const name of readdirSync(fonts).filter((file) => /\.(ttf|md|txt)$/.test(file))) {
     cpSync(join(fonts, name), join(outDir, "fonts", name));
   }
   mkdirSync(join(outDir, "art"), { recursive: true });

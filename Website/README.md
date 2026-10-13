@@ -42,7 +42,7 @@ Static pages with no framework and no dependencies. `site/build.mjs` builds them
 | `Docs/Design/Vanguards/<nn>-<id>.yaml` | each featured Vanguard's name, title, region and roles |
 | `Docs/Design/Vanguards/render_sheet.py` | their signature colours |
 | `ConceptArt/Vanguards/<id>/hero.webp` | their art, and the art the pages show by hand as `/art/<id>.webp` |
-| `Launcher/ui/fonts` | Roboto |
+| `Launcher/ui/fonts` | Inter, the client's interface type, and its licence |
 | `site/site.json` | the website's own data: the featured Vanguards and their framing, the home page's rotation, the display-name and password rules the forms check first, the support contacts, and the servers' daily hours |
 
 ### Pages
