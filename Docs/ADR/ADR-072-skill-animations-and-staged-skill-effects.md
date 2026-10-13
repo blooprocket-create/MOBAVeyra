@@ -55,6 +55,7 @@ Everything this record adds is drawn from that state. No new replication is need
 | Harden | hunched in on itself with arms drawn in, then flexed out as the shell sets | Varkesh Tempered Shell |
 | Sweep | one arm swept low across the body, pouring along a line | Varkesh Molten Ground |
 | Heave | both arms scooped low behind, then hurled forward and up | Varkesh Forge Divide |
+| Lunge | gathered low with the arms swept back, then driven forward over the lead foot and held while the body travels | dashes and leaps (rollout batch 2, ADR-075) |
 | Clench | a fist raised and crushed shut, the arm snapping down | Varkesh Shatterforge |
 | Thrust | one hand drawn back to the shoulder, then driven forward and open | Oriel Splinter Lance |
 | Summon | one arm raised high, palm up, the body lifting with it | Oriel Shattered Sky |
