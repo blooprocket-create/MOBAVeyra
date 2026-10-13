@@ -31,8 +31,11 @@ material_inputs = load("terrain_art_kit_material_inputs", SCRIPTS / "KitMaterial
 TERRAIN = ROOT / "Game" / "ArtSource" / "Environment" / "Terrain"
 MANIFEST = json.loads((TERRAIN / "manifest.json").read_text(encoding="utf-8"))
 PROFILE = json.loads((TERRAIN / "TerrainTextures.json").read_text(encoding="utf-8"))
+INI = (ROOT / "Game" / "Config" / "DefaultGame.ini").read_text(encoding="utf-8")
+SETTINGS = inputs.water_settings(INI)
 # The graphs the importer builds each material with, as it hashes them.
-GRAPHS = {"terrain": SCRIPTS / "crucible_terrain_material.py", "water": SCRIPTS / "crucible_water_material.py"}
+GRAPHS = {"terrain": SCRIPTS / "crucible_terrain_material.py", "water": SCRIPTS / "crucible_water_material.py",
+          "stir": SCRIPTS / "crucible_water_stir_material.py"}
 SOURCE = "a" * 64
 OTHER = "b" * 64
 
@@ -110,18 +113,57 @@ class MaterialValuesTests(unittest.TestCase):
 
     def test_what_only_the_water_texture_is_made_from_is_no_input_of_the_water_material(self):
         ripples = self.changed(lambda p: p["water"].update(rippleStrength=p["water"]["rippleStrength"] + 0.1))
-        self.assertEqual(inputs.water_material_values(PROFILE), inputs.water_material_values(ripples))
+        self.assertEqual(inputs.water_material_values(PROFILE, SETTINGS), inputs.water_material_values(ripples, SETTINGS))
         rougher = self.changed(lambda p: p["water"].update(roughness=p["water"]["roughness"] / 2.0))
-        self.assertNotEqual(inputs.water_material_values(PROFILE), inputs.water_material_values(rougher))
+        self.assertNotEqual(inputs.water_material_values(PROFILE, SETTINGS), inputs.water_material_values(rougher, SETTINGS))
+
+    def test_the_crests_froth_is_an_input_of_the_water_material(self):
+        for control in ("stirFoam", "stirFoamFrom", "frothRoughness"):
+            changed = self.changed(lambda p: p["water"].update({control: p["water"][control] / 2.0}))
+            self.assertNotEqual(inputs.water_material_values(PROFILE, SETTINGS), inputs.water_material_values(changed, SETTINGS), control)
 
     def test_the_water_material_refuses_roughness_or_specular_outside_zero_to_one(self):
-        for control, value in (("roughness", 1.5), ("specular", -0.1), ("roughness", "0.5")):
+        for control, value in (("roughness", 1.5), ("specular", -0.1), ("roughness", "0.5"), ("frothRoughness", 1.1), ("stirFoam", -1.0)):
             with self.assertRaises(AssertionError, msg=control):
-                inputs.water_material_values(self.changed(lambda p: p["water"].update({control: value})))
+                inputs.water_material_values(self.changed(lambda p: p["water"].update({control: value})), SETTINGS)
 
     def test_the_committed_profile_gives_each_material_its_values(self):
-        self.assertTrue(inputs.water_material_values(PROFILE))
-        self.assertTrue({"Moss", "Causeway", "Shore", "Slate"} <= set(inputs.terrain_material_values(PROFILE)["tileMetres"]))
+        self.assertTrue(inputs.water_material_values(PROFILE, SETTINGS))
+        self.assertTrue(inputs.stir_material_values(SETTINGS))
+        self.assertTrue({"Moss", "Causeway", "Shore", "Slate", "Earth"} <= set(inputs.terrain_material_values(PROFILE)["tileMetres"]))
+
+
+class WaterSettingsTests(unittest.TestCase):
+    """The ripple parameters' names come from the water's settings (ADR-076), which the C++ that sets them reads too: a
+    renamed parameter must rebuild the materials that read it."""
+
+    def test_the_shipped_settings_name_every_ripple_parameter(self):
+        self.assertEqual(set(inputs.water_material_values(PROFILE, SETTINGS)["stir"]), set(inputs.WATER_STIR_NAMES))
+        stir = inputs.stir_material_values(SETTINGS)
+        self.assertEqual(set(stir["names"]), set(inputs.STIR_NAMES))
+        self.assertEqual(stir["defaults"]["Resolution"], float(SETTINGS["Resolution"]))
+
+    def test_a_renamed_parameter_changes_the_values_of_the_materials_that_read_it(self):
+        renamed = dict(SETTINGS, HeightParameter="StirHeights")
+        self.assertNotEqual(inputs.water_material_values(PROFILE, SETTINGS), inputs.water_material_values(PROFILE, renamed))
+        self.assertEqual(inputs.stir_material_values(SETTINGS), inputs.stir_material_values(renamed))
+        damped = dict(SETTINGS, Damping="0.9")
+        self.assertNotEqual(inputs.stir_material_values(SETTINGS), inputs.stir_material_values(damped))
+        self.assertEqual(inputs.water_material_values(PROFILE, SETTINGS), inputs.water_material_values(PROFILE, damped))
+
+    def test_a_missing_or_malformed_setting_is_refused(self):
+        for broken in (dict(SETTINGS, WindowParameter=""), {k: v for k, v in SETTINGS.items() if k != "WindowParameter"}):
+            with self.assertRaises(AssertionError):
+                inputs.water_material_values(PROFILE, broken)
+        for broken in (dict(SETTINGS, Damping="soft"), dict(SETTINGS, Resolution="0"), dict(SETTINGS, SourceParameterPrefix="1x")):
+            with self.assertRaises(AssertionError):
+                inputs.stir_material_values(broken)
+
+    def test_only_the_water_section_is_read(self):
+        other = "[/Script/Other.Settings]\nHeightParameter=Elsewhere\n"
+        self.assertEqual(inputs.water_settings(other + INI)["HeightParameter"], SETTINGS["HeightParameter"])
+        with self.assertRaises(AssertionError):
+            inputs.water_settings(other)
 
 
 class MaterialHashTests(unittest.TestCase):

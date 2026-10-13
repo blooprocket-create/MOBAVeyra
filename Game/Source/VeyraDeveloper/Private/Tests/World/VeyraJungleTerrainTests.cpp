@@ -23,7 +23,7 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsFalse(VeyraLayout::IsJungle(Layout, FVector2D(700.0, -700.0)), TEXT("the river")));
 			ASSERT_THAT(IsFalse(VeyraLayout::IsJungle(Layout, FVector2D(-2400.0, -1900.0)), TEXT("Team A's base")));
 			ASSERT_THAT(IsFalse(VeyraLayout::IsJungle(Layout, FVector2D(2400.0, 1900.0)), TEXT("Team B's base")));
-			ASSERT_THAT(IsFalse(VeyraLayout::IsJungle(Layout, FVector2D(3500.0, 0.0)), TEXT("off the floor")));
+			ASSERT_THAT(IsFalse(VeyraLayout::IsJungle(Layout, FVector2D(Layout.HalfExtent + 500.0, 0.0)), TEXT("off the floor")));
 		}
 
 		TEST_METHOD(TheCommittedCampsStandInTheJungleAndTheLanesDoNot)

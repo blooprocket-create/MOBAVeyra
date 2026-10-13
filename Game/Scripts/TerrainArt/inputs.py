@@ -7,9 +7,21 @@ a reimport of the same PNG still writes a changed file, a new version of a locka
 material is kept the same way while the hash of what it is built from (KitMaterials/inputs.py) is unchanged; its values
 are those below, all its graph is given.
 """
+import re
 
 # The asset metadata tag the importer records a texture's source PNG hash under.
 SOURCE_TAG = "VeyraSourceSha256"
+
+# The section of DefaultGame.ini holding the water's presentation settings (ADR-076; UVeyraWaterSettings).
+WATER_SETTINGS_SECTION = "/Script/VeyraUI.VeyraWaterSettings"
+
+# The ripple parameters M_CrucibleWater reads, by the setting that names each.
+WATER_STIR_NAMES = ("HeightParameter", "WindowParameter", "NormalStrengthParameter")
+
+# The ripple step's parameters, by the setting that names each, and the settings its parameters default to.
+STIR_NAMES = ("StateParameter", "TexelParameter", "ShiftParameter", "DampingParameter", "EdgeFadeParameter", "PhaseParameter",
+              "SourceParameterPrefix")
+STIR_DEFAULTS = ("Resolution", "Damping", "EdgeFade")
 
 # What of the profile's water only its texture is made from (GenerateTerrainTextures.py): not given to its material, so a
 # change to it reimports the texture without rebuilding the material.
@@ -51,10 +63,42 @@ def terrain_material_values(profile):
             "macroTileMetres": profile["macroTileMetres"], "look": profile["material"], "overgrowth": profile["overgrowth"]}
 
 
-def water_material_values(profile):
-    """All of the profile M_CrucibleWater's graph is given (crucible_water_material.py): its water, but for what only
-    the water's texture is made from. Its roughness and specular must be in [0, 1]."""
+def water_settings(ini_text):
+    """The water's presentation settings, by name, from the text of DefaultGame.ini: the ripple materials' parameters are
+    named there once, for the C++ that sets them and the graphs that read them."""
+    section = re.search(r"^\[" + re.escape(WATER_SETTINGS_SECTION) + r"\]\s*$(.*?)(?=^\[|\Z)", ini_text, re.M | re.S)
+    assert section, f"DefaultGame.ini needs [{WATER_SETTINGS_SECTION}]"
+    return dict(re.findall(r"^(\w+)=(.*?)\s*$", section.group(1), re.M))
+
+
+def _named(settings, keys):
+    """The settings keys name, each a non-empty parameter name."""
+    names = {key: settings.get(key, "") for key in keys}
+    for key, name in names.items():
+        assert re.fullmatch(r"[A-Za-z_]\w*", name), f"{WATER_SETTINGS_SECTION} {key} must name a parameter"
+    return names
+
+
+def water_material_values(profile, settings):
+    """All M_CrucibleWater's graph is given (crucible_water_material.py): the profile's water, but for what only the
+    water's texture is made from, and the names its ripple parameters take from the water's settings. Its roughness,
+    specular and froth roughness must be in [0, 1]."""
     water = {key: value for key, value in profile["water"].items() if key not in WATER_TEXTURE_ONLY}
-    for control in ("roughness", "specular"):
+    for control in ("roughness", "specular", "frothRoughness"):
         assert isinstance(water[control], (int, float)) and 0.0 <= water[control] <= 1.0, f"water.{control} must be in [0, 1]"
-    return water
+    for control in ("stirFoam", "stirFoamFrom"):
+        assert isinstance(water[control], (int, float)) and water[control] >= 0.0, f"water.{control} must be 0 or more"
+    return dict(water, stir=_named(settings, WATER_STIR_NAMES))
+
+
+def stir_material_values(settings):
+    """All M_CrucibleWaterStir's graph is given (crucible_water_stir_material.py), from the water's settings: its
+    parameters' names, and the resolution, damping and edge fade they default to."""
+    defaults = {}
+    for key in STIR_DEFAULTS:
+        try:
+            defaults[key] = float(settings[key])
+        except (KeyError, ValueError):
+            raise AssertionError(f"{WATER_SETTINGS_SECTION} {key} must be a number") from None
+    assert defaults["Resolution"] > 0.0, f"{WATER_SETTINGS_SECTION} Resolution must be above 0"
+    return {"names": _named(settings, STIR_NAMES), "defaults": defaults}

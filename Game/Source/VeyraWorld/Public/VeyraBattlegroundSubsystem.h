@@ -14,6 +14,7 @@
 
 class AVeyraFluxborn;
 class AVeyraStructure;
+class AVeyraTerrainMass;
 
 /** A structure destroyed, as World reports it to the systems that own the outcome (ADR-011 §3). */
 struct FVeyraStructureDestroyedEvent
@@ -48,8 +49,8 @@ struct FVeyraTeamFluxStrength
  * destruction, so Match can grant Team Flux and decide victory. It spawns the lane Fluxborn in waves
  * on the match clock, keeps them as strong as their team's Flux, and removes the fallen. It is the one listener to Combat's
  * hostile damage, routing aggression to the towers and Fluxborn near it (Combat Bible §33;
- * Battleground Bible §19). Timers run on world time, so a pause holds them. A client's instance does
- * nothing.
+ * Battleground Bible §19). Timers run on world time, so a pause holds them. A client's instance only
+ * raises its own copy of the map's terrain.
  */
 UCLASS()
 class VEYRAWORLD_API UVeyraBattlegroundSubsystem : public UWorldSubsystem
@@ -62,7 +63,7 @@ public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 
 	/**
-	 * Server: spawns every structure the layout places, and raises its walls (ADR-043 §2). The map's marker
+	 * Server: spawns every structure the layout places, and raises its terrain (ADR-073 §3). The map's marker
 	 * does this; tests call it with their own layout.
 	 */
 	void SpawnStructures(const FVeyraBattlegroundLayout& InLayout);
@@ -73,10 +74,15 @@ public:
 	const TArray<TObjectPtr<AVeyraStructure>>& GetStructures() const { return Structures; }
 
 	/**
-	 * Server: raises the layout's walls as terrain, for the whole match. SpawnStructures does this; world validation
-	 * raises them alone, to measure routes on the server's own ground (ADR-040).
+	 * Every machine: raises the layout's terrain for the whole match (ADR-073 §3): one local piece for each mass's edge
+	 * ring, one for the keeps' walls and one for the rim, each box standing from below the ground under it to above any
+	 * body. The map's marker does this on each machine as play begins, the server's with its structures; world
+	 * validation raises it alone, to measure routes on the server's own ground (ADR-040). Once a world.
 	 */
-	void RaiseWalls(const FVeyraBattlegroundLayout& InLayout);
+	void RaiseTerrain(const FVeyraBattlegroundLayout& InLayout);
+
+	/** The terrain RaiseTerrain raised here. */
+	const TArray<TObjectPtr<AVeyraTerrainMass>>& GetTerrain() const { return Terrain; }
 
 	/** The layout the structures were spawned from, whose lanes the Fluxborn walk; null before they spawn. */
 	const FVeyraBattlegroundLayout* GetLayout() const { return Layout.GetPtrOrNull(); }
@@ -168,6 +174,9 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<AVeyraStructure>> Structures;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AVeyraTerrainMass>> Terrain;
 
 	/** The layout the structures were spawned from, whose lanes the Fluxborn walk. */
 	TOptional<FVeyraBattlegroundLayout> Layout;

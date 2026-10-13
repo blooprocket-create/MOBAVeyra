@@ -1,6 +1,6 @@
 """M_CrucibleTerrain's graph (ADR-040 §3), built by ImportTerrainArt.py from the terrain's generated textures.
 
-Four painted layers blended by their heights, a large-scale variation over all of them, rock on whatever is steep, and
+Five painted layers blended by their heights, a large-scale variation over all of them, rock on whatever is steep, and
 darker, glossier ground at the water's edge. Every number comes from the values it is given (TerrainArt/inputs.py
 terrain_material_values) or the material's parameters, which the generated map's style profile may override. Kept apart
 from the importer because its text is one of the material's inputs (KitMaterials/inputs.py): the importer rebuilds the
@@ -13,7 +13,7 @@ from veyra_material_graph import Graph, sample, world_aligned
 EDIT = unreal.MaterialEditingLibrary
 
 # Which generated layer paints each Landscape layer the World authoring pass weights (VeyraLandscapeBuild.cpp).
-LAYERS = [("Jungle", "Moss"), ("Lane", "Causeway"), ("Bank", "Shore"), ("Cliff", "Slate")]
+LAYERS = [("Jungle", "Moss"), ("Lane", "Causeway"), ("Bank", "Shore"), ("Cliff", "Slate"), ("Earth", "Earth")]
 # The textures it samples, by name.
 TEXTURES = [f"T_Crucible_{layer}_{kind}" for _, layer in LAYERS for kind in ("BaseColor", "Normal", "ORMH")] + ["T_Crucible_Macro"]
 

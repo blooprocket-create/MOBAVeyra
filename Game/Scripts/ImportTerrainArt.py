@@ -1,9 +1,10 @@
 """Editor-only import of the Crucible's terrain textures and its Landscape and river materials (ADR-040 §3, §6).
 
 Invoked by BuildTerrainArt.ps1 in an editor commandlet with the PythonScriptPlugin. Imports the generated textures
-of Game/ArtSource/Environment/Terrain and builds M_CrucibleTerrain (crucible_terrain_material.py) and M_CrucibleWater
-(crucible_water_material.py) from them. Every number comes from TerrainTextures.json or the materials' parameters, which
-the generated map's style profile may override. A texture or material whose inputs are unchanged since it was last
+of Game/ArtSource/Environment/Terrain and builds M_CrucibleTerrain (crucible_terrain_material.py), M_CrucibleWater
+(crucible_water_material.py) and the river's ripple step, M_CrucibleWaterStir (crucible_water_stir_material.py, ADR-076),
+from them. Every number comes from TerrainTextures.json, the water's settings in DefaultGame.ini (which name the ripple
+parameters) or the materials' parameters, which the generated map's style profile may override. A texture or material whose inputs are unchanged since it was last
 written is kept as it is, unwritten (TerrainArt/inputs.py, KitMaterials/inputs.py). Does not edit a map.
 """
 import hashlib
@@ -18,9 +19,11 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 import crucible_terrain_material  # noqa: E402
 import crucible_water_material  # noqa: E402
+import crucible_water_stir_material  # noqa: E402
 from KitMaterials.inputs import INPUTS_TAG, material_inputs_hash  # noqa: E402
 from KitMaterials.inputs import kept as material_kept  # noqa: E402
-from TerrainArt.inputs import SOURCE_TAG, kept, material_bindings, terrain_material_values, texture_settings, water_material_values  # noqa: E402
+from TerrainArt.inputs import (SOURCE_TAG, kept, material_bindings, stir_material_values, terrain_material_values,  # noqa: E402
+                               texture_settings, water_material_values, water_settings)
 
 GAME = SCRIPTS.parent
 SOURCE = GAME / "ArtSource" / "Environment" / "Terrain"
@@ -30,6 +33,7 @@ PROFILE_PATH = SOURCE / "TerrainTextures.json"
 PROFILE = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
 MANIFEST = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
 assert MANIFEST["profileSha256"] == hashlib.sha256(PROFILE_PATH.read_bytes()).hexdigest(), "Regenerate the textures after profile changes."
+WATER_SETTINGS = water_settings((GAME / "Config" / "DefaultGame.ini").read_text(encoding="utf-8"))
 
 TOOLS = unreal.AssetToolsHelpers.get_asset_tools()
 EDIT = unreal.MaterialEditingLibrary
@@ -72,7 +76,8 @@ def import_texture(entry):
 
 
 def build_material(graph, name, textures, values):
-    """The material graph builds (crucible_terrain_material or crucible_water_material), as DEST/name from values and
+    """The material graph builds (crucible_terrain_material, crucible_water_material or crucible_water_stir_material),
+    as DEST/name from values and
     the textures it samples. It is kept as it is while what it is built from is unchanged (KitMaterials/inputs.py): its
     values, the code that builds its graph, and the textures it links to with the settings its samplers rely on. That
     hash is recorded on the asset, since a rebuild makes the same graph with new expression IDs, a changed file for no
@@ -119,11 +124,14 @@ def main():
         material, fresh = build_material(crucible_terrain_material, "M_CrucibleTerrain", textures, terrain_material_values(PROFILE))
         if fresh:
             rebuilt.append(material.get_path_name())
-    water, fresh = build_material(crucible_water_material, "M_CrucibleWater", textures, water_material_values(PROFILE))
+    water, fresh = build_material(crucible_water_material, "M_CrucibleWater", textures, water_material_values(PROFILE, WATER_SETTINGS))
     if fresh:
         rebuilt.append(water.get_path_name())
+    stir, fresh = build_material(crucible_water_stir_material, "M_CrucibleWaterStir", textures, stir_material_values(WATER_SETTINGS))
+    if fresh:
+        rebuilt.append(stir.get_path_name())
     report = {"material": material.get_path_name() if material else None, "textures": sorted(t.get_path_name() for t in textures.values()),
-              "importedTextures": sorted(imported), "water": water.get_path_name(), "rebuiltMaterials": sorted(rebuilt),
+              "importedTextures": sorted(imported), "water": water.get_path_name(), "stir": stir.get_path_name(), "rebuiltMaterials": sorted(rebuilt),
               "layers": [] if water_only else [name for name, _ in crucible_terrain_material.LAYERS]}
     (SAVED / "import.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     unreal.log(f"Imported {len(imported)} of {len(textures)} textures and rebuilt {len(rebuilt)} materials (the rest unchanged); "
