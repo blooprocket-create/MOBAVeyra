@@ -508,6 +508,17 @@ AVeyraVanguardController* AVeyraGameMode::OrderedControllerOf(const AVeyraPlayer
 	return EchoLink ? EchoLink->CommandedControllerOf(Participant) : VanguardControllerOf(Participant);
 }
 
+AVeyraVanguardController* AVeyraGameMode::OrderedFrom(AVeyraPlayerState* Participant) const
+{
+	// The controller learns whose orders it takes, so it sends that player its path (ADR-077 §3).
+	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
+	if (Controller && Participant)
+	{
+		Controller->TakeOrdersFrom(*Participant);
+	}
+	return Controller;
+}
+
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination)
 {
 	// In fountain preparation a Vanguard may move, but not leave its fountain (Match Flow Bible §1; ADR-054 §1).
@@ -532,7 +543,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Particip
 		}
 		Goal = VeyraMatchRules::ClampToFountain(Destination, Start->GetActorLocation(), UVeyraMatchTuningSubsystem::Get().Fountain.Radius);
 	}
-	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
+	AVeyraVanguardController* Controller = OrderedFrom(Participant);
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->MoveToDestination(Goal) : EVeyraOrderRejection::NoVanguard),
 		TOptional<FVector>(Goal));
 }
@@ -548,7 +559,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerState* Partic
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
-	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
+	AVeyraVanguardController* Controller = OrderedFrom(Participant);
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard));
 }
 
@@ -563,7 +574,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerState* Pa
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
-	AVeyraVanguardController* Controller = OrderedControllerOf(Participant);
+	AVeyraVanguardController* Controller = OrderedFrom(Participant);
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackMoveTo(Destination, Preference) : EVeyraOrderRejection::NoVanguard),
 		TOptional<FVector>(Destination));
 }

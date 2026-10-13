@@ -29,6 +29,7 @@
 #include "State/VeyraVisionTeamState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Text/VeyraAbilityNumbers.h"
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Wildlife/VeyraWildlife.h"
@@ -261,6 +262,17 @@ TOptional<double> VeyraHud::AttackReachOf(const AActor& Unit)
 	}
 	// Reach runs edge to edge (Combat Bible §40), so a target whose edge touches the ring is in reach.
 	return Attacks->GetRange(nullptr) + Unit.GetSimpleCollisionRadius();
+}
+
+TOptional<double> VeyraHud::AttackReachTo(const AActor& Unit, const AActor& Target)
+{
+	const UVeyraBasicAttackComponent* Attacks = FindBesideHudAbilitySystem<UVeyraBasicAttackComponent>(Unit);
+	if (!Attacks)
+	{
+		return {};
+	}
+	// The server's own measure: its range to this target, edge to edge.
+	return VeyraTargeting::CentreReach(Unit, Target, Attacks->GetRange(&Target));
 }
 
 bool VeyraHud::IsFighting(const AActor& Unit)

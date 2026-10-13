@@ -34,7 +34,8 @@ enum class EVeyraCustomMovementMode : uint8
  * dashes: each path is planned once, stopped by terrain and ended on walkable ground, and followed at
  * its own speed through other units. It reports when something other than the unit's own orders
  * owns its movement, so its controller can hold them. Clients only show the replicated result
- * (ADR-006 §7).
+ * (ADR-006 §7): a machine that only shows the body draws it between the server's last two updates,
+ * never past the latest, and may draw the player's own body ahead along its path (ADR-077).
  */
 UCLASS(ClassGroup = Combat)
 class VEYRACOMBAT_API UVeyraMovementComponent : public UCharacterMovementComponent
@@ -42,8 +43,31 @@ class VEYRACOMBAT_API UVeyraMovementComponent : public UCharacterMovementCompone
 	GENERATED_BODY()
 
 public:
+	UVeyraMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 	/** Server only: follows Combatant's speed and statuses; nullptr lets go. */
 	void BindCombatant(UAbilitySystemComponent* Combatant);
+
+	/**
+	 * A machine that only shows the body: how far ahead of its smoothed place it is drawn, across the ground, as the
+	 * player's own Vanguard is drawn ahead along its path (ADR-077 §2). Presentation only: the capsule, and all the
+	 * server decides, stay where its updates put them. Zero draws the body where its smoothing has it.
+	 */
+	void SetDrawnLead(const FVector2D& Lead);
+	const FVector2D& GetDrawnLead() const { return DrawnLead; }
+
+	/** A machine that only shows the body: where its smoothing draws it between the server's updates, without any lead. */
+	FVector GetSmoothedLocation() const;
+
+	/**
+	 * A machine that only shows the body: how many of the server's seconds the drawn body trails the server's latest
+	 * update, as it eases from the update before (ADR-077 §1). Zero once it has caught up, and before any update.
+	 */
+	double GetDrawnDelaySeconds() const;
+
+	virtual void SimulatedTick(float DeltaSeconds) override;
+	virtual void SimulateMovement(float DeltaTime) override;
+	virtual void SmoothClientPosition(float DeltaSeconds) override;
 
 	virtual float GetMaxSpeed() const override;
 
@@ -256,6 +280,10 @@ private:
 
 	/** How far it has moved itself since TakeTravelled last read it. */
 	double Travelled = 0.0;
+
+	/** A machine that only shows the body: its drawn lead, and whether the mesh carried one when last placed. */
+	FVector2D DrawnLead = FVector2D::ZeroVector;
+	bool bLeadDrawn = false;
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedCombatant;
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;

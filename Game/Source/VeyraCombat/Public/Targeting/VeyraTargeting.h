@@ -80,6 +80,12 @@ namespace VeyraTargeting
 	/** Distance between two units' collision edges on the ground plane, never below 0 (Combat Bible §40). */
 	VEYRACOMBAT_API double EdgeToEdgeDistance(const AActor& A, const AActor& B);
 
+	/**
+	 * How far apart A's and B's centres may stand, on the ground plane, for B to lie within EdgeRange of A, edge to edge: the
+	 * inverse of EdgeToEdgeDistance, so what measures a reach and what walks to it agree (Combat Bible §40).
+	 */
+	VEYRACOMBAT_API double CentreReach(const AActor& A, const AActor& B, double EdgeRange);
+
 	/** Whether Target is within CastRange of Caster, with the server's tuned latency tolerance (§30). */
 	VEYRACOMBAT_API bool IsWithinCastRange(const AActor& Caster, const AActor& Target, double CastRange);
 

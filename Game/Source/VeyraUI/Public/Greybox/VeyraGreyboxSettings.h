@@ -722,9 +722,9 @@ public:
 	TOptional<FVector2f> EaseOf(const AActor& Unit) const;
 
 	/**
-	 * How the player's own body leads its latest order before the server's movement reaches it (ADR-067 §2), presentation
-	 * only: for at most OwnLeadSeconds, turning at OwnLeadTurnDegreesPerSecond, until the server's movement heads within
-	 * OwnLeadAlignDegrees of the order's point.
+	 * How the player's own body turns to an attack's target within its reach before the server turns it (ADR-067 §2),
+	 * presentation only: for at most OwnLeadSeconds, until the server's facing comes within OwnLeadAlignDegrees of it.
+	 * Every lead turns at OwnLeadTurnDegreesPerSecond, its turn toward a path's way included (ADR-077 §2).
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
 	float OwnLeadSeconds = 0.0f;
@@ -734,6 +734,54 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0", ClampMax = "180"))
 	float OwnLeadAlignDegrees = 0.0f;
+
+	/**
+	 * How the player's own body is drawn ahead along its path (ADR-077 §2), presentation only. Its lead, in seconds, is how
+	 * far its smoothing trails the server's latest update, OwnLeadPingShare of the round trip, and OwnLeadServerWaitSeconds
+	 * for the server's next tick, at most OwnLeadMaxSeconds. It moves at up to OwnLeadCatchUpScale times its speed to take
+	 * its lead up, and is never drawn farther than OwnLeadMaxDistance from where its smoothing has it.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
+	float OwnLeadPingShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
+	float OwnLeadServerWaitSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
+	float OwnLeadMaxSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "1"))
+	float OwnLeadCatchUpScale = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
+	float OwnLeadMaxDistance = 0.0f;
+
+	/**
+	 * The lead goes, over OwnLeadBlendSeconds, once the server's body stands, below OwnLeadStandingSpeedShare of its speed,
+	 * for OwnLeadStallSeconds while its path runs on, or strays more than OwnLeadOffPathDistance from the path. The step
+	 * from the first straight guess to the server's own path closes over OwnLeadSwitchSeconds. A path the server sends
+	 * answers the latest order whose point lies within OwnLeadOrderMatchDistance of the one it was sent for.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float OwnLeadBlendSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01", ClampMax = "0.99"))
+	float OwnLeadStandingSpeedShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
+	float OwnLeadStallSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "1"))
+	float OwnLeadOffPathDistance = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0.01"))
+	float OwnLeadSwitchSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bodies", meta = (ClampMin = "0"))
+	float OwnLeadOrderMatchDistance = 0.0f;
+
+	/** The shape of the player's own body's lead along its path, from these settings and the orders' ArrivalTolerance. */
+	struct FVeyraOwnLeadShape OwnLeadShape(double ArrivalTolerance) const;
 
 	/**
 	 * The Fluxborn kit's provisional art (Art Direction, Fluxborn greybox meshes), keyed by each kind's content ID,

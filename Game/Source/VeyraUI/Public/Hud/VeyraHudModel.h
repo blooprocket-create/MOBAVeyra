@@ -353,6 +353,13 @@ namespace VeyraHud
 	 */
 	VEYRAUI_API TOptional<double> AttackReachOf(const AActor& Unit);
 
+	/**
+	 * How far from Unit's centre Target's centre may stand for Unit's basic attack to reach it now, as the server checks it:
+	 * edge to edge, with what Target's statuses from Unit add (Combat Bible §40). Where the player's own body walks to
+	 * before it attacks (ADR-077 §2); nothing when it has no basic attack.
+	 */
+	VEYRAUI_API TOptional<double> AttackReachTo(const AActor& Unit, const AActor& Target);
+
 	/** Whether Unit is in the middle of a basic attack, as When Engaged bars read fighting (ADR-052 §2). */
 	VEYRAUI_API bool IsFighting(const AActor& Unit);
 
