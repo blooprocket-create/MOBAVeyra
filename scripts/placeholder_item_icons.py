@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws placeholder icons for the items the author has not drawn yet (ADR-025 §8.9).
+"""Historical placeholder renderer (ADR-025 §8.9); no active placeholders remain.
 
 Each icon is ConceptArt/Items/<tier folder>/T_<id>_Icon.png, 256 x 256 px, opaque RGB on the
 dark charcoal ground the author's icons use. The main glyph shows the item's identity; up to four
@@ -54,37 +54,8 @@ COLOURS = {
 GLOW = {1: 0.18, 2: 0.28, 3: 0.40, 4: 0.55}
 
 # id: (tier folder, tier, main glyph, stat glyphs)
-PLACEHOLDERS = {
-    "warforged_grip": ("Tier_1_Components", 1, "blade", []),
-    "titansteel_grip": ("Tier_1_Components", 1, "blades", []),
-    "marchplate": ("Tier_1_Components", 1, "shield", []),
-    "shatterdeep_crystal": ("Tier_1_Components", 1, "crystal", []),
-    "picket_plating": ("Tier_2_Assemblies", 2, "shield", ["heart"]),
-    "canyonward": ("Tier_2_Assemblies", 2, "crystal", ["heart"]),
-    "breaker_aegis": ("Tier_2_Assemblies", 2, "shield", ["crystal", "coil"]),
-    "resonant_wardstone": ("Tier_2_Assemblies", 2, "crystals", []),
-    "foundation_plate": ("Tier_2_Assemblies", 2, "shields", []),
-    "waymark_weave": ("Tier_2_Assemblies", 2, "droplets", []),
-    "rescue_rig": ("Tier_2_Assemblies", 2, "heart", ["chevrons"]),
-    "killstring_assembly": ("Tier_2_Assemblies", 2, "chevrons", ["star"]),
-    "riverhold_bastion": ("Tier_3_Masterworks", 3, "tower", ["shield", "heart"]),
-    "blackreef_bell": ("Tier_3_Masterworks", 3, "bell", ["crystal", "heart"]),
-    "harborline_harness": ("Tier_3_Masterworks", 3, "anchor", ["blade", "chevrons", "droplet"]),
-    "doombringer_bow": ("Tier_3_Masterworks", 3, "bow", ["blade", "chevrons", "star"]),
-    "flux_reclaimer": ("Quest_Items", 2, "vortex", ["heart", "droplet"]),
-    "wayline_reservoir": ("Quest_Items", 3, "vessel", ["heart", "droplet"]),
-    "the_last_harbor": ("Tier_4_Mythicals", 4, "harbor_crown", ["blade", "chevrons", "heart", "droplet"]),
-    # The Item Bible's 2026-10-02 Echo line (ADR-050).
-    "echo_lens": ("Tier_3_Masterworks", 3, "crystals", ["heart", "coil"]),
-    "the_second_self": ("Tier_4_Mythicals", 4, "vortex", ["crystal", "heart", "coil"]),
-    # Veil Needle, its four Masterworks and Memoryglass Reliquary (ADR-051).
-    "veil_needle": ("Tier_2_Assemblies", 2, "blade", ["star"]),
-    "blank_sigil": ("Tier_3_Masterworks", 3, "star", ["blade", "coil"]),
-    "cutline_mantle": ("Tier_3_Masterworks", 3, "chevrons", ["blade", "heart", "coil"]),
-    "oathpiercer": ("Tier_3_Masterworks", 3, "blades", ["star", "heart"]),
-    "witnessless_edge": ("Tier_3_Masterworks", 3, "bow", ["star", "coil", "chevrons"]),
-    "memoryglass_reliquary": ("Tier_3_Masterworks", 3, "vessel", ["crystal", "coil"]),
-}
+# Replaced by source artwork on 2026-10-13; do not regenerate over that art.
+PLACEHOLDERS = {}
 
 
 def shade(colour, factor):

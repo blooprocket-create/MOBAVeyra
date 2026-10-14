@@ -183,6 +183,35 @@ on his plating, which is his canonical designation and belongs on a machine. The
 against baking data and interface into pixels, not against a unit having its serial number
 painted on it.
 
+### Item inventory illustrations
+
+**Author direction, 2026-10-13:** Redesign the complete item icon set so items are
+easily distinguishable and indicate what they do, using a more toon treatment
+consistent with Veyra. The selected emphasis is **bold equipment shapes with
+integrated effect cues**. Final individual artwork remains subject to author
+review and the Visual Production Standard's in-engine acceptance.
+
+Item icons use the match's broad shade bands, cool painted shadows, restrained
+local-colour ink and graphic effect language while keeping equipment/material
+identity. Silhouette, proportions, interior openings and focal placement must
+separate items at 32–48 pixels and in grayscale; palette is a secondary cue.
+Upgrade families retain a recognizable motif but change shape, not only detail.
+The author's 2026-10-13 readability review requires distinct open-hand versus
+closed-fist grips, sight versus crown sword guards, ribbed chassis versus forge
+core silhouettes, and an empty cut-out insignia rather than a cloak for Blank
+Sigil. Cycler uses a stacked spool, Striker a spring hammer, Waymark a double-loop
+knot, and Killstring a prominent cord. Flux Flask uses Flux teal (#45D6C4).
+An integrated effect may suggest the item's main stat or Attunement, as defined
+by the Item Bible; it may not imply an unsupported gameplay effect. Exact rules
+and secondary stats remain text/UI information, not miniature baked stat badges.
+
+Use one large equipment object, a restrained charcoal background and clear safe
+margins. Avoid dense surface noise, ornate repetition, baked UI, labels and tuning
+numbers. Source art, exact generation prompts, exported hashes and small-size
+comparison sheets live under [the item art source](../../ConceptArt/Items/README.md).
+This direction applies to inventory illustrations; it does not redesign world
+materials, characters, ability icons or gameplay.
+
 ### Neris and Sylra collided, and hue could not fix it
 
 **Resolved 2026-09-21.** The author kept Sylra and moved Neris: the wave is restored as

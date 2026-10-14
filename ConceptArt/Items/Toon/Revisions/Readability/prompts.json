@@ -1,0 +1,146 @@
+[
+  {
+    "id": "warforged_grip",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: OPEN armored copper hand, palm visible, four thick separated blunt upright fingers and side thumb. Long squared cuff. Strong raised knuckle plates, physical power. Completely distinct from closed Iron Grip and clawed Titansteel. No clenched fist, no claws.",
+    "spec": "OPEN armored copper hand, palm visible, four thick separated blunt upright fingers and side thumb. Long squared cuff. Strong raised knuckle plates, physical power. Completely distinct from closed Iron Grip and clawed Titansteel. No clenched fist, no claws.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/warforged_grip.png",
+    "before": "Revisions/Readability/before_warforged_grip.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "sovereign_edge",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Regal broad upright golden execution sword, wide heavy blade, prominent THREE-POINT CROWN crossguard making unmistakable crown silhouette at lower third. Dark red grip and one brilliant critical-cut flare. Stronger critical strikes. No sight ring. Keep crown guard large and visible at32px.",
+    "spec": "Regal broad upright golden execution sword, wide heavy blade, prominent THREE-POINT CROWN crossguard making unmistakable crown silhouette at lower third. Dark red grip and one brilliant critical-cut flare. Stronger critical strikes. No sight ring. Keep crown guard large and visible at32px.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/sovereign_edge.png",
+    "before": "Revisions/Readability/before_sovereign_edge.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "colossus_temper",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: One HUGE asymmetric red shoulder pauldron on a short orange supporting bracket, broad triangular shoulder silhouette. Ruby health reservoir feeds one orange strengthened outer cutting ridge, health becoming physical power. No fist, no hand, no claws, no heart-shaped breastplate.",
+    "spec": "One HUGE asymmetric red shoulder pauldron on a short orange supporting bracket, broad triangular shoulder silhouette. Ruby health reservoir feeds one orange strengthened outer cutting ridge, health becoming physical power. No fist, no hand, no claws, no heart-shaped breastplate.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/colossus_temper.png",
+    "before": "Revisions/Readability/before_colossus_temper.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "reinforced_chassis",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Upright dark metal RIB CAGE CHASSIS, tall squared open torso frame with three broad horizontal ribs and clearly open dark gaps. Red padded reservoir panel low inside; two bold green regeneration conduits along side rails. Health and regeneration. No heart shape, no rounded breastplate, no shield.",
+    "spec": "Upright dark metal RIB CAGE CHASSIS, tall squared open torso frame with three broad horizontal ribs and clearly open dark gaps. Red padded reservoir panel low inside; two bold green regeneration conduits along side rails. Health and regeneration. No heart shape, no rounded breastplate, no shield.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/reinforced_chassis.png",
+    "before": "Revisions/Readability/before_reinforced_chassis.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "siegeheart_core",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Compact squat industrial FORGE CORE: broad octagonal iron crucible containing one big glowing red-orange molten core, heavy square chimney-like top cap and two wide block base feet. One emerging red-hot growth block integrated into side suggests permanent health growth from combat. Green cooling seam secondary. No heart shape, no breastplate, no fist.",
+    "spec": "Compact squat industrial FORGE CORE: broad octagonal iron crucible containing one big glowing red-orange molten core, heavy square chimney-like top cap and two wide block base feet. One emerging red-hot growth block integrated into side suggests permanent health growth from combat. Green cooling seam secondary. No heart shape, no breastplate, no fist.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/siegeheart_core.png",
+    "before": "Revisions/Readability/before_siegeheart_core.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "blank_sigil",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Rigid-looking compact crimson CUT-OUT INSIGNIA PATCH mounted flat on a dark iron seal rim. A clean EMPTY DIAMOND opening occupies half its face, clearly charcoal see-through center, narrow pale steel edge. Small orange blade-shaped notch aligns with opening as setup/payoff metaphor. A seal/emblem, NOT torn cloth or cloak. No trailing fabric, no writing.",
+    "spec": "Rigid-looking compact crimson CUT-OUT INSIGNIA PATCH mounted flat on a dark iron seal rim. A clean EMPTY DIAMOND opening occupies half its face, clearly charcoal see-through center, narrow pale steel edge. Small orange blade-shaped notch aligns with opening as setup/payoff metaphor. A seal/emblem, NOT torn cloth or cloak. No trailing fabric, no writing.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/blank_sigil.png",
+    "before": "Revisions/Readability/before_blank_sigil.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "deadeye_edge",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Short narrow steel-orange dagger pointed upper right. Oversized circular golden sight ring integrated into crossguard, conspicuous dark circular opening with one central fine sight alignment. One precise gold critical glint on blade. Physical power and critical accuracy. No crown, no long broad sword.",
+    "spec": "Short narrow steel-orange dagger pointed upper right. Oversized circular golden sight ring integrated into crossguard, conspicuous dark circular opening with one central fine sight alignment. One precise gold critical glint on blade. Physical power and critical accuracy. No crown, no long broad sword.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/deadeye_edge.png",
+    "before": "Revisions/Readability/before_deadeye_edge.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "cycler_core",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: CYLINDRICAL SPOOL motor, tall vertical barrel with THREE stacked wide yellow rotor bands, visible teal central axle, broad open gaps between bands. One rising curved yellow motion stroke suggests stacking attack speed. No front-facing wheel, no saw, no disc, no blades, no gun.",
+    "spec": "CYLINDRICAL SPOOL motor, tall vertical barrel with THREE stacked wide yellow rotor bands, visible teal central axle, broad open gaps between bands. One rising curved yellow motion stroke suggests stacking attack speed. No front-facing wheel, no saw, no disc, no blades, no gun.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/cycler_core.png",
+    "before": "Revisions/Readability/before_cycler_core.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "striker_assembly",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Compact mechanical STRIKING HAMMER: broad rectangular orange hammer head across top, short dark handle below, a LARGE exposed teal compressed spring along handle. Clear T silhouette. Physical power and ability haste. No cannon, no barrel, no gauntlet, no crank. Entire hammer visible.",
+    "spec": "Compact mechanical STRIKING HAMMER: broad rectangular orange hammer head across top, short dark handle below, a LARGE exposed teal compressed spring along handle. Clear T silhouette. Physical power and ability haste. No cannon, no barrel, no gauntlet, no crank. Entire hammer visible.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/striker_assembly.png",
+    "before": "Revisions/Readability/before_striker_assembly.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "waymark_weave",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Thick green woven sailor's WAYMARK KNOT, big doubled braided figure-eight knot with TWO clearly open dark holes, two short tassel ends. Bright green restorative current hugging braids. Concentrated health regeneration. No flat woven swatch, no scarf ring, no leaves, no anchor. Large simple knot silhouette distinct from Renewal Mesh.",
+    "spec": "Thick green woven sailor's WAYMARK KNOT, big doubled braided figure-eight knot with TWO clearly open dark holes, two short tassel ends. Bright green restorative current hugging braids. Concentrated health regeneration. No flat woven swatch, no scarf ring, no leaves, no anchor. Large simple knot silhouette distinct from Renewal Mesh.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/waymark_weave.png",
+    "before": "Revisions/Readability/before_waymark_weave.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "killstring_assembly",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Mechanical bowstring tensioner with two compact gold clamp blocks at upper left and lower right, linked by an UNMISTAKABLE THICK taut ivory-gold CORD. One small coil winds remaining cord behind top clamp. Large dark open space beside cord, one precise four-point critical glint on lower clamp. Attack speed and crit. Not bare triangular frame. Cord must read at32px. No full bow.",
+    "spec": "Mechanical bowstring tensioner with two compact gold clamp blocks at upper left and lower right, linked by an UNMISTAKABLE THICK taut ivory-gold CORD. One small coil winds remaining cord behind top clamp. Large dark open space beside cord, one precise four-point critical glint on lower clamp. Attack speed and crit. Not bare triangular frame. Cord must read at32px. No full bow.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/killstring_assembly.png",
+    "before": "Revisions/Readability/before_killstring_assembly.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  },
+  {
+    "id": "flux_flask",
+    "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Retain round refillable canteen silhouette, blue hinged cap and circular refill handle. Replace ALL green liquid and green glow with bright Flux TEAL #45D6C4. Dark steel straps, teal fluid, cool cyan highlights. Reusable mild healing over time. No green or lime anywhere.",
+    "spec": "Retain round refillable canteen silhouette, blue hinged cap and circular refill handle. Replace ALL green liquid and green glow with bright Flux TEAL #45D6C4. Dark steel straps, teal fluid, cool cyan highlights. Reusable mild healing over time. No green or lime anywhere.",
+    "mode": "generate",
+    "references": [
+      "Sources/iron_grip.png"
+    ],
+    "source": "Revisions/Readability/flux_flask.png",
+    "before": "Revisions/Readability/before_flux_flask.png",
+    "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+  }
+]
