@@ -104,6 +104,11 @@
     select allows only because it is owned now. Its verified result must carry rewards that say a practice
     match gives none.
 
+    -Flow FullParty fills a party to the backend's party.maxSize with that many packaged clients (ADR-083 §6),
+    with no match: the first befriends the others and invites each from the friends panel; once every one
+    is in, it shows the party open, puts the friends and party panels away and shows them so, opens them
+    again and leaves; each other member leaves once it has. Only the first renders.
+
     -Flow Chat exchanges messages between two packaged clients (ADR-046), with no match: they become
     friends if they are not yet; the first invites the second into a party from the friends panel and the
     second joins from the invitation. Each says hello in Party Chat from the sidebar and waits to read the
@@ -290,7 +295,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'CasualDodge', 'Custom', 'Coop', 'Draft', 'Party', 'Settings', 'Collection', 'Chat', 'Profile', 'Rename')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'CasualDodge', 'Custom', 'Coop', 'Draft', 'Party', 'FullParty', 'Settings', 'Collection', 'Chat', 'Profile', 'Rename')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -570,6 +575,8 @@ if ($Handoff -or $Flow) {
     # -Flow Chat: two friends form a party by invitation and exchange Party Chat and direct messages through the
     # sidebar; no match (ADR-046).
     $isChat = $Flow -eq 'Chat'
+    # -Flow FullParty: a party as full as the backend allows, its panels shown open and put away; no match (ADR-083 §6).
+    $isFullParty = $Flow -eq 'FullParty'
     # -Flow Profile: two friends; one features an owned Vanguard and shares its Match History on the Profile page,
     # the other opens that profile from their card until it shows them; no match (ADR-048).
     $isProfile = $Flow -eq 'Profile'
@@ -581,8 +588,8 @@ if ($Handoff -or $Flow) {
     # Its bots, one on each side: side A's, then side B's. Neither is a Vanguard a player locks.
     $CustomBots = @('bryn', 'qazharr')
     # Every run but a declined match found or a left champion select plays a match.
-    $expectsMatch = $Flow -notin 'CasualDecline', 'CasualDodge', 'Settings', 'Chat', 'Profile', 'Rename'
-    $playerCount = $(if ($isPractice -or $isSettings -or $isCoop -or $isRename) { 1 } else { 2 })
+    $expectsMatch = $Flow -notin 'CasualDecline', 'CasualDodge', 'Settings', 'Chat', 'Profile', 'Rename', 'FullParty'
+    $playerCount = $(if ($isPractice -or $isSettings -or $isCoop -or $isRename) { 1 } elseif ($isFullParty) { [int]$backendConfig.party.maxSize } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
     # The committed config's queues hold five humans a side (Modes Bible §1, §4). A smoke has one client a
     # side, so its backend runs the committed config with the smoke's mode sized to it (ADR-039 §6).
@@ -670,6 +677,10 @@ if ($Handoff -or $Flow) {
             Side = $(if ($isPractice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
             Vanguard = $(if ($isPractice) { $PracticeVanguard } elseif ($isMatchmade -or $isCustom -or $isCoop -or $isParty) { $CasualVanguards[$index] } else { $SmokeVanguard }) }
     }
+    if ($isFullParty -and @($participants).Count -lt $playerCount) {
+        Write-Host "-Flow FullParty needs $playerCount dev accounts in Backend/config/local.json devLogin.accounts, its party.maxSize."
+        exit $ExitInfrastructure
+    }
     if (($isMatchmade -or $isCustom -or $isParty -or $isChat -or $isProfile) -and @($participants).Count -lt 2) {
         Write-Host "-Flow $Flow needs two dev accounts in Backend/config/local.json devLogin.accounts."
         exit $ExitInfrastructure
@@ -710,6 +721,9 @@ if ($Handoff -or $Flow) {
     }
     elseif ($isChat) {
         Write-Host "$($participants.Name -join ' and ') form a party and chat in it: no match."
+    }
+    elseif ($isFullParty) {
+        Write-Host "$($participants.Name -join ', ') fill a party of $playerCount`: no match."
     }
     elseif ($isProfile) {
         # The owner's profile starts from the defaults, its history private, so the viewer sees this run's choices.
@@ -809,6 +823,9 @@ if ($Handoff -or $Flow) {
                         @($(if ($index -eq 0) { '-VeyraSmokeFlow=partyleader' } else { '-VeyraSmokeFlow=partymember' }), "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)",
                             "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory', "-VeyraSmokeFlowMode=$mode") + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($isChat) { @($(if ($index -eq 0) { '-VeyraSmokeFlow=chatleader' } else { '-VeyraSmokeFlow=chatmember' }), "-VeyraSmokeFlowFriend=$($participants[1 - $index].Name)") }
+                    elseif ($isFullParty) {
+                        if ($index -eq 0) { @('-VeyraSmokeFlow=fullpartyleader', "-VeyraSmokeFlowFriends=$((@($participants | Select-Object -Skip 1).Name) -join ',')") }
+                        else { @('-VeyraSmokeFlow=fullpartymember', "-VeyraSmokeFlowFriend=$($participants[0].Name)") } }
                     elseif ($isProfile) { @($(if ($index -eq 0) { '-VeyraSmokeFlow=profileowner' } else { '-VeyraSmokeFlow=profileviewer' }), "-VeyraSmokeFlowFriend=$($participants[1 - $index].Name)") }
                     elseif ($isRename) { @('-VeyraSmokeFlow=rename', "-VeyraSmokeFlowName=$RenameTo") }
                     elseif ($isCoop) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory', '-VeyraSmokeFlowSieges', "-VeyraSmokeFlowMode=$mode") }
@@ -986,6 +1003,14 @@ if ($Handoff -or $Flow) {
                         $failed = $true
                     }
                 }
+                # Every member but the leader joined it from the invitation (ADR-083 §6).
+                if ($isFullParty -and $client.Number -gt 1) {
+                    $partyLine = "VeyraClientFlow: joining $($participants[0].Name)'s party from the invitation."
+                    if (-not (Select-String -LiteralPath $client.Log -SimpleMatch $partyLine -Quiet)) {
+                        Write-Host "  It never logged '$partyLine'"
+                        $failed = $true
+                    }
+                }
                 # Each friend sent Party Chat and a direct message through the client flow (ADR-046); a party's members
                 # also chat from champion select, the match and the results' post-match chat.
                 if ($isChat -or $isParty) {
@@ -1028,6 +1053,7 @@ if ($Handoff -or $Flow) {
                 'Party' { 'Home', 'PartyFormed', 'PartyConfirm', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
                 'Chat' { 'Home', 'PartyFormed', 'Chat' }
+                'FullParty' { 'Home', 'FullParty', 'FullPartyPutAway' }
                 'Profile' { 'Profile', 'AppearOffline' }
                 'Rename' { 'RenameConfirm', 'Renamed' }
             }

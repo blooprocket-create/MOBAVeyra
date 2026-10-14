@@ -76,6 +76,16 @@ namespace VeyraBackendProtocol
  * Both accept, pick and play; with -VeyraSmokeFlowSieges the first wins by siege, and each must see
  * Victory, since a co-op party shares its side.
  *
+ * The full party's scripts (Smoke.ps1 -Flow FullParty, ADR-083 §6) fill a party, with no match:
+ * - fullpartyleader leaves any party an earlier run left, befriends and invites every player
+ *   -VeyraSmokeFlowFriends= names (a list), and once they are all in, shows the party open, then puts
+ *   the friends and party panels away and shows them so, opens them again and leaves the party.
+ * - fullpartymember befriends its leader (-VeyraSmokeFlowFriend=), joins from the invitation, and once
+ *   the leader has left, leaves too.
+ *
+ * Every script opens the friends and party panels a player left put away, as a player would before
+ * using them: this machine remembers them for every client it runs (ADR-083 §6).
+ *
  * -VeyraSmokeFlow=opponent is not a test but a sparring partner for a person playing the matchmade
  * path (Game/Scripts/Play.ps1 -Opponent). It queues for the first matchmade mode and accepts every
  * match found; in champion select it locks a Vanguard nobody has locked once the other team has
@@ -132,6 +142,10 @@ private:
 		ProfileViewer,
 		/** Display names (ADR-049): changes its name on the Profile page, its first change free, through the confirmation. */
 		Rename,
+		/** A full party (ADR-083 §6): befriends and invites every friend it is given, then shows the panels open and put away. */
+		FullPartyLeader,
+		/** A full party: joins its friend's party from the invitation, and leaves once they have. */
+		FullPartyMember,
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -148,6 +162,22 @@ private:
 	/** The party's scripts in the shell: friends, then the party formed and its leadership handed over, then the queue. */
 	void TickPartyShell(IVeyraClientIntents& Flow);
 	bool IsParty() const { return Script == EScript::PartyLeader || Script == EScript::PartyMember; }
+	/** The full party's scripts in the shell: every friend befriended and invited, the panels shown open and put away, then the party left. */
+	void TickFullPartyShell(IVeyraClientIntents& Flow);
+	bool IsFullParty() const { return Script == EScript::FullPartyLeader || Script == EScript::FullPartyMember; }
+	/** Clicks the shell's enabled button labelled Label if it shows one; false, the script going on, if not. */
+	bool ClickIfShown(const FString& Label);
+	/** Opens the friends or party panel if a player left it put away, one a tick. True if it opened one now. */
+	bool OpenPanels();
+	/** Full party: the leader's friends, how far it has come, and whether it has the panels put away on purpose. */
+	TArray<FString> FriendNames;
+	TSet<FString> AskedFriends;
+	/** Full party: when the leader next invites each friend not yet in, as after an invitation that went unanswered. */
+	TMap<FString, double> NextInviteFor;
+	int32 FullPartyStep = 0;
+	bool bPanelsPutAway = false;
+	/** Full party: the most members a member saw in its party. */
+	int32 MostMembers = 0;
 	/**
 	 * The chat scripts in the shell (ADR-046): friends, then a party formed by invitation, then a Party Chat
 	 * line each way through the sidebar, then a direct message each way from the friend's card.
