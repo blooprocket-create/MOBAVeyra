@@ -2,7 +2,9 @@
 import json
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+
+from export_icons import ROOT, label_font
 
 HERE = Path(__file__).resolve().parent
 
@@ -11,7 +13,7 @@ def main():
     record = json.loads((HERE / "generation.json").read_text(encoding="utf-8"))
     image = Image.new("RGB", (8 * 176, 8 * 164), (27, 28, 32))
     draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 12)
+    font = label_font(ROOT, 12)
     count = 0
     for index, item in enumerate(record["items"]):
         source = HERE / "Sources" / f'{item["id"]}.png'

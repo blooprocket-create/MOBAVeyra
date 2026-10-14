@@ -6,7 +6,7 @@ One icon per item the [Item Bible](../../Docs/Design/Veyra_Item_Bible_v0.3.md) n
 
 [`Toon/README.md`](Toon/README.md) records the visual grammar, production method and acceptance boundaries. [`Toon/generation.json`](Toon/generation.json) records every exact prompt, purpose and exported hash; [`Toon/repairs.json`](Toon/repairs.json) records targeted review corrections. `Toon/Sources/` retains individual built-in image_gen outputs, and `Toon/Before/` preserves the prior set. These directories use filenames excluded from the recursive importer.
 
-Run [`Toon/export_icons.py`](Toon/export_icons.py) with Python and Pillow to preflight all sources and regenerate the 256 px icons, `contact_sheet.jpg`, and the [48 px / 32 px / grayscale review](Toon/readability_48_32_gray.png). Final author artwork review and in-engine visual acceptance remain pending; the tool's success does not grant artistic approval.
+Run [`Toon/export_icons.py`](Toon/export_icons.py) with Python and Pillow (its sheets label with the project's Inter, `Game/Content/Veyra/Fonts/Inter`, from Git LFS) to preflight all sources and regenerate the 256 px icons, `contact_sheet.jpg`, and the [48 px / 32 px / grayscale review](Toon/readability_48_32_gray.png). Final author artwork review and in-engine visual acceptance remain pending; the tool's success does not grant artistic approval.
 
 ## Earlier source history
 

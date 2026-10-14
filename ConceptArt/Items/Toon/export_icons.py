@@ -16,6 +16,15 @@ ART = HERE.parent
 ROOT = ART.parent.parent
 
 
+def label_font(root: Path, size: int) -> ImageFont.FreeTypeFont:
+    """The review sheets' label font: the project's own Inter (OFL), so the export runs on any machine."""
+    path = root / "Game/Content/Veyra/Fonts/Inter/Inter-Regular.ttf"
+    try:
+        return ImageFont.truetype(str(path), size)
+    except OSError as error:
+        raise SystemExit(f"Cannot open the label font {path} ({error}); run `git lfs pull --include Game/Content/Veyra/Fonts` first.")
+
+
 def atomic_save(image, target, **options):
     temporary = target.with_name(target.name + ".new")
     image.save(temporary, format=Image.registered_extensions()[target.suffix], **options)
@@ -45,8 +54,8 @@ def main():
         assert len(targets) == 1, item["id"]
         item["file"] = targets[0].relative_to(ART).as_posix()
 
-    font = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 13)
-    font_small = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 10)
+    font = label_font(ROOT, 13)
+    font_small = label_font(ROOT, 10)
     preview = Image.new("RGB", (8 * 176, 8 * 190), (27, 28, 32))
     thumbnail = Image.new("RGB", (8 * 176, 8 * 106), (27, 28, 32))
     old_preview = Image.new("RGB", preview.size, (27, 28, 32))
