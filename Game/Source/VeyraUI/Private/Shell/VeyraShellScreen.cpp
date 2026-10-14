@@ -269,6 +269,10 @@ void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 		const UVeyraShellStyleSettings& Style = ShellStyle();
 		FriendsBox->SetWidthOverride(PanelSize(FriendsMovedAt, FriendsFrom, bFriendsCollapsed ? Style.FriendsCollapsedWidth : Style.FriendsPanelWidth));
 	}
+	if (TopBar)
+	{
+		FitTopBar(static_cast<float>(TopBar->GetCachedGeometry().GetLocalSize().X), static_cast<float>(TopBar->GetDesiredSize().X));
+	}
 	if (PartyBox)
 	{
 		// Toward the height its new panel or bar asks for, then free to follow it.
@@ -299,6 +303,27 @@ float UVeyraShellScreen::PanelSize(double MovedAt, float From, float To) const
 	const float Through = FMath::Clamp(static_cast<float>((FPlatformTime::Seconds() - MovedAt) / Seconds), 0.0f, 1.0f);
 	// Eased out: quick to start, settling at its size.
 	return FMath::InterpEaseOut(From, To, Through, 3.0f);
+}
+
+void UVeyraShellScreen::FitTopBar(float Has, float Wants)
+{
+	if (Has <= 0.0f)
+	{
+		return;
+	}
+	// One line wants more than it has: the tabs take a line of their own, until the room one line wanted comes back.
+	const bool bStack = bTopBarStacked ? Has < TopBarLineWidth : Wants > Has;
+	if (bStack == bTopBarStacked)
+	{
+		return;
+	}
+	if (bStack)
+	{
+		TopBarLineWidth = Wants;
+	}
+	bTopBarStacked = bStack;
+	ShownSignature.Reset();
+	Refresh();
 }
 
 bool UVeyraShellScreen::IsPartyMoving() const
@@ -357,6 +382,8 @@ void UVeyraShellScreen::Refresh()
 	if (bNewLook)
 	{
 		ShownSignature.Reset();
+		// Another text size wants another width: the bar measures its one line afresh.
+		bTopBarStacked = false;
 	}
 	// A draft turn of the player's own asks for their attention once, as it begins (UX-31, UX-32).
 	if (const FString Turn = VeyraShellModels::PlayersTurn(Snapshot); Turn != AttendedTurn)
@@ -547,6 +574,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	Countdown = nullptr;
 	QueueStatus = nullptr;
 	PartyBox = nullptr;
+	TopBar = nullptr;
 	PageBody = nullptr;
 	Shown = VeyraShellModels::ScreenFor(Snapshot.State);
 	// Settings belong to the shell, the lobby and the results, never to champion select, Match Found or
@@ -825,25 +853,27 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	Brand->AddChildToHorizontalBox(Mark)->SetVerticalAlignment(VAlign_Center);
 	VeyraShellStyle::AddSpaced(*Bar, *Brand);
 	AddGap(*WidgetTree, *Bar, Style.ScreenPadding);
-	// Navigation between ordinary pages (UX §1); a lobby holds the player until they leave it.
+	// Navigation between ordinary pages (UX §1); a lobby holds the player until they leave it. On the bar's line, or on one
+	// of their own under it where the bar's line does not fit (ADR-083 §5).
+	UHorizontalBox* Tabs = bTopBarStacked ? WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass()) : Bar;
 	if (bPages)
 	{
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, bOnPages && Page == EVeyraShellPage::Home)
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, bOnPages && Page == EVeyraShellPage::Home)
 			->KeepLabelOnOneLine();
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, bOnPages && Page == EVeyraShellPage::Play)
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, bOnPages && Page == EVeyraShellPage::Play)
 			->KeepLabelOnOneLine();
 		// Opening Match History reads its first page afresh, with the filters last used.
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHistory", "Match History"), [this] {
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavHistory", "Match History"), [this] {
 			ShowPage(EVeyraShellPage::History);
 			Client->LoadHistory(Client->GetSnapshot().History.Filter);
 		}, true, bOnPages && Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
 		// Opening the Collection reads it afresh, with the level and balances (ADR-045 §8).
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavCollection", "Collection"), [this] {
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavCollection", "Collection"), [this] {
 			ShowPage(EVeyraShellPage::Collection);
 			Client->LoadCollection();
 		}, true, bOnPages && Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
 		// Opening the Profile page reads the choices afresh, and starts the draft from them (ADR-048 §5).
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, VeyraProfileModels::PageLabel(), [this] {
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, VeyraProfileModels::PageLabel(), [this] {
 			bProfileDraftReady = false;
 			ShowPage(EVeyraShellPage::Profile);
 			Client->LoadProfileSettings();
@@ -859,12 +889,13 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	}
 	AddSettingsButton(*Bar);
 	AddKindButton(*Bar, EVeyraShellButtonKind::Quiet, LOCTEXT("Quit", "Quit"), [this] { Client->Quit(); })->KeepLabelOnOneLine();
-	// Scaled down, never past the window, where the window is too narrow for it (ADR-083 §5).
-	UScaleBox* Fit = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass());
-	Fit->SetStretch(EStretch::ScaleToFitX);
-	Fit->SetStretchDirection(EStretchDirection::DownOnly);
-	Fit->AddChild(Bar);
-	Parent.AddChild(Fit);
+	TopBar = Bar;
+	Parent.AddChild(Bar);
+	if (Tabs != Bar)
+	{
+		AddGap(*WidgetTree, Parent, Style.Spacing / 2.0f);
+		Parent.AddChild(Tabs);
+	}
 	AddGap(*WidgetTree, Parent, Style.Spacing);
 	Parent.AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
 	AddGap(*WidgetTree, Parent, Style.Spacing * 2.0f);

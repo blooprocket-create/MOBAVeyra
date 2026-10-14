@@ -522,6 +522,24 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsFalse(OffersSettings(), TEXT("never in Match Found")));
 		}
 
+		TEST_METHOD(TheTopBarReflowsItsTabsRatherThanShrinking)
+		{
+			// ADR-083 §5: where one line does not fit, the page tabs take their own line; the text keeps its size (ADR-055 §2).
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ShowScreen(Rig);
+			Screen->FitTopBar(1200.0f, 1000.0f);
+			ASSERT_THAT(IsFalse(Screen->IsTopBarStacked(), TEXT("it fits on one line")));
+			Screen->FitTopBar(800.0f, 1000.0f);
+			ASSERT_THAT(IsTrue(Screen->IsTopBarStacked()));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(FText::FromString(TEXT("Home"))), TEXT("the tabs, on their own line")));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraShellScreen::SettingsLabel())));
+			// Back on one line only once the room it wanted comes back, so it never flickers between the two.
+			Screen->FitTopBar(900.0f, 700.0f);
+			ASSERT_THAT(IsTrue(Screen->IsTopBarStacked(), TEXT("not yet")));
+			Screen->FitTopBar(1000.0f, 700.0f);
+			ASSERT_THAT(IsFalse(Screen->IsTopBarStacked()));
+		}
+
 		TEST_METHOD(ThePartyPanelEasesBetweenOpenAndPutAwayUnlessStill)
 		{
 			// As the friends panel does (ADR-083 §6): from the height it had to its new one, over PanelCollapseSeconds.

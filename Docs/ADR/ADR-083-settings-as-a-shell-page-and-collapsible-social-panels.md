@@ -51,6 +51,8 @@ The Settings page measures the width it is given, not the window's:
 
 The widths are shell style settings.
 
+The shell's top bar reflows the same way. Where its one line does not fit, the page tabs move to a line of their own beneath it, and they return once there is room again. It never scales down, so the player's Interface Text Size holds.
+
 ### 6. The friends and party panels
 
 - **Friends** run down the right of the shell, full height. Collapsed, they keep a strip with the online count, the online friends' initials and a way back.
