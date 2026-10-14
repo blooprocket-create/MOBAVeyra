@@ -223,6 +223,18 @@ private:
 	TObjectPtr<UScrollBox> ListScroll;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UScrollBox> NavScroll;
+
+	/** Builds the categories, the list and About afresh, the list scrolled as far as the one before it (see BuildBody). */
+	void MakeBodyWidgets();
+
+	/**
+	 * Ends Line with the row's place for Reset (ADR-083 §3): the same width on every row, holding Reset only where it would
+	 * change something, so the row's controls stay where they were when it shows.
+	 */
+	void AddResetPlace(UHorizontalBox& Line, const FVeyraSettingRowModel& Row);
+
+	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> AboutHost;
 
 	/** Each row's frame and the row it shows, which the About panel follows. */

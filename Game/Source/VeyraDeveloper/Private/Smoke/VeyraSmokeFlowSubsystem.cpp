@@ -49,6 +49,7 @@
 #include "Shell/VeyraShellUISubsystem.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Settings/VeyraSettingsModels.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Text/VeyraContentText.h"
 #endif
@@ -82,6 +83,8 @@ namespace
 	// Full party: how long the panels are given to finish putting themselves away before the capture,
 	// longer than the shell's collapse (VeyraShellStyleSettings' PanelCollapseSeconds).
 	constexpr double PanelSettleRealSeconds = 1.0;
+	// Settings: how many ticks a page clicked into may take to draw its next button, far more than a frame or two.
+	constexpr int32 SettingsDrawTicks = 120;
 	// Harness settings for the siege: how often it asks, leaving time for each fall to replicate, and
 	// how many asks mean something is wrong, well above the structures on the way to a Prime Well.
 	constexpr double SiegeIntervalRealSeconds = 1.0;
@@ -2955,14 +2958,50 @@ void UVeyraSmokeFlowSubsystem::TickSettings()
 		}
 		return;
 	case 1:
+	case 101:
+	case 102:
+	{
 		if (!Settings)
 		{
 			Finish(false, TEXT("Settings did not open from the shell's top bar"));
 			return;
 		}
-		Settings->ShowCategory(EVeyraSettingCategory::GraphicsDisplay);
-		SettingsStep = 2;
+		// The categories as the player picks them, with the mouse: Interface, then Graphics & Display, each shown once clicked.
+		const EVeyraSettingCategory Wanted = SettingsStep == 1 ? EVeyraSettingCategory::Interface : EVeyraSettingCategory::GraphicsDisplay;
+		if (SettingsStep != 1)
+		{
+			const EVeyraSettingCategory Clicked = SettingsStep == 101 ? EVeyraSettingCategory::Interface : EVeyraSettingCategory::GraphicsDisplay;
+			if (Settings->GetModel().Category != Clicked)
+			{
+				Finish(false, FString::Printf(TEXT("a mouse click on \"%s\" in Settings did not show it"), *VeyraSettingsModels::CategoryName(Clicked).ToString()));
+				return;
+			}
+			if (SettingsStep == 102)
+			{
+				SettingsStep = 2;
+				return;
+			}
+		}
+		const FText Name = VeyraSettingsModels::CategoryName(Wanted);
+		const UVeyraShellButton* Category = Settings->FindButton(Name);
+		if (!Category)
+		{
+			Finish(false, FString::Printf(TEXT("the Settings screen shows no \"%s\" category"), *Name.ToString()));
+			return;
+		}
+		if (ClickWithMouse(*Category))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: clicked \"%s\" in Settings with the mouse."), *Name.ToString());
+			SettingsStep = SettingsStep == 1 ? 101 : 102;
+			SettingsDrawWait = 0;
+		}
+		else if (SettingsStep != 1 && ++SettingsDrawWait > SettingsDrawTicks)
+		{
+			// The page took the last click but never drew what it rebuilt, so the player could click nothing more.
+			Finish(false, FString::Printf(TEXT("after a click, Settings never drew its \"%s\" category to click"), *Name.ToString()));
+		}
 		return;
+	}
 	case 2:
 	{
 		if (Capture(TEXT("SettingsDisplay")))
@@ -3169,6 +3208,27 @@ void UVeyraSmokeFlowSubsystem::TickFavoritesTab(const FVeyraClientSnapshot& Snap
 	}
 #else
 	bCheckedFavorites = true;
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::ClickWithMouse(const UWidget& Target)
+{
+#if WITH_VEYRA_UI
+	const FGeometry& Geometry = Target.GetCachedGeometry();
+	if (!FSlateApplication::IsInitialized() || Geometry.GetLocalSize().X <= 0.0f || Geometry.GetLocalSize().Y <= 0.0f)
+	{
+		return false;
+	}
+	FSlateApplication& App = FSlateApplication::Get();
+	const FVector2D At = Geometry.GetAbsolutePositionAtCoordinates(FVector2D(0.5f, 0.5f));
+	const FKey Left = EKeys::LeftMouseButton;
+	const FModifierKeysState NoKeys;
+	App.ProcessMouseMoveEvent(FPointerEvent(App.CursorPointerIndex, At, At, TSet<FKey>(), EKeys::Invalid, 0.0f, NoKeys));
+	App.ProcessMouseButtonDownEvent(nullptr, FPointerEvent(App.CursorPointerIndex, At, At, TSet<FKey>({ Left }), Left, 0.0f, NoKeys));
+	App.ProcessMouseButtonUpEvent(FPointerEvent(App.CursorPointerIndex, At, At, TSet<FKey>(), Left, 0.0f, NoKeys));
+	return true;
+#else
+	return false;
 #endif
 }
 

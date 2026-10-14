@@ -130,6 +130,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SettingsSwitchHeight"), SettingsSwitchHeight },
 		{ TEXT("SettingsRadioSize"), SettingsRadioSize },
 		{ TEXT("SettingsRowHeight"), SettingsRowHeight },
+		{ TEXT("SettingsResetWidth"), SettingsResetWidth },
 		{ TEXT("FriendsCollapsedWidth"), FriendsCollapsedWidth },
 		{ TEXT("PartyCollapsedHeight"), PartyCollapsedHeight },
 		{ TEXT("PartySlotHeight"), PartySlotHeight },

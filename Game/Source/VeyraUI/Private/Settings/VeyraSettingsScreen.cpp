@@ -266,11 +266,7 @@ bool UVeyraSettingsScreen::Initialize()
 		// The categories, the settings and the About panel, laid out for the width given (ADR-083 §5).
 		BodyHost = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		VeyraSettingsLayout::AddFilling(*Frame, *BodyHost);
-		Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		ListScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
-		ListScroll->AddChild(Rows);
-		Nav = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		AboutHost = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		MakeBodyWidgets();
 
 		VeyraShellStyle::AddSpaced(*Frame, *VeyraShellStyle::MakeRule(*WidgetTree));
 		Footer = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -414,7 +410,7 @@ void UVeyraSettingsScreen::NativeTick(const FGeometry& MyGeometry, float InDelta
 	// Laid out for the width it is given, not the window's (ADR-083 §5).
 	if (const float Width = MyGeometry.GetLocalSize().X; Width > 0.0f && LayoutFor(Width) != Layout)
 	{
-		ApplyWidth(Width);
+			ApplyWidth(Width);
 		return;
 	}
 	// About follows the row under the pointer, or the one keyboard focus is in (ADR-083 §4).
@@ -639,18 +635,49 @@ TOptional<FVeyraContentId> UVeyraSettingsScreen::GetAboutSetting() const
 	return Model.Rows.IsValidIndex(AboutRow) ? TOptional<FVeyraContentId>(Model.Rows[AboutRow].Id) : TOptional<FVeyraContentId>();
 }
 
+void UVeyraSettingsScreen::AddResetPlace(UHorizontalBox& Line, const FVeyraSettingRowModel& Row)
+{
+	USizeBox* Place = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Place->SetWidthOverride(VeyraSettingsLayout::Style().SettingsResetWidth);
+	if (Row.bChanged && !Row.bLocked)
+	{
+		// Reset shows only where it would change something (§6.1).
+		const FVeyraContentId Id = Row.Id;
+		UVeyraShellButton* Reset = UVeyraShellButton::MakeKindNamed(*WidgetTree, EVeyraShellButtonKind::Quiet, ResetLabel(Row), LOCTEXT("ResetOne", "Reset"),
+			[this, Id] { ChangeStore([this, &Id](FVeyraSettingsStore& Store) { Store.Reset(Id, bInMatch); }); });
+		Reset->KeepLabelOnOneLine();
+		Buttons.Add(Reset);
+		if (USizeBoxSlot* ResetSlot = Cast<USizeBoxSlot>(Place->AddChild(Reset)))
+		{
+			ResetSlot->SetHorizontalAlignment(HAlign_Right);
+			ResetSlot->SetVerticalAlignment(VAlign_Center);
+		}
+	}
+	Line.AddChildToHorizontalBox(Place)->SetVerticalAlignment(VAlign_Center);
+}
+
+void UVeyraSettingsScreen::MakeBodyWidgets()
+{
+	const float Scrolled = ListScroll ? ListScroll->GetScrollOffset() : 0.0f;
+	Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	ListScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+	ListScroll->AddChild(Rows);
+	ListScroll->SetScrollOffset(Scrolled);
+	Nav = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	NavScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+	NavScroll->AddChild(Nav);
+	AboutHost = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+}
+
 void UVeyraSettingsScreen::BuildBody()
 {
 	const UVeyraShellStyleSettings& Style = VeyraSettingsLayout::Style();
+	// Every widget of the body is made afresh, none carried over from the last build into new containers: a widget moved
+	// out of a released container can come back as its old, detached Slate, which is never drawn and takes no click (ADR-083 §5).
 	BodyHost->ClearChildren();
-	Nav->ClearChildren();
-	Rows->ClearChildren();
-	AboutHost->ClearChildren();
 	RowFrames.Reset();
 	GroupHeadings.Reset();
-	ListScroll->RemoveFromParent();
-	Nav->RemoveFromParent();
-	AboutHost->RemoveFromParent();
+	MakeBodyWidgets();
 
 	// The rows first, so the categories' group entries can find their headings.
 	if (!Model.UnboundEssentials.IsEmpty() && (Model.bSearching || Model.Category == EVeyraSettingCategory::Controls))
@@ -698,8 +725,6 @@ void UVeyraSettingsScreen::BuildBody()
 	{
 		UHorizontalBox* Columns = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		BuildNav(*Nav);
-		UScrollBox* NavScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
-		NavScroll->AddChild(Nav);
 		UHorizontalBoxSlot* NavSlot = Columns->AddChildToHorizontalBox(VeyraSettingsLayout::Sized(*WidgetTree, *NavScroll, Style.SettingsNavWidth));
 		NavSlot->SetPadding(FMargin(0.0f, 0.0f, Style.Spacing * 2.0f, 0.0f));
 		if (Layout == ELayout::Wide)
@@ -849,6 +874,8 @@ void UVeyraSettingsScreen::BuildGrid(UPanelWidget& Box, int32 First, int32 Last)
 		Name->SetJustification(ETextJustify::Center);
 		Head->AddChildToHorizontalBox(VeyraSettingsLayout::Sized(*WidgetTree, *Name, Style.SettingsGridColumnWidth))->SetVerticalAlignment(VAlign_Center);
 	}
+	// The rows' place for Reset, so each column of radios sits under its option's name.
+	Head->AddChildToHorizontalBox(VeyraSettingsLayout::Sized(*WidgetTree, *WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()), Style.SettingsResetWidth));
 	UBorder* HeadFrame = VeyraShellStyle::MakeBorder(*WidgetTree, FLinearColor::Transparent, 0.0f);
 	HeadFrame->SetPadding(FMargin(Style.Spacing * 1.5f, Style.Spacing));
 	HeadFrame->SetContent(Head);
@@ -886,12 +913,7 @@ void UVeyraSettingsScreen::BuildGrid(UPanelWidget& Box, int32 First, int32 Last)
 			}
 			Line->AddChildToHorizontalBox(Column)->SetVerticalAlignment(VAlign_Center);
 		}
-		if (Row.bChanged && !Row.bLocked)
-		{
-			AddButton(*Line, EVeyraShellButtonKind::Quiet, ResetLabel(Row), LOCTEXT("ResetOne", "Reset"), [this, Id] {
-				ChangeStore([this, &Id](FVeyraSettingsStore& Store) { Store.Reset(Id, bInMatch); });
-			});
-		}
+		AddResetPlace(*Line, Row);
 		Box.AddChild(MakeRowFrame(Index, *Line));
 	}
 }
@@ -918,12 +940,7 @@ void UVeyraSettingsScreen::BuildRow(UPanelWidget& Box, int32 Index)
 	BuildControl(*Line, *Stack, Row);
 	// Reset shows only where it would change something (§6.1).
 	const FVeyraContentId Id = Row.Id;
-	if (Row.bChanged && !Row.bLocked)
-	{
-		AddButton(*Line, EVeyraShellButtonKind::Quiet, ResetLabel(Row), LOCTEXT("ResetOne", "Reset"), [this, Id] {
-			ChangeStore([this, &Id](FVeyraSettingsStore& Store) { Store.Reset(Id, bInMatch); });
-		});
-	}
+	AddResetPlace(*Line, Row);
 	Box.AddChild(MakeRowFrame(Index, *Stack));
 }
 

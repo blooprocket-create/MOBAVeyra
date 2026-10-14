@@ -14,6 +14,7 @@ class AVeyraGameState;
 class AVeyraPlayerController;
 class IVeyraClientIntents;
 struct FVeyraClientSnapshot;
+class UWidget;
 namespace VeyraBackendProtocol
 {
 	struct FLobby;
@@ -167,6 +168,11 @@ private:
 	bool IsFullParty() const { return Script == EScript::FullPartyLeader || Script == EScript::FullPartyMember; }
 	/** Clicks the shell's enabled button labelled Label if it shows one; false, the script going on, if not. */
 	bool ClickIfShown(const FString& Label);
+	/**
+	 * Clicks Target as a player's mouse would: a move, a press and a release at its centre, through Slate's own input, so
+	 * what lies over it on screen takes the click if anything does. False, the script going on, until it is laid out.
+	 */
+	bool ClickWithMouse(const UWidget& Target);
 	/** Opens the friends or party panel if a player left it put away, one a tick. True if it opened one now. */
 	bool OpenPanels();
 	/** Full party: the leader's friends, how far it has come, and whether it has the panels put away on purpose. */
@@ -310,6 +316,8 @@ private:
 	void TickSettings();
 	bool IsSettings() const { return Script == EScript::SettingsChange || Script == EScript::SettingsCheck; }
 	int32 SettingsStep = 0;
+	/** Settings: the ticks spent waiting for the next category to be drawn after a click. */
+	int32 SettingsDrawWait = 0;
 
 	/**
 	 * Clicks the shell's button labelled Label, the Occurrence-th where several share it. False, having

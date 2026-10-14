@@ -6,6 +6,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
+#include "Components/SizeBox.h"
 #include "Components/Button.h"
 #include "Components/Slider.h"
 #include "Components/ActorTestSpawner.h"
@@ -247,6 +248,27 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraSettingsScreen::GroupLinkLabel(VeyraContentText::SettingGroupName(Setting(TEXT("casting")))))));
 			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::OptionLabel(CastQ, CastQ.Options[2]))));
 			ASSERT_THAT(IsTrue(Settings->Store().Get(Setting(TEXT("controls_cast_mode_q"))) == CastQ.Options[2].Value));
+		}
+
+		TEST_METHOD(EveryRowKeepsItsPlaceForResetSoNothingMovesWhenItShows)
+		{
+			// ADR-083 §3: Reset shows on a changed row in a place every row keeps, the grid's heading too, so nothing moves.
+			const float ResetWidth = GetDefault<UVeyraShellStyleSettings>()->SettingsResetWidth;
+			const auto ResetPlaces = [this, ResetWidth] {
+				int32 Places = 0;
+				Screen->WidgetTree->ForEachWidget([&Places, ResetWidth](UWidget* Widget) {
+					const USizeBox* Box = Cast<USizeBox>(Widget);
+					Places += Box && FMath::IsNearlyEqual(Box->GetWidthOverride(), ResetWidth) ? 1 : 0;
+				});
+				return Places;
+			};
+			Screen->ShowCategory(EVeyraSettingCategory::Controls);
+			const int32 Before = ResetPlaces();
+			ASSERT_THAT(IsTrue(Before > Screen->GetModel().Rows.Num(), TEXT("each row's, and the grid heading's")));
+			const FVeyraSettingRowModel CastQ = Row(TEXT("controls_cast_mode_q"));
+			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::OptionLabel(CastQ, CastQ.Options.Last()))));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraSettingsScreen::ResetLabel(Row(TEXT("controls_cast_mode_q"))))));
+			ASSERT_THAT(AreEqual(ResetPlaces(), Before, TEXT("Reset fills its place rather than adding one")));
 		}
 
 		TEST_METHOD(ASwitchIsNamedForTheValueItSetsAndALongChoiceIsADropdown)
