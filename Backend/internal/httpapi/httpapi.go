@@ -316,6 +316,7 @@ var errorStatus = []struct {
 }{
 	{identity.ErrInvalidCredentials, http.StatusUnauthorized, "invalid_credentials"},
 	{identity.ErrInvalidBuildVersion, http.StatusBadRequest, "invalid_build_version"},
+	{identity.ErrBuildTooOld, http.StatusUpgradeRequired, "update_required"},
 	{identity.ErrDevLoginDisabled, http.StatusNotFound, "not_found"},
 	{identity.ErrNotFound, http.StatusNotFound, "account_not_found"},
 	{identity.ErrPlayerLoginDisabled, http.StatusNotFound, "not_found"},

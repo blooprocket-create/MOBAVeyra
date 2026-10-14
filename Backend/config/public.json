@@ -13,7 +13,8 @@
     "gameLifetime": "24h"
   },
   "launchCodes": {
-    "lifetime": "20s"
+    "lifetime": "20s",
+    "minimumBuildVersion": "0.2.8"
   },
   "devLogin": {
     "enabled": false,

@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -61,8 +62,11 @@ var buildVersionPattern = regexp.MustCompile(`^[A-Za-z0-9._+-]+$`)
 var (
 	ErrInvalidCredentials  = errors.New("invalid credentials")
 	ErrInvalidBuildVersion = errors.New("invalid build version")
-	ErrDevLoginDisabled    = errors.New("dev login disabled")
-	ErrNotFound            = errors.New("not found")
+	// ErrBuildTooOld refuses a launch code to a game build older than
+	// Settings.MinimumBuildVersion: one the catalogs served would mislead.
+	ErrBuildTooOld      = errors.New("build older than the minimum")
+	ErrDevLoginDisabled = errors.New("dev login disabled")
+	ErrNotFound         = errors.New("not found")
 	// ErrBuildMismatch is returned by Store.RedeemLaunchCode when the code
 	// was valid but bound to a different build; the code is still consumed.
 	ErrBuildMismatch = errors.New("launch code build mismatch")
@@ -185,6 +189,9 @@ type Settings struct {
 	GameSessionLifetime     time.Duration
 	LaunchCodeLifetime      time.Duration
 	DevLoginEnabled         bool
+	// MinimumBuildVersion is the oldest game build given a launch code, as
+	// dotted numbers such as "0.2.8"; empty for any build.
+	MinimumBuildVersion string
 	// PlayerLogin verifies identity-provider credentials; nil disables
 	// player registration and sign-in (ErrPlayerLoginDisabled).
 	PlayerLogin Verifier
@@ -292,6 +299,9 @@ func ValidateDisplayName(name string) error {
 func (s *Service) IssueLaunchCode(ctx context.Context, launcherToken, buildVersion string) (IssuedToken, error) {
 	if err := validateBuildVersion(buildVersion); err != nil {
 		return IssuedToken{}, err
+	}
+	if s.settings.MinimumBuildVersion != "" && !BuildAtLeast(buildVersion, s.settings.MinimumBuildVersion) {
+		return IssuedToken{}, ErrBuildTooOld
 	}
 	sess, err := s.authenticate(ctx, launcherToken, SessionLauncher)
 	if err != nil {
@@ -413,6 +423,49 @@ func (s *Service) createSession(ctx context.Context, accountID string, kind Sess
 		return IssuedToken{}, err
 	}
 	return IssuedToken{Token: tok, ExpiresAt: sess.ExpiresAt}, nil
+}
+
+// BuildAtLeast reports whether version is minimum or later, comparing their
+// dotted numbers in turn ("0.2.10" is after "0.2.8"); anything after a "+" or
+// "-" is ignored. A version that is not dotted numbers is never at least.
+func BuildAtLeast(version, minimum string) bool {
+	v, okV := buildNumbers(version)
+	m, okM := buildNumbers(minimum)
+	if !okV || !okM {
+		return false
+	}
+	for i := 0; i < max(len(v), len(m)); i++ {
+		var a, b int
+		if i < len(v) {
+			a = v[i]
+		}
+		if i < len(m) {
+			b = m[i]
+		}
+		if a != b {
+			return a > b
+		}
+	}
+	return true
+}
+
+func buildNumbers(v string) ([]int, bool) {
+	if i := strings.IndexAny(v, "+-"); i >= 0 {
+		v = v[:i]
+	}
+	if v == "" {
+		return nil, false
+	}
+	parts := strings.Split(v, ".")
+	numbers := make([]int, 0, len(parts))
+	for _, part := range parts {
+		n, err := strconv.Atoi(part)
+		if err != nil || n < 0 || part == "" {
+			return nil, false
+		}
+		numbers = append(numbers, n)
+	}
+	return numbers, true
 }
 
 func validateBuildVersion(v string) error {

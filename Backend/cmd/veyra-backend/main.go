@@ -91,6 +91,7 @@ func run(log *slog.Logger) error {
 		GameSessionLifetime:     cfg.Sessions.Game,
 		LaunchCodeLifetime:      cfg.LaunchCodeLifetime,
 		DevLoginEnabled:         cfg.DevLogin.Enabled,
+		MinimumBuildVersion:     cfg.MinimumBuildVersion,
 		PlayerLogin:             playerLogin,
 	}, time.Now)
 

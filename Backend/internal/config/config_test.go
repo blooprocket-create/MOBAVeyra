@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -326,6 +327,27 @@ func TestCommittedPublicConfigLoadsWithoutDevelopmentRoutes(t *testing.T) {
 	}
 }
 
+// buildAtLeast compares dotted build numbers in turn; empty is never at least.
+func buildAtLeast(version, minimum string) bool {
+	if version == "" {
+		return false
+	}
+	v, m := strings.Split(version, "."), strings.Split(minimum, ".")
+	for i := 0; i < max(len(v), len(m)); i++ {
+		var a, b int
+		if i < len(v) {
+			a, _ = strconv.Atoi(v[i])
+		}
+		if i < len(m) {
+			b, _ = strconv.Atoi(m[i])
+		}
+		if a != b {
+			return a > b
+		}
+	}
+	return true
+}
+
 // The hosted players' catalog offers the profile backgrounds the client paints,
 // the region panoramas, as the local one does (ADR-082 §10): a background only
 // one of them lists would be offered to some players and not others.
@@ -342,6 +364,11 @@ func TestCommittedConfigsOfferTheSameBackgrounds(t *testing.T) {
 	}
 	if !slices.Equal(public.Profile.Backgrounds, local.Profile.Backgrounds) {
 		t.Fatalf("public backgrounds %v, local %v", public.Profile.Backgrounds, local.Profile.Backgrounds)
+	}
+	// The first client that draws the region panoramas is 0.2.8: older builds
+	// get no launch code from the public backend, which offers them.
+	if !buildAtLeast(public.MinimumBuildVersion, "0.2.8") {
+		t.Fatalf("public minimumBuildVersion %q is older than 0.2.8, the first client to draw the region backgrounds", public.MinimumBuildVersion)
 	}
 	for _, background := range public.Profile.Backgrounds {
 		if background != public.Profile.DefaultBackground && !strings.HasPrefix(background, "region_") {

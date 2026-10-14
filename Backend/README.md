@@ -43,6 +43,7 @@ Rules the code enforces:
 
 - Tokens and codes are 256-bit random values with recognisable prefixes (`vls_` launcher session, `vgs_` game session, `vlc_` launch code). Only SHA-256 hashes are stored.
 - A launch code is single-use, expires after `launchCodes.lifetime` (capped at one minute by ADR-005), and is bound to the account and build version. A wrong build version still uses the code up.
+- With `launchCodes.minimumBuildVersion` set (dotted numbers, such as `0.2.8`), an older game build gets no launch code: HTTP 426 `update_required`. The public config sets it to the first client that draws what its catalogs offer (ADR-082 §10).
 - Redeeming a code and creating the game session happen in one database transaction: if issuing the session fails, the code stays unused.
 - Dev login only works for accounts created by dev seeding. If a seeded name belongs to an ordinary account, the backend refuses to start.
 - Launcher and game sessions are not interchangeable.

@@ -23,6 +23,9 @@ import (
 // EnvironmentLocal is the only environment in which development login may be enabled.
 const EnvironmentLocal = "local"
 
+// minimumBuildPattern is a minimum game build: dotted numbers, such as 0.2.8.
+var minimumBuildPattern = regexp.MustCompile(`^[0-9]+(\.[0-9]+)*$`)
+
 // MaxLaunchCodeLifetime bounds launch-code lifetime. ADR-005 requires launch
 // codes to expire within seconds; this is a security invariant, not tuning.
 const MaxLaunchCodeLifetime = time.Minute
@@ -91,18 +94,21 @@ type Config struct {
 	HTTP                  HTTPTimeouts
 	Sessions              SessionLifetimes
 	LaunchCodeLifetime    time.Duration
-	DevLogin              DevLogin
-	PlayerLogin           PlayerLogin
-	Party                 Party
-	Modes                 []Mode
-	Vanguards             Vanguards
-	FluxSpells            FluxSpells
-	CustomPractice        CustomPractice
-	CustomLobby           CustomLobby
-	Settings              Settings
-	Matchmaking           Matchmaking
-	MatchFound            MatchFound
-	CasualSelect          CasualSelect
+	// MinimumBuildVersion is the oldest game build given a launch code;
+	// empty for any (identity.Settings).
+	MinimumBuildVersion string
+	DevLogin            DevLogin
+	PlayerLogin         PlayerLogin
+	Party               Party
+	Modes               []Mode
+	Vanguards           Vanguards
+	FluxSpells          FluxSpells
+	CustomPractice      CustomPractice
+	CustomLobby         CustomLobby
+	Settings            Settings
+	Matchmaking         Matchmaking
+	MatchFound          MatchFound
+	CasualSelect        CasualSelect
 	// DraftPick is set when a mode uses draftPick matchmaking.
 	DraftPick DraftPick
 	Selection Selection
@@ -439,7 +445,8 @@ type fileConfig struct {
 		GameLifetime     *Duration `json:"gameLifetime"`
 	} `json:"sessions"`
 	LaunchCodes *struct {
-		Lifetime *Duration `json:"lifetime"`
+		Lifetime            *Duration `json:"lifetime"`
+		MinimumBuildVersion string    `json:"minimumBuildVersion"`
 	} `json:"launchCodes"`
 	DevLogin *struct {
 		Enabled  *bool    `json:"enabled"`
@@ -685,6 +692,10 @@ func Parse(raw []byte) (Config, error) {
 		c.LaunchCodeLifetime = positive("launchCodes.lifetime", f.LaunchCodes.Lifetime)
 		if c.LaunchCodeLifetime > MaxLaunchCodeLifetime {
 			problems = append(problems, fmt.Sprintf("launchCodes.lifetime must not exceed %s (ADR-005)", MaxLaunchCodeLifetime))
+		}
+		c.MinimumBuildVersion = f.LaunchCodes.MinimumBuildVersion
+		if c.MinimumBuildVersion != "" && !minimumBuildPattern.MatchString(c.MinimumBuildVersion) {
+			problems = append(problems, "launchCodes.minimumBuildVersion must be dotted numbers, such as 0.2.8")
 		}
 	}
 
