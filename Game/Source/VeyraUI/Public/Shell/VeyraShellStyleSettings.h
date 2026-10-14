@@ -537,6 +537,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float PartySlotHeight = 0.0f;
 
+	/** An open place's dashed edge (ADR-083 §6): each dash and the gap after it, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float OpenPlaceDashLength = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float OpenPlaceDashGap = 0.0f;
+
 	/** The friends panel down the right of the shell and the lobby (Art Bible §7), in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;

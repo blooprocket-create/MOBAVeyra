@@ -139,6 +139,14 @@ public:
 	bool IsPartyCollapsed() const { return bPartyCollapsed; }
 	/** Whether the party panel is still easing between open and put away (ADR-083 §6); never under Reduce UI Animation. */
 	bool IsPartyMoving() const;
+
+	/**
+	 * Fits the top bar to the width it Has (ADR-083 §5), given the width it Wants on one line: the page tabs go to a line of
+	 * their own under it when one line does not fit, and back once it does. It reflows rather than shrinks, so the player's
+	 * Interface Text Size holds (ADR-055 §2). The screen calls it each frame with its laid-out sizes.
+	 */
+	void FitTopBar(float Has, float Wants);
+	bool IsTopBarStacked() const { return bTopBarStacked; }
 	void SetFriendsCollapsed(bool bCollapsed);
 	void SetPartyCollapsed(bool bCollapsed);
 
@@ -574,6 +582,12 @@ private:
 	/** The party panel's height, which eases from the height it had as it opens or closes (ADR-083 §6). */
 	UPROPERTY(Transient)
 	TObjectPtr<USizeBox> PartyBox;
+
+	/** The top bar's first line, whether the page tabs are on a line of their own, and the width one line wanted. */
+	UPROPERTY(Transient)
+	TObjectPtr<UHorizontalBox> TopBar;
+	bool bTopBarStacked = false;
+	float TopBarLineWidth = 0.0f;
 	double PartyMovedAt = 0.0;
 	float PartyFrom = 0.0f;
 

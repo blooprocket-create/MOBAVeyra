@@ -258,6 +258,22 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UEditableTextBox> SearchBox;
 
+	/**
+	 * The search at its width, and where it goes (ADR-083 §5): beside the title, or on a line of its own under the title
+	 * when the layout is narrow, so the header never runs past its page.
+	 */
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget> SearchHolder;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UHorizontalBox> WideSearchHost;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UHorizontalBox> NarrowSearchHost;
+
+	/** Puts the search where the present layout wants it. */
+	void PlaceSearch();
+
 	UPROPERTY(Transient)
 	TObjectPtr<UBorder> WindowPanel;
 

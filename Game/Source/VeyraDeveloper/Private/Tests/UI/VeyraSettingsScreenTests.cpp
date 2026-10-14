@@ -5,6 +5,9 @@
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
+#include "Components/Slider.h"
 #include "Components/ActorTestSpawner.h"
 #include "Engine/GameInstance.h"
 #include "HAL/FileManager.h"
@@ -210,6 +213,29 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsTrue(Settings->Store().GetNumber(Setting(TEXT("camera_move_speed"))) == 51.0));
 			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::ResetLabel(Row(TEXT("camera_move_speed"))))));
 			ASSERT_THAT(IsFalse(Settings->Store().IsChanged(Setting(TEXT("camera_move_speed")))));
+		}
+
+		TEST_METHOD(EveryControlOnThePageCanBeReachedByKeyboardAndController)
+		{
+			// The redesign keeps the client's navigation (ADR-083 §3): each button and slider takes focus, and a slider
+			// asks for Accept before the arrows move it, so it settles its value when let go or left.
+			for (uint8 Each = 0; Each <= static_cast<uint8>(EVeyraSettingCategory::LanguageAccount); ++Each)
+			{
+				const EVeyraSettingCategory Category = static_cast<EVeyraSettingCategory>(Each);
+				Screen->ShowCategory(Category);
+				int32 Controls = 0;
+				TArray<FString> Unreachable;
+				Screen->WidgetTree->ForEachWidget([&Controls, &Unreachable](UWidget* Widget) {
+					const UButton* Button = Cast<UButton>(Widget);
+					const USlider* Slider = Cast<USlider>(Widget);
+					Controls += Button || Slider ? 1 : 0;
+					if ((Button && !Button->GetIsFocusable()) || (Slider && !(Slider->IsFocusable && Slider->RequiresControllerLock)))
+					{
+						Unreachable.Add(Widget->GetName());
+					}
+				});
+				ASSERT_THAT(IsTrue(Controls > 0 && Unreachable.IsEmpty(), FString::Join(Unreachable, TEXT(", "))));
+			}
 		}
 
 		TEST_METHOD(TheControlsShowInTheirGroupsWithCastingAsAGrid)
@@ -494,6 +520,24 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, MatchFoundBody(TEXT("pending"), TEXT("pending"), 0))));
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::MatchFound && !Screen->IsSettingsOpen()));
 			ASSERT_THAT(IsFalse(OffersSettings(), TEXT("never in Match Found")));
+		}
+
+		TEST_METHOD(TheTopBarReflowsItsTabsRatherThanShrinking)
+		{
+			// ADR-083 §5: where one line does not fit, the page tabs take their own line; the text keeps its size (ADR-055 §2).
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ShowScreen(Rig);
+			Screen->FitTopBar(1200.0f, 1000.0f);
+			ASSERT_THAT(IsFalse(Screen->IsTopBarStacked(), TEXT("it fits on one line")));
+			Screen->FitTopBar(800.0f, 1000.0f);
+			ASSERT_THAT(IsTrue(Screen->IsTopBarStacked()));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(FText::FromString(TEXT("Home"))), TEXT("the tabs, on their own line")));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraShellScreen::SettingsLabel())));
+			// Back on one line only once the room it wanted comes back, so it never flickers between the two.
+			Screen->FitTopBar(900.0f, 700.0f);
+			ASSERT_THAT(IsTrue(Screen->IsTopBarStacked(), TEXT("not yet")));
+			Screen->FitTopBar(1000.0f, 700.0f);
+			ASSERT_THAT(IsFalse(Screen->IsTopBarStacked()));
 		}
 
 		TEST_METHOD(ThePartyPanelEasesBetweenOpenAndPutAwayUnlessStill)

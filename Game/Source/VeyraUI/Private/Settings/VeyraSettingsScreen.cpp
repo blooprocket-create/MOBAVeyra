@@ -246,14 +246,21 @@ bool UVeyraSettingsScreen::Initialize()
 		Title = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Title", "Settings"), VeyraShellStyle::EVeyraShellText::Title);
 		Title->SetAutoWrapText(false);
 		VeyraShellStyle::AddSpaced(*Header, *Title);
-		VeyraSettingsLayout::AddStretch(*WidgetTree, *Header);
+		// What the title and the actions leave, the search at the right of it; or, narrow, a line of its own.
+		WideSearchHost = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		// Cut short, never laid over the actions, where even that room runs out.
+		WideSearchHost->SetClipping(EWidgetClipping::ClipToBounds);
+		VeyraSettingsLayout::AddFilling(*Header, *WideSearchHost);
 		SearchBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass());
 		SearchBox->SetHintText(LOCTEXT("SearchHint", "Search settings"));
 		SearchBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraSettingsScreen::HandleSearchChanged);
-		VeyraShellStyle::AddSpaced(*Header, *VeyraSettingsLayout::Sized(*WidgetTree, *SearchBox, Style.SettingsSearchWidth));
+		SearchHolder = VeyraSettingsLayout::Sized(*WidgetTree, *SearchBox, Style.SettingsSearchWidth);
 		Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		Header->AddChild(Actions);
 		Frame->AddChild(Header);
+		NarrowSearchHost = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		Frame->AddChild(NarrowSearchHost);
+		PlaceSearch();
 		VeyraShellStyle::AddSpaced(*Frame, *VeyraShellStyle::MakeRule(*WidgetTree));
 
 		// The categories, the settings and the About panel, laid out for the width given (ADR-083 §5).
@@ -576,9 +583,39 @@ void UVeyraSettingsScreen::Rebuild()
 			Close();
 		}
 	});
+	PlaceSearch();
 	BuildBody();
 	BuildFooter();
 	RevealArrivals();
+}
+
+void UVeyraSettingsScreen::PlaceSearch()
+{
+	if (!SearchHolder || !WideSearchHost || !NarrowSearchHost)
+	{
+		return;
+	}
+	const bool bNarrow = Layout == ELayout::Narrow;
+	UHorizontalBox* Host = bNarrow ? NarrowSearchHost.Get() : WideSearchHost.Get();
+	if (SearchHolder->GetParent() != Host)
+	{
+		SearchHolder->RemoveFromParent();
+		Host->ClearChildren();
+		if (!bNarrow)
+		{
+			// At the right of the room it has, next to the actions.
+			VeyraSettingsLayout::AddStretch(*WidgetTree, *Host);
+		}
+		UHorizontalBoxSlot* SearchSlot = Host->AddChildToHorizontalBox(SearchHolder);
+		SearchSlot->SetVerticalAlignment(VAlign_Center);
+		SearchSlot->SetPadding(FMargin(0.0f, bNarrow ? VeyraSettingsLayout::Style().Spacing : 0.0f, VeyraSettingsLayout::Style().Spacing, 0.0f));
+		if (bNarrow)
+		{
+			// The whole line's width, as far as it has room.
+			SearchSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		}
+	}
+	NarrowSearchHost->SetVisibility(bNarrow ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 }
 
 UVeyraSettingsScreen::ELayout UVeyraSettingsScreen::LayoutFor(float Width) const
@@ -822,9 +859,11 @@ void UVeyraSettingsScreen::BuildGrid(UPanelWidget& Box, int32 First, int32 Last)
 		Box.AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
 		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		UHorizontalBox* Who = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		// The name wraps within what the radios leave it, never under them (ADR-083 §5).
 		UTextBlock* Name = VeyraShellStyle::MakeText(*WidgetTree, Row.Name, VeyraShellStyle::EVeyraShellText::Body);
-		Name->SetAutoWrapText(false);
-		Who->AddChildToHorizontalBox(Name)->SetVerticalAlignment(VAlign_Center);
+		UHorizontalBoxSlot* NameSlot = Who->AddChildToHorizontalBox(Name);
+		NameSlot->SetVerticalAlignment(VAlign_Center);
+		NameSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 		if (Row.bChanged)
 		{
 			UHorizontalBoxSlot* Dot = Who->AddChildToHorizontalBox(VeyraShellStyle::MakeDot(*WidgetTree, Style.PrimaryColor, Style.Spacing / 2.0f));
@@ -922,7 +961,8 @@ void UVeyraSettingsScreen::BuildControl(UPanelWidget& Line, UPanelWidget& Under,
 		UVeyraSettingsSlider* Slider = WidgetTree->ConstructWidget<UVeyraSettingsSlider>(UVeyraSettingsSlider::StaticClass());
 		Slider->SetValue(Row.RangeFraction);
 		const double Span = Row.RangeMaximum - Row.RangeMinimum;
-		Slider->SetStepSize(Span > 0.0 ? static_cast<float>(Row.RangeStep / Span) : 0.01f);
+		// One of the setting's own steps a press; a range with no span is one step from end to end.
+		Slider->SetStepSize(Span > 0.0 ? static_cast<float>(Row.RangeStep / Span) : 1.0f);
 		Slider->SetWidgetStyle(VeyraSettingsLayout::SliderStyle());
 		Slider->SetIsEnabled(bEnabled);
 		UTextBlock* Value = VeyraShellStyle::MakeText(*WidgetTree, Row.ValueText, VeyraShellStyle::EVeyraShellText::Heading);
@@ -996,6 +1036,15 @@ void UVeyraSettingsScreen::BuildControl(UPanelWidget& Line, UPanelWidget& Under,
 			}
 			Buttons.Add(Segment);
 			Segments->AddChildToHorizontalBox(Segment);
+		}
+		if (Layout == ELayout::Narrow)
+		{
+			// Narrow, the segments take a line of their own under the name rather than crowd it (ADR-083 §5).
+			if (UVerticalBox* Stack = Cast<UVerticalBox>(&Under))
+			{
+				Stack->AddChildToVerticalBox(Track)->SetPadding(FMargin(0.0f, Style.Spacing / 2.0f, 0.0f, 0.0f));
+				return;
+			}
 		}
 		VeyraShellStyle::AddSpaced(Line, *Track);
 		return;
@@ -1213,9 +1262,15 @@ void UVeyraSettingsScreen::BuildFooter()
 		Confirming = EConfirming::All;
 		Rebuild();
 	}, Model.bAnyChanged);
-	VeyraSettingsLayout::AddStretch(*WidgetTree, *Footer);
-	// Nothing to save: every change is kept as it is made (§13).
-	VeyraSettingsLayout::AddText(*WidgetTree, *Footer, LOCTEXT("Autosave", "Changes are saved as you make them."), VeyraShellStyle::EVeyraShellText::Muted)->SetAutoWrapText(false);
+	// Nothing to save: every change is kept as it is made (§13). It takes the room the resets leave, at their right,
+	// and wraps where that is short.
+	UTextBlock* Autosave = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Autosave", "Changes are saved as you make them."), VeyraShellStyle::EVeyraShellText::Muted);
+	Autosave->SetJustification(ETextJustify::Right);
+	VeyraSettingsLayout::AddFilling(*Footer, *Autosave);
+	if (UHorizontalBoxSlot* AutosaveSlot = Cast<UHorizontalBoxSlot>(Autosave->Slot))
+	{
+		AutosaveSlot->SetVerticalAlignment(VAlign_Center);
+	}
 }
 
 TArray<UVeyraShellButton*> UVeyraSettingsScreen::GetButtons() const

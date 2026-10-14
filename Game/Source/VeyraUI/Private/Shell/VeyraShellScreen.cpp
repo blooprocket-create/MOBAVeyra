@@ -47,6 +47,7 @@
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellMotes.h"
 #include "Shell/VeyraShellStyle.h"
+#include "Shell/VeyraShellSurface.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
 #include "VeyraSettingsSubsystem.h"
@@ -268,6 +269,10 @@ void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 		const UVeyraShellStyleSettings& Style = ShellStyle();
 		FriendsBox->SetWidthOverride(PanelSize(FriendsMovedAt, FriendsFrom, bFriendsCollapsed ? Style.FriendsCollapsedWidth : Style.FriendsPanelWidth));
 	}
+	if (TopBar)
+	{
+		FitTopBar(static_cast<float>(TopBar->GetCachedGeometry().GetLocalSize().X), static_cast<float>(TopBar->GetDesiredSize().X));
+	}
 	if (PartyBox)
 	{
 		// Toward the height its new panel or bar asks for, then free to follow it.
@@ -298,6 +303,27 @@ float UVeyraShellScreen::PanelSize(double MovedAt, float From, float To) const
 	const float Through = FMath::Clamp(static_cast<float>((FPlatformTime::Seconds() - MovedAt) / Seconds), 0.0f, 1.0f);
 	// Eased out: quick to start, settling at its size.
 	return FMath::InterpEaseOut(From, To, Through, 3.0f);
+}
+
+void UVeyraShellScreen::FitTopBar(float Has, float Wants)
+{
+	if (Has <= 0.0f)
+	{
+		return;
+	}
+	// One line wants more than it has: the tabs take a line of their own, until the room one line wanted comes back.
+	const bool bStack = bTopBarStacked ? Has < TopBarLineWidth : Wants > Has;
+	if (bStack == bTopBarStacked)
+	{
+		return;
+	}
+	if (bStack)
+	{
+		TopBarLineWidth = Wants;
+	}
+	bTopBarStacked = bStack;
+	ShownSignature.Reset();
+	Refresh();
 }
 
 bool UVeyraShellScreen::IsPartyMoving() const
@@ -356,6 +382,8 @@ void UVeyraShellScreen::Refresh()
 	if (bNewLook)
 	{
 		ShownSignature.Reset();
+		// Another text size wants another width: the bar measures its one line afresh.
+		bTopBarStacked = false;
 	}
 	// A draft turn of the player's own asks for their attention once, as it begins (UX-31, UX-32).
 	if (const FString Turn = VeyraShellModels::PlayersTurn(Snapshot); Turn != AttendedTurn)
@@ -546,6 +574,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	Countdown = nullptr;
 	QueueStatus = nullptr;
 	PartyBox = nullptr;
+	TopBar = nullptr;
 	PageBody = nullptr;
 	Shown = VeyraShellModels::ScreenFor(Snapshot.State);
 	// Settings belong to the shell, the lobby and the results, never to champion select, Match Found or
@@ -824,25 +853,27 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	Brand->AddChildToHorizontalBox(Mark)->SetVerticalAlignment(VAlign_Center);
 	VeyraShellStyle::AddSpaced(*Bar, *Brand);
 	AddGap(*WidgetTree, *Bar, Style.ScreenPadding);
-	// Navigation between ordinary pages (UX §1); a lobby holds the player until they leave it.
+	// Navigation between ordinary pages (UX §1); a lobby holds the player until they leave it. On the bar's line, or on one
+	// of their own under it where the bar's line does not fit (ADR-083 §5).
+	UHorizontalBox* Tabs = bTopBarStacked ? WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass()) : Bar;
 	if (bPages)
 	{
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, bOnPages && Page == EVeyraShellPage::Home)
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, bOnPages && Page == EVeyraShellPage::Home)
 			->KeepLabelOnOneLine();
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, bOnPages && Page == EVeyraShellPage::Play)
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, bOnPages && Page == EVeyraShellPage::Play)
 			->KeepLabelOnOneLine();
 		// Opening Match History reads its first page afresh, with the filters last used.
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHistory", "Match History"), [this] {
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavHistory", "Match History"), [this] {
 			ShowPage(EVeyraShellPage::History);
 			Client->LoadHistory(Client->GetSnapshot().History.Filter);
 		}, true, bOnPages && Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
 		// Opening the Collection reads it afresh, with the level and balances (ADR-045 §8).
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavCollection", "Collection"), [this] {
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, LOCTEXT("NavCollection", "Collection"), [this] {
 			ShowPage(EVeyraShellPage::Collection);
 			Client->LoadCollection();
 		}, true, bOnPages && Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
 		// Opening the Profile page reads the choices afresh, and starts the draft from them (ADR-048 §5).
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, VeyraProfileModels::PageLabel(), [this] {
+		AddKindButton(*Tabs, EVeyraShellButtonKind::Tab, VeyraProfileModels::PageLabel(), [this] {
 			bProfileDraftReady = false;
 			ShowPage(EVeyraShellPage::Profile);
 			Client->LoadProfileSettings();
@@ -858,7 +889,13 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	}
 	AddSettingsButton(*Bar);
 	AddKindButton(*Bar, EVeyraShellButtonKind::Quiet, LOCTEXT("Quit", "Quit"), [this] { Client->Quit(); })->KeepLabelOnOneLine();
+	TopBar = Bar;
 	Parent.AddChild(Bar);
+	if (Tabs != Bar)
+	{
+		AddGap(*WidgetTree, Parent, Style.Spacing / 2.0f);
+		Parent.AddChild(Tabs);
+	}
 	AddGap(*WidgetTree, Parent, Style.Spacing);
 	Parent.AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
 	AddGap(*WidgetTree, Parent, Style.Spacing * 2.0f);
@@ -884,6 +921,8 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	UHorizontalBox* Split = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddFilling(*Content, *Split);
 	UVerticalBox* Main = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	// The page keeps to its own column: what it cannot fit is cut, not drawn over the friends panel (ADR-083 §5).
+	Main->SetClipping(EWidgetClipping::ClipToBounds);
 	Split->AddChildToHorizontalBox(Main)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	AddFilling(*Main, *Body);
@@ -1217,30 +1256,20 @@ UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const
 	// The name, which for the leader opens another member's card (UX-10), set as a name rather than a command; a plain
 	// name is inset as a button's is, so every place reads level.
 	const FMargin Inset(Style.ButtonPadding * 2.0f, 0.0f, 0.0f, 0.0f);
-	UTextBlock* Name = nullptr;
 	if (Card.bOffersActions)
 	{
 		UVeyraShellButton* NameButton = AddNamedButton(*Who, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), FText::FromString(Card.Name),
 			[this, Key = MemberCardKey(Card.AccountId)] { OpenCard(Key); }, true, OpenCardId == MemberCardKey(Card.AccountId));
 		NameButton->SetToolTipText(LOCTEXT("MemberCardTip", "Make Party Leader or Remove"));
 		Cast<UVerticalBoxSlot>(NameButton->Slot)->SetHorizontalAlignment(HAlign_Left);
-		Name = Cast<UTextBlock>(NameButton->GetContent());
-		if (Name)
-		{
-			Name->SetTextTransformPolicy(ETextTransformPolicy::None);
-			Name->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Body));
-			Name->SetColorAndOpacity(FSlateColor(Style.TextColor));
-		}
+		NameButton->ShowLabelAsName(VeyraShellStyle::FontFor(EVeyraShellText::Body), Style.TextColor);
 	}
 	else
 	{
-		Name = VeyraShellStyle::MakeText(*WidgetTree, FText::FromString(Card.Name), EVeyraShellText::Body);
-		Who->AddChildToVerticalBox(Name)->SetPadding(Inset);
-	}
-	if (Name)
-	{
+		UTextBlock* Name = VeyraShellStyle::MakeText(*WidgetTree, FText::FromString(Card.Name), EVeyraShellText::Body);
 		Name->SetAutoWrapText(false);
 		Name->SetTextOverflowPolicy(ETextOverflowPolicy::Ellipsis);
+		Who->AddChildToVerticalBox(Name)->SetPadding(Inset);
 	}
 	const FText Tag = Card.bYou && Card.bLeader ? LOCTEXT("PlaceYouLeader", "You · Leader")
 		: Card.bYou							   ? LOCTEXT("PlaceYou", "You")
@@ -1267,7 +1296,9 @@ UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const
 	{
 		const bool bReady = Model.bReadyTarget;
 		UVeyraShellButton* Toggle = AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, Model.ReadyLabel, Mark, [this, bReady] { Client->SetReady(bReady); }, Model.bCanReady);
-		Toggle->SetToolTipText(FText::Format(Card.bReady ? LOCTEXT("MarkYouReadyTip", "{0}: press to unready") : LOCTEXT("MarkYouNotReadyTip", "{0}: press to ready up"), MarkTip));
+		// Why it cannot be pressed yet, when it cannot.
+		Toggle->SetToolTipText(!Model.ReadyWaits.IsEmpty() ? FText::Format(LOCTEXT("MarkYouWaitsTip", "{0}. {1}"), MarkTip, Model.ReadyWaits)
+				: FText::Format(Card.bReady ? LOCTEXT("MarkYouReadyTip", "{0}: press to unready") : LOCTEXT("MarkYouNotReadyTip", "{0}: press to ready up"), MarkTip));
 		CentreInLine(*Toggle);
 		MarkText = Cast<UTextBlock>(Toggle->GetContent());
 	}
@@ -1288,9 +1319,10 @@ UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const
 UWidget* UVeyraShellScreen::BuildOpenPlace()
 {
 	const UVeyraShellStyleSettings& Style = ShellStyle();
-	// An open place (ADR-083 §6): hollow, and a way to the friends to invite into it.
-	UBorder* Frame = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-	Frame->SetBrush(VeyraShellStyle::EdgedFace(FLinearColor::Transparent, Style.HairlineColor));
+	// An open place (ADR-083 §6): hollow and dashed, and a way to the friends to invite into it.
+	UVeyraShellSurface* Frame = WidgetTree->ConstructWidget<UVeyraShellSurface>(UVeyraShellSurface::StaticClass());
+	Frame->SetBrush(FSlateNoResource());
+	Frame->SetDash(FVeyraShellDash{ Style.HairlineColor, Style.OpenPlaceDashLength, Style.OpenPlaceDashGap });
 	Frame->SetPadding(FMargin(0.0f));
 	Frame->SetHorizontalAlignment(HAlign_Center);
 	Frame->SetVerticalAlignment(VAlign_Center);
@@ -1778,7 +1810,8 @@ void UVeyraShellScreen::BuildScoreboard(const FVeyraClientSnapshot& Snapshot, co
 			{
 				UVeyraShellButton* Menu = UVeyraShellButton::MakeKindNamed(*WidgetTree, EVeyraShellButtonKind::Quiet, VeyraConductModels::MenuLabel(PlayerName), Line.Name,
 					[this, PlayerName] { TogglePlayerMenu(PlayerName); }, true, OpenPlayerMenu == PlayerName);
-				Menu->KeepLabelOnOneLine();
+				// A name, as the other rows' are (ADR-083 §6).
+				Menu->ShowLabelAsName(VeyraShellStyle::FontFor(EVeyraShellText::Small), Style.TextColor);
 				Buttons.Add(Menu);
 				Who->AddChildToVerticalBox(Menu)->SetHorizontalAlignment(HAlign_Left);
 			}

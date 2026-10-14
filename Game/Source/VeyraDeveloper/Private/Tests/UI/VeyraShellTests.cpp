@@ -351,6 +351,11 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Model.bReadyTarget && Model.bCanReady));
 			ASSERT_THAT(AreEqual(Model.ReadyLabel.ToString(), FString(TEXT("Ready"))));
 			ASSERT_THAT(IsTrue(Model.bOffersFindMatch && !Model.bCanFindMatch && !Model.bOffersCancel));
+			// Ready waits for nothing here; with no mode yet it waits for the leader's choice (ADR-083 §6).
+			ASSERT_THAT(IsTrue(Model.ReadyWaits.IsEmpty()));
+			FVeyraClientSnapshot NoMode = Snapshot;
+			NoMode.Party->Mode.Reset();
+			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeParty(NoMode, false, false, false).ReadyWaits.ToString(), FString(TEXT("Ready opens once the leader chooses a mode in Play."))));
 
 			// Queued: the time shows instead, only the leader may cancel, and Ready is locked (§2).
 			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(PartyBody(TEXT("queued"), true, 3.0), Party, Problem), Problem));
@@ -359,6 +364,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Model.bQueued && Model.Status.IsEmpty()));
 			ASSERT_THAT(IsTrue(!Model.bOffersFindMatch && Model.bOffersCancel && Model.bCanCancel));
 			ASSERT_THAT(AreEqual(Model.ReadyLabel.ToString(), FString(TEXT("Unready"))));
+			ASSERT_THAT(AreEqual(Model.ReadyWaits.ToString(), FString(TEXT("Ready holds while the party is in the queue."))));
 			ASSERT_THAT(AreEqual(VeyraShellModels::FormatQueueStatus(67.9).ToString(), FString(TEXT("In queue: 1:07. Estimate unavailable."))));
 
 			// A member who does not lead sees the leader, and neither Find Match nor Cancel.
