@@ -56,14 +56,17 @@ The widths are shell style settings.
 - **Friends** run down the right of the shell, full height. Collapsed, they keep a strip with the online count, the online friends' initials and a way back.
 - **Party** runs along the bottom of the page:
   - A heading line holds the party's size against its limit ("Party · 2/5"), its mode or its time in the queue, and who is holding it out of the queue. On the right are the privacy (the leader's to switch), Leave and the collapse control.
-  - Below it are the party's places, side by side and the same width, one per member up to the backend's `party.maxSize`. A member's place shows their initial and name, with You and Leader under it. The player's own place is edged in the frame colour. Each open place leads to the friends panel to invite someone.
+  - Below it are the party's places, side by side and the same width, one per member up to the backend's `party.maxSize`. A member's place shows their initial and name, with You and Leader under it. The player's own place is edged in the frame colour. Each open place has a dashed edge and leads to the friends panel to invite someone.
   - Each member carries a mark instead of words: a green tick while Ready, a red cross while not. The player's own mark is the Ready control, under its usual name (Ready or Unready).
   - The leader opens another member's card from the "…" on that member's place. Its actions (Make Party Leader, which asks first, and Remove) show under the places.
   - Find Match, or Cancel while queued, is the leader's and sits at the end of the places.
 
   Collapsed, it keeps a bar with the party's size, each member's initial and mark, and its queue or mode.
 - The backend's party answer gains `maxSize`. A client reading an older backend without it shows no open places.
-- Party Chat and messages stay with the friends panel.
+- Party Chat and messages stay with the friends panel, set apart from the friends by a rule.
+- A player's name used as a button (a friend, a party member, a player on the results screen) keeps its own case, so it reads as a name and not a command.
+- A note that an invitation went out disappears once that player has joined the party.
+- The player's own Ready mark explains in its tooltip why it cannot be pressed yet: no mode is chosen, or the party is in the queue.
 - Each panel opens and closes on its own, wherever it shows. Its state is remembered on this device, in the device's user settings, apart from the account's settings: it is layout, not a preference the player sets.
 - The panels' widths, heights and the collapse animation are shell style settings.
 - `Smoke.ps1 -Flow FullParty` fills a party to the backend's `party.maxSize` and captures it with both panels open and both collapsed. Because every client on one machine shares the remembered state, each smoke script first opens any panel a player left collapsed, as a player would.

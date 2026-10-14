@@ -5,6 +5,9 @@
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
+#include "Components/Slider.h"
 #include "Components/ActorTestSpawner.h"
 #include "Engine/GameInstance.h"
 #include "HAL/FileManager.h"
@@ -210,6 +213,29 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsTrue(Settings->Store().GetNumber(Setting(TEXT("camera_move_speed"))) == 51.0));
 			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::ResetLabel(Row(TEXT("camera_move_speed"))))));
 			ASSERT_THAT(IsFalse(Settings->Store().IsChanged(Setting(TEXT("camera_move_speed")))));
+		}
+
+		TEST_METHOD(EveryControlOnThePageCanBeReachedByKeyboardAndController)
+		{
+			// The redesign keeps the client's navigation (ADR-083 §3): each button and slider takes focus, and a slider
+			// asks for Accept before the arrows move it, so it settles its value when let go or left.
+			for (uint8 Each = 0; Each <= static_cast<uint8>(EVeyraSettingCategory::LanguageAccount); ++Each)
+			{
+				const EVeyraSettingCategory Category = static_cast<EVeyraSettingCategory>(Each);
+				Screen->ShowCategory(Category);
+				int32 Controls = 0;
+				TArray<FString> Unreachable;
+				Screen->WidgetTree->ForEachWidget([&Controls, &Unreachable](UWidget* Widget) {
+					const UButton* Button = Cast<UButton>(Widget);
+					const USlider* Slider = Cast<USlider>(Widget);
+					Controls += Button || Slider ? 1 : 0;
+					if ((Button && !Button->GetIsFocusable()) || (Slider && !(Slider->IsFocusable && Slider->RequiresControllerLock)))
+					{
+						Unreachable.Add(Widget->GetName());
+					}
+				});
+				ASSERT_THAT(IsTrue(Controls > 0 && Unreachable.IsEmpty(), FString::Join(Unreachable, TEXT(", "))));
+			}
 		}
 
 		TEST_METHOD(TheControlsShowInTheirGroupsWithCastingAsAGrid)

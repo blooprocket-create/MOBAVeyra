@@ -161,6 +161,20 @@ namespace VeyraPartyScreenTests
 			Snapshot.Social.Feedback = TEXT("invitee_offline");
 			Snapshot.Social.FeedbackName = TEXT("DevTwo");
 			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions).Feedback.ToString(), FString(TEXT("DevTwo is offline."))));
+			// An invitation's note says it went, and goes once they have joined.
+			Snapshot.Social.Feedback = TEXT("party_invited");
+			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions).Feedback.ToString(), FString(TEXT("Invited DevTwo to your party."))));
+			VeyraBackendProtocol::FParty Joined;
+			Joined.Members.SetNum(2);
+			Joined.Members[0].AccountId = AccountId;
+			Joined.Members[0].DisplayName = TEXT("DevOne");
+			Joined.Members[0].bLeader = true;
+			Joined.Members[1].AccountId = FriendId;
+			Joined.Members[1].DisplayName = TEXT("DevTwo");
+			Snapshot.Party = Joined;
+			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions).Feedback.IsEmpty(), TEXT("they joined")));
+			Snapshot.Party.Reset();
+			Snapshot.Social.Feedback.Reset();
 
 			// A friend's status change, and the player's own setting, rebuild the panel.
 			const FString Shown = VeyraShellModels::Signature(Snapshot);

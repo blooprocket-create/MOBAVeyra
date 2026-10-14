@@ -697,6 +697,9 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 	Model.bReadyTarget = !(You && You->bReady);
 	Model.ReadyLabel = Model.bReadyTarget ? LOCTEXT("ReadyUp", "Ready") : LOCTEXT("Unready", "Unready");
 	Model.bCanReady = bCanReady;
+	Model.ReadyWaits = Party.Mode.IsEmpty() ? LOCTEXT("ReadyWaitsForMode", "Ready opens once the leader chooses a mode in Play.")
+		: Model.bQueued					   ? LOCTEXT("ReadyWaitsInQueue", "Ready holds while the party is in the queue.")
+										   : FText::GetEmpty();
 	Model.bOffersFindMatch = bLeader && !Model.bQueued;
 	Model.bCanFindMatch = bCanFindMatch;
 	Model.bOffersCancel = bLeader && Model.bQueued;
@@ -1286,6 +1289,14 @@ FText DescribeSocialFeedback(const FString& Code, const FString& Name)
 	return FText::Format(LOCTEXT("SocialOther", "That did not work ({0})."), FText::FromString(Code));
 }
 
+FText DescribeCurrentSocialFeedback(const FVeyraClientSnapshot& Snapshot)
+{
+	const FVeyraSocial& Social = Snapshot.Social;
+	const bool bJoined = Social.Feedback == TEXT("party_invited") && Snapshot.Party.IsSet()
+		&& Snapshot.Party->Members.ContainsByPredicate([&Social](const VeyraBackendProtocol::FPartyMember& Member) { return Member.DisplayName == Social.FeedbackName; });
+	return bJoined ? FText::GetEmpty() : DescribeSocialFeedback(Social.Feedback, Social.FeedbackName);
+}
+
 FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bCanAdd, bool bCanAnswerRequests, bool bCanJoin, bool bCanAnswerInvitations,
 	bool bCanInvite, const FVeyraSocialPermissions& Permissions)
 {
@@ -1293,7 +1304,7 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 	FVeyraFriendsModel Model;
 	Model.bLoaded = Social.bLoaded;
 	Model.bCanAdd = bCanAdd;
-	Model.Feedback = DescribeSocialFeedback(Social.Feedback, Social.FeedbackName);
+	Model.Feedback = DescribeCurrentSocialFeedback(Snapshot);
 	for (const VeyraBackendProtocol::FLobbyInvite& Invite : Social.LobbyInvites)
 	{
 		const FText Name = FText::FromString(Invite.Inviter.DisplayName);

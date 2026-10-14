@@ -47,6 +47,7 @@
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellMotes.h"
 #include "Shell/VeyraShellStyle.h"
+#include "Shell/VeyraShellSurface.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
 #include "VeyraSettingsSubsystem.h"
@@ -858,7 +859,12 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	}
 	AddSettingsButton(*Bar);
 	AddKindButton(*Bar, EVeyraShellButtonKind::Quiet, LOCTEXT("Quit", "Quit"), [this] { Client->Quit(); })->KeepLabelOnOneLine();
-	Parent.AddChild(Bar);
+	// Scaled down, never past the window, where the window is too narrow for it (ADR-083 §5).
+	UScaleBox* Fit = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass());
+	Fit->SetStretch(EStretch::ScaleToFitX);
+	Fit->SetStretchDirection(EStretchDirection::DownOnly);
+	Fit->AddChild(Bar);
+	Parent.AddChild(Fit);
 	AddGap(*WidgetTree, Parent, Style.Spacing);
 	Parent.AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
 	AddGap(*WidgetTree, Parent, Style.Spacing * 2.0f);
@@ -884,6 +890,8 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	UHorizontalBox* Split = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddFilling(*Content, *Split);
 	UVerticalBox* Main = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	// The page keeps to its own column: what it cannot fit is cut, not drawn over the friends panel (ADR-083 §5).
+	Main->SetClipping(EWidgetClipping::ClipToBounds);
 	Split->AddChildToHorizontalBox(Main)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	AddFilling(*Main, *Body);
@@ -1217,30 +1225,20 @@ UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const
 	// The name, which for the leader opens another member's card (UX-10), set as a name rather than a command; a plain
 	// name is inset as a button's is, so every place reads level.
 	const FMargin Inset(Style.ButtonPadding * 2.0f, 0.0f, 0.0f, 0.0f);
-	UTextBlock* Name = nullptr;
 	if (Card.bOffersActions)
 	{
 		UVeyraShellButton* NameButton = AddNamedButton(*Who, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), FText::FromString(Card.Name),
 			[this, Key = MemberCardKey(Card.AccountId)] { OpenCard(Key); }, true, OpenCardId == MemberCardKey(Card.AccountId));
 		NameButton->SetToolTipText(LOCTEXT("MemberCardTip", "Make Party Leader or Remove"));
 		Cast<UVerticalBoxSlot>(NameButton->Slot)->SetHorizontalAlignment(HAlign_Left);
-		Name = Cast<UTextBlock>(NameButton->GetContent());
-		if (Name)
-		{
-			Name->SetTextTransformPolicy(ETextTransformPolicy::None);
-			Name->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Body));
-			Name->SetColorAndOpacity(FSlateColor(Style.TextColor));
-		}
+		NameButton->ShowLabelAsName(VeyraShellStyle::FontFor(EVeyraShellText::Body), Style.TextColor);
 	}
 	else
 	{
-		Name = VeyraShellStyle::MakeText(*WidgetTree, FText::FromString(Card.Name), EVeyraShellText::Body);
-		Who->AddChildToVerticalBox(Name)->SetPadding(Inset);
-	}
-	if (Name)
-	{
+		UTextBlock* Name = VeyraShellStyle::MakeText(*WidgetTree, FText::FromString(Card.Name), EVeyraShellText::Body);
 		Name->SetAutoWrapText(false);
 		Name->SetTextOverflowPolicy(ETextOverflowPolicy::Ellipsis);
+		Who->AddChildToVerticalBox(Name)->SetPadding(Inset);
 	}
 	const FText Tag = Card.bYou && Card.bLeader ? LOCTEXT("PlaceYouLeader", "You · Leader")
 		: Card.bYou							   ? LOCTEXT("PlaceYou", "You")
@@ -1267,7 +1265,9 @@ UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const
 	{
 		const bool bReady = Model.bReadyTarget;
 		UVeyraShellButton* Toggle = AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, Model.ReadyLabel, Mark, [this, bReady] { Client->SetReady(bReady); }, Model.bCanReady);
-		Toggle->SetToolTipText(FText::Format(Card.bReady ? LOCTEXT("MarkYouReadyTip", "{0}: press to unready") : LOCTEXT("MarkYouNotReadyTip", "{0}: press to ready up"), MarkTip));
+		// Why it cannot be pressed yet, when it cannot.
+		Toggle->SetToolTipText(!Model.ReadyWaits.IsEmpty() ? FText::Format(LOCTEXT("MarkYouWaitsTip", "{0}. {1}"), MarkTip, Model.ReadyWaits)
+				: FText::Format(Card.bReady ? LOCTEXT("MarkYouReadyTip", "{0}: press to unready") : LOCTEXT("MarkYouNotReadyTip", "{0}: press to ready up"), MarkTip));
 		CentreInLine(*Toggle);
 		MarkText = Cast<UTextBlock>(Toggle->GetContent());
 	}
@@ -1288,9 +1288,10 @@ UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const
 UWidget* UVeyraShellScreen::BuildOpenPlace()
 {
 	const UVeyraShellStyleSettings& Style = ShellStyle();
-	// An open place (ADR-083 §6): hollow, and a way to the friends to invite into it.
-	UBorder* Frame = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-	Frame->SetBrush(VeyraShellStyle::EdgedFace(FLinearColor::Transparent, Style.HairlineColor));
+	// An open place (ADR-083 §6): hollow and dashed, and a way to the friends to invite into it.
+	UVeyraShellSurface* Frame = WidgetTree->ConstructWidget<UVeyraShellSurface>(UVeyraShellSurface::StaticClass());
+	Frame->SetBrush(FSlateNoResource());
+	Frame->SetDash(FVeyraShellDash{ Style.HairlineColor, Style.OpenPlaceDashLength, Style.OpenPlaceDashGap });
 	Frame->SetPadding(FMargin(0.0f));
 	Frame->SetHorizontalAlignment(HAlign_Center);
 	Frame->SetVerticalAlignment(VAlign_Center);
@@ -1778,7 +1779,8 @@ void UVeyraShellScreen::BuildScoreboard(const FVeyraClientSnapshot& Snapshot, co
 			{
 				UVeyraShellButton* Menu = UVeyraShellButton::MakeKindNamed(*WidgetTree, EVeyraShellButtonKind::Quiet, VeyraConductModels::MenuLabel(PlayerName), Line.Name,
 					[this, PlayerName] { TogglePlayerMenu(PlayerName); }, true, OpenPlayerMenu == PlayerName);
-				Menu->KeepLabelOnOneLine();
+				// A name, as the other rows' are (ADR-083 §6).
+				Menu->ShowLabelAsName(VeyraShellStyle::FontFor(EVeyraShellText::Small), Style.TextColor);
 				Buttons.Add(Menu);
 				Who->AddChildToVerticalBox(Menu)->SetHorizontalAlignment(HAlign_Left);
 			}

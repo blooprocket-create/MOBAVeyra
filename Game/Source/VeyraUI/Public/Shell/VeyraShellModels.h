@@ -269,6 +269,8 @@ struct FVeyraPartyModel
 	bool bReadyTarget = true;
 	FText ReadyLabel;
 	bool bCanReady = false;
+	/** Why Ready waits, for the player's mark (ADR-083 §6): no mode chosen yet, or the party in the queue; empty otherwise. */
+	FText ReadyWaits;
 	/** Find Match and Cancel are the leader's (Parties & Social Bible §2). */
 	bool bOffersFindMatch = false;
 	bool bCanFindMatch = false;
@@ -561,6 +563,9 @@ namespace VeyraShellModels
 
 	/** What came of a social request, from the snapshot's feedback code and the name it was for; empty for none. */
 	VEYRAUI_API FText DescribeSocialFeedback(const FString& Code, const FString& Name);
+
+	/** The snapshot's social feedback while it still says something: an invitation's note goes once its player is in the party. */
+	VEYRAUI_API FText DescribeCurrentSocialFeedback(const FVeyraClientSnapshot& Snapshot);
 
 	/** "Side A". */
 	VEYRAUI_API FText SideName(const FString& Side);

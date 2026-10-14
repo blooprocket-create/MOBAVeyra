@@ -74,9 +74,9 @@ FVeyraPlayerMenuModel DescribeMenu(const FVeyraClientSnapshot& Snapshot, const F
 	{
 		Model.Notes.Add(FeedbackText(Conduct.Feedback));
 	}
-	if (Snapshot.Social.FeedbackName == Name && !Snapshot.Social.Feedback.IsEmpty())
+	if (const FText Social = VeyraShellModels::DescribeCurrentSocialFeedback(Snapshot); Snapshot.Social.FeedbackName == Name && !Social.IsEmpty())
 	{
-		Model.Notes.Add(VeyraShellModels::DescribeSocialFeedback(Snapshot.Social.Feedback, Name));
+		Model.Notes.Add(Social);
 	}
 	return Model;
 }

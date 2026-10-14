@@ -65,6 +65,12 @@ public:
 	UVeyraShellButton& KeepLabelOnOneLine();
 
 	/**
+	 * Sets a label that is a player's name as a name rather than a command (ADR-083 §6): its own case, in Font and Color, on
+	 * one line and cut short with an ellipsis where it has no room. Returns the button.
+	 */
+	UVeyraShellButton& ShowLabelAsName(const FSlateFontInfo& Font, const FLinearColor& Color);
+
+	/**
 	 * Draws the enhanced keyboard focus outline, or its own style again (SET-74; ADR-055 §3): a thicker, high-contrast
 	 * outline over its usual fill, so focus stays distinct from hover, selection and a disabled look.
 	 */

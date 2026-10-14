@@ -133,6 +133,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("FriendsCollapsedWidth"), FriendsCollapsedWidth },
 		{ TEXT("PartyCollapsedHeight"), PartyCollapsedHeight },
 		{ TEXT("PartySlotHeight"), PartySlotHeight },
+		{ TEXT("OpenPlaceDashLength"), OpenPlaceDashLength },
+		{ TEXT("OpenPlaceDashGap"), OpenPlaceDashGap },
 		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
 		{ TEXT("ChatLinesHeight"), ChatLinesHeight },
 		{ TEXT("ProfileIconSize"), ProfileIconSize },

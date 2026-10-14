@@ -206,6 +206,19 @@ void UVeyraShellButton::HandleClicked()
 	}
 }
 
+UVeyraShellButton& UVeyraShellButton::ShowLabelAsName(const FSlateFontInfo& Font, const FLinearColor& Color)
+{
+	if (UTextBlock* Text = Cast<UTextBlock>(GetChildAt(0)))
+	{
+		Text->SetTextTransformPolicy(ETextTransformPolicy::None);
+		Text->SetFont(Font);
+		Text->SetColorAndOpacity(FSlateColor(Color));
+		Text->SetAutoWrapText(false);
+		Text->SetTextOverflowPolicy(ETextOverflowPolicy::Ellipsis);
+	}
+	return *this;
+}
+
 UVeyraShellButton& UVeyraShellButton::KeepLabelOnOneLine()
 {
 	if (UTextBlock* Text = Cast<UTextBlock>(GetChildAt(0)))

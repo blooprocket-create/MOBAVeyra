@@ -196,6 +196,10 @@
 .PARAMETER Screenshot
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
     With -Flow, the client renders in a window and saves each screen it passes, as Flow-<screen>.png.
+.PARAMETER ScreenshotSize
+    With -Screenshot: the rendering client's window, as <width>x<height> (default 1280x720). A taller, narrower
+    window shows how a page lays itself out with less width, such as the Settings page's medium and narrow
+    layouts (ADR-083 §5).
 .PARAMETER ScreenshotCommands
     With -Screenshot: console commands the rendering client runs at start, comma-separated, to show what a capture needs,
     such as a deck tile's tooltip and the open stats panel (Veyra.Dev.HudHover W,Veyra.Dev.StatsPanelOpen 1; ADR-080 §6).
@@ -280,6 +284,8 @@ param(
     [int]$ClientStaySeconds = 0,
 
     [switch]$Screenshot,
+    [ValidatePattern('^\d{3,4}x\d{3,4}$')]
+    [string]$ScreenshotSize = '1280x720',
     [string]$ScreenshotCommands = '',
     [switch]$KitShots,
 
@@ -324,7 +330,8 @@ $ReplayContainerDir = '/srv/veyra/Veyra/Saved/Demos'
 $SmokeVanguard = 'test_vanguard'
 # -Screenshot: the rendering client's window, and how long it stays after its script so the
 # screenshot it asked for is drawn and saved.
-$ScreenshotWindow = @('-windowed', '-ResX=1280', '-ResY=720')
+$ScreenshotWidth, $ScreenshotHeight = $ScreenshotSize -split 'x'
+$ScreenshotWindow = @('-windowed', "-ResX=$ScreenshotWidth", "-ResY=$ScreenshotHeight")
 # -PerfSeconds: the measured client's window, and its frame rate left uncapped.
 $PerfWindow = @('-windowed', '-ResX=1920', '-ResY=1080', "-ExecCmds=`"t.MaxFPS 0,r.VSync 0$(if ($PerfCommands) { ",$PerfCommands" })`"")
 $ScreenshotStaySeconds = 5

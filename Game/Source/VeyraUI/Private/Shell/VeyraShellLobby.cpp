@@ -572,7 +572,10 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	{
 		AddText(*Lists, LOCTEXT("FriendsLobbyHint", "The lobby's host invites friends."), LobbyRole(EVeyraShellText::Small));
 	}
-	// Party Chat and direct messages below the friends (UX-3).
+	// Party Chat and direct messages below the friends (UX-3), set apart from them by a rule.
+	AddLobbyGap(*WidgetTree, *Rows, Style.Spacing);
+	Rows->AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
+	AddLobbyGap(*WidgetTree, *Rows, Style.Spacing);
 	BuildSidebarChat(Snapshot, *Rows);
 }
 
@@ -655,15 +658,9 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 	UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	UVeyraShellButton* NameButton = UVeyraShellButton::MakeKindNamed(*WidgetTree, EVeyraShellButtonKind::Quiet, VeyraShellModels::FriendCardLabel(Name), Friend.Name,
 		[this, Key] { OpenCard(Key); }, true, bOpen);
-	NameButton->KeepLabelOnOneLine();
+	// In the body face, as the party's places name its members, so the line's action keeps its room.
+	NameButton->ShowLabelAsName(VeyraShellStyle::FontFor(EVeyraShellText::Body), Style.TextColor);
 	Buttons.Add(NameButton);
-	if (UTextBlock* NameText = Cast<UTextBlock>(NameButton->GetContent()))
-	{
-		NameText->SetTextTransformPolicy(ETextTransformPolicy::None);
-		NameText->SetTextOverflowPolicy(ETextOverflowPolicy::Ellipsis);
-		NameText->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Heading));
-		NameText->SetColorAndOpacity(FSlateColor(Style.TextColor));
-	}
 	Who->AddChildToVerticalBox(NameButton)->SetHorizontalAlignment(HAlign_Left);
 	if (!Friend.Status.IsEmpty())
 	{
