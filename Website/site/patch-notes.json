@@ -21,6 +21,7 @@
         "The client has a new look throughout: new type, brass-edged panels, and menus that move.",
         "The match HUD is redrawn and animated, with tooltips that show an ability's real numbers and a stats panel beside your portrait.",
         "The scoreboard, shop, Collection, Profile, Settings and Match History are redrawn to match.",
+        "Every item has a new icon, each drawn to tell it apart from the rest at a glance.",
         "Profile banners show the regions of Veyra.",
         "Units are drawn from the server's motions rather than its positions, so they move smoothly and stop where they stop, and your orders answer at once."
       ]
