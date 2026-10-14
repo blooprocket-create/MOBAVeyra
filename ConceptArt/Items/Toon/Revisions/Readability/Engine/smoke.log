@@ -1,0 +1,36 @@
+Report folder: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723
+Building the match server image from the packaged server.
+ Image veyra-match-server:local Building 
+ Image veyra-match-server:local Built 
+The backend runs the rotation's first week from 2026-10-12T19:07:23Z (Backend/config/scripted.json).
+Starting the backend.
+ Image veyra-backend Building 
+ Image veyra-backend Built 
+ Container veyra-backend-1 Recreate 
+ Container veyra-backend-1 Recreated 
+ Container veyra-postgres-1 Starting 
+ Container veyra-postgres-1 Started 
+ Container veyra-postgres-1 Waiting 
+ Container veyra-postgres-1 Healthy 
+ Container veyra-backend-1 Starting 
+ Container veyra-backend-1 Started 
+ Container veyra-backend-1 Waiting 
+ Container veyra-postgres-1 Waiting 
+ Container veyra-backend-1 Healthy 
+ Container veyra-postgres-1 Healthy 
+Match da0bf215-11c2-48e9-8ad3-b5b95532f8af, created by the client's champion select: server container veyra-match-da0bf215-11c2-48e9-8ad3-b5b95532f8af.
+The match is ended; waiting up to 145 s for the backend to remove its server.
+Client 1 (DevOne): VeyraSmoke: PASS: clicked through the starter choice, Play and Practice, locked qazharr, sieged the enemy Prime Well down, played on, bought timing_coil and keensteel in the shop, recalled home, ended the match from its menu as its host, saw its verified result, returned to the shell and found the match in Match History.
+Screenshot: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723\Flow-StarterChoice.png
+Screenshot: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723\Flow-Home.png
+Screenshot: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723\Flow-Play.png
+Screenshot: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723\Flow-ChampionSelect.png
+Screenshot: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723\Flow-MatchMenu.png
+Screenshot: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723\Flow-Results.png
+Result: host_ended, winner none, 24.8 s.
+Join tickets in the server's own login and join lines: 2 (the known exposure in ADR-007).
+ Container veyra-backend-1 Stopping 
+ Container veyra-backend-1 Stopped 
+ Container veyra-postgres-1 Stopping 
+ Container veyra-postgres-1 Stopped 
+The Practice flow smoke test passed. Logs: C:\dev\MOBAVeyra\Game\Saved\Smoke\20261013-150723

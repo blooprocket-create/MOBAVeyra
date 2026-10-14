@@ -1,0 +1,260 @@
+{
+  "date": "2026-10-13",
+  "mode": "built-in image_gen",
+  "status": "Generated artwork awaiting author and in-engine visual acceptance",
+  "references": [
+    "Tier_1_Components/T_iron_grip_Icon.png",
+    "Tier_3_Masterworks/T_crown_of_the_crucible_Icon.png"
+  ],
+  "batches": [
+    {
+      "sheet": "sheet_1.png",
+      "prompt": "Use case: stylized-concept. Generate a square 1536x1536 production source sheet containing EXACTLY NINE separate inventory icons in a strict 3 by 3 equal grid, no gutters. Each 512x512 cell is an independent full square icon. Reference images are STYLE REFERENCES ONLY. Match their painterly realistic fantasy-industrial equipment illustration, physically credible scratched metal and leather, warm gold directional key light, cool blue rim, crisp silhouette on subtly textured nearly black charcoal. Each object centered entirely inside its own cell, with 12 percent safe margins, three-quarter view. No text, letters, labels, borders, UI, stat glyphs, people, or scenery. Do not combine neighboring objects. Readable at 48px. Simple components modest; advanced equipment more elaborate. Cell 1, row 1 column 1: warforged_grip \u2014 heavy reinforced iron fist gauntlet with copper knuckle reinforcements.\nCell 2, row 1 column 2: titansteel_grip \u2014 massive dark titansteel fist gauntlet, double layered angular knuckles, strongest physical component.\nCell 3, row 1 column 3: marchplate \u2014 simple thick riveted steel defensive armor plate.\nCell 4, row 2 column 1: shatterdeep_crystal \u2014 single faceted violet crystal in a minimal iron socket, anti-magic component.\nCell 5, row 2 column 2: picket_plating \u2014 broad industrial steel breastplate with crimson padded inset and heavy rivets.\nCell 6, row 2 column 3: canyonward \u2014 protective canyon-crossing cuirass, weathered leather and violet crystal iron reinforcement.\nCell 7, row 3 column 1: breaker_aegis \u2014 angular layered iron shield with violet crystal and small teal timing coil.\nCell 8, row 3 column 2: resonant_wardstone \u2014 paired violet crystals fused into one stone in a heavy iron anti-magic cage.\nCell 9, row 3 column 3: foundation_plate \u2014 dense overlapping ancient iron defensive plates, bridge-foundation construction.",
+      "items": [
+        {
+          "id": "warforged_grip",
+          "folder": "Tier_1_Components",
+          "subject": "heavy reinforced iron fist gauntlet with copper knuckle reinforcements",
+          "sha256": "a936863fa407048ffd8decc0b1f9268ecae00abb625b95a244e47f9be359154e",
+          "file": "Tier_1_Components/T_warforged_grip_Icon.png"
+        },
+        {
+          "id": "titansteel_grip",
+          "folder": "Tier_1_Components",
+          "subject": "massive dark titansteel fist gauntlet, double layered angular knuckles, strongest physical component",
+          "sha256": "5fffbfcfff9dd869a86b44913e27a758e316000dae4da1d5ffc7fb8e1638d4c9",
+          "file": "Tier_1_Components/T_titansteel_grip_Icon.png"
+        },
+        {
+          "id": "marchplate",
+          "folder": "Tier_1_Components",
+          "subject": "simple thick riveted steel defensive armor plate",
+          "sha256": "a863e78eea531f3dc9afc6ad79b78cd69c4d14a8f6bbb0d801c28f06856e4c77",
+          "file": "Tier_1_Components/T_marchplate_Icon.png"
+        },
+        {
+          "id": "shatterdeep_crystal",
+          "folder": "Tier_1_Components",
+          "subject": "single faceted violet crystal in a minimal iron socket, anti-magic component",
+          "sha256": "b19502f4367a58e264530f22cf9f086956a73c4038a57a0244520f1ffd0834e7",
+          "file": "Tier_1_Components/T_shatterdeep_crystal_Icon.png"
+        },
+        {
+          "id": "picket_plating",
+          "folder": "Tier_2_Assemblies",
+          "subject": "broad industrial steel breastplate with crimson padded inset and heavy rivets",
+          "sha256": "3470d71a9493330fee670b6e4dca992e708b163b5f75da1fec223b9e9c791208",
+          "file": "Tier_2_Assemblies/T_picket_plating_Icon.png"
+        },
+        {
+          "id": "canyonward",
+          "folder": "Tier_2_Assemblies",
+          "subject": "protective canyon-crossing cuirass, weathered leather and violet crystal iron reinforcement",
+          "sha256": "5130a6465aafb653605e7b33ea48ed5fcd9be0b3fb21644537eb41b4a5790025",
+          "file": "Tier_2_Assemblies/T_canyonward_Icon.png"
+        },
+        {
+          "id": "breaker_aegis",
+          "folder": "Tier_2_Assemblies",
+          "subject": "angular layered iron shield with violet crystal and small teal timing coil",
+          "sha256": "5182e631196489e0153ba218ace68b2e72a1108cb7c0897ae920007c1464cd8e",
+          "file": "Tier_2_Assemblies/T_breaker_aegis_Icon.png"
+        },
+        {
+          "id": "resonant_wardstone",
+          "folder": "Tier_2_Assemblies",
+          "subject": "paired violet crystals fused into one stone in a heavy iron anti-magic cage",
+          "sha256": "fc5dd4c69c67e27d2454dddf4730ea38b856c8589afda3010f0e9ad644a25f68",
+          "file": "Tier_2_Assemblies/T_resonant_wardstone_Icon.png"
+        },
+        {
+          "id": "foundation_plate",
+          "folder": "Tier_2_Assemblies",
+          "subject": "dense overlapping ancient iron defensive plates, bridge-foundation construction",
+          "sha256": "1a6c74574bcd5532631e5211ec6c0ff6106f4148c89e823a6da6fd00795110df",
+          "file": "Tier_2_Assemblies/T_foundation_plate_Icon.png"
+        }
+      ],
+      "crop_boundaries": {
+        "x": [
+          0,
+          417,
+          836,
+          1254
+        ],
+        "y": [
+          0,
+          417,
+          809,
+          1254
+        ]
+      }
+    },
+    {
+      "sheet": "sheet_2.png",
+      "prompt": "Use case: stylized-concept. Generate a square 1536x1536 production source sheet containing EXACTLY NINE separate inventory icons in a strict 3 by 3 equal grid, no gutters. Each 512x512 cell is an independent full square icon. Reference images are STYLE REFERENCES ONLY. Match their painterly realistic fantasy-industrial equipment illustration, physically credible scratched metal and leather, warm gold directional key light, cool blue rim, crisp silhouette on subtly textured nearly black charcoal. Each object centered entirely inside its own cell, with 12 percent safe margins, three-quarter view. No text, letters, labels, borders, UI, stat glyphs, people, or scenery. Do not combine neighboring objects. Readable at 48px. Simple components modest; advanced equipment more elaborate. Cell 1, row 1 column 1: waymark_weave \u2014 folded silver chainmesh woven with emerald regenerative sea-glass filaments.\nCell 2, row 1 column 2: rescue_rig \u2014 practical maritime leather rescue harness with brass buckles rope and mechanical pulley.\nCell 3, row 1 column 3: killstring_assembly \u2014 compact bowstring tensioning mechanism with golden precision gears and taut dark cord.\nCell 4, row 2 column 1: riverhold_bastion \u2014 monumental broad iron tower shield, buried river bridge motifs, crimson health inset.\nCell 5, row 2 column 2: blackreef_bell \u2014 heavy bronze fog-guidance bell with black reef encrustation and violet sea-glass resonance core.\nCell 6, row 2 column 3: harborline_harness \u2014 elaborate maritime combat harness with anchor clasp, steel armor and emerald reserve vessels.\nCell 7, row 3 column 1: doombringer_bow \u2014 powerful dark metal compound bow with crimson energized limbs and gold precision mechanisms.\nCell 8, row 3 column 2: flux_reclaimer \u2014 compact wearable teal Flux collection device, spiral intake and green restorative reservoir.\nCell 9, row 3 column 3: wayline_reservoir \u2014 advanced wearable steel reservoir vessel with teal-green glowing liquid and reinforced pipework.",
+      "items": [
+        {
+          "id": "waymark_weave",
+          "folder": "Tier_2_Assemblies",
+          "subject": "folded silver chainmesh woven with emerald regenerative sea-glass filaments",
+          "sha256": "0952f543199a82170d008a440eaac311e2b7d619fe941e2d3a4b1a7ca3df89bf",
+          "file": "Tier_2_Assemblies/T_waymark_weave_Icon.png"
+        },
+        {
+          "id": "rescue_rig",
+          "folder": "Tier_2_Assemblies",
+          "subject": "practical maritime leather rescue harness with brass buckles rope and mechanical pulley",
+          "sha256": "02f4b27caebecdd784331f2587a858881f4ec2d837f27ea1271f8b3e8e7b9232",
+          "file": "Tier_2_Assemblies/T_rescue_rig_Icon.png"
+        },
+        {
+          "id": "killstring_assembly",
+          "folder": "Tier_2_Assemblies",
+          "subject": "compact bowstring tensioning mechanism with golden precision gears and taut dark cord",
+          "sha256": "24172e258252b838210b402f912c71c38723d1eca207b4866b5af29c661b9a4c",
+          "file": "Tier_2_Assemblies/T_killstring_assembly_Icon.png"
+        },
+        {
+          "id": "riverhold_bastion",
+          "folder": "Tier_3_Masterworks",
+          "subject": "monumental broad iron tower shield, buried river bridge motifs, crimson health inset",
+          "sha256": "f983b08a4079d465f5eb063821bb768e69bca2407e0955f27b7ce9df68bc1733",
+          "file": "Tier_3_Masterworks/T_riverhold_bastion_Icon.png"
+        },
+        {
+          "id": "blackreef_bell",
+          "folder": "Tier_3_Masterworks",
+          "subject": "heavy bronze fog-guidance bell with black reef encrustation and violet sea-glass resonance core",
+          "sha256": "7d6e0a33cf49a933ebb8654cb6839d6560da0ba2ab2da46d1abb618e5b206833",
+          "file": "Tier_3_Masterworks/T_blackreef_bell_Icon.png"
+        },
+        {
+          "id": "harborline_harness",
+          "folder": "Tier_3_Masterworks",
+          "subject": "elaborate maritime combat harness with anchor clasp, steel armor and emerald reserve vessels",
+          "sha256": "89afe221f8f27749961738c6ed3fb1d765d414d2c664bb8844a06eca07661d63",
+          "file": "Tier_3_Masterworks/T_harborline_harness_Icon.png"
+        },
+        {
+          "id": "doombringer_bow",
+          "folder": "Tier_3_Masterworks",
+          "subject": "powerful dark metal compound bow with crimson energized limbs and gold precision mechanisms",
+          "sha256": "a3b707cc7481dfdb9ba4fea12a6fda377680a020b2bee4f71e5d38f335176b9a",
+          "file": "Tier_3_Masterworks/T_doombringer_bow_Icon.png"
+        },
+        {
+          "id": "flux_reclaimer",
+          "folder": "Quest_Items",
+          "subject": "compact wearable teal Flux collection device, spiral intake and green restorative reservoir",
+          "sha256": "3ca3e32f5036c391524b723aeb7ed552a90f868af87e7bceb680798a94a932aa",
+          "file": "Quest_Items/T_flux_reclaimer_Icon.png"
+        },
+        {
+          "id": "wayline_reservoir",
+          "folder": "Quest_Items",
+          "subject": "advanced wearable steel reservoir vessel with teal-green glowing liquid and reinforced pipework",
+          "sha256": "8e46784850f35ee0e2287b02afd5411d455c9460f979235e7249db883aba9bf9",
+          "file": "Quest_Items/T_wayline_reservoir_Icon.png"
+        }
+      ],
+      "crop_boundaries": {
+        "x": [
+          0,
+          417,
+          836,
+          1254
+        ],
+        "y": [
+          0,
+          393,
+          803,
+          1254
+        ]
+      }
+    },
+    {
+      "sheet": "sheet_3.png",
+      "prompt": "Use case: stylized-concept. Generate a square 1536x1536 production source sheet containing EXACTLY NINE separate inventory icons in a strict 3 by 3 equal grid, no gutters. Each 512x512 cell is an independent full square icon. Reference images are STYLE REFERENCES ONLY. Match their painterly realistic fantasy-industrial equipment illustration, physically credible scratched metal and leather, warm gold directional key light, cool blue rim, crisp silhouette on subtly textured nearly black charcoal. Each object centered entirely inside its own cell, with 12 percent safe margins, three-quarter view. No text, letters, labels, borders, UI, stat glyphs, people, or scenery. Do not combine neighboring objects. Readable at 48px. Simple components modest; advanced equipment more elaborate. Cell 1, row 1 column 1: the_last_harbor \u2014 mythical magnificent maritime armored harness with crowned anchor clasp, gold filigree and emerald restorative heart.\nCell 2, row 1 column 2: echo_lens \u2014 violet refractive lens held in an ornate brass mechanical optical housing, ghostly doubled reflection inside.\nCell 3, row 1 column 3: the_second_self \u2014 mythical elaborate paired violet crystal optical core in gold metal orbiting rings, two mirrored luminous centers and thin Flux tether.\nCell 4, row 2 column 1: veil_needle \u2014 slender sharp steel throwing needle with dark wrapped grip and understated crimson reflection.\nCell 5, row 2 column 2: blank_sigil \u2014 black cut-out insignia patch mounted on sharp steel medallion, empty geometric center, no text.\nCell 6, row 2 column 3: cutline_mantle \u2014 folded dark assassin shoulder mantle with layered leather, clean silver blade-like hem and crimson lining.\nCell 7, row 3 column 1: oathpiercer \u2014 heavy long armor-piercing steel dagger with brutal tapered tip and dark crimson grip.\nCell 8, row 3 column 2: witnessless_edge \u2014 sleek curved assassin blade with dark steel spine, bright razor edge and subtle teal mechanism.\nCell 9, row 3 column 3: memoryglass_reliquary \u2014 ornate brass reliquary holding violet translucent memoryglass, visible suspended luminous echo within.",
+      "items": [
+        {
+          "id": "the_last_harbor",
+          "folder": "Tier_4_Mythicals",
+          "subject": "mythical magnificent maritime armored harness with crowned anchor clasp, gold filigree and emerald restorative heart",
+          "sha256": "a76bf2491a7f401c11531f2d5b21b3fc22519d3e5b10ef843d8f9b4cbe99a200",
+          "file": "Tier_4_Mythicals/T_the_last_harbor_Icon.png"
+        },
+        {
+          "id": "echo_lens",
+          "folder": "Tier_3_Masterworks",
+          "subject": "violet refractive lens held in an ornate brass mechanical optical housing, ghostly doubled reflection inside",
+          "sha256": "dd7a1e9b82811843597b595b01023c0dffa93d07849363e86bc7a01e2a2d210a",
+          "file": "Tier_3_Masterworks/T_echo_lens_Icon.png"
+        },
+        {
+          "id": "the_second_self",
+          "folder": "Tier_4_Mythicals",
+          "subject": "mythical elaborate paired violet crystal optical core in gold metal orbiting rings, two mirrored luminous centers and thin Flux tether",
+          "sha256": "ed159e5fb930bde207695920b3cc7dd9dfa4c983fcea36201986528b229189e3",
+          "file": "Tier_4_Mythicals/T_the_second_self_Icon.png"
+        },
+        {
+          "id": "veil_needle",
+          "folder": "Tier_2_Assemblies",
+          "subject": "slender sharp steel throwing needle with dark wrapped grip and understated crimson reflection",
+          "sha256": "a7306e05e221d200a3b32c9acd96dbccccaf388eb340780d3f651127ec4561c3",
+          "file": "Tier_2_Assemblies/T_veil_needle_Icon.png"
+        },
+        {
+          "id": "blank_sigil",
+          "folder": "Tier_3_Masterworks",
+          "subject": "black cut-out insignia patch mounted on sharp steel medallion, empty geometric center, no text",
+          "sha256": "710ca8f8de907889e074ffa8f21332a480d2e54ed4c9b3be704fb5eaf9743022",
+          "file": "Tier_3_Masterworks/T_blank_sigil_Icon.png"
+        },
+        {
+          "id": "cutline_mantle",
+          "folder": "Tier_3_Masterworks",
+          "subject": "folded dark assassin shoulder mantle with layered leather, clean silver blade-like hem and crimson lining",
+          "sha256": "a271cfcb6cfad03fa2917bfcef2f41a1bfcd1ae595145ebd63bb4a8c3e5c8569",
+          "file": "Tier_3_Masterworks/T_cutline_mantle_Icon.png"
+        },
+        {
+          "id": "oathpiercer",
+          "folder": "Tier_3_Masterworks",
+          "subject": "heavy long armor-piercing steel dagger with brutal tapered tip and dark crimson grip",
+          "sha256": "c7a61d46f1d2dc71d9ebdd6f8fb2a1b0ddaab7fc67e40e6fa90bf67261e7fc5f",
+          "file": "Tier_3_Masterworks/T_oathpiercer_Icon.png"
+        },
+        {
+          "id": "witnessless_edge",
+          "folder": "Tier_3_Masterworks",
+          "subject": "sleek curved assassin blade with dark steel spine, bright razor edge and subtle teal mechanism",
+          "sha256": "395f9e0b14f637de69f3b485c0a26b52778d05fe7046f71daf3c57865ca42958",
+          "file": "Tier_3_Masterworks/T_witnessless_edge_Icon.png"
+        },
+        {
+          "id": "memoryglass_reliquary",
+          "folder": "Tier_3_Masterworks",
+          "subject": "ornate brass reliquary holding violet translucent memoryglass, visible suspended luminous echo within",
+          "sha256": "0160b11bd82f64c956b409e4d0facb3388f783562ede4c58c7fc567b81dd3580",
+          "file": "Tier_3_Masterworks/T_memoryglass_reliquary_Icon.png"
+        }
+      ],
+      "crop_boundaries": {
+        "x": [
+          0,
+          417,
+          835,
+          1254
+        ],
+        "y": [
+          0,
+          418,
+          809,
+          1254
+        ]
+      }
+    }
+  ]
+}

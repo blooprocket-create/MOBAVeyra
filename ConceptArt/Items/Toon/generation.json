@@ -1,0 +1,1019 @@
+{
+  "date": "2026-10-13",
+  "mode": "built-in image_gen",
+  "direction": "User requested all 64 redesigned in Veyra-compatible toon style; chose bold equipment shapes with integrated effect cues",
+  "canon": "Docs/Design/Veyra_Item_Bible_v0.3.md sections 4-12; Art_Direction_v0.1.md House style; ADR-068",
+  "status": "Proposed artwork; final in-engine visual acceptance pending",
+  "items": [
+    {
+      "id": "basic_boots",
+      "subject": "plain rounded brown ankle boot with thick white sole and one bold sky-blue forward swoosh",
+      "function": "Movement speed",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: basic boots. Subject: plain rounded brown ankle boot with thick white sole and one bold sky-blue forward swoosh. Function that the visual should suggest: Movement speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_basic_boots_Icon.png",
+      "sha256": "9fd2107105206c1b3e8a105e97a8022dcdadc0ea014425c2dee88d3aed7478e0",
+      "source_sha256": "0fd7a9c459a210369024400eefc8db4b42bd63698d3e46525cd457d40fe732f5"
+    },
+    {
+      "id": "vital_plate",
+      "subject": "chunky red heart-shaped padded breastplate; clearly armor-shaped, with one broad ruby-red center, no shield outline",
+      "function": "Health",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: vital plate. Subject: chunky red heart-shaped padded breastplate; clearly armor-shaped, with one broad ruby-red center, no shield outline. Function that the visual should suggest: Health. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_vital_plate_Icon.png",
+      "sha256": "a64945c9f4abc65b6ace69f0c5d1227410d52be40d2964caae771c1c1c150ce0",
+      "source_sha256": "e2a8ea1b69f09f31163caa621ea821e2def51c184c339e631ac212c12bdac471"
+    },
+    {
+      "id": "renewal_mesh",
+      "subject": "folded green interwoven mesh with a single living leaf-shaped loop of light woven through it; soft rectangular silhouette",
+      "function": "Health regeneration",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: renewal mesh. Subject: folded green interwoven mesh with a single living leaf-shaped loop of light woven through it; soft rectangular silhouette. Function that the visual should suggest: Health regeneration. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_renewal_mesh_Icon.png",
+      "sha256": "9c103054a9bfbc6b2192a6a1ce67ff216964b5ddccc3ff88490fc183b4288be3",
+      "source_sha256": "7aec22dbbddb95a8c445fb6e0b6bb1e1b5c97ec274e1a06880a6d1823c7cb2dd"
+    },
+    {
+      "id": "timing_coil",
+      "subject": "teal hourglass-shaped torsion coil, wide upper and lower caps and narrow waist, with one circular rewind arc",
+      "function": "Ability haste",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: timing coil. Subject: teal hourglass-shaped torsion coil, wide upper and lower caps and narrow waist, with one circular rewind arc. Function that the visual should suggest: Ability haste. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_timing_coil_Icon.png",
+      "sha256": "d02ed35ea5a004ed77c366ac69044795eeaa9044ad6103a928449919e31fce90",
+      "source_sha256": "25106aaa92b9b4edee82d64c89f42e30fa46d149a7353ce8d1751059be33c10f"
+    },
+    {
+      "id": "iron_grip",
+      "subject": "simple compact closed gray iron fist with orange knuckles and square leather cuff, no ornament",
+      "function": "Physical power",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: iron grip. Subject: simple compact closed gray iron fist with orange knuckles and square leather cuff, no ornament. Function that the visual should suggest: Physical power. Do not draw the item name or function as text.",
+      "file": "Tier_1_Components/T_iron_grip_Icon.png",
+      "sha256": "e8cf6c642900484396a7b3c1ed69d49a8e13dfe96c50473f346be1a9583d51ed",
+      "source_sha256": "de81510a2f67cac37a5c05a0970e1d700dea554ed5d5eedbfaee81bc48cbf528"
+    },
+    {
+      "id": "quickcoil",
+      "subject": "bright yellow stretched zigzag spring angled upwards with a forked lightning end; dynamic narrow silhouette",
+      "function": "Attack speed",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: quickcoil. Subject: bright yellow stretched zigzag spring angled upwards with a forked lightning end; dynamic narrow silhouette. Function that the visual should suggest: Attack speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_quickcoil_Icon.png",
+      "sha256": "b162926712665b74b813d18a0b77af860d1bb95f83262738e163c803f27e5a85",
+      "source_sha256": "ee6b3c55c45c5a0365a78442eecb20ee22609a7c1256099704d3d9ea4016dfce"
+    },
+    {
+      "id": "arc_crystal",
+      "subject": "large angular amethyst diamond shard floating above minimal dark socket; one broad violet arc of power",
+      "function": "Magic power",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: arc crystal. Subject: large angular amethyst diamond shard floating above minimal dark socket; one broad violet arc of power. Function that the visual should suggest: Magic power. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_arc_crystal_Icon.png",
+      "sha256": "00da67c35e7ff03f83f817893302dcdb303cc1180b72621b63a4b0d5e7b88a67",
+      "source_sha256": "234bf6c9a571fd8285cf7b2a416ccaaeafb5a10422033010aa0248c3872a297e"
+    },
+    {
+      "id": "keensteel",
+      "subject": "short polished gold chisel-like blade with ONE sharp four-point glint at its edge, distinctly wedge-shaped",
+      "function": "Critical strike chance",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: keensteel. Subject: short polished gold chisel-like blade with ONE sharp four-point glint at its edge, distinctly wedge-shaped. Function that the visual should suggest: Critical strike chance. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_keensteel_Icon.png",
+      "sha256": "9dfbc7db8967db295bc039c2ce7cc9db1873754bbc5e7c9af38b2eac277fee8f",
+      "source_sha256": "34f5d4d900d36d5d0132a95715e538e4f3e636615047ca076f2f02714dd43c81"
+    },
+    {
+      "id": "warforged_grip",
+      "subject": "OPEN armored copper hand, palm visible, four thick separated blunt upright fingers and side thumb. Long squared cuff. Strong raised knuckle plates, physical power. Completely distinct from closed Iron Grip and clawed Titansteel. No clenched fist, no claws.",
+      "function": "Higher physical power",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: OPEN armored copper hand, palm visible, four thick separated blunt upright fingers and side thumb. Long squared cuff. Strong raised knuckle plates, physical power. Completely distinct from closed Iron Grip and clawed Titansteel. No clenched fist, no claws.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_warforged_grip_Icon.png",
+      "sha256": "dd42408c279e038dfc1af40fd5754f18d4112481f54e7e7c928b2508a22db236",
+      "source_sha256": "31d7b3d76ef2b3393858194b28a6ef8cebdc06635f5823757ae42ec428a41b93",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: warforged grip. Subject: wide rectangular copper boxing gauntlet with ONE raised broad knuckle bar and squared cuff; stronger and squarer than simple iron fist. Function that the visual should suggest: Higher physical power. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "wide rectangular copper boxing gauntlet with ONE raised broad knuckle bar and squared cuff; stronger and squarer than simple iron fist"
+        }
+      ]
+    },
+    {
+      "id": "titansteel_grip",
+      "subject": "massive blacksteel wedge-shaped gauntlet with THREE broad upward claw-shaped knuckle ridges and flared orange wrist; distinctly triangular silhouette",
+      "function": "Highest component physical power",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: titansteel grip. Subject: massive blacksteel wedge-shaped gauntlet with THREE broad upward claw-shaped knuckle ridges and flared orange wrist; distinctly triangular silhouette. Function that the visual should suggest: Highest component physical power. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_titansteel_grip_Icon.png",
+      "sha256": "9cd1fecd6c91d75c95bd1b196a914f1c14b4021f5924d6fc5e52974c784a836e",
+      "source_sha256": "2dd81c523e5e2550f0f04f694bf4955ca72c2acd607c35ab9b16cc9efef69cbf"
+    },
+    {
+      "id": "marchplate",
+      "subject": "broad blue-gray pentagonal shield plate with one raised silver ridge, calm white metal reflections",
+      "function": "Armor",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: marchplate. Subject: broad blue-gray pentagonal shield plate with one raised silver ridge, calm white metal reflections. Function that the visual should suggest: Armor. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_marchplate_Icon.png",
+      "sha256": "a6cd524f593479780f2b76b3acb902e39110fe81681963d4b9ce2b7903ff7f87",
+      "source_sha256": "61583f378c45236d191e113ff886b5973ba510be8242637c48f94dc27de02d0b"
+    },
+    {
+      "id": "shatterdeep_crystal",
+      "subject": "pale cyan blunt hexagonal crystal protected by a thick C-shaped dark iron cuff; one violet spell ray visibly bends away from cuff",
+      "function": "Magic resistance",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: shatterdeep crystal. Subject: pale cyan blunt hexagonal crystal protected by a thick C-shaped dark iron cuff; one violet spell ray visibly bends away from cuff. Function that the visual should suggest: Magic resistance. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_1_Components/T_shatterdeep_crystal_Icon.png",
+      "sha256": "b30af79bd0ec0a7824bee8442563c7b5167c0f7e482ad61bbaeb820a5d6e4fcf",
+      "source_sha256": "9c39d54a5bed88a7f0e46e2a8d938b6af29e2801dbccacf0e148fa6b9afef661"
+    },
+    {
+      "id": "swift_boots",
+      "subject": "slim white and turquoise winged running boot with swept-back feather-shaped ankle fins and one flowing speed trail",
+      "function": "Movement speed specialization",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: swift boots. Subject: slim white and turquoise winged running boot with swept-back feather-shaped ankle fins and one flowing speed trail. Function that the visual should suggest: Movement speed specialization. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_swift_boots_Icon.png",
+      "sha256": "2af9cdffa5e3055e99842b9d83734d0990a967f3dafa65055ed38b246ef62673",
+      "source_sha256": "3d0c90566f2660198ad2d1293112949bcfecfc747e3fd130a8937203c703867f"
+    },
+    {
+      "id": "war_boots",
+      "subject": "squat red-and-gold metal combat boot with sharp yellow spring-loaded heel and compact zigzag energy",
+      "function": "Movement and attack speed",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: war boots. Subject: squat red-and-gold metal combat boot with sharp yellow spring-loaded heel and compact zigzag energy. Function that the visual should suggest: Movement and attack speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_war_boots_Icon.png",
+      "sha256": "2a0444b95b83ae7c4d8529090a3b0596446a4842b38692873d60b5f8173a0bbf",
+      "source_sha256": "a853f187f5b639e94f4bb4c04273ba134574aab35d0aa7f021c1672789dad440"
+    },
+    {
+      "id": "arcane_boots",
+      "subject": "tall violet magician boot with pointed curled toe and floating luminous amethyst cuff ring; small purple power arc",
+      "function": "Movement speed and magic-power amplification",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: arcane boots. Subject: tall violet magician boot with pointed curled toe and floating luminous amethyst cuff ring; small purple power arc. Function that the visual should suggest: Movement speed and magic-power amplification. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_arcane_boots_Icon.png",
+      "sha256": "27920779feacaba13ac6f6379500efafac24ac8c647d96f0312b629ac2e9ca0f",
+      "source_sha256": "c9528e656ac08874359408bdbed7f2ddd9e70728fa85123b7aa1f0fccaa1bacf"
+    },
+    {
+      "id": "reinforced_chassis",
+      "subject": "Upright dark metal RIB CAGE CHASSIS, tall squared open torso frame with three broad horizontal ribs and clearly open dark gaps. Red padded reservoir panel low inside; two bold green regeneration conduits along side rails. Health and regeneration. No heart shape, no rounded breastplate, no shield.",
+      "function": "Health and regeneration",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Upright dark metal RIB CAGE CHASSIS, tall squared open torso frame with three broad horizontal ribs and clearly open dark gaps. Red padded reservoir panel low inside; two bold green regeneration conduits along side rails. Health and regeneration. No heart shape, no rounded breastplate, no shield.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_reinforced_chassis_Icon.png",
+      "sha256": "22a8866635c792c0ee9a6418ff76cb37c7a87c405e49e12fbddfb1eb0ef137b3",
+      "source_sha256": "5e4b71b26ae48a234924d5f3df35b21fde69db1d824ed634914725a17e8b6853",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: reinforced chassis. Subject: rounded green-edged chest chassis surrounding one large red heart-like core, green restorative loop hugging outside. Function that the visual should suggest: Health and regeneration. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "rounded green-edged chest chassis surrounding one large red heart-like core, green restorative loop hugging outside"
+        }
+      ]
+    },
+    {
+      "id": "picket_plating",
+      "subject": "square slab of slate blue industrial armor with red padded lower edge, two large rivets and squared shoulder ledges; fortification construction",
+      "function": "Health and armor",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: picket plating. Subject: square slab of slate blue industrial armor with red padded lower edge, two large rivets and squared shoulder ledges; fortification construction. Function that the visual should suggest: Health and armor. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_picket_plating_Icon.png",
+      "sha256": "e5e9b6b199847cf634625b9df33984672b65ad4718c8627619fb8982f36d43b4",
+      "source_sha256": "66a1b95da438ffe28feb004eebffef27968d6a68011ae8d9a90819f52cf0176a"
+    },
+    {
+      "id": "canyonward",
+      "subject": "cyan arched protective collar shaped like a canyon bridge, thick red interior padding and one cyan crystal that bends away violet sparks",
+      "function": "Health and magic resistance",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: canyonward. Subject: cyan arched protective collar shaped like a canyon bridge, thick red interior padding and one cyan crystal that bends away violet sparks. Function that the visual should suggest: Health and magic resistance. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_canyonward_Icon.png",
+      "sha256": "0c9a28c8a6b2ca2acac7ecfab6ad8d8752fc15ed46553c2f13e0c5a2a97c9527",
+      "source_sha256": "f559b970ac93d9de201ea1b0f46b7fad4f2d3ca70a901792cec29ff47d1e0694"
+    },
+    {
+      "id": "breaker_aegis",
+      "subject": "three-lobed blue-gray shield with central cyan crystal and teal circular timing hub; strong Y-shaped outer silhouette",
+      "function": "Armor, magic resistance and ability haste",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: breaker aegis. Subject: three-lobed blue-gray shield with central cyan crystal and teal circular timing hub; strong Y-shaped outer silhouette. Function that the visual should suggest: Armor, magic resistance and ability haste. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_breaker_aegis_Icon.png",
+      "sha256": "30ac29dfe20b564eed2c1bee7db5bcfb326ce62188e6049b951a580b8e15a0b8",
+      "source_sha256": "4f2ca6f7be112c60fac9144d0d25ccb08b618ef8cf49de6ca51814374718765f"
+    },
+    {
+      "id": "resonant_wardstone",
+      "subject": "large cyan smooth round wardstone in a split crescent stone cradle, two concentric cyan protection arcs turn away a purple ray",
+      "function": "Concentrated magic resistance",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: resonant wardstone. Subject: large cyan smooth round wardstone in a split crescent stone cradle, two concentric cyan protection arcs turn away a purple ray. Function that the visual should suggest: Concentrated magic resistance. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_resonant_wardstone_Icon.png",
+      "sha256": "3506efdeedbdba38d168be95ca64704c709e87cc3583c17bedf94098c73a90bb",
+      "source_sha256": "c12e88548d95076500f2156b5e08a08cb5fd84ca10d5d61421e2df40b5604063"
+    },
+    {
+      "id": "foundation_plate",
+      "subject": "low wide stacked blue-gray rectangular armor blocks with deep stepped base; rectangular silhouette, dense layered physical defense",
+      "function": "Concentrated armor",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: foundation plate. Subject: low wide stacked blue-gray rectangular armor blocks with deep stepped base; rectangular silhouette, dense layered physical defense. Function that the visual should suggest: Concentrated armor. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_foundation_plate_Icon.png",
+      "sha256": "509aa580130ee2f6782385aff4f533d1fb114d37d9232f6ae82294e6572ba6cf",
+      "source_sha256": "addf51e1ea4c6e38450496a5ed07c2d5f3447f635fc48d1ca4d9f71dc94a8016"
+    },
+    {
+      "id": "waymark_weave",
+      "subject": "Thick green woven sailor's WAYMARK KNOT, big doubled braided figure-eight knot with TWO clearly open dark holes, two short tassel ends. Bright green restorative current hugging braids. Concentrated health regeneration. No flat woven swatch, no scarf ring, no leaves, no anchor. Large simple knot silhouette distinct from Renewal Mesh.",
+      "function": "Concentrated health regeneration",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Thick green woven sailor's WAYMARK KNOT, big doubled braided figure-eight knot with TWO clearly open dark holes, two short tassel ends. Bright green restorative current hugging braids. Concentrated health regeneration. No flat woven swatch, no scarf ring, no leaves, no anchor. Large simple knot silhouette distinct from Renewal Mesh.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_waymark_weave_Icon.png",
+      "sha256": "6fa72e5cf9351652eb607d2500062599325716c8d2e1266b740e3b1271b12780",
+      "source_sha256": "61bfd6fc3504dd853aaa761e213a4f259cc9f32d35536be2fc586ff61ca71fb5",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: waymark weave. Subject: green loop-shaped knitted maritime mesh scarf, one large leaf-like regenerative current circling its open center. Function that the visual should suggest: Concentrated health regeneration. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "green loop-shaped knitted maritime mesh scarf, one large leaf-like regenerative current circling its open center"
+        }
+      ]
+    },
+    {
+      "id": "rescue_rig",
+      "subject": "red rescue harness shaped like an open V, prominent gold rapid-release pulley and yellow taut return cord",
+      "function": "Health and attack speed",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: rescue rig. Subject: red rescue harness shaped like an open V, prominent gold rapid-release pulley and yellow taut return cord. Function that the visual should suggest: Health and attack speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_rescue_rig_Icon.png",
+      "sha256": "b06a8fddf821f076dfcd01d41c567e6d46b882efca0bded6d626cc66269e57d0",
+      "source_sha256": "87a8db998ca164a78337e65c791d740399ad69d1afb69bf4e972a4fe4c6b97d8"
+    },
+    {
+      "id": "siege_frame",
+      "subject": "red four-legged siege support frame enclosing a large teal hourglass timing chamber; angular open rectangle silhouette",
+      "function": "Health and ability haste",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: siege frame. Subject: red four-legged siege support frame enclosing a large teal hourglass timing chamber; angular open rectangle silhouette. Function that the visual should suggest: Health and ability haste. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_siege_frame_Icon.png",
+      "sha256": "e360df8ca480c020b918f096ea63a0f97f026e598e8ae82abde1e0681296cc3c",
+      "source_sha256": "37811112611eb11ca7b495ad342148251d9bed5f8c5655a04032ea5f70b9930a"
+    },
+    {
+      "id": "war_harness",
+      "subject": "red crossed chest straps with a broad orange steel impact buckle; unequivocal X-shaped silhouette",
+      "function": "Health and physical power",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: war harness. Subject: red crossed chest straps with a broad orange steel impact buckle; unequivocal X-shaped silhouette. Function that the visual should suggest: Health and physical power. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_war_harness_Icon.png",
+      "sha256": "8f2c0e1a389c96b8855d354dca426aadc8fbe73f360c0e577875071e3e17c335",
+      "source_sha256": "6398ad4c24f53d237135c4943ef400a95fbcb586bef739159518ea69b050b9ab"
+    },
+    {
+      "id": "bloodforged_bracer",
+      "subject": "orange bladed wrist bracer with large emerald regenerative vein flowing through a broad red cuff; distinctive curved wedge",
+      "function": "Physical power and regeneration",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: bloodforged bracer. Subject: orange bladed wrist bracer with large emerald regenerative vein flowing through a broad red cuff; distinctive curved wedge. Function that the visual should suggest: Physical power and regeneration. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_bloodforged_bracer_Icon.png",
+      "sha256": "94960a5d70578d7b7890fce2c7bfc36fbcbf41c086ceda326080eb37841bb58e",
+      "source_sha256": "793ca77ea31357c8eeebe9d8b2575e132bd53fc47eb837e6874732769bd75882"
+    },
+    {
+      "id": "accelerant_gear",
+      "subject": "large yellow toothed gear with teal inner spiral and three crisp short yellow rotation streaks; open circular silhouette",
+      "function": "Attack speed and ability haste",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: accelerant gear. Subject: large yellow toothed gear with teal inner spiral and three crisp short yellow rotation streaks; open circular silhouette. Function that the visual should suggest: Attack speed and ability haste. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_accelerant_gear_Icon.png",
+      "sha256": "c3bf9619a622821e32af9448fef54f05dfb6e0c7b220675934f5e8bf2492676d",
+      "source_sha256": "00d99ddd95c845a307c7f70ee7e158ce6985822f713e5b086cf5da2553067850"
+    },
+    {
+      "id": "war_mechanism",
+      "subject": "orange heavy mechanical hammer-head joined to yellow reciprocating crank, one short repeated yellow strike streak; L-shaped silhouette",
+      "function": "Physical power and attack speed",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: war mechanism. Subject: orange heavy mechanical hammer-head joined to yellow reciprocating crank, one short repeated yellow strike streak; L-shaped silhouette. Function that the visual should suggest: Physical power and attack speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_war_mechanism_Icon.png",
+      "sha256": "0440a73cc1489fcc8ca9edbec401b578572e629cb3d55ea2326a9a0b4a877c3b",
+      "source_sha256": "af92b6fe1f03286949e45cccc1a73382c4b9c3a9ef69b5ab9de9dbccf4fbf792"
+    },
+    {
+      "id": "striker_assembly",
+      "subject": "Compact mechanical STRIKING HAMMER: broad rectangular orange hammer head across top, short dark handle below, a LARGE exposed teal compressed spring along handle. Clear T silhouette. Physical power and ability haste. No cannon, no barrel, no gauntlet, no crank. Entire hammer visible.",
+      "function": "Physical power and ability haste",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Compact mechanical STRIKING HAMMER: broad rectangular orange hammer head across top, short dark handle below, a LARGE exposed teal compressed spring along handle. Clear T silhouette. Physical power and ability haste. No cannon, no barrel, no gauntlet, no crank. Entire hammer visible.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_striker_assembly_Icon.png",
+      "sha256": "e47bb3f575570350942542445bbcaa0d07790cca76ac949e9662b12215b25d01",
+      "source_sha256": "fe65bd2234c5b6d78decb365945bbccc7bbbe0168180ef8cb755dcf6e414a3f2",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: striker assembly. Subject: orange spring-loaded mechanical striking piston aimed diagonally upper right; prominent teal compressed timing spring behind the head. Function that the visual should suggest: Physical power and ability haste. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "orange spring-loaded mechanical striking piston aimed diagonally upper right; prominent teal compressed timing spring behind the head"
+        }
+      ]
+    },
+    {
+      "id": "razorwheel",
+      "subject": "single orange steel circular saw with three exaggerated cutting teeth and one broad curved cleave arc; clear disc silhouette",
+      "function": "Physical power and active cleave",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: razorwheel. Subject: single orange steel circular saw with three exaggerated cutting teeth and one broad curved cleave arc; clear disc silhouette. Function that the visual should suggest: Physical power and active cleave. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_razorwheel_Icon.png",
+      "sha256": "924a11c855946dee38f6c0bb376ce32593ce8cd710bdd0cca64beaee129adc04",
+      "source_sha256": "0ee2f52ceac53fcd33e4ea354d6aae958caeec3bac8fd1fb7367f300b6e5ac2d"
+    },
+    {
+      "id": "deadeye_edge",
+      "subject": "Short narrow steel-orange dagger pointed upper right. Oversized circular golden sight ring integrated into crossguard, conspicuous dark circular opening with one central fine sight alignment. One precise gold critical glint on blade. Physical power and critical accuracy. No crown, no long broad sword.",
+      "function": "Physical power and critical strike chance",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Short narrow steel-orange dagger pointed upper right. Oversized circular golden sight ring integrated into crossguard, conspicuous dark circular opening with one central fine sight alignment. One precise gold critical glint on blade. Physical power and critical accuracy. No crown, no long broad sword.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_deadeye_edge_Icon.png",
+      "sha256": "9a4dc6045c08fd3ab186618355f1a7e67fb1f7f4d7faf50ad9883839f639029b",
+      "source_sha256": "c25e2717b066949558bb4bd45ddd25de340c469397211cc26d1f10a03edfe0a7",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: deadeye edge. Subject: orange straight short sword aligned diagonal with golden diamond tip and one bold precise four-point critical spark; clean long narrow silhouette. Function that the visual should suggest: Physical power and critical strike chance. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "orange straight short sword aligned diagonal with golden diamond tip and one bold precise four-point critical spark; clean long narrow silhouette"
+        }
+      ]
+    },
+    {
+      "id": "veil_needle",
+      "subject": "extremely long thin crimson throwing needle with triangular steel point, red silk tail; needle pierces one small split gray armor chip",
+      "function": "Physical power and flat physical penetration",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: veil needle. Subject: extremely long thin crimson throwing needle with triangular steel point, red silk tail; needle pierces one small split gray armor chip. Function that the visual should suggest: Physical power and flat physical penetration. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_veil_needle_Icon.png",
+      "sha256": "97b5e1ca8bf619853b215d868636919f6593697808b9df9f2c7460435bd9d9ca",
+      "source_sha256": "b25b7ce82d49c2c32daec5aec23c5a98468dda84a63fd391a70f62b2a8c8c5d0"
+    },
+    {
+      "id": "killstring_assembly",
+      "subject": "Mechanical bowstring tensioner with two compact gold clamp blocks at upper left and lower right, linked by an UNMISTAKABLE THICK taut ivory-gold CORD. One small coil winds remaining cord behind top clamp. Large dark open space beside cord, one precise four-point critical glint on lower clamp. Attack speed and crit. Not bare triangular frame. Cord must read at32px. No full bow.",
+      "function": "Attack speed and critical strike chance",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Mechanical bowstring tensioner with two compact gold clamp blocks at upper left and lower right, linked by an UNMISTAKABLE THICK taut ivory-gold CORD. One small coil winds remaining cord behind top clamp. Large dark open space beside cord, one precise four-point critical glint on lower clamp. Attack speed and crit. Not bare triangular frame. Cord must read at32px. No full bow.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_killstring_assembly_Icon.png",
+      "sha256": "75b62f543a3741240eee8b4b9b28d838314d64be7e6daeee7df8a8bbc59b0684",
+      "source_sha256": "3fbe9cb1888734e6ab63e839925088df4c573dddf348fef118945ebe7b0b4186",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: killstring assembly. Subject: yellow bowstring tensioner shaped like a small triangular fork; taut golden string forms an unmistakable V ending in one four-point precision glint. Function that the visual should suggest: Attack speed and critical strike chance. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "yellow bowstring tensioner shaped like a small triangular fork; taut golden string forms an unmistakable V ending in one four-point precision glint"
+        }
+      ]
+    },
+    {
+      "id": "grand_prism",
+      "subject": "broad violet triangular prism with three clearly readable big facets, purple arc curving up from both sides; no crystal cluster",
+      "function": "Concentrated magic power",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: grand prism. Subject: broad violet triangular prism with three clearly readable big facets, purple arc curving up from both sides; no crystal cluster. Function that the visual should suggest: Concentrated magic power. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_grand_prism_Icon.png",
+      "sha256": "2e2be7eb66a17390bab9641190232f89b9202b4b2f1ebf81340a6591288104db",
+      "source_sha256": "3ee904d8d802832d6ea69f2d87edabcc7f7d32d6220ebd974b0420a66bd129b6"
+    },
+    {
+      "id": "catalyst_coil",
+      "subject": "violet tapered crystal spindle inside a single teal helical coil, a pointed top and wide lower ring; clear cone silhouette",
+      "function": "Magic power and ability haste",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: catalyst coil. Subject: violet tapered crystal spindle inside a single teal helical coil, a pointed top and wide lower ring; clear cone silhouette. Function that the visual should suggest: Magic power and ability haste. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_catalyst_coil_Icon.png",
+      "sha256": "aa610064372498a62d3deb275ba9b6951d5dfd51a3ef6a42632a096532bd0c53",
+      "source_sha256": "6cdb2221cbc6e1f3a80dc95f8bb6f7b43f5863d6959563ce6f42395589d0d4d8"
+    },
+    {
+      "id": "nullglass_shard",
+      "subject": "thin jagged magenta-black glass spearhead splitting one pale cyan magical barrier segment; narrow asymmetric shard silhouette",
+      "function": "Magic power and flat magic penetration",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: nullglass shard. Subject: thin jagged magenta-black glass spearhead splitting one pale cyan magical barrier segment; narrow asymmetric shard silhouette. Function that the visual should suggest: Magic power and flat magic penetration. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_nullglass_shard_Icon.png",
+      "sha256": "420d9a9f94958ee76e134f9cb470e740a46b3eb537aef4cba57ca141ad63469d",
+      "source_sha256": "699bef5588474eb5eeaa52677bec0006ae8310f6d38e4686f7420800a220ffe3"
+    },
+    {
+      "id": "spellguard_plate",
+      "subject": "red heart-like domed chestplate bearing one thick violet lightning-shaped inset; purple power stored inside health armor",
+      "function": "Magic power and health",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: spellguard plate. Subject: red heart-like domed chestplate bearing one thick violet lightning-shaped inset; purple power stored inside health armor. Function that the visual should suggest: Magic power and health. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_2_Assemblies/T_spellguard_plate_Icon.png",
+      "sha256": "3912ce25a816b6f3ca8cdbfbbecdc20eb405b15d6ab04685d70242d9a385bb7e",
+      "source_sha256": "97bea437c5e9b0d464516d49e605fc1554531420301146da88aafe269dd6969d"
+    },
+    {
+      "id": "siegeheart_core",
+      "subject": "Compact squat industrial FORGE CORE: broad octagonal iron crucible containing one big glowing red-orange molten core, heavy square chimney-like top cap and two wide block base feet. One emerging red-hot growth block integrated into side suggests permanent health growth from combat. Green cooling seam secondary. No heart shape, no breastplate, no fist.",
+      "function": "Permanent health growth from sustained Vanguard combat and empowered attack",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Compact squat industrial FORGE CORE: broad octagonal iron crucible containing one big glowing red-orange molten core, heavy square chimney-like top cap and two wide block base feet. One emerging red-hot growth block integrated into side suggests permanent health growth from combat. Green cooling seam secondary. No heart shape, no breastplate, no fist.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_siegeheart_core_Icon.png",
+      "sha256": "7177c124d546d5a121ef6459d6e9c65fb10b3e8292d7d5234447fba41cc42d7c",
+      "source_sha256": "ed95dfa3b0ebcd67f6543005241be7913ca87fa97d0ca585ead0a20766dd8e2e",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: siegeheart core. Subject: large chunky crimson mechanical heart in dark square housing, a clear smaller red lobe being added to main heart by one gold hammer strike; restrained green seam and teal timing rim. Function that the visual should suggest: Permanent health growth from sustained Vanguard combat and empowered attack. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "large chunky crimson mechanical heart in dark square housing, a clear smaller red lobe being added to main heart by one gold hammer strike; restrained green seam and teal timing rim"
+        }
+      ]
+    },
+    {
+      "id": "colossus_temper",
+      "subject": "One HUGE asymmetric red shoulder pauldron on a short orange supporting bracket, broad triangular shoulder silhouette. Ruby health reservoir feeds one orange strengthened outer cutting ridge, health becoming physical power. No fist, no hand, no claws, no heart-shaped breastplate.",
+      "function": "Bonus health converted into physical power",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: One HUGE asymmetric red shoulder pauldron on a short orange supporting bracket, broad triangular shoulder silhouette. Ruby health reservoir feeds one orange strengthened outer cutting ridge, health becoming physical power. No fist, no hand, no claws, no heart-shaped breastplate.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_colossus_temper_Icon.png",
+      "sha256": "15146d82687a203d6a35c12fb139af5e819675c8d843acda58493cbcd32549c5",
+      "source_sha256": "8bb379a75e256a670fc02f014fe07f32c3741042ea36ff965a2590090a1df0d9",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: colossus temper. Subject: huge red shoulder armor with heavy orange fist-shaped steel lower part; a red heart core visibly feeds an orange power edge, broad asymmetric mass. Function that the visual should suggest: Bonus health converted into physical power. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "huge red shoulder armor with heavy orange fist-shaped steel lower part; a red heart core visibly feeds an orange power edge, broad asymmetric mass"
+        }
+      ]
+    },
+    {
+      "id": "cycler_core",
+      "subject": "CYLINDRICAL SPOOL motor, tall vertical barrel with THREE stacked wide yellow rotor bands, visible teal central axle, broad open gaps between bands. One rising curved yellow motion stroke suggests stacking attack speed. No front-facing wheel, no saw, no disc, no blades, no gun.",
+      "function": "Attacks build stacking attack speed",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: CYLINDRICAL SPOOL motor, tall vertical barrel with THREE stacked wide yellow rotor bands, visible teal central axle, broad open gaps between bands. One rising curved yellow motion stroke suggests stacking attack speed. No front-facing wheel, no saw, no disc, no blades, no gun.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_cycler_core_Icon.png",
+      "sha256": "11401dfedf73ee93a5261076feaf2a5ba180f397ca523398cc7e562ef7382f85",
+      "source_sha256": "2552aed1aea4b2b836acb6da09c5b095b8710a7d2cba26ae1183b3da44561317",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: cycler core. Subject: yellow triple-spoked flywheel with orange center and teal axle, one increasing clockwise stack of three large motion strokes; high speed spinning silhouette. Function that the visual should suggest: Attacks build stacking attack speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "yellow triple-spoked flywheel with orange center and teal axle, one increasing clockwise stack of three large motion strokes; high speed spinning silhouette"
+        }
+      ]
+    },
+    {
+      "id": "impact_aegis",
+      "subject": "orange striking gauntlet with red wrist punching out into a clear cyan shield-shaped shell; visible impact feeds the protective shell",
+      "function": "Damage grants a shield",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: impact aegis. Subject: orange striking gauntlet with red wrist punching out into a clear cyan shield-shaped shell; visible impact feeds the protective shell. Function that the visual should suggest: Damage grants a shield. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_impact_aegis_Icon.png",
+      "sha256": "f54686e8222933ff035de48626e72753050fa766d50b839960ee5d948d0572d2",
+      "source_sha256": "52e82cd16139c39fb4fee31f7991017bd938457b4d3c5025be31fbdd765eab0f"
+    },
+    {
+      "id": "razorwheel_prime",
+      "subject": "double orange saw disc with red center and yellow sweeping crescents pulling inward; saw-blade crown silhouette wider than basic razorwheel",
+      "function": "Repeated cleave and a wide strike that steals movement speed",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: razorwheel prime. Subject: double orange saw disc with red center and yellow sweeping crescents pulling inward; saw-blade crown silhouette wider than basic razorwheel. Function that the visual should suggest: Repeated cleave and a wide strike that steals movement speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_razorwheel_prime_Icon.png",
+      "sha256": "6b4dac7ac84328d06c41d4ad5f215d63228452eb54a5868991357a0708d08ec8",
+      "source_sha256": "4bd5e492bc009eff997bf943141538c69fd8d0b909a2b69e420bdafa3814d8fa"
+    },
+    {
+      "id": "sovereign_edge",
+      "subject": "Regal broad upright golden execution sword, wide heavy blade, prominent THREE-POINT CROWN crossguard making unmistakable crown silhouette at lower third. Dark red grip and one brilliant critical-cut flare. Stronger critical strikes. No sight ring. Keep crown guard large and visible at32px.",
+      "function": "Critical strikes deal increased damage",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Regal broad upright golden execution sword, wide heavy blade, prominent THREE-POINT CROWN crossguard making unmistakable crown silhouette at lower third. Dark red grip and one brilliant critical-cut flare. Stronger critical strikes. No sight ring. Keep crown guard large and visible at32px.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_sovereign_edge_Icon.png",
+      "sha256": "03e90f642ccfc90d11db2dcf1100fdfb489b3c3c9a932e095cb710baac841834",
+      "source_sha256": "f6d327881a723bc9ee853b5badf1dd02230ebebc4f5c551945bf6349902c1de4",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: sovereign edge. Subject: massive gold-and-orange broad sword with a crown-shaped crossguard and ONE oversized brilliant four-point critical flare at the blade tip. Function that the visual should suggest: Critical strikes deal increased damage. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "massive gold-and-orange broad sword with a crown-shaped crossguard and ONE oversized brilliant four-point critical flare at the blade tip"
+        }
+      ]
+    },
+    {
+      "id": "riverhold_bastion",
+      "subject": "tall blocky slate-blue tower shield with red inset; gray incoming arrow visibly caught in thick winding chain loop at shield rim",
+      "function": "Armor and health; incoming basic attacks slow the attacker's tempo",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: riverhold bastion. Subject: tall blocky slate-blue tower shield with red inset; gray incoming arrow visibly caught in thick winding chain loop at shield rim. Function that the visual should suggest: Armor and health; incoming basic attacks slow the attacker's tempo. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_riverhold_bastion_Icon.png",
+      "sha256": "0ce63409d1d202158bd6730c6086b65bbeb342ad5fadac42561477fb5b9f5884",
+      "source_sha256": "898a74b7f4b579a10db88455c5f03349067b6e56a058d4714b6e1ba2e98cdb46"
+    },
+    {
+      "id": "blackreef_bell",
+      "subject": "large teal sea-glass bell with black reef lower lip and cyan transparent protective dome around it; a purple spell splash stops outside dome",
+      "function": "Magic resistance and health; re-forming spell shield",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: blackreef bell. Subject: large teal sea-glass bell with black reef lower lip and cyan transparent protective dome around it; a purple spell splash stops outside dome. Function that the visual should suggest: Magic resistance and health; re-forming spell shield. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_blackreef_bell_Icon.png",
+      "sha256": "04583a9688909b61263c940edfe2446c56400509221e88c942c96089d79c3ef0",
+      "source_sha256": "ca4fabc8384d526f7bb9174bfb9196a3fc87b58e7ae899773097ea948656b4fc"
+    },
+    {
+      "id": "blank_sigil",
+      "subject": "Rigid-looking compact crimson CUT-OUT INSIGNIA PATCH mounted flat on a dark iron seal rim. A clean EMPTY DIAMOND opening occupies half its face, clearly charcoal see-through center, narrow pale steel edge. Small orange blade-shaped notch aligns with opening as setup/payoff metaphor. A seal/emblem, NOT torn cloth or cloak. No trailing fabric, no writing.",
+      "function": "Setup then a different attack consumes an opening for physical burst",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Rigid-looking compact crimson CUT-OUT INSIGNIA PATCH mounted flat on a dark iron seal rim. A clean EMPTY DIAMOND opening occupies half its face, clearly charcoal see-through center, narrow pale steel edge. Small orange blade-shaped notch aligns with opening as setup/payoff metaphor. A seal/emblem, NOT torn cloth or cloak. No trailing fabric, no writing.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_blank_sigil_Icon.png",
+      "sha256": "457f970b2c8f52645c3df479d47ceb6a00c81e1fc646d02b362a929390bb4c98",
+      "source_sha256": "e78e9bc817bf572d44a28ed9527e67d715eac9277166f773936b78ab41f2750c",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: blank sigil. Subject: crimson cloth insignia with a sharp empty diamond cutout in dark steel center; a second small orange blade-shaped notch neatly aligns with opening, no writing. Function that the visual should suggest: Setup then a different attack consumes an opening for physical burst. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "crimson cloth insignia with a sharp empty diamond cutout in dark steel center; a second small orange blade-shaped notch neatly aligns with opening, no writing"
+        }
+      ]
+    },
+    {
+      "id": "cutline_mantle",
+      "subject": "red and charcoal sweeping shoulder cape with sharp orange cut hem; bright yellow escape trail sweeps outward while a thin cyan shell hugs cloth",
+      "function": "Takedown grants movement-speed burst and shield",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: cutline mantle. Subject: red and charcoal sweeping shoulder cape with sharp orange cut hem; bright yellow escape trail sweeps outward while a thin cyan shell hugs cloth. Function that the visual should suggest: Takedown grants movement-speed burst and shield. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_cutline_mantle_Icon.png",
+      "sha256": "eb6290027bd6ef50729343f7d827a61f1a610720e2651b2d3cc5dbcc2d55197f",
+      "source_sha256": "cd91cf0e34da00729ec3842951eef991658981954df1387c3a2bcb91a2831d4f"
+    },
+    {
+      "id": "oathpiercer",
+      "subject": "heavy crimson-orange spear-like dagger tearing through a separate cyan protective shield shard, red stored-energy fracture at breach; long angular point",
+      "function": "Personally breaking an ally-granted shield releases stored damage",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: oathpiercer. Subject: heavy crimson-orange spear-like dagger tearing through a separate cyan protective shield shard, red stored-energy fracture at breach; long angular point. Function that the visual should suggest: Personally breaking an ally-granted shield releases stored damage. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_oathpiercer_Icon.png",
+      "sha256": "8ed09556434ca5f17425ad5689fca09e4be567dbc6da48775a695f17a284847d",
+      "source_sha256": "5665f01e2a6f2cbe149bc7c9a4747463be8e57fb7e9edbfcec64ef0ce92e8d20"
+    },
+    {
+      "id": "witnessless_edge",
+      "subject": "hook-shaped crimson assassin knife cupping ONE isolated orange ember inside its hook; three short yellow pursuit streaks point toward that ember",
+      "function": "Pursuit and finishing damage against isolated Vanguards",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: witnessless edge. Subject: hook-shaped crimson assassin knife cupping ONE isolated orange ember inside its hook; three short yellow pursuit streaks point toward that ember. Function that the visual should suggest: Pursuit and finishing damage against isolated Vanguards. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_witnessless_edge_Icon.png",
+      "sha256": "cc9e8707d4fc66e5140e45318c5b5ed16564338a8528e6b177c11a80204ca3c5",
+      "source_sha256": "645c1b71f8ee070f5071e681ea15f5c9098353bab774c3331dcf3b664e23f095"
+    },
+    {
+      "id": "harborline_harness",
+      "subject": "large green maritime U-shaped harness with orange anchor buckle and yellow fast-release line; glowing emerald restorative reserve vessel fixed at side",
+      "function": "Combat damage stored for healing after leaving combat",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: harborline harness. Subject: large green maritime U-shaped harness with orange anchor buckle and yellow fast-release line; glowing emerald restorative reserve vessel fixed at side. Function that the visual should suggest: Combat damage stored for healing after leaving combat. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_harborline_harness_Icon.png",
+      "sha256": "b45f2a25d6d28a82e910b2775e2ead6d06e9ce9892ae21ee3d1599f53b50513a",
+      "source_sha256": "8d766381887dee793bd75599d9a63675b4ecf3b689405760c6d86642b47a5279"
+    },
+    {
+      "id": "doombringer_bow",
+      "subject": "black and crimson crescent bow with yellow taut string; arrowhead is a bold orange finishing burst and a broken crimson ring forms around it",
+      "function": "Repeated attacks build Doom then deal missing-health finishing damage",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: doombringer bow. Subject: black and crimson crescent bow with yellow taut string; arrowhead is a bold orange finishing burst and a broken crimson ring forms around it. Function that the visual should suggest: Repeated attacks build Doom then deal missing-health finishing damage. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_doombringer_bow_Icon.png",
+      "sha256": "fa7373643aac28f8b3c1e2469359037b5b1c815c449fcb3fdc5267226f30635c",
+      "source_sha256": "7b43a18e02b30917c974e5526aef91e226e12fa195aebb91d3b3b9468e3a4be9"
+    },
+    {
+      "id": "starfall_prism",
+      "subject": "violet five-point crystalline star with two clean beams converging into one bright magenta center; teal setting underneath",
+      "function": "Two damaging abilities converge into bonus magic damage",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: starfall prism. Subject: violet five-point crystalline star with two clean beams converging into one bright magenta center; teal setting underneath. Function that the visual should suggest: Two damaging abilities converge into bonus magic damage. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_starfall_prism_Icon.png",
+      "sha256": "2f141ac62069dd41b7139d33e6dbc86b164eecb0ea7f54554fefab51f9d53e89",
+      "source_sha256": "e13a529aded28a699c5e02b8148b5db8217319d369383e8f0fe8bb61a8a849be"
+    },
+    {
+      "id": "memoryglass_reliquary",
+      "subject": "rose-magenta rectangular glass memory lantern with one offset translucent duplicate shard and a short dotted arc from old position to new; cracked front emits one repeated purple strike",
+      "function": "Reposition then repeat a remembered magic wound",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: memoryglass reliquary. Subject: rose-magenta rectangular glass memory lantern with one offset translucent duplicate shard and a short dotted arc from old position to new; cracked front emits one repeated purple strike. Function that the visual should suggest: Reposition then repeat a remembered magic wound. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_memoryglass_reliquary_Icon.png",
+      "sha256": "2a05afbfe3a058341d93898721604d0ad3b668e24c34f597bff77db29ce0ebb2",
+      "source_sha256": "c974c2b450148e20da5113f3470397cdee503e5957e8b1d7845ffee1fd157f17"
+    },
+    {
+      "id": "arc_reactor",
+      "subject": "teal open circular reactor wound around a violet lightning bolt, three large teal circular speed arcs stacking around core",
+      "function": "Ability hits build stacking ability haste",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: arc reactor. Subject: teal open circular reactor wound around a violet lightning bolt, three large teal circular speed arcs stacking around core. Function that the visual should suggest: Ability hits build stacking ability haste. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_arc_reactor_Icon.png",
+      "sha256": "9325d6db432de1a36c97151fe5c91389eecd39646e9715beeb1b535a7cae0826",
+      "source_sha256": "ce206355710deae4a2f6ac3b81e4bf3293f7308dd1f6d8a5536b43a27e5aa3a6"
+    },
+    {
+      "id": "nullglass_lens",
+      "subject": "magenta sharp-edged elliptical glass lens; pale cyan barrier in front fractures into three big wedges under repeated violet rays",
+      "function": "Repeated magic damage reduces magic resistance",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: nullglass lens. Subject: magenta sharp-edged elliptical glass lens; pale cyan barrier in front fractures into three big wedges under repeated violet rays. Function that the visual should suggest: Repeated magic damage reduces magic resistance. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_nullglass_lens_Icon.png",
+      "sha256": "6313ac9c6400a8921a41f8545941a48e2f20be2da2ecce5a1673ef01a5e51b3e",
+      "source_sha256": "0db6975e3ed53920eda56a3b5cc1cf9ead56b2a7f0aa41d92247dcd8088f8ff4"
+    },
+    {
+      "id": "echo_lens",
+      "subject": "violet twin-pane hand mirror in rounded teal housing, one clearly offset translucent duplicate mirror reflection; red sturdy handle",
+      "function": "Project an Echo that repeats one eligible ability",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: echo lens. Subject: violet twin-pane hand mirror in rounded teal housing, one clearly offset translucent duplicate mirror reflection; red sturdy handle. Function that the visual should suggest: Project an Echo that repeats one eligible ability. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_echo_lens_Icon.png",
+      "sha256": "40c2d1963278b430a9b4c2e8e27d1891bd1996ba8739186bf49b2a983c76653d",
+      "source_sha256": "32243d84e13eb0b133e0057950a19a158d229bf112c33fb8bcfdb17682335a39"
+    },
+    {
+      "id": "gravitic_seal",
+      "subject": "round violet heavy seal with red center weight, thick teal downward bent gravity rings pinned by a dark stone foot",
+      "function": "Damaging abilities slow enemy Vanguards",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: gravitic seal. Subject: round violet heavy seal with red center weight, thick teal downward bent gravity rings pinned by a dark stone foot. Function that the visual should suggest: Damaging abilities slow enemy Vanguards. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_gravitic_seal_Icon.png",
+      "sha256": "03a5d8c4da3a0161ee90911ab25a70113eef3073118e1e870b2064b92e99e3f1",
+      "source_sha256": "84d7633a78ce1c5c1868322ce9ebdf993e8c4ef7cbf339231b2c4867a0d00a37"
+    },
+    {
+      "id": "crown_of_the_crucible",
+      "subject": "broad violet three-pronged crystal crown with a single huge upward purple power plume; gold lower band, large simple facets",
+      "function": "Amplifies total magic power",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: crown of the crucible. Subject: broad violet three-pronged crystal crown with a single huge upward purple power plume; gold lower band, large simple facets. Function that the visual should suggest: Amplifies total magic power. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_3_Masterworks/T_crown_of_the_crucible_Icon.png",
+      "sha256": "6a7d3f76a43de5d7b6ad3e4997ae26e8777e17c265bb83096b536be606f710df",
+      "source_sha256": "529edc32eb6fb897c18757768d663ee626ed4a5ea8c6a92a11bf88314711cd4d"
+    },
+    {
+      "id": "flux_reclaimer",
+      "subject": "green small funnel-shaped collector with blue Flux fragment falling into red health reservoir; broad open intake, single lower vessel",
+      "function": "Last hits collect quest progress",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: flux reclaimer. Subject: green small funnel-shaped collector with blue Flux fragment falling into red health reservoir; broad open intake, single lower vessel. Function that the visual should suggest: Last hits collect quest progress. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Quest_Items/T_flux_reclaimer_Icon.png",
+      "sha256": "4cb94fbf774b01fcf17db904e2aa917db666fe4bedfae7b5408ca4089412a97f",
+      "source_sha256": "9b617178d12bff262fc7bab9b95a25e6f653e85dcd54f04d2a46c916e3b0dd0b"
+    },
+    {
+      "id": "wayline_reservoir",
+      "subject": "large emerald horizontal twin-chamber reservoir fed by blue Flux stream, restorative green current loops out of full chamber; evolved collector silhouette",
+      "function": "Last hits store current for stronger regeneration outside damage",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: wayline reservoir. Subject: large emerald horizontal twin-chamber reservoir fed by blue Flux stream, restorative green current loops out of full chamber; evolved collector silhouette. Function that the visual should suggest: Last hits store current for stronger regeneration outside damage. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Quest_Items/T_wayline_reservoir_Icon.png",
+      "sha256": "473e986dd890fbc3ac0346cda621e0b6de2fef87df7509cc939f9ee4101f1a2d",
+      "source_sha256": "ad79aac2fddb0eb5467a4c33dbd1d7065e27518ea365d8a01ee745dc8bca29b9"
+    },
+    {
+      "id": "the_last_harbor",
+      "subject": "mythical emerald ship-anchor-shaped breast harness around a red heart reservoir; orange reinforced tips and gold speed cord, two distinct green restorative loops feed the central heart",
+      "function": "Apex combat reserve and quest current converted into restoration",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: the last harbor. Subject: mythical emerald ship-anchor-shaped breast harness around a red heart reservoir; orange reinforced tips and gold speed cord, two distinct green restorative loops feed the central heart. Function that the visual should suggest: Apex combat reserve and quest current converted into restoration. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_4_Mythicals/T_the_last_harbor_Icon.png",
+      "sha256": "d0255e8b176030da2041067e71b6dd8161f707e5d90187c31cfc216de3da5744",
+      "source_sha256": "d3558abbcb810f4c1659a1883d2c465bc44dce2f00f05ab3034ca6345629820a"
+    },
+    {
+      "id": "the_second_self",
+      "subject": "mythical violet paired mask-shaped mirrored projection artifact, one solid faceplate and one translucent counterpart linked by a thick teal Flux tether; purple slowing ring beneath stationary solid half",
+      "function": "Anchored stasis body feeds a controlled Echo; repeated ability and slow",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: the second self. Subject: mythical violet paired mask-shaped mirrored projection artifact, one solid faceplate and one translucent counterpart linked by a thick teal Flux tether; purple slowing ring beneath stationary solid half. Function that the visual should suggest: Anchored stasis body feeds a controlled Echo; repeated ability and slow. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Tier_4_Mythicals/T_the_second_self_Icon.png",
+      "sha256": "233d25bf93b027ed284727eba620064004c11e0af9468877eb784991b863e557",
+      "source_sha256": "470b1ee07e9dd3396feb9cf51bbb6cde90d6619921a7e7c39a9470ad18fff8d1"
+    },
+    {
+      "id": "field_tonic",
+      "subject": "small red triangular glass medicine vial with simple cream cork, a broad white heart-shaped highlight in the red liquid; no refill mechanics",
+      "function": "Stronger single-use healing over time",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: field tonic. Subject: small red triangular glass medicine vial with simple cream cork, a broad white heart-shaped highlight in the red liquid; no refill mechanics. Function that the visual should suggest: Stronger single-use healing over time. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Consumables/T_field_tonic_Icon.png",
+      "sha256": "11654bbdb0c9a9df2cb1927afe2342f30724393ee5c00b753790714a30a91046",
+      "source_sha256": "20c348247112b73a06745d6605a6cc49698cd217b2dee3d0a8d8b3543b4f67fc"
+    },
+    {
+      "id": "flux_flask",
+      "subject": "Retain round refillable canteen silhouette, blue hinged cap and circular refill handle. Replace ALL green liquid and green glow with bright Flux TEAL #45D6C4. Dark steel straps, teal fluid, cool cyan highlights. Reusable mild healing over time. No green or lime anywhere.",
+      "function": "Weaker refillable healing over time",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Retain round refillable canteen silhouette, blue hinged cap and circular refill handle. Replace ALL green liquid and green glow with bright Flux TEAL #45D6C4. Dark steel straps, teal fluid, cool cyan highlights. Reusable mild healing over time. No green or lime anywhere.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "file": "Consumables/T_flux_flask_Icon.png",
+      "sha256": "69f5bf25d2d40d842dcb43b39a825ee337a990c41eaa9befc33a814345d929b3",
+      "source_sha256": "7209c611b33a5b27e691929d4aea3ca94860ce50cf496178e4e795d671cd4f6a",
+      "prompt_history": [
+        {
+          "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: flux flask. Subject: round green canteen with large blue hinged refill cap and one clearly integrated blue circular return-flow handle; bright green healing liquid. Function that the visual should suggest: Weaker refillable healing over time. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet.",
+          "subject": "round green canteen with large blue hinged refill cap and one clearly integrated blue circular return-flow handle; bright green healing liquid"
+        }
+      ]
+    }
+  ],
+  "repairs": [
+    {
+      "id": "impact_aegis",
+      "reason": "Generated shield is fractured and reads as shield breaking. Reprisal Guard grants the holder an intact shield.",
+      "prompt": "Use case: precise-object-edit. Correct this Veyra toon item icon while preserving the orange gauntlet, red cuff, broad painted toon shade bands and charcoal background. Replace the broken cyan shield and every flying glass shard with ONE smooth UNBROKEN cyan protective shell that CURVES AROUND AND BEHIND the gauntlet, enclosing the wrist and sides. The front knuckles should emit a short orange outward strike; a small orange return flow from that strike feeds the intact cyan shell around its owner. It must communicate that dealing damage creates protection for the attacker. No cracks, broken shield, chips or penetration into a shield. Keep full object with 10 percent margin. No text, badges, borders, UI or extra objects.",
+      "references": [
+        "Variants/impact_aegis_first.png"
+      ],
+      "mode": "edit"
+    },
+    {
+      "id": "war_mechanism",
+      "reason": "Long handle runs out of frame. The entire L-shaped crank mechanism must remain visible.",
+      "prompt": "Use case: stylized-concept. Asset type: one Veyra inventory icon. Create exactly ONE standalone square 1024x1024 image. Mature stylized toon equipment illustration matching Veyra's band-shaded characters and graphic combat effects in a painterly world. Bold exaggerated purposeful silhouette, thin ink in a deeper local-color tone, 3 broad clean cel shade bands, cool painted shadows, restrained warm key and crisp cool rim light. LARGE simple color masses, clear tactile metal/leather/glass through a few painted edges rather than scratches. Rendered game illustration, not flat clipart, not photorealistic, not glittery ornate realism. Object and its integrated mechanic cue fill 78 percent of the square, all essential parts visible with 10 percent safe margin. Nearly black charcoal plain background, only a very soft localized accent behind object. Read instantly at 32 and 48 pixels and stay distinguishable in grayscale through shape. One dominant equipment object with at most one simple integrated effect cue, no unrelated floating objects. NO text, labels, letters, numbers, badges, borders, frame, UI, miniature stat symbols, people, environments, watermark. No dense rivets, scratches, lace filigree or bloom fog. Effect cue is a visual metaphor for item function, never add an unsupported ability.  Item: war mechanism. Subject: orange heavy mechanical hammer-head joined to yellow reciprocating crank, one short repeated yellow strike streak; L-shaped silhouette. Function that the visual should suggest: Physical power and attack speed. Do not draw the item name or function as text. Reference image: use ONLY the rendering style, ink and shade-band treatment of Iron Grip. Make the new subject's requested silhouette and palette, not another gauntlet. Important framing correction: render the WHOLE compact L-shaped mechanism, including a SHORT crank grip, inside the frame with a generous 14 percent safe margin. NO long hammer handle and NO part cropped by the image edges. Dominant orange strike head on the left, a short yellow reciprocating crank on the right.",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "mode": "generate"
+    },
+    {
+      "id": "rescue_rig",
+      "reason": "Full-set grayscale review found its X silhouette too similar to War Harness. Make the rescue rig an open V with a dominant rapid-return pulley.",
+      "mode": "edit",
+      "references": [
+        "Variants/rescue_rig_first.png"
+      ],
+      "prompt": "Use case: precise-object-edit. Redesign ONLY this Veyra Rescue Rig icon's silhouette while keeping its mature painted toon rendering, red safety webbing, yellow mechanical fast-return pulley and dark charcoal background. Its function is Health plus Attack Speed; it has no rescue Active. Make the equipment an unmistakable OPEN V: ONLY TWO broad red webbing arms rise up-left and up-right from ONE large yellow rapid-return pulley at bottom center. A taut yellow line with two short repeated motion strokes exits that pulley sideways. Large empty black triangular space between the two upper arms. Absolutely NO X-shaped crossed straps, NO four shoulder loops, NO lower straps or lower arms below pulley. No shield, green healing effect, rescue person, text, badges, UI or frame. Whole object with clear safe margins. Clean, bold silhouette distinguishable from crossed combat straps at 32 pixels."
+    },
+    {
+      "id": "warforged_grip",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: OPEN armored copper hand, palm visible, four thick separated blunt upright fingers and side thumb. Long squared cuff. Strong raised knuckle plates, physical power. Completely distinct from closed Iron Grip and clawed Titansteel. No clenched fist, no claws.",
+      "spec": "OPEN armored copper hand, palm visible, four thick separated blunt upright fingers and side thumb. Long squared cuff. Strong raised knuckle plates, physical power. Completely distinct from closed Iron Grip and clawed Titansteel. No clenched fist, no claws.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/warforged_grip.png",
+      "before": "Revisions/Readability/before_warforged_grip.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "sovereign_edge",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Regal broad upright golden execution sword, wide heavy blade, prominent THREE-POINT CROWN crossguard making unmistakable crown silhouette at lower third. Dark red grip and one brilliant critical-cut flare. Stronger critical strikes. No sight ring. Keep crown guard large and visible at32px.",
+      "spec": "Regal broad upright golden execution sword, wide heavy blade, prominent THREE-POINT CROWN crossguard making unmistakable crown silhouette at lower third. Dark red grip and one brilliant critical-cut flare. Stronger critical strikes. No sight ring. Keep crown guard large and visible at32px.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/sovereign_edge.png",
+      "before": "Revisions/Readability/before_sovereign_edge.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "colossus_temper",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: One HUGE asymmetric red shoulder pauldron on a short orange supporting bracket, broad triangular shoulder silhouette. Ruby health reservoir feeds one orange strengthened outer cutting ridge, health becoming physical power. No fist, no hand, no claws, no heart-shaped breastplate.",
+      "spec": "One HUGE asymmetric red shoulder pauldron on a short orange supporting bracket, broad triangular shoulder silhouette. Ruby health reservoir feeds one orange strengthened outer cutting ridge, health becoming physical power. No fist, no hand, no claws, no heart-shaped breastplate.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/colossus_temper.png",
+      "before": "Revisions/Readability/before_colossus_temper.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "reinforced_chassis",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Upright dark metal RIB CAGE CHASSIS, tall squared open torso frame with three broad horizontal ribs and clearly open dark gaps. Red padded reservoir panel low inside; two bold green regeneration conduits along side rails. Health and regeneration. No heart shape, no rounded breastplate, no shield.",
+      "spec": "Upright dark metal RIB CAGE CHASSIS, tall squared open torso frame with three broad horizontal ribs and clearly open dark gaps. Red padded reservoir panel low inside; two bold green regeneration conduits along side rails. Health and regeneration. No heart shape, no rounded breastplate, no shield.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/reinforced_chassis.png",
+      "before": "Revisions/Readability/before_reinforced_chassis.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "siegeheart_core",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Compact squat industrial FORGE CORE: broad octagonal iron crucible containing one big glowing red-orange molten core, heavy square chimney-like top cap and two wide block base feet. One emerging red-hot growth block integrated into side suggests permanent health growth from combat. Green cooling seam secondary. No heart shape, no breastplate, no fist.",
+      "spec": "Compact squat industrial FORGE CORE: broad octagonal iron crucible containing one big glowing red-orange molten core, heavy square chimney-like top cap and two wide block base feet. One emerging red-hot growth block integrated into side suggests permanent health growth from combat. Green cooling seam secondary. No heart shape, no breastplate, no fist.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/siegeheart_core.png",
+      "before": "Revisions/Readability/before_siegeheart_core.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "blank_sigil",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Rigid-looking compact crimson CUT-OUT INSIGNIA PATCH mounted flat on a dark iron seal rim. A clean EMPTY DIAMOND opening occupies half its face, clearly charcoal see-through center, narrow pale steel edge. Small orange blade-shaped notch aligns with opening as setup/payoff metaphor. A seal/emblem, NOT torn cloth or cloak. No trailing fabric, no writing.",
+      "spec": "Rigid-looking compact crimson CUT-OUT INSIGNIA PATCH mounted flat on a dark iron seal rim. A clean EMPTY DIAMOND opening occupies half its face, clearly charcoal see-through center, narrow pale steel edge. Small orange blade-shaped notch aligns with opening as setup/payoff metaphor. A seal/emblem, NOT torn cloth or cloak. No trailing fabric, no writing.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/blank_sigil.png",
+      "before": "Revisions/Readability/before_blank_sigil.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "deadeye_edge",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Short narrow steel-orange dagger pointed upper right. Oversized circular golden sight ring integrated into crossguard, conspicuous dark circular opening with one central fine sight alignment. One precise gold critical glint on blade. Physical power and critical accuracy. No crown, no long broad sword.",
+      "spec": "Short narrow steel-orange dagger pointed upper right. Oversized circular golden sight ring integrated into crossguard, conspicuous dark circular opening with one central fine sight alignment. One precise gold critical glint on blade. Physical power and critical accuracy. No crown, no long broad sword.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/deadeye_edge.png",
+      "before": "Revisions/Readability/before_deadeye_edge.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "cycler_core",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: CYLINDRICAL SPOOL motor, tall vertical barrel with THREE stacked wide yellow rotor bands, visible teal central axle, broad open gaps between bands. One rising curved yellow motion stroke suggests stacking attack speed. No front-facing wheel, no saw, no disc, no blades, no gun.",
+      "spec": "CYLINDRICAL SPOOL motor, tall vertical barrel with THREE stacked wide yellow rotor bands, visible teal central axle, broad open gaps between bands. One rising curved yellow motion stroke suggests stacking attack speed. No front-facing wheel, no saw, no disc, no blades, no gun.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/cycler_core.png",
+      "before": "Revisions/Readability/before_cycler_core.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "striker_assembly",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Compact mechanical STRIKING HAMMER: broad rectangular orange hammer head across top, short dark handle below, a LARGE exposed teal compressed spring along handle. Clear T silhouette. Physical power and ability haste. No cannon, no barrel, no gauntlet, no crank. Entire hammer visible.",
+      "spec": "Compact mechanical STRIKING HAMMER: broad rectangular orange hammer head across top, short dark handle below, a LARGE exposed teal compressed spring along handle. Clear T silhouette. Physical power and ability haste. No cannon, no barrel, no gauntlet, no crank. Entire hammer visible.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/striker_assembly.png",
+      "before": "Revisions/Readability/before_striker_assembly.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "waymark_weave",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Thick green woven sailor's WAYMARK KNOT, big doubled braided figure-eight knot with TWO clearly open dark holes, two short tassel ends. Bright green restorative current hugging braids. Concentrated health regeneration. No flat woven swatch, no scarf ring, no leaves, no anchor. Large simple knot silhouette distinct from Renewal Mesh.",
+      "spec": "Thick green woven sailor's WAYMARK KNOT, big doubled braided figure-eight knot with TWO clearly open dark holes, two short tassel ends. Bright green restorative current hugging braids. Concentrated health regeneration. No flat woven swatch, no scarf ring, no leaves, no anchor. Large simple knot silhouette distinct from Renewal Mesh.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/waymark_weave.png",
+      "before": "Revisions/Readability/before_waymark_weave.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "killstring_assembly",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Mechanical bowstring tensioner with two compact gold clamp blocks at upper left and lower right, linked by an UNMISTAKABLE THICK taut ivory-gold CORD. One small coil winds remaining cord behind top clamp. Large dark open space beside cord, one precise four-point critical glint on lower clamp. Attack speed and crit. Not bare triangular frame. Cord must read at32px. No full bow.",
+      "spec": "Mechanical bowstring tensioner with two compact gold clamp blocks at upper left and lower right, linked by an UNMISTAKABLE THICK taut ivory-gold CORD. One small coil winds remaining cord behind top clamp. Large dark open space beside cord, one precise four-point critical glint on lower clamp. Attack speed and crit. Not bare triangular frame. Cord must read at32px. No full bow.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/killstring_assembly.png",
+      "before": "Revisions/Readability/before_killstring_assembly.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    },
+    {
+      "id": "flux_flask",
+      "prompt": "Use case: stylized-concept. One standalone square Veyra inventory icon. Mature painterly toon rendering, broad clean cel shade bands, thin local-color ink, cool shadows and rim light. Dark charcoal plain background. Big simple equipment silhouette, 10 percent safe margin, legible at32px in grayscale. No text, labels, UI, borders, people, scenery, tiny ornaments, excessive bloom. Reference image ONLY supplies rendering style; do not copy its object. Subject: Retain round refillable canteen silhouette, blue hinged cap and circular refill handle. Replace ALL green liquid and green glow with bright Flux TEAL #45D6C4. Dark steel straps, teal fluid, cool cyan highlights. Reusable mild healing over time. No green or lime anywhere.",
+      "spec": "Retain round refillable canteen silhouette, blue hinged cap and circular refill handle. Replace ALL green liquid and green glow with bright Flux TEAL #45D6C4. Dark steel straps, teal fluid, cool cyan highlights. Reusable mild healing over time. No green or lime anywhere.",
+      "mode": "generate",
+      "references": [
+        "Sources/iron_grip.png"
+      ],
+      "source": "Revisions/Readability/flux_flask.png",
+      "before": "Revisions/Readability/before_flux_flask.png",
+      "reason": "Author review identified look-alike silhouettes or unclear item identity; redraw for 32px readability."
+    }
+  ]
+}
