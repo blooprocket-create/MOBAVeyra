@@ -139,6 +139,13 @@ namespace VeyraPartyScreenTests
 			ASSERT_THAT(AreEqual(Model.Friends[0].Status.ToString(), FString(TEXT("Online"))));
 			ASSERT_THAT(AreEqual(Model.Friends[1].Status.ToString(), FString(TEXT("In Match"))));
 			ASSERT_THAT(AreEqual(Model.Friends[2].Status.ToString(), FString(TEXT("Offline"))));
+			// The panel's heading counts who is online, playing or not (ADR-078 §5).
+			ASSERT_THAT(AreEqual(Model.OnlineCount, 2));
+			ASSERT_THAT(AreEqual(Model.OnlineSummary.ToString(), FString(TEXT("2 online"))));
+			// Two groups, online first, each headed with its count.
+			ASSERT_THAT(IsTrue(Model.Friends[0].bOnline && Model.Friends[1].bOnline && !Model.Friends[2].bOnline));
+			ASSERT_THAT(AreEqual(Model.OnlineHeading.ToString(), FString(TEXT("Online · 2"))));
+			ASSERT_THAT(AreEqual(Model.OfflineHeading.ToString(), FString(TEXT("Offline · 1"))));
 			ASSERT_THAT(IsTrue(Model.Friends[0].bOffersPartyInvite, TEXT("an online friend is invited")));
 			ASSERT_THAT(IsFalse(Model.Friends[1].bOffersPartyInvite || Model.Friends[2].bOffersPartyInvite, TEXT("nor one in a match, nor one away")));
 
@@ -146,6 +153,8 @@ namespace VeyraPartyScreenTests
 			Snapshot.Social.Friends.Presence.Reset();
 			const FVeyraFriendsModel Unknown = VeyraShellModels::DescribeFriends(Snapshot, true, true, false, false, false, Permissions);
 			ASSERT_THAT(IsTrue(Unknown.Friends[0].Status.IsEmpty() && Unknown.Friends[0].bOffersPartyInvite && Unknown.Friends[2].bOffersPartyInvite));
+			ASSERT_THAT(IsTrue(Unknown.OnlineCount == 0 && Unknown.OnlineSummary.IsEmpty(), TEXT("an unknown status is not counted")));
+			ASSERT_THAT(IsTrue(Unknown.OnlineHeading.IsEmpty() && Unknown.OfflineHeading.IsEmpty(), TEXT("nor are the friends grouped")));
 			ASSERT_THAT(IsFalse(Unknown.bOffersAppearOffline, TEXT("nor Appear Offline")));
 
 			// An invitation to a friend who shows offline says only that, whatever the reason (ADR-061 §5).

@@ -191,6 +191,9 @@
 .PARAMETER Screenshot
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
     With -Flow, the client renders in a window and saves each screen it passes, as Flow-<screen>.png.
+.PARAMETER ScreenshotCommands
+    With -Screenshot: console commands the rendering client runs at start, comma-separated, to show what a capture needs,
+    such as a deck tile's tooltip and the open stats panel (Veyra.Dev.HudHover W,Veyra.Dev.StatsPanelOpen 1; ADR-080 §6).
 .PARAMETER PerfSeconds
     Without -Flow or -Handoff: the second client renders at 1920x1080 in a window, uncapped, and
     stays this long in the match after its script, recording each frame. Its median, 95th and 99th
@@ -272,6 +275,7 @@ param(
     [int]$ClientStaySeconds = 0,
 
     [switch]$Screenshot,
+    [string]$ScreenshotCommands = '',
     [switch]$KitShots,
 
     [ValidateRange(0, 600)]
@@ -787,6 +791,9 @@ if ($Handoff -or $Flow) {
                 # With -Flow -Screenshot the first client renders in a window and saves each screen it passes.
                 $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote", "-VeyraMatchDisplay=$MatchDisplay")
                 $clientArguments += $(if ($Flow -and $Screenshot -and $index -eq 0) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
+                if ($Flow -and $Screenshot -and $index -eq 0 -and $ScreenshotCommands) {
+                    $clientArguments += "-ExecCmds=$quote$ScreenshotCommands$quote"
+                }
                 $clientArguments += $(if ($isCollection) { @('-VeyraSmokeFlow=collection') }
             elseif ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard", '-VeyraSmokeFlowSieges') }
                     elseif ($isSettings) { @("-VeyraSmokeFlow=$run") }
@@ -1280,6 +1287,9 @@ $clientProcesses = foreach ($index in 1..$clientCount) {
         "-ABSLOG=`"$(Join-Path $reportDir "Client$index.log")`""
     )
     $clientArguments += $(if ($measures) { $PerfWindow + '-VeyraSmokeFrameTimes' } elseif ($renders) { $ScreenshotWindow } else { @('-nullrhi') })
+    if ($renders -and -not $measures -and $ScreenshotCommands) {
+        $clientArguments += "-ExecCmds=`"$ScreenshotCommands`""
+    }
     if ($renders -and $Screenshot) {
         $clientArguments += "-VeyraSmokeScreenshot=`"$screenshotPath`""
         if ($KitShots -and $kitMode) {

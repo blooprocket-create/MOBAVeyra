@@ -40,6 +40,46 @@ struct FVeyraVanguardPortrait
 	float CropHeight = 0.0f;
 };
 
+/** One typeface of a font family (ADR-078 §2): its name, such as "Regular" or "SemiBold", and its file. */
+USTRUCT()
+struct FVeyraFontFace
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FName Typeface;
+
+	/** The font file under the project's Content folder, such as "Veyra/Fonts/Inter/Inter-Regular.ttf"; staged with the game. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FString File;
+};
+
+/** The client's three families of type (Art Bible §4.3): the display tier, the functional tier, and its numerals. */
+UENUM()
+enum class EVeyraFontFamily : uint8
+{
+	/** Identity: headlines, Vanguard names, the wordmark. */
+	Display,
+	/** Function: labels, body text, buttons, chat. */
+	Interface,
+	/** Timers, counts and currencies, in a narrower cut of the functional face. */
+	Numeric,
+};
+
+/** Which family and typeface a role of text is set in (ADR-078 §2). */
+USTRUCT()
+struct FVeyraTextFace
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	EVeyraFontFamily Family = EVeyraFontFamily::Interface;
+
+	/** One of the family's typefaces. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FName Typeface;
+};
+
 /**
  * How the shell's screens and the in-match menu look (ADR-010 §4): grey-box colours, text sizes and
  * spacing. Presentation, not tuning, stored in Config/DefaultGame.ini. Every value is required: the
@@ -246,6 +286,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FString ItemArtFolder;
 
+	/** Where the profile backgrounds' region panoramas are imported, such as "/Game/Veyra/UI/Backgrounds" (VeyraShellArt; ADR-082 §10). */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString BackgroundArtFolder;
+
 	/** Where the abilities' and Flux Spells' icons are imported, such as "/Game/Veyra/UI/Abilities" (VeyraShellArt). */
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FString AbilityArtFolder;
@@ -350,6 +394,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ModeCardHeight = 0.0f;
 
+	/** A starter Vanguard's card on the first-run choice (ADR-082 §11), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float StarterCardWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float StarterCardHeight = 0.0f;
+
 	/**
 	 * The shop (ADR-012 §11): a catalog tile, the smaller tiles of the quick-buy
 	 * panels, recipes and upgrades, and the widths of the quick-buy column and the selected item's pane,
@@ -366,6 +417,41 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ShopDetailsWidth = 0.0f;
+
+	/**
+	 * A Vanguard's card in the Collection (ADR-082 §9): its size, seven to a row beside the friends rail at the reference
+	 * height, and how far a locked one's art stands back, as a share of its light.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float CollectionCardWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float CollectionCardHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
+	float CollectionLockedShade = 0.0f;
+
+	/**
+	 * A region background's panorama (ADR-082 §10): its width over its height, and where across it a picker's tile centres,
+	 * where the panoramas keep their landmarks.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProfileBackgroundAspect = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
+	float ProfileBackgroundFocus = 0.0f;
+
+	/** The region whose panorama the default background shows, and any background no longer offered (ADR-082 §10). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FString ProfileDefaultRegion;
+
+	/** The Profile page's field for a new display name, beside the name it replaces (ADR-082 §9). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProfileNameFieldWidth = 0.0f;
+
+	/** The shop's panel's opacity over the match, so nothing drawn behind it reads through (ADR-082 §8). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
+	float ShopPanelOpacity = 0.0f;
 
 	/** Match Found's and the status screens' centred panel, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
@@ -484,6 +570,223 @@ public:
 	/** Each mode card's art; a mode not listed shows HomeVanguard's. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design")
 	TArray<FVeyraModeArt> ModeArt;
+
+	// The Smoked Crucible (ADR-078): the client's type and the surfaces' shape, approved by the author on 2026-10-13.
+
+	/** The families' typefaces (§2): files the game ships under Content, each family naming its own typefaces. */
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	TArray<FVeyraFontFace> DisplayFontFaces;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	TArray<FVeyraFontFace> InterfaceFontFaces;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	TArray<FVeyraFontFace> NumericFontFaces;
+
+	/** The face of each role of text (VeyraShellStyle::EVeyraShellText); Muted reads as Body, Column as Eyebrow. */
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace TitleFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace HeadingFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace BodyFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace SmallFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace CountdownFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace DisplayFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace EyebrowFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace ButtonFace;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	FVeyraTextFace PrimaryButtonFace;
+
+	/** Whether the display tier is set in capitals; headlines otherwise read as written. */
+	UPROPERTY(Config, EditAnywhere, Category = "Type")
+	bool bDisplayInCapitals = false;
+
+	/**
+	 * The one ornament (§3): a cut across two opposite corners of every surface and button, so many slate units along
+	 * each edge.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface", meta = (ClampMin = "1"))
+	float PanelChamfer = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Surface", meta = (ClampMin = "1"))
+	float ButtonChamfer = 0.0f;
+
+	/** A surface's hairline edge, and the tick that finishes each cut corner. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor EdgeColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor EdgeTickColor = FLinearColor::Transparent;
+
+	/** An ordinary button's edge; hovered, it takes the accent. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor ButtonEdgeColor = FLinearColor::Transparent;
+
+	/** How much darker a surface is at its foot than at its head, from 0 (flat) to below 1: its depth. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface", meta = (ClampMin = "0", ClampMax = "0.95"))
+	float SurfaceShade = 0.0f;
+
+	/** The primary action's brass, from its lit head (PrimaryHighlightColor) through PrimaryColor to its foot. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor PrimaryHighlightColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor PrimaryShadeColor = FLinearColor::Transparent;
+
+	/** The thin light along the top of the primary action, inside its edge. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor PrimaryShineColor = FLinearColor::Transparent;
+
+	/** The line under the shown tab, in the accent, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface", meta = (ClampMin = "1"))
+	float TabUnderlineHeight = 0.0f;
+
+	/** The dot beside a friend's status (ADR-061 §2): available, busy in a game, and away or offline. The words say it too. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor PresenceAvailableColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor PresenceBusyColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor PresenceAwayColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Surface", meta = (ClampMin = "1"))
+	float PresenceDotSize = 0.0f;
+
+	/** Home's Play, the clear way in (Art Bible §6.1): its least width and height, and its label's size, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float HomePlayWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float HomePlayHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	int32 HomePlayFontSize = 0;
+
+	/** The line under the top bar's level that fills toward the next (ADR-045 §8), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProgressionBarWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ProgressionBarHeight = 0.0f;
+
+	/** The top bar (ADR-078 §5): the Flux mark beside the wordmark, the level's badge, and each balance's mark, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float WordmarkGlyphSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float LevelBadgeSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float CurrencyGlyphSize = 0.0f;
+
+	/** A friend's or party member's initial on its tile, beside the name, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float AvatarSize = 0.0f;
+
+	/** Multiplies champion select's art, the screen's centrepiece, which scrims darken only at its edges (ADR-078 §5). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor SelectArtTint = FLinearColor::Transparent;
+
+	/** The kit's icons under the shown Vanguard's name in champion select, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SelectKitIconSize = 0.0f;
+
+	/** A scoreboard row's portrait, and its build's item and Flux Spell icons (ADR-078 §5), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ReportPortraitSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ReportIconSize = 0.0f;
+
+	/** The bar of its outcome's colour down a Match History card's edge (ADR-082 §11), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float HistoryOutcomeBarWidth = 0.0f;
+
+	/** How far Home's welcome sits below the top bar, as a share of the room, from 0 to 1. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0", ClampMax = "1"))
+	float HomeHeroHeight = 0.0f;
+
+	// The menus' motion (ADR-082 §7), in the HUD's curves; Reduce UI Animation holds it all still.
+
+	/**
+	 * A page arriving: each of its parts rises RevealRise or slides RevealSlide with RevealShear degrees of lean into place over
+	 * RevealSeconds, each RevealStagger seconds after the one before.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealStagger = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealRise = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealSlide = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float RevealShear = 0.0f;
+
+	/** A button's sheen crossing it as the cursor arrives: its seconds and its light; and the burst where a button is pressed, this far across. */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float SheenSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0", ClampMax = "1"))
+	float SheenOpacity = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "1"))
+	float PressBurstRadius = 0.0f;
+
+	/**
+	 * Flux motes drifting up behind Home, as on the website: one for every MoteArea square units, rising MoteRiseMin to
+	 * MoteRiseMax units a second, swaying MoteSway either side, MoteRadiusMin to MoteRadiusMax across; MoteBrassShare of them
+	 * brass rather than the Flux teal, MoteHotShare with a white-hot heart.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "1"))
+	float MoteArea = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	int32 MoteMost = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRiseMin = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRiseMax = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteSway = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRadiusMin = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0"))
+	float MoteRadiusMax = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0", ClampMax = "1"))
+	float MoteBrassShare = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Motion", meta = (ClampMin = "0", ClampMax = "1"))
+	float MoteHotShare = 0.0f;
+
+	/** The faces' files, by family. */
+	const TArray<FVeyraFontFace>& FacesOf(EVeyraFontFamily Family) const;
 
 	/** The Vanguard whose illustration a mode's card shows. */
 	FString ModeArtOf(const FString& Mode) const;

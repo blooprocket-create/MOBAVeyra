@@ -116,6 +116,9 @@ FVeyraMatchReport Describe(const VeyraBackendProtocol::FMatchOutcome& Outcome)
 			Gold += Statistics.GoldEarned;
 			FVeyraReportLine& Line = Team.Lines.AddDefaulted_GetRef();
 			Line.Vanguard = VeyraShellModels::VanguardNameOf(Player.VanguardId);
+			Line.VanguardId = Player.VanguardId;
+			Line.ItemIds = Statistics.Items;
+			Line.FluxSpellIds = Statistics.FluxSpells;
 			Line.Name = Player.bYou ? FText::Format(LOCTEXT("You", "{0} (you)"), FText::FromString(Player.Name)) : FText::FromString(Player.Name);
 			Line.bYou = Player.bYou;
 			Line.Level = FText::Format(LOCTEXT("Level", "Level {0}"), FText::AsNumber(Statistics.Level));

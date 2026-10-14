@@ -64,8 +64,8 @@ namespace VeyraHudStatusRowTests
 			ASSERT_THAT(IsTrue(VeyraHud::StatusMark(EVeyraStatusGroup::Beneficial) == TEXT("+") && VeyraHud::StatusMark(EVeyraStatusGroup::Harmful) == TEXT("-")
 				&& VeyraHud::StatusMark(EVeyraStatusGroup::CrowdControl) == TEXT("!")));
 			const FVeyraHudStatus Slow = StatusOf(EVeyraStatusKind::Slow, EVeyraStatusGroup::CrowdControl, 1.24, 1);
-			ASSERT_THAT(AreEqual(VeyraHud::StatusChipText(Slow, true), FString(TEXT("! Slow 1.2"))));
-			ASSERT_THAT(AreEqual(VeyraHud::StatusChipText(Slow, false), FString(TEXT("! Slow")), TEXT("no seconds when Status Durations is off")));
+			ASSERT_THAT(AreEqual(VeyraHud::StatusChipText(Slow, true), FString(TEXT("! Slowed 1.2"))));
+			ASSERT_THAT(AreEqual(VeyraHud::StatusChipText(Slow, false), FString(TEXT("! Slowed")), TEXT("no seconds when Status Durations is off")));
 			const FVeyraHudStatus Speed = StatusOf(EVeyraStatusKind::MoveSpeed, EVeyraStatusGroup::Beneficial, 12.0, 2, 3);
 			ASSERT_THAT(AreEqual(VeyraHud::StatusChipText(Speed, true), FString(TEXT("+ Move Speed x3 12"))));
 		}

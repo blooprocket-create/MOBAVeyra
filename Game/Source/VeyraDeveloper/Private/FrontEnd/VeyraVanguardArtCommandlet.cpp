@@ -41,9 +41,10 @@ int32 UVeyraVanguardArtCommandlet::Main(const FString& Params)
 	FParse::Value(*Params, TEXT("Kind="), Kind);
 	const bool bItems = Kind == TEXT("Items");
 	const bool bAbilities = Kind == TEXT("Abilities");
-	if (!Kind.IsEmpty() && !bItems && !bAbilities && Kind != TEXT("Vanguards"))
+	const bool bBackgrounds = Kind == TEXT("Backgrounds");
+	if (!Kind.IsEmpty() && !bItems && !bAbilities && !bBackgrounds && Kind != TEXT("Vanguards"))
 	{
-		UE_LOG(LogVeyraVanguardArt, Error, TEXT("-Kind is Vanguards, Items or Abilities, not %s."), *Kind);
+		UE_LOG(LogVeyraVanguardArt, Error, TEXT("-Kind is Vanguards, Items, Abilities or Backgrounds, not %s."), *Kind);
 		return 1;
 	}
 	TArray<FString> Files;
@@ -72,6 +73,7 @@ int32 UVeyraVanguardArtCommandlet::Main(const FString& Params)
 
 		const FString PackageName = bItems ? VeyraShellArt::ItemIconPackageName(Id)
 			: bAbilities				   ? VeyraShellArt::AbilityIconPackageName(Id)
+			: bBackgrounds				   ? VeyraShellArt::BackgroundPackageName(Id)
 										   : VeyraShellArt::HeroPackageName(Id);
 		// An existing texture is loaded whole and baked again in place; a package only partly loaded
 		// cannot be saved.

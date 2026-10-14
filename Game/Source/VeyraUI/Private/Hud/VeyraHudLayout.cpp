@@ -4,6 +4,8 @@
 
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Settings/VeyraInterfacePreferences.h"
+#include "Slots/VeyraAbilitySlot.h"
+#include "Tuning/VeyraWorldTuningSubsystem.h"
 
 namespace
 {
@@ -109,6 +111,20 @@ float PlaceDeck(const FVector2D& Viewport, const FVector2D& Inset, const FVector
 	return static_cast<float>(Fit);
 }
 
+FVeyraHudArrangement ArrangeFor(const FVector2D& Viewport, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences)
+{
+	return Arrange(Viewport, Settings, Preferences, UE_ARRAY_COUNT(VeyraAbilitySlots::All), UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent);
+}
+
+FBox2D ShopRoom(const FVeyraHudArrangement& Layout, const FVector2D& Viewport, double Gap)
+{
+	const double Left = Layout.Inset.X + Gap;
+	const double Top = Layout.Inset.Y + Gap;
+	const double Right = FMath::Min(Viewport.X - Layout.Inset.X - Gap, Layout.Minimap.Origin.X - Gap);
+	const double Bottom = Layout.DeckTopLeft.Y - Gap;
+	return FBox2D(FVector2D(Left, Top), FVector2D(FMath::Max(Left, Right), FMath::Max(Top, Bottom)));
+}
+
 FVeyraHudArrangement Arrange(const FVector2D& Viewport, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, int32 AbilityCount,
 	double HalfExtent)
 {
@@ -132,13 +148,43 @@ FVeyraHudArrangement Arrange(const FVector2D& Viewport, const UVeyraGreyboxSetti
 	Out.Deck = Out.DeckFit < 1.0f ? MeasureDeck(Settings, DeckScales(Out.Base, Preferences.HudScales, Out.DeckFit), AbilityCount) : Designed;
 	Out.DeckTopLeft = TopLeft;
 
-	// The chat at the bottom left of the safe area; where the deck reaches under it, the chat rises above the deck.
+	// The stats panel beside the portrait, at the deck's own scale (ADR-080 §3): left of the deck and level with its foot,
+	// or above its left end, clear of the status row, where the screen leaves no room beside it.
+	Out.Stats = Out.Base * Out.DeckFit;
+	const double StatsGap = Settings.DeckGap * Out.Stats;
+	const double StatsPad = Settings.DeckPadding * Out.Stats;
+	const double StatsRow = Settings.StatsRowHeight * Out.Stats;
+	constexpr int32 CoreRows = 4;
+	constexpr int32 MoreRows = 4;
+	const FVector2D CoreSize(Settings.StatsPanelWidth * Out.Stats, StatsPad * 2.0 + StatsRow * CoreRows);
+	const FVector2D MoreSize(CoreSize.X, StatsPad * 2.0 + StatsRow * MoreRows);
+	const double DeckBottom = Out.DeckTopLeft.Y + Out.Deck.Size.Y;
+	FVector2D CoreTopLeft(Out.DeckTopLeft.X - StatsGap - CoreSize.X, DeckBottom - CoreSize.Y);
+	if (CoreTopLeft.X < Out.Inset.X + StatsGap)
+	{
+		constexpr double StatusRowRows = 2.0;
+		CoreTopLeft = FVector2D(Out.DeckTopLeft.X, Out.DeckTopLeft.Y - StatsGap - StatsRow * StatusRowRows - CoreSize.Y);
+	}
+	Out.StatsCore = FBox2D(CoreTopLeft, CoreTopLeft + CoreSize);
+	const FVector2D MoreTopLeft(CoreTopLeft.X, CoreTopLeft.Y - StatsGap - MoreSize.Y);
+	Out.StatsMore = FBox2D(MoreTopLeft, MoreTopLeft + MoreSize);
+
+	// The chat at the bottom left of the safe area; where the deck or the stats panel reaches under it, the chat rises above.
 	Out.Chat = VeyraChatLog::FrameFor(Viewport, Settings, Preferences.HudScale * Preferences.HudScales.Chat);
 	Out.Chat.InputTopLeft += FVector2D(Out.Inset.X, -Out.Inset.Y);
 	Out.Chat.LogBottomLeft += FVector2D(Out.Inset.X, -Out.Inset.Y);
 	const double ChatBottom = Out.Chat.InputTopLeft.Y + Out.Chat.InputSize.Y;
-	const double Clear = Out.DeckTopLeft.Y - Settings.DeckGap * Out.Base;
-	if (Overlaps(Out.Chat.InputTopLeft.X, Out.Chat.InputTopLeft.X + Out.Chat.Width, Out.DeckTopLeft.X, Out.DeckTopLeft.X + Out.Deck.Size.X) && ChatBottom > Clear)
+	const double ChatRight = Out.Chat.InputTopLeft.X + Out.Chat.Width;
+	double Clear = MAX_dbl;
+	if (Overlaps(Out.Chat.InputTopLeft.X, ChatRight, Out.DeckTopLeft.X, Out.DeckTopLeft.X + Out.Deck.Size.X))
+	{
+		Clear = FMath::Min(Clear, Out.DeckTopLeft.Y - Settings.DeckGap * Out.Base);
+	}
+	if (Overlaps(Out.Chat.InputTopLeft.X, ChatRight, Out.StatsMore.Min.X, Out.StatsMore.Max.X))
+	{
+		Clear = FMath::Min(Clear, Out.StatsMore.Min.Y - StatsGap);
+	}
+	if (ChatBottom > Clear)
 	{
 		const double Raise = ChatBottom - Clear;
 		Out.Chat.InputTopLeft.Y -= Raise;

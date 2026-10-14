@@ -4,6 +4,9 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/TextBlock.h"
+#include "Components/ButtonSlot.h"
+#include "Shell/VeyraShellBrushes.h"
+#include "Shell/VeyraShellMotion.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 
@@ -18,6 +21,8 @@ UVeyraShellButton* UVeyraShellButton::MakeKind(UWidgetTree& Tree, EVeyraShellBut
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	UVeyraShellButton* Button = Create(Tree, Label, MoveTemp(Action), bEnabled);
 	Button->SetStyle(VeyraShellStyle::ButtonStyleFor(Kind, bSelected));
+	// An action takes the website's sheen as the cursor arrives; tabs and quiet actions keep still (ADR-082 §7).
+	Button->bSheen = Kind == EVeyraShellButtonKind::Primary || Kind == EVeyraShellButtonKind::Secondary;
 	UTextBlock* Text = VeyraShellStyle::MakeText(Tree, Label, VeyraShellStyle::LabelRoleFor(Kind));
 	// A tab or a quiet action speaks up only when it is the one shown.
 	const bool bQuiet = Kind == EVeyraShellButtonKind::Tab || Kind == EVeyraShellButtonKind::Quiet;
@@ -103,9 +108,23 @@ void UVeyraShellButton::ShowEnhancedFocus(bool bShow)
 	FButtonStyle Focused = OwnStyle;
 	for (FSlateBrush* Brush : { &Focused.Normal, &Focused.Hovered, &Focused.Pressed })
 	{
-		Brush->DrawAs = ESlateBrushDrawType::RoundedBox;
-		Brush->OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
-		Brush->OutlineSettings.CornerRadii = FVector4(Style.ButtonCornerRadius);
+		// The same chamfered face, its edge the focus outline's (ADR-078 §3); a state with no face of its own, such as a
+		// tab's, takes a clear one, so the outline still stands around it.
+		FVeyraFaceLook Look;
+		if (const FVeyraFaceLook* Own = VeyraShellBrushes::LookOf(*Brush))
+		{
+			Look = *Own;
+		}
+		else
+		{
+			Look.Chamfer = Style.ButtonChamfer;
+		}
+		Look.Edge = Style.FocusOutlineColor;
+		Look.Tick = Style.FocusOutlineColor;
+		Look.EdgeWidth = Style.FocusOutlineWidth;
+		const FSlateColor Tint = Brush->TintColor;
+		*Brush = VeyraShellBrushes::Face(Look);
+		Brush->TintColor = Tint;
 		Brush->OutlineSettings.Color = Style.FocusOutlineColor;
 		Brush->OutlineSettings.Width = Style.FocusOutlineWidth;
 	}
@@ -125,6 +144,31 @@ FLinearColor UVeyraShellButton::GetOutlineColor() const
 FLinearColor UVeyraShellButton::GetFillColor() const
 {
 	return GetStyle().Normal.TintColor.GetSpecifiedColor();
+}
+
+TSharedRef<SWidget> UVeyraShellButton::RebuildWidget()
+{
+	// The engine's button, as UButton builds it, in the shell's Slate button that paints its light (ADR-082 §7).
+	TSharedRef<SVeyraShellButton> Lit = SNew(SVeyraShellButton)
+		.OnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked))
+		.OnPressed(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandlePressed))
+		.OnReleased(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandleReleased))
+		.OnHovered_UObject(this, &ThisClass::SlateHandleHovered)
+		.OnUnhovered_UObject(this, &ThisClass::SlateHandleUnhovered)
+		.OnReceivedFocus_UObject(this, &ThisClass::SlateHandleOnReceivedFocus)
+		.OnLostFocus_UObject(this, &ThisClass::SlateHandleOnLostFocus)
+		.ButtonStyle(&GetStyle())
+		.ClickMethod(GetClickMethod())
+		.TouchMethod(GetTouchMethod())
+		.PressMethod(GetPressMethod())
+		.IsFocusable(GetIsFocusable());
+	Lit->SetSheen(bSheen);
+	MyButton = Lit;
+	if (GetChildrenCount() > 0)
+	{
+		Cast<UButtonSlot>(GetContentSlot())->BuildSlot(Lit);
+	}
+	return Lit;
 }
 
 void UVeyraShellButton::BeginDestroy()

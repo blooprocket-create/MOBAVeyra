@@ -2,12 +2,14 @@
 
 #include "CQTest.h"
 #include "AbilitySystemComponent.h"
+#include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "VeyraCombatVerbs.h"
-
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
+#include "Stats/VeyraEquipmentStats.h"
+#include "Text/VeyraContentText.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -910,6 +912,33 @@ namespace VeyraAbilitiesTests
 			Abilities.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), static_cast<float>(ResourceCost));
 			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now).Slots[0].bAffordable));
 			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now).Slots[1].bAffordable, TEXT("an empty slot is never short")));
+		}
+
+		TEST_METHOD(TheStatsPanelShowsTheVanguardsStatsAndWhatItsItemsRaise)
+		{
+			// ADR-080 §3: the core eight and six more, each in its own words; one an item raises reads raised.
+			const AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			UAbilitySystemComponent& Abilities = *Caster->GetAbilitySystemComponent();
+			const double Now = RefreshedGreybox().GetServerNow();
+			constexpr float BaseArmor = 30.0f;
+			constexpr double ItemArmor = 20.0;
+			Abilities.SetNumericAttributeBase(UVeyraDefenceSet::GetArmorAttribute(), BaseArmor);
+			const FString ArmorName = VeyraContentText::StatName(TEXT("armor")).ToString();
+			const auto ArmorOf = [&ArmorName](const FVeyraHudStats& Stats) {
+				return Stats.Core.FindByPredicate([&ArmorName](const FVeyraHudStat& Stat) { return Stat.Name.ToString() == ArmorName; });
+			};
+			FVeyraHudStats Stats = VeyraHud::DescribePlayer(Participant, Now).Stats;
+			ASSERT_THAT(IsTrue(Stats.Core.Num() == 8 && Stats.More.Num() == 6));
+			ASSERT_THAT(IsFalse(Stats.Core.ContainsByPredicate([](const FVeyraHudStat& Stat) { return Stat.Name.ToString().StartsWith(TEXT("stat.")); }),
+				TEXT("every stat has its words")));
+			const FVeyraHudStat* Armor = ArmorOf(Stats);
+			ASSERT_THAT(IsTrue(Armor && Armor->Value == TEXT("30") && !Armor->bRaised, TEXT("its own value, not raised")));
+			FVeyraEquipmentStats Gear;
+			Gear.Armor = ItemArmor;
+			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(Abilities, Gear)));
+			Stats = VeyraHud::DescribePlayer(Participant, Now).Stats;
+			Armor = ArmorOf(Stats);
+			ASSERT_THAT(IsTrue(Armor && Armor->Value == TEXT("50") && Armor->bRaised, TEXT("raised by its item")));
 		}
 
 		TEST_METHOD(ADecoyShowsItsOwnersBarsAndStatusesButNotTheirStealth)

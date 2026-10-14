@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "notes": [
     {
+      "version": "0.2.8",
+      "date": "2026-10-13",
+      "title": "A new look",
+      "changes": [
+        "The client has a new look throughout: new type, brass-edged panels, and menus that move.",
+        "The match HUD is redrawn and animated, with tooltips that show an ability's real numbers and a stats panel beside your portrait.",
+        "The scoreboard, shop, Collection, Profile, Settings and Match History are redrawn to match.",
+        "Profile banners show the regions of Veyra.",
+        "Units are drawn from the server's motions rather than its positions, so they move smoothly and stop where they stop, and your orders answer at once."
+      ]
+    },
+    {
       "version": "0.2.7",
       "date": "2026-10-13",
       "title": "Smoother movement",

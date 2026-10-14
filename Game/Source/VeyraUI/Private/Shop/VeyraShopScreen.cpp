@@ -18,10 +18,12 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
+#include "Components/WrapBoxSlot.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerState.h"
 #include "InputCoreTypes.h"
 #include "Shell/VeyraShellArt.h"
+#include "Shell/VeyraShellBrushes.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -122,7 +124,9 @@ bool UVeyraShopScreen::Initialize()
 		Size->SetWidthOverride(Settings.ShopWidth);
 		Size->SetHeightOverride(Settings.ShopHeight);
 		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Gap));
-		UVerticalBox* Frame = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		// Nearly opaque, so the match's banners and numbers behind it never read through it (ADR-082 §8).
+		VeyraShellStyle::StyleSurface(*Panel, VeyraShellLook::Panel(Settings.SurfaceRaisedColor).CopyWithNewOpacity(Settings.ShopPanelOpacity), Settings.EdgeColor);
+		Frame = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Panel->SetContent(Frame);
 		Size->AddChild(Panel);
 
@@ -182,6 +186,8 @@ void UVeyraShopScreen::Show(AVeyraPlayerController& InController, TFunction<void
 	SeenBuybackRefusals = InController.GetBuybackRefusalCount();
 	bBuilt = false;
 	Refresh();
+	// Its parts rise into place as it opens, as a page of the menus does (ADR-082 §8).
+	Reveal.Play(Frame->GetAllChildren());
 }
 
 void UVeyraShopScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -571,8 +577,8 @@ void UVeyraShopScreen::BuildSpells()
 
 void UVeyraShopScreen::BuildDetails()
 {
-	// The selected item, in the right-hand pane: what it builds into, its recipe, the one
-	// purchase button, and what it gives.
+	// The selected item, in the right-hand pane (ADR-082 §8): its icon, name and whole cost; what it gives, its stats' amounts
+	// in brass; what it does; the one purchase button; then what it is made from and what it builds into.
 	Details->ClearChildren();
 	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	const float Width = Settings.ShopDetailsWidth - Settings.Spacing * 2.0f;
@@ -588,33 +594,66 @@ void UVeyraShopScreen::BuildDetails()
 		return;
 	}
 
-	const TArray<FVeyraContentId> Upgrades = VeyraShopModel::BuildsInto(Tuning, SelectedItem);
-	if (!Upgrades.IsEmpty())
-	{
-		AddEyebrow(*Details, LOCTEXT("BuildsInto", "Builds into"));
-		UWrapBox* Into = MakeGrid(*WidgetTree, Width);
-		for (const FVeyraContentId& Upgrade : Upgrades)
-		{
-			AddItemTile(*Into, Upgrade, Settings.ShopMarkSize);
-		}
-		VeyraShellStyle::AddSpaced(*Details, *Into);
-		VeyraShellStyle::AddSpaced(*Details, *VeyraShellStyle::MakeRule(*WidgetTree));
-	}
-
-	// The recipe: the item, and beneath it what it is made from.
+	// Its icon, edged in brass while it can be bought, beside its name over its whole cost.
 	UHorizontalBox* Top = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	AddItemTile(*Top, SelectedItem, Settings.ShopTileSize);
-	Details->AddChildToVerticalBox(Top)->SetHorizontalAlignment(HAlign_Center);
-	if (!Definition->Components.IsEmpty())
+	const bool bCanBuy = Offer->Refusal == EVeyraShopRefusal::None;
+	Top->AddChildToHorizontalBox(&MakeMark(VeyraContentText::ItemName(SelectedItem), Settings.ShopTileSize, bCanBuy,
+		bCanBuy ? Settings.PrimaryColor.CopyWithNewOpacity(0.55f) : Settings.HairlineColor, VeyraShellArt::ItemIconOf(SelectedItem.ToString())))
+		->SetVerticalAlignment(VAlign_Center);
+	UVerticalBox* Named = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Named->AddChild(MakeLine(*WidgetTree, VeyraContentText::ItemName(SelectedItem), EVeyraShellText::Heading, Width - Settings.ShopTileSize - Settings.Spacing * 2.0f));
+	UHorizontalBox* CostLine = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	const float Coin = Settings.CurrencyGlyphSize;
+	UWidget* CoinMark = VeyraShellStyle::MakeGlyph(*WidgetTree, VeyraShellBrushes::Coin(Coin, Settings.PrimaryColor, Settings.PrimaryShadeColor));
+	CostLine->AddChildToHorizontalBox(CoinMark)->SetVerticalAlignment(VAlign_Center);
+	UTextBlock* Cost = MakeLine(*WidgetTree, FText::Format(LOCTEXT("TotalCost", "Cost {0}"), PriceText(Offer->TotalCost)), EVeyraShellText::Body);
+	Cost->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
+	UHorizontalBoxSlot* CostSlot = CostLine->AddChildToHorizontalBox(Cost);
+	CostSlot->SetVerticalAlignment(VAlign_Center);
+	CostSlot->SetPadding(FMargin(Settings.Spacing / 2.0f, 0.0f, 0.0f, 0.0f));
+	Named->AddChildToVerticalBox(CostLine)->SetPadding(FMargin(0.0f, Settings.Spacing / 3.0f, 0.0f, 0.0f));
+	UHorizontalBoxSlot* NamedSlot = Top->AddChildToHorizontalBox(Named);
+	NamedSlot->SetVerticalAlignment(VAlign_Center);
+	NamedSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	NamedSlot->SetPadding(FMargin(Settings.Spacing, 0.0f, 0.0f, 0.0f));
+	VeyraShellStyle::AddSpaced(*Details, *Top);
+	VeyraShellStyle::AddSpaced(*Details, *VeyraShellStyle::MakeRule(*WidgetTree));
+
+	// What it gives: each stat's amount in brass beside its name, two to a row (Settings Bible 97: stats before effects).
+	if (const TArray<VeyraShopModel::FVeyraShopStatPart> Parts = VeyraShopModel::StatParts(Definition->Stats); !Parts.IsEmpty())
 	{
-		UHorizontalBox* From = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		for (const FVeyraContentId& Component : Definition->Components)
+		UWrapBox* Stats = MakeGrid(*WidgetTree, Width);
+		const float Cell = Width / 2.0f;
+		for (const VeyraShopModel::FVeyraShopStatPart& Part : Parts)
 		{
-			AddItemTile(*From, Component, Settings.ShopMarkSize);
+			USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			Box->SetWidthOverride(Cell);
+			UHorizontalBox* Pair = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+			UTextBlock* Amount = MakeLine(*WidgetTree, Part.Amount, EVeyraShellText::Body);
+			Amount->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
+			Pair->AddChildToHorizontalBox(Amount)->SetVerticalAlignment(VAlign_Center);
+			UTextBlock* Name = MakeLine(*WidgetTree, Part.Name, EVeyraShellText::Small);
+			Name->SetColorAndOpacity(FSlateColor(Settings.TextColor));
+			UHorizontalBoxSlot* NameSlot = Pair->AddChildToHorizontalBox(Name);
+			NameSlot->SetVerticalAlignment(VAlign_Center);
+			NameSlot->SetPadding(FMargin(Settings.Spacing / 2.0f, 0.0f, 0.0f, 0.0f));
+			Box->AddChild(Pair);
+			Stats->AddChildToWrapBox(Box)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Settings.Spacing / 3.0f));
 		}
-		UVerticalBoxSlot* FromSlot = Details->AddChildToVerticalBox(From);
-		FromSlot->SetHorizontalAlignment(HAlign_Center);
-		FromSlot->SetPadding(FMargin(0.0f, Settings.Spacing / 2.0f, 0.0f, 0.0f));
+		VeyraShellStyle::AddSpaced(*Details, *Stats);
+	}
+	// What it does, and why it cannot be had, when it cannot for more than Gold.
+	if (const FText Effect = VeyraContentText::ItemDescription(SelectedItem); !Effect.IsEmpty())
+	{
+		UTextBlock* EffectLine = MakeLine(*WidgetTree, Effect, EVeyraShellText::Small, Width);
+		EffectLine->SetColorAndOpacity(FSlateColor(Settings.MutedTextColor));
+		VeyraShellStyle::AddSpaced(*Details, *EffectLine);
+	}
+	if (Offer->Refusal != EVeyraShopRefusal::None && Offer->Refusal != EVeyraShopRefusal::NotEnoughGold)
+	{
+		UTextBlock* Why = MakeLine(*WidgetTree, VeyraShopModel::DescribeRefusal(Offer->Refusal), EVeyraShellText::Small, Width);
+		Why->SetColorAndOpacity(FSlateColor(Settings.AccentColor));
+		VeyraShellStyle::AddSpaced(*Details, *Why);
 	}
 
 	// The one purchase button, named for the item and its price, saying what pressing it would do.
@@ -643,26 +682,27 @@ void UVeyraShopScreen::BuildDetails()
 		PurchaseSlot->SetPadding(FMargin(0.0f, Settings.Spacing, 0.0f, Settings.Spacing));
 	}
 
-	// What it is and gives: its name, its whole cost, its stats and its effect.
-	VeyraShellStyle::AddSpaced(*Details, *MakeLine(*WidgetTree, VeyraContentText::ItemName(SelectedItem), EVeyraShellText::Heading, Width));
-	UTextBlock* Cost = MakeLine(*WidgetTree, FText::Format(LOCTEXT("TotalCost", "Cost {0}"), PriceText(Offer->TotalCost)), EVeyraShellText::Body);
-	Cost->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
-	VeyraShellStyle::AddSpaced(*Details, *Cost);
-	if (const FText Stats = VeyraShopModel::DescribeStats(Definition->Stats); !Stats.IsEmpty())
+	// Its recipe: what it is made from, then what it builds into.
+	if (!Definition->Components.IsEmpty())
 	{
-		VeyraShellStyle::AddSpaced(*Details, *MakeLine(*WidgetTree, Stats, EVeyraShellText::Body, Width));
+		AddEyebrow(*Details, LOCTEXT("BuildsFrom", "Builds from"));
+		UWrapBox* From = MakeGrid(*WidgetTree, Width);
+		for (const FVeyraContentId& Component : Definition->Components)
+		{
+			AddItemTile(*From, Component, Settings.ShopMarkSize);
+		}
+		VeyraShellStyle::AddSpaced(*Details, *From);
 	}
-	if (const FText Effect = VeyraContentText::ItemDescription(SelectedItem); !Effect.IsEmpty())
+	const TArray<FVeyraContentId> Upgrades = VeyraShopModel::BuildsInto(Tuning, SelectedItem);
+	if (!Upgrades.IsEmpty())
 	{
-		UTextBlock* EffectLine = MakeLine(*WidgetTree, Effect, EVeyraShellText::Small, Width);
-		EffectLine->SetColorAndOpacity(FSlateColor(Settings.MutedTextColor));
-		VeyraShellStyle::AddSpaced(*Details, *EffectLine);
-	}
-	if (Offer->Refusal != EVeyraShopRefusal::None && Offer->Refusal != EVeyraShopRefusal::NotEnoughGold)
-	{
-		UTextBlock* Why = MakeLine(*WidgetTree, VeyraShopModel::DescribeRefusal(Offer->Refusal), EVeyraShellText::Small, Width);
-		Why->SetColorAndOpacity(FSlateColor(Settings.AccentColor));
-		VeyraShellStyle::AddSpaced(*Details, *Why);
+		AddEyebrow(*Details, LOCTEXT("BuildsInto", "Builds into"));
+		UWrapBox* Into = MakeGrid(*WidgetTree, Width);
+		for (const FVeyraContentId& Upgrade : Upgrades)
+		{
+			AddItemTile(*Into, Upgrade, Settings.ShopMarkSize);
+		}
+		VeyraShellStyle::AddSpaced(*Details, *Into);
 	}
 }
 
@@ -717,9 +757,14 @@ void UVeyraShopScreen::BuildFoot()
 	MessageSlot->SetHorizontalAlignment(HAlign_Right);
 	MessageSlot->SetPadding(FMargin(Settings.Spacing, 0.0f));
 
+	// Gold beside its coin (ADR-082 §8).
+	UWidget* Coin = VeyraShellStyle::MakeGlyph(*WidgetTree, VeyraShellBrushes::Coin(Settings.CurrencyGlyphSize, Settings.PrimaryColor, Settings.PrimaryShadeColor));
+	Foot->AddChildToHorizontalBox(Coin)->SetVerticalAlignment(VAlign_Center);
 	UTextBlock* Gold = MakeLine(*WidgetTree, FText::Format(LOCTEXT("Gold", "Gold {0}"), PriceText(View.Gold)), EVeyraShellText::Heading);
 	Gold->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
-	Foot->AddChildToHorizontalBox(Gold)->SetVerticalAlignment(VAlign_Center);
+	UHorizontalBoxSlot* GoldSlot = Foot->AddChildToHorizontalBox(Gold);
+	GoldSlot->SetVerticalAlignment(VAlign_Center);
+	GoldSlot->SetPadding(FMargin(Settings.Spacing / 2.0f, 0.0f, 0.0f, 0.0f));
 }
 
 UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVeyraContentId& Item, float Size)
@@ -748,7 +793,9 @@ UVeyraShellButton* UVeyraShopScreen::AddTile(UPanelWidget& Parent, const FText& 
 	// while it can be bought and dimmed while it cannot.
 	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	Stack->AddChildToVerticalBox(&MakeMark(Name, Size, bLit, bSelected ? Settings.AccentColor : Settings.HairlineColor, Icon))->SetHorizontalAlignment(HAlign_Center);
+	// Edged in the accent when chosen, in brass while it can be bought, and faintly while it cannot (ADR-082 §8).
+	const FLinearColor Edge = bSelected ? Settings.AccentColor : bLit ? Settings.PrimaryColor.CopyWithNewOpacity(0.55f) : Settings.HairlineColor;
+	Stack->AddChildToVerticalBox(&MakeMark(Name, Size, bLit, Edge, Icon))->SetHorizontalAlignment(HAlign_Center);
 	UTextBlock* Line = MakeLine(*WidgetTree, Under, EVeyraShellText::Small);
 	Line->SetJustification(ETextJustify::Center);
 	Line->SetColorAndOpacity(FSlateColor(bLit ? Settings.PrimaryColor : Settings.MutedTextColor));
@@ -794,7 +841,7 @@ UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, co
 		return *Square;
 	}
 	UBorder* Mark = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-	Mark->SetBrush(FSlateRoundedBoxBrush(VeyraShellLook::Panel(Settings.SurfaceRaisedColor), Settings.ButtonCornerRadius, Edge, 1.0f));
+	Mark->SetBrush(VeyraShellStyle::EdgedFace(VeyraShellLook::Panel(Settings.SurfaceRaisedColor), Edge));
 	Mark->SetPadding(FMargin(0.0f));
 	Mark->SetHorizontalAlignment(HAlign_Center);
 	Mark->SetVerticalAlignment(VAlign_Center);

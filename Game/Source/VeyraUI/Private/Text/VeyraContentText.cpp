@@ -129,6 +129,12 @@ FText PassiveName(const FVeyraContentId& Passive)
 	return TextOr(PassiveKind, Passive, NameField, Passive.ToString());
 }
 
+FText RegionName(const FString& Region)
+{
+	const FString Key = TEXT("profile_background.") + Region;
+	return HasKey(Key) ? FText::FromStringTable(TableName, FTextKey(Key)) : FText::FromString(Region);
+}
+
 FText DamageRole(const FString& Role)
 {
 	for (const FString& Key : { TEXT("damage_role.") + Role, FString(TEXT("damage_role.damage")) })
@@ -144,6 +150,19 @@ FText DamageRole(const FString& Role)
 bool HasDamageRole(const FString& Role)
 {
 	return HasKey(TEXT("damage_role.") + Role);
+}
+
+FText StatusKindName(EVeyraStatusKind Kind)
+{
+	const FString Name = StaticEnum<EVeyraStatusKind>()->GetNameStringByValue(static_cast<int64>(Kind));
+	const FString Key = TEXT("status_kind.") + Name;
+	return HasKey(Key) ? FText::FromStringTable(TableName, FTextKey(Key)) : FText::FromString(Name);
+}
+
+FText StatName(const FString& Stat)
+{
+	const FString Key = TEXT("stat.") + Stat;
+	return HasKey(Key) ? FText::FromStringTable(TableName, FTextKey(Key)) : FText::FromString(Stat);
 }
 
 FText PassiveDescription(const FVeyraContentId& Passive)

@@ -7,6 +7,7 @@
 #include "Shell/VeyraProgressionModels.h"
 #include "Shell/VeyraRosterFilter.h"
 #include "Shell/VeyraShellModels.h"
+#include "Shell/VeyraShellMotion.h"
 #include "Types/SlateEnums.h"
 
 #include "VeyraShellScreen.generated.h"
@@ -216,6 +217,9 @@ public:
 	 */
 	UVeyraShellButton* FindButton(const FText& Label, int32 Occurrence = 0) const;
 
+	/** Whether a screen's or a page's parts are still arriving (ADR-082 §7): captures wait for them. */
+	bool IsRevealing() const { return Reveal.IsPlaying(); }
+
 	/** Every text on screen, joined by new lines, for tests. */
 	FString DescribeText() const;
 
@@ -249,8 +253,11 @@ private:
 	void BuildCollection(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/** The opened card's detail and its Buy actions, or the purchase's question in their place. */
 	void BuildCollectionDetail(const FVeyraClientSnapshot& Snapshot, const FVeyraCollectionCard& Card, UPanelWidget& Parent);
-	/** The top bar's account readout: the Account Level, its XP and the account currencies. */
-	void AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar);
+	/**
+	 * The top bar's account cluster (ADR-078 §5): the level's badge, the player's name over the level's progress and its XP,
+	 * and each account currency beside its mark. False, adding nothing, before the progression is first read.
+	 */
+	bool AddProgressionReadout(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Bar);
 	/** What the match gave the player, on the results screen, apart from its own Gold and XP. */
 	void BuildRewards(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	/**
@@ -337,16 +344,18 @@ private:
 
 	/**
 	 * A card showing VanguardId's illustration with a plate of text along its bottom, as a button named
-	 * Label; dimmed when it cannot be chosen.
+	 * Label; dimmed when it cannot be chosen. Size is the card's, a mode card's when unset.
 	 */
 	UVeyraShellButton* AddArtCard(UPanelWidget& Parent, const FText& Label, const FString& VanguardId, const TArray<TPair<FText, uint8>>& Plate,
-		TFunction<void()> Action, bool bEnabled, bool bSelected);
+		TFunction<void()> Action, bool bEnabled, bool bSelected, TOptional<FVector2D> Size = {});
 
 	/** Centres Child across the screen, DialogWidth wide, with space above and below. */
 	void AddCentred(UWidget& Child);
 
 	/** Shows VanguardId's illustration behind the screen as a showcase, with the scrims that let text read over it. */
 	void ShowShowcase(const FString& VanguardId);
+	/** Champion select's art (ADR-078 §5): the shown Vanguard large behind everything, darkened only where the columns, bench and loadout sit. */
+	void ShowSelectArt(UTexture2D* Hero);
 
 	/** A Vanguard with art, chosen at random once each time the game runs; HomeVanguard when none has art. */
 	static FString PickFeaturedVanguard();
@@ -437,6 +446,23 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Content;
 
+	/** Flux motes drifting behind the menus (ADR-082 §7). */
+	UPROPERTY(Transient)
+	TObjectPtr<class UVeyraShellMotes> Motes;
+
+	/** The shell's page under its top bar, which a page's reveal brings in alone (ADR-082 §7). */
+	UPROPERTY(Transient)
+	TObjectPtr<UVerticalBox> PageBody;
+
+	/** A screen's or a page's parts arriving, and the screen and page it last revealed (ADR-082 §7). */
+	FVeyraShellReveal Reveal;
+	EVeyraShellScreen RevealedScreen = EVeyraShellScreen::None;
+	EVeyraShellPage RevealedPage = EVeyraShellPage::Home;
+	bool bRevealingPage = false;
+
+	/** Reveals what this rebuild made, if it brought a new screen or page; carries a reveal under way over to it if not. */
+	void RevealArrivals();
+
 	/** The shown Vanguard's art behind champion select, scaled to fill the screen. */
 	UPROPERTY(Transient)
 	TObjectPtr<UScaleBox> BackdropBox;
@@ -453,6 +479,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UImage> ScrimTop;
+
+	/** From the right edge: champion select's enemy column over the shown Vanguard's art (ADR-078 §5). */
+	UPROPERTY(Transient)
+	TObjectPtr<UImage> ScrimRight;
 
 	/** The Vanguard whose art the showcases show this time the game runs, chosen at random. */
 	FString FeaturedVanguard;

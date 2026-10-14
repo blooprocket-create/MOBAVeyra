@@ -151,4 +151,5 @@ namespace VeyraDevCommands
 	void AddEconomyCommands(TArray<FVeyraDevCommand>& Out);
 	void AddMatchCommands(TArray<FVeyraDevCommand>& Out);
 	void AddShowcaseCommands(TArray<FVeyraDevCommand>& Out);
+	void AddHudCommands(TArray<FVeyraDevCommand>& Out);
 }

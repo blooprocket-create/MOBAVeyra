@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Shell/VeyraShellMotion.h"
 #include "Shop/VeyraShopModel.h"
 #include "Templates/Function.h"
 
@@ -34,6 +35,9 @@ class VEYRAUI_API UVeyraShopScreen : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	/** Whether its parts are still rising into place as it opens (ADR-082 §8): captures wait for them. */
+	bool IsRevealing() const { return Reveal.IsPlaying(); }
+
 	/** Builds the shop's frame, before anything shows it. */
 	virtual bool Initialize() override;
 
@@ -187,6 +191,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Details;
+
+	/** The shop's frame, whose parts rise into place as it opens (ADR-082 §8). */
+	UPROPERTY(Transient)
+	TObjectPtr<UVerticalBox> Frame;
+
+	FVeyraShellReveal Reveal;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UHorizontalBox> Foot;

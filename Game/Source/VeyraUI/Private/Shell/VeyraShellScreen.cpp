@@ -2,6 +2,7 @@
 
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellLook.h"
+#include "Shell/VeyraShellBrushes.h"
 
 #if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
@@ -13,6 +14,7 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Client/VeyraClientIntents.h"
 #include "Components/Border.h"
+#include "Components/ButtonSlot.h"
 #include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
@@ -41,6 +43,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellMotes.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
@@ -133,15 +136,21 @@ bool UVeyraShellScreen::Initialize()
 		UTexture2D* FromLeft = VeyraShellStyle::CreateGradient(VeyraShellStyle::EVeyraShellGradient::FromLeft);
 		UTexture2D* FromBottom = VeyraShellStyle::CreateGradient(VeyraShellStyle::EVeyraShellGradient::FromBottom);
 		UTexture2D* FromTop = VeyraShellStyle::CreateGradient(VeyraShellStyle::EVeyraShellGradient::FromTop);
-		Gradients = { FromLeft, FromBottom, FromTop };
+		UTexture2D* FromRight = VeyraShellStyle::CreateGradient(VeyraShellStyle::EVeyraShellGradient::FromRight);
+		Gradients = { FromLeft, FromBottom, FromTop, FromRight };
 		ScrimLeft = VeyraShellStyle::MakeGradient(*WidgetTree, FromLeft, Style.ScrimColor);
 		ScrimBottom = VeyraShellStyle::MakeGradient(*WidgetTree, FromBottom, Style.ScrimColor);
 		ScrimTop = VeyraShellStyle::MakeGradient(*WidgetTree, FromTop, Style.ScrimColor);
-		for (UImage* Scrim : { ScrimLeft.Get(), ScrimBottom.Get(), ScrimTop.Get() })
+		ScrimRight = VeyraShellStyle::MakeGradient(*WidgetTree, FromRight, Style.ScrimColor);
+		for (UImage* Scrim : { ScrimLeft.Get(), ScrimBottom.Get(), ScrimTop.Get(), ScrimRight.Get() })
 		{
 			Scrim->SetVisibility(ESlateVisibility::Collapsed);
 			Fill(Scrim);
 		}
+		// Flux motes drifting behind the menus, as on the website (ADR-082 §7).
+		Motes = WidgetTree->ConstructWidget<UVeyraShellMotes>(UVeyraShellMotes::StaticClass());
+		Motes->SetVisibility(ESlateVisibility::Collapsed);
+		Fill(Motes);
 		FeaturedVanguard = PickFeaturedVanguard();
 		UBorder* Frame = VeyraShellStyle::MakeBorder(*WidgetTree, FLinearColor::Transparent, Style.ScreenPadding);
 		Content = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
@@ -448,6 +457,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	PickBars.Reset();
 	Countdown = nullptr;
 	QueueStatus = nullptr;
+	PageBody = nullptr;
 	Shown = VeyraShellModels::ScreenFor(Snapshot.State);
 	// Settings belong to the shell, the lobby and the results, never to champion select, Match Found or
 	// Reconnect-only (ADR-024 §4); the choice between this device's settings and the account's comes first.
@@ -514,7 +524,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	}
 	// Each screen chooses its own art; champion select shows the Vanguard it is looking at.
 	ShowBackdrop(nullptr);
-	for (UImage* Scrim : { ScrimLeft.Get(), ScrimBottom.Get(), ScrimTop.Get() })
+	for (UImage* Scrim : { ScrimLeft.Get(), ScrimBottom.Get(), ScrimTop.Get(), ScrimRight.Get() })
 	{
 		Scrim->SetVisibility(ESlateVisibility::Collapsed);
 	}
@@ -557,6 +567,40 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	}
 	BuildProblem(Snapshot);
 	BuildSettingsConflict(Snapshot);
+	RevealArrivals();
+	// The motes drift behind the shell, a lobby and the results; champion select and the moments before a match keep still.
+	const bool bDrifting = Shown == EVeyraShellScreen::Shell || Shown == EVeyraShellScreen::Lobby || Shown == EVeyraShellScreen::Results;
+	Motes->SetVisibility(bDrifting ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	// Drifting again as soon as Reduce UI Animation is turned off, as every rebuild follows the setting.
+	Motes->Wake();
+}
+
+void UVeyraShellScreen::RevealArrivals()
+{
+	// A new screen's parts arrive in turn, its top bar sliding in; a new page in the shell brings in its own parts alone. A
+	// rebuild of what shows carries a reveal under way over to the parts it made anew, from where it had reached.
+	const bool bNewScreen = Shown != RevealedScreen;
+	const bool bNewPage = !bNewScreen && Shown == EVeyraShellScreen::Shell && Page != RevealedPage;
+	if (bNewScreen || bNewPage)
+	{
+		bRevealingPage = bNewPage;
+	}
+	TArray<UWidget*> Parts = bRevealingPage && PageBody ? PageBody->GetAllChildren() : Content->GetAllChildren();
+	TArray<EVeyraReveal> Kinds;
+	if (!bRevealingPage && Shown == EVeyraShellScreen::Shell && !Parts.IsEmpty())
+	{
+		Kinds.Add(EVeyraReveal::Slide);
+	}
+	if (bNewScreen || bNewPage)
+	{
+		Reveal.Play(Parts, Kinds);
+	}
+	else
+	{
+		Reveal.Continue(Parts, Kinds);
+	}
+	RevealedScreen = Shown;
+	RevealedPage = Page;
 }
 
 void UVeyraShellScreen::ShowShowcase(const FString& VanguardId)
@@ -638,9 +682,18 @@ void UVeyraShellScreen::BuildStopped(const FVeyraClientSnapshot& Snapshot)
 void UVeyraShellScreen::BuildStarterChoice(const FVeyraClientSnapshot& Snapshot)
 {
 	ShowShowcase(FeaturedVanguard);
-	AddText(*Content, LOCTEXT("StarterEyebrow", "Your first Vanguard"), RoleOf(EVeyraShellText::Eyebrow));
-	AddText(*Content, LOCTEXT("StarterTitle", "Choose Your Starter"), RoleOf(EVeyraShellText::Display));
-	AddText(*Content, LOCTEXT("StarterDetail", "The tutorial is coming later. Choose a starter Vanguard: it is yours to keep."), RoleOf(EVeyraShellText::Muted));
+	// The choice centred and its cards large (ADR-082 §11): the player's first decision, and the Vanguards' art its subject.
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	const auto Centred = [this](const FText& Text, EVeyraShellText Role) {
+		UTextBlock* Block = AddText(*Content, Text, RoleOf(Role));
+		// One line each: wrapping a centred line breaks it at its own width.
+		Block->SetAutoWrapText(false);
+		Block->SetJustification(ETextJustify::Center);
+		Cast<UVerticalBoxSlot>(Block->Slot)->SetHorizontalAlignment(HAlign_Center);
+	};
+	Centred(LOCTEXT("StarterEyebrow", "Your first Vanguard"), EVeyraShellText::Eyebrow);
+	Centred(LOCTEXT("StarterTitle", "Choose Your Starter"), EVeyraShellText::Display);
+	Centred(LOCTEXT("StarterDetail", "The tutorial is coming later. Choose a starter Vanguard: it is yours to keep."), EVeyraShellText::Muted);
 	UHorizontalBox* Cards = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	const bool bCanChoose = Client->CanIssue(EVeyraClientIntent::ChooseStarter);
 	for (const FString& Starter : Snapshot.Starters)
@@ -650,23 +703,31 @@ void UVeyraShellScreen::BuildStarterChoice(const FVeyraClientSnapshot& Snapshot)
 			{ VeyraShellModels::VanguardNameOf(Starter), RoleOf(EVeyraShellText::Heading) },
 			{ VeyraContentText::VanguardTitle(Id), RoleOf(EVeyraShellText::Muted) },
 		};
-		AddArtCard(*Cards, VeyraShellModels::VanguardNameOf(Starter), Starter, Plate, [this, Starter] { Client->ChooseStarter(Starter); }, bCanChoose, false);
+		AddArtCard(*Cards, VeyraShellModels::VanguardNameOf(Starter), Starter, Plate, [this, Starter] { Client->ChooseStarter(Starter); }, bCanChoose, false,
+			FVector2D(Style.StarterCardWidth, Style.StarterCardHeight));
 	}
 	VeyraShellStyle::AddSpaced(*Content, *Cards);
+	Cast<UVerticalBoxSlot>(Cards->Slot)->SetHorizontalAlignment(HAlign_Center);
 }
 
 void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent, bool bPages)
 {
 	const UVeyraShellStyleSettings& Style = ShellStyle();
 	UHorizontalBox* Bar = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	// The name, in the display tier at a smaller size and wider tracking.
+	// The Flux mark and the name, in the display tier at a smaller size, wider tracking and always in capitals (ADR-078 §5).
+	UHorizontalBox* Brand = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Brand->AddChildToHorizontalBox(VeyraShellStyle::MakeGlyph(*WidgetTree, VeyraShellBrushes::Diamond(Style.WordmarkGlyphSize, Style.AccentColor, FLinearColor::Transparent)))
+		->SetVerticalAlignment(VAlign_Center);
+	AddGap(*WidgetTree, *Brand, Style.Spacing);
 	UTextBlock* Mark = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Wordmark", "Veyra"), EVeyraShellText::Display);
 	FSlateFontInfo MarkFont = VeyraShellStyle::FontFor(EVeyraShellText::Display);
 	MarkFont.Size = Style.TitleFontSize;
 	MarkFont.LetterSpacing = Style.EyebrowLetterSpacing * 2;
 	Mark->SetFont(MarkFont);
 	Mark->SetAutoWrapText(false);
-	VeyraShellStyle::AddSpaced(*Bar, *Mark);
+	Mark->SetTextTransformPolicy(ETextTransformPolicy::ToUpper);
+	Brand->AddChildToHorizontalBox(Mark)->SetVerticalAlignment(VAlign_Center);
+	VeyraShellStyle::AddSpaced(*Bar, *Brand);
 	AddGap(*WidgetTree, *Bar, Style.ScreenPadding);
 	// Navigation between ordinary pages (UX §1); a lobby holds the player until they leave it.
 	if (bPages)
@@ -694,15 +755,18 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 		}, true, Page == EVeyraShellPage::Profile)->KeepLabelOnOneLine();
 	}
 	AddStretch(*WidgetTree, *Bar);
-	AddProgressionReadout(Snapshot, *Bar);
-	UTextBlock* Player = AddText(*Bar, FText::Format(LOCTEXT("SignedInAs", "Signed in as {0}"), FText::FromString(Snapshot.DisplayName)), RoleOf(EVeyraShellText::Muted));
-	Player->SetAutoWrapText(false);
+	// The account: its level, name and balances; before they are read, who is signed in.
+	if (!AddProgressionReadout(Snapshot, *Bar))
+	{
+		UTextBlock* Player = AddText(*Bar, FText::Format(LOCTEXT("SignedInAs", "Signed in as {0}"), FText::FromString(Snapshot.DisplayName)), RoleOf(EVeyraShellText::Muted));
+		Player->SetAutoWrapText(false);
+	}
 	AddSettingsButton(*Bar);
 	AddKindButton(*Bar, EVeyraShellButtonKind::Quiet, LOCTEXT("Quit", "Quit"), [this] { Client->Quit(); })->KeepLabelOnOneLine();
 	Parent.AddChild(Bar);
 	AddGap(*WidgetTree, Parent, Style.Spacing);
 	Parent.AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
-	AddGap(*WidgetTree, Parent, Style.ScreenPadding);
+	AddGap(*WidgetTree, Parent, Style.Spacing * 2.0f);
 }
 
 void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
@@ -720,11 +784,15 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 		Banner->SetContent(VeyraShellStyle::MakeText(*WidgetTree, Notice, EVeyraShellText::Body));
 		VeyraShellStyle::AddSpaced(*Content, *Banner);
 	}
-	// The page, and the friends panel down the right (Art Bible §7).
+	// The page with the party bar under it, and the friends rail down the whole right side (Art Bible §7; ADR-078 §5):
+	// two persistent surfaces that never cover each other.
 	UHorizontalBox* Split = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddFilling(*Content, *Split);
+	UVerticalBox* Main = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Split->AddChildToHorizontalBox(Main)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	Split->AddChildToHorizontalBox(Body)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	AddFilling(*Main, *Body);
+	PageBody = Body;
 	AddGap(*WidgetTree, *Split, ShellStyle().Spacing * 2.0f);
 	BuildFriends(Snapshot, *Split);
 	if (Page == EVeyraShellPage::Play)
@@ -747,7 +815,7 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	{
 		BuildHome(Snapshot, *Body);
 	}
-	BuildParty(Snapshot, *Content);
+	BuildParty(Snapshot, *Main);
 }
 
 void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
@@ -760,11 +828,16 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 		AddKindButton(Parent, EVeyraShellButtonKind::Quiet, LOCTEXT("BackToHistory", "Back to Match History"), [this] { Client->CloseHistoryMatch(); },
 			Client->CanIssue(EVeyraClientIntent::CloseHistoryMatch))
 			->KeepLabelOnOneLine();
-		AddText(Parent, Model.Opened->Headline, RoleOf(EVeyraShellText::Title));
+		// Headed as the results screen is (ADR-082 §11): the outcome in the display face, its facts in a line under it.
+		UTextBlock* Headline = AddText(Parent, Model.Opened->Headline, RoleOf(EVeyraShellText::Display));
+		const FString& Tone = Model.Opened->Tone;
+		Headline->SetColorAndOpacity(FSlateColor(Tone == TEXT("win") ? Style.VictoryColor : Tone == TEXT("loss") ? Style.DefeatColor : Style.TextColor));
+		UWrapBox* Facts = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
 		for (const FText& Line : Model.Opened->Lines)
 		{
-			AddText(Parent, Line, RoleOf(EVeyraShellText::Muted));
+			AddText(*Facts, Line, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
 		}
+		VeyraShellStyle::AddSpaced(Parent, *Facts);
 		BuildReport(Snapshot, Model.Opened->Report, Parent);
 		return;
 	}
@@ -787,13 +860,56 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 	const bool bCanOpen = Client->CanIssue(EVeyraClientIntent::OpenHistoryMatch);
 	for (const FVeyraHistoryRow& Row : Model.Rows)
 	{
-		UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing));
+		// Each match a card that opens it (ADR-082 §11): its outcome's colour down its edge, the player's Vanguard, the outcome
+		// over the Vanguard's name, the mode over when it ended, and how long it ran.
+		const FLinearColor OutcomeColor = Row.OutcomeKind == TEXT("win") ? Style.VictoryColor : Row.OutcomeKind == TEXT("loss") ? Style.DefeatColor : Style.MutedTextColor;
 		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		Card->SetContent(Line);
+		USizeBox* Edge = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Edge->SetWidthOverride(Style.HistoryOutcomeBarWidth);
+		Edge->SetHeightOverride(Style.ReportPortraitSize);
+		Edge->AddChild(VeyraShellStyle::MakeBorder(*WidgetTree, OutcomeColor, 0.0f));
+		Line->AddChildToHorizontalBox(Edge)->SetVerticalAlignment(VAlign_Center);
+		AddGap(*WidgetTree, *Line, Style.Spacing);
+		UTexture2D* Hero = VeyraShellArt::HeroOf(Row.VanguardId);
+		const FBox2f Face = Hero ? VeyraShellArt::Crop(Row.VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, /*bPortrait*/ true) : FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector);
+		USizeBox* FaceBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		FaceBox->SetWidthOverride(Style.ReportPortraitSize);
+		FaceBox->SetHeightOverride(Style.ReportPortraitSize);
+		UImage* Portrait = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+		Portrait->SetBrush(VeyraShellArt::Brush(Hero, Face, FVector2D(Style.ReportPortraitSize), Style.ButtonCornerRadius, Style.SurfaceColor, OutcomeColor, 1.0f));
+		FaceBox->AddChild(Portrait);
+		Line->AddChildToHorizontalBox(FaceBox)->SetVerticalAlignment(VAlign_Center);
+		AddGap(*WidgetTree, *Line, Style.Spacing);
+		const auto Pair = [this, &Line, &Style](const FText& Top, EVeyraShellText TopRole, const FLinearColor* TopColor, const FText& Under, float Width) {
+			USizeBox* Cell = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			Cell->SetWidthOverride(Width);
+			UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			UTextBlock* First = AddText(*Stack, Top, RoleOf(TopRole));
+			First->SetAutoWrapText(false);
+			if (TopColor)
+			{
+				First->SetColorAndOpacity(FSlateColor(*TopColor));
+			}
+			AddText(*Stack, Under, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
+			Cell->AddChild(Stack);
+			Line->AddChildToHorizontalBox(Cell)->SetVerticalAlignment(VAlign_Center);
+		};
+		Pair(Row.Outcome, EVeyraShellText::Heading, &OutcomeColor, Row.Vanguard, Style.ReportLabelWidth);
+		Pair(Row.Mode, EVeyraShellText::Body, nullptr, Row.When, Style.ReportLabelWidth);
+		UTextBlock* Duration = AddText(*Line, Row.Duration, RoleOf(EVeyraShellText::Body));
+		Duration->SetAutoWrapText(false);
 		const FString MatchId = Row.MatchId;
-		AddButton(*Line, LOCTEXT("OpenMatch", "Open"), [this, MatchId] { Client->OpenHistoryMatch(MatchId); }, bCanOpen)->KeepLabelOnOneLine();
-		AddText(*Line, Row.Summary, RoleOf(EVeyraShellText::Body))->SetAutoWrapText(false);
-		VeyraShellStyle::AddSpaced(*List, *Card);
+		UVeyraShellButton* Open = AddContentButton(*List, LOCTEXT("OpenMatch", "Open"), *Line, [this, MatchId] { Client->OpenHistoryMatch(MatchId); }, bCanOpen, false);
+		Open->SetToolTipText(Row.Summary);
+		// The card reads from its edge, not centred as a label is.
+		if (UButtonSlot* LineSlot = Cast<UButtonSlot>(Line->Slot))
+		{
+			LineSlot->SetHorizontalAlignment(HAlign_Left);
+		}
+		if (UVerticalBoxSlot* OpenSlot = Cast<UVerticalBoxSlot>(Open->Slot))
+		{
+			OpenSlot->SetHorizontalAlignment(HAlign_Fill);
+		}
 	}
 	// Older records come in batches (UX-67).
 	if (Model.bOffersLoadMore)
@@ -805,7 +921,8 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options, const VeyraBackendProtocol::FHistoryFilter& Current,
 	TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply, TFunction<void(const VeyraBackendProtocol::FHistoryFilter&)> Load, bool bCanLoad)
 {
-	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	// The options wrap within the page, however many there are (ADR-082 §11).
+	UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
 	for (const FVeyraHistoryOption& Option : Options)
 	{
 		const FString Value = Option.Value;
@@ -856,18 +973,26 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 	AddGap(*WidgetTree, *Row, Style.ScreenPadding / 2.0f);
 	// The member cards (UX-10). The leader selects another member's card for its actions, which open
 	// beneath it; Make Party Leader asks first, naming the recipient (UX-11).
-	UVerticalBox* Members = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	// Side by side, each member a chip: their initial and their line (ADR-078 §5); a member's actions open under its chip.
+	UHorizontalBox* Members = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	for (const FVeyraPartyMemberModel& Card : Model.Cards)
 	{
+		UVerticalBox* Chip = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		UHorizontalBox* ChipLine = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		ChipLine->AddChildToHorizontalBox(VeyraShellStyle::MakeInitialTile(*WidgetTree, FText::FromString(Card.Name), Style.AvatarSize))
+			->SetVerticalAlignment(VAlign_Center);
+		AddGap(*WidgetTree, *ChipLine, Style.Spacing / 2.0f);
+		Chip->AddChildToVerticalBox(ChipLine);
+		VeyraShellStyle::AddSpaced(*Members, *Chip);
 		if (!Card.bOffersActions)
 		{
-			AddText(*Members, Card.Line, RoleOf(EVeyraShellText::Body))->SetAutoWrapText(false);
+			AddText(*ChipLine, Card.Line, RoleOf(EVeyraShellText::Body))->SetAutoWrapText(false);
 			continue;
 		}
 		const FString Id = Card.AccountId;
 		const FString Key = MemberCardKey(Id);
 		const bool bOpen = OpenCardId == Key;
-		AddNamedButton(*Members, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), Card.Line, [this, Key] { OpenCard(Key); }, true, bOpen);
+		AddNamedButton(*ChipLine, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), Card.Line, [this, Key] { OpenCard(Key); }, true, bOpen);
 		if (!bOpen)
 		{
 			continue;
@@ -896,7 +1021,7 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 				},
 				Card.bCanRemove);
 		}
-		VeyraShellStyle::AddSpaced(*Members, *Actions);
+		VeyraShellStyle::AddSpaced(*Chip, *Actions);
 	}
 	VeyraShellStyle::AddSpaced(*Row, *Members);
 	AddStretch(*WidgetTree, *Row);
@@ -939,8 +1064,12 @@ void UVeyraShellScreen::BuildMatchFound(const FVeyraClientSnapshot& Snapshot)
 	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.ScreenPadding));
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Panel->SetContent(Rows);
-	const auto Centre = [](UTextBlock* Text) {
+	// Centred lines wrap at the panel's inner width, known before layout, so a wrapped line never runs into what follows.
+	const float LineWidth = Style.DialogWidth - Style.ScreenPadding * 2.0f;
+	const auto Centre = [LineWidth](UTextBlock* Text) {
 		Text->SetJustification(ETextJustify::Center);
+		Text->SetAutoWrapText(false);
+		Text->SetWrapTextAt(LineWidth);
 	};
 	Centre(AddText(*Rows, Model.Mode, RoleOf(EVeyraShellText::Eyebrow)));
 	Centre(AddText(*Rows, Model.Title, RoleOf(EVeyraShellText::Display)));
@@ -960,36 +1089,59 @@ void UVeyraShellScreen::BuildMatchFound(const FVeyraClientSnapshot& Snapshot)
 void UVeyraShellScreen::BuildHome(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
 {
 	const UVeyraShellStyleSettings& Style = ShellStyle();
-	// Looking into the world, with Play the clear way in (Art Bible §6.1).
+	// Looking into the world, with Play the clear way in (Art Bible §6.1): the welcome high on the left, over the art's
+	// darkened side, and the Vanguard the art shows named at the foot of the same column (ADR-078 §5).
 	ShowShowcase(FeaturedVanguard);
-	UHorizontalBox* Split = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	AddFilling(Parent, *Split);
-
 	USizeBox* ColumnWidth = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 	ColumnWidth->SetWidthOverride(Style.HomeColumnWidth);
 	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	ColumnWidth->AddChild(Column);
-	Split->AddChildToHorizontalBox(ColumnWidth)->SetVerticalAlignment(VAlign_Fill);
-	AddStretch(*WidgetTree, *Column);
+	if (UVerticalBox* PageColumn = Cast<UVerticalBox>(&Parent))
+	{
+		UVerticalBoxSlot* ColumnSlot = PageColumn->AddChildToVerticalBox(ColumnWidth);
+		ColumnSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ColumnSlot->SetHorizontalAlignment(HAlign_Left);
+	}
+	else
+	{
+		Parent.AddChild(ColumnWidth);
+	}
+	// The room above the welcome and below it, in the style's proportion.
+	const auto AddShare = [this, Column](float Share) {
+		USpacer* Room = WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass());
+		FSlateChildSize Size(ESlateSizeRule::Fill);
+		Size.Value = Share;
+		Column->AddChildToVerticalBox(Room)->SetSize(Size);
+	};
+	AddShare(Style.HomeHeroHeight);
 	AddText(*Column, LOCTEXT("HomeEyebrow", "The Meridian Crucible"), RoleOf(EVeyraShellText::Eyebrow));
 	AddText(*Column, FText::Format(LOCTEXT("HomeWelcome", "Welcome, {0}."), FText::FromString(Snapshot.DisplayName)), RoleOf(EVeyraShellText::Display));
 	AddText(*Column, LOCTEXT("HomeLead", "Every Vanguard answers the Crucible's call. Choose a mode, then the Vanguard you will be."),
 		RoleOf(EVeyraShellText::Body));
-	AddGap(*WidgetTree, *Column, Style.Spacing);
+	// Room before the way in, so the lead reads as its own line.
+	AddGap(*WidgetTree, *Column, Style.Spacing * 2.0f);
 	AddPlayReminder(Snapshot, *Column);
-	AddKindButton(*Column, EVeyraShellButtonKind::Primary, LOCTEXT("HomePlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); });
-	AddStretch(*WidgetTree, *Column);
-	AddStretch(*WidgetTree, *Column);
-
-	// The Vanguard the art shows, named in the corner.
-	AddStretch(*WidgetTree, *Split);
-	UVerticalBox* Caption = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	// Play, larger than any other action on the screen: the clear way in (Art Bible §6.1; ADR-078 §5).
+	USizeBox* PlaySize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	PlaySize->SetMinDesiredWidth(Style.HomePlayWidth);
+	PlaySize->SetMinDesiredHeight(Style.HomePlayHeight);
+	UVeyraShellButton* Play = AddKindButton(*PlaySize, EVeyraShellButtonKind::Primary, LOCTEXT("HomePlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); });
+	if (UTextBlock* PlayLabel = Cast<UTextBlock>(Play->GetContent()))
+	{
+		FSlateFontInfo Font = PlayLabel->GetFont();
+		Font.Size = VeyraShellLook::ScaledFontSize(Style.HomePlayFontSize);
+		PlayLabel->SetFont(Font);
+	}
+	PlaySize->AddChild(Play);
+	Column->AddChildToVerticalBox(PlaySize)->SetHorizontalAlignment(HAlign_Left);
+	AddShare(1.0f - Style.HomeHeroHeight);
+	// The Vanguard the art shows, named at the column's foot.
 	const FVeyraContentId Featured = FVeyraContentId::FromText(FeaturedVanguard).Get(FVeyraContentId());
-	AddText(*Caption, LOCTEXT("HomeFeatured", "Featured Vanguard"), RoleOf(EVeyraShellText::Eyebrow))->SetJustification(ETextJustify::Right);
-	AddText(*Caption, VeyraShellModels::VanguardNameOf(FeaturedVanguard), RoleOf(EVeyraShellText::Title))->SetJustification(ETextJustify::Right);
-	AddText(*Caption, VeyraContentText::VanguardTitle(Featured), RoleOf(EVeyraShellText::Muted))->SetJustification(ETextJustify::Right);
-	UHorizontalBoxSlot* CaptionSlot = Split->AddChildToHorizontalBox(Caption);
-	CaptionSlot->SetVerticalAlignment(VAlign_Bottom);
+	UTextBlock* FeaturedLabel = AddText(*Column, LOCTEXT("HomeFeatured", "Featured Vanguard"), RoleOf(EVeyraShellText::Eyebrow));
+	FeaturedLabel->SetAutoWrapText(false);
+	FeaturedLabel->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
+	AddText(*Column, VeyraShellModels::VanguardNameOf(FeaturedVanguard), RoleOf(EVeyraShellText::Title))->SetAutoWrapText(false);
+	AddText(*Column, VeyraContentText::VanguardTitle(Featured), RoleOf(EVeyraShellText::Muted));
 }
 
 void UVeyraShellScreen::BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
@@ -1062,10 +1214,10 @@ void UVeyraShellScreen::BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWi
 }
 
 UVeyraShellButton* UVeyraShellScreen::AddArtCard(UPanelWidget& Parent, const FText& Label, const FString& VanguardId, const TArray<TPair<FText, uint8>>& Plate,
-	TFunction<void()> Action, bool bEnabled, bool bSelected)
+	TFunction<void()> Action, bool bEnabled, bool bSelected, TOptional<FVector2D> CardSize)
 {
 	const UVeyraShellStyleSettings& Style = ShellStyle();
-	const FVector2D Size(Style.ModeCardWidth, Style.ModeCardHeight);
+	const FVector2D Size = CardSize.Get(FVector2D(Style.ModeCardWidth, Style.ModeCardHeight));
 	USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 	Box->SetWidthOverride(Size.X);
 	Box->SetHeightOverride(Size.Y);
@@ -1135,7 +1287,19 @@ void UVeyraShellScreen::BuildResults(const FVeyraClientSnapshot& Snapshot)
 	}
 	VeyraShellStyle::AddSpaced(*Outcome, *Facts);
 	AddFilling(*Header, *Outcome);
+	// Settings sits with the screen's other actions, at the foot of the header, on a surface of its own: the art behind
+	// the header is the player's Vanguard at full strength, which quiet text would not read over.
 	AddSettingsButton(*Header);
+	UWidget* SettingsWidget = Header->GetChildAt(Header->GetChildrenCount() - 1);
+	Cast<UHorizontalBoxSlot>(SettingsWidget->Slot)->SetVerticalAlignment(VAlign_Bottom);
+	if (UVeyraShellButton* SettingsButton = Cast<UVeyraShellButton>(SettingsWidget))
+	{
+		SettingsButton->SetStyle(VeyraShellStyle::ButtonStyleFor(EVeyraShellButtonKind::Secondary, false));
+		if (UTextBlock* SettingsLabel = Cast<UTextBlock>(SettingsButton->GetContent()))
+		{
+			SettingsLabel->SetColorAndOpacity(FSlateColor(Style.TextColor));
+		}
+	}
 	UVeyraShellButton* Continue = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Primary, LOCTEXT("Continue", "Continue"),
 		[this] { Client->ContinueFromResults(); }, Client->CanIssue(EVeyraClientIntent::ContinueFromResults));
 	// Play Again leaves as Continue does and opens Play with the party panel; it readies, queues and changes nothing (UX-62).
@@ -1206,58 +1370,100 @@ void UVeyraShellScreen::BuildScoreboard(const FVeyraClientSnapshot& Snapshot, co
 	const UVeyraShellStyleSettings& Style = ShellStyle();
 	const uint8 Role = RoleOf(EVeyraShellText::Body);
 	const uint8 Column = RoleOf(EVeyraShellText::Column);
+	// A square of Texture's Region at Size, its words in a tooltip; an empty, edged square when there is no art.
+	const auto AddArt = [this, &Style](UPanelWidget& Row, UTexture2D* Texture, const FBox2f& Region, float Size, const FText& Tip) {
+		USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Box->SetWidthOverride(Size);
+		Box->SetHeightOverride(Size);
+		UImage* Art = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+		Art->SetBrush(VeyraShellArt::Brush(Texture, Region, FVector2D(Size), Style.ButtonCornerRadius, VeyraShellLook::Panel(Style.SurfaceRaisedColor),
+			Style.HairlineColor, 1.0f));
+		Art->SetToolTipText(Tip);
+		Box->AddChild(Art);
+		UHorizontalBoxSlot* ArtSlot = Cast<UHorizontalBox>(&Row)->AddChildToHorizontalBox(Box);
+		ArtSlot->SetVerticalAlignment(VAlign_Center);
+		ArtSlot->SetPadding(FMargin(0.0f, 0.0f, Style.Spacing / 3.0f, 0.0f));
+	};
+	const FBox2f Whole(FVector2f::ZeroVector, FVector2f::UnitVector);
 	for (const FVeyraReportTeam& Team : Report.Teams)
 	{
 		AddText(Parent, Team.Title, RoleOf(EVeyraShellText::Heading));
 		AddText(Parent, Team.Summary, RoleOf(EVeyraShellText::Muted));
+		// The columns: the Vanguard and its player together beside the portrait, the figures, then the build (ADR-078 §5).
+		const float RowInset = FMath::Max(Style.Spacing / 2.0f, Style.PanelChamfer * 0.75f);
 		UHorizontalBox* Heads = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		AddCell(*Heads, LOCTEXT("ColVanguard", "Vanguard"), Style.ReportColumnWidth, Column);
-		AddCell(*Heads, LOCTEXT("ColPlayer", "Player"), Style.ReportLabelWidth, Column);
+		// Inset as the rows are, so each heading stands over its column.
+		AddGap(*WidgetTree, *Heads, RowInset);
+		AddCell(*Heads, LOCTEXT("ColPlayer", "Vanguard and player"), Style.ReportPortraitSize + Style.Spacing + Style.ReportLabelWidth, Column);
 		AddCell(*Heads, LOCTEXT("ColLevel", "Level"), Style.ReportColumnWidth, Column);
 		AddCell(*Heads, LOCTEXT("ColKda", "K / D / A"), Style.ReportColumnWidth, Column);
 		AddCell(*Heads, LOCTEXT("ColGold", "Gold"), Style.ReportColumnWidth, Column);
 		AddCell(*Heads, LOCTEXT("ColLastHits", "Last hits"), Style.ReportLabelWidth, Column);
+		AddCell(*Heads, LOCTEXT("ColBuild", "Build"), Style.ReportLabelWidth, Column);
 		Parent.AddChild(Heads);
 		Parent.AddChild(VeyraShellStyle::MakeRule(*WidgetTree));
 		for (const FVeyraReportLine& Line : Team.Lines)
 		{
-			// The player's own line stands out on a raised row.
-			UBorder* RowSurface = Line.bYou ? VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(0.0f, Style.Spacing / 2.0f))
-											: VeyraShellStyle::MakeBorder(*WidgetTree, FLinearColor::Transparent, Style.Spacing / 2.0f);
+			// The player's own line stands out on a raised row. Every row is inset alike, clear of the raised row's cut corner
+			// (ADR-078 §3), so the columns line up.
+			UBorder* RowSurface = Line.bYou ? VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(RowInset))
+											: VeyraShellStyle::MakeBorder(*WidgetTree, FLinearColor::Transparent, RowInset);
 			UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 			RowSurface->SetContent(Stack);
 			UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-			AddCell(*Row, Line.Vanguard, Style.ReportColumnWidth, RoleOf(EVeyraShellText::Heading));
+			// The Vanguard's portrait, then its name over the player's.
+			UTexture2D* Hero = VeyraShellArt::HeroOf(Line.VanguardId);
+			const FBox2f Face = Hero ? VeyraShellArt::Crop(Line.VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, /*bPortrait*/ true) : Whole;
+			AddArt(*Row, Hero, Face, Style.ReportPortraitSize, Line.Vanguard);
+			AddGap(*WidgetTree, *Row, Style.Spacing - Style.Spacing / 3.0f);
+			USizeBox* WhoCell = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			WhoCell->SetWidthOverride(Style.ReportLabelWidth);
+			UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			WhoCell->AddChild(Who);
+			UTextBlock* VanguardName = VeyraShellStyle::MakeText(*WidgetTree, Line.Vanguard, EVeyraShellText::Heading);
+			VanguardName->SetAutoWrapText(false);
+			Who->AddChildToVerticalBox(VanguardName);
 			// Another human's name opens their player menu (UX-57); the player's own, and a bot's, is only a name.
 			const FString PlayerName = Line.Name.ToString();
 			if (!Line.bYou && VeyraConductModels::MenuPlayer(Snapshot, PlayerName))
 			{
-				USizeBox* Cell = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-				Cell->SetWidthOverride(Style.ReportLabelWidth);
-				Row->AddChild(Cell);
-				AddNamedButton(*Cell, EVeyraShellButtonKind::Quiet, VeyraConductModels::MenuLabel(PlayerName), Line.Name, [this, PlayerName] { TogglePlayerMenu(PlayerName); },
-					true, OpenPlayerMenu == PlayerName);
+				UVeyraShellButton* Menu = UVeyraShellButton::MakeKindNamed(*WidgetTree, EVeyraShellButtonKind::Quiet, VeyraConductModels::MenuLabel(PlayerName), Line.Name,
+					[this, PlayerName] { TogglePlayerMenu(PlayerName); }, true, OpenPlayerMenu == PlayerName);
+				Menu->KeepLabelOnOneLine();
+				Buttons.Add(Menu);
+				Who->AddChildToVerticalBox(Menu)->SetHorizontalAlignment(HAlign_Left);
 			}
 			else
 			{
-				UTextBlock* Name = AddCell(*Row, Line.Name, Style.ReportLabelWidth, Role);
-				if (Line.bYou)
-				{
-					Name->SetColorAndOpacity(Style.AccentColor);
-				}
+				UTextBlock* Name = VeyraShellStyle::MakeText(*WidgetTree, Line.Name, EVeyraShellText::Small);
+				Name->SetAutoWrapText(false);
+				Name->SetColorAndOpacity(FSlateColor(Line.bYou ? Style.AccentColor : Style.MutedTextColor));
+				Who->AddChildToVerticalBox(Name);
 			}
-			AddCell(*Row, Line.Level, Style.ReportColumnWidth, Role);
-			AddCell(*Row, Line.Kda, Style.ReportColumnWidth, Role);
-			AddCell(*Row, Line.Gold, Style.ReportColumnWidth, Role);
-			AddCell(*Row, Line.LastHits, Style.ReportLabelWidth, Role);
+			Row->AddChildToHorizontalBox(WhoCell)->SetVerticalAlignment(VAlign_Center);
+			for (const TPair<const FText*, float>& Figure : { TPair<const FText*, float>(&Line.Level, Style.ReportColumnWidth),
+					 TPair<const FText*, float>(&Line.Kda, Style.ReportColumnWidth), TPair<const FText*, float>(&Line.Gold, Style.ReportColumnWidth),
+					 TPair<const FText*, float>(&Line.LastHits, Style.ReportLabelWidth) })
+			{
+				AddCell(*Row, *Figure.Key, Figure.Value, Role);
+				Cast<UHorizontalBoxSlot>(Row->GetChildAt(Row->GetChildrenCount() - 1)->Slot)->SetVerticalAlignment(VAlign_Center);
+			}
+			// The build as art: each item slot, then both Flux Spells; the words in each tooltip, and in the row's.
+			for (const FVeyraContentId& Item : Line.ItemIds)
+			{
+				const FString ItemId = Item.IsValid() ? Item.ToString() : FString();
+				AddArt(*Row, ItemId.IsEmpty() ? nullptr : VeyraShellArt::ItemIconOf(ItemId), Whole, Style.ReportIconSize,
+					Item.IsValid() ? VeyraContentText::ItemName(Item) : FText::GetEmpty());
+			}
+			AddGap(*WidgetTree, *Row, Style.Spacing / 2.0f);
+			for (const FVeyraContentId& Spell : Line.FluxSpellIds)
+			{
+				const FString SpellId = Spell.IsValid() ? Spell.ToString() : FString();
+				AddArt(*Row, SpellId.IsEmpty() ? nullptr : VeyraShellArt::AbilityIconOf(SpellId), Whole, Style.ReportIconSize,
+					Spell.IsValid() ? VeyraContentText::AbilityName(Spell) : FText::GetEmpty());
+			}
+			Row->SetToolTipText(FText::Format(LOCTEXT("ReportBuild", "{0}      {1}"), Line.Items, Line.FluxSpells));
 			Stack->AddChild(Row);
-			UHorizontalBox* Build = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-			AddCell(*Build, FText::GetEmpty(), Style.ReportColumnWidth, RoleOf(EVeyraShellText::Small));
-			// One line, so neither half wraps in a column of its own.
-			UTextBlock* Loadout = AddText(*Build, FText::Format(LOCTEXT("ReportBuild", "{0}      {1}"), Line.Items, Line.FluxSpells), RoleOf(EVeyraShellText::Small));
-			Loadout->SetAutoWrapText(false);
-			Loadout->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
-			Stack->AddChild(Build);
 			if (!Line.bYou && OpenPlayerMenu == PlayerName && VeyraConductModels::MenuPlayer(Snapshot, PlayerName))
 			{
 				BuildPlayerMenu(Snapshot, PlayerName, *Stack);
@@ -1321,7 +1527,7 @@ void UVeyraShellScreen::BuildProblem(const FVeyraClientSnapshot& Snapshot)
 	}
 	const UVeyraShellStyleSettings& Style = ShellStyle();
 	UBorder* Banner = VeyraShellStyle::MakeBorder(*WidgetTree, Style.ProblemColor, Style.Spacing);
-	Banner->SetBrush(FSlateRoundedBoxBrush(Style.ProblemColor, Style.PanelCornerRadius, Style.EnemyColor.CopyWithNewOpacity(0.6f), 1.0f));
+	Banner->SetBrush(VeyraShellStyle::EdgedFace(Style.ProblemColor, Style.EnemyColor.CopyWithNewOpacity(0.6f)));
 	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Banner->SetContent(Row);
 	AddFilling(*Row, *VeyraShellStyle::MakeText(*WidgetTree, VeyraShellModels::DescribeProblem(*Snapshot.Problem), EVeyraShellText::Body));
