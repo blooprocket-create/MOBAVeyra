@@ -22,4 +22,14 @@ public:
 	/** The device-scope settings the player changed, as text by setting ID (FVeyraSettingsStore::SaveScope). */
 	UPROPERTY(config)
 	TMap<FString, FString> DeviceSettings;
+
+	/**
+	 * The shell's friends and party panels as the player left them, open or put away (ADR-083 §6): layout this machine
+	 * remembers, not a setting the player sets, so it is not in the settings registry.
+	 */
+	UPROPERTY(config)
+	bool bFriendsPanelCollapsed = false;
+
+	UPROPERTY(config)
+	bool bPartyPanelCollapsed = false;
 };

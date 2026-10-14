@@ -65,7 +65,7 @@ Every route below needs `Authorization: Bearer <game session token>`. Accounts a
 | `DELETE /v1/friends/{accountId}` | — | unfriend |
 | `GET /v1/blocks` · `PUT` / `DELETE /v1/blocks/{accountId}` | — | list, block, unblock |
 | `GET /v1/modes` | — | modes: whether each is enabled, its Play-page `category` (`ranked`, `casual` or `ai`; ADR-039 §6), its `humanPlayersPerTeam`, and its `matchmaking`, `casualSelect`, `coop` (humans against an enemy AI team) or `notImplemented` (not yet available) |
-| `GET /v1/party` | — | your party, or `{"party": null}`; its `status` is `idle`, `queued`, `found` (Match Found) or `selecting`, `queuedSeconds` how long it has been in matchmaking, and each member's `restrictedSeconds` how long they cannot queue after leaving a select (0 when free) |
+| `GET /v1/party` | — | your party, or `{"party": null}`; its `status` is `idle`, `queued`, `found` (Match Found) or `selecting`, `queuedSeconds` how long it has been in matchmaking, `maxSize` how many members it may hold (`party.maxSize`), and each member's `restrictedSeconds` how long they cannot queue after leaving a select (0 when free) |
 | `GET /v1/me/restriction` | — | `restrictedSeconds`: how long you cannot queue after leaving a matchmade champion select, 0 when free (ADR-060) |
 | `PUT /v1/party/mode` | `{"mode"}` | leader picks a mode; creates a one-person party if you have none |
 | `PUT /v1/party/privacy` | `{"privacy": "public"\|"private"}` | leader only |

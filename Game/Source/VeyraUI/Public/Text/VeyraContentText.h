@@ -88,6 +88,10 @@ namespace VeyraContentText
 	/** Other words players may search for it by, comma-separated (SET-102); empty for none. */
 	VEYRAUI_API FText SettingTerms(const FVeyraContentId& Setting);
 
+	/** A settings group's name and its one-line hint (ADR-083 §2); the group's ID and nothing where the table has none. */
+	VEYRAUI_API FText SettingGroupName(const FVeyraContentId& Group);
+	VEYRAUI_API FText SettingGroupHint(const FVeyraContentId& Group);
+
 	/** A choice's option as players read it; the option itself where the table has none. */
 	VEYRAUI_API FText SettingOption(const FVeyraContentId& Setting, const FString& Option);
 

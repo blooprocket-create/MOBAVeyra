@@ -639,6 +639,8 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 	Model.bShown = true;
 	Model.Mode = Party.Mode.IsEmpty() ? LOCTEXT("PartyNoMode", "No mode chosen yet: the leader chooses one in Play.")
 									  : FText::Format(LOCTEXT("PartyMode", "Mode: {0}"), ModeNameOf(Party.Mode));
+	Model.ModeName = Party.Mode.IsEmpty() ? LOCTEXT("PartyNoModeShort", "No mode yet") : ModeNameOf(Party.Mode);
+	Model.MaxSize = Party.MaxSize;
 	for (const VeyraBackendProtocol::FPartyMember& Member : Party.Members)
 	{
 		const FText Name = FText::FromString(Member.DisplayName);
@@ -656,6 +658,7 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 		Card.Line = Line;
 		Card.bYou = bIsYou;
 		Card.bLeader = Member.bLeader;
+		Card.bReady = Member.bReady;
 		Card.bOffersActions = bLeader && !bIsYou;
 		Card.bCanMakeLeader = Card.bOffersActions && Permissions.bCanTransfer;
 		Card.bCanRemove = Card.bOffersActions && Permissions.bCanKick;
@@ -674,6 +677,7 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 	{
 		// Who holds the party back, and for how long (ADR-060 §3).
 		const FText Time = FormatClock(FMath::CeilToInt(Held->RestrictedSeconds));
+		Model.bHeld = true;
 		Model.Status = Held->AccountId == Snapshot.AccountId
 			? FText::Format(LOCTEXT("PartyYouRestricted", "You left champion select and can't queue for {0}."), Time)
 			: FText::Format(LOCTEXT("PartyMemberRestricted", "{0} left champion select and can't queue for {1}."), FText::FromString(Held->DisplayName), Time);

@@ -2,6 +2,7 @@
 
 #include "Smoke/VeyraSmokeFlowSubsystem.h"
 
+#include "Algo/AllOf.h"
 #include "Algo/Count.h"
 #include "Algo/Find.h"
 #include "Camera/VeyraCameraPreferences.h"
@@ -69,6 +70,8 @@ namespace
 	const TCHAR* const ReconnectsSwitch = TEXT("VeyraSmokeFlowReconnects");
 	const TCHAR* const AwaitsReturnSwitch = TEXT("VeyraSmokeFlowAwaitsReturn");
 	const TCHAR* const FriendSwitch = TEXT("VeyraSmokeFlowFriend=");
+	// Full party: the leader's friends, a list.
+	const TCHAR* const FriendsSwitch = TEXT("VeyraSmokeFlowFriends=");
 	const TCHAR* const NameSwitch = TEXT("VeyraSmokeFlowName=");
 	const TCHAR* const BotsSwitch = TEXT("VeyraSmokeFlowBots=");
 	// A matchmade script: the mode it queues for, such as a co-op queue; the first matchmade one without it.
@@ -76,6 +79,9 @@ namespace
 	// Custom: how long the host waits for its friend to join before inviting them again, as after an
 	// invitation that expired or went unseen.
 	constexpr double InviteAgainRealSeconds = 30.0;
+	// Full party: how long the panels are given to finish putting themselves away before the capture,
+	// longer than the shell's collapse (VeyraShellStyleSettings' PanelCollapseSeconds).
+	constexpr double PanelSettleRealSeconds = 1.0;
 	// Harness settings for the siege: how often it asks, leaving time for each fall to replicate, and
 	// how many asks mean something is wrong, well above the structures on the way to a Prime Well.
 	constexpr double SiegeIntervalRealSeconds = 1.0;
@@ -164,6 +170,9 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	FString Bots;
 	// A list: FParse stops at its first comma unless told not to.
 	FParse::Value(FCommandLine::Get(), BotsSwitch, Bots, /*bShouldStopOnSeparator*/ false);
+	FString Friends;
+	FParse::Value(FCommandLine::Get(), FriendsSwitch, Friends, /*bShouldStopOnSeparator*/ false);
+	Friends.ParseIntoArray(FriendNames, TEXT(","));
 	FParse::Value(FCommandLine::Get(), ModeSwitch, WantedMode);
 	Bots.ParseIntoArray(BotVanguards, TEXT(","));
 	StartRealTime = FPlatformTime::Seconds();
@@ -188,6 +197,8 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("profileowner"), EScript::ProfileOwner },
 		{ TEXT("profileviewer"), EScript::ProfileViewer },
 		{ TEXT("rename"), EScript::Rename },
+		{ TEXT("fullpartyleader"), EScript::FullPartyLeader },
+		{ TEXT("fullpartymember"), EScript::FullPartyMember },
 	};
 	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
 		return Mode.Equals(Candidate.Key, ESearchCase::CaseSensitive);
@@ -195,7 +206,7 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (!Known)
 	{
 		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, dodge, dodged, opponent, customhost, customguest, settingschange, settingscheck, ")
-										  TEXT("partyleader, partymember, collection, chatleader, chatmember, profileowner, profileviewer or rename, not \"%s\""), *Mode));
+										  TEXT("partyleader, partymember, collection, chatleader, chatmember, profileowner, profileviewer, rename, fullpartyleader or fullpartymember, not \"%s\""), *Mode));
 		return;
 	}
 	Script = Known->Value;
@@ -213,6 +224,11 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (IsChat() && FriendName.IsEmpty())
 	{
 		Finish(false, TEXT("the chat scripts need -VeyraSmokeFlowFriend=<the other player>"));
+		return;
+	}
+	if ((Script == EScript::FullPartyLeader && FriendNames.IsEmpty()) || (Script == EScript::FullPartyMember && FriendName.IsEmpty()))
+	{
+		Finish(false, TEXT("the full party's leader needs -VeyraSmokeFlowFriends=<its friends>, and each member -VeyraSmokeFlowFriend=<the leader>"));
 		return;
 	}
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the %s flow script%s%s."), *Mode, bEndsMatch ? TEXT(", which ends the match") : TEXT(""),
@@ -321,6 +337,11 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		break;
 
 	case EVeyraClientState::Shell:
+		// The panels the scripts use, as the player would open them.
+		if (OpenPanels())
+		{
+			break;
+		}
 		if (IsSettings())
 		{
 			TickSettings();
@@ -336,6 +357,10 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		else if (IsParty())
 		{
 			TickPartyShell(Flow);
+		}
+		else if (IsFullParty())
+		{
+			TickFullPartyShell(Flow);
 		}
 		else if (IsChat())
 		{
@@ -831,6 +856,175 @@ bool UVeyraSmokeFlowSubsystem::TickFriendship(IVeyraClientIntents& Flow)
 	}
 #endif
 	return false;
+}
+
+bool UVeyraSmokeFlowSubsystem::OpenPanels()
+{
+#if WITH_VEYRA_UI
+	if (bPanelsPutAway)
+	{
+		return false;
+	}
+	return ClickIfShown(UVeyraShellScreen::OpenFriendsLabel().ToString()) || ClickIfShown(UVeyraShellScreen::OpenPartyLabel().ToString());
+#else
+	return false;
+#endif
+}
+
+void UVeyraSmokeFlowSubsystem::TickFullPartyShell(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	if (Snapshot.bBusy || !Snapshot.Social.bLoaded)
+	{
+		return;
+	}
+	const TOptional<VeyraBackendProtocol::FParty>& Party = Snapshot.Party;
+	const auto InParty = [&Party](const FString& Name) {
+		return Party.IsSet() && Party->Members.ContainsByPredicate([&Name](const VeyraBackendProtocol::FPartyMember& Member) { return Member.DisplayName == Name; });
+	};
+	if (Script == EScript::FullPartyMember)
+	{
+		if (!TickFriendship(Flow))
+		{
+			return;
+		}
+		// It joins by this run's invitation, never by a party an earlier run left.
+		if (!bJoinedByInvite)
+		{
+			const bool bInvited = Snapshot.Social.PartyInvites.ContainsByPredicate(
+				[this](const VeyraBackendProtocol::FPartyInvite& Invite) { return Invite.Inviter.DisplayName == FriendName; });
+			if (bInvited && Flow.CanIssue(EVeyraClientIntent::AcceptPartyInvite) && Click(VeyraShellModels::AcceptPartyInviteLabel(FriendName).ToString()))
+			{
+				bJoinedByInvite = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: joining %s's party from the invitation."), *FriendName);
+			}
+			return;
+		}
+		if (Party.IsSet())
+		{
+			MostMembers = FMath::Max(MostMembers, Party->Members.Num());
+		}
+		if (!Party.IsSet() && MostMembers > 0)
+		{
+			Finish(true, FString::Printf(TEXT("was friends with %s, joined their party from its invitation, was one of its %d and left once they had"), *FriendName, MostMembers));
+		}
+		else if (Party.IsSet() && MostMembers > 1 && !InParty(FriendName) && Flow.CanIssue(EVeyraClientIntent::LeaveParty))
+		{
+			// Its leader has gone: so does it.
+			Click(VeyraShellModels::LeavePartyLabel().ToString());
+		}
+		return;
+	}
+
+	// The leader. This run forms its own party: one an earlier run left goes first.
+	if (!bLeftOldParty)
+	{
+		if (!Party.IsSet())
+		{
+			bLeftOldParty = true;
+		}
+		else if (Flow.CanIssue(EVeyraClientIntent::LeaveParty) && Click(VeyraShellModels::LeavePartyLabel().ToString()))
+		{
+			bLeftOldParty = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: left an earlier run's party."));
+		}
+		return;
+	}
+	if (FullPartyStep == 0)
+	{
+		// Friends with every one, asking each by name or accepting their request, one a tick.
+		bool bAllFriends = true;
+		for (const FString& Name : FriendNames)
+		{
+			const auto IsThem = [&Name](const VeyraBackendProtocol::FAccount& Account) { return Account.DisplayName == Name; };
+			if (Snapshot.Social.Friends.Friends.ContainsByPredicate(IsThem))
+			{
+				continue;
+			}
+			bAllFriends = false;
+			if (Snapshot.Social.Friends.Incoming.ContainsByPredicate(IsThem) && Flow.CanIssue(EVeyraClientIntent::AnswerFriendRequest))
+			{
+				Click(VeyraShellModels::AcceptRequestLabel(Name).ToString());
+				return;
+			}
+			if (!AskedFriends.Contains(Name) && !Snapshot.Social.Friends.Outgoing.ContainsByPredicate(IsThem) && Flow.CanIssue(EVeyraClientIntent::SendFriendRequest)
+				&& TypeFriendName(Name) && Click(AddFriendLabel))
+			{
+				AskedFriends.Add(Name);
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: asked %s to be friends."), *Name);
+				return;
+			}
+		}
+		if (!bAllFriends)
+		{
+			return;
+		}
+		// Each invited from the friends panel (UX-9) once it offers them, again if an invitation went unanswered.
+		const bool bFull = Algo::AllOf(FriendNames, InParty);
+		if (!bFull)
+		{
+			if (Capture(TEXT("Home")))
+			{
+				return;
+			}
+			for (const FString& Name : FriendNames)
+			{
+				const double Now = FPlatformTime::Seconds();
+				if (!InParty(Name) && Now >= NextInviteFor.FindRef(Name) && Flow.CanIssue(EVeyraClientIntent::InviteToParty)
+					&& ClickIfShown(VeyraShellModels::PartyInviteLabel(Name).ToString()))
+				{
+					NextInviteFor.Add(Name, Now + InviteAgainRealSeconds);
+					UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: invited %s into the party."), *Name);
+					return;
+				}
+			}
+			return;
+		}
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: in party %s with %s."), *Party->Id, *FString::Join(FriendNames, TEXT(", ")));
+		FullPartyStep = 1;
+	}
+	switch (FullPartyStep)
+	{
+	case 1:
+		// The party open, then each panel put away as the player would (ADR-083 §6).
+		if (!Capture(TEXT("FullParty")) && Click(UVeyraShellScreen::CollapsePartyLabel().ToString()))
+		{
+			bPanelsPutAway = true;
+			FullPartyStep = 2;
+		}
+		break;
+	case 2:
+		if (Click(UVeyraShellScreen::CollapseFriendsLabel().ToString()))
+		{
+			HoldUntil = FPlatformTime::Seconds() + PanelSettleRealSeconds;
+			FullPartyStep = 3;
+		}
+		break;
+	case 3:
+		// Shown put away, then opened again by OpenPanels before anything else.
+		if (!Capture(TEXT("FullPartyPutAway")))
+		{
+			bPanelsPutAway = false;
+			FullPartyStep = 4;
+		}
+		break;
+	case 4:
+		// Both open again, since OpenPanels found nothing to open: the party's own Leave Party ends it.
+		if (Flow.CanIssue(EVeyraClientIntent::LeaveParty) && Click(VeyraShellModels::LeavePartyLabel().ToString()))
+		{
+			FullPartyStep = 5;
+		}
+		break;
+	default:
+		if (!Party.IsSet())
+		{
+			Finish(true, FString::Printf(TEXT("was friends with %s, invited them all into a party, showed it full with its panels open and put away, opened them again and left"),
+				*FString::Join(FriendNames, TEXT(", "))));
+		}
+		break;
+	}
+#endif
 }
 
 void UVeyraSmokeFlowSubsystem::TickPartyShell(IVeyraClientIntents& Flow)
@@ -2975,6 +3169,24 @@ void UVeyraSmokeFlowSubsystem::TickFavoritesTab(const FVeyraClientSnapshot& Snap
 	}
 #else
 	bCheckedFavorites = true;
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::ClickIfShown(const FString& Label)
+{
+#if WITH_VEYRA_UI
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	UVeyraShellButton* Button = Screen ? Screen->FindButton(FText::FromString(Label)) : nullptr;
+	if (!Button || !Button->GetIsEnabled())
+	{
+		return false;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: clicked \"%s\"."), *Label);
+	Button->Press();
+	return true;
+#else
+	return false;
 #endif
 }
 

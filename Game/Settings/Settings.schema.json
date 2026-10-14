@@ -139,10 +139,24 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["category", "settings"],
+        "required": ["category", "settings", "groups"],
         "properties": {
           "category": { "$ref": "#/definitions/category" },
-          "settings": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/settingId" } }
+          "settings": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/settingId" } },
+          "groups": {
+            "description": "The category's sub-sections in order (ADR-083 §2): each a named run of its settings from the one it starts at to the next group. Their names are the text rows settings_group.<group>.name and .hint.",
+            "type": "array",
+            "minItems": 0,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["group", "from"],
+              "properties": {
+                "group": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                "from": { "$ref": "#/definitions/settingId" }
+              }
+            }
+          }
         }
       }
     }

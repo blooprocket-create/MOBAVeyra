@@ -404,6 +404,8 @@ namespace VeyraBackendProtocol
 		EPartyStatus Status = EPartyStatus::Idle;
 		/** How long it has been in matchmaking when the backend answered, by the backend's clock. */
 		double QueuedSeconds = 0.0;
+		/** How many members it may hold, the backend's party.maxSize (ADR-083 §6); 0 from a backend that does not say. */
+		int32 MaxSize = 0;
 		TArray<FPartyMember> Members;
 
 		VEYRASERVICES_API const FPartyMember* Find(const FString& AccountId) const;

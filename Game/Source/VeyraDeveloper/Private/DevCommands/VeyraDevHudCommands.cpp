@@ -10,6 +10,9 @@
 
 #if WITH_VEYRA_UI
 #include "Hud/VeyraHudCapture.h"
+#include "Shell/VeyraShellScreen.h"
+#include "UObject/UObjectIterator.h"
+#include "VeyraUserSettings.h"
 #endif
 
 namespace VeyraDevHudCommands
@@ -48,6 +51,36 @@ namespace VeyraDevHudCommands
 	}
 }
 
+namespace VeyraDevHudCommands
+{
+	void RunShellPanels(UWorld* World, TConstArrayView<FString> Args, FOutputDevice& Output)
+	{
+		const bool bCollapse = Args.Num() == 1 && Args[0] == TEXT("collapsed");
+		if (Args.Num() != 1 || (!bCollapse && Args[0] != TEXT("open")))
+		{
+			Output.Log(VeyraDevCommands::UsageReply(TEXT("ShellPanels")));
+			return;
+		}
+#if WITH_VEYRA_UI
+		// As the player would leave them: remembered on this machine, and shown by any shell already open (ADR-083 §6).
+		if (UVeyraUserSettings* Device = UVeyraUserSettings::Get())
+		{
+			Device->bFriendsPanelCollapsed = bCollapse;
+			Device->bPartyPanelCollapsed = bCollapse;
+			Device->SaveSettings();
+		}
+		for (TObjectIterator<UVeyraShellScreen> Shell; Shell; ++Shell)
+		{
+			Shell->SetFriendsCollapsed(bCollapse);
+			Shell->SetPartyCollapsed(bCollapse);
+		}
+		Output.Log(bCollapse ? TEXT("The friends and party panels are put away.") : TEXT("The friends and party panels are open."));
+#else
+		Output.Log(TEXT("This machine draws no shell."));
+#endif
+	}
+}
+
 void VeyraDevCommands::AddHudCommands(TArray<FVeyraDevCommand>& Out)
 {
 	using namespace VeyraDevHudCommands;
@@ -55,4 +88,6 @@ void VeyraDevCommands::AddHudCommands(TArray<FVeyraDevCommand>& Out)
 		TEXT("Shows a deck tile's tooltip as if the cursor rested on it; with nothing, the tooltips follow the cursor again."), &RunHudHover));
 	Out.Add(FVeyraDevCommand::Local(TEXT("StatsPanelOpen"), Category, TEXT("[on|off]"),
 		TEXT("Holds the stats panel beside the portrait open, or lets a click open and close it again."), &RunStatsPanelOpen));
+	Out.Add(FVeyraDevCommand::Local(TEXT("ShellPanels"), TEXT("Shell"), TEXT("open|collapsed"),
+		TEXT("Opens or puts away the shell's friends and party panels, as the player would, and remembers it on this machine."), &RunShellPanels));
 }

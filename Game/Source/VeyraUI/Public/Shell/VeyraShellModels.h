@@ -220,6 +220,8 @@ struct FVeyraPartyMemberModel
 	FText Line;
 	bool bYou = false;
 	bool bLeader = false;
+	/** Whether they are Ready, which their mark shows (ADR-083 §6). */
+	bool bReady = false;
 	/** The leader's contextual actions on another member's card: Make Party Leader and Remove (UX-10, UX-11). */
 	bool bOffersActions = false;
 	bool bCanMakeLeader = false;
@@ -241,6 +243,10 @@ struct FVeyraPartyModel
 	/** False while the player has no party: there is no panel. */
 	bool bShown = false;
 	FText Mode;
+	/** The mode's name alone, or that none is chosen yet: the panel's short line (ADR-083 §6). */
+	FText ModeName;
+	/** How many it may hold, so the panel shows its open places; 0 when the backend does not say. */
+	int32 MaxSize = 0;
 	/** One line per member: name, "(you)", "(leader)", and Ready or Not Ready. */
 	TArray<FText> Members;
 	/** The members' cards, in the party's order. */
@@ -256,6 +262,8 @@ struct FVeyraPartyModel
 	bool bCanLeave = false;
 	/** What happens next, such as who must ready up; empty while queued, when the queue timer shows instead. */
 	FText Status;
+	/** Whether Status says who holds the party out of the queue (ADR-060 §3), which the panel shows; the rest the marks say. */
+	bool bHeld = false;
 	bool bQueued = false;
 	/** The Ready toggle: what pressing it sets, its label, and whether it can be pressed. */
 	bool bReadyTarget = true;

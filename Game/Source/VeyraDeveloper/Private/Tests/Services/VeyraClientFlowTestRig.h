@@ -164,10 +164,10 @@ namespace VeyraClientFlowTests
 
 	inline const TCHAR* const NoParty = TEXT("{\"party\":null}");
 
-	/** The player's party of one, which they lead. */
+	/** The player's party of one, which they lead, in a party of up to five. */
 	inline FString PartyBody(const TCHAR* Status, bool bReady, double QueuedSeconds = 0.0)
 	{
-		return FString::Printf(TEXT("{\"party\":{\"id\":\"%s\",\"mode\":\"casual_select\",\"privacy\":\"private\",\"status\":\"%s\",\"queuedSeconds\":%g,")
+		return FString::Printf(TEXT("{\"party\":{\"id\":\"%s\",\"mode\":\"casual_select\",\"privacy\":\"private\",\"status\":\"%s\",\"queuedSeconds\":%g,\"maxSize\":5,")
 							   TEXT("\"members\":[{\"accountId\":\"%s\",\"displayName\":\"DevOne\",\"ready\":%s,\"leader\":true}]}}"),
 			PartyId, Status, QueuedSeconds, AccountId, bReady ? TEXT("true") : TEXT("false"));
 	}

@@ -4,7 +4,9 @@
 
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
+#include "Algo/Count.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/TextBlock.h"
 #include "Components/ActorTestSpawner.h"
 #include "GameFramework/PlayerState.h"
 #include "Match/VeyraMatchMenu.h"
@@ -925,11 +927,24 @@ namespace VeyraShellTests
 
 			Button(TEXT("Blind Pick"))->Press();
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/party/mode"), 200, PartyBody(TEXT("idle"), false))));
-			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("DevOne (you, leader): Not Ready")), Screen->DescribeText()));
+			// The player's place, then four open ones to invite into (ADR-083 §6).
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Party · 1/5")) && Screen->DescribeText().Contains(TEXT("DevOne"))
+					&& Screen->DescribeText().Contains(TEXT("You · Leader")),
+				Screen->DescribeText()));
+			ASSERT_THAT(AreEqual(Algo::CountIf(Screen->GetButtons(), [](const UVeyraShellButton* Each) {
+				return Each && Each->GetLabel().EqualTo(UVeyraShellScreen::InviteFriendsLabel());
+			}), 4));
 			ASSERT_THAT(IsFalse(Button(TEXT("Find Match"))->GetIsEnabled(), TEXT("everyone must be Ready")));
+			// The player's mark is a cross until a press readies them; then a tick, which a press takes back.
+			const auto MarkOf = [this](const TCHAR* Label) {
+				const UTextBlock* Mark = Cast<UTextBlock>(Button(Label)->GetContent());
+				return Mark ? Mark->GetText().ToString() : FString();
+			};
+			ASSERT_THAT(AreEqual(MarkOf(TEXT("Ready")), FString(TEXT("✗"))));
 			Button(TEXT("Ready"))->Press();
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/party/ready"), 200, PartyBody(TEXT("idle"), true))));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Unready"))));
+			ASSERT_THAT(AreEqual(MarkOf(TEXT("Unready")), FString(TEXT("✓"))));
 			Button(TEXT("Find Match"))->Press();
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/party/queue"), 200, PartyBody(TEXT("queued"), true))));
 

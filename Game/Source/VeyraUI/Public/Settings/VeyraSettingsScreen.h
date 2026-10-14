@@ -14,6 +14,8 @@ class FVeyraSettingsStore;
 class UBorder;
 class UEditableTextBox;
 class UHorizontalBox;
+class UOverlay;
+class UScrollBox;
 class UVerticalBox;
 class UTextBlock;
 class UVeyraDisplayApplier;
@@ -29,6 +31,10 @@ class UVeyraSettingsSubsystem;
  * A binding changes by capture (Settings Bible §1.1, §6.2): the next key or mouse button pressed on the
  * screen becomes its key, and never reaches the game; Escape cancels. A key another binding has asks
  * Replace or Cancel first (SET-81), and an essential action left without a key is named (SET-133).
+ *
+ * In the shell it is a page between the top bar and the friends and party panels; elsewhere a window (ADR-083 §1). Its
+ * settings show in their groups, each kind of value with its own control, the one under the pointer or focus described
+ * beside them, laid out for the width it is given (ADR-083 §2-§5).
  */
 UCLASS()
 class VEYRAUI_API UVeyraSettingsScreen : public UUserWidget
@@ -45,7 +51,26 @@ public:
 	 * Shows Settings' store and follows its changes; Close runs when the player closes the screen.
 	 * bInLiveMatch locks the settings that change only outside matches (Settings Bible §6.2).
 	 */
-	void Show(UVeyraSettingsSubsystem& InSettings, bool bInLiveMatch, TFunction<void()> InClose);
+	void Show(UVeyraSettingsSubsystem& InSettings, bool bInLiveMatch, TFunction<void()> InClose, bool bInAsPage = false);
+
+	/** How it lays out for the width it is given (ADR-083 §5). */
+	enum class ELayout : uint8
+	{
+		Wide,
+		Medium,
+		Narrow,
+	};
+
+	ELayout GetLayout() const { return Layout; }
+
+	/** Lays out as though it were Width wide, as its tick does from its geometry. For tests and scripts. */
+	void ApplyWidth(float Width);
+
+	/** The setting the About panel describes (ADR-083 §4), if any. */
+	TOptional<FVeyraContentId> GetAboutSetting() const;
+
+	/** Whether it is a page of the shell rather than a window. */
+	bool IsPage() const { return bAsPage; }
 
 	/** Shows Category's settings, and ends a search. */
 	void ShowCategory(EVeyraSettingCategory Category);
@@ -80,6 +105,10 @@ public:
 	static FText ResetLabel(const FVeyraSettingRowModel& Row);
 	/** A binding's button, which waits for its new key. */
 	static FText ChangeLabel(const FVeyraSettingRowModel& Row);
+	/** A choice's dropdown, which opens its options (ADR-083 §3). */
+	static FText DropdownLabel(const FVeyraSettingRowModel& Row);
+	/** A group's entry under its category, which scrolls the list to it (ADR-083 §2). */
+	static FText GroupLinkLabel(const FText& GroupName);
 	/** Takes a key another binding has, leaving that one without (SET-81). */
 	static FText ReplaceLabel();
 
@@ -114,7 +143,22 @@ private:
 	void Rebuild();
 	/** Styles the frame built once, the window, title and search, in the current look, which it remembers. */
 	void StyleFrame();
-	void BuildRow(const FVeyraSettingRowModel& Row);
+	/** Puts the frame on the page, or in the window over the screen (ADR-083 §1). */
+	void Present();
+	/** The categories, the rows and the About panel, for the current layout (ADR-083 §5). */
+	void BuildBody();
+	void BuildNav(UPanelWidget& Parent);
+	/** Rows[First, Last) as one group under Heading: a grid when they are choices sharing their options (ADR-083 §3). */
+	void BuildGroup(const FText& Heading, const FText& Hint, int32 First, int32 Last);
+	void BuildGrid(UPanelWidget& Box, int32 First, int32 Last);
+	void BuildRow(UPanelWidget& Box, int32 Index);
+	void BuildControl(UPanelWidget& Line, UPanelWidget& Under, const FVeyraSettingRowModel& Row);
+	/** The row's frame, which the About panel follows when the pointer or focus is in it. */
+	UBorder* MakeRowFrame(int32 Index, UWidget& Content);
+	/** Shows AboutRow's description, and marks its row. */
+	void UpdateAbout();
+	bool IsGrid(int32 First, int32 Last) const;
+	ELayout LayoutFor(float Width) const;
 	void BuildFooter();
 	void Change(const FVeyraContentId& Id, const FString& Value);
 	UVeyraShellButton* AddButton(UPanelWidget& Parent, EVeyraShellButtonKind Kind, const FText& Label, const FText& Shown, TFunction<void()> Action,
@@ -163,6 +207,37 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Rows;
+
+	/** Holds the frame: on the page, or inside the window over the screen. */
+	UPROPERTY(Transient)
+	TObjectPtr<UOverlay> Root;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> Scrim;
+
+	/** The categories, the list and the About panel, rebuilt for the layout. */
+	UPROPERTY(Transient)
+	TObjectPtr<UVerticalBox> BodyHost;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UScrollBox> ListScroll;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UVerticalBox> AboutHost;
+
+	/** Each row's frame and the row it shows, which the About panel follows. */
+	struct FRowFrame
+	{
+		TWeakObjectPtr<UBorder> Frame;
+		int32 Row = INDEX_NONE;
+	};
+	TArray<FRowFrame> RowFrames;
+	/** Each group's heading, which its entry under the category scrolls to. */
+	TArray<TPair<FText, TWeakObjectPtr<UWidget>>> GroupHeadings;
+	int32 AboutRow = INDEX_NONE;
+	TOptional<FVeyraContentId> OpenDropdown;
+	ELayout Layout = ELayout::Wide;
+	bool bAsPage = false;
 
 	/** The window's parts, which rise in as it opens; then a category's rows arrive as it is shown (ADR-082 §9). */
 	UPROPERTY(Transient)

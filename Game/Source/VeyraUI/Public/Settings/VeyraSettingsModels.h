@@ -46,6 +46,15 @@ struct FVeyraSettingRowModel
 	bool bEssential = false;
 	/** The colours a colour setting previews beside it, as the player would see them (SET-8); none for other settings. */
 	TArray<FLinearColor> Swatches;
+	/** The group of its category it belongs to (ADR-083 §2); unset where the category has none. */
+	FVeyraContentId Group;
+	/** A range's value across its bounds, 0 at the minimum and 1 at the maximum, and the bounds and step, for its slider (ADR-083 §3). */
+	float RangeFraction = 0.0f;
+	double RangeMinimum = 0.0;
+	double RangeMaximum = 0.0;
+	double RangeStep = 0.0;
+	/** Its default as players read it (ADR-083 §4): On or Off, an option's name, the number, or the developer's key. */
+	FText DefaultText;
 };
 
 /** The Settings screen: its categories, the settings it shows, and what it offers. */
