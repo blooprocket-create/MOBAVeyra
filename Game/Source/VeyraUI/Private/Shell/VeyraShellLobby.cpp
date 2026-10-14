@@ -378,8 +378,11 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 		Client->CanIssue(EVeyraClientIntent::AnswerFriendRequest), Client->CanIssue(EVeyraClientIntent::AcceptLobbyInvite),
 		Client->CanIssue(EVeyraClientIntent::DeclineLobbyInvite), Client->CanIssue(EVeyraClientIntent::InviteToLobby), Permissions);
 
+	// Open or put away as the player left it, its width easing between the two (ADR-083 §6).
 	USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-	Width->SetWidthOverride(Style.FriendsPanelWidth);
+	Width->SetWidthOverride(PanelSize(FriendsMovedAt, FriendsFrom, bFriendsCollapsed ? Style.FriendsCollapsedWidth : Style.FriendsPanelWidth));
+	Width->SetClipping(EWidgetClipping::ClipToBounds);
+	FriendsBox = Width;
 	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Style.Spacing));
 	Width->AddChild(Panel);
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
@@ -392,6 +395,11 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	{
 		Parent.AddChild(Width);
 	}
+	if (bFriendsCollapsed)
+	{
+		BuildFriendsStrip(Model, *Rows);
+		return;
+	}
 	// The heading, and how many friends are online beside it (ADR-078 §5).
 	UHorizontalBox* Heading = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddText(*Heading, LOCTEXT("FriendsEyebrow", "Friends"), LobbyRole(EVeyraShellText::Eyebrow))->SetAutoWrapText(false);
@@ -401,6 +409,8 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 		Online->SetAutoWrapText(false);
 		Online->SetColorAndOpacity(FSlateColor(Style.AccentColor));
 	}
+	AddLobbyFilling(*Heading, *WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()));
+	AddNamedButton(*Heading, EVeyraShellButtonKind::Quiet, CollapseFriendsLabel(), LOCTEXT("CollapseFriendsShown", "›"), [this] { SetFriendsCollapsed(true); });
 	VeyraShellStyle::AddSpaced(*Rows, *Heading);
 	// The player's own visibility (ADR-061 §3): one toggle, and what it does while it is on.
 	if (Model.bOffersAppearOffline)
@@ -566,6 +576,51 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	BuildSidebarChat(Snapshot, *Rows);
 }
 
+void UVeyraShellScreen::BuildFriendsStrip(const FVeyraFriendsModel& Model, UPanelWidget& Strip)
+{
+	const UVeyraShellStyleSettings& Style = LobbyStyle();
+	// The way back, then what would need the player: invitations and requests waiting, and who is online.
+	UVeyraShellButton* Open = AddNamedButton(Strip, EVeyraShellButtonKind::Quiet, OpenFriendsLabel(), LOCTEXT("OpenFriendsShown", "‹"), [this] { SetFriendsCollapsed(false); });
+	if (UVerticalBoxSlot* OpenSlot = Cast<UVerticalBoxSlot>(Open->Slot))
+	{
+		OpenSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+	const int32 Waiting = Model.Invitations.Num() + Model.PartyInvitations.Num() + Model.Requests.Num();
+	if (Waiting > 0)
+	{
+		UTextBlock* Count = AddText(Strip, FText::AsNumber(Waiting), LobbyRole(EVeyraShellText::Heading));
+		Count->SetColorAndOpacity(FSlateColor(Style.PrimaryColor));
+		Count->SetJustification(ETextJustify::Center);
+		Count->SetToolTipText(LOCTEXT("WaitingTip", "Invitations and requests waiting for an answer"));
+	}
+	int32 Online = 0;
+	UVerticalBox* Faces = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	for (const FVeyraFriendModel& Friend : Model.Friends)
+	{
+		if (!Friend.bOnline)
+		{
+			continue;
+		}
+		++Online;
+		UOverlay* Avatar = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		Avatar->AddChildToOverlay(VeyraShellStyle::MakeInitialTile(*WidgetTree, Friend.Name, Style.AvatarSize));
+		UOverlaySlot* DotSlot = Avatar->AddChildToOverlay(VeyraShellStyle::MakeDot(*WidgetTree, PresenceDotColor(Friend.Presence), Style.PresenceDotSize));
+		DotSlot->SetHorizontalAlignment(HAlign_Right);
+		DotSlot->SetVerticalAlignment(VAlign_Bottom);
+		Avatar->SetToolTipText(Friend.Name);
+		UVerticalBoxSlot* FaceSlot = Faces->AddChildToVerticalBox(Avatar);
+		FaceSlot->SetHorizontalAlignment(HAlign_Center);
+		FaceSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Style.Spacing / 2.0f));
+	}
+	UTextBlock* Count = AddText(Strip, FText::AsNumber(Online), LobbyRole(EVeyraShellText::Small));
+	Count->SetColorAndOpacity(FSlateColor(Style.AccentColor));
+	Count->SetJustification(ETextJustify::Center);
+	Count->SetToolTipText(Model.OnlineSummary);
+	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+	Scroll->AddChild(Faces);
+	AddLobbyFilling(Strip, *Scroll);
+}
+
 UEditableTextBox* UVeyraShellScreen::MakeTextField(const FText& Hint, const FString& Draft, bool bEnabled)
 {
 	const UVeyraShellStyleSettings& Style = LobbyStyle();
@@ -605,6 +660,7 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 	if (UTextBlock* NameText = Cast<UTextBlock>(NameButton->GetContent()))
 	{
 		NameText->SetTextTransformPolicy(ETextTransformPolicy::None);
+		NameText->SetTextOverflowPolicy(ETextOverflowPolicy::Ellipsis);
 		NameText->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Heading));
 		NameText->SetColorAndOpacity(FSlateColor(Style.TextColor));
 	}
@@ -615,7 +671,10 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 		Status->SetColorAndOpacity(FSlateColor(Friend.bOnline ? Style.AccentColor : Style.MutedTextColor));
 		Cast<UVerticalBoxSlot>(Status->Slot)->SetPadding(FMargin(Style.ButtonPadding * 2.0f, 0.0f, 0.0f, 0.0f));
 	}
-	Line->AddChildToHorizontalBox(Who)->SetVerticalAlignment(VAlign_Center);
+	// The name takes what the line's action leaves, cut short rather than pushing it out of the panel (ADR-083 §6).
+	UHorizontalBoxSlot* WhoSlot = Line->AddChildToHorizontalBox(Who);
+	WhoSlot->SetVerticalAlignment(VAlign_Center);
+	WhoSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	// Their messages that arrived while their conversation was closed (UX-3: unread states).
 	if (Friend.Unread > 0)
 	{
@@ -623,7 +682,6 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 		Unread->SetAutoWrapText(false);
 		Line->AddChildToHorizontalBox(Unread)->SetVerticalAlignment(VAlign_Center);
 	}
-	AddLobbyFilling(*Line, *WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()));
 	// The one action the line always offers: in the lobby its host's invitation (Custom Matches Bible §1); in the
 	// shell, joining the friend's Public party when it has room, or else inviting them into the player's (UX-9).
 	bool bInviteOnLine = false;

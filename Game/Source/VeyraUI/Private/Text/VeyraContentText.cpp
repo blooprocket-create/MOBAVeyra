@@ -218,6 +218,16 @@ FText SettingTerms(const FVeyraContentId& Setting)
 	return TextOr(SettingKind, Setting, TermsField, FString());
 }
 
+FText SettingGroupName(const FVeyraContentId& Group)
+{
+	return TextOr(TEXT("settings_group"), Group, NameField, Group.ToString());
+}
+
+FText SettingGroupHint(const FVeyraContentId& Group)
+{
+	return TextOr(TEXT("settings_group"), Group, TEXT("hint"), FString());
+}
+
 FText SettingOption(const FVeyraContentId& Setting, const FString& Option)
 {
 	return TextOr(SettingKind, Setting, *OptionField(Option), Option);

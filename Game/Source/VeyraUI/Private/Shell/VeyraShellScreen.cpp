@@ -29,6 +29,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
+#include "VeyraUserSettings.h"
 #include "Engine/Texture2D.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Kismet/GameplayStatics.h"
@@ -152,6 +153,12 @@ bool UVeyraShellScreen::Initialize()
 		Motes->SetVisibility(ESlateVisibility::Collapsed);
 		Fill(Motes);
 		FeaturedVanguard = PickFeaturedVanguard();
+		// The friends and party panels as the player left them on this machine (ADR-083 §6).
+		if (const UVeyraUserSettings* Device = UVeyraUserSettings::Get())
+		{
+			bFriendsCollapsed = Device->bFriendsPanelCollapsed;
+			bPartyCollapsed = Device->bPartyPanelCollapsed;
+		}
 		UBorder* Frame = VeyraShellStyle::MakeBorder(*WidgetTree, FLinearColor::Transparent, Style.ScreenPadding);
 		Content = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Frame->SetContent(Content);
@@ -255,6 +262,56 @@ void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 	{
 		QueueStatus->SetText(VeyraShellModels::FormatQueueStatus(Client->GetQueuedSeconds()));
 	}
+	if (FriendsBox)
+	{
+		const UVeyraShellStyleSettings& Style = ShellStyle();
+		FriendsBox->SetWidthOverride(PanelSize(FriendsMovedAt, FriendsFrom, bFriendsCollapsed ? Style.FriendsCollapsedWidth : Style.FriendsPanelWidth));
+	}
+}
+
+float UVeyraShellScreen::PanelSize(double MovedAt, float From, float To) const
+{
+	const float Seconds = ShellStyle().PanelCollapseSeconds;
+	if (Seconds <= 0.0f || MovedAt <= 0.0 || VeyraShellLook::Current().bStillAnimation)
+	{
+		return To;
+	}
+	const float Through = FMath::Clamp(static_cast<float>((FPlatformTime::Seconds() - MovedAt) / Seconds), 0.0f, 1.0f);
+	// Eased out: quick to start, settling at its size.
+	return FMath::InterpEaseOut(From, To, Through, 3.0f);
+}
+
+void UVeyraShellScreen::SetFriendsCollapsed(bool bCollapsed)
+{
+	if (bFriendsCollapsed == bCollapsed)
+	{
+		return;
+	}
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	FriendsFrom = FriendsBox ? FriendsBox->GetWidthOverride() : (bFriendsCollapsed ? Style.FriendsCollapsedWidth : Style.FriendsPanelWidth);
+	FriendsMovedAt = FPlatformTime::Seconds();
+	bFriendsCollapsed = bCollapsed;
+	if (UVeyraUserSettings* Device = UVeyraUserSettings::Get())
+	{
+		Device->bFriendsPanelCollapsed = bCollapsed;
+		Device->SaveSettings();
+	}
+	Refresh();
+}
+
+void UVeyraShellScreen::SetPartyCollapsed(bool bCollapsed)
+{
+	if (bPartyCollapsed == bCollapsed)
+	{
+		return;
+	}
+	bPartyCollapsed = bCollapsed;
+	if (UVeyraUserSettings* Device = UVeyraUserSettings::Get())
+	{
+		Device->bPartyPanelCollapsed = bCollapsed;
+		Device->SaveSettings();
+	}
+	Refresh();
 }
 
 void UVeyraShellScreen::Refresh()
@@ -300,6 +357,8 @@ void UVeyraShellScreen::Refresh()
 		FString::Printf(TEXT("reminder %d|"), ShowsPlayReminder(Snapshot) ? 1 : 0) +
 		// The seats' side colours follow the player's colour vision (ADR-055 §1).
 		FString::Printf(TEXT("sides %s:%s|"), *Preferences.SideColors.Ally.ToString(), *Preferences.SideColors.Enemy.ToString()) +
+		// The panels open or put away, and Settings on the page (ADR-083 §1, §6).
+		FString::Printf(TEXT("panels %d:%d|settings page %d|"), bFriendsCollapsed ? 1 : 0, bPartyCollapsed ? 1 : 0, SettingsScreen && SettingsScreen->IsPage() ? 1 : 0) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
@@ -465,6 +524,10 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	if (!bSettingsHere || Snapshot.bSettingsConflict)
 	{
 		CloseSettings();
+	}
+	else if (SettingsScreen && SettingsScreen->IsPage() != (Shown == EVeyraShellScreen::Shell))
+	{
+		PlaceSettings();
 	}
 	if (Shown != EVeyraShellScreen::ChampionSelect)
 	{
@@ -712,6 +775,8 @@ void UVeyraShellScreen::BuildStarterChoice(const FVeyraClientSnapshot& Snapshot)
 
 void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent, bool bPages)
 {
+	// While Settings is the page, no page tab is current (ADR-083 §1).
+	const bool bOnPages = !(SettingsScreen && SettingsScreen->IsPage());
 	const UVeyraShellStyleSettings& Style = ShellStyle();
 	UHorizontalBox* Bar = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	// The Flux mark and the name, in the display tier at a smaller size, wider tracking and always in capitals (ADR-078 §5).
@@ -732,27 +797,27 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	// Navigation between ordinary pages (UX §1); a lobby holds the player until they leave it.
 	if (bPages)
 	{
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, Page == EVeyraShellPage::Home)
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, bOnPages && Page == EVeyraShellPage::Home)
 			->KeepLabelOnOneLine();
-		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, Page == EVeyraShellPage::Play)
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, bOnPages && Page == EVeyraShellPage::Play)
 			->KeepLabelOnOneLine();
 		// Opening Match History reads its first page afresh, with the filters last used.
 		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHistory", "Match History"), [this] {
 			ShowPage(EVeyraShellPage::History);
 			Client->LoadHistory(Client->GetSnapshot().History.Filter);
-		}, true, Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
+		}, true, bOnPages && Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
 		// Opening the Collection reads it afresh, with the level and balances (ADR-045 §8).
 		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavCollection", "Collection"), [this] {
 			ShowPage(EVeyraShellPage::Collection);
 			Client->LoadCollection();
-		}, true, Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
+		}, true, bOnPages && Page == EVeyraShellPage::Collection)->KeepLabelOnOneLine();
 		// Opening the Profile page reads the choices afresh, and starts the draft from them (ADR-048 §5).
 		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, VeyraProfileModels::PageLabel(), [this] {
 			bProfileDraftReady = false;
 			ShowPage(EVeyraShellPage::Profile);
 			Client->LoadProfileSettings();
 			Client->LoadDisplayName();
-		}, true, Page == EVeyraShellPage::Profile)->KeepLabelOnOneLine();
+		}, true, bOnPages && Page == EVeyraShellPage::Profile)->KeepLabelOnOneLine();
 	}
 	AddStretch(*WidgetTree, *Bar);
 	// The account: its level, name and balances; before they are read, who is signed in.
@@ -795,7 +860,13 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	PageBody = Body;
 	AddGap(*WidgetTree, *Split, ShellStyle().Spacing * 2.0f);
 	BuildFriends(Snapshot, *Split);
-	if (Page == EVeyraShellPage::Play)
+	if (SettingsScreen && SettingsScreen->IsPage())
+	{
+		// Settings in place of the page, between the top bar and the panels (ADR-083 §1).
+		SettingsScreen->RemoveFromParent();
+		AddFilling(*Body, *SettingsScreen);
+	}
+	else if (Page == EVeyraShellPage::Play)
 	{
 		BuildPlay(Snapshot, *Body);
 	}
@@ -948,110 +1019,340 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 	{
 		return;
 	}
+	if (bPartyCollapsed)
+	{
+		BuildPartyBar(Model, Parent);
+		return;
+	}
 	const UVeyraShellStyleSettings& Style = ShellStyle();
 	UBorder* Bar = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.ScreenPadding / 2.0f, Style.Spacing));
-	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	Bar->SetContent(Row);
-	UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	AddText(*Who, LOCTEXT("PartyTitle", "Party"), RoleOf(EVeyraShellText::Eyebrow));
-	AddText(*Who, Model.Mode, RoleOf(EVeyraShellText::Heading))->SetAutoWrapText(false);
-	UHorizontalBox* Settings = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	AddText(*Settings, Model.Privacy, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
-	// The leader's privacy (Parties & Social Bible §1), and anyone's Leave Party.
+	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Bar->SetContent(Rows);
+
+	// The heading line (ADR-083 §6): the party's size, its mode or its time in the queue, who holds it back; then its
+	// privacy, Leave and the way to put it away.
+	UHorizontalBox* Heading = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	CentreInLine(*AddText(*Heading, PartySizeText(Model), RoleOf(EVeyraShellText::Eyebrow)));
+	AddGap(*WidgetTree, *Heading, Style.Spacing);
+	if (Model.bQueued)
+	{
+		QueueStatus = AddText(*Heading, VeyraShellModels::FormatQueueStatus(Client->GetQueuedSeconds()), RoleOf(EVeyraShellText::Body));
+		QueueStatus->SetColorAndOpacity(FSlateColor(Style.AccentColor));
+		QueueStatus->SetAutoWrapText(false);
+		CentreInLine(*QueueStatus);
+	}
+	else
+	{
+		UTextBlock* ModeName = AddText(*Heading, Model.ModeName, RoleOf(EVeyraShellText::Muted));
+		ModeName->SetAutoWrapText(false);
+		CentreInLine(*ModeName);
+	}
+	if (Model.bHeld)
+	{
+		AddGap(*WidgetTree, *Heading, Style.Spacing);
+		UTextBlock* Held = AddText(*Heading, Model.Status, RoleOf(EVeyraShellText::Body));
+		Held->SetColorAndOpacity(FSlateColor(Style.NotReadyColor));
+		Held->SetAutoWrapText(false);
+		CentreInLine(*Held);
+	}
+	AddStretch(*WidgetTree, *Heading);
+	// The leader's privacy (Parties & Social Bible §1), named for what it is and set by a press; the rest read it.
+	const bool bPublic = Model.PrivacyTarget == VeyraBackendProtocol::EPartyPrivacy::Private;
+	const FText PrivacyShown = bPublic ? LOCTEXT("PartyIsPublic", "Public") : LOCTEXT("PartyIsPrivate", "Private");
 	if (Model.bOffersPrivacy)
 	{
 		const VeyraBackendProtocol::EPartyPrivacy Target = Model.PrivacyTarget;
-		AddKindButton(*Settings, EVeyraShellButtonKind::Quiet, Model.PrivacyLabel, [this, Target] { Client->SetPartyPrivacy(Target); }, Model.bCanSetPrivacy)
-			->KeepLabelOnOneLine();
+		UVeyraShellButton* Privacy = AddNamedButton(*Heading, EVeyraShellButtonKind::Quiet, Model.PrivacyLabel, PrivacyShown,
+			[this, Target] { Client->SetPartyPrivacy(Target); }, Model.bCanSetPrivacy);
+		Privacy->SetToolTipText(Model.Privacy);
+		CentreInLine(*Privacy);
 	}
-	AddKindButton(*Settings, EVeyraShellButtonKind::Quiet, VeyraShellModels::LeavePartyLabel(), [this] {
+	else
+	{
+		UTextBlock* Privacy = AddText(*Heading, PrivacyShown, RoleOf(EVeyraShellText::Muted));
+		Privacy->SetToolTipText(Model.Privacy);
+		CentreInLine(*Privacy);
+	}
+	CentreInLine(*AddNamedButton(*Heading, EVeyraShellButtonKind::Quiet, VeyraShellModels::LeavePartyLabel(), LOCTEXT("LeavePartyShown", "Leave"), [this] {
 		Client->LeaveParty();
 		CloseCard();
-	}, Model.bCanLeave)->KeepLabelOnOneLine();
-	Who->AddChildToVerticalBox(Settings);
-	VeyraShellStyle::AddSpaced(*Row, *Who);
-	AddGap(*WidgetTree, *Row, Style.ScreenPadding / 2.0f);
-	// The member cards (UX-10). The leader selects another member's card for its actions, which open
-	// beneath it; Make Party Leader asks first, naming the recipient (UX-11).
-	// Side by side, each member a chip: their initial and their line (ADR-078 §5); a member's actions open under its chip.
-	UHorizontalBox* Members = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	for (const FVeyraPartyMemberModel& Card : Model.Cards)
+	}, Model.bCanLeave));
+	UVeyraShellButton* Collapse = AddNamedButton(*Heading, EVeyraShellButtonKind::Quiet, CollapsePartyLabel(), LOCTEXT("CollapsePartyShown", "›"), [this] { SetPartyCollapsed(true); });
+	TurnLabel(*Collapse, 90.0f);
+	CentreInLine(*Collapse);
+	Rows->AddChildToVerticalBox(Heading);
+
+	// The places, side by side and alike (UX-10): each member's, then the open ones up to the party's size; then Find Match
+	// or Cancel, the leader's (Parties & Social Bible §2).
+	UHorizontalBox* Places = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	const int32 PlaceCount = FMath::Max(Model.MaxSize, Model.Cards.Num());
+	const FVeyraPartyMemberModel* OpenMember = nullptr;
+	for (int32 Index = 0; Index < PlaceCount; ++Index)
 	{
-		UVerticalBox* Chip = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		UHorizontalBox* ChipLine = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		ChipLine->AddChildToHorizontalBox(VeyraShellStyle::MakeInitialTile(*WidgetTree, FText::FromString(Card.Name), Style.AvatarSize))
-			->SetVerticalAlignment(VAlign_Center);
-		AddGap(*WidgetTree, *ChipLine, Style.Spacing / 2.0f);
-		Chip->AddChildToVerticalBox(ChipLine);
-		VeyraShellStyle::AddSpaced(*Members, *Chip);
-		if (!Card.bOffersActions)
+		const FVeyraPartyMemberModel* Card = Model.Cards.IsValidIndex(Index) ? &Model.Cards[Index] : nullptr;
+		if (Card && OpenCardId == MemberCardKey(Card->AccountId))
 		{
-			AddText(*ChipLine, Card.Line, RoleOf(EVeyraShellText::Body))->SetAutoWrapText(false);
-			continue;
+			OpenMember = Card;
 		}
-		const FString Id = Card.AccountId;
-		const FString Key = MemberCardKey(Id);
-		const bool bOpen = OpenCardId == Key;
-		AddNamedButton(*ChipLine, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), Card.Line, [this, Key] { OpenCard(Key); }, true, bOpen);
-		if (!bOpen)
-		{
-			continue;
-		}
+		USizeBox* Place = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Place->SetHeightOverride(Style.PartySlotHeight);
+		Place->AddChild(Card ? BuildPartyPlace(Model, *Card) : BuildOpenPlace());
+		UHorizontalBoxSlot* PlaceSlot = Places->AddChildToHorizontalBox(Place);
+		PlaceSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		PlaceSlot->SetPadding(FMargin(0.0f, 0.0f, Style.Spacing / 2.0f, 0.0f));
+	}
+	if (Model.bOffersFindMatch)
+	{
+		CentreInLine(AddKindButton(*Places, EVeyraShellButtonKind::Primary, LOCTEXT("FindMatch", "Find Match"), [this] { Client->FindMatch(); }, Model.bCanFindMatch)
+				->KeepLabelOnOneLine());
+	}
+	if (Model.bOffersCancel)
+	{
+		CentreInLine(AddKindButton(*Places, EVeyraShellButtonKind::Quiet, LOCTEXT("CancelQueue", "Cancel"), [this] { Client->CancelQueue(); }, Model.bCanCancel)
+				->KeepLabelOnOneLine());
+	}
+	Rows->AddChildToVerticalBox(Places)->SetPadding(FMargin(0.0f, Style.Spacing / 2.0f, 0.0f, 0.0f));
+
+	// The member card the leader opened: its actions under the places. Make Party Leader asks first, naming the
+	// recipient (UX-11).
+	if (OpenMember && OpenMember->bOffersActions)
+	{
+		const FString Id = OpenMember->AccountId;
 		UHorizontalBox* Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		if (Confirm == EVeyraShellConfirm::PartyLeader && ConfirmId == Id)
 		{
-			AddText(*Actions, VeyraShellModels::ConfirmLeaderPrompt(Card.Name), RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
-			AddNamedButton(*Actions, EVeyraShellButtonKind::Primary, VeyraShellModels::ConfirmLeaderLabel(Card.Name), LOCTEXT("ConfirmLeader", "Confirm"),
+			UTextBlock* Prompt = AddText(*Actions, VeyraShellModels::ConfirmLeaderPrompt(OpenMember->Name), RoleOf(EVeyraShellText::Muted));
+			Prompt->SetAutoWrapText(false);
+			CentreInLine(*Prompt);
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Primary, VeyraShellModels::ConfirmLeaderLabel(OpenMember->Name), LOCTEXT("ConfirmLeader", "Confirm"),
 				[this, Id] {
 					Client->TransferPartyLeader(Id);
 					CloseCard();
 				},
-				Card.bCanMakeLeader);
+				OpenMember->bCanMakeLeader);
 			AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::CancelConfirmLabel(), LOCTEXT("CancelLeader", "Cancel"),
 				[this] { AskToConfirm(EVeyraShellConfirm::None, FString()); });
 		}
 		else
 		{
-			AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraShellModels::MakeLeaderLabel(Card.Name), LOCTEXT("MakeLeader", "Make Party Leader"),
-				[this, Id] { AskToConfirm(EVeyraShellConfirm::PartyLeader, Id); }, Card.bCanMakeLeader);
-			AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::RemoveFromPartyLabel(Card.Name), LOCTEXT("RemoveMember", "Remove"),
+			CentreInLine(*AddText(*Actions, FText::FromString(OpenMember->Name), RoleOf(EVeyraShellText::Body)));
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Secondary, VeyraShellModels::MakeLeaderLabel(OpenMember->Name), LOCTEXT("MakeLeader", "Make Party Leader"),
+				[this, Id] { AskToConfirm(EVeyraShellConfirm::PartyLeader, Id); }, OpenMember->bCanMakeLeader);
+			AddNamedButton(*Actions, EVeyraShellButtonKind::Quiet, VeyraShellModels::RemoveFromPartyLabel(OpenMember->Name), LOCTEXT("RemoveMember", "Remove"),
 				[this, Id] {
 					Client->KickFromParty(Id);
 					CloseCard();
 				},
-				Card.bCanRemove);
+				OpenMember->bCanRemove);
 		}
-		VeyraShellStyle::AddSpaced(*Chip, *Actions);
-	}
-	VeyraShellStyle::AddSpaced(*Row, *Members);
-	AddStretch(*WidgetTree, *Row);
-	if (Model.bQueued)
-	{
-		QueueStatus = AddText(*Row, VeyraShellModels::FormatQueueStatus(Client->GetQueuedSeconds()), RoleOf(EVeyraShellText::Heading));
-		QueueStatus->SetColorAndOpacity(FSlateColor(Style.AccentColor));
-		QueueStatus->SetAutoWrapText(false);
-	}
-	else if (!Model.Status.IsEmpty())
-	{
-		AddText(*Row, Model.Status, RoleOf(EVeyraShellText::Muted))->SetAutoWrapText(false);
-	}
-	if (!Model.bQueued)
-	{
-		const bool bReady = Model.bReadyTarget;
-		AddButton(*Row, Model.ReadyLabel, [this, bReady] { Client->SetReady(bReady); }, Model.bCanReady)->KeepLabelOnOneLine();
-	}
-	if (Model.bOffersFindMatch)
-	{
-		AddKindButton(*Row, EVeyraShellButtonKind::Primary, LOCTEXT("FindMatch", "Find Match"), [this] { Client->FindMatch(); }, Model.bCanFindMatch)
-			->KeepLabelOnOneLine();
-	}
-	if (Model.bOffersCancel)
-	{
-		AddKindButton(*Row, EVeyraShellButtonKind::Quiet, LOCTEXT("CancelQueue", "Cancel"), [this] { Client->CancelQueue(); }, Model.bCanCancel)
-			->KeepLabelOnOneLine();
+		Rows->AddChildToVerticalBox(Actions)->SetPadding(FMargin(0.0f, Style.Spacing / 2.0f, 0.0f, 0.0f));
 	}
 	AddGap(*WidgetTree, Parent, Style.Spacing);
 	Parent.AddChild(Bar);
+}
+
+UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const FVeyraPartyMemberModel& Card)
+{
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	// A member's place (ADR-083 §6): their initial, their name with You and Leader under it, and their mark. The player's
+	// own is edged in the frame's colour.
+	UBorder* Frame = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	Frame->SetBrush(VeyraShellStyle::EdgedFace(Style.SurfaceColor, Card.bYou ? Style.FrameColor : Style.HairlineColor));
+	Frame->SetPadding(FMargin(Style.Spacing, 0.0f));
+	Frame->SetVerticalAlignment(VAlign_Center);
+	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Frame->SetContent(Line);
+	AddCentred(*Line, *VeyraShellStyle::MakeInitialTile(*WidgetTree, FText::FromString(Card.Name), Style.AvatarSize * 0.75f));
+	AddGap(*WidgetTree, *Line, Style.Spacing / 2.0f);
+	UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	// The name, which for the leader opens another member's card (UX-10), set as a name rather than a command; a plain
+	// name is inset as a button's is, so every place reads level.
+	const FMargin Inset(Style.ButtonPadding * 2.0f, 0.0f, 0.0f, 0.0f);
+	UTextBlock* Name = nullptr;
+	if (Card.bOffersActions)
+	{
+		UVeyraShellButton* NameButton = AddNamedButton(*Who, EVeyraShellButtonKind::Quiet, VeyraShellModels::PartyMemberLabel(Card.Name), FText::FromString(Card.Name),
+			[this, Key = MemberCardKey(Card.AccountId)] { OpenCard(Key); }, true, OpenCardId == MemberCardKey(Card.AccountId));
+		NameButton->SetToolTipText(LOCTEXT("MemberCardTip", "Make Party Leader or Remove"));
+		Cast<UVerticalBoxSlot>(NameButton->Slot)->SetHorizontalAlignment(HAlign_Left);
+		Name = Cast<UTextBlock>(NameButton->GetContent());
+		if (Name)
+		{
+			Name->SetTextTransformPolicy(ETextTransformPolicy::None);
+			Name->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Body));
+			Name->SetColorAndOpacity(FSlateColor(Style.TextColor));
+		}
+	}
+	else
+	{
+		Name = VeyraShellStyle::MakeText(*WidgetTree, FText::FromString(Card.Name), EVeyraShellText::Body);
+		Who->AddChildToVerticalBox(Name)->SetPadding(Inset);
+	}
+	if (Name)
+	{
+		Name->SetAutoWrapText(false);
+		Name->SetTextOverflowPolicy(ETextOverflowPolicy::Ellipsis);
+	}
+	const FText Tag = Card.bYou && Card.bLeader ? LOCTEXT("PlaceYouLeader", "You · Leader")
+		: Card.bYou							   ? LOCTEXT("PlaceYou", "You")
+		: Card.bLeader						   ? LOCTEXT("PlaceLeader", "Leader")
+											   : FText::GetEmpty();
+	if (!Tag.IsEmpty())
+	{
+		UTextBlock* TagText = VeyraShellStyle::MakeText(*WidgetTree, Tag, EVeyraShellText::Muted);
+		TagText->SetAutoWrapText(false);
+		if (Card.bLeader)
+		{
+			TagText->SetColorAndOpacity(FSlateColor(Style.FrameColor));
+		}
+		Who->AddChildToVerticalBox(TagText)->SetPadding(Inset);
+	}
+	UHorizontalBoxSlot* WhoSlot = Line->AddChildToHorizontalBox(Who);
+	WhoSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	WhoSlot->SetVerticalAlignment(VAlign_Center);
+	// Their mark: a tick while Ready, a cross while not. The player's own sets the other by a press, under its usual name.
+	const FText Mark = Card.bReady ? LOCTEXT("MarkReady", "✓") : LOCTEXT("MarkNotReady", "✗");
+	const FText MarkTip = Card.bReady ? LOCTEXT("MarkReadyTip", "Ready") : LOCTEXT("MarkNotReadyTip", "Not Ready");
+	UTextBlock* MarkText = nullptr;
+	if (Card.bYou)
+	{
+		const bool bReady = Model.bReadyTarget;
+		UVeyraShellButton* Toggle = AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, Model.ReadyLabel, Mark, [this, bReady] { Client->SetReady(bReady); }, Model.bCanReady);
+		Toggle->SetToolTipText(FText::Format(Card.bReady ? LOCTEXT("MarkYouReadyTip", "{0}: press to unready") : LOCTEXT("MarkYouNotReadyTip", "{0}: press to ready up"), MarkTip));
+		CentreInLine(*Toggle);
+		MarkText = Cast<UTextBlock>(Toggle->GetContent());
+	}
+	else
+	{
+		MarkText = AddText(*Line, Mark, RoleOf(EVeyraShellText::Body));
+		MarkText->SetToolTipText(MarkTip);
+		CentreInLine(*MarkText);
+	}
+	if (MarkText)
+	{
+		MarkText->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Heading));
+		MarkText->SetColorAndOpacity(FSlateColor(Card.bReady ? Style.ReadyColor : Style.NotReadyColor));
+	}
+	return Frame;
+}
+
+UWidget* UVeyraShellScreen::BuildOpenPlace()
+{
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	// An open place (ADR-083 §6): hollow, and a way to the friends to invite into it.
+	UBorder* Frame = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	Frame->SetBrush(VeyraShellStyle::EdgedFace(FLinearColor::Transparent, Style.HairlineColor));
+	Frame->SetPadding(FMargin(0.0f));
+	Frame->SetHorizontalAlignment(HAlign_Center);
+	Frame->SetVerticalAlignment(VAlign_Center);
+	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Frame->SetContent(Line);
+	AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, InviteFriendsLabel(), LOCTEXT("OpenPlaceShown", "+ Invite"), [this] {
+		SetFriendsCollapsed(false);
+		if (FriendNameBox)
+		{
+			FriendNameBox->SetKeyboardFocus();
+		}
+	})->KeepLabelOnOneLine();
+	return Frame;
+}
+
+FText UVeyraShellScreen::PartySizeText(const FVeyraPartyModel& Model)
+{
+	return Model.MaxSize > 0 ? FText::Format(LOCTEXT("PartySizeOf", "Party · {0}/{1}"), FText::AsNumber(Model.Cards.Num()), FText::AsNumber(Model.MaxSize))
+							 : FText::Format(LOCTEXT("PartyTitleCount", "Party · {0}"), FText::AsNumber(Model.Cards.Num()));
+}
+
+void UVeyraShellScreen::CentreInLine(UWidget& Widget)
+{
+	if (UHorizontalBoxSlot* Line = Cast<UHorizontalBoxSlot>(Widget.Slot))
+	{
+		Line->SetVerticalAlignment(VAlign_Center);
+	}
+}
+
+void UVeyraShellScreen::AddCentred(UHorizontalBox& Line, UWidget& Widget)
+{
+	Line.AddChildToHorizontalBox(&Widget)->SetVerticalAlignment(VAlign_Center);
+}
+
+void UVeyraShellScreen::TurnLabel(UVeyraShellButton& Button, float Degrees)
+{
+	// The font's own angle, turned to point down or up: it has no arrow of its own that way.
+	if (UWidget* Label = Button.GetContent())
+	{
+		Label->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+		Label->SetRenderTransformAngle(Degrees);
+	}
+}
+
+void UVeyraShellScreen::BuildPartyBar(const FVeyraPartyModel& Model, UPanelWidget& Parent)
+{
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	UBorder* Bar = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.ScreenPadding / 2.0f, 0.0f));
+	USizeBox* Height = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Height->SetHeightOverride(Style.PartyCollapsedHeight);
+	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Height->AddChild(Row);
+	Bar->SetContent(Height);
+	// Put away (ADR-083 §6): the party's size, each member's initial with their mark, then its queue or its mode.
+	CentreInLine(*AddText(*Row, PartySizeText(Model), RoleOf(EVeyraShellText::Eyebrow)));
+	AddGap(*WidgetTree, *Row, Style.Spacing);
+	for (const FVeyraPartyMemberModel& Card : Model.Cards)
+	{
+		AddCentred(*Row, *VeyraShellStyle::MakeInitialTile(*WidgetTree, FText::FromString(Card.Name), Style.AvatarSize * 0.75f));
+		UTextBlock* Mark = AddText(*Row, Card.bReady ? LOCTEXT("MarkReady", "✓") : LOCTEXT("MarkNotReady", "✗"), RoleOf(EVeyraShellText::Body));
+		Mark->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Heading));
+		Mark->SetColorAndOpacity(FSlateColor(Card.bReady ? Style.ReadyColor : Style.NotReadyColor));
+		Mark->SetToolTipText(FText::Format(LOCTEXT("BarMarkTip", "{0}: {1}"), FText::FromString(Card.Name),
+			Card.bReady ? LOCTEXT("MarkReadyTip", "Ready") : LOCTEXT("MarkNotReadyTip", "Not Ready")));
+		CentreInLine(*Mark);
+		AddGap(*WidgetTree, *Row, Style.Spacing);
+	}
+	if (Model.bQueued)
+	{
+		QueueStatus = AddText(*Row, VeyraShellModels::FormatQueueStatus(Client->GetQueuedSeconds()), RoleOf(EVeyraShellText::Body));
+		QueueStatus->SetColorAndOpacity(FSlateColor(Style.AccentColor));
+		QueueStatus->SetAutoWrapText(false);
+		CentreInLine(*QueueStatus);
+	}
+	else
+	{
+		UTextBlock* Line = AddText(*Row, Model.bHeld ? Model.Status : Model.ModeName, RoleOf(EVeyraShellText::Muted));
+		Line->SetAutoWrapText(false);
+		CentreInLine(*Line);
+	}
+	AddStretch(*WidgetTree, *Row);
+	UVeyraShellButton* Open = AddNamedButton(*Row, EVeyraShellButtonKind::Quiet, OpenPartyLabel(), LOCTEXT("OpenPartyShown", "›"), [this] { SetPartyCollapsed(false); });
+	TurnLabel(*Open, -90.0f);
+	CentreInLine(*Open);
+	AddGap(*WidgetTree, Parent, Style.Spacing);
+	Parent.AddChild(Bar);
+}
+
+FText UVeyraShellScreen::CollapseFriendsLabel()
+{
+	return LOCTEXT("CollapseFriends", "Collapse Friends");
+}
+
+FText UVeyraShellScreen::OpenFriendsLabel()
+{
+	return LOCTEXT("OpenFriends", "Open Friends");
+}
+
+FText UVeyraShellScreen::CollapsePartyLabel()
+{
+	return LOCTEXT("CollapseParty", "Collapse Party");
+}
+
+FText UVeyraShellScreen::OpenPartyLabel()
+{
+	return LOCTEXT("OpenParty", "Open Party");
+}
+
+FText UVeyraShellScreen::InviteFriendsLabel()
+{
+	return LOCTEXT("InviteFriends", "Invite Friends");
 }
 
 void UVeyraShellScreen::BuildMatchFound(const FVeyraClientSnapshot& Snapshot)
@@ -1593,7 +1894,9 @@ void UVeyraShellScreen::SetSettingsForTests(UVeyraSettingsSubsystem* Settings)
 
 void UVeyraShellScreen::AddSettingsButton(UPanelWidget& Parent)
 {
-	AddKindButton(Parent, EVeyraShellButtonKind::Quiet, SettingsLabel(), [this] { OpenSettings(); }, FindSettings() != nullptr)->KeepLabelOnOneLine();
+	const bool bShown = SettingsScreen && SettingsScreen->IsPage();
+	AddKindButton(Parent, bShown ? EVeyraShellButtonKind::Tab : EVeyraShellButtonKind::Quiet, SettingsLabel(), [this] { OpenSettings(); },
+		FindSettings() != nullptr, bShown)->KeepLabelOnOneLine();
 }
 
 FText UVeyraShellScreen::SettingsLabel()
@@ -1610,10 +1913,37 @@ void UVeyraShellScreen::OpenSettings()
 		return;
 	}
 	SettingsScreen = WidgetTree->ConstructWidget<UVeyraSettingsScreen>(UVeyraSettingsScreen::StaticClass());
-	UOverlaySlot* Layered = SettingsLayer->AddChildToOverlay(SettingsScreen);
-	Layered->SetHorizontalAlignment(HAlign_Fill);
-	Layered->SetVerticalAlignment(VAlign_Fill);
-	SettingsScreen->Show(*Settings, /*bInLiveMatch*/ false, [this] { CloseSettings(); });
+	PlaceSettings();
+}
+
+void UVeyraShellScreen::PlaceSettings()
+{
+	UVeyraSettingsSubsystem* Settings = FindSettings();
+	if (!SettingsScreen || !Settings)
+	{
+		return;
+	}
+	// A page of the shell, or a window over the lobby and the results (ADR-083 §1).
+	const bool bPage = Shown == EVeyraShellScreen::Shell;
+	SettingsScreen->RemoveFromParent();
+	if (!bPage)
+	{
+		UOverlaySlot* Layered = SettingsLayer->AddChildToOverlay(SettingsScreen);
+		Layered->SetHorizontalAlignment(HAlign_Fill);
+		Layered->SetVerticalAlignment(VAlign_Fill);
+	}
+	SettingsScreen->Show(*Settings, /*bInLiveMatch*/ false, [this] {
+		const bool bWasPage = SettingsScreen && SettingsScreen->IsPage();
+		CloseSettings();
+		if (bWasPage)
+		{
+			Refresh();
+		}
+	}, bPage);
+	if (bPage)
+	{
+		Refresh();
+	}
 }
 
 void UVeyraShellScreen::CloseSettings()
@@ -1621,6 +1951,10 @@ void UVeyraShellScreen::CloseSettings()
 	if (SettingsLayer)
 	{
 		SettingsLayer->ClearChildren();
+	}
+	if (SettingsScreen)
+	{
+		SettingsScreen->RemoveFromParent();
 	}
 	SettingsScreen = nullptr;
 }
@@ -1652,6 +1986,11 @@ UVeyraShellButton* UVeyraShellScreen::AddKindButton(UPanelWidget& Parent, EVeyra
 
 void UVeyraShellScreen::ShowPage(EVeyraShellPage NewPage)
 {
+	// Another page leaves the Settings page (ADR-083 §1).
+	if (SettingsScreen && SettingsScreen->IsPage())
+	{
+		CloseSettings();
+	}
 	Page = NewPage;
 	Refresh();
 }

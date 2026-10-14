@@ -146,6 +146,7 @@ TArray<FString> Validate(const FVeyraSettingsRegistry& Registry)
 	}
 	TSet<EVeyraSettingCategory> Categories;
 	TSet<FVeyraContentId> Listed;
+	TSet<FVeyraContentId> GroupNames;
 	for (int32 Index = 0; Index < Registry.Layout.Num(); ++Index)
 	{
 		const FVeyraSettingsSection& Section = Registry.Layout[Index];
@@ -176,6 +177,29 @@ TArray<FString> Validate(const FVeyraSettingsRegistry& Registry)
 			{
 				Problems.Add(FString::Printf(TEXT("%s: %s is listed twice"), *EntryPointer, *Id.ToString()));
 			}
+		}
+		// Each group starts on one of the section's settings, after the group before it (ADR-083 §2).
+		int32 PreviousStart = INDEX_NONE;
+		for (int32 Entry = 0; Entry < Section.Groups.Num(); ++Entry)
+		{
+			const FVeyraSettingsGroup& Group = Section.Groups[Entry];
+			const FString GroupPointer = FString::Printf(TEXT("%s/groups/%d"), *Pointer, Entry);
+			bool bNamedAlready = false;
+			GroupNames.Add(Group.Group, &bNamedAlready);
+			if (!Group.Group.IsValid() || bNamedAlready)
+			{
+				Problems.Add(GroupPointer + TEXT("/group: a group needs a name no other group has"));
+			}
+			const int32 Start = Section.Settings.IndexOfByKey(Group.From);
+			if (Start == INDEX_NONE)
+			{
+				Problems.Add(FString::Printf(TEXT("%s/from: %s is not one of this category's settings"), *GroupPointer, *Group.From.ToString()));
+			}
+			else if (Start <= PreviousStart)
+			{
+				Problems.Add(GroupPointer + TEXT("/from: groups start in the order of the category's settings"));
+			}
+			PreviousStart = FMath::Max(PreviousStart, Start);
 		}
 	}
 	for (const FVeyraSettingInfo& Setting : All(Registry))
@@ -287,11 +311,17 @@ TArray<FVeyraSettingsSectionInfo> Sections(const FVeyraSettingsRegistry& Registr
 	{
 		FVeyraSettingsSectionInfo& Described = Sections.AddDefaulted_GetRef();
 		Described.Category = Section.Category;
+		FVeyraContentId Group;
 		for (const FVeyraContentId& Id : Section.Settings)
 		{
+			if (const FVeyraSettingsGroup* Starting = Section.Groups.FindByPredicate([&Id](const FVeyraSettingsGroup& Candidate) { return Candidate.From == Id; }))
+			{
+				Group = Starting->Group;
+			}
 			if (const TOptional<FVeyraSettingInfo> Setting = Find(Registry, Id))
 			{
 				Described.Settings.Add(*Setting);
+				Described.SettingGroups.Add(Group);
 			}
 		}
 	}

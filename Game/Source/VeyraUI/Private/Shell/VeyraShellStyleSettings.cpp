@@ -57,6 +57,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("PresenceAvailableColor"), PresenceAvailableColor },
 		{ TEXT("PresenceBusyColor"), PresenceBusyColor },
 		{ TEXT("PresenceAwayColor"), PresenceAwayColor },
+		{ TEXT("ReadyColor"), ReadyColor },
+		{ TEXT("NotReadyColor"), NotReadyColor },
 		{ TEXT("SelectArtTint"), SelectArtTint },
 	};
 	for (const FNamedColor& Named : Colors)
@@ -119,6 +121,18 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SettingsSearchWidth"), SettingsSearchWidth },
 		{ TEXT("SettingsControlWidth"), SettingsControlWidth },
 		{ TEXT("SettingsSwatchSize"), SettingsSwatchSize },
+		{ TEXT("SettingsAboutWidth"), SettingsAboutWidth },
+		{ TEXT("SettingsWideWidth"), SettingsWideWidth },
+		{ TEXT("SettingsNarrowWidth"), SettingsNarrowWidth },
+		{ TEXT("SettingsGridColumnWidth"), SettingsGridColumnWidth },
+		{ TEXT("SettingsSliderWidth"), SettingsSliderWidth },
+		{ TEXT("SettingsSwitchWidth"), SettingsSwitchWidth },
+		{ TEXT("SettingsSwitchHeight"), SettingsSwitchHeight },
+		{ TEXT("SettingsRadioSize"), SettingsRadioSize },
+		{ TEXT("SettingsRowHeight"), SettingsRowHeight },
+		{ TEXT("FriendsCollapsedWidth"), FriendsCollapsedWidth },
+		{ TEXT("PartyCollapsedHeight"), PartyCollapsedHeight },
+		{ TEXT("PartySlotHeight"), PartySlotHeight },
 		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
 		{ TEXT("ChatLinesHeight"), ChatLinesHeight },
 		{ TEXT("ProfileIconSize"), ProfileIconSize },
@@ -150,6 +164,10 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 	Require(HomeHeroHeight > 0.0f && HomeHeroHeight < 1.0f, TEXT("HomeHeroHeight"), TEXT("must be above 0 and below 1."));
 	Require(CollectionCardWidth >= 1.0f && CollectionCardHeight >= 1.0f && CollectionLockedShade > 0.0f && CollectionLockedShade <= 1.0f, TEXT("CollectionCardWidth"),
 		TEXT("a Collection card needs a size, and a locked one's shade above 0 and at most 1."));
+	Require(SettingsSegmentMost >= 2 && SettingsSegmentLetters >= 1 && SettingsGridLeast >= 2, TEXT("SettingsSegmentMost"),
+		TEXT("a segmented choice shows at least two options and some letters, and a grid needs at least two settings."));
+	Require(SettingsNarrowWidth < SettingsWideWidth && PanelCollapseSeconds >= 0.0f, TEXT("SettingsNarrowWidth"),
+		TEXT("the narrow layout starts below the wide one, and a panel's collapse takes no negative time."));
 	Require(ProfileNameFieldWidth >= 1.0f, TEXT("ProfileNameFieldWidth"), TEXT("must be at least 1."));
 	Require(!ProfileDefaultRegion.IsEmpty(), TEXT("ProfileDefaultRegion"), TEXT("names the region the default background shows."));
 	Require(ProfileBackgroundAspect >= 1.0f && ProfileBackgroundFocus >= 0.0f && ProfileBackgroundFocus <= 1.0f, TEXT("ProfileBackgroundAspect"),

@@ -478,6 +478,65 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float SettingsSwatchSize = 0.0f;
 
+	/**
+	 * The Settings page (ADR-083 §3-§5): the About panel's width; the widths it is given from which it lays out wide (About
+	 * beside the list) and medium (About under it; narrower still, the categories run across the top); the most options,
+	 * and letters in all, a choice shows side by side before it becomes a dropdown; the fewest choices sharing their options
+	 * that make a grid, and a grid's option column; a slider; a switch; a radio; and a setting's line, in slate units.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsAboutWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsWideWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsNarrowWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	int32 SettingsSegmentMost = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	int32 SettingsSegmentLetters = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	int32 SettingsGridLeast = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsGridColumnWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsSliderWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsSwitchWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsSwitchHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsRadioSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsRowHeight = 0.0f;
+
+	/**
+	 * The friends and party panels put away (ADR-083 §6): the friends panel's strip and the party's bar, in slate units, and
+	 * how long either takes to open or close, in seconds (none under Reduce UI Animation).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float FriendsCollapsedWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float PartyCollapsedHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0"))
+	float PanelCollapseSeconds = 0.0f;
+
+	/** The party panel's places (ADR-083 §6): a member's or an open one, side by side, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float PartySlotHeight = 0.0f;
+
 	/** The friends panel down the right of the shell and the lobby (Art Bible §7), in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;
@@ -664,6 +723,13 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Surface")
 	FLinearColor PresenceAwayColor = FLinearColor::Transparent;
+
+	/** A party member's mark (ADR-083 §6): the tick of one who is Ready, and the cross of one who is not. */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor ReadyColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Surface")
+	FLinearColor NotReadyColor = FLinearColor::Transparent;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Surface", meta = (ClampMin = "1"))
 	float PresenceDotSize = 0.0f;

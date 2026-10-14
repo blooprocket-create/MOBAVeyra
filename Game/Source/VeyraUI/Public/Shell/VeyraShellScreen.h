@@ -16,12 +16,14 @@ class IVeyraClientIntents;
 struct FVeyraHistoryOption;
 struct FVeyraProfileCardModel;
 class UEditableTextBox;
+class UHorizontalBox;
 class UImage;
 class UOverlay;
 class UPanelWidget;
 class UProgressBar;
 class UScaleBox;
 class UScrollBox;
+class USizeBox;
 class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
@@ -128,6 +130,22 @@ public:
 	void OpenSettings();
 	void CloseSettings();
 	bool IsSettingsOpen() const { return SettingsScreen != nullptr; }
+
+	/**
+	 * The friends panel down the right and the party panel along the bottom, each open or put away, as this machine
+	 * remembers (ADR-083 §6).
+	 */
+	bool IsFriendsCollapsed() const { return bFriendsCollapsed; }
+	bool IsPartyCollapsed() const { return bPartyCollapsed; }
+	void SetFriendsCollapsed(bool bCollapsed);
+	void SetPartyCollapsed(bool bCollapsed);
+
+	/** The panels' buttons that put them away and bring them back, and the party's way to the friends it may invite. */
+	static FText CollapseFriendsLabel();
+	static FText OpenFriendsLabel();
+	static FText CollapsePartyLabel();
+	static FText OpenPartyLabel();
+	static FText InviteFriendsLabel();
 	UVeyraSettingsScreen* GetSettingsScreen() const { return SettingsScreen; }
 
 	/** The button that opens Settings. */
@@ -285,6 +303,26 @@ private:
 	void OpenBotPicker(const FString& Side, int32 Index, const FString& Difficulty);
 	/** The friends panel down the right (Parties & Social Bible §1; Art Bible §7): add by name, requests, invitations and friends. */
 	void BuildFriends(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** The friends panel put away: the online count, waiting invitations and the online friends' initials (ADR-083 §6). */
+	void BuildFriendsStrip(const FVeyraFriendsModel& Model, UPanelWidget& Strip);
+	/** The party panel put away: its size, its members' initials and its queue (ADR-083 §6). */
+	void BuildPartyBar(const FVeyraPartyModel& Model, UPanelWidget& Parent);
+	/** A member's place in the party panel: their initial, name, You and Leader, the leader's way into their card, and their Ready mark (ADR-083 §6). */
+	UWidget* BuildPartyPlace(const FVeyraPartyModel& Model, const FVeyraPartyMemberModel& Card);
+	/** An open place in the party panel, which leads to the friends to invite (ADR-083 §6). */
+	UWidget* BuildOpenPlace();
+	/** "Party · 2/5", or "Party · 2" when the backend does not say how many it may hold. */
+	static FText PartySizeText(const FVeyraPartyModel& Model);
+	/** Centres Widget, already in a horizontal box, on that box's line. */
+	static void CentreInLine(UWidget& Widget);
+	/** Adds Widget to Line, centred on it. */
+	static void AddCentred(UHorizontalBox& Line, UWidget& Widget);
+	/** The width or height a panel moving from From to To has now, eased over PanelCollapseSeconds since MovedAt. */
+	float PanelSize(double MovedAt, float From, float To) const;
+	/** Puts the open Settings on the shell's page, or in a window over the lobby and the results (ADR-083 §1). */
+	void PlaceSettings();
+	/** Turns Button's label by Degrees, about its centre. */
+	static void TurnLabel(UVeyraShellButton& Button, float Degrees);
 	/** Sends the friend request the name field holds. */
 	void SubmitFriendName();
 	/** A friend's line: their card, which opens its actions, and the one action it always offers. */
@@ -521,6 +559,14 @@ private:
 	/** The party panel's time in the queue, updated every frame. */
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> QueueStatus;
+
+	/** The friends panel's width, which eases as it opens or closes (ADR-083 §6). */
+	UPROPERTY(Transient)
+	TObjectPtr<USizeBox> FriendsBox;
+	bool bFriendsCollapsed = false;
+	bool bPartyCollapsed = false;
+	double FriendsMovedAt = 0.0;
+	float FriendsFrom = 0.0f;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UVeyraShellButton>> Buttons;

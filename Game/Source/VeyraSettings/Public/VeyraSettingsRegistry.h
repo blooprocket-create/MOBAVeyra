@@ -203,6 +203,22 @@ struct FVeyraBindingSetting
 	EVeyraBindingSharing Sharing = EVeyraBindingSharing::Exclusive;
 };
 
+/**
+ * A named run of a category's settings (ADR-083 §2): it starts at From and runs to the next group or the category's end.
+ * Its name and hint are the text rows settings_group.<Group>.name and .hint.
+ */
+USTRUCT()
+struct FVeyraSettingsGroup
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Group;
+
+	UPROPERTY()
+	FVeyraContentId From;
+};
+
 /** One category of the Settings screen and its settings, in the order the screen lists them (Settings Bible §13). */
 USTRUCT()
 struct FVeyraSettingsSection
@@ -214,6 +230,10 @@ struct FVeyraSettingsSection
 
 	UPROPERTY()
 	TArray<FVeyraContentId> Settings;
+
+	/** The category's sub-sections, in order; none for a category shown as one list. */
+	UPROPERTY()
+	TArray<FVeyraSettingsGroup> Groups;
 };
 
 USTRUCT()
@@ -276,6 +296,8 @@ struct FVeyraSettingsSectionInfo
 {
 	EVeyraSettingCategory Category = EVeyraSettingCategory::Controls;
 	TArray<FVeyraSettingInfo> Settings;
+	/** Each setting's group, beside Settings: unset before the first group or where the category has none (ADR-083 §2). */
+	TArray<FVeyraContentId> SettingGroups;
 };
 
 /**
@@ -308,7 +330,8 @@ namespace VeyraSettings
 	 * Problems the schema cannot catch, each a JSON pointer and a message; empty when consistent. A
 	 * setting ID is used once across the kinds; a range's maximum is above its minimum and its default
 	 * lies within them on a step; a choice's options are distinct and its default is one of them. The
-	 * layout lists each category once and every setting once, in its own category's section.
+	 * layout lists each category once and every setting once, in its own category's section; a
+	 * section's groups each start on one of its settings, in order, and no group is named twice.
 	 */
 	VEYRASETTINGS_API TArray<FString> Validate(const FVeyraSettingsRegistry& Registry);
 

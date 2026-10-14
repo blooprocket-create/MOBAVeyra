@@ -116,6 +116,23 @@ namespace VeyraSettingsTests
 				&& Sections[1].Settings[0].Id == SettingId(TEXT("test_toggle"))));
 		}
 
+		TEST_METHOD(GroupsStartOnTheirCategorysSettingsInOrderEachNamedOnce)
+		{
+			// Each setting knows its group, from the one that starts it to the next (ADR-083 §2).
+			FVeyraSettingsRegistry Grouped = FixtureRegistry();
+			Grouped.Layout[0].Groups = { { SettingId(TEXT("keys")), SettingId(TEXT("test_choice")) } };
+			ASSERT_THAT(IsTrue(VeyraSettings::Validate(Grouped).IsEmpty(), FString::Join(VeyraSettings::Validate(Grouped), TEXT(" | "))));
+			const TArray<FVeyraSettingsSectionInfo> Sections = VeyraSettings::Sections(Grouped);
+			ASSERT_THAT(IsTrue(Sections[0].SettingGroups.Num() == 1 && Sections[0].SettingGroups[0] == SettingId(TEXT("keys"))));
+			ASSERT_THAT(IsFalse(Sections[1].SettingGroups[0].IsValid(), TEXT("a category without groups")));
+
+			FVeyraSettingsRegistry Broken = FixtureRegistry();
+			Broken.Layout[0].Groups = { { SettingId(TEXT("keys")), SettingId(TEXT("test_choice")) }, { SettingId(TEXT("keys")), SettingId(TEXT("test_toggle")) } };
+			const TArray<FString> Problems = VeyraSettings::Validate(Broken);
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/layout/0/groups/1/group")), FString::Join(Problems, TEXT(" | "))));
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/layout/0/groups/1/from: test_toggle is not one of this category's settings"))));
+		}
+
 		TEST_METHOD(ASettingTakesOnlyItsOwnValues)
 		{
 			const FVeyraSettingsRegistry Registry = FixtureRegistry();

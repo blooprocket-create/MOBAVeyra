@@ -211,6 +211,55 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsFalse(Settings->Store().IsChanged(Setting(TEXT("camera_move_speed")))));
 		}
 
+		TEST_METHOD(TheControlsShowInTheirGroupsWithCastingAsAGrid)
+		{
+			// Each setting in its group; the casting modes, choices sharing their options, as one grid of radios (ADR-083 §2-§3).
+			Screen->ShowCategory(EVeyraSettingCategory::Controls);
+			const FVeyraSettingRowModel CastQ = Row(TEXT("controls_cast_mode_q"));
+			ASSERT_THAT(IsTrue(CastQ.Group == Setting(TEXT("casting")) && Row(TEXT("controls_confine_cursor")).Group == Setting(TEXT("mouse"))));
+			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraSettingsScreen::GroupLinkLabel(VeyraContentText::SettingGroupName(Setting(TEXT("casting")))))));
+			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::OptionLabel(CastQ, CastQ.Options[2]))));
+			ASSERT_THAT(IsTrue(Settings->Store().Get(Setting(TEXT("controls_cast_mode_q"))) == CastQ.Options[2].Value));
+		}
+
+		TEST_METHOD(ASwitchIsNamedForTheValueItSetsAndALongChoiceIsADropdown)
+		{
+			// The switch offers only the value the toggle does not have.
+			Screen->ShowCategory(EVeyraSettingCategory::Camera);
+			const FVeyraSettingRowModel Edge = Row(TEXT("camera_edge_scroll"));
+			ASSERT_THAT(IsTrue(Edge.Options[0].bSelected && !Screen->FindButton(UVeyraSettingsScreen::OptionLabel(Edge, Edge.Options[0]))));
+			// A choice of many options is a dropdown: its options are there, hidden until it opens, and one closes it.
+			Screen->ShowCategory(EVeyraSettingCategory::GraphicsDisplay);
+			const FVeyraSettingRowModel Cap = Row(TEXT("display_frame_cap"));
+			UVeyraShellButton* Last = Screen->FindButton(UVeyraSettingsScreen::OptionLabel(Cap, Cap.Options.Last()));
+			ASSERT_THAT(IsTrue(Last && Last->GetParent() && Last->GetParent()->GetVisibility() == ESlateVisibility::Collapsed));
+			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::DropdownLabel(Cap))));
+			Last = Screen->FindButton(UVeyraSettingsScreen::OptionLabel(Cap, Cap.Options.Last()));
+			ASSERT_THAT(IsTrue(Last->GetParent()->GetVisibility() == ESlateVisibility::Visible, TEXT("open")));
+			Last->Press();
+			ASSERT_THAT(IsTrue(Settings->Store().Get(Setting(TEXT("display_frame_cap"))) == Cap.Options.Last().Value));
+			Last = Screen->FindButton(UVeyraSettingsScreen::OptionLabel(Cap, Cap.Options.Last()));
+			ASSERT_THAT(IsTrue(Last->GetParent()->GetVisibility() == ESlateVisibility::Collapsed, TEXT("closed by the choice")));
+		}
+
+		TEST_METHOD(TheLayoutFollowsTheWidthItIsGivenAndAboutTheSettingInView)
+		{
+			// About describes the category's first setting until the pointer or focus moves (ADR-083 §4).
+			Screen->ShowCategory(EVeyraSettingCategory::Camera);
+			const FVeyraSettingRowModel First = Screen->GetModel().Rows[0];
+			ASSERT_THAT(IsTrue(Screen->GetAboutSetting() == TOptional<FVeyraContentId>(First.Id) && Screen->DescribeText().Contains(First.Description.ToString())));
+			// Wide, medium and narrow by the width it is given, not the window's (ADR-083 §5); narrow drops the group entries.
+			const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+			Screen->ApplyWidth(Style.SettingsWideWidth);
+			ASSERT_THAT(IsTrue(Screen->GetLayout() == UVeyraSettingsScreen::ELayout::Wide));
+			Screen->ApplyWidth((Style.SettingsWideWidth + Style.SettingsNarrowWidth) / 2.0f);
+			ASSERT_THAT(IsTrue(Screen->GetLayout() == UVeyraSettingsScreen::ELayout::Medium));
+			Screen->ApplyWidth(Style.SettingsNarrowWidth / 2.0f);
+			ASSERT_THAT(IsTrue(Screen->GetLayout() == UVeyraSettingsScreen::ELayout::Narrow));
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraSettingsScreen::GroupLinkLabel(VeyraContentText::SettingGroupName(First.Group)))));
+			ASSERT_THAT(IsTrue(Screen->GetAboutSetting() == TOptional<FVeyraContentId>(First.Id), TEXT("the same setting through a new layout")));
+		}
+
 		TEST_METHOD(ResettingACategoryOrEverythingAsksFirst)
 		{
 			Settings->Store().Set(Setting(TEXT("camera_move_speed")), TEXT("70"));
@@ -433,6 +482,10 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsTrue(OffersSettings()));
 			Screen->FindButton(UVeyraShellScreen::SettingsLabel())->Press();
 			ASSERT_THAT(IsTrue(Screen->IsSettingsOpen() && Screen->GetShownScreen() == EVeyraShellScreen::Shell));
+			// A page of the shell, with the friends and party panels beside and under it (ADR-083 §1).
+			ASSERT_THAT(IsTrue(Screen->GetSettingsScreen()->IsPage()));
+			ASSERT_THAT(IsTrue(Screen->FindButton(UVeyraShellScreen::CollapseFriendsLabel()) || Screen->FindButton(UVeyraShellScreen::OpenFriendsLabel())));
+			ASSERT_THAT(IsTrue(Screen->FindButton(UVeyraShellScreen::CollapsePartyLabel()) || Screen->FindButton(UVeyraShellScreen::OpenPartyLabel())));
 
 			// A poll that changes the shell leaves them open; a match found takes the screen (UX-17).
 			Rig.Advance(1.0);
@@ -440,6 +493,33 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, MatchFoundBody(TEXT("pending"), TEXT("pending"), 0))));
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::MatchFound && !Screen->IsSettingsOpen()));
 			ASSERT_THAT(IsFalse(OffersSettings(), TEXT("never in Match Found")));
+		}
+
+		TEST_METHOD(TheFriendsAndPartyPanelsPutAwayComeBackAndAreRemembered)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachQueue()));
+			ShowScreen(Rig);
+			Screen->SetFriendsCollapsed(false);
+			Screen->SetPartyCollapsed(false);
+			ASSERT_THAT(IsTrue(Screen->FindButton(FText::FromString(TEXT("Add Friend"))) != nullptr, TEXT("open friends")));
+			ASSERT_THAT(IsTrue(Screen->FindButton(UVeyraShellScreen::CollapsePartyLabel()) != nullptr, TEXT("open party")));
+			// Put away: the friends panel a strip, the party a bar (ADR-083 §6).
+			Screen->FindButton(UVeyraShellScreen::CollapseFriendsLabel())->Press();
+			Screen->FindButton(UVeyraShellScreen::CollapsePartyLabel())->Press();
+			ASSERT_THAT(IsTrue(Screen->IsFriendsCollapsed() && Screen->IsPartyCollapsed(), TEXT("both put away")));
+			ASSERT_THAT(IsTrue(!Screen->FindButton(FText::FromString(TEXT("Add Friend"))) && Screen->FindButton(UVeyraShellScreen::OpenFriendsLabel())
+				&& Screen->FindButton(UVeyraShellScreen::OpenPartyLabel())));
+			// This machine remembers them for the next shell.
+			if (const UVeyraUserSettings* Device = UVeyraUserSettings::Get())
+			{
+				ASSERT_THAT(IsTrue(Device->bFriendsPanelCollapsed && Device->bPartyPanelCollapsed, TEXT("remembered")));
+				UVeyraShellScreen* Next = CreateWidget<UVeyraShellScreen>(&Spawner.GetWorld());
+				ASSERT_THAT(IsTrue(Next->IsFriendsCollapsed() && Next->IsPartyCollapsed(), TEXT("the next shell")));
+			}
+			// And they come back.
+			Screen->FindButton(UVeyraShellScreen::OpenFriendsLabel())->Press();
+			Screen->FindButton(UVeyraShellScreen::OpenPartyLabel())->Press();
+			ASSERT_THAT(IsTrue(!Screen->IsFriendsCollapsed() && !Screen->IsPartyCollapsed() && Screen->FindButton(FText::FromString(TEXT("Add Friend")))));
 		}
 
 		TEST_METHOD(TheLobbyAndTheResultsOfferSettings)

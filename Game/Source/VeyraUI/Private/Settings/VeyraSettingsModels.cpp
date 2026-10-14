@@ -28,7 +28,7 @@ namespace
 		return VeyraSettings::Normalize(Setting, VeyraSettings::NumberText(FMath::Clamp(Next, Range.Minimum, Range.Maximum)));
 	}
 
-	FVeyraSettingRowModel DescribeRow(const FVeyraSettingsStore& Store, const FVeyraSettingInfo& Setting, bool bInLiveMatch)
+	FVeyraSettingRowModel DescribeRow(const FVeyraSettingsStore& Store, const FVeyraSettingInfo& Setting, bool bInLiveMatch, const FVeyraContentId& Group)
 	{
 		FVeyraSettingRowModel Row;
 		Row.Id = Setting.Id;
@@ -39,6 +39,7 @@ namespace
 		Row.bChanged = Store.IsChanged(Setting.Id);
 		Row.bAfterRestart = Setting.Applies == EVeyraSettingApplies::AfterRestart;
 		Row.bLocked = !VeyraSettings::IsChangeable(Setting, bInLiveMatch);
+		Row.Group = Group;
 		const FString Value = Store.Get(Setting.Id);
 		switch (Setting.Kind)
 		{
@@ -56,6 +57,12 @@ namespace
 			Row.Key = BindingKey(Store, Setting.Id);
 			Row.bEssential = Setting.Binding && Setting.Binding->Need == EVeyraBindingNeed::Essential;
 			Row.ValueText = Row.Key.IsValid() ? Row.Key.GetDisplayName() : LOCTEXT("NoKey", "No key");
+			if (const UObject* Defaults = Setting.Binding ? BindingDefaults(*Setting.Binding) : nullptr)
+			{
+				const FStructProperty* Property = VeyraSettings::FindKeyProperty(*Defaults->GetClass(), Setting.Binding->Property);
+				const FKey* Key = Property ? Property->ContainerPtrToValuePtr<FKey>(Defaults) : nullptr;
+				Row.DefaultText = Key && Key->IsValid() ? Key->GetDisplayName() : LOCTEXT("NoKey", "No key");
+			}
 			break;
 		case EVeyraSettingKind::Range:
 		{
@@ -65,12 +72,22 @@ namespace
 			Row.ValueText = FText::AsNumber(Number, &Format);
 			Row.Lower = Stepped(Setting, Number, -1.0);
 			Row.Higher = Stepped(Setting, Number, 1.0);
+			Row.RangeMinimum = Setting.Range->Minimum;
+			Row.RangeMaximum = Setting.Range->Maximum;
+			Row.RangeStep = Setting.Range->Step;
+			const double Span = Setting.Range->Maximum - Setting.Range->Minimum;
+			Row.RangeFraction = Span > 0.0 ? static_cast<float>(FMath::Clamp((Number - Setting.Range->Minimum) / Span, 0.0, 1.0)) : 0.0f;
+			Row.DefaultText = FText::AsNumber(FCString::Atod(*Setting.Default), &Format);
 			break;
 		}
 		}
 		if (const FVeyraSettingOptionModel* Selected = Row.Options.FindByPredicate([](const FVeyraSettingOptionModel& Option) { return Option.bSelected; }))
 		{
 			Row.ValueText = Selected->Label;
+		}
+		if (const FVeyraSettingOptionModel* Default = Row.Options.FindByPredicate([&Setting](const FVeyraSettingOptionModel& Option) { return Option.Value == Setting.Default; }))
+		{
+			Row.DefaultText = Default->Label;
 		}
 		Row.Swatches = VeyraInterfacePreferences::SwatchesFor(*GetDefault<UVeyraGreyboxSettings>(), Store, Setting.Id);
 		return Row;
@@ -166,14 +183,15 @@ FVeyraSettingsModel Describe(const FVeyraSettingsStore& Store, EVeyraSettingCate
 	Model.bCanUndo = Store.CanUndo();
 	for (const FVeyraSettingsSectionInfo& Section : Sections)
 	{
-		for (const FVeyraSettingInfo& Setting : Section.Settings)
+		for (int32 Index = 0; Index < Section.Settings.Num(); ++Index)
 		{
+			const FVeyraSettingInfo& Setting = Section.Settings[Index];
 			const bool bChangeable = Store.IsChanged(Setting.Id) && VeyraSettings::IsChangeable(Setting, bInLiveMatch);
 			Model.bAnyChanged |= bChangeable;
 			Model.bCategoryChanged |= bChangeable && Section.Category == Model.Category;
 			if (Model.bSearching ? Matches(Setting, Search) : Section.Category == Model.Category)
 			{
-				Model.Rows.Add(DescribeRow(Store, Setting, bInLiveMatch));
+				Model.Rows.Add(DescribeRow(Store, Setting, bInLiveMatch, Section.SettingGroups.IsValidIndex(Index) ? Section.SettingGroups[Index] : FVeyraContentId()));
 			}
 			if (Setting.Binding && Setting.Binding->Need == EVeyraBindingNeed::Essential && !BindingKey(Store, Setting.Id).IsValid())
 			{
