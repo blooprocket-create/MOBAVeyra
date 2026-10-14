@@ -9,6 +9,7 @@
 #include "Misc/Optional.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Tools/VeyraVisionToolComponent.h"
+#include "Text/VeyraAbilityNumbers.h"
 #include "Tuning/VeyraVanguardsTuning.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Statuses/VeyraStatusTypes.h"
@@ -94,6 +95,27 @@ struct FVeyraHudSlot
 	 * defences: its cooldown and cost, then each damage part (ADR-065 §7).
 	 */
 	TArray<FString> Numbers;
+
+	/** Its tooltip at its rank, its first before it is learned (ADR-080 §2): the cooldown after Ability Haste, the cost, each fact. */
+	FVeyraAbilitySummary Summary;
+};
+
+/** One of the Vanguard's stats on the HUD's stats panel (ADR-080 §3). */
+struct FVeyraHudStat
+{
+	FText Name;
+	FString Value;
+	/** Above the Vanguard's own value, from items and effects: shown in brass. */
+	bool bRaised = false;
+	/** Its key in the text table's stat rows, as "armor": what its icon is drawn from (ADR-082 §4). */
+	FString Key;
+};
+
+/** The Vanguard's stats, as only its owner receives them (ADR-080 §3): the core eight, and more on request. */
+struct FVeyraHudStats
+{
+	TArray<FVeyraHudStat> Core;
+	TArray<FVeyraHudStat> More;
 };
 
 /** One inventory slot on the HUD's item bar, used by its key (ADR-012 §1). */
@@ -209,6 +231,9 @@ struct FVeyraHudPlayer
 
 	/** Q, W, E and R, in order. */
 	TArray<FVeyraHudSlot> Slots;
+
+	/** Its stats for the stats panel beside the portrait (ADR-080 §3). */
+	FVeyraHudStats Stats;
 
 	/** The inventory's slots, 1 to 6, in order. */
 	TArray<FVeyraHudItemSlot> Items;

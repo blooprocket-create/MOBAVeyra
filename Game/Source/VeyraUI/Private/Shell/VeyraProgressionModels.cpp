@@ -122,6 +122,9 @@ FVeyraProgressionBarModel DescribeBar(const TOptional<VeyraBackendProtocol::FPro
 	Model.XP = FText::Format(LOCTEXT("XP", "{0} / {1} XP"), FText::AsNumber(Progression->LevelXP), FText::AsNumber(Progression->LevelNeed));
 	Model.Fraction = Progression->LevelNeed > 0 ? FMath::Clamp(static_cast<float>(Progression->LevelXP) / Progression->LevelNeed, 0.0f, 1.0f) : 0.0f;
 	Model.Currencies = FText::Format(LOCTEXT("Currencies", "{0}  ·  {1}"), Amount(ECurrency::Flux, Progression->Flux), Amount(ECurrency::RefinedFlux, Progression->RefinedFlux));
+	Model.LevelNumber = FText::AsNumber(Progression->Level);
+	Model.Flux = FText::AsNumber(Progression->Flux);
+	Model.RefinedFlux = FText::AsNumber(Progression->RefinedFlux);
 	return Model;
 }
 
@@ -143,6 +146,7 @@ FVeyraCollectionModel DescribeCollection(const FVeyraClientSnapshot& Snapshot, b
 		Card.bFavorite = Snapshot.FavoriteVanguards.Contains(Entry.VanguardId);
 		Card.Status = Card.bFavorite ? FText::Format(LOCTEXT("FavoriteStatus", "{0} · Favorite"), StatusOf(Entry)) : StatusOf(Entry);
 		// The card shows the player's Mastery, or that they have none yet (UX-69).
+		Card.bHasMastery = Entry.Mastery.LifetimePoints > 0;
 		Card.MasteryShort = Entry.Mastery.LifetimePoints > 0 ? FText::Format(LOCTEXT("MasteryShort", "Mastery {0}"), FText::AsNumber(Entry.Mastery.Level))
 															 : LOCTEXT("NoMastery", "No Mastery Progress");
 		// The player's own Mastery shows whether or not they can play the Vanguard now (Bible §4).

@@ -13,7 +13,9 @@
  * reproducible from its source like the maps. With -Kind=Items each <id>.png becomes the item icon
  * VeyraShellArt::ItemIconPackageName(<id>) instead, and with -Kind=Abilities the ability icon
  * VeyraShellArt::AbilityIconPackageName(<id>) (Game/Scripts/BuildIconArt.ps1, from ConceptArt/Items
- * and ConceptArt/Skills). It needs the editor; other builds report an error.
+ * and ConceptArt/Skills). With -Kind=Backgrounds each <region>.png becomes the profile background
+ * VeyraShellArt::BackgroundPackageName(<region>) (Game/Scripts/BuildBackgroundArt.ps1, from
+ * ConceptArt/ProfileBackgrounds). It needs the editor; other builds report an error.
  */
 UCLASS()
 class UVeyraVanguardArtCommandlet : public UCommandlet

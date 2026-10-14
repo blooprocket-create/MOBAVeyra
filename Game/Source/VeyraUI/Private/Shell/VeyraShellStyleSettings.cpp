@@ -3,6 +3,7 @@
 #include "Shell/VeyraShellStyleSettings.h"
 
 #include "Containers/Set.h"
+#include "Misc/Paths.h"
 
 TArray<FString> UVeyraShellStyleSettings::Validate() const
 {
@@ -47,6 +48,16 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ShowcaseTint"), ShowcaseTint },
 		{ TEXT("VictoryColor"), VictoryColor },
 		{ TEXT("DefeatColor"), DefeatColor },
+		{ TEXT("EdgeColor"), EdgeColor },
+		{ TEXT("EdgeTickColor"), EdgeTickColor },
+		{ TEXT("ButtonEdgeColor"), ButtonEdgeColor },
+		{ TEXT("PrimaryHighlightColor"), PrimaryHighlightColor },
+		{ TEXT("PrimaryShadeColor"), PrimaryShadeColor },
+		{ TEXT("PrimaryShineColor"), PrimaryShineColor },
+		{ TEXT("PresenceAvailableColor"), PresenceAvailableColor },
+		{ TEXT("PresenceBusyColor"), PresenceBusyColor },
+		{ TEXT("PresenceAwayColor"), PresenceAwayColor },
+		{ TEXT("SelectArtTint"), SelectArtTint },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -61,6 +72,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("DisplayFontSize"), DisplayFontSize },
 		{ TEXT("EyebrowFontSize"), EyebrowFontSize },
 		{ TEXT("ButtonFontSize"), ButtonFontSize },
+		{ TEXT("HomePlayFontSize"), HomePlayFontSize },
 	};
 	for (const TPair<const TCHAR*, int32>& Size : FontSizes)
 	{
@@ -98,6 +110,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("HomeColumnWidth"), HomeColumnWidth },
 		{ TEXT("ModeCardWidth"), ModeCardWidth },
 		{ TEXT("ModeCardHeight"), ModeCardHeight },
+		{ TEXT("StarterCardWidth"), StarterCardWidth },
+		{ TEXT("StarterCardHeight"), StarterCardHeight },
 		{ TEXT("DialogWidth"), DialogWidth },
 		{ TEXT("SettingsWidth"), SettingsWidth },
 		{ TEXT("SettingsHeight"), SettingsHeight },
@@ -116,15 +130,85 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ShopDetailsWidth"), ShopDetailsWidth },
 		{ TEXT("ReportLabelWidth"), ReportLabelWidth },
 		{ TEXT("ReportColumnWidth"), ReportColumnWidth },
+		{ TEXT("PanelChamfer"), PanelChamfer },
+		{ TEXT("ButtonChamfer"), ButtonChamfer },
+		{ TEXT("TabUnderlineHeight"), TabUnderlineHeight },
+		{ TEXT("PresenceDotSize"), PresenceDotSize },
+		{ TEXT("HomePlayWidth"), HomePlayWidth },
+		{ TEXT("HomePlayHeight"), HomePlayHeight },
+		{ TEXT("ProgressionBarWidth"), ProgressionBarWidth },
+		{ TEXT("ProgressionBarHeight"), ProgressionBarHeight },
+		{ TEXT("WordmarkGlyphSize"), WordmarkGlyphSize },
+		{ TEXT("LevelBadgeSize"), LevelBadgeSize },
+		{ TEXT("CurrencyGlyphSize"), CurrencyGlyphSize },
+		{ TEXT("AvatarSize"), AvatarSize },
+		{ TEXT("SelectKitIconSize"), SelectKitIconSize },
+		{ TEXT("ReportPortraitSize"), ReportPortraitSize },
+		{ TEXT("ReportIconSize"), ReportIconSize },
+		{ TEXT("HistoryOutcomeBarWidth"), HistoryOutcomeBarWidth },
 	};
+	Require(HomeHeroHeight > 0.0f && HomeHeroHeight < 1.0f, TEXT("HomeHeroHeight"), TEXT("must be above 0 and below 1."));
+	Require(CollectionCardWidth >= 1.0f && CollectionCardHeight >= 1.0f && CollectionLockedShade > 0.0f && CollectionLockedShade <= 1.0f, TEXT("CollectionCardWidth"),
+		TEXT("a Collection card needs a size, and a locked one's shade above 0 and at most 1."));
+	Require(ProfileNameFieldWidth >= 1.0f, TEXT("ProfileNameFieldWidth"), TEXT("must be at least 1."));
+	Require(!ProfileDefaultRegion.IsEmpty(), TEXT("ProfileDefaultRegion"), TEXT("names the region the default background shows."));
+	Require(ProfileBackgroundAspect >= 1.0f && ProfileBackgroundFocus >= 0.0f && ProfileBackgroundFocus <= 1.0f, TEXT("ProfileBackgroundAspect"),
+		TEXT("a region panorama is at least as wide as tall, and its focus lies across it."));
+	Require(ShopPanelOpacity > 0.0f && ShopPanelOpacity <= 1.0f, TEXT("ShopPanelOpacity"), TEXT("must be above 0 and at most 1."));
+	// The menus' motion (ADR-082 §7).
+	Require(RevealSeconds > 0.0f && RevealStagger >= 0.0f && SheenSeconds > 0.0f && SheenOpacity > 0.0f && PressBurstRadius >= 1.0f, TEXT("RevealSeconds"),
+		TEXT("a page's reveal and a button's sheen run above 0 seconds, and a press bursts at least 1 across."));
+	Require(MoteArea >= 1.0f && MoteRiseMax >= MoteRiseMin && MoteRadiusMax >= MoteRadiusMin && MoteRadiusMin > 0.0f, TEXT("MoteArea"),
+		TEXT("motes need an area each, and each range its least at most its most."));
 	for (const TPair<const TCHAR*, float>& Length : Lengths)
 	{
 		Require(Length.Value > 0.0f, Length.Key, TEXT("must be above 0."));
+	}
+	Require(SurfaceShade >= 0.0f && SurfaceShade < 1.0f, TEXT("SurfaceShade"), TEXT("must be at least 0 and below 1."));
+	// Each family's typefaces are files the game ships (ADR-078 §2): named once each, and present under Content.
+	const TPair<const TCHAR*, EVeyraFontFamily> Families[] = {
+		{ TEXT("DisplayFontFaces"), EVeyraFontFamily::Display },
+		{ TEXT("InterfaceFontFaces"), EVeyraFontFamily::Interface },
+		{ TEXT("NumericFontFaces"), EVeyraFontFamily::Numeric },
+	};
+	for (const TPair<const TCHAR*, EVeyraFontFamily>& Family : Families)
+	{
+		const TArray<FVeyraFontFace>& Faces = FacesOf(Family.Value);
+		TSet<FName> Names;
+		bool bAlreadySeen = false;
+		for (const FVeyraFontFace& Face : Faces)
+		{
+			Names.Add(Face.Typeface, &bAlreadySeen);
+			Require(!Face.Typeface.IsNone() && !bAlreadySeen, Family.Key, TEXT("each face names a different typeface."));
+			Require(!Face.File.IsEmpty() && FPaths::FileExists(FPaths::ProjectContentDir() / Face.File), Family.Key,
+				TEXT("each face's File is a font under the project's Content folder."));
+		}
+		Require(!Faces.IsEmpty(), Family.Key, TEXT("names at least one typeface."));
+	}
+	// Each role of text is set in a typeface its family has.
+	const TPair<const TCHAR*, const FVeyraTextFace*> Roles[] = {
+		{ TEXT("TitleFace"), &TitleFace },
+		{ TEXT("HeadingFace"), &HeadingFace },
+		{ TEXT("BodyFace"), &BodyFace },
+		{ TEXT("SmallFace"), &SmallFace },
+		{ TEXT("CountdownFace"), &CountdownFace },
+		{ TEXT("DisplayFace"), &DisplayFace },
+		{ TEXT("EyebrowFace"), &EyebrowFace },
+		{ TEXT("ButtonFace"), &ButtonFace },
+		{ TEXT("PrimaryButtonFace"), &PrimaryButtonFace },
+	};
+	for (const TPair<const TCHAR*, const FVeyraTextFace*>& Role : Roles)
+	{
+		const FVeyraTextFace& Face = *Role.Value;
+		const bool bKnown = FacesOf(Face.Family).ContainsByPredicate([&Face](const FVeyraFontFace& Each) { return Each.Typeface == Face.Typeface; });
+		Require(bKnown, Role.Key, TEXT("names a typeface of its family."));
 	}
 	// The art is imported as packages under the game's content (VeyraShellArt).
 	Require(VanguardArtFolder.StartsWith(TEXT("/Game/")) && !VanguardArtFolder.EndsWith(TEXT("/")), TEXT("VanguardArtFolder"),
 		TEXT("must be a folder under /Game, without a trailing slash."));
 	Require(ItemArtFolder.StartsWith(TEXT("/Game/")) && !ItemArtFolder.EndsWith(TEXT("/")), TEXT("ItemArtFolder"),
+		TEXT("must be a folder under /Game, without a trailing slash."));
+	Require(BackgroundArtFolder.StartsWith(TEXT("/Game/")) && !BackgroundArtFolder.EndsWith(TEXT("/")), TEXT("BackgroundArtFolder"),
 		TEXT("must be a folder under /Game, without a trailing slash."));
 	Require(AbilityArtFolder.StartsWith(TEXT("/Game/")) && !AbilityArtFolder.EndsWith(TEXT("/")), TEXT("AbilityArtFolder"),
 		TEXT("must be a folder under /Game, without a trailing slash."));
@@ -183,6 +267,20 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		Require(!Art.Mode.IsEmpty() && !Art.Vanguard.IsEmpty() && !bAlreadySeen, TEXT("ModeArt"), TEXT("each entry names a different mode and a Vanguard."));
 	}
 	return Problems;
+}
+
+const TArray<FVeyraFontFace>& UVeyraShellStyleSettings::FacesOf(EVeyraFontFamily Family) const
+{
+	switch (Family)
+	{
+	case EVeyraFontFamily::Display:
+		return DisplayFontFaces;
+	case EVeyraFontFamily::Numeric:
+		return NumericFontFaces;
+	case EVeyraFontFamily::Interface:
+	default:
+		return InterfaceFontFaces;
+	}
 }
 
 FString UVeyraShellStyleSettings::ModeArtOf(const FString& Mode) const

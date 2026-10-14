@@ -3,6 +3,7 @@
 #include "Match/VeyraMatchMenuSubsystem.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Chat/VeyraChatCommands.h"
 #include "Chat/VeyraChatComposer.h"
 #include "Client/VeyraClientFlowSubsystem.h"
@@ -22,6 +23,7 @@
 #include "Scoreboard/VeyraScoreboard.h"
 #include "Engine/GameViewportClient.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Hud/VeyraHudLayout.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -262,14 +264,36 @@ void UVeyraMatchMenuSubsystem::OpenShop()
 		return;
 	}
 	Shop->Show(*Controller, [this] { CloseShop(); });
-	// Centred over the match, which stays in view and in play around it. The viewport keeps these
-	// only once the shop is in it, and a size resets the anchors, so they go in this order.
+	// Over the match, which stays in view and in play around it: centred in the room the HUD leaves, above the deck and clear
+	// of the minimap, and shrunk only when the player's HUD leaves less room than it needs (ADR-080 §5). The viewport keeps
+	// these only once the shop is in it, and a size resets the anchors, so they go in this order.
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	const FVector2D Centre(0.5, 0.5);
+	const FVector2D Designed(Style.ShopWidth, Style.ShopHeight);
 	Shop->AddToViewport();
-	Shop->SetDesiredSizeInViewport(FVector2D(Style.ShopWidth, Style.ShopHeight));
-	Shop->SetAnchorsInViewport(FAnchors(Centre.X, Centre.Y));
+	Shop->SetDesiredSizeInViewport(Designed);
 	Shop->SetAlignmentInViewport(Centre);
+	FVector2D Viewport = FVector2D::ZeroVector;
+	if (const UGameViewportClient* Client = Controller->GetLocalPlayer() ? Controller->GetLocalPlayer()->ViewportClient.Get() : nullptr)
+	{
+		Client->GetViewportSize(Viewport);
+	}
+	const float Dpi = UWidgetLayoutLibrary::GetViewportScale(Controller);
+	if (Viewport.X > 0.0 && Viewport.Y > 0.0 && Dpi > 0.0f)
+	{
+		const UVeyraGreyboxSettings& Hud = *GetDefault<UVeyraGreyboxSettings>();
+		const FVeyraHudArrangement Layout = VeyraHudLayout::ArrangeFor(Viewport, Hud, VeyraInterfacePreferences::Resolve(Hud, VeyraInterfacePreferences::StoreOf(Controller)));
+		const FBox2D Room = VeyraHudLayout::ShopRoom(Layout, Viewport, Hud.DeckGap * Layout.Base);
+		const FVector2D Wanted = Designed * Dpi;
+		const float Fit = FMath::Min3(1.0f, static_cast<float>(Room.GetSize().X / Wanted.X), static_cast<float>(Room.GetSize().Y / Wanted.Y));
+		Shop->SetAnchorsInViewport(FAnchors(0.0f, 0.0f));
+		Shop->SetPositionInViewport(Room.GetCenter(), /*bRemoveDPIScale*/ true);
+		Shop->SetRenderScale(FVector2D(FMath::Max(Fit, KINDA_SMALL_NUMBER)));
+	}
+	else
+	{
+		Shop->SetAnchorsInViewport(FAnchors(Centre.X, Centre.Y));
+	}
 	UpdateInputMode();
 }
 

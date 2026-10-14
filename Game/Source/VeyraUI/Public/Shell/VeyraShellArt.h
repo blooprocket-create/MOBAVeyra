@@ -27,6 +27,10 @@ namespace VeyraShellArt
 	/** The package ItemId's icon is saved in: "<ItemArtFolder>/T_<id>_Icon". */
 	VEYRAUI_API FString ItemIconPackageName(const FString& ItemId);
 
+	/** A profile background's region panorama: its package, and the texture once imported, or none (ADR-082 §10). */
+	VEYRAUI_API FString BackgroundPackageName(const FString& Region);
+	VEYRAUI_API UTexture2D* BackgroundOf(const FString& Region);
+
 	/**
 	 * ItemId's icon, loaded; null when there is no ID or its icon has not been imported, which the UI
 	 * shows as the item's initials. Remembered, since the HUD asks every frame.

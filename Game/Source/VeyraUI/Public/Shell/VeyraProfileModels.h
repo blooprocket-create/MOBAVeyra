@@ -14,6 +14,8 @@ struct FVeyraProfileCardModel
 	FString IconVanguard;
 	/** The Vanguard whose art is the background; empty for the neutral default background. */
 	FString BackgroundVanguard;
+	/** The region whose panorama is the background, for a "region_<id>" entry (ADR-082 §10); empty otherwise. */
+	FString BackgroundRegion;
 	FText Level;
 	/** Empty when no Vanguard is featured. */
 	FString FeaturedVanguard;
@@ -49,6 +51,8 @@ struct FVeyraProfileChoice
 	/** The Vanguard its picture shows; empty for a neutral one. */
 	FString Vanguard;
 	bool bSelected = false;
+	/** The region whose panorama its picture shows, for a background (ADR-082 §10); empty otherwise. */
+	FString Region;
 };
 
 /** The Profile page (ADR-048 §5): the player's profile as others see it, and the choices, as the draft stands. */
@@ -95,6 +99,9 @@ namespace VeyraProfileModels
 {
 	/** The Vanguard a catalog entry's picture shows: "vanguard_<id>" is that Vanguard; anything else is neutral. */
 	VEYRAUI_API FString VanguardOfEntry(const FString& Entry);
+
+	/** The region a background entry's picture shows: "region_<id>" is that region's panorama (ADR-082 §10); anything else none. */
+	VEYRAUI_API FString RegionOfEntry(const FString& Entry);
 
 	VEYRAUI_API FVeyraProfileCardModel DescribeCard(const VeyraBackendProtocol::FPublicProfile& Profile);
 

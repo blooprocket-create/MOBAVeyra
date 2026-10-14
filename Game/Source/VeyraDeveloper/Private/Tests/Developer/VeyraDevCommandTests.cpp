@@ -7,6 +7,9 @@
 #include "DevCommands/VeyraDevCommands.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/StringOutputDevice.h"
+#if WITH_VEYRA_UI
+#include "Hud/VeyraHudCapture.h"
+#endif
 
 namespace VeyraDevCommandTests
 {
@@ -50,6 +53,27 @@ namespace VeyraDevCommandTests
 				TEXT("Veyra.Dev."));
 			ASSERT_THAT(IsTrue(Strays.IsEmpty(), *FString::Join(Strays, TEXT(", "))));
 		}
+
+#if WITH_VEYRA_UI
+		TEST_METHOD(TheHudCaptureCommandsHoldTheirAskWithNoMatch)
+		{
+			// Smoke.ps1 -ScreenshotCommands runs them at launch, in no match: what they ask is kept for the HUD to come.
+			const FVeyraDevCommand* Hover = VeyraDevCommands::Find(TEXT("HudHover"));
+			const FVeyraDevCommand* Stats = VeyraDevCommands::Find(TEXT("StatsPanelOpen"));
+			ASSERT_THAT(IsTrue(Hover && Hover->LocalRun && Stats && Stats->LocalRun));
+			FStringOutputDevice Output;
+			const TArray<FString> Q = { TEXT("Q") };
+			const TArray<FString> On = { TEXT("1") };
+			const TArray<FString> Off = { TEXT("off") };
+			Hover->LocalRun(nullptr, Q, Output);
+			Stats->LocalRun(nullptr, On, Output);
+			const bool bHeld = VeyraHudCapture::PinnedHover() == TEXT("Q") && VeyraHudCapture::IsStatsPanelHeldOpen();
+			Hover->LocalRun(nullptr, {}, Output);
+			Stats->LocalRun(nullptr, Off, Output);
+			ASSERT_THAT(IsTrue(bHeld, *Output));
+			ASSERT_THAT(IsTrue(VeyraHudCapture::PinnedHover().IsEmpty() && !VeyraHudCapture::IsStatsPanelHeldOpen(), TEXT("let go again")));
+		}
+#endif
 
 		TEST_METHOD(HelpListsEveryCommandAndFilters)
 		{

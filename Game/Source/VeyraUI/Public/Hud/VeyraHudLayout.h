@@ -83,6 +83,14 @@ struct FVeyraHudArrangement
 	FVeyraChatFrame Chat;
 	/** Where the selected unit's frame stands, at its fullest, whether or not a unit is selected (ADR-066 §3). */
 	FBox2D TargetFrame = FBox2D(ForceInit);
+	/**
+	 * The stats panel beside the portrait (ADR-080 §3): its core block, always shown, left of the deck and level with its
+	 * foot, or above the deck's left end where the screen is too narrow; and the block of more stats directly above it.
+	 */
+	FBox2D StatsCore = FBox2D(ForceInit);
+	FBox2D StatsMore = FBox2D(ForceInit);
+	/** The stats panel's pixels per designed unit: the deck's own. */
+	float Stats = 1.0f;
 };
 
 namespace VeyraHudLayout
@@ -108,6 +116,15 @@ namespace VeyraHudLayout
 	 * The HUD on Viewport as Preferences set it: the safe area, the minimap (its frame reaching HalfExtent units), the deck
 	 * with AbilityCount abilities placed beside it, and the chat raised clear of the deck.
 	 */
+	/** The HUD on a Viewport-sized screen as the player set it, for a Vanguard's whole loadout on the battleground's layout. */
+	VEYRAUI_API FVeyraHudArrangement ArrangeFor(const FVector2D& Viewport, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences);
+
+	/**
+	 * Where the shop may stand on Viewport without covering the HUD it is bought from (ADR-080 §5): inside the safe area, above
+	 * the deck and left of the minimap, Gap pixels clear of each. In pixels.
+	 */
+	VEYRAUI_API FBox2D ShopRoom(const FVeyraHudArrangement& Layout, const FVector2D& Viewport, double Gap);
+
 	VEYRAUI_API FVeyraHudArrangement Arrange(const FVector2D& Viewport, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences,
 		int32 AbilityCount, double HalfExtent = 0.0);
 }

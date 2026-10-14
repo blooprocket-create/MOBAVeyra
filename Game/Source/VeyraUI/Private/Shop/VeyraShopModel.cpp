@@ -148,31 +148,47 @@ FVeyraShopView Describe(const AActor& Participant)
 	return View;
 }
 
-FText DescribeStats(const FVeyraItemStatsTuning& Stats)
+TArray<FVeyraShopStatPart> StatParts(const FVeyraItemStatsTuning& Stats)
 {
 	// Attack Speed is a fraction of base, shown as a whole percentage.
 	constexpr double Percent = 100.0;
-	TArray<FText> Lines;
-	const auto Add = [&Lines](double Value, const FText& Format) {
+	TArray<FVeyraShopStatPart> Parts;
+	const auto Add = [&Parts](double Value, bool bShare, const FText& Name) {
 		if (Value != 0.0)
 		{
-			Lines.Add(FText::Format(Format, FText::AsNumber(FMath::RoundToInt32(Value))));
+			const FText Number = FText::AsNumber(FMath::RoundToInt32(Value));
+			Parts.Add({ bShare ? FText::Format(LOCTEXT("ShareAmount", "+{0}%"), Number) : FText::Format(LOCTEXT("FlatAmount", "+{0}"), Number), Name });
 		}
 	};
-	Add(Stats.Health, LOCTEXT("Health", "+{0} Health"));
-	Add(Stats.HealthRegeneration, LOCTEXT("HealthRegeneration", "+{0} Health Regeneration"));
-	Add(Stats.Armor, LOCTEXT("Armor", "+{0} Armor"));
-	Add(Stats.MagicResist, LOCTEXT("MagicResist", "+{0} Magic Resist"));
-	Add(Stats.PhysicalPower, LOCTEXT("PhysicalPower", "+{0} Physical Power"));
-	Add(Stats.MagicPower, LOCTEXT("MagicPower", "+{0} Magic Power"));
-	Add(Stats.AttackSpeed * Percent, LOCTEXT("AttackSpeed", "+{0}% Attack Speed"));
-	Add(Stats.AbilityHaste, LOCTEXT("AbilityHaste", "+{0} Ability Haste"));
-	Add(Stats.MoveSpeed, LOCTEXT("MoveSpeed", "+{0} Movement Speed"));
-	Add(Stats.MagicPenetrationFlat, LOCTEXT("MagicPenetrationFlat", "+{0} Magic Penetration"));
-	Add(Stats.PhysicalPenetrationFlat, LOCTEXT("PhysicalPenetrationFlat", "+{0} Physical Penetration"));
-	Add(Stats.CritChance * Percent, LOCTEXT("CritChance", "+{0}% Crit Chance"));
-	Add(Stats.MagicPowerFraction * Percent, LOCTEXT("MagicPowerFraction", "+{0}% Magic Power"));
-	return FText::Join(LOCTEXT("StatSeparator", ", "), Lines);
+	Add(Stats.Health, false, LOCTEXT("Health", "Health"));
+	Add(Stats.HealthRegeneration, false, LOCTEXT("HealthRegeneration", "Health Regeneration"));
+	Add(Stats.Armor, false, LOCTEXT("Armor", "Armor"));
+	Add(Stats.MagicResist, false, LOCTEXT("MagicResist", "Magic Resist"));
+	Add(Stats.PhysicalPower, false, LOCTEXT("PhysicalPower", "Physical Power"));
+	Add(Stats.MagicPower, false, LOCTEXT("MagicPower", "Magic Power"));
+	Add(Stats.AttackSpeed * Percent, true, LOCTEXT("AttackSpeed", "Attack Speed"));
+	Add(Stats.AbilityHaste, false, LOCTEXT("AbilityHaste", "Ability Haste"));
+	Add(Stats.MoveSpeed, false, LOCTEXT("MoveSpeed", "Movement Speed"));
+	Add(Stats.MagicPenetrationFlat, false, LOCTEXT("MagicPenetrationFlat", "Magic Penetration"));
+	Add(Stats.PhysicalPenetrationFlat, false, LOCTEXT("PhysicalPenetrationFlat", "Physical Penetration"));
+	Add(Stats.CritChance * Percent, true, LOCTEXT("CritChance", "Crit Chance"));
+	Add(Stats.MagicPowerFraction * Percent, true, LOCTEXT("MagicPowerFraction", "Magic Power"));
+	return Parts;
+}
+
+TArray<FText> StatLines(const FVeyraItemStatsTuning& Stats)
+{
+	TArray<FText> Lines;
+	for (const FVeyraShopStatPart& Part : StatParts(Stats))
+	{
+		Lines.Add(FText::Format(LOCTEXT("StatLine", "{0} {1}"), Part.Amount, Part.Name));
+	}
+	return Lines;
+}
+
+FText DescribeStats(const FVeyraItemStatsTuning& Stats)
+{
+	return FText::Join(LOCTEXT("StatSeparator", ", "), StatLines(Stats));
 }
 
 bool MatchesSearch(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item, const FString& Search)

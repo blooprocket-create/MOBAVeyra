@@ -18,6 +18,7 @@ struct FVeyraInterfacePreferences;
 struct FVeyraKillFeedRow;
 struct FVeyraAnnouncement;
 struct FVeyraTargetFrame;
+class FVeyraHudMotion;
 
 /**
  * The in-match HUD's deck and strips, drawn on the canvas (ADR-008 §1). The Art Bible leaves the
@@ -41,7 +42,7 @@ namespace VeyraHudDeck
 		const FVeyraHudArrangement& Layout);
 
 	/** Draws Text large and centred a third of the way down, in Color: the match's end, for one. */
-	void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const FString& Text, const FLinearColor& Color);
+	void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const FString& Text, const FLinearColor& Color, FVeyraHudMotion* Motion = nullptr);
 
 	/**
 	 * Announces the player's own level-up (ADR-065 §5): "Level N" in gold over the battleground, with a line about the
@@ -65,5 +66,5 @@ namespace VeyraHudDeck
 	 * its name and side, its Health and resource with their figures, and a Vanguard's face, Level, items and Flux Spells.
 	 */
 	void DrawTargetFrame(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font,
-		const FVeyraTargetFrame& Frame, EVeyraTeam OwnSide, const FBox2D& Box, float Scale);
+		const FVeyraTargetFrame& Frame, EVeyraTeam OwnSide, const FBox2D& Box, float Scale, FVeyraHudMotion* Motion = nullptr);
 }

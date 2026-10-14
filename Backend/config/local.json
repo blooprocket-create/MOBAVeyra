@@ -187,7 +187,7 @@
   },
   "profile": {
     "icons": ["default", "vanguard_cairn", "vanguard_qazharr", "vanguard_oriel", "vanguard_bryn", "vanguard_kade", "vanguard_vera", "vanguard_mimzi", "vanguard_patch", "vanguard_gorraveth", "vanguard_raska", "vanguard_moro", "vanguard_korruk", "vanguard_mavra", "vanguard_celandrine", "vanguard_aurelisse", "vanguard_silt", "vanguard_torr", "vanguard_tavi", "vanguard_angeru", "vanguard_varkesh", "vanguard_relay", "vanguard_marek", "vanguard_neris", "vanguard_sylra", "vanguard_eudora"],
-    "backgrounds": ["default", "vanguard_cairn", "vanguard_qazharr", "vanguard_oriel", "vanguard_bryn", "vanguard_kade", "vanguard_vera", "vanguard_mimzi", "vanguard_patch", "vanguard_gorraveth", "vanguard_raska", "vanguard_moro", "vanguard_korruk", "vanguard_mavra", "vanguard_celandrine", "vanguard_aurelisse", "vanguard_silt", "vanguard_torr", "vanguard_tavi", "vanguard_angeru", "vanguard_varkesh", "vanguard_relay", "vanguard_marek", "vanguard_neris", "vanguard_sylra", "vanguard_eudora"],
+    "backgrounds": ["default", "region_iron_march", "region_ember_basin", "region_drowned_cantons", "region_merrin", "region_shatterdeep", "region_wildwood", "region_buried_riverlands", "region_reed_provinces", "region_bramblehollow"],
     "defaultIcon": "default",
     "defaultBackground": "default"
   },

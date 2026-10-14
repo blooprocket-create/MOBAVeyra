@@ -288,6 +288,8 @@ struct FVeyraResultsModel
 	/** Whether the backend confirmed how the match ended (UX-15). */
 	bool bVerified = false;
 	FText Headline;
+	/** Whether the headline is the player's win ("win"), loss ("loss", a personal loss included) or neither (empty), for its colour. */
+	FString Tone;
 	TArray<FText> Lines;
 	/** The Scoreboard and Detailed Statistics, once the result is verified (UX-50). */
 	FVeyraMatchReport Report;
@@ -400,6 +402,8 @@ struct FVeyraFriendModel
 	bool bCanMessage = false;
 	/** The friend's messages that arrived while their conversation was not open. */
 	int32 Unread = 0;
+	/** Online in any game state (ADR-078 §5), so listed under the panel's Online group. */
+	bool bOnline = false;
 };
 
 /** Which of the friends panel's party, block and request intents the coordinator allows now (ADR-044). */
@@ -447,6 +451,12 @@ struct FVeyraFriendsModel
 	bool bCanJoinPartyInvitations = false;
 	bool bCanDeclinePartyInvitations = false;
 	TArray<FVeyraFriendModel> Friends;
+	/** How many friends are online, in any game state, and its words for the panel's heading (ADR-078 §5): "2 online"; empty for none. */
+	int32 OnlineCount = 0;
+	FText OnlineSummary;
+	/** The two groups' headings, "Online · 2" and "Offline · 1", once any friend's status is known; empty otherwise. */
+	FText OnlineHeading;
+	FText OfflineHeading;
 	/** The players the player asked, who have not answered, each with Cancel. */
 	TArray<FVeyraSocialRequestModel> Pending;
 	bool bCanCancelRequests = false;

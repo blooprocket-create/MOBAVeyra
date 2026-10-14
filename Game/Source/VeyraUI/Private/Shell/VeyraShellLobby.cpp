@@ -44,6 +44,24 @@ namespace
 		return static_cast<uint8>(Role);
 	}
 
+	/** A friend's status dot (ADR-061 §2): available to play, busy in a queue, select or match, or away. */
+	FLinearColor PresenceDotColor(VeyraBackendProtocol::EPresence Presence)
+	{
+		using VeyraBackendProtocol::EPresence;
+		const UVeyraShellStyleSettings& Style = LobbyStyle();
+		switch (Presence)
+		{
+		case EPresence::Online:
+			return Style.PresenceAvailableColor;
+		case EPresence::InQueue:
+		case EPresence::InSelect:
+		case EPresence::InMatch:
+			return Style.PresenceBusyColor;
+		default:
+			return Style.PresenceAwayColor;
+		}
+	}
+
 	/** Adds Child to a horizontal or vertical box so that it takes the room left. */
 	void AddLobbyFilling(UPanelWidget& Parent, UWidget& Child)
 	{
@@ -374,28 +392,50 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	{
 		Parent.AddChild(Width);
 	}
-	AddText(*Rows, LOCTEXT("FriendsEyebrow", "Friends"), LobbyRole(EVeyraShellText::Eyebrow));
+	// The heading, and how many friends are online beside it (ADR-078 §5).
+	UHorizontalBox* Heading = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddText(*Heading, LOCTEXT("FriendsEyebrow", "Friends"), LobbyRole(EVeyraShellText::Eyebrow))->SetAutoWrapText(false);
+	if (!Model.OnlineSummary.IsEmpty())
+	{
+		UTextBlock* Online = AddText(*Heading, Model.OnlineSummary, LobbyRole(EVeyraShellText::Small));
+		Online->SetAutoWrapText(false);
+		Online->SetColorAndOpacity(FSlateColor(Style.AccentColor));
+	}
+	VeyraShellStyle::AddSpaced(*Rows, *Heading);
 	// The player's own visibility (ADR-061 §3): one toggle, and what it does while it is on.
 	if (Model.bOffersAppearOffline)
 	{
+		// As a status line: the player's own dot and its word, and the one toggle at its end.
+		UHorizontalBox* Status = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		const FLinearColor OwnDot = Model.bAppearOffline ? Style.PresenceAwayColor : Style.PresenceAvailableColor;
+		Status->AddChildToHorizontalBox(VeyraShellStyle::MakeDot(*WidgetTree, OwnDot, Style.PresenceDotSize))->SetVerticalAlignment(VAlign_Center);
+		UTextBlock* Own = AddText(*Status, Model.bAppearOffline ? LOCTEXT("OwnAppearOffline", "Appearing offline") : LOCTEXT("OwnOnline", "Online"),
+			LobbyRole(EVeyraShellText::Small));
+		Own->SetAutoWrapText(false);
+		Cast<UHorizontalBoxSlot>(Own->Slot)->SetPadding(FMargin(Style.Spacing / 2.0f, 0.0f, Style.Spacing, 0.0f));
+		AddLobbyFilling(*Status, *WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()));
 		const bool bAppearOffline = !Model.bAppearOffline;
-		AddKindButton(*Rows, EVeyraShellButtonKind::Quiet, VeyraShellModels::AppearOfflineLabel(Model.bAppearOffline),
+		AddKindButton(*Status, EVeyraShellButtonKind::Quiet, VeyraShellModels::AppearOfflineLabel(Model.bAppearOffline),
 			[this, bAppearOffline] { Client->SetAppearOffline(bAppearOffline); }, Model.bCanSetAppearOffline)
 			->KeepLabelOnOneLine();
+		VeyraShellStyle::AddSpaced(*Rows, *Status);
 		if (Model.bAppearOffline)
 		{
 			AddText(*Rows, VeyraShellModels::AppearOfflineNote(), LobbyRole(EVeyraShellText::Small));
 		}
 	}
 
-	// Add a friend by name (Parties & Social Bible §1). The field keeps what was typed across rebuilds.
+	// Add a friend by name (Parties & Social Bible §1), the field and its button on one line. The field keeps what was
+	// typed across rebuilds; the button shows a plus and is still named Add Friend.
+	UHorizontalBox* Adding = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	FriendNameBox = MakeTextField(LOCTEXT("FriendNameHint", "A player's name"), FriendNameDraft, Model.bCanAdd);
 	FriendNameBox->OnTextChanged.AddUniqueDynamic(this, &UVeyraShellScreen::HandleFriendNameChanged);
 	FriendNameBox->OnTextCommitted.AddUniqueDynamic(this, &UVeyraShellScreen::HandleFriendNameCommitted);
-	VeyraShellStyle::AddSpaced(*Rows, *FriendNameBox);
+	AddLobbyFilling(*Adding, *FriendNameBox);
 	// Enabled whatever the field holds, so typing never rebuilds the panel; an empty name sends nothing.
-	AddKindButton(*Rows, EVeyraShellButtonKind::Secondary, LOCTEXT("AddFriend", "Add Friend"), [this] { SubmitFriendName(); }, Model.bCanAdd)
-		->KeepLabelOnOneLine();
+	AddNamedButton(*Adding, EVeyraShellButtonKind::Secondary, LOCTEXT("AddFriend", "Add Friend"), LOCTEXT("AddFriendShown", "+"), [this] { SubmitFriendName(); },
+		Model.bCanAdd);
+	VeyraShellStyle::AddSpaced(*Rows, *Adding);
 	if (!Model.Feedback.IsEmpty())
 	{
 		AddText(*Rows, Model.Feedback, LobbyRole(EVeyraShellText::Muted));
@@ -468,8 +508,28 @@ void UVeyraShellScreen::BuildFriends(const FVeyraClientSnapshot& Snapshot, UPane
 	{
 		AddText(*Lists, LOCTEXT("NoFriends", "No friends yet. Add a player by their name."), LobbyRole(EVeyraShellText::Muted));
 	}
+	// Online friends first under their heading, then the rest under theirs, once any status is known (ADR-078 §5).
+	bool bOnlineHeaded = false;
+	bool bOfflineHeaded = false;
 	for (const FVeyraFriendModel& Friend : Model.Friends)
 	{
+		const FText* GroupHeading = nullptr;
+		if (Friend.bOnline && !bOnlineHeaded)
+		{
+			bOnlineHeaded = true;
+			GroupHeading = &Model.OnlineHeading;
+		}
+		else if (!Friend.bOnline && !bOfflineHeaded)
+		{
+			bOfflineHeaded = true;
+			GroupHeading = &Model.OfflineHeading;
+		}
+		if (GroupHeading && !GroupHeading->IsEmpty())
+		{
+			UTextBlock* Group = AddText(*Lists, *GroupHeading, LobbyRole(EVeyraShellText::Eyebrow));
+			Group->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
+			Group->SetAutoWrapText(false);
+		}
 		BuildFriend(Friend, *Lists);
 	}
 	// Requests the player sent, which they may withdraw.
@@ -526,8 +586,36 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 	UVerticalBox* Card = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Card->AddChildToVerticalBox(Line);
-	// The friend's card opens its other actions (UX-10: contextual, not a row of buttons for each friend).
-	AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::FriendCardLabel(Name), Friend.Name, [this, Key] { OpenCard(Key); }, true, bOpen);
+	// Their initial on a tile with their status dot on its corner; the words under the name say the same, so colour is
+	// never alone (ADR-078 §5).
+	const UVeyraShellStyleSettings& Style = LobbyStyle();
+	UOverlay* Avatar = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+	Avatar->AddChildToOverlay(VeyraShellStyle::MakeInitialTile(*WidgetTree, Friend.Name, Style.AvatarSize));
+	UOverlaySlot* DotSlot = Avatar->AddChildToOverlay(VeyraShellStyle::MakeDot(*WidgetTree, PresenceDotColor(Friend.Presence), Style.PresenceDotSize));
+	DotSlot->SetHorizontalAlignment(HAlign_Right);
+	DotSlot->SetVerticalAlignment(VAlign_Bottom);
+	Line->AddChildToHorizontalBox(Avatar)->SetVerticalAlignment(VAlign_Center);
+	// The name, which opens the friend's card of other actions (UX-10: contextual, not a row of buttons for each
+	// friend), set as a name rather than a command, and their status under it (ADR-061 §2).
+	UVerticalBox* Who = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	UVeyraShellButton* NameButton = UVeyraShellButton::MakeKindNamed(*WidgetTree, EVeyraShellButtonKind::Quiet, VeyraShellModels::FriendCardLabel(Name), Friend.Name,
+		[this, Key] { OpenCard(Key); }, true, bOpen);
+	NameButton->KeepLabelOnOneLine();
+	Buttons.Add(NameButton);
+	if (UTextBlock* NameText = Cast<UTextBlock>(NameButton->GetContent()))
+	{
+		NameText->SetTextTransformPolicy(ETextTransformPolicy::None);
+		NameText->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::Heading));
+		NameText->SetColorAndOpacity(FSlateColor(Style.TextColor));
+	}
+	Who->AddChildToVerticalBox(NameButton)->SetHorizontalAlignment(HAlign_Left);
+	if (!Friend.Status.IsEmpty())
+	{
+		UTextBlock* Status = AddText(*Who, Friend.Status, LobbyRole(EVeyraShellText::Small));
+		Status->SetColorAndOpacity(FSlateColor(Friend.bOnline ? Style.AccentColor : Style.MutedTextColor));
+		Cast<UVerticalBoxSlot>(Status->Slot)->SetPadding(FMargin(Style.ButtonPadding * 2.0f, 0.0f, 0.0f, 0.0f));
+	}
+	Line->AddChildToHorizontalBox(Who)->SetVerticalAlignment(VAlign_Center);
 	// Their messages that arrived while their conversation was closed (UX-3: unread states).
 	if (Friend.Unread > 0)
 	{
@@ -554,11 +642,6 @@ void UVeyraShellScreen::BuildFriend(const FVeyraFriendModel& Friend, UPanelWidge
 		bInviteOnLine = true;
 		AddNamedButton(*Line, EVeyraShellButtonKind::Secondary, VeyraShellModels::PartyInviteLabel(Name), LOCTEXT("InviteToParty", "Invite"),
 			[this, Id] { Client->InviteToParty(Id); }, Friend.bCanPartyInvite);
-	}
-	// Their status under the name (ADR-061 §2): who can play now, at a glance.
-	if (!Friend.Status.IsEmpty())
-	{
-		AddText(*Card, Friend.Status, LobbyRole(EVeyraShellText::Small));
 	}
 	if (bOpen)
 	{

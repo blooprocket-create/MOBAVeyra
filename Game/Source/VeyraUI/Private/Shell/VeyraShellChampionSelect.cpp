@@ -23,6 +23,7 @@
 #include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
 #include "Components/SizeBoxSlot.h"
+#include "Components/Spacer.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -31,6 +32,7 @@
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
+#include "Shell/VeyraShellLook.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Slots/VeyraAbilitySlot.h"
@@ -158,8 +160,9 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 	const FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(Snapshot, Client->GetRemainingPickSeconds(),
 		Client->CanIssue(EVeyraClientIntent::HoverVanguard), Client->CanIssue(EVeyraClientIntent::LockVanguard), Client->CanIssue(EVeyraClientIntent::LeaveSelect),
 		Client->CanIssue(EVeyraClientIntent::ChooseFluxSpell), Draft);
-	// Browsing changes the large art (UX 27): the shown Vanguard fills the screen behind everything.
-	ShowBackdrop(VeyraShellArt::HeroOf(Model.ShownVanguardId));
+	// Browsing changes the large art (UX 27): the shown Vanguard fills the screen behind everything, the centrepiece
+	// itself rather than a backdrop behind a framed card (ADR-078 §5).
+	ShowSelectArt(VeyraShellArt::HeroOf(Model.ShownVanguardId));
 	PickSeconds = Model.PickSeconds;
 
 	Content->AddChildToVerticalBox(&MakeSelectHeader(Model));
@@ -172,7 +175,7 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 	UHorizontalBoxSlot* CentreSlot = Middle->AddChildToHorizontalBox(&MakeCentre(Model));
 	CentreSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	CentreSlot->SetHorizontalAlignment(HAlign_Center);
-	CentreSlot->SetVerticalAlignment(VAlign_Center);
+	CentreSlot->SetVerticalAlignment(VAlign_Fill);
 	Middle->AddChildToHorizontalBox(&MakeSeatColumn(Model, /*bAllies*/ false))->SetVerticalAlignment(VAlign_Center);
 	UVerticalBoxSlot* MiddleSlot = Content->AddChildToVerticalBox(Middle);
 	MiddleSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
@@ -222,11 +225,20 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 			Portrait->SetColorAndOpacity(Settings.MutedTextColor);
 		}
 		Tile->AddChildToVerticalBox(Portrait)->SetHorizontalAlignment(HAlign_Center);
-		AddLine(*WidgetTree, *Tile, Card.Name, EVeyraShellText::Small, HAlign_Center);
+		// Every tile the portrait's width, a long name wrapping under it rather than widening its tile (ADR-082 §11).
+		AddLine(*WidgetTree, *Tile, Card.Name, EVeyraShellText::Small, HAlign_Center, /*bWrap*/ true);
+		USizeBox* TileBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		TileBox->SetWidthOverride(Settings.RosterTileSize);
+		TileBox->AddChild(Tile);
 		const FString Id = Card.VanguardId;
 		const bool bBan = Model.bBanning;
-		UVeyraShellButton* Button = AddContentButton(*Tiles, Card.Name, *Tile, [this, Id, bBan] { bBan ? Client->HoverBan(Id) : Client->HoverVanguard(Id); },
+		UVeyraShellButton* Button = AddContentButton(*Tiles, Card.Name, *TileBox, [this, Id, bBan] { bBan ? Client->HoverBan(Id) : Client->HoverVanguard(Id); },
 			Model.bCanChoose && !Card.bTaken, Card.bChosen);
+		if (UHorizontalBoxSlot* TileSlot = Cast<UHorizontalBoxSlot>(Button->Slot))
+		{
+			// Portraits level whatever their names' lines.
+			TileSlot->SetVerticalAlignment(VAlign_Top);
+		}
 		if (Card.bBanned)
 		{
 			Button->SetToolTipText(FText::Format(LOCTEXT("BannedTip", "{0} is banned."), Card.Name));
@@ -309,12 +321,12 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 	UBorder* Row = VeyraShellStyle::MakeSurface(*WidgetTree, Seat.bYou ? EVeyraShellSurface::Raised : EVeyraShellSurface::Panel, FMargin(Settings.Spacing / 2.0f));
 	if (Seat.bYou)
 	{
-		Row->SetBrush(FSlateRoundedBoxBrush(Settings.SurfaceRaisedColor, Settings.PanelCornerRadius, Settings.FrameColor.CopyWithNewOpacity(0.7f), 1.0f));
+		VeyraShellStyle::StyleSurface(*Row, Settings.SurfaceRaisedColor, Settings.FrameColor.CopyWithNewOpacity(0.7f));
 	}
 	else if (Seat.bActing)
 	{
 		// Whoever bans or picks now, outlined in the accent (ADR-042 §1).
-		Row->SetBrush(FSlateRoundedBoxBrush(Settings.PanelColor, Settings.PanelCornerRadius, Settings.AccentColor, 1.0f));
+		VeyraShellStyle::StyleSurface(*Row, Settings.PanelColor, Settings.AccentColor);
 	}
 	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Row->SetContent(Line);
@@ -369,7 +381,7 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 		{
 			const FText Spell = Seat.Spells.IsValidIndex(SpellSlot) ? Seat.Spells[SpellSlot] : FText::GetEmpty();
 			UBorder* Tile = VeyraShellStyle::MakeBorder(*WidgetTree, Settings.ButtonColor, 0.0f);
-			Tile->SetBrush(FSlateRoundedBoxBrush(Settings.ButtonColor, Settings.ButtonCornerRadius, Settings.HairlineColor, 1.0f));
+			Tile->SetBrush(VeyraShellStyle::EdgedFace(Settings.ButtonColor, Settings.HairlineColor));
 			Tile->SetHorizontalAlignment(HAlign_Center);
 			Tile->SetVerticalAlignment(VAlign_Center);
 			Tile->SetContent(VeyraShellStyle::MakeText(*WidgetTree, Spell.IsEmpty() ? FText::GetEmpty() : FText::FromString(Spell.ToString().Left(1)), EVeyraShellText::Small));
@@ -394,21 +406,20 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 {
 	const UVeyraShellStyleSettings& Settings = Style();
+	// The shown Vanguard's art fills the screen behind this column (ShowSelectArt), so the column holds only what
+	// sits over it: the kit when opened, and the name low down, clear of the art's subject (ADR-078 §5).
 	UVerticalBox* Centre = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	const FVector2D FrameSize(Settings.SplashWidth, Settings.SplashHeight);
-	UOverlay* Frame = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
-	UImage* Splash = MakeArt(*WidgetTree, Model.ShownVanguardId, FrameSize, Settings.SplashCornerRadius, /*bPortrait*/ false, Settings.FrameColor);
-	Frame->AddChildToOverlay(Splash);
+	UVerticalBoxSlot* Room = Centre->AddChildToVerticalBox(WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()));
+	Room->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	if (Model.ShownVanguardId.IsEmpty())
 	{
-		UOverlaySlot* Prompt = Frame->AddChildToOverlay(VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("ChooseAVanguard", "Choose a Vanguard"), EVeyraShellText::Muted));
-		Prompt->SetHorizontalAlignment(HAlign_Center);
-		Prompt->SetVerticalAlignment(VAlign_Center);
+		AddLine(*WidgetTree, *Centre, LOCTEXT("ChooseAVanguard", "Choose a Vanguard"), EVeyraShellText::Muted, HAlign_Center);
+		return *Centre;
 	}
-	else if (bShowAbilities)
+	if (bShowAbilities)
 	{
 		// View Abilities lays the kit over the art: the passive, then Q, W, E and R.
-		UBorder* Kit = VeyraShellStyle::MakeBorder(*WidgetTree, Settings.MenuScrimColor, Settings.Spacing * 2.0f);
+		UBorder* Kit = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Settings.Spacing * 2.0f));
 		UVerticalBox* Lines = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Kit->SetContent(Lines);
 		for (const FVeyraAbilityLineModel& Ability : Model.Abilities)
@@ -432,24 +443,39 @@ UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 			Line->AddChildToHorizontalBox(Texts)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 			Lines->AddChildToVerticalBox(Line)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Settings.Spacing / 2.0f));
 		}
-		UOverlaySlot* KitSlot = Frame->AddChildToOverlay(Kit);
-		KitSlot->SetHorizontalAlignment(HAlign_Fill);
-		KitSlot->SetVerticalAlignment(VAlign_Fill);
+		USizeBox* KitBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		KitBox->SetWidthOverride(Settings.SplashWidth);
+		KitBox->SetMaxDesiredHeight(Settings.SplashHeight);
+		KitBox->AddChild(Kit);
+		Centre->AddChildToVerticalBox(KitBox)->SetHorizontalAlignment(HAlign_Center);
 	}
-	Centre->AddChildToVerticalBox(Sized(*WidgetTree, *Frame, FrameSize))->SetHorizontalAlignment(HAlign_Center);
 
-	if (!Model.ShownVanguardId.IsEmpty())
+	// The name in the display tier, its title in brass, and the kit's icons beside View Abilities.
+	UTextBlock* Name = AddLine(*WidgetTree, *Centre, Model.ShownName, EVeyraShellText::Display, HAlign_Center);
+	Cast<UVerticalBoxSlot>(Name->Slot)->SetPadding(FMargin(0.0f, Settings.Spacing, 0.0f, 0.0f));
+	UTextBlock* Title = AddLine(*WidgetTree, *Centre, Model.ShownTitle, EVeyraShellText::Body, HAlign_Center);
+	Title->SetColorAndOpacity(FSlateColor(Settings.FrameColor));
+	UHorizontalBox* Kit = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	for (const FVeyraAbilityLineModel& Ability : Model.Abilities)
 	{
-		UTextBlock* Name = AddLine(*WidgetTree, *Centre, Model.ShownName, EVeyraShellText::Title, HAlign_Center);
-		Cast<UVerticalBoxSlot>(Name->Slot)->SetPadding(FMargin(0.0f, Settings.Spacing, 0.0f, 0.0f));
-		AddLine(*WidgetTree, *Centre, Model.ShownTitle, EVeyraShellText::Muted, HAlign_Center);
-		UVeyraShellButton* Toggle = AddButton(*Centre, AbilitiesLabel(bShowAbilities), [this] {
-			bShowAbilities = !bShowAbilities;
-			Refresh();
-		});
-		Cast<UVerticalBoxSlot>(Toggle->Slot)->SetHorizontalAlignment(HAlign_Center);
-		Toggle->KeepLabelOnOneLine();
+		if (UImage* Icon = MakeIcon(*WidgetTree, VeyraShellArt::AbilityIconOf(Ability.AbilityId), Settings.SelectKitIconSize))
+		{
+			Icon->SetToolTipText(FText::Format(LOCTEXT("KitIconTip", "{0}: {1}"), Ability.Key, Ability.Name));
+			UHorizontalBoxSlot* IconSlot = Kit->AddChildToHorizontalBox(Sized(*WidgetTree, *Icon, FVector2D(Settings.SelectKitIconSize)));
+			IconSlot->SetPadding(FMargin(0.0f, 0.0f, Settings.Spacing / 2.0f, 0.0f));
+			IconSlot->SetVerticalAlignment(VAlign_Center);
+		}
 	}
+	UVeyraShellButton* Toggle = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Quiet, AbilitiesLabel(bShowAbilities), [this] {
+		bShowAbilities = !bShowAbilities;
+		Refresh();
+	}, true, bShowAbilities);
+	Toggle->KeepLabelOnOneLine();
+	Buttons.Add(Toggle);
+	Kit->AddChildToHorizontalBox(Toggle)->SetVerticalAlignment(VAlign_Center);
+	UVerticalBoxSlot* KitSlot = Centre->AddChildToVerticalBox(Kit);
+	KitSlot->SetHorizontalAlignment(HAlign_Center);
+	KitSlot->SetPadding(FMargin(0.0f, Settings.Spacing / 2.0f, 0.0f, 0.0f));
 	return *Centre;
 }
 
@@ -496,17 +522,22 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	const bool bBan = Model.bBanning;
 	const bool bCanPress = bBan ? Model.bCanBan : Model.bCanLockIn;
 	const FString LockInId = bBan ? Model.BanVanguardId : Model.LockInVanguardId;
-	UTextBlock* LockInText = VeyraShellStyle::MakeText(*WidgetTree, bBan ? LOCTEXT("BanTile", "BAN") : LOCTEXT("LockInTile", "LOCK IN"), EVeyraShellText::Heading);
-	LockInText->SetJustification(ETextJustify::Center);
-	if (bCanPress)
+	// The screen's one primary action, in brass, as tall as the spell tiles beside it (ADR-078 §5).
+	USizeBox* LockInBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	LockInBox->SetWidthOverride(Settings.LockInWidth);
+	LockInBox->SetHeightOverride(Settings.SpellTileSize);
+	UVeyraShellButton* LockIn = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Primary, bBan ? LOCTEXT("Ban", "Ban") : LOCTEXT("LockIn", "Lock In"),
+		[this, LockInId, bBan] { bBan ? Client->BanVanguard(LockInId) : Client->LockVanguard(LockInId); }, bCanPress);
+	if (UTextBlock* LockInLabel = Cast<UTextBlock>(LockIn->GetContent()))
 	{
-		// Dark on the gold it is filled with while it can be pressed.
-		LockInText->SetColorAndOpacity(FSlateColor(Settings.BackgroundColor));
+		LockInLabel->SetFont(VeyraShellStyle::FontFor(EVeyraShellText::PrimaryButton));
+		FSlateFontInfo Font = LockInLabel->GetFont();
+		Font.Size = VeyraShellLook::ScaledFontSize(Settings.HomePlayFontSize);
+		LockInLabel->SetFont(Font);
 	}
-	USizeBox* LockInBox = Sized(*WidgetTree, *LockInText, FVector2D(Settings.LockInWidth, Settings.SpellTileSize));
-	Cast<USizeBoxSlot>(LockInText->Slot)->SetVerticalAlignment(VAlign_Center);
-	AddContentButton(*Loadout, bBan ? LOCTEXT("Ban", "Ban") : LOCTEXT("LockIn", "Lock In"), *LockInBox,
-		[this, LockInId, bBan] { bBan ? Client->BanVanguard(LockInId) : Client->LockVanguard(LockInId); }, bCanPress, bCanPress);
+	Buttons.Add(LockIn);
+	LockInBox->AddChild(LockIn);
+	VeyraShellStyle::AddSpaced(*Loadout, *LockInBox);
 	UHorizontalBoxSlot* LoadoutSlot = Footer->AddChildToHorizontalBox(Loadout);
 	LoadoutSlot->SetVerticalAlignment(VAlign_Bottom);
 
@@ -609,6 +640,20 @@ void UVeyraShellScreen::ShowBackdrop(UTexture2D* Hero)
 	// Dimmed, so the columns and text read over it.
 	Backdrop->SetColorAndOpacity(Style().BackdropTint);
 	BackdropBox->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UVeyraShellScreen::ShowSelectArt(UTexture2D* Hero)
+{
+	ShowBackdrop(Hero);
+	if (!Hero)
+	{
+		return;
+	}
+	Backdrop->SetColorAndOpacity(Style().SelectArtTint);
+	for (UImage* Scrim : { ScrimLeft.Get(), ScrimBottom.Get(), ScrimTop.Get(), ScrimRight.Get() })
+	{
+		Scrim->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
 }
 
 UTexture2D* UVeyraShellScreen::GetBackdrop() const

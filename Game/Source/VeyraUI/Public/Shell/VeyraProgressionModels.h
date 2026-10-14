@@ -17,6 +17,10 @@ struct FVeyraProgressionBarModel
 	float Fraction = 0.0f;
 	/** Flux and Refined Flux, the persistent account currencies, never Team Flux. */
 	FText Currencies;
+	/** The level's number alone, for its badge, and each balance's amount alone, beside its mark (ADR-078 §5). */
+	FText LevelNumber;
+	FText Flux;
+	FText RefinedFlux;
 };
 
 /** One released Vanguard on the Collection page (Account, Collection & Mastery Bible §4). */
@@ -27,6 +31,8 @@ struct FVeyraCollectionCard
 	/** Owned, lent by the rotation, or neither. */
 	FText Status;
 	FText MasteryShort;
+	/** Whether it has any Mastery yet, so its card shows its Mastery (ADR-082 §9). */
+	bool bHasMastery = false;
 	/** The opened card's detail: Mastery Level and points toward the next, lifetime points, emote tier. */
 	TArray<FText> Details;
 	bool bPurchasable = false;

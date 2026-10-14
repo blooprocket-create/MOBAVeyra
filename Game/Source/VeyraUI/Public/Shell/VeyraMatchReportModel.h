@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Backend/VeyraBackendProtocol.h"
+#include "Content/VeyraContentId.h"
 #include "Internationalization/Text.h"
 
 /** One player's row on a match's scoreboard (Pre-Game Client UX Bible 50). */
@@ -20,6 +21,10 @@ struct FVeyraReportLine
 	FText Items;
 	/** Both final Flux Spell slots. */
 	FText FluxSpells;
+	/** The Vanguard, and the final items and Flux Spells by ID in slot order, an empty slot invalid: for their art (ADR-078 §5). */
+	FString VanguardId;
+	TArray<FVeyraContentId> ItemIds;
+	TArray<FVeyraContentId> FluxSpellIds;
 };
 
 /** One team's half of the scoreboard with its summary (UX-50, UX-53). */

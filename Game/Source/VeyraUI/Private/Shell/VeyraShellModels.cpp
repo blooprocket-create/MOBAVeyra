@@ -788,6 +788,7 @@ FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& In
 		else
 		{
 			Model.Headline = Outcome->Winner == Outcome->Side ? LOCTEXT("ResultVictory", "Victory") : LOCTEXT("ResultDefeat", "Defeat");
+			Model.Tone = Outcome->Winner == Outcome->Side ? TEXT("win") : TEXT("loss");
 		}
 		Model.Lines.Add(EndReasonText(Outcome->EndReason));
 		// A personal loss for absence is the player's own outcome, apart from its team's (Match Flow
@@ -798,6 +799,7 @@ FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& In
 				: Outcome->Winner == Outcome->Side ? LOCTEXT("TeamWon", "won") : LOCTEXT("TeamLost", "lost");
 			Model.Lines.Insert(FText::Format(LOCTEXT("ResultPersonalLoss", "Personal loss: you were away too long. Your team {0}."), Team), 0);
 			Model.Headline = LOCTEXT("ResultPersonalDefeat", "Defeat");
+			Model.Tone = TEXT("loss");
 		}
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultMode", "Mode: {0}"), ModeNameOf(Outcome->Mode)));
 		if (!Outcome->VanguardId.IsEmpty())
@@ -920,6 +922,12 @@ namespace
 	bool IsInvitable(EPresence Presence)
 	{
 		return Presence == EPresence::Unknown || Presence == EPresence::Online || Presence == EPresence::InQueue;
+	}
+
+	/** Whether a friend so shown is online, playing or not; an unknown status is not counted. */
+	bool IsOnline(EPresence Presence)
+	{
+		return Presence == EPresence::Online || Presence == EPresence::InQueue || Presence == EPresence::InSelect || Presence == EPresence::InMatch;
 	}
 
 	/** The friends panel's order: who can play now, then who is busy, then who is away (ADR-061 §6). */
@@ -1333,6 +1341,18 @@ FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bC
 	}
 	// Who can play now first, then who is busy, then who is away; by name within each (ADR-061 §6).
 	Algo::StableSortBy(Model.Friends, [](const FVeyraFriendModel& Friend) { return AvailabilityRank(Friend.Presence); });
+	for (FVeyraFriendModel& Friend : Model.Friends)
+	{
+		Friend.bOnline = IsOnline(Friend.Presence);
+	}
+	Model.OnlineCount = Algo::CountIf(Model.Friends, [](const FVeyraFriendModel& Friend) { return Friend.bOnline; });
+	Model.OnlineSummary = Model.OnlineCount > 0 ? FText::Format(LOCTEXT("FriendsOnline", "{0} online"), FText::AsNumber(Model.OnlineCount)) : FText::GetEmpty();
+	// The groups need a known status: from a backend without presence, the list stays one.
+	if (Model.Friends.ContainsByPredicate([](const FVeyraFriendModel& Friend) { return Friend.Presence != VeyraBackendProtocol::EPresence::Unknown; }))
+	{
+		Model.OnlineHeading = FText::Format(LOCTEXT("FriendsOnlineHeading", "Online · {0}"), FText::AsNumber(Model.OnlineCount));
+		Model.OfflineHeading = FText::Format(LOCTEXT("FriendsOfflineHeading", "Offline · {0}"), FText::AsNumber(Model.Friends.Num() - Model.OnlineCount));
+	}
 	Model.bOffersAppearOffline = Social.Presence.IsSet();
 	Model.bAppearOffline = Social.Presence.IsSet() && Social.Presence->bAppearOffline;
 	Model.bCanSetAppearOffline = Model.bOffersAppearOffline && Permissions.bCanSetAppearOffline;

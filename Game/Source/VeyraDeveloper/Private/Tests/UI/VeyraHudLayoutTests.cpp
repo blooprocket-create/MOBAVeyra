@@ -7,6 +7,7 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Hud/VeyraHudLayout.h"
 #include "Settings/VeyraInterfacePreferences.h"
+#include "Shell/VeyraShellStyleSettings.h"
 
 namespace VeyraHudLayoutTests
 {
@@ -99,6 +100,27 @@ namespace VeyraHudLayoutTests
 				ASSERT_THAT(IsTrue(!Deck.Intersect(Chat), Viewport.ToString()));
 				ASSERT_THAT(IsTrue(Deck.Min.X >= 0.0 && Deck.Max.X <= Viewport.X && Deck.Max.Y <= Viewport.Y, Viewport.ToString()));
 			}
+		}
+
+		TEST_METHOD(TheStatsPanelAndTheShopKeepClearOfTheDeckTheMinimapAndTheChat)
+		{
+			// ADR-080 §3 and §5.
+			const FVeyraHudArrangement Layout = VeyraHudLayout::Arrange(Screen, Hud(), Defaults(), Abilities);
+			const FBox2D Deck(Layout.DeckTopLeft, Layout.DeckTopLeft + Layout.Deck.Size);
+			const FBox2D Minimap(Layout.Minimap.Origin, Layout.Minimap.Origin + FVector2D(Layout.Minimap.Size));
+			const FBox2D Chat(Layout.Chat.InputTopLeft, Layout.Chat.InputTopLeft + Layout.Chat.InputSize);
+			// Beside the portrait, level with the deck's foot, its more stats directly above it.
+			ASSERT_THAT(IsTrue(Layout.StatsCore.Max.X <= Deck.Min.X && FMath::IsNearlyEqual(Layout.StatsCore.Max.Y, Deck.Max.Y, 0.01)));
+			ASSERT_THAT(IsTrue(Layout.StatsMore.Max.Y <= Layout.StatsCore.Min.Y && FMath::IsNearlyEqual(Layout.StatsMore.Min.X, Layout.StatsCore.Min.X)));
+			for (const FBox2D& Stats : { Layout.StatsCore, Layout.StatsMore })
+			{
+				ASSERT_THAT(IsFalse(Stats.Intersect(Deck) || Stats.Intersect(Minimap) || Stats.Intersect(Chat)));
+			}
+			// The shop's room is above the deck and left of the minimap, and the designed shop fits it at 1080p.
+			const FBox2D Room = VeyraHudLayout::ShopRoom(Layout, Screen, Hud().DeckGap * Layout.Base);
+			ASSERT_THAT(IsTrue(Room.Max.Y <= Deck.Min.Y && Room.Max.X <= Minimap.Min.X));
+			const UVeyraShellStyleSettings& Shell = *GetDefault<UVeyraShellStyleSettings>();
+			ASSERT_THAT(IsTrue(Room.GetSize().X >= Shell.ShopWidth && Room.GetSize().Y >= Shell.ShopHeight, TEXT("no shrinking at the designed scales")));
 		}
 	};
 }

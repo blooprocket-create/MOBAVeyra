@@ -69,6 +69,8 @@ namespace VeyraShellStyle
 		FromBottom,
 		/** Dark at the top edge, clear quickly. */
 		FromTop,
+		/** Dark at the right edge, clear a third of the way in: champion select's enemy column (ADR-078 §5). */
+		FromRight,
 	};
 
 	/** The font Role uses. */
@@ -80,11 +82,35 @@ namespace VeyraShellStyle
 	/** A border filled with Color, padded by the shell's spacing. */
 	UBorder* MakeBorder(UWidgetTree& Tree, const FLinearColor& Color, float Padding);
 
-	/** A rounded, outlined surface of the given kind, padded by Padding. */
+	/**
+	 * A chamfered surface of the given kind (ADR-078 §3), padded by Padding: a UVeyraShellSurface, its fill tinted the
+	 * surface's colour and its brass edge drawn over it.
+	 */
 	UBorder* MakeSurface(UWidgetTree& Tree, EVeyraShellSurface Surface, const FMargin& Padding);
+
+	/** Gives Border the surface's fill, and its edge too when it is a UVeyraShellSurface. */
+	void StyleSurface(UBorder& Border, EVeyraShellSurface Surface);
+
+	/** As StyleSurface, in Fill with an Edge of its own: a row or card that stands out, such as the player's own. */
+	void StyleSurface(UBorder& Border, const FLinearColor& Fill, const FLinearColor& Edge);
+
+	/** A small chamfered face of Fill edged in Edge, for a tile, a swatch or a banner drawn by a plain border. */
+	FSlateBrush EdgedFace(const FLinearColor& Fill, const FLinearColor& Edge);
 
 	/** A one-unit-high rule across its slot, in the outline colour. */
 	UWidget* MakeRule(UWidgetTree& Tree);
+
+	/** An image of Brush at its own size, which clicks pass through: a mark such as the Flux diamond. */
+	UWidget* MakeGlyph(UWidgetTree& Tree, const FSlateBrush& Brush);
+
+	/** A chamfered tile Size across with Name's first letter in the display face: a player, until profiles show icons here. */
+	UWidget* MakeInitialTile(UWidgetTree& Tree, const FText& Name, float Size);
+
+	/** A round dot Size across in Color, such as a friend's status beside its words. */
+	UWidget* MakeDot(UWidgetTree& Tree, const FLinearColor& Color, float Size);
+
+	/** A line Width by Height filled Fraction (0 to 1) of the way in Fill, over Track: progress toward something. */
+	UWidget* MakeMeter(UWidgetTree& Tree, float Fraction, const FLinearColor& Fill, const FLinearColor& Track, float Width, float Height);
 
 	/**
 	 * Styles Box as every text field of the client is, in the current look: a raised field, its fill opaque when panels

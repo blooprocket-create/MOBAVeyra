@@ -218,7 +218,7 @@ Follow the [Visual Upgrade Roadmap](VEYRA_VISUAL_UPGRADE_ROADMAP.md), beginning 
 
 Open decisions to obtain explicitly when work reaches them:
 - which client screen and Crucible region will be the first production reference slice;
-- final typography, UI visual token/palette values and presentation asset source formats;
+- final typography, UI visual token/palette values and presentation asset source formats (the client's type and surfaces settled by [ADR-078](../ADR/ADR-078-the-smoked-crucible-client-look.md) on 2026-10-13; the match HUD's treatment follows its slice);
 - whether to adopt Common UI, and whether to stage a larger UMG migration from C++ widget-tree assembly;
 - hardware/spec matrix and shipping frame-time requirements beyond the existing author-PC first pass;
 - any default rendering feature/profile changes with material architecture or performance implications;

@@ -102,6 +102,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("DenseFogColor"), DenseFogColor },
 		{ TEXT("FogOfWarColor"), FogOfWarColor },
 		{ TEXT("WarningColor"), WarningColor },
+		{ TEXT("TooltipHarmColor"), TooltipHarmColor },
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
 		{ TEXT("EchoStrainColor"), EchoStrainColor },
@@ -252,6 +253,22 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		TEXT("the kill feed needs rows, a time to show and a face size, and the announcement a time and a size."));
 	Require(RankUpPulseSeconds > 0.0f && RankUpPulseFloor >= 0.0f && RankUpPulseFloor < 1.0f, TEXT("RankUpPulseSeconds"),
 		TEXT("a pulse needs a period above 0 and a floor below whole."));
+	// The tooltip's header and facts, the stats panel and the health bar's ticks (ADR-080 §2-§4).
+	Require(TooltipIconSize >= 1.0f && TooltipLabelWidth >= 1.0f, TEXT("TooltipIconSize"), TEXT("the tooltip's icon and label column must be at least 1."));
+	Require(StatsPanelWidth >= 1.0f && StatsRowHeight >= 1.0f, TEXT("StatsPanelWidth"), TEXT("the stats panel needs a width and a row height of at least 1."));
+	Require(HealthTickAmount >= 1.0f, TEXT("HealthTickAmount"), TEXT("must be at least 1."));
+	// The deck's tiles and the stats panel's icons (ADR-082 §4).
+	Require(TileChamfer >= 0.0f && TileReadyTopColor.A > 0.0f && TileReadyBottomColor.A > 0.0f && TileIdleColor.A > 0.0f && TileDimTint.A > 0.0f && TileCostColor.A > 0.0f,
+		TEXT("TileChamfer"), TEXT("a tile's cut must not be negative and its colours must show."));
+	Require(!StatColors.IsEmpty(), TEXT("StatColors"), TEXT("each stat needs its icon's colour."));
+	// How the HUD moves (ADR-082): every curve a curve, and every motion a length.
+	Require(MotionSnap.IsValid() && MotionSmear.IsValid() && MotionSettle.IsValid(), TEXT("MotionSnap"), TEXT("each curve's control points' times must lie in 0 to 1."));
+	Require(MotionPanelSeconds > 0.0f && MotionBurstSeconds > 0.0f && MotionFlashSeconds > 0.0f && MotionCountSeconds > 0.0f && MotionFeedSeconds > 0.0f
+			&& MotionBannerSeconds > 0.0f && MotionGlintSeconds > 0.0f && MotionPopSeconds > 0.0f && MotionTrailDrainSeconds > 0.0f,
+		TEXT("MotionPanelSeconds"), TEXT("every motion must run above 0 seconds."));
+	Require(MotionTrailHoldSeconds >= 0.0f && MotionPanelRise >= 0.0f && MotionFeedSlide >= 0.0f, TEXT("MotionTrailHoldSeconds"), TEXT("must not be negative."));
+	Require(MotionBurstRadius >= 1.0f && MotionPopScale >= 1.0f, TEXT("MotionBurstRadius"), TEXT("a burst reaches at least 1 and a number starts at least its size."));
+	Require(MotionHotColor.A > 0.0f && MotionTrailColor.A > 0.0f, TEXT("MotionHotColor"), TEXT("the white-hot and the trail must show."));
 	Require(CombatTextScale > 0.0f, TEXT("CombatTextScale"), TEXT("must be above 0."));
 	Require(CombatTextCritScale >= 1.0f, TEXT("CombatTextCritScale"), TEXT("must be at least 1."));
 	Require(TelegraphLift >= 0.0f, TEXT("TelegraphLift"), TEXT("must not be negative."));
