@@ -137,6 +137,8 @@ public:
 	 */
 	bool IsFriendsCollapsed() const { return bFriendsCollapsed; }
 	bool IsPartyCollapsed() const { return bPartyCollapsed; }
+	/** Whether the party panel is still easing between open and put away (ADR-083 §6); never under Reduce UI Animation. */
+	bool IsPartyMoving() const;
 	void SetFriendsCollapsed(bool bCollapsed);
 	void SetPartyCollapsed(bool bCollapsed);
 
@@ -313,6 +315,8 @@ private:
 	UWidget* BuildOpenPlace();
 	/** "Party · 2/5", or "Party · 2" when the backend does not say how many it may hold. */
 	static FText PartySizeText(const FVeyraPartyModel& Model);
+	/** Adds the party's panel or bar to Parent in the box that eases its height as it opens or closes (ADR-083 §6). */
+	void PlacePartyPanel(UWidget& Panel, UPanelWidget& Parent);
 	/** Centres Widget, already in a horizontal box, on that box's line. */
 	static void CentreInLine(UWidget& Widget);
 	/** Adds Widget to Line, centred on it. */
@@ -567,6 +571,11 @@ private:
 	bool bPartyCollapsed = false;
 	double FriendsMovedAt = 0.0;
 	float FriendsFrom = 0.0f;
+	/** The party panel's height, which eases from the height it had as it opens or closes (ADR-083 §6). */
+	UPROPERTY(Transient)
+	TObjectPtr<USizeBox> PartyBox;
+	double PartyMovedAt = 0.0;
+	float PartyFrom = 0.0f;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UVeyraShellButton>> Buttons;

@@ -24,6 +24,7 @@
 #include "Components/ScaleBox.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
+#include "Components/SizeBoxSlot.h"
 #include "Components/Spacer.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -267,6 +268,24 @@ void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 		const UVeyraShellStyleSettings& Style = ShellStyle();
 		FriendsBox->SetWidthOverride(PanelSize(FriendsMovedAt, FriendsFrom, bFriendsCollapsed ? Style.FriendsCollapsedWidth : Style.FriendsPanelWidth));
 	}
+	if (PartyBox)
+	{
+		// Toward the height its new panel or bar asks for, then free to follow it.
+		const UWidget* Panel = PartyBox->GetContent();
+		if (IsPartyMoving())
+		{
+			// Eased only from a height it was laid out at.
+			if (const float To = Panel ? static_cast<float>(Panel->GetDesiredSize().Y) : 0.0f; To > 0.0f && PartyFrom > 0.0f)
+			{
+				PartyBox->SetHeightOverride(PanelSize(PartyMovedAt, PartyFrom, To));
+			}
+		}
+		else if (PartyMovedAt > 0.0)
+		{
+			PartyBox->ClearHeightOverride();
+			PartyMovedAt = 0.0;
+		}
+	}
 }
 
 float UVeyraShellScreen::PanelSize(double MovedAt, float From, float To) const
@@ -279,6 +298,13 @@ float UVeyraShellScreen::PanelSize(double MovedAt, float From, float To) const
 	const float Through = FMath::Clamp(static_cast<float>((FPlatformTime::Seconds() - MovedAt) / Seconds), 0.0f, 1.0f);
 	// Eased out: quick to start, settling at its size.
 	return FMath::InterpEaseOut(From, To, Through, 3.0f);
+}
+
+bool UVeyraShellScreen::IsPartyMoving() const
+{
+	const float Seconds = ShellStyle().PanelCollapseSeconds;
+	return PartyBox && PartyMovedAt > 0.0 && Seconds > 0.0f && !VeyraShellLook::Current().bStillAnimation
+		&& FPlatformTime::Seconds() - PartyMovedAt < Seconds;
 }
 
 void UVeyraShellScreen::SetFriendsCollapsed(bool bCollapsed)
@@ -305,6 +331,9 @@ void UVeyraShellScreen::SetPartyCollapsed(bool bCollapsed)
 	{
 		return;
 	}
+	// From the height it has now, even partway through a move.
+	PartyFrom = PartyBox ? static_cast<float>(PartyBox->GetDesiredSize().Y) : 0.0f;
+	PartyMovedAt = FPlatformTime::Seconds();
 	bPartyCollapsed = bCollapsed;
 	if (UVeyraUserSettings* Device = UVeyraUserSettings::Get())
 	{
@@ -516,6 +545,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	PickBars.Reset();
 	Countdown = nullptr;
 	QueueStatus = nullptr;
+	PartyBox = nullptr;
 	PageBody = nullptr;
 	Shown = VeyraShellModels::ScreenFor(Snapshot.State);
 	// Settings belong to the shell, the lobby and the results, never to champion select, Match Found or
@@ -1147,8 +1177,27 @@ void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelW
 		}
 		Rows->AddChildToVerticalBox(Actions)->SetPadding(FMargin(0.0f, Style.Spacing / 2.0f, 0.0f, 0.0f));
 	}
-	AddGap(*WidgetTree, Parent, Style.Spacing);
-	Parent.AddChild(Bar);
+	PlacePartyPanel(*Bar, Parent);
+}
+
+void UVeyraShellScreen::PlacePartyPanel(UWidget& Panel, UPanelWidget& Parent)
+{
+	USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Box->SetClipping(EWidgetClipping::ClipToBounds);
+	Box->AddChild(&Panel);
+	if (USizeBoxSlot* PanelSlot = Cast<USizeBoxSlot>(Panel.Slot))
+	{
+		// Settled on the page's bottom edge, so it rises as it opens and sinks as it closes.
+		PanelSlot->SetVerticalAlignment(VAlign_Bottom);
+	}
+	PartyBox = Box;
+	if (IsPartyMoving() && PartyFrom > 0.0f)
+	{
+		// A rebuild partway through a move starts where the move is.
+		Box->SetHeightOverride(PartyFrom);
+	}
+	AddGap(*WidgetTree, Parent, ShellStyle().Spacing);
+	Parent.AddChild(Box);
 }
 
 UWidget* UVeyraShellScreen::BuildPartyPlace(const FVeyraPartyModel& Model, const FVeyraPartyMemberModel& Card)
@@ -1326,8 +1375,7 @@ void UVeyraShellScreen::BuildPartyBar(const FVeyraPartyModel& Model, UPanelWidge
 	UVeyraShellButton* Open = AddNamedButton(*Row, EVeyraShellButtonKind::Quiet, OpenPartyLabel(), LOCTEXT("OpenPartyShown", "›"), [this] { SetPartyCollapsed(false); });
 	TurnLabel(*Open, -90.0f);
 	CentreInLine(*Open);
-	AddGap(*WidgetTree, Parent, Style.Spacing);
-	Parent.AddChild(Bar);
+	PlacePartyPanel(*Bar, Parent);
 }
 
 FText UVeyraShellScreen::CollapseFriendsLabel()

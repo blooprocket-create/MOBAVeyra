@@ -13,6 +13,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ScopeExit.h"
 #include "Settings/VeyraDisplayApplier.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Settings/VeyraSettingsModels.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraShellButton.h"
@@ -493,6 +494,27 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, MatchFoundBody(TEXT("pending"), TEXT("pending"), 0))));
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::MatchFound && !Screen->IsSettingsOpen()));
 			ASSERT_THAT(IsFalse(OffersSettings(), TEXT("never in Match Found")));
+		}
+
+		TEST_METHOD(ThePartyPanelEasesBetweenOpenAndPutAwayUnlessStill)
+		{
+			// As the friends panel does (ADR-083 §6): from the height it had to its new one, over PanelCollapseSeconds.
+			ASSERT_THAT(IsTrue(Rig.ReachQueue()));
+			ShowScreen(Rig);
+			// The panel as this test found it, on this device, for the tests after it.
+			ON_SCOPE_EXIT { Screen->SetPartyCollapsed(false); };
+			Screen->SetPartyCollapsed(false);
+			Screen->SetPartyCollapsed(true);
+			ASSERT_THAT(IsTrue(Screen->IsPartyMoving(), TEXT("it eases to its bar")));
+			Screen->SetPartyCollapsed(false);
+			ASSERT_THAT(IsTrue(Screen->IsPartyMoving(), TEXT("and back")));
+			// Reduce UI Animation, as the player sets it, holds it still: it is at its new size at once. The look is the
+			// client's: the next test starts from the standard one.
+			const FVeyraScopedShellLook Restore{ FVeyraShellLook() };
+			Screen->BindSettings(Settings->Store());
+			Settings->Store().Set(VeyraInterfacePreferences::ReduceUiAnimation(), VeyraSettings::On());
+			Screen->SetPartyCollapsed(true);
+			ASSERT_THAT(IsFalse(Screen->IsPartyMoving()));
 		}
 
 		TEST_METHOD(TheFriendsAndPartyPanelsPutAwayComeBackAndAreRemembered)
