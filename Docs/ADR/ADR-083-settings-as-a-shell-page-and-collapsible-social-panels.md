@@ -35,8 +35,9 @@
 - **A range** is a slider with its value, between its step buttons.
 - **A binding** is a key cap.
 - **A group of choices that share one set of options** is drawn as one grid: settings down, options across.
-- A changed setting shows a mark and its Reset beside it.
+- A changed setting shows a mark and its Reset beside it. Every row, and a grid's heading, keeps a place of `SettingsResetWidth` for Reset whether or not it shows, so no control moves when it appears.
 - Every button keeps the name tests and scripts press, whatever control it sits in.
+- The page builds its categories, list and About afresh on each rebuild, keeping the list's scroll. A kept widget moved into a fresh container came back undrawn and took no click, which 0.2.9 shipped. The Settings smoke therefore clicks its categories with a real mouse, through Slate, not by pressing buttons in code.
 
 ### 4. The About panel
 

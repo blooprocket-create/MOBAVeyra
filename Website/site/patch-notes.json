@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "notes": [
     {
+      "version": "0.2.10",
+      "date": "2026-10-14",
+      "title": "Settings fix",
+      "changes": [
+        "Clicking a category in Settings, such as Interface or Audio, opens it again. In 0.2.9 the categories ignored clicks."
+      ]
+    },
+    {
       "version": "0.2.9",
       "date": "2026-10-14",
       "title": "Settings and your party",

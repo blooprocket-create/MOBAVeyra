@@ -520,6 +520,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float SettingsRowHeight = 0.0f;
 
+	/** The place at the end of each settings row for its Reset, held empty where Reset does not show (ADR-083 §3). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsResetWidth = 0.0f;
+
 	/**
 	 * The friends and party panels put away (ADR-083 §6): the friends panel's strip and the party's bar, in slate units, and
 	 * how long either takes to open or close, in seconds (none under Reduce UI Animation).
