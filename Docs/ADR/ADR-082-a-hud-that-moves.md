@@ -145,7 +145,7 @@ At the author's request (2026-10-13), the profile banner is always a region's pa
 - **Catalog:** the backend's background entries are `region_<id>`, such as `region_iron_march`. Each is named by its `profile_background` row.
 - **Banner:** it shows the chosen region whole at its own proportions (`ProfileBackgroundAspect`), scaled to cover the banner and cut at its edges, never stretched. The default background, or one no longer offered, shows `ProfileDefaultRegion`.
 - **Picker:** each tile shows the part of its panorama around `ProfileBackgroundFocus`, where the landmarks stand.
-- **Release:** `Backend/config/local.json` lists the regions now. `public.json`, which the hosted backend reads, changes in the release that ships a client able to draw them; until then, players on an older client would see unnamed, unpainted choices.
+- **Release:** `Backend/config/local.json` and `public.json`, which the hosted backend reads, both list the regions, from 0.2.8, the first client able to draw them; a test keeps the two catalogs alike. A saved Vanguard background no longer offered reads as the default (the backend's `Settings`), so it saves again cleanly.
 
 ### 11. Match History, the starter choice, champion select's roster and the match menu
 

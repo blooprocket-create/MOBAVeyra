@@ -326,6 +326,30 @@ func TestCommittedPublicConfigLoadsWithoutDevelopmentRoutes(t *testing.T) {
 	}
 }
 
+// The hosted players' catalog offers the profile backgrounds the client paints,
+// the region panoramas, as the local one does (ADR-082 §10): a background only
+// one of them lists would be offered to some players and not others.
+func TestCommittedConfigsOfferTheSameBackgrounds(t *testing.T) {
+	_, file, _, _ := runtime.Caller(0)
+	dir := filepath.Join(filepath.Dir(file), "..", "..", "config")
+	public, err := Load(filepath.Join(dir, "public.json"))
+	if err != nil {
+		t.Fatalf("Load public: %v", err)
+	}
+	local, err := Load(filepath.Join(dir, "local.json"))
+	if err != nil {
+		t.Fatalf("Load local: %v", err)
+	}
+	if !slices.Equal(public.Profile.Backgrounds, local.Profile.Backgrounds) {
+		t.Fatalf("public backgrounds %v, local %v", public.Profile.Backgrounds, local.Profile.Backgrounds)
+	}
+	for _, background := range public.Profile.Backgrounds {
+		if background != public.Profile.DefaultBackground && !strings.HasPrefix(background, "region_") {
+			t.Fatalf("background %q is not a region panorama", background)
+		}
+	}
+}
+
 // No side the committed config lets the backend fill may be larger than the
 // match server's own cap, Game/Tuning/Match.json teams.maxTeamSize: the server
 // refuses such an assignment (UVeyraMatchHostSubsystem::SetAssignment), and
