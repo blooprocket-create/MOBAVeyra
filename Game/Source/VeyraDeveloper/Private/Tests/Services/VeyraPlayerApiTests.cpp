@@ -339,6 +339,25 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseParty(Party(TEXT("casual_select"), TEXT("idle"), Negative, TEXT("0")), Read, Problem)));
 		}
 
+		TEST_METHOD(ReadsHowManyThePartyMayHold)
+		{
+			// ADR-083 §6: the limit the open places come from; absent from an older backend, read as unknown.
+			TOptional<VeyraBackendProtocol::FParty> Read;
+			FString Problem;
+			const FString Members = Member(AccountId, TEXT("DevOne"), true, true) + TEXT(",") + Member(OtherAccountId, TEXT("DevTwo"), false, false);
+			const auto WithLimit = [&Members](const TCHAR* Limit) {
+				return Party(TEXT("casual_select"), TEXT("idle"), Members).Replace(TEXT("\"members\""), *FString::Printf(TEXT("\"maxSize\":%s,\"members\""), Limit));
+			};
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(WithLimit(TEXT("5")), Read, Problem), Problem));
+			ASSERT_THAT(AreEqual(Read->MaxSize, 5));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT("casual_select"), TEXT("idle"), Members), Read, Problem), Problem));
+			ASSERT_THAT(AreEqual(Read->MaxSize, 0));
+			for (const TCHAR* Wrong : { TEXT("1"), TEXT("2.5"), TEXT("-5"), TEXT("\"5\"") })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseParty(WithLimit(Wrong), Read, Problem), Wrong));
+			}
+		}
+
 		TEST_METHOD(ReadsAParty)
 		{
 			TOptional<VeyraBackendProtocol::FParty> Read;

@@ -1068,6 +1068,12 @@ bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutPr
 		OutProblem = TEXT("the party does not have exactly one leader");
 		return false;
 	}
+	// Absent from a backend older than the open places (ADR-083 §6); present, it holds every member.
+	if (Object->HasField(TEXT("maxSize")) && (!CountField(*Object, TEXT("maxSize"), Party.MaxSize) || Party.MaxSize < Party.Members.Num()))
+	{
+		OutProblem = TEXT("the party's size limit is not a whole count that holds its members");
+		return false;
+	}
 	OutParty = MoveTemp(Party);
 	return true;
 }

@@ -46,8 +46,11 @@ type partyJSON struct {
 	Status string `json:"status"`
 	// QueuedSeconds is how long the party has been in matchmaking, by the
 	// server's clock; 0 while idle (UX-2: elapsed queue time).
-	QueuedSeconds float64      `json:"queuedSeconds"`
-	Members       []memberJSON `json:"members"`
+	QueuedSeconds float64 `json:"queuedSeconds"`
+	// MaxSize is how many members a party may hold, so a client shows its
+	// open places without a copy of the limit (ADR-083 §6).
+	MaxSize int          `json:"maxSize"`
+	Members []memberJSON `json:"members"`
 }
 
 type inviteJSON struct {
@@ -70,7 +73,7 @@ func (s *Server) partyJSON(ctx context.Context, p party.Party) (partyJSON, error
 	if err != nil {
 		return partyJSON{}, err
 	}
-	out := partyJSON{ID: p.ID, Mode: p.Mode, Privacy: string(p.Privacy), Status: string(p.Status), QueuedSeconds: s.Party.QueuedFor(p).Seconds()}
+	out := partyJSON{ID: p.ID, Mode: p.Mode, Privacy: string(p.Privacy), Status: string(p.Status), QueuedSeconds: s.Party.QueuedFor(p).Seconds(), MaxSize: s.Party.MaxSize()}
 	for _, m := range p.Members {
 		out.Members = append(out.Members, memberJSON{
 			AccountID:         m.AccountID,

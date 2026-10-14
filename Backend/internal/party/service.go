@@ -197,6 +197,11 @@ func (s *Service) PartiesOf(ctx context.Context, accountIDs []string) (map[strin
 	return s.store.PartiesOf(ctx, accountIDs)
 }
 
+// MaxSize returns how many members a party may hold (party.maxSize).
+func (s *Service) MaxSize() int {
+	return s.settings.Rules.MaxSize
+}
+
 // QueuedFor returns how long the party has been in matchmaking, by the
 // service's clock; zero while it is idle.
 func (s *Service) QueuedFor(p Party) time.Duration {

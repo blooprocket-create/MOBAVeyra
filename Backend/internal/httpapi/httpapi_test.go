@@ -210,6 +210,10 @@ func TestSocialAndPartyOverHTTP(t *testing.T) {
 	call(t, srv, "PUT", "/v1/party/privacy", one, map[string]string{"privacy": "public"})
 	_, friends := call(t, srv, "GET", "/v1/friends", two, nil)
 	_, oneParty := call(t, srv, "GET", "/v1/party", one, nil)
+	// The party says how many it may hold, the configured limit (ADR-083 §6).
+	if oneParty["party"].(map[string]any)["maxSize"] != float64(5) {
+		t.Fatalf("one's party size limit: %v", oneParty)
+	}
 	if friends["joinableParties"].(map[string]any)[oneID] != oneParty["party"].(map[string]any)["id"] {
 		t.Fatalf("one's public party: %v", friends)
 	}
