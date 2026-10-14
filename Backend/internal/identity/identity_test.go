@@ -61,6 +61,29 @@ func TestFullHandoff(t *testing.T) {
 	}
 }
 
+// A build older than the minimum gets no launch code, so it never meets
+// catalogs it cannot draw; the minimum and later builds do (ADR-082 §10).
+func TestLaunchCodeRefusesABuildOlderThanTheMinimum(t *testing.T) {
+	settings := testSettings
+	settings.MinimumBuildVersion = "0.2.8"
+	svc, _ := newTestService(t, settings)
+	ctx := context.Background()
+	login, _, err := svc.DevLogin(ctx, "DevOne")
+	if err != nil {
+		t.Fatalf("DevLogin: %v", err)
+	}
+	for _, old := range []string{"0.2.7", "0.1.9", "0.2", "dev-1"} {
+		if _, err := svc.IssueLaunchCode(ctx, login.Token, old); !errors.Is(err, ErrBuildTooOld) {
+			t.Fatalf("build %s: want ErrBuildTooOld, got %v", old, err)
+		}
+	}
+	for _, current := range []string{"0.2.8", "0.2.10", "0.3.0", "1.0", "0.2.8+hotfix"} {
+		if _, err := svc.IssueLaunchCode(ctx, login.Token, current); err != nil {
+			t.Fatalf("build %s: %v", current, err)
+		}
+	}
+}
+
 func TestLaunchCodeIsSingleUse(t *testing.T) {
 	svc, _ := newTestService(t, testSettings)
 	code := launchCode(t, svc, "dev-1")
