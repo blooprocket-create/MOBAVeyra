@@ -62,6 +62,10 @@ public:
 	};
 
 	ELayout GetLayout() const { return Layout; }
+	/** How far the settings list is scrolled, in slate units: a click on a setting keeps it (ADR-083 §5). */
+	float GetListScrollOffset() const;
+	/** The settings list's scroll, for a script to scroll as the player's wheel would. */
+	UWidget* GetListWidget() const;
 
 	/** Lays out as though it were Width wide, as its tick does from its geometry. For tests and scripts. */
 	void ApplyWidth(float Width);
@@ -225,8 +229,16 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UScrollBox> NavScroll;
 
-	/** Builds the categories, the list and About afresh, the list scrolled as far as the one before it (see BuildBody). */
-	void MakeBodyWidgets();
+	/** Builds the categories, the list and About afresh, the list scrolled to Scrolled (see BuildBody). */
+	void MakeBodyWidgets(float Scrolled);
+
+	/**
+	 * The list a rebuild keeps scrolled where it was (ADR-083 §5): the category and search it showed, and how far it was scrolled,
+	 * set again once the new list is laid out, since a scroll set before its rows are measured comes back at the top.
+	 */
+	TOptional<EVeyraSettingCategory> BuiltCategory;
+	FString BuiltSearch;
+	float PendingScroll = 0.0f;
 
 	/**
 	 * Ends Line with the row's place for Reset (ADR-083 §3): the same width on every row, holding Reset only where it would

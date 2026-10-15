@@ -318,6 +318,9 @@ private:
 	int32 SettingsStep = 0;
 	/** Settings: the ticks spent waiting for the next category to be drawn after a click. */
 	int32 SettingsDrawWait = 0;
+	/** Settings: how far the list was scrolled before a setting near its end was clicked, and that setting's switch. */
+	float SettingsScrolled = 0.0f;
+	FString SettingsLowLabel;
 
 	/**
 	 * Clicks the shell's button labelled Label, the Occurrence-th where several share it. False, having

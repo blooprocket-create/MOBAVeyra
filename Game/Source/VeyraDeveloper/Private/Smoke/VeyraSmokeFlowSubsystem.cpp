@@ -50,6 +50,7 @@
 #include "Shop/VeyraShopScreen.h"
 #include "Settings/VeyraSettingsModels.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Components/ScrollBox.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Text/VeyraContentText.h"
 #endif
@@ -2981,6 +2982,12 @@ void UVeyraSmokeFlowSubsystem::TickSettings()
 				SettingsStep = 2;
 				return;
 			}
+			if (SettingsLowLabel.IsEmpty())
+			{
+				// Interface shows: scroll it with the wheel, then click a setting near its end.
+				SettingsStep = 110;
+				return;
+			}
 		}
 		const FText Name = VeyraSettingsModels::CategoryName(Wanted);
 		const UVeyraShellButton* Category = Settings->FindButton(Name);
@@ -3000,6 +3007,94 @@ void UVeyraSmokeFlowSubsystem::TickSettings()
 			// The page took the last click but never drew what it rebuilt, so the player could click nothing more.
 			Finish(false, FString::Printf(TEXT("after a click, Settings never drew its \"%s\" category to click"), *Name.ToString()));
 		}
+		return;
+	}
+	case 110:
+	case 111:
+	case 112:
+	case 113:
+	{
+		// A setting low in a scrolled list, clicked with the mouse, keeps the list where it was; clicked again it is put back.
+		if (!Settings)
+		{
+			Finish(false, TEXT("Settings closed while its list was being scrolled"));
+			return;
+		}
+		// The list's last switch, which only shows once the list is scrolled down; the screen's own rows, not a copy.
+		const FVeyraSettingRowModel* Low = nullptr;
+		for (const FVeyraSettingRowModel& Each : Settings->GetModel().Rows)
+		{
+			Low = Each.Kind == EVeyraSettingKind::Toggle && !Each.bLocked ? &Each : Low;
+		}
+		const FVeyraSettingOptionModel* Other = Low ? Low->Options.FindByPredicate([](const FVeyraSettingOptionModel& Each) { return !Each.bSelected; }) : nullptr;
+		UVeyraShellButton* Switch = Other ? Settings->FindButton(UVeyraSettingsScreen::OptionLabel(*Low, *Other)) : nullptr;
+		if (!Switch)
+		{
+			Finish(false, TEXT("the Interface settings show no switch to click"));
+			return;
+		}
+		if (SettingsStep == 110)
+		{
+			// Scrolled to its end as the player's wheel would; what is checked is that a click keeps it there.
+			if (UScrollBox* List = Cast<UScrollBox>(Settings->GetListWidget()))
+			{
+				List->ScrollToEnd();
+				SettingsStep = 111;
+				SettingsDrawWait = 0;
+			}
+			return;
+		}
+		if (SettingsStep == 111)
+		{
+			SettingsScrolled = Settings->GetListScrollOffset();
+			if (SettingsScrolled <= 0.0f)
+			{
+				if (++SettingsDrawWait > SettingsDrawTicks)
+				{
+					Finish(false, TEXT("the Interface settings list did not scroll to its end"));
+				}
+				return;
+			}
+			if (ClickWithMouse(*Switch))
+			{
+				SettingsLowLabel = Switch->GetLabel().ToString();
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: scrolled the Interface settings %.0f down and clicked \"%s\" with the mouse."), SettingsScrolled, *SettingsLowLabel);
+				SettingsStep = 112;
+				SettingsDrawWait = 0;
+			}
+			return;
+		}
+		// The click must have changed the setting, so the list was rebuilt: the switch offered is the other one after the first
+		// click and the clicked one again once it is put back. A missed click never gets past here.
+		const bool bChanged = Switch->GetLabel().ToString() != SettingsLowLabel;
+		if (bChanged != (SettingsStep == 112))
+		{
+			if (++SettingsDrawWait > SettingsDrawTicks)
+			{
+				Finish(false, FString::Printf(TEXT("a mouse click on \"%s\" low in the Settings list did not change it"), *SettingsLowLabel));
+			}
+			return;
+		}
+		// The list rebuilt by the click must be back where it was once it is laid out.
+		if (Settings->GetListScrollOffset() < SettingsScrolled / 2.0f)
+		{
+			if (++SettingsDrawWait > SettingsDrawTicks)
+			{
+				Finish(false, FString::Printf(TEXT("clicking \"%s\" low in the Settings list scrolled it back to the top"), *SettingsLowLabel));
+			}
+			return;
+		}
+		if (SettingsStep == 112)
+		{
+			if (ClickWithMouse(*Switch))
+			{
+				SettingsStep = 113;
+				SettingsDrawWait = 0;
+			}
+			return;
+		}
+		// Put back; on to Graphics & Display.
+		SettingsStep = 101;
 		return;
 	}
 	case 2:
