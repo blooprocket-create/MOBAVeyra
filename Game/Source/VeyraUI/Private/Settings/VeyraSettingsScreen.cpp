@@ -266,7 +266,7 @@ bool UVeyraSettingsScreen::Initialize()
 		// The categories, the settings and the About panel, laid out for the width given (ADR-083 §5).
 		BodyHost = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		VeyraSettingsLayout::AddFilling(*Frame, *BodyHost);
-		MakeBodyWidgets();
+		MakeBodyWidgets(0.0f);
 
 		VeyraShellStyle::AddSpaced(*Frame, *VeyraShellStyle::MakeRule(*WidgetTree));
 		Footer = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -412,6 +412,12 @@ void UVeyraSettingsScreen::NativeTick(const FGeometry& MyGeometry, float InDelta
 	{
 			ApplyWidth(Width);
 		return;
+	}
+	// The kept scroll, set again once the rebuilt list has its rows measured.
+	if (PendingScroll > 0.0f && ListScroll && ListScroll->GetCachedGeometry().GetLocalSize().Y > 0.0f)
+	{
+		ListScroll->SetScrollOffset(PendingScroll);
+		PendingScroll = 0.0f;
 	}
 	// About follows the row under the pointer, or the one keyboard focus is in (ADR-083 §4).
 	for (const FRowFrame& Each : RowFrames)
@@ -656,13 +662,23 @@ void UVeyraSettingsScreen::AddResetPlace(UHorizontalBox& Line, const FVeyraSetti
 	Line.AddChildToHorizontalBox(Place)->SetVerticalAlignment(VAlign_Center);
 }
 
-void UVeyraSettingsScreen::MakeBodyWidgets()
+UWidget* UVeyraSettingsScreen::GetListWidget() const
 {
-	const float Scrolled = ListScroll ? ListScroll->GetScrollOffset() : 0.0f;
+	return ListScroll.Get();
+}
+
+float UVeyraSettingsScreen::GetListScrollOffset() const
+{
+	return ListScroll ? ListScroll->GetScrollOffset() : 0.0f;
+}
+
+void UVeyraSettingsScreen::MakeBodyWidgets(float Scrolled)
+{
 	Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	ListScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
 	ListScroll->AddChild(Rows);
 	ListScroll->SetScrollOffset(Scrolled);
+	PendingScroll = Scrolled;
 	Nav = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	NavScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
 	NavScroll->AddChild(Nav);
@@ -674,10 +690,16 @@ void UVeyraSettingsScreen::BuildBody()
 	const UVeyraShellStyleSettings& Style = VeyraSettingsLayout::Style();
 	// Every widget of the body is made afresh, none carried over from the last build into new containers: a widget moved
 	// out of a released container can come back as its old, detached Slate, which is never drawn and takes no click (ADR-083 §5).
+	// The same list rebuilt, as after a click on one of its settings, stays where the player scrolled it; another category or
+	// search starts at the top. Read before the old list is let go, which forgets it.
+	const bool bSameList = BuiltCategory.IsSet() && BuiltCategory.GetValue() == Model.Category && BuiltSearch == Search;
+	const float Scrolled = bSameList ? GetListScrollOffset() : 0.0f;
+	BuiltCategory = Model.Category;
+	BuiltSearch = Search;
 	BodyHost->ClearChildren();
 	RowFrames.Reset();
 	GroupHeadings.Reset();
-	MakeBodyWidgets();
+	MakeBodyWidgets(Scrolled);
 
 	// The rows first, so the categories' group entries can find their headings.
 	if (!Model.UnboundEssentials.IsEmpty() && (Model.bSearching || Model.Category == EVeyraSettingCategory::Controls))
