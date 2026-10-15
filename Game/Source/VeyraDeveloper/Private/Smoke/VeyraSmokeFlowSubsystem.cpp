@@ -3051,7 +3051,7 @@ void UVeyraSmokeFlowSubsystem::TickSettings()
 			{
 				if (++SettingsDrawWait > SettingsDrawTicks)
 				{
-					Finish(false, TEXT("the mouse wheel did not scroll the Interface settings"));
+					Finish(false, TEXT("the Interface settings list did not scroll to its end"));
 				}
 				return;
 			}
@@ -3061,6 +3061,17 @@ void UVeyraSmokeFlowSubsystem::TickSettings()
 				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: scrolled the Interface settings %.0f down and clicked \"%s\" with the mouse."), SettingsScrolled, *SettingsLowLabel);
 				SettingsStep = 112;
 				SettingsDrawWait = 0;
+			}
+			return;
+		}
+		// The click must have changed the setting, so the list was rebuilt: the switch offered is the other one after the first
+		// click and the clicked one again once it is put back. A missed click never gets past here.
+		const bool bChanged = Switch->GetLabel().ToString() != SettingsLowLabel;
+		if (bChanged != (SettingsStep == 112))
+		{
+			if (++SettingsDrawWait > SettingsDrawTicks)
+			{
+				Finish(false, FString::Printf(TEXT("a mouse click on \"%s\" low in the Settings list did not change it"), *SettingsLowLabel));
 			}
 			return;
 		}

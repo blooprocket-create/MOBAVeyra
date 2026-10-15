@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "notes": [
     {
+      "version": "0.2.11",
+      "date": "2026-10-15",
+      "title": "Settings scroll fix",
+      "changes": [
+        "Changing a setting keeps the Settings list where you scrolled it. In 0.2.10 it jumped back to the top, so settings further down were hard to change."
+      ]
+    },
+    {
       "version": "0.2.10",
       "date": "2026-10-14",
       "title": "Settings fix",
